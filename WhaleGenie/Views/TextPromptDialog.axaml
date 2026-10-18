@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="230"
@@ -70,8 +72,7 @@
 
             <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
-                      Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
             </Button>
         </Grid>
 

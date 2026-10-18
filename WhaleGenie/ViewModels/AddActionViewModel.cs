@@ -120,24 +120,49 @@ public partial class AddActionViewModel : ViewModelBase
                      (OtherPage, "Add.Page.Other"),
                  })
         {
-            Pages.Add(new ActionPageViewModel { Key = key, Title = Strings.Get(title) });
+            Pages.Add(new ActionPageViewModel { Key = key, TitleKey = title });
         }
 
-        Categories =
-        [
-            new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"), CategoryIcon(null), CategoryAccent(null)),
-            .. DockOrder.Select(category =>
-            {
-                var label = Strings.Get($"Add.Category.{category}");
-                return new ActionCategoryChoice(category, label,
-                    Strings.Get($"Add.Category.{category}.short", label), CategoryIcon(category),
-                    CategoryAccent(category));
-            }),
-        ];
+        Categories = BuildCategories();
         SelectedCategory = Categories[0];
 
         Page = Pages[0];
         RebuildActions();
+    }
+
+    /// <summary>
+    /// Re-reads the dock, the pages and the action cards in the chosen language. The cards are
+    /// rebuilt because their names come from the catalogue; the selected action is kept.
+    /// </summary>
+    public override void RefreshLanguage()
+    {
+        var selected = SelectedCategory?.Value;
+        Categories = BuildCategories();
+        OnPropertyChanged(nameof(Categories));
+        SelectedCategory = Categories.FirstOrDefault(choice => choice.Value == selected) ?? Categories[0];
+
+        foreach (var page in Pages)
+        {
+            page.RefreshLanguage();
+        }
+
+        base.RefreshLanguage();
+        RebuildActions();
+
+        foreach (var parameter in Parameters)
+        {
+            parameter.RefreshLanguage();
+        }
+
+        foreach (var result in ReturnsRows)
+        {
+            result.RefreshLanguage();
+        }
+
+        MetaTimeout.RefreshLanguage();
+        MetaRetryDelay.RefreshLanguage();
+        MetaDelayBefore.RefreshLanguage();
+        MetaDelayAfter.RefreshLanguage();
     }
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
@@ -202,7 +227,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>True when the chosen category and search leave nothing to click.</summary>
     public bool HasNoVisibleAction => VisibleActions.Count == 0;
     /// <summary>The categories the vertical dock offers, with "all" first.</summary>
-    public IReadOnlyList<ActionCategoryChoice> Categories { get; }
+    public IReadOnlyList<ActionCategoryChoice> Categories { get; private set; }
 
     [ObservableProperty]
     public partial ActionCategoryChoice? SelectedCategory { get; set; }
@@ -272,23 +297,9 @@ public partial class AddActionViewModel : ViewModelBase
         }));
     /// <summary>The line icon the dock shows over a category's short name.</summary>
     private static Geometry CategoryIcon(ActionCategory? category)
-        => Geometry.Parse(category switch
-        {
-            null => "M3,3 H10 V10 H3 Z M14,3 H21 V10 H14 Z M3,14 H10 V21 H3 Z M14,14 H21 V21 H14 Z",
-            ActionCategory.Control => "M4,5 H20 M4,12 H14 M4,19 H20 M16,9 L20,12 L16,15",
-            ActionCategory.File => "M6,3 H15 L20,8 V21 H6 Z M15,3 V8 H20",
-            ActionCategory.Data => "M4,6 C4,3 20,3 20,6 V18 C20,21 4,21 4,18 Z M4,6 C4,9 20,9 20,6 M4,12 C4,15 20,15 20,12",
-            ActionCategory.Clipboard => "M8,5 H16 V21 H8 Z M10,5 V3 H14 V5 M11,10 H13 M11,14 H13 M11,18 H13",
-            ActionCategory.Process => "M4,5 H20 V19 H4 Z M8,9 L11,12 L8,15 M13,15 H17",
-            ActionCategory.System => "M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,8 A4,4 0 1 0 12,16 A4,4 0 1 0 12,8",
-            ActionCategory.Input => "M3,6 H21 V18 H3 Z M6,10 H8 M10,10 H12 M14,10 H16 M17,10 H18 M6,14 H18",
-            ActionCategory.Vision => "M3,12 C6,7 18,7 21,12 C18,17 6,17 3,12 Z M12,9 A3,3 0 1 0 12,15 A3,3 0 1 0 12,9",
-            ActionCategory.Uia => "M4,4 H20 V20 H4 Z M9,8 H15 M9,12 H15 M9,16 H13",
-            ActionCategory.Browser => "M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M3,12 H21 M12,3 C8,7 8,17 12,21 M12,3 C16,7 16,17 12,21",
-            ActionCategory.Script => "M8,6 L3,12 L8,18 M16,6 L21,12 L16,18 M14,4 L10,20",
-            ActionCategory.Condition => "M6,4 V20 M6,8 H12 C15,8 15,8 15,11 V13 M6,16 H15 M12,11 L15,8 L18,11",
-            _ => "M4,4 H20 V20 H4 Z",
-        });
+        => category is { } value
+            ? ActionCatalog.IconFor(value) ?? AppIcons.GridFour
+            : AppIcons.GridFour;
     /// <summary>The dock order: the categories a macro reaches for first, then the rest.</summary>
     private static readonly ActionCategory[] DockOrder =
     [
@@ -305,6 +316,21 @@ public partial class AddActionViewModel : ViewModelBase
         ActionCategory.Clipboard,
         ActionCategory.System,
     ];
+
+    /// <summary>The dock's entries, named in the current interface language.</summary>
+    private static IReadOnlyList<ActionCategoryChoice> BuildCategories() =>
+    [
+        new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"),
+            CategoryIcon(null), CategoryAccent(null)),
+        .. DockOrder.Select(category =>
+        {
+            var label = Strings.Get($"Add.Category.{category}");
+            return new ActionCategoryChoice(category, label,
+                Strings.Get($"Add.Category.{category}.short", label), CategoryIcon(category),
+                CategoryAccent(category));
+        }),
+    ];
+
     /// <summary>Key of the group that holds the blocks, which is not a category either.</summary>
     private const string BlockGroup = "blocks";
 

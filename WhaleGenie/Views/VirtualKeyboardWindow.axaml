@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="520"
@@ -90,12 +92,11 @@
                      being read off, and putting it away leaves the add-action window as it was. -->
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
-                          Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>

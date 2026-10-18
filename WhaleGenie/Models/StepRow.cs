@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Media;
 using WhaleGenie.Localization;
@@ -24,13 +25,13 @@ public enum StepRowKind
 /// written with be read straight off the list and edited in place, instead of hiding inside the
 /// dialog of the block that holds it.
 /// </summary>
-public sealed class StepRow
+public sealed class StepRow : ILanguageAware
 {
-    /// <summary>Arrow on the fold button while the block is open.</summary>
-    private static readonly Geometry OpenIcon = StreamGeometry.Parse("M5,9 L12,15 L19,9");
+    public event PropertyChangedEventHandler? PropertyChanged;
 
-    /// <summary>Arrow on the fold button while the block is folded away.</summary>
-    private static readonly Geometry FoldedIcon = StreamGeometry.Parse("M9,5 L15,12 L9,19");
+    /// <summary>Re-reads the labels on this row; the step underneath is the same step.</summary>
+    public void RefreshLanguage()
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
 
     public required StepRowKind Kind { get; init; }
 
@@ -86,7 +87,7 @@ public sealed class StepRow
     public bool CanFold => IsStep && Step.HasChildren;
 
     /// <summary>Arrow on the fold button, pointing down while the block is open.</summary>
-    public Geometry FoldIcon => Step.IsExpanded ? OpenIcon : FoldedIcon;
+    public Geometry FoldIcon => Step.IsExpanded ? AppIcons.ChevronDown : AppIcons.ChevronRight;
 
     /// <summary>What the fold button says it will do.</summary>
     public string FoldHint => Strings.Get(Step.IsExpanded ? "Editor.Fold" : "Editor.Unfold");

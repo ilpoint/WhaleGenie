@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:WhaleGenie.ViewModels"
              xmlns:loc="using:WhaleGenie.Localization"
+             xmlns:views="using:WhaleGenie.Views"
              x:Class="WhaleGenie.Views.ActionPaletteView"
              x:DataType="vm:AddActionViewModel">
 
@@ -69,18 +70,18 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="54,*" Background="{DynamicResource AppSurface}">
+    <Grid ColumnDefinitions="66,*" Background="{DynamicResource AppSurface}">
         <Border Grid.Column="0" Background="{DynamicResource AppChrome}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8">
+                <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8,12,8">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ActionCategoryChoice">
                             <Button Classes="Category" ToolTip.Tip="{Binding Label}"
                                     Click="OnPickCategory">
                                 <StackPanel Spacing="2" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Path Data="{Binding Icon}" Width="16" Height="16"
-                                          Stretch="Uniform" Stroke="{Binding Accent}"
-                                          StrokeThickness="1.4" />
+                                    <views:IconView Data="{Binding Icon}" Width="16" Height="16"
+                                                    Stroke="{Binding Accent}"
+                                                    StrokeThickness="1.4" />
                                     <TextBlock Text="{Binding Short}" FontSize="11"
                                                HorizontalAlignment="Center" />
                                 </StackPanel>
@@ -94,7 +95,7 @@
         <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="8,8,8,8">
             <TextBox Grid.Row="0" Text="{Binding ActionSearch}"
                      PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
-            <ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer Grid.Row="1" Margin="0,8,10,0" VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding VisibleActions}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>

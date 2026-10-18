@@ -4,8 +4,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace WhaleGenie.Models;
 
 /// <summary>A single step inside a macro, or an entry in the action palette.</summary>
-public partial class MacroAction : ObservableObject
+public partial class MacroAction : ObservableObject, Localization.ILanguageAware
 {
+    /// <summary>Re-reads the tooltip this entry shows, without rebuilding the palette.</summary>
+    public void RefreshLanguage() => OnPropertyChanged(string.Empty);
+
     /// <summary>Vector icon drawn for the action, or <c>null</c> when it has none.</summary>
     public Geometry? Icon { get; set; }
 

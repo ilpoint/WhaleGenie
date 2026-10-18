@@ -77,10 +77,29 @@ public partial class ActionEditorView : UserControl
         }
     }
 
+    /// <summary>
+    /// True when the form stands in the editor, where a key field can take the next key pressed
+    /// on the keyboard. A form on its own has no capture loop, so it keeps the on-screen keyboard.
+    /// </summary>
+    public static readonly StyledProperty<bool> CanCaptureKeyProperty =
+        AvaloniaProperty.Register<ActionEditorView, bool>(nameof(CanCaptureKey));
+
+    public bool CanCaptureKey
+    {
+        get => GetValue(CanCaptureKeyProperty);
+        set => SetValue(CanCaptureKeyProperty, value);
+    }
+
     /// <summary>Chooses the action whose fields the form shows.</summary>
     internal void SelectAction(string key) => (DataContext as AddActionViewModel)?.SelectAction(key);
     /// <summary>Raised when the form is finished with a step, or with nothing when it was cleared.</summary>
     internal event Action<MacroStep?>? Finished;
+
+    /// <summary>
+    /// Raised when a key field asks for the key pressed on the keyboard instead of clicked on the
+    /// one drawn on screen. The editor hosting the form owns the capture loop and answers it.
+    /// </summary>
+    internal event Action<StepParameterViewModel>? KeyCaptureRequested;
 
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
@@ -622,17 +641,7 @@ public partial class ActionEditorView : UserControl
     /// combination is joined to what is already there.
     /// </summary>
     private void OpenKeyPadFor(StepParameterViewModel parameter)
-        => OpenKeyPad(parameter.Definition.LocalLabel, key =>
-        {
-            if (parameter.IsKeys)
-            {
-                parameter.AddKey(key);
-            }
-            else
-            {
-                parameter.Text = key;
-            }
-        });
+        => OpenKeyPad(parameter.Definition.LocalLabel, parameter.WriteKey);
 
     /// <summary>
     /// Shows the keyboard drawn on screen, or points the one already up at something else. A key is
@@ -871,6 +880,28 @@ public partial class ActionEditorView : UserControl
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
+            OpenKeyPadFor(parameter);
+        }
+    }
+
+    /// <summary>
+    /// Asks the editor that hosts the form for the next key pressed. The trigger's capture loop
+    /// does the listening, so a key is taken here exactly the way a trigger is bound.
+    /// </summary>
+    private void OnCaptureKey(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        if (KeyCaptureRequested is { } request)
+        {
+            request(parameter);
+        }
+        else
+        {
+            // The form on its own has no capture loop; the on-screen keyboard is the way in.
             OpenKeyPadFor(parameter);
         }
     }

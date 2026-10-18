@@ -4,6 +4,7 @@
         xmlns:views="using:WhaleGenie.Views"
         xmlns:conv="using:WhaleGenie.Converters"
         xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="720"
@@ -248,8 +249,7 @@
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
                         VerticalAlignment="Center">
                 <Button Classes="TitleBarButton" Name="CloseButton">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
-                          Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>

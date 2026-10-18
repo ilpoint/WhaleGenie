@@ -20,6 +20,39 @@ In English: pixel-art "🐋" emoji by Emojiall, from
 <https://www.emojiall.com/zh-hans/platform-pixel>, licensed under CC BY 4.0.
 The icon was scaled and modified from the original.
 
+界面上的动作分类图标与步骤工具栏图标来自 Andrés Raxón 的 andrsrxn/icons 7.6.0：
+<https://github.com/andrsrxn/icons>，采用 MIT 协议授权，版权 2026 Andrés Raxón。
+本程序只取每个图标的描边轮廓，去掉了原图标的 20% 填充层；矩形、圆与变换已转成路径，
+描边按 1.2–1.5 像素绘制。许可原文如下。
+
+In English: the category and step-toolbar icons are from andrsrxn/icons 7.6.0 by
+Andrés Raxón, <https://github.com/andrsrxn/icons>, MIT license, copyright 2026
+Andrés Raxón. Only the stroked outline is used; the 20% fill layer was dropped,
+rectangles, circles and transforms were flattened to paths, and the stroke is
+drawn at 1.2–1.5 px.
+
+MIT License
+
+Copyright (c) 2026 Andrés Raxón (andrsrxn)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## 随程序一起分发的组件
 
 ### 界面

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
@@ -25,7 +26,18 @@ public partial class DurationSettingViewModel : ViewModelBase
     }
 
     /// <summary>Units offered beside the box, labelled in the interface language.</summary>
-    public IReadOnlyList<DurationUnit> Units { get; }
+    public IReadOnlyList<DurationUnit> Units { get; private set; }
+
+    /// <summary>Re-labels the units; the chosen one stays chosen by its key.</summary>
+    public override void RefreshLanguage()
+    {
+        var key = _unit.Key;
+        base.RefreshLanguage();
+        Units = DurationUnit.Localized();
+        _unit = Units.First(unit => unit.Key == key);
+        OnPropertyChanged(nameof(Units));
+        OnPropertyChanged(nameof(Unit));
+    }
 
     /// <summary>
     /// The unit the number is written in. Switching it keeps the moment the same and changes only

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
 
@@ -13,8 +14,11 @@ public partial class ActionPageViewModel : ViewModelBase
     /// <summary>Stable name of this page, which is how the dialog asks which one is open.</summary>
     public required string Key { get; init; }
 
+    /// <summary>Text key of the tab's name; read on every change so the language can switch.</summary>
+    public required string TitleKey { get; init; }
+
     /// <summary>Name shown on the tab, in the interface language.</summary>
-    public required string Title { get; init; }
+    public string Title => Strings.Get(TitleKey);
 
     /// <summary>True while this is the page on screen.</summary>
     [ObservableProperty]

@@ -116,12 +116,13 @@ public partial class StepParameterViewModel : ViewModelBase
         // A step name is picked from the steps of the macro rather than from the catalogue, so
         // those choices come in from the editor; every other choice is the catalogue's own.
         Choices = definition.Kind is ActionParameterKind.Step
-            ? [.. Steps]
-            : [.. definition.OptionChoices.Select(choice => choice with
-            {
-                Display = Strings.Get($"{definition.OwnerKey}.{definition.Name}.option.{choice.Value}",
-                    choice.Display),
-            })];
+            ? new ObservableCollection<ActionParameterOption>(Steps)
+            : new ObservableCollection<ActionParameterOption>(
+                definition.OptionChoices.Select(choice => choice with
+                {
+                    Display = Strings.Get($"{definition.OwnerKey}.{definition.Name}.option.{choice.Value}",
+                        choice.Display),
+                }));
         // A step has no first choice: picking one would quietly point the step at whichever step
         // of the macro happens to be listed first, and a wrong condition that never says so is
         // worse than one that asks to be filled in.
@@ -509,6 +510,19 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when a key is written here, whether on its own or joined to others.</summary>
     public bool IsKeyField => IsKey || IsKeys;
 
+    /// <summary>True while this field is waiting for a key from the editor's capture loop.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KeyCaptureLabel))]
+    private bool _isCapturingKey;
+
+    /// <summary>
+    /// The capture button's text: what it is about to take, and what to do once it is waiting.
+    /// A single key and a combination are different questions, so the button says which one.
+    /// </summary>
+    public string KeyCaptureLabel => IsCapturingKey
+        ? Strings.Get(IsKeys ? "Add.PressCombination" : "Add.PressKey")
+        : Strings.Get(IsKeys ? "Add.SetCombination" : "Editor.SetKey");
+
     /// <summary>
     /// Adds a key to what is written, which is how a combination gets built: what is there stays
     /// and the new key is joined to it with a plus, the way the engine reads one. A field with
@@ -518,6 +532,22 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         var held = Text.Trim();
         Text = held.Length == 0 ? key : held + "+" + key;
+    }
+
+    /// <summary>
+    /// Writes a key the way this field holds it: a single key replaces what is there, and a
+    /// combination joins the new key to it.
+    /// </summary>
+    public void WriteKey(string key)
+    {
+        if (IsKeys)
+        {
+            AddKey(key);
+        }
+        else
+        {
+            Text = key;
+        }
     }
 
     /// <summary>The key names the picker offers, which is every name a macro may write.</summary>
@@ -1170,7 +1200,42 @@ public partial class StepParameterViewModel : ViewModelBase
     /// by a <see cref="ActionParameterKind.Step"/> one. It is a list rather than a fixed set because
     /// a step name that is not in the macro any more still has to be shown.
     /// </summary>
-    public List<ActionParameterOption> Choices { get; }
+    public ObservableCollection<ActionParameterOption> Choices { get; }
+
+    /// <summary>
+    /// Re-reads the field's name, hint and choice labels. The list is a collection so the box
+    /// watching it rebuilds its items when the words change; the chosen value stays chosen.
+    /// </summary>
+    public override void RefreshLanguage()
+    {
+        base.RefreshLanguage();
+
+        if (Definition.Kind is ActionParameterKind.Step)
+        {
+            // The entries are names of steps in this macro, not catalogue wording.
+            return;
+        }
+
+        var selected = Option?.Value;
+        var labels = Definition.OptionChoices
+            .Select(choice => choice with
+            {
+                Display = Strings.Get($"{Definition.OwnerKey}.{Definition.Name}.option.{choice.Value}",
+                    choice.Display),
+            })
+            .ToArray();
+
+        Choices.Clear();
+        foreach (var choice in labels)
+        {
+            Choices.Add(choice);
+        }
+
+        if (selected is not null)
+        {
+            Option = Choices.FirstOrDefault(choice => choice.Value == selected) ?? Option;
+        }
+    }
 
     /// <summary>The bottom of the number box, in whichever unit the box is showing.</summary>
     public decimal Minimum => Definition.Minimum / _unit.Factor;

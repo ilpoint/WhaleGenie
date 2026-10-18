@@ -50,7 +50,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
 拾取器、是否发输入、是否条件、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
-提示、页面归属与图标（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。
+提示与页面归属（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
+这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，来自 `third_party/andrsrxn-icons`（MIT），由
+`IconView` 画；分类栏与工具栏按 24 格，菜单和窗口按钮用 `FitToBounds` 填自己的方框。
 一个数值字段的范围由它的单位给出（像素 −100000..100000、毫秒 0..`LongestPauseMs`、计数 0..1000000、
 百分比 0..100、手柄轴 −100..100、整数 −1000000..1000000），动作另有更窄的真实上限时在语义目录里写
 `Minimum` / `Maximum`。`ActionContractTests` 卡住两边动作、参数与返回结果一一对应，并禁止展示清单再写一份
@@ -68,7 +70,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | --- | --- |
 | `WhaleGenie.Core` | 执行引擎。变量、表达式、执行语义、动作语义目录，以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程）。宏包文件模型与 `.wgmacro` 读写仍在界面层的 `WhaleGenie/Storage` |
 | `WhaleGenie.GraphicsCapture` | 从 Windows 拿像素：Graphics Capture、桌面复制（DXGI）、屏幕 GDI 与 PrintWindow 四种取法，以及会话缓存与选路。它不认识引擎的类型，引擎通过 `ProjectReference` 用它 |
-| `WhaleGenie` | 界面。窗口、视图模型、文案、触发器监听；动作展示清单在 `Models/ActionDisplay.json`，`ActionCatalog.cs` 只把它投影成图标、标签、编辑器种类与页面归属 |
+| `WhaleGenie` | 界面。窗口、视图模型、文案、触发器监听；动作展示清单在 `Models/ActionDisplay.json`，`ActionCatalog.cs` 只把它投影成标签、编辑器种类与页面归属；图标在 `Models/AppIcons.cs` |
 | `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面；动作行为、读法与输入路由在这里验。宏包往返在 `WhaleGenie.Tests` 里验，因为它读写的文件模型目前在界面层 |
 | `WhaleGenie.GraphicsCapture.Tests` | 画面获取的测试：选路次序、会话缓存与复用、图片落位。真正调用 Windows 的那几条按手动用例过 |
 | `WhaleGenie.Tests` | 界面的测试，跑在 Avalonia 无头平台上；参数页面归属、返回值页、文案完整性与文档对账也在这里 |
@@ -300,6 +302,11 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 文案是两份手写的表（`Strings` 的英文与中文、`ActionStrings` 的中文），
 `WhaleGenie.Tests` 里的本地化用例会检查键是否两边齐全、动作的每个参数和每个下拉选项是否有中文。
+
+换语言时，XAML 的 `[Key]` 绑定由 `Strings` 的变更通知自动刷新；代码里算出来的文案由
+`ILanguageAware.RefreshLanguage()` 重新读，打开着的窗口由 `LanguageRefresh` 统一走一遍。新增一个
+把文案缓存成字段的视图模型，要覆盖 `RefreshLanguage()` 把这些字段重新算出来，或改成按需读的
+计算属性；不要把会跟着语言变的文字存成只读字段。
 
 ## 代码约定
 

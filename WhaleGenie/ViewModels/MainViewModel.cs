@@ -19,7 +19,14 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasUnsavedChanges));
             RefreshVisibleMacros();
         };
-        Localization.Strings.Current.LanguageChanged += () => OnPropertyChanged(nameof(WindowTitle));
+        Localization.Strings.Current.LanguageChanged += () =>
+        {
+            RefreshLanguage();
+            foreach (var macro in Macros)
+            {
+                macro.RefreshLanguage();
+            }
+        };
     }
 
     [ObservableProperty]

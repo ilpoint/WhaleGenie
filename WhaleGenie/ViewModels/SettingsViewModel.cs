@@ -57,12 +57,14 @@ public partial class SettingsViewModel : ViewModelBase
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
-        DriverStatus = Strings.Get(DriverState switch
-        {
-            DriverInputState.DriverMissing => "Settings.DriverMissing",
-            DriverInputState.LibraryMissing => "Settings.DriverLibraryMissing",
-            _ => "Settings.DriverReady",
-        });
+    }
+
+    /// <summary>Re-reads the capture choices, which show their own language when read.</summary>
+    public override void RefreshLanguage()
+    {
+        base.RefreshLanguage();
+        OnPropertyChanged(nameof(WindowWays));
+        OnPropertyChanged(nameof(ScreenWays));
     }
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
@@ -121,7 +123,12 @@ public partial class SettingsViewModel : ViewModelBase
     public bool DriverReady { get; }
 
     /// <summary>The panel's sentence about this machine, in the chosen language.</summary>
-    public string DriverStatus { get; }
+    public string DriverStatus => Strings.Get(DriverState switch
+    {
+        DriverInputState.DriverMissing => "Settings.DriverMissing",
+        DriverInputState.LibraryMissing => "Settings.DriverLibraryMissing",
+        _ => "Settings.DriverReady",
+    });
 
     /// <summary>
     /// Whether the virtual keyboard and mouse are put on the machine as the program starts. The

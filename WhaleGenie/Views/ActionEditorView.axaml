@@ -14,7 +14,7 @@
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="800"
         x:Class="WhaleGenie.Views.ActionEditorView"
         x:DataType="vm:AddActionViewModel"
-        Background="{DynamicResource AppBackdrop}">
+        Background="Transparent">
 
     <Design.DataContext>
         <vm:AddActionViewModel />
@@ -102,38 +102,51 @@
 
                 <!-- A key: the names are offered from a list so one does not have to be
                      remembered, and the box stays editable so any of them can still be typed.
-                     Beside it the key can be pointed at instead, on a keyboard laid out on
-                     screen — a key is found by where it sits, not by what it is called. -->
-                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                     Beside it the key can be captured by pressing it, or pointed at on a
+                     keyboard laid out on screen — a key is found by where it sits, not by
+                     what it is called. -->
+                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
                                      ItemsSource="{Binding KeyChoices}"
                                      Text="{Binding Text}"
                                      PlaceholderText="{Binding Placeholder}"
                                      MinimumPrefixLength="0"
                                      FilterMode="Contains" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <!-- The editor's own key capture, when the form stands in its middle pane:
+                         press the key instead of finding it on the keyboard drawn on screen. -->
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="9,0"
+                            Content="{Binding KeyCaptureLabel}"
+                            ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
+                            IsVisible="{Binding CanCaptureKey, RelativeSource={RelativeSource AncestorType={x:Type views:ActionEditorView}}}"
+                            Click="OnCaptureKey" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
                     <!-- The same question the element picker answers with its test: is this the
                          thing I meant? For a key that is answered by pressing it once. -->
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestStep" />
                 </Grid>
 
                 <!-- A combination of keys is written in a plain box: the keyboard behind the button
-                     hands one key back at a time and it is added to what is already there, because
-                     a combination is built up rather than chosen whole. -->
-                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                     hands one key back at a time, while the capture takes the whole chord at once;
+                     either way what is already there stays. -->
+                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="9,0"
+                            Content="{Binding KeyCaptureLabel}"
+                            ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
+                            IsVisible="{Binding CanCaptureKey, RelativeSource={RelativeSource AncestorType={x:Type views:ActionEditorView}}}"
+                            Click="OnCaptureKey" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestStep" />
@@ -341,9 +354,7 @@
                             Width="38" Height="33" Padding="0"
                             ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickParameterColor">
-                        <Path Width="17" Height="17" Stretch="Uniform"
-                              Stroke="{DynamicResource AppText}" StrokeThickness="1.7"
-                              Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
+                        <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static models:AppIcons.Dropper}" />
                     </Button>
                     <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
                             IsVisible="{Binding OffersFormula}"
@@ -955,11 +966,10 @@
                 <Button Classes="GroupToggle" Click="OnToggleActionGroup"
                         IsVisible="{Binding HasActions}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Path Width="10" Height="8" Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
-                              StrokeThickness="1.6" Data="{Binding Caret}" VerticalAlignment="Center" />
-                        <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
-                              StrokeThickness="1.4" Data="{Binding Icon}" VerticalAlignment="Center"
-                              IsVisible="{Binding HasIcon}" />
+                        <views:IconView Width="10" Height="8" VerticalAlignment="Center" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{Binding Caret}" />
+                        <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}"
+                                        StrokeThickness="1.4" FitToBounds="True" Data="{Binding Icon}"
+                                        VerticalAlignment="Center" IsVisible="{Binding HasIcon}" />
                         <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="{DynamicResource AppText}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -1249,10 +1259,10 @@
                      that is the question the dialog is open to answer, and closing it to ask loses
                      the half-written step on the way. -->
                 <Button Classes="TitleBarButton" Name="MinimizeButton">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>

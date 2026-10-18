@@ -17,53 +17,6 @@ public static class ActionCatalog
 {
     private const string DisplayResource = "WhaleGenie.Models.ActionDisplay.json";
 
-    private static readonly Geometry ControlIcon =
-        Geometry.Parse("M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,7 L12,12 L15,14");
-
-    private static readonly Geometry InputIcon =
-        Geometry.Parse("M3,7 H21 V17 H3 Z M6,10 H8 M10,10 H12 M14,10 H16 M18,10 H18.01 M6,14 H10 M12,14 H16");
-
-    private static readonly Geometry VisionIcon =
-        Geometry.Parse("M2,12 C6,6 18,6 22,12 C18,18 6,18 2,12 Z M12,9 A3,3 0 1 0 12,15 A3,3 0 1 0 12,9 Z");
-
-    private static readonly Geometry OcrIcon =
-        Geometry.Parse("M5,4 H19 V20 H5 Z M8,9 H16 M8,12.5 H16 M8,16 H13");
-
-    private static readonly Geometry UiaIcon =
-        Geometry.Parse("M3,5 H21 V19 H3 Z M3,9 H21 M6,7 H6.01");
-
-    private static readonly Geometry ScriptIcon =
-        Geometry.Parse("M3,5 H21 V19 H3 Z M3,8.5 H21 M6,12 L8.5,14.5 L6,17 M11,17 H15");
-
-    private static readonly Geometry FileIcon =
-        Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
-
-    private static readonly Geometry DataIcon =
-        Geometry.Parse("M9,4 L6,12 L9,20 M15,4 L18,12 L15,20");
-
-    private static readonly Geometry BrowserIcon =
-        Geometry.Parse("M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M3,9 H21 M3,15 H21 M12,3 C9,7 9,17 12,21");
-
-    private static readonly Geometry ClipboardIcon =
-        Geometry.Parse("M6,5 H18 V21 H6 Z M9,3 H15 V6 H9 Z M9,11 H15 M9,15 H13");
-
-    private static readonly Geometry ProcessIcon =
-        Geometry.Parse("M12,8 A4,4 0 1 0 12,16 A4,4 0 1 0 12,8 " +
-                       "M12,2 V5 M12,19 V22 M2,12 H5 M19,12 H22 " +
-                       "M5,5 L7,7 M17,17 L19,19 M19,5 L17,7 M7,17 L5,19");
-
-    private static readonly Geometry SystemIcon =
-        Geometry.Parse("M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,10.5 V16.5 M12,7.5 H12.01");
-
-    private static readonly Geometry WindowIcon =
-        Geometry.Parse("M3,5 H21 V19 H3 Z M3,9 H21 M6,7 H6.01 M13,12 H18 V16 H13 Z");
-
-    private static readonly Geometry ConditionIcon =
-        Geometry.Parse("M12,3 A2.5,2.5 0 1 0 12,8 A2.5,2.5 0 1 0 12,3 M12,8 V12.5 " +
-                       "M12,12.5 L7,15.5 M12,12.5 L17,15.5 " +
-                       "M7,15.5 A2.5,2.5 0 1 0 7,20.5 A2.5,2.5 0 1 0 7,15.5 " +
-                       "M17,15.5 A2.5,2.5 0 1 0 17,20.5 A2.5,2.5 0 1 0 17,15.5");
-
     static ActionCatalog()
     {
         var display = LoadDisplay();
@@ -182,20 +135,20 @@ public static class ActionCatalog
     /// <summary>Line-art icon shared by every action of a category.</summary>
     public static Geometry? IconFor(ActionCategory category) => category switch
     {
-        ActionCategory.Control => ControlIcon,
-        ActionCategory.File => FileIcon,
-        ActionCategory.Data => DataIcon,
-        ActionCategory.Clipboard => ClipboardIcon,
-        ActionCategory.Process => ProcessIcon,
-        ActionCategory.System => SystemIcon,
-        ActionCategory.Window => WindowIcon,
-        ActionCategory.Input => InputIcon,
-        ActionCategory.Vision => VisionIcon,
-        ActionCategory.Ocr => OcrIcon,
-        ActionCategory.Uia => UiaIcon,
-        ActionCategory.Browser => BrowserIcon,
-        ActionCategory.Script => ScriptIcon,
-        ActionCategory.Condition => ConditionIcon,
+        ActionCategory.Control => AppIcons.Workflow,
+        ActionCategory.File => AppIcons.File,
+        ActionCategory.Data => AppIcons.Variable,
+        ActionCategory.Clipboard => AppIcons.Clipboard,
+        ActionCategory.Process => AppIcons.Cpu,
+        ActionCategory.System => AppIcons.Settings,
+        ActionCategory.Window => AppIcons.AppWindow,
+        ActionCategory.Input => AppIcons.Keyboard,
+        ActionCategory.Vision => AppIcons.Eye,
+        ActionCategory.Ocr => AppIcons.TextScan,
+        ActionCategory.Uia => AppIcons.CursorClick,
+        ActionCategory.Browser => AppIcons.Browser,
+        ActionCategory.Script => AppIcons.Code,
+        ActionCategory.Condition => AppIcons.Split,
         _ => null,
     };
 

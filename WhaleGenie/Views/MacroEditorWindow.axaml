@@ -11,8 +11,8 @@
         x:Class="WhaleGenie.Views.MacroEditorWindow"
         x:DataType="vm:MacroEditorViewModel"
         Title="Macro Editor"
-        Width="1320" Height="800"
-        MinWidth="1120" MinHeight="640"
+        Width="1486" Height="800"
+        MinWidth="1320" MinHeight="640"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -57,14 +57,12 @@
             <Setter Property="Margin" Value="2,2,0,6" />
         </Style>
         <!-- Line-art icon used beside each recordable action row -->
-        <Style Selector="Path.RecordIcon">
+        <Style Selector="views|IconView.RecordIcon">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
-            <Setter Property="Stretch" Value="Uniform" />
             <Setter Property="Stroke" Value="{DynamicResource AppText}" />
-            <Setter Property="StrokeThickness" Value="1.6" />
-            <Setter Property="StrokeLineCap" Value="Round" />
-            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <!-- Idle: red record dot. Recording: white stop square. -->
@@ -136,14 +134,12 @@
         <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow.problem">
             <Setter Property="BorderBrush" Value="#FFB45C" />
         </Style>
-        <Style Selector="Path.ProblemMark">
+        <Style Selector="views|IconView.ProblemMark">
             <Setter Property="Width" Value="15" />
             <Setter Property="Height" Value="15" />
-            <Setter Property="Stretch" Value="Uniform" />
             <Setter Property="Stroke" Value="#E0A23C" />
-            <Setter Property="StrokeThickness" Value="1.6" />
-            <Setter Property="StrokeLineCap" Value="Round" />
-            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="TextBlock.ProblemSummary">
@@ -185,12 +181,10 @@
             <Setter Property="Height" Value="16" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.RowButton Path">
+        <Style Selector="Button.RowButton views|IconView">
             <Setter Property="Stroke" Value="{DynamicResource AppMuted}" />
-            <Setter Property="StrokeThickness" Value="1.6" />
-            <Setter Property="StrokeLineCap" Value="Round" />
-            <Setter Property="StrokeJoin" Value="Round" />
-            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="StrokeThickness" Value="1.2" />
+            <Setter Property="FitToBounds" Value="True" />
             <Setter Property="Width" Value="10" />
             <Setter Property="Height" Value="10" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -198,7 +192,7 @@
         <Style Selector="Button.RowButton /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>
-        <Style Selector="Button.RowButton:pointerover Path">
+        <Style Selector="Button.RowButton:pointerover views|IconView">
             <Setter Property="Stroke" Value="#FF8A5C" />
         </Style>
 
@@ -349,7 +343,7 @@
         <Style Selector="Button.PaletteButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
-        <Style Selector="Button.PaletteButton Path">
+        <Style Selector="Button.PaletteButton views|IconView">
             <Setter Property="Stroke" Value="{DynamicResource AppText}" />
             <Setter Property="StrokeThickness" Value="1.5" />
         </Style>
@@ -368,11 +362,11 @@
         <Style Selector="Button.PaletteButton.primary:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="#3A3450" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary Path">
+        <Style Selector="Button.PaletteButton.primary views|IconView">
             <Setter Property="Stroke" Value="#F2EEFF" />
             <Setter Property="StrokeThickness" Value="1.7" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:disabled Path">
+        <Style Selector="Button.PaletteButton.primary:disabled views|IconView">
             <Setter Property="Stroke" Value="#7B7396" />
         </Style>
 
@@ -420,16 +414,16 @@
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton"
                         ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="360,16,440,16,*" Margin="14">
+        <Grid Grid.Row="1" ColumnDefinitions="360,16,700,16,*" Margin="14">
 
             <!-- Left: Trigger Settings -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,Auto">
@@ -439,9 +433,7 @@
                             Foreground="{DynamicResource AppText}"
                             Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
-                            <Path Width="12" Height="12" Stretch="Uniform" Stroke="{DynamicResource AppText}"
-                                  StrokeThickness="1.5"
-                                  Data="M5,3 H17 L21,7 V21 H5 Z M8,3 V9 H16 V3 M8,14 H18 V21 H8 Z" />
+                            <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Save}" />
                             <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -451,8 +443,7 @@
                             Foreground="{DynamicResource AppText}"
                             Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
-                            <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource AppText}"
-                                  Data="M8,5 L19,12 L8,19 Z" />
+                            <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Play}" />
                             <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -462,9 +453,7 @@
                 <Button Grid.Row="2" Classes="FlatButton" Height="34" Margin="4,2,4,2"
                         Click="OnShowRecording">
                     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                        <Path Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource AppText}"
-                              StrokeThickness="1.5"
-                              Data="M12,4 A8,8 0 1 0 12,20 A8,8 0 1 0 12,4 M12,8 A4,4 0 1 0 12,16 A4,4 0 1 0 12,8" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Record}" />
                         <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -472,9 +461,7 @@
                 <Button Grid.Row="3" Classes="FlatButton" Height="34" Margin="4,0,4,4"
                         Click="OnToggleMacroSettings">
                     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                        <Path Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource AppText}"
-                              StrokeThickness="1.5"
-                              Data="M4,7 H20 M4,12 H20 M4,17 H20 M8,4 V10 M16,9 V15 M11,14 V20" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Sliders}" />
                         <TextBlock Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -573,9 +560,7 @@
                                                 Width="38" Height="33" Padding="0"
                                                 ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickColorClicked">
-                                            <Path Width="17" Height="17" Stretch="Uniform"
-                                                  Stroke="{DynamicResource AppText}" StrokeThickness="1.7"
-                                                  Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
+                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static models:AppIcons.Dropper}" />
                                         </Button>
                                     </Grid>
 
@@ -844,7 +829,7 @@
                                IsEnabled="{Binding IsEnabled}"
                                 Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddActionCommand}"
                                 CommandParameter="{Binding}">
-                             <Path Width="16" Height="16" Stretch="Uniform" Data="{Binding Icon}" />
+                             <views:IconView Width="16" Height="16" Data="{Binding Icon}" />
                          </Button>
                      </DataTemplate>
                  </ItemsControl.ItemTemplate>
@@ -888,11 +873,11 @@
                                                   ToolTip.Tip="{Binding FoldHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
                                                   CommandParameter="{Binding}">
-                                              <Path Data="{Binding FoldIcon}" />
+                                              <views:IconView StrokeThickness="1.4" FitToBounds="True" Data="{Binding FoldIcon}" />
                                           </Button>
-                                          <Path Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource AppText}"
-                                                StrokeThickness="1.5" Data="{Binding Icon}"
-                                                VerticalAlignment="Center" Margin="0,0,4,0" />
+                                          <views:IconView Width="16" Height="16" Stroke="{DynamicResource AppText}"
+                                                          StrokeThickness="1.5" Data="{Binding Icon}"
+                                                          VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <StackPanel VerticalAlignment="Center">
                                               <StackPanel Orientation="Horizontal" Spacing="6">
                                                   <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
@@ -930,10 +915,7 @@
                                                          Foreground="#8FB3D9" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
-                                          <Path Classes="ProblemMark"
-                                                IsVisible="{Binding HasProblem}"
-                                                ToolTip.Tip="{Binding Problem}"
-                                                Data="M12,3.5 L22,20 L2,20 Z M12,9.5 L12,14.5 M12,16.8 L12,17.6" />
+                                          <views:IconView Classes="ProblemMark" IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.WarningTriangle}" />
                                       </StackPanel>
                                   </Border>
 
@@ -950,7 +932,7 @@
                                                   ToolTip.Tip="{Binding AddHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
                                                   CommandParameter="{Binding}">
-                                              <Path Data="M12,5 L12,19 M5,12 L19,12" />
+                                              <views:IconView  StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Plus}" />
                                           </Button>
                                       </StackPanel>
                                   </Border>
@@ -1001,8 +983,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
-                                                    <!-- Cursor pointer outline with motion chevrons trailing to the right -->
-                                                    <Path Classes="RecordIcon" Data="M9,8 L21,8 M15,2 L15,8 M13,4 L15,2 L17,4 M11,6 L9,8 L11,10 M19,6 L21,8 L19,10 M15,8 L15,17.5 L17.2,14.8 L18.8,18.8 L20.8,17.8 L19.2,13.5 L22.5,13.5 Z" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Cursor}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1017,8 +998,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
-                                                    <!-- Mouse seen from above: rounded body, button split line and scroll wheel -->
-                                                    <Path Classes="RecordIcon" Data="M7,8.5 A5,5 0 0 1 17,8.5 L17,15.5 A5,5 0 0 1 7,15.5 Z M7,9.7 H17 M12,5.9 V9.7" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Mouse}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1033,7 +1013,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
-                                                    <Path Classes="RecordIcon" Data="M3,7 H21 V17 H3 Z M6,10 H8 M10,10 H12 M14,10 H16 M18,10 H18.01 M6,14 H10 M12,14 H16" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Keyboard}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1048,7 +1028,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                                    <Path Classes="RecordIcon" Data="M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,12 L12,7 M12,12 L15,14" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Clock}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1063,8 +1043,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
-                                                    <!-- Controller seen from above: grip body, d-pad and two buttons -->
-                                                    <Path Classes="RecordIcon" Data="M9,7 H15 C16.8,7 18.1,8.2 18.4,9.8 L19.2,13.6 C19.5,15.4 18.3,16.9 16.6,16.9 C15.5,16.9 14.8,16.2 14.2,15.4 L13.4,14.4 H10.6 L9.8,15.4 C9.2,16.2 8.5,16.9 7.4,16.9 C5.7,16.9 4.5,15.4 4.8,13.6 L5.6,9.8 C5.9,8.2 7.2,7 9,7 Z M8.6,9.9 V13.1 M7,11.5 H10.2 M15.6,10.4 A0.8,0.8 0 1 1 15.6,12 A0.8,0.8 0 1 1 15.6,10.4 Z" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GameController}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1081,7 +1060,7 @@
                                             <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                         Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
                                                 <!-- Funnel: input from elsewhere is filtered out -->
-                                                <Path Classes="RecordIcon" Data="M4,5 H20 L14,12.5 V20 L10,17 V12.5 Z" />
+                                                <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Filter}" />
                                                 <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                            Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
                                             </StackPanel>
@@ -1139,19 +1118,7 @@
 
             <Border Grid.Column="2" Name="InspectorHost" Background="{DynamicResource AppSurface}"
                     CornerRadius="6" IsVisible="False">
-                <Grid RowDefinitions="Auto,*">
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,10,10,6">
-                        <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
-                                   Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="10,0"
-                                Click="OnCloseInspector"
-                                ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                            <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
-                                  Data="M 1,1 L 7,7 M 1,7 L 7,1" />
-                        </Button>
-                    </Grid>
-                    <ContentControl Grid.Row="1" Name="InspectorContent" />
-                </Grid>
+                <ContentControl Name="InspectorContent" />
             </Border>
         </Grid>
     </Grid>

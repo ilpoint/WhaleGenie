@@ -21,6 +21,10 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Text computed in code is refreshed by walking the open windows; the indexer bindings
+        // refresh themselves when the table raises its change.
+        Strings.Current.LanguageChanged += LanguageRefresh.Refresh;
+
         ThemePalette.Apply(LocalSettings.LoadLightTheme());
         // Whether the virtual keyboard and mouse are to be put on the machine at startup was chosen
         // in the settings window and written beside the program; the engine does not read that file,

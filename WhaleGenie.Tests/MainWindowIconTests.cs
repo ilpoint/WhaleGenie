@@ -14,7 +14,7 @@ public class MainWindowIconTests
         var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
 
         var add = Block(xaml, "Name=\"AddMacroButton\"");
-        Assert.Contains("PathIcon", add, StringComparison.Ordinal);
+        Assert.Contains("views:IconView", add, StringComparison.Ordinal);
 
         // The outlined badge: a white border with a white glyph, rather than a filled white box.
         Assert.Contains("BorderBrush=\"White\" BorderThickness=\"2\"", add, StringComparison.Ordinal);

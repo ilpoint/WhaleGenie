@@ -349,6 +349,11 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------ keys and controller controls
         ["Add.OpenKeyPad"] = "Keyboard",
         ["Add.OpenKeyPadHint"] = "Click the key on a keyboard laid out on screen.",
+        ["Add.CaptureKeyHint"] = "Press one key on the keyboard; it fills this field directly. A combination belongs in the Hotkey action.",
+        ["Add.CaptureComboHint"] = "Hold the modifiers, then press the last key; the whole combination fills this field.",
+        ["Add.SetCombination"] = "Set combination",
+        ["Add.PressKey"] = "Press a key…",
+        ["Add.PressCombination"] = "Press a combination…",
         ["Add.OpenGamepad"] = "Controller",
         ["Add.OpenGamepadHint"] = "Click the control on a controller laid out on screen.",
         ["KeyPad.Title"] = "Virtual keyboard",
@@ -1839,6 +1844,11 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------ 按键与手柄控件
         ["Add.OpenKeyPad"] = "虚拟键盘",
         ["Add.OpenKeyPadHint"] = "在屏幕上摆出来的键盘上点选按键。",
+        ["Add.CaptureKeyHint"] = "在键盘上按一下这一个键，直接填进这里；组合键请用「组合键」动作。",
+        ["Add.CaptureComboHint"] = "按住修饰键，再按最后一个键；整个组合会填进这里。",
+        ["Add.SetCombination"] = "设置组合键",
+        ["Add.PressKey"] = "请按一个键…",
+        ["Add.PressCombination"] = "请按组合键…",
         ["Add.OpenGamepad"] = "虚拟手柄",
         ["Add.OpenGamepadHint"] = "在屏幕上摆出来的手柄上点选控件。",
         ["KeyPad.Title"] = "虚拟键盘",

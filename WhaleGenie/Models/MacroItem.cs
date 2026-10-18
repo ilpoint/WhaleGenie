@@ -13,8 +13,11 @@ using WindowWays = WhaleGenie.Core.Devices.WindowHow;
 
 namespace WhaleGenie.Models;
 
-public partial class MacroItem : ObservableObject
+public partial class MacroItem : ObservableObject, ILanguageAware
 {
+    /// <summary>Re-reads the words this macro is shown with, without rebuilding the card.</summary>
+    public void RefreshLanguage() => OnPropertyChanged(string.Empty);
+
     /// <summary>Whether the macro is armed; the macro list shows this as a coloured dot.</summary>
     [ObservableProperty]
     public partial bool IsEnabled { get; set; } = true;

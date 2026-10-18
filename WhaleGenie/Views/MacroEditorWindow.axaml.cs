@@ -124,6 +124,9 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private ActionEditorView? _inspector;
 
+    /// <summary>The form field waiting for a key, so its button can go back to "set key".</summary>
+    private StepParameterViewModel? _keyCaptureParameter;
+
     private MacroInterfaceView? _interfaceView;
     private MacroInterfaceViewModel? _interfaceModel;
 
@@ -204,6 +207,17 @@ public partial class MacroEditorWindow : Window
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
+
+        // The form's "set key" button says it is waiting only while a capture is up; a capture
+        // ended by the record button or by another binding has to put the label back.
+        _viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey)
+                && !_viewModel.IsCapturingKey)
+            {
+                ResetKeyCaptureLabel();
+            }
+        };
 
         EnsureInspector();
         EnsureInterface();
@@ -430,7 +444,7 @@ public partial class MacroEditorWindow : Window
 
     private void ReadController(IDeviceLayer layer)
     {
-        if (!_viewModel.IsCapturingKey)
+        if (!_viewModel.IsCapturingKey || _viewModel.CaptureKeyboardOnly)
         {
             return;
         }
@@ -472,6 +486,14 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
+        // A key field cannot hold a wheel notch; swallow the wheel so it does not scroll the
+        // form while the field waits for a key.
+        if (viewModel.CaptureKeyboardOnly)
+        {
+            e.Handled = true;
+            return;
+        }
+
         // The pointer reports the tilt the other way round from the input device, so the sign
         // is flipped here and the shared naming decides which way that is.
         var (axis, rotation) = Math.Abs(e.Delta.X) > Math.Abs(e.Delta.Y)
@@ -489,6 +511,14 @@ public partial class MacroEditorWindow : Window
     {
         if (DataContext is not MacroEditorViewModel viewModel || !viewModel.IsCapturingKey)
         {
+            return;
+        }
+
+        // A key field only waits for the keyboard; a click elsewhere must not bind a mouse
+        // button or move the focus off the field.
+        if (viewModel.CaptureKeyboardOnly)
+        {
+            e.Handled = true;
             return;
         }
 
@@ -563,7 +593,12 @@ public partial class MacroEditorWindow : Window
                 return;
             }
 
-            viewModel.CaptureKey(Chord(e.Key, Held(e)));
+            // A single key field takes the key itself; a combination keeps the modifiers held
+            // at the moment it was pressed, the way a trigger is written.
+            var captured = viewModel.CaptureSingleKey
+                ? DescribeKey(e.Key)
+                : Chord(e.Key, Held(e));
+            viewModel.CaptureKey(captured);
             _swallowReleases.Clear();
             _swallowReleases.AddRange(_captureModifiers);
             _swallowReleases.Add(e.Key);
@@ -1027,6 +1062,7 @@ public partial class MacroEditorWindow : Window
             StaysOpen = true,
             ShowHeader = false,
             ShowPicker = false,
+            CanCaptureKey = true,
             Devices = Layer,
             Macros = BuildLibrary(),
             MintStepId = _viewModel.NewStepId,
@@ -1042,7 +1078,41 @@ public partial class MacroEditorWindow : Window
             }
         };
 
+        _inspector.KeyCaptureRequested += BeginInspectorKeyCapture;
+
         InspectorContent.Content = _inspector;
+    }
+
+    /// <summary>
+    /// Starts the editor's key capture for one field of the form. The button on that field says it
+    /// is waiting while the capture is up, the same way the trigger's button does.
+    /// </summary>
+    private void BeginInspectorKeyCapture(StepParameterViewModel parameter)
+    {
+        ResetKeyCaptureLabel();
+
+        if (!_viewModel.BeginKeyCapture(key =>
+            {
+                parameter.WriteKey(key);
+                parameter.IsCapturingKey = false;
+                _keyCaptureParameter = null;
+            }, parameter.IsKeys))
+        {
+            return;
+        }
+
+        _keyCaptureParameter = parameter;
+        parameter.IsCapturingKey = true;
+    }
+
+    /// <summary>Puts the form's capture button back to its resting label.</summary>
+    private void ResetKeyCaptureLabel()
+    {
+        if (_keyCaptureParameter is { } parameter)
+        {
+            parameter.IsCapturingKey = false;
+            _keyCaptureParameter = null;
+        }
     }
 
     /// <summary>Turns the inspector between the step form and the macro's own interface.</summary>
@@ -1097,12 +1167,6 @@ public partial class MacroEditorWindow : Window
             InspectorHost.IsVisible = false;
         }
     }
-    /// <summary>The editor's own way out of the inspector, beside the action it is showing.</summary>
-    private void OnCloseInspector(object? sender, RoutedEventArgs e)
-    {
-        InspectorHost.IsVisible = false;
-    }
-
     /// <summary>
     /// Points the list at a step somebody asked to be shown: it is opened out of whatever block it
     /// sits in, scrolled to and selected. This is the answer to "which steps read this variable" —

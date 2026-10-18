@@ -63,5 +63,5 @@ public partial class ActionGroupViewModel : ViewModelBase
     public partial bool IsOpen { get; set; }
 
     /// <summary>The mark that says the heading opens and closes, pointing the way it will go.</summary>
-    public Geometry Caret => IsOpen ? Carets.Open : Carets.Shut;
+    public Geometry Caret => IsOpen ? AppIcons.ChevronDown : AppIcons.ChevronRight;
 }

@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -25,64 +24,61 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Raised when the editor should close, with the macro to save or <c>null</c> when cancelled.</summary>
     public event Action<MacroItem?>? CloseRequested;
 
-    /// <summary>Parses the SVG-style path data used by the action palette icons.</summary>
-    private static Geometry G(string path) => StreamGeometry.Parse(path);
-
     /// <summary>Action types offered by the Action Editor palette.</summary>
     public IReadOnlyList<MacroAction> ActionPalette { get; } =
     [
-        new() { Icon = G("M9,5 L5,9 L9,13 M5,9 H14 A5,5 0 0 1 14,19 H9"),
+        new() { Icon = AppIcons.Undo,
                 LabelKey = "Palette.Undo", Key = "undo", NeedsUndo = true },
 
-        new() { Icon = G("M15,5 L19,9 L15,13 M19,9 H10 A5,5 0 0 0 10,19 H15"),
+        new() { Icon = AppIcons.Redo,
                 LabelKey = "Palette.Redo", Key = "redo", NeedsRedo = true },
 
-        new() { Icon = G("M4,20 L4,16 L16,4 L20,8 L8,20 Z M14,6 L18,10"),
+        new() { Icon = AppIcons.Pencil,
                 LabelKey = "Palette.Edit", Key = "edit", NeedsSingleSelection = true },
 
-        new() { Icon = G("M12,3 L12,11 M7.2,6.2 A7,7 0 1 0 16.8,6.2"),
+        new() { Icon = AppIcons.Toggle,
                 LabelKey = "Palette.ToggleEnabled", Key = "toggleEnabled", NeedsSelection = true },
 
         // Copy borrows the two-sheets glyph: with the duplicate entry gone there is one copy
         // button, and this reads as "a copy of the steps" more plainly than a single sheet.
-        new() { Icon = G("M8,8 L20,8 L20,20 L8,20 Z M4,16 L4,4 L16,4 L16,6"),
+        new() { Icon = AppIcons.Copy,
                 LabelKey = "Palette.Copy", Key = "copy", NeedsSelection = true },
 
-        new() { Icon = G("M6.5,4 L16,15 M17.5,4 L8,15 M3.5,18.5 A2.5,2.5 0 1 1 8.5,18.5 A2.5,2.5 0 1 1 3.5,18.5 M15.5,18.5 A2.5,2.5 0 1 1 20.5,18.5 A2.5,2.5 0 1 1 15.5,18.5"),
+        new() { Icon = AppIcons.Scissors,
                 LabelKey = "Palette.Cut", Key = "cut", NeedsSelection = true },
 
         // A plain clipboard, the usual "paste" glyph. The old one was a clipboard with a
         // downward arrow, which reads as "download" and had nothing to do with the step list.
-        new() { Icon = G("M9,3 L15,3 L15,5 L9,5 Z M5,5 L19,5 L19,21 L5,21 Z"),
+        new() { Icon = AppIcons.Paste,
                 LabelKey = "Palette.Paste", Key = "paste" },
 
-        new() { Icon = G("M4,7 L20,7 M10,11 L10,17 M14,11 L14,17 M6,7 L7,21 L17,21 L18,7 M9,7 L9,4 L15,4 L15,7"),
+        new() { Icon = AppIcons.Trash,
                 LabelKey = "Palette.Delete", Key = "delete", NeedsSelection = true },
 
-        new() { Icon = G("M3,6 L9,6 L11,8 L21,8 L21,19 L3,19 Z"),
+        new() { Icon = AppIcons.Group,
                 LabelKey = "Palette.Group",
                 Key = "group", NeedsSelection = true },
 
-        // A box with an arrow leaving it: the selected steps are taken out of this macro and put
+        // An arrow leaving a box: the selected steps are taken out of this macro and put
         // into one of their own, with a call left where they were.
-        new() { Icon = G("M3,8 H15 V20 H3 Z M12,11 H21 M18,8 L21,11 L18,14"),
+        new() { Icon = AppIcons.ExternalLink,
                 LabelKey = "Palette.LiftToMacro",
                 Key = "liftToMacro", NeedsSelection = true },
 
-        new() { Icon = G("M12,19 L12,5 M6,11 L12,5 L18,11"),
+        new() { Icon = AppIcons.ArrowUp,
                 LabelKey = "Palette.MoveUp", Key = "moveUp", NeedsSelection = true },
 
-        new() { Icon = G("M12,5 L12,19 M6,13 L12,19 L18,13"),
+        new() { Icon = AppIcons.ArrowDown,
                 LabelKey = "Palette.MoveDown", Key = "moveDown", NeedsSelection = true },
 
-        new() { Icon = G("M5,5 L19,19 M19,5 L5,19"),
+        new() { Icon = AppIcons.X,
                 LabelKey = "Palette.Clear", Key = "clear", NeedsSteps = true },
 
-        new() { Icon = G("M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,7 L12,12 L15,14"),
+        new() { Icon = AppIcons.Clock,
                 LabelKey = "Palette.AdjustDelays", Key = "adjustDelays",
                 NeedsSteps = true },
 
-        new() { Icon = G("M4,5 H20 V19 H4 Z M10,9 L15,12 L10,15 Z"),
+        new() { Icon = AppIcons.Play,
                 LabelKey = "Palette.RunMacro", Key = "runMacro" },
     ];
 
@@ -101,6 +97,12 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private bool _loading;
 
+    /// <summary>Where a captured key goes when the inspector asked for one, or null for the trigger.</summary>
+    private Action<string>? _keyCaptureTarget;
+
+    private bool _captureKeyboardOnly;
+    private bool _captureSingleKey;
+
     /// <summary>How many step-list changes can be undone.</summary>
     private const int HistoryLimit = 60;
 
@@ -118,6 +120,23 @@ public partial class MacroEditorViewModel : ViewModelBase
     public MacroEditorViewModel()
     {
         RefreshPaletteState();
+    }
+
+    /// <summary>Re-reads the labels this editor computes, the palette's tips and the step rows.</summary>
+    public override void RefreshLanguage()
+    {
+        base.RefreshLanguage();
+        foreach (var action in ActionPalette)
+        {
+            action.RefreshLanguage();
+        }
+
+        foreach (var row in Rows)
+        {
+            row.RefreshLanguage();
+        }
+
+        WindowPreview.RefreshLanguage();
     }
 
     /// <summary>Raised when the editor should open the "Add Action" dialog.</summary>
@@ -295,7 +314,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(LoopIndex))]
     public partial MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
 
-    public IReadOnlyList<string> TriggerOptions { get; } =
+    public IReadOnlyList<string> TriggerOptions =>
     [
         Strings.Get("Trigger.Keys"),
         Strings.Get("Trigger.Color"),
@@ -306,7 +325,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Trigger.Idle"),
     ];
 
-    public IReadOnlyList<string> LoopOptions { get; } =
+    public IReadOnlyList<string> LoopOptions =>
     [
         Strings.Get("Loop.Toggle"),
         Strings.Get("Loop.Hold"),
@@ -378,7 +397,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     private IWindowDevice? _windows;
 
     /// <summary>The ways a window can be recognised, in the words the interface reads.</summary>
-    public IReadOnlyList<string> WindowHowOptions { get; } =
+    public IReadOnlyList<string> WindowHowOptions =>
     [
         Strings.Get("WindowHow.TitleContains"),
         Strings.Get("WindowHow.TitleStartsWith"),
@@ -419,7 +438,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
     }
 
-    public IReadOnlyList<string> WindowChangeOptions { get; } =
+    public IReadOnlyList<string> WindowChangeOptions =>
     [
         Strings.Get("WindowChange.Appeared"),
         Strings.Get("WindowChange.Disappeared"),
@@ -446,7 +465,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial string ProcessName { get; set; } = string.Empty;
 
-    public IReadOnlyList<string> ProcessChangeOptions { get; } =
+    public IReadOnlyList<string> ProcessChangeOptions =>
     [
         Strings.Get("ProcessChange.Started"),
         Strings.Get("ProcessChange.Stopped"),
@@ -473,7 +492,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial string WatchPath { get; set; } = string.Empty;
 
-    public IReadOnlyList<string> WatchChangeOptions { get; } =
+    public IReadOnlyList<string> WatchChangeOptions =>
     [
         Strings.Get("FileChange.Any"),
         Strings.Get("FileChange.Created"),
@@ -505,7 +524,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool WatchSubfolders { get; set; }
 
-    public IReadOnlyList<string> ScheduleOptions { get; } =
+    public IReadOnlyList<string> ScheduleOptions =>
     [
         Strings.Get("Schedule.Interval"),
         Strings.Get("Schedule.Daily"),
@@ -535,7 +554,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial int? ScheduleInterval { get; set; } = 5;
 
-    public IReadOnlyList<string> ScheduleUnitOptions { get; } =
+    public IReadOnlyList<string> ScheduleUnitOptions =>
     [
         Strings.Get("Schedule.Unit.Seconds"),
         Strings.Get("Schedule.Unit.Minutes"),
@@ -599,7 +618,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(PositionCaptureIndex))]
     public partial MousePositionMode PositionCapture { get; set; } = MousePositionMode.SaveCurrentPosition;
 
-    public IReadOnlyList<string> PositionCaptureOptions { get; } =
+    public IReadOnlyList<string> PositionCaptureOptions =>
     [
         Strings.Get("Position.Current"),
         Strings.Get("Position.Differences"),
@@ -617,7 +636,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
     }
 
-    public IReadOnlyList<string> ColorMatchOptions { get; } =
+    public IReadOnlyList<string> ColorMatchOptions =>
     [
         Strings.Get("ColorMatch.Matches"),
         Strings.Get("ColorMatch.NotMatches"),
@@ -736,6 +755,31 @@ public partial class MacroEditorViewModel : ViewModelBase
         ? Strings.Format("Editor.RecordActive", RecordedEvents)
         : Strings.Get("Editor.RecordIdle");
 
+    /// <summary>True while the current capture only takes keys, not a mouse button or a pad button.</summary>
+    internal bool CaptureKeyboardOnly => _captureKeyboardOnly;
+
+    /// <summary>True while a single key is taken rather than a combination.</summary>
+    internal bool CaptureSingleKey => _captureSingleKey;
+
+    /// <summary>
+    /// Starts a capture for the inspector's key field. The key is handed to <paramref name="deliver"/>
+    /// instead of the trigger, and only the keyboard is listened to: a key field cannot hold a
+    /// mouse button. A combination takes the modifiers with the key, the way a trigger does.
+    /// </summary>
+    internal bool BeginKeyCapture(Action<string> deliver, bool combination)
+    {
+        if (IsRecording)
+        {
+            return false;
+        }
+
+        _keyCaptureTarget = deliver;
+        _captureKeyboardOnly = true;
+        _captureSingleKey = !combination;
+        IsCapturingKey = true;
+        return true;
+    }
+
     /// <summary>Records the key pressed while the editor is waiting for a binding.</summary>
     public void CaptureKey(string keyName)
     {
@@ -744,8 +788,24 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
+        var deliver = _keyCaptureTarget;
+        StopCapturingKey();
+        if (deliver is not null)
+        {
+            deliver(keyName);
+            return;
+        }
+
         BindKey = keyName;
+    }
+
+    /// <summary>Ends a capture and forgets whatever it was going to write into.</summary>
+    private void StopCapturingKey()
+    {
         IsCapturingKey = false;
+        _keyCaptureTarget = null;
+        _captureKeyboardOnly = false;
+        _captureSingleKey = false;
     }
 
     [RelayCommand]
@@ -2128,6 +2188,8 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
+        // The trigger's capture takes mouse and pad buttons as well as keys.
+        StopCapturingKey();
         IsCapturingKey = true;
     }
 
@@ -2141,7 +2203,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         // A pending bind-key capture would swallow the shortcut and the first recorded keystroke.
-        IsCapturingKey = false;
+        StopCapturingKey();
         IsRecording = true;
     }
 
