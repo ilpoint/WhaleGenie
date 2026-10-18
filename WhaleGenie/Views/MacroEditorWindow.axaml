@@ -423,7 +423,14 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="360,16,700,16,*" Margin="14">
+        <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360" MinWidth="280" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="700" MinWidth="560" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+            </Grid.ColumnDefinitions>
 
             <!-- Left: Trigger Settings -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,Auto">
@@ -985,8 +992,13 @@
                </Grid>
             </Border>
 
+            <GridSplitter Grid.Column="1" Width="16" Background="Transparent"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWestEast" />
+
             <GridSplitter Grid.Column="3" Width="16" Background="Transparent"
-                          ResizeDirection="Columns" />
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWestEast" />
 
             <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource AppSurface}"
                     CornerRadius="6" IsVisible="False">

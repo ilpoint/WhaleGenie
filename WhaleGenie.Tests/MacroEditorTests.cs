@@ -777,4 +777,24 @@ public class MacroEditorTests
             Assert.Contains(form.VisibleActions, card => card.Key == "input.keyPress");
         });
     }
+
+    [Fact]
+    public void Both_seams_of_the_editor_columns_have_a_splitter()
+    {
+        Ui.Run(() =>
+        {
+            var (window, _) = Open();
+            var grid = Assert.IsType<Grid>(window.FindControl<Grid>("EditorColumns"));
+
+            Assert.Equal(5, grid.ColumnDefinitions.Count);
+            Assert.Equal(280d, grid.ColumnDefinitions[0].MinWidth);
+            Assert.Equal(560d, grid.ColumnDefinitions[2].MinWidth);
+            Assert.Equal(200d, grid.ColumnDefinitions[4].MinWidth);
+
+            var splitters = grid.Children.OfType<GridSplitter>().ToList();
+            Assert.Equal(2, splitters.Count);
+            Assert.Contains(splitters, splitter => Grid.GetColumn(splitter) == 1);
+            Assert.Contains(splitters, splitter => Grid.GetColumn(splitter) == 3);
+        });
+    }
 }
