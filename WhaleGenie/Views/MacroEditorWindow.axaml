@@ -321,6 +321,14 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
+        <Style Selector="Button.FlatButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+        </Style>
+        <Style Selector="Button.FlatButton /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
         <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
