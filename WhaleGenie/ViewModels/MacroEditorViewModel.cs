@@ -31,9 +31,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Action types offered by the Action Editor palette.</summary>
     public IReadOnlyList<MacroAction> ActionPalette { get; } =
     [
-        new() { Icon = G("M12,5 L12,19 M5,12 L19,12"),
-                LabelKey = "Palette.Add", Key = "add" },
-
         new() { Icon = G("M9,5 L5,9 L9,13 M5,9 H14 A5,5 0 0 1 14,19 H9"),
                 LabelKey = "Palette.Undo", Key = "undo", NeedsUndo = true },
 

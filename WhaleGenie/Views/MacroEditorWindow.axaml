@@ -124,7 +124,7 @@
             <Setter Property="Padding" Value="10,8" />
         </Style>
         <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow">
-            <Setter Property="Background" Value="#4A2A20" />
+            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
             <Setter Property="BorderBrush" Value="#FF6A35" />
         </Style>
 

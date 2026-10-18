@@ -51,8 +51,9 @@
              window because a tooltip is not drawn inside the window it belongs to: it stands in a
              popup of its own, where the window's styles do not reach it. -->
         <Style Selector="ToolTip">
-            <Setter Property="Background" Value="#2A2A2A" />
-            <Setter Property="BorderBrush" Value="#3F3F3F" />
+            <Setter Property="Background" Value="{DynamicResource AppDock}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="10,9" />

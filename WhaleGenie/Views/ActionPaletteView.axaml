@@ -37,7 +37,7 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A2A22" />
+            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
         <Style Selector="Button.Category">
@@ -65,7 +65,7 @@
             <Setter Property="CornerRadius" Value="4" />
         </Style>
         <Style Selector="ListBox.CategoryDock ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A2A22" />
+            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
     </UserControl.Styles>
 
@@ -105,11 +105,8 @@
                                     BorderBrush="{Binding Accent}" BorderThickness="1"
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <Ellipse Width="6" Height="6" Fill="{Binding Accent}"
-                                             VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
-                                </StackPanel>
+                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12"
+                                           HorizontalAlignment="Center" />
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

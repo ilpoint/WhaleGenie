@@ -24,6 +24,7 @@ public static class ThemePalette
         ("AppGroup", "#2B2723", "#F2EEE7"),
         ("AppHover", "#3C3C3C", "#D8D1C5"),
         ("AppDock", "#2A2A2A", "#EBE5DB"),
+        ("AppSelected", "#4A2A20", "#FBEDE4"),
     ];
 
     public static void Apply(bool light)
