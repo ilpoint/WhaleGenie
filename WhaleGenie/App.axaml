@@ -47,7 +47,7 @@
             <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="11,3" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Margin" Value="0,0,6,6" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
