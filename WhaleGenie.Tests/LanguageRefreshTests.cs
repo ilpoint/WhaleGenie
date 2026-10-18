@@ -16,17 +16,17 @@ public class LanguageRefreshTests
         MacroEditorViewModel? editor = null;
         string? english = null;
 
-        InterfaceLanguage.InEnglish(() =>
+        Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             editor = new MacroEditorViewModel();
             english = editor.TriggerOptions[0];
-        });
+        }));
 
-        InterfaceLanguage.InChinese(() =>
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             editor!.RefreshLanguage();
             Assert.NotEqual(english, editor.TriggerOptions[0]);
-        });
+        }));
     }
 
     [Fact]
@@ -36,19 +36,19 @@ public class LanguageRefreshTests
         string? dock = null;
         string? page = null;
 
-        InterfaceLanguage.InEnglish(() =>
+        Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             form = new AddActionViewModel();
             dock = form.Categories[1].Label;
             page = form.Pages[0].Title;
-        });
+        }));
 
-        InterfaceLanguage.InChinese(() =>
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             form!.RefreshLanguage();
             Assert.NotEqual(dock, form.Categories[1].Label);
             Assert.NotEqual(page, form.Pages[0].Title);
-        });
+        }));
     }
 
     [Fact]
@@ -57,16 +57,16 @@ public class LanguageRefreshTests
         MacroItem? macro = null;
         string? english = null;
 
-        InterfaceLanguage.InEnglish(() =>
+        Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             macro = new MacroItem();
             english = macro.Trigger;
-        });
+        }));
 
-        InterfaceLanguage.InChinese(() =>
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             macro!.RefreshLanguage();
             Assert.NotEqual(english, macro.Trigger);
-        });
+        }));
     }
 }

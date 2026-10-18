@@ -630,9 +630,9 @@ public class MacroEditorTests
     }
 
     /// <summary>The warning mark every row carries, whether or not it is showing.</summary>
-    private static List<Avalonia.Controls.Shapes.Path> Marks(Window window)
-        => [.. window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>()
-            .Where(path => path.Classes.Contains("ProblemMark"))];
+    private static List<Control> Marks(Window window)
+        => [.. window.GetVisualDescendants().OfType<Control>()
+            .Where(control => control.Classes.Contains("ProblemMark"))];
 
     /// <summary>
     /// 「与别的宏互斥发输入」写进宏文件：换台机器打开、或者从包里读回来，这个开关还在 —— 它是这个
