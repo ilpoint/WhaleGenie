@@ -16,12 +16,12 @@
 
     <Window.Styles>
         <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
         <Style Selector="Button.TitleBarButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#D0D0D0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="Width" Value="42" />
             <Setter Property="Height" Value="28" />
             <Setter Property="CornerRadius" Value="4" />
@@ -29,7 +29,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
@@ -54,7 +54,7 @@
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                        VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="13" Foreground="#E8E8E8"
+                           FontSize="13" Foreground="{DynamicResource AppText}"
                            Text="{Binding [Offset.Title], Source={x:Static loc:Strings.Current}}" />
                 <Button Grid.Column="2" Classes="TitleBarButton" Content="✕" Click="OnCancel" />
             </Grid>
@@ -65,18 +65,18 @@
                 <TextBlock Name="PointText" FontSize="12" Foreground="#E0B080" />
             </StackPanel>
 
-            <Border Grid.Row="2" Background="#141414" CornerRadius="6" Margin="16,0,16,10"
+            <Border Grid.Row="2" Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="16,0,16,10"
                     ClipToBounds="True">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Auto">
-                    <Canvas Name="Board" Background="#141414" HorizontalAlignment="Left"
+                    <Canvas Name="Board" Background="{DynamicResource AppBackdrop}" HorizontalAlignment="Left"
                             VerticalAlignment="Top" PointerPressed="OnPickPoint" />
                 </ScrollViewer>
             </Border>
 
             <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="16,0,16,14">
                 <TextBlock Name="Status" VerticalAlignment="Center" FontSize="11.5"
-                           Foreground="#9A9A9A" TextWrapping="Wrap" />
+                           Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
                 <Button Grid.Column="1" Classes="PrimaryButton" IsEnabled="False" Name="Confirm"
                         Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                         Click="OnConfirm" />

@@ -16,7 +16,7 @@
 
     <Window.Styles>
         <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
         <Style Selector="TextBlock.SectionHeader">
@@ -27,7 +27,7 @@
 
         <Style Selector="Button.TitleBarButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#D0D0D0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="Width" Value="42" />
             <Setter Property="Height" Value="28" />
             <Setter Property="CornerRadius" Value="4" />
@@ -35,12 +35,12 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
 
         <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="#404040" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="12,0" />
@@ -67,13 +67,13 @@
         </Style>
 
         <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="#292929" />
+            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="12" />
         </Style>
 
         <Style Selector="Border.MarkRow">
-            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Margin" Value="0,0,0,4" />
@@ -87,10 +87,10 @@
         <!-- The writing the step read, in a box it can be copied out of. -->
         <Style Selector="TextBox.ReadText">
             <Setter Property="Background" Value="#1F1F1F" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="MinHeight" Value="58" />
@@ -105,7 +105,7 @@
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                        VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13"
-                           Foreground="#E8E8E8" TextWrapping="NoWrap"
+                           Foreground="{DynamicResource AppText}" TextWrapping="NoWrap"
                            Text="{Binding [Look.Title], Source={x:Static loc:Strings.Current}}" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
                     <!-- A reference picture is read at its own size, and a whole screen of hits does
@@ -116,7 +116,7 @@
                     <!-- Putting this one away leaves the screen behind it free, which is how what was
                          found is compared with what is really there. -->
                     <Button Classes="TitleBarButton" Name="MinimizeButton" Click="OnMinimize">
-                        <Path Width="11" Height="11" Stroke="#D0D0D0" StrokeThickness="1.4"
+                        <Path Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4"
                               Data="M 0,5 H 10" />
                     </Button>
                     <Button Classes="TitleBarButton" Content="✕"
@@ -125,10 +125,10 @@
             </Grid>
 
             <!-- what the step was after, and how it went -->
-            <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="6" Margin="14,0,14,10"
+            <Border Grid.Row="1" Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10"
                     Padding="12,10">
                 <Grid ColumnDefinitions="Auto,*">
-                    <Border Grid.Column="0" Background="#141414" CornerRadius="4" Padding="4"
+                    <Border Grid.Column="0" Background="{DynamicResource AppBackdrop}" CornerRadius="4" Padding="4"
                             Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="False"
                             Name="NeedleFrame">
                         <Image Name="NeedleShot" MaxHeight="52" MaxWidth="140"
@@ -136,9 +136,9 @@
                                RenderOptions.BitmapInterpolationMode="None" />
                     </Border>
                     <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                        <TextBlock Name="StepLine" FontSize="13" Foreground="#E8E8E8"
+                        <TextBlock Name="StepLine" FontSize="13" Foreground="{DynamicResource AppText}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="LookingLine" FontSize="12" Foreground="#B4B4B4"
+                        <TextBlock Name="LookingLine" FontSize="12" Foreground="{DynamicResource AppMuted}"
                                    TextWrapping="Wrap" />
                         <TextBlock Name="OutcomeLine" FontSize="12" Foreground="#E0B080"
                                    TextWrapping="Wrap" />
@@ -153,7 +153,7 @@
                 <Border Grid.Column="0" Classes="Panel" Padding="10">
                     <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
-                        <Canvas Name="Board" Background="#141414"
+                        <Canvas Name="Board" Background="{DynamicResource AppBackdrop}"
                                 HorizontalAlignment="Left" VerticalAlignment="Top" />
                     </ScrollViewer>
                 </Border>
@@ -190,7 +190,7 @@
                 <Button Grid.Column="0" Classes="FlatButton" Content="−" Width="34"
                         Click="OnZoomOut" />
                 <TextBlock Grid.Column="1" Name="ZoomText" MinWidth="54" Margin="8,0"
-                           VerticalAlignment="Center" FontSize="12" Foreground="#B4B4B4"
+                           VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AppMuted}"
                            TextAlignment="Center" />
                 <Button Grid.Column="2" Classes="FlatButton" Content="+" Width="34"
                         Click="OnZoomIn" />
@@ -204,7 +204,7 @@
                         IsVisible="False" Click="OnLookAgain"
                         Content="{Binding [Look.Again], Source={x:Static loc:Strings.Current}}" />
                 <CheckBox Grid.Column="5" Name="LabelsOnPicture" Margin="12,0,0,0" FontSize="12"
-                          Foreground="#C8C8C8" VerticalAlignment="Center" Click="OnToggleLabels"
+                          Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" Click="OnToggleLabels"
                           Content="{Binding [Look.LabelsOnPicture], Source={x:Static loc:Strings.Current}}"
                           ToolTip.Tip="{Binding [Look.LabelsHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Grid.Column="6" Name="Status" Margin="14,0,10,0"

@@ -30,12 +30,12 @@
                 BorderBrush="#FF3B30" BorderThickness="2" />
 
         <Border Name="Readout" IsHitTestVisible="False"
-                Background="#E01E1E1E" BorderBrush="#3F3F3F" BorderThickness="1"
+                Background="#E01E1E1E" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                 CornerRadius="6" Padding="10,7">
             <StackPanel Spacing="3">
                 <TextBlock Name="SizeText" FontSize="15" Foreground="#F0F0F0"
                            FontFamily="Consolas,Menlo,monospace" />
-                <TextBlock FontSize="12" Foreground="#A0A0A0" MaxWidth="260" TextWrapping="Wrap"
+                <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}" MaxWidth="260" TextWrapping="Wrap"
                            Text="{Binding [Region.Hint], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
         </Border>

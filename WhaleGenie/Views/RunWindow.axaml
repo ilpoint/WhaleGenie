@@ -19,7 +19,7 @@
 
     <Window.Styles>
         <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
         <Style Selector="TextBlock.SectionHeader">
@@ -44,7 +44,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.Tab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
         </Style>
         <Style Selector="Button.Tab.active /template/ ContentPresenter">
             <Setter Property="Background" Value="#C8401C" />
@@ -54,24 +54,24 @@
         </Style>
 
         <Style Selector="Border.VarRow">
-            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="10,8" />
             <Setter Property="Margin" Value="0,0,0,5" />
         </Style>
         <Style Selector="TextBox.VarInput">
             <Setter Property="Background" Value="#1F1F1F" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="MinHeight" Value="30" />
         </Style>
         <Style Selector="ComboBox.VarSelect">
             <Setter Property="Background" Value="#1F1F1F" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Foreground" Value="#E4E4E4" />
@@ -95,8 +95,8 @@
             <Setter Property="Background" Value="#5A3226" />
         </Style>
         <Style Selector="Button.RemoveButton">
-            <Setter Property="Background" Value="#3A3A3A" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
@@ -110,7 +110,7 @@
 
         <Style Selector="Button.TitleBarButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#D0D0D0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="Width" Value="42" />
             <Setter Property="Height" Value="28" />
             <Setter Property="CornerRadius" Value="4" />
@@ -118,12 +118,12 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
 
         <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="#404040" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="16,0" />
@@ -153,7 +153,7 @@
         </Style>
 
         <Style Selector="Border.RunRow">
-            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Margin" Value="0,0,0,4" />
@@ -170,7 +170,7 @@
             <Setter Property="Height" Value="16" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
         </Style>
@@ -194,14 +194,14 @@
         </Style>
 
         <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="#292929" />
+            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="14" />
         </Style>
 
         <Style Selector="Button.LookThumb">
-            <Setter Property="Background" Value="#141414" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="1" />
@@ -212,7 +212,7 @@
 
         <!-- Taking one value away: small, and sitting at the end of the row it belongs to. -->
         <Style Selector="Button.CopyButton">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
             <Setter Property="Foreground" Value="#CFCFCF" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="FontSize" Value="11" />
@@ -235,19 +235,19 @@
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                        VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="13" Foreground="#E8E8E8"
+                           FontSize="13" Foreground="{DynamicResource AppText}"
                            Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
                     <!-- A run carries on while its window is out of the way, which is what watching
                          the macro work in the program it drives takes. -->
                     <Button Classes="TitleBarButton" Name="MinimizeButton"
                             ToolTip.Tip="{Binding [Run.Minimize], Source={x:Static loc:Strings.Current}}">
-                        <Path Width="11" Height="11" Stroke="#D0D0D0" StrokeThickness="1.3"
+                        <Path Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3"
                               Data="M 0,5 H 10" />
                     </Button>
                     <Button Classes="TitleBarButton" Name="CloseButton"
                             ToolTip.Tip="{Binding [Run.Close], Source={x:Static loc:Strings.Current}}">
-                        <Path Width="11" Height="11" Stroke="#D0D0D0" StrokeThickness="1.3"
+                        <Path Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3"
                               Data="M 1,1 L 10,10 M 10,1 L 1,10" />
                     </Button>
                 </StackPanel>
@@ -257,7 +257,7 @@
             <!-- Shown only when there is something to run: the window is also the place the
                  variables are managed from, and a run nobody has asked for controls nothing. -->
             <Border Grid.Row="1" Name="RunToolbar"
-                    Background="#1E1E1E" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
+                    Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
                     IsVisible="{Binding HasSteps}">
                 <!-- Buttons, then what the run is doing, then the two notes about this run: how
                      fast it is being played, and whose turn it is at the input door. One column
@@ -324,7 +324,7 @@
 
             <!-- ===================== Which half is showing ===================== -->
             <Border Grid.Row="2" Name="PageTabs"
-                    Background="#1E1E1E" CornerRadius="6" Margin="14,0,14,10" Padding="8,6"
+                    Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10" Padding="8,6"
                     IsVisible="{Binding HasSteps}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <Button Classes="Tab" Classes.active="{Binding IsDebugPage}"
@@ -342,7 +342,7 @@
             <StackPanel Grid.Row="2" Margin="16,0,14,12" Spacing="9"
                         IsVisible="{Binding !HasSteps}">
                 <TextBlock Name="DebugFromCardNote" TextWrapping="Wrap" FontSize="12"
-                           Foreground="#9A9A9A"
+                           Foreground="{DynamicResource AppMuted}"
                            Text="{Binding [Run.DebugFromCard], Source={x:Static loc:Strings.Current}}" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <ComboBox Name="MacroPicker" Classes="VarSelect" MinWidth="220"
@@ -428,13 +428,13 @@
                                                                 <TextBlock Text="{Binding OutcomeLabel}" FontSize="11.5"
                                                                            Foreground="{Binding OutcomeColor}" />
                                                                 <TextBlock Text="{Binding TimeNote}" FontSize="11.5"
-                                                                           Foreground="#9A9A9A" />
+                                                                           Foreground="{DynamicResource AppMuted}" />
                                                             </StackPanel>
                                                             <TextBlock Text="{Binding FailureNote}" FontSize="11.5"
                                                                        Foreground="#E06C75" TextWrapping="Wrap"
                                                                        IsVisible="{Binding HasFailure}" />
                                                             <TextBlock Text="{Binding AttemptsHeader}" FontSize="11"
-                                                                       Foreground="#9A9A9A" Margin="0,2,0,0"
+                                                                       Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasAttempts}" />
                                                             <ItemsControl ItemsSource="{Binding Attempts}"
                                                                           IsVisible="{Binding HasAttempts}">
@@ -454,7 +454,7 @@
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
                                                             <TextBlock Text="{Binding ResultsHeader}" FontSize="11"
-                                                                       Foreground="#9A9A9A" Margin="0,2,0,0"
+                                                                       Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasResults}" />
                                                             <ItemsControl ItemsSource="{Binding Results}"
                                                                           IsVisible="{Binding HasResults}">
@@ -469,7 +469,7 @@
                                                                                            Margin="8,0,0,0"
                                                                                            Text="{Binding Value}"
                                                                                            FontSize="11"
-                                                                                           Foreground="#DDDDDD"
+                                                                                           Foreground="{DynamicResource AppMuted}"
                                                                                            TextWrapping="Wrap" />
                                                                             </Grid>
                                                                             <!-- A value made of named fields is shown as the fields, one
@@ -489,7 +489,7 @@
                                                                                                        Margin="8,0,0,0"
                                                                                                        Text="{Binding Value}"
                                                                                                        FontSize="11"
-                                                                                                       Foreground="#DDDDDD"
+                                                                                                       Foreground="{DynamicResource AppMuted}"
                                                                                                        TextWrapping="Wrap" />
                                                                                         </Grid>
                                                                                     </DataTemplate>
@@ -539,7 +539,7 @@
                                                 <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
                                                            Foreground="#D6C08A" />
                                                 <SelectableTextBlock Grid.Column="2" Text="{Binding Value}"
-                                                                     FontSize="11.5" Foreground="#DDDDDD"
+                                                                     FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                                      TextWrapping="Wrap" />
                                                 <Button Grid.Column="3" Classes="CopyButton" Margin="8,0,0,0"
                                                         Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
@@ -634,7 +634,7 @@
             <ScrollViewer Grid.Row="3" Padding="18,0,18,10" VerticalScrollBarVisibility="Auto"
                           IsVisible="{Binding IsVariablesPage}">
                 <StackPanel>
-                    <Border Background="#1E1E1E" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
+                    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
                         <Grid ColumnDefinitions="Auto,*,Auto">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <Button Classes="Tab" Classes.active="{Binding IsCurrentTab}"
@@ -667,7 +667,7 @@
                             <TextBlock Classes="Muted" TextWrapping="Wrap" VerticalAlignment="Center"
                                        Text="{Binding [Variable.CurrentHint], Source={x:Static loc:Strings.Current}}" />
                             <CheckBox Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                                      Foreground="#C8C8C8" FontSize="12"
+                                      Foreground="{DynamicResource AppMuted}" FontSize="12"
                                       IsChecked="{Binding ShowSystemVariables}"
                                       Content="{Binding [Variable.ShowSystem], Source={x:Static loc:Strings.Current}}" />
                         </Grid>
@@ -700,12 +700,12 @@
                                                            FontSize="11" />
                                             </Border>
                                             <TextBlock Grid.Column="2" Text="{Binding LocalOwner}"
-                                                       Foreground="#9A9A9A" FontSize="12" TextWrapping="Wrap" />
+                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
                                             <SelectableTextBlock Grid.Column="3" Text="{Binding CurrentValue}"
                                                                  Foreground="#E4C48A" FontFamily="Consolas"
                                                                  FontSize="12" TextWrapping="Wrap" />
                                             <TextBlock Grid.Column="4" Text="{Binding LocalDescription}"
-                                                       Foreground="#C8C8C8" FontSize="12" TextWrapping="Wrap" />
+                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
                                             <Button Grid.Column="5" Classes="CopyButton" Margin="8,0,0,0"
                                                     VerticalAlignment="Top"
                                                     Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
@@ -731,7 +731,7 @@
                                 <DataTemplate x:DataType="vm:MacroVariableGroup">
                                     <StackPanel Margin="0,0,0,10">
                                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,0,0,5">
-                                            <TextBlock Text="{Binding MacroName}" Foreground="#E8E8E8"
+                                            <TextBlock Text="{Binding MacroName}" Foreground="{DynamicResource AppText}"
                                                        FontSize="12.5" FontWeight="SemiBold" />
                                             <Border Background="{DynamicResource AppDock}" CornerRadius="3" Padding="6,2">
                                                 <TextBlock Foreground="#D6C08A" FontSize="11"
@@ -748,10 +748,10 @@
                                                                        TextWrapping="Wrap" />
                                                             <SelectableTextBlock Grid.Column="1"
                                                                                  Text="{Binding CurrentValue}"
-                                                                                 Foreground="#9A9A9A" FontSize="12"
+                                                                                 Foreground="{DynamicResource AppMuted}" FontSize="12"
                                                                                  TextWrapping="Wrap" />
                                                             <TextBlock Grid.Column="2" Text="{Binding LocalDescription}"
-                                                                       Foreground="#C8C8C8" FontSize="12"
+                                                                       Foreground="{DynamicResource AppMuted}" FontSize="12"
                                                                        TextWrapping="Wrap" />
                                                             <Button Grid.Column="3" Classes="CopyButton"
                                                                     Margin="8,0,0,0" VerticalAlignment="Top"
@@ -787,7 +787,7 @@
                                                     <ComboBox.ItemTemplate>
                                                         <DataTemplate x:DataType="models:ActionParameterOption">
                                                             <TextBlock Text="{Binding Display}"
-                                                                       FontSize="12.5" Foreground="#E8E8E8" />
+                                                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
                                                         </DataTemplate>
                                                     </ComboBox.ItemTemplate>
                                                 </ComboBox>
@@ -798,7 +798,7 @@
                                                 <Button Grid.Column="4" Classes="RemoveButton"
                                                         Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).RemoveGlobalCommand}"
                                                         CommandParameter="{Binding}">
-                                                    <Path Width="12" Height="12" Stroke="#E8E8E8" StrokeThickness="1.3"
+                                                    <Path Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3"
                                                           Data="M 1,1 L 11,11 M 11,1 L 1,11" />
                                                 </Button>
                                             </Grid>
@@ -828,7 +828,7 @@
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="models:ActionParameterOption">
                                             <TextBlock Text="{Binding Display}"
-                                                       FontSize="12.5" Foreground="#E8E8E8" />
+                                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
@@ -877,12 +877,12 @@
                                             <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
                                                        FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
                                             <TextBlock Grid.Column="1" Text="{Binding LocalType}"
-                                                       Foreground="#9A9A9A" FontSize="12" />
+                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" />
                                             <SelectableTextBlock Grid.Column="2" Text="{Binding CurrentValue}"
                                                                  Foreground="#E4C48A" FontFamily="Consolas"
                                                                  FontSize="12" TextWrapping="Wrap" />
                                             <TextBlock Grid.Column="3" Text="{Binding LocalDescription}"
-                                                       Foreground="#C8C8C8" FontSize="12" TextWrapping="Wrap" />
+                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
                                             <Button Grid.Column="4" Classes="CopyButton" Margin="8,0,0,0"
                                                     VerticalAlignment="Top"
                                                     Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"

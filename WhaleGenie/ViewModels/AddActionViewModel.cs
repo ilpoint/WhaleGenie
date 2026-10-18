@@ -126,9 +126,7 @@ public partial class AddActionViewModel : ViewModelBase
         Categories =
         [
             new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"), CategoryIcon(null), CategoryAccent(null)),
-            .. Enum.GetValues<ActionCategory>()
-            .Where(category => category is not (ActionCategory.Ocr or ActionCategory.Window))
-            .Select(category =>
+            .. DockOrder.Select(category =>
             {
                 var label = Strings.Get($"Add.Category.{category}");
                 return new ActionCategoryChoice(category, label,
@@ -291,6 +289,22 @@ public partial class AddActionViewModel : ViewModelBase
             ActionCategory.Condition => "M6,4 V20 M6,8 H12 C15,8 15,8 15,11 V13 M6,16 H15 M12,11 L15,8 L18,11",
             _ => "M4,4 H20 V20 H4 Z",
         });
+    /// <summary>The dock order: the categories a macro reaches for first, then the rest.</summary>
+    private static readonly ActionCategory[] DockOrder =
+    [
+        ActionCategory.Control,
+        ActionCategory.Input,
+        ActionCategory.Vision,
+        ActionCategory.Uia,
+        ActionCategory.Condition,
+        ActionCategory.Browser,
+        ActionCategory.Script,
+        ActionCategory.Process,
+        ActionCategory.Data,
+        ActionCategory.File,
+        ActionCategory.Clipboard,
+        ActionCategory.System,
+    ];
     /// <summary>Key of the group that holds the blocks, which is not a category either.</summary>
     private const string BlockGroup = "blocks";
 

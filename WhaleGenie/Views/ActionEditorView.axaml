@@ -380,7 +380,7 @@
                     </Grid>
 
                     <Border IsVisible="{Binding HasThumbnail}" Margin="0,8,0,0"
-                            Background="#1A1A1A" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            Background="{DynamicResource AppBackdrop}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                             CornerRadius="5" Padding="4" HorizontalAlignment="Left">
                         <Image Source="{Binding Thumbnail}" MaxWidth="240" MaxHeight="110"
                                Stretch="Uniform" />
@@ -397,7 +397,7 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6"
                                       Margin="0,0,0,4">
                                     <Border Grid.Column="0" Width="54" Height="34"
-                                            Background="#1A1A1A" BorderBrush="{DynamicResource AppBorder}"
+                                            Background="{DynamicResource AppBackdrop}" BorderBrush="{DynamicResource AppBorder}"
                                             BorderThickness="1" CornerRadius="4" Padding="2">
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                                     </Border>
@@ -1130,7 +1130,7 @@
         </Style>
 
         <Style Selector="TextBox.JsonPreview">
-            <Setter Property="Background" Value="#1A1A1A" />
+            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
@@ -1142,14 +1142,14 @@
 
         <!-- Nested step list shown inside structural actions such as repeat or if. -->
         <Style Selector="Border.NestedBox">
-            <Setter Property="Background" Value="#242424" />
+            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8" />
         </Style>
         <Style Selector="ListBox.NestedList">
-            <Setter Property="Background" Value="#1C1C1C" />
+            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="4" />
@@ -1230,7 +1230,7 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.TitleBarAction:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#242424" />
+            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
         </Style>
     </UserControl.Styles>
 

@@ -17,9 +17,9 @@
         <!-- One variable to point at. It stands the same size and shape as every other card in the
              palettes around it, so the wall reads as one wall rather than as a list apart. -->
         <Style Selector="Button.VarButton">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="FontSize" Value="12.5" />
@@ -29,7 +29,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.VarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3C3C3C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </UserControl.Styles>
 
@@ -46,7 +46,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:VariableFilter">
-                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#E8E8E8"
+                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource AppText}"
                                ToolTip.Tip="{Binding Hint}" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -77,7 +77,7 @@
         </ScrollViewer>
 
         <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
-                   Foreground="#9A9A9A" MinHeight="32" MaxHeight="60" />
+                   Foreground="{DynamicResource AppMuted}" MinHeight="32" MaxHeight="60" />
 
         <!-- Which steps read the one under the pointer. A name on a button says nothing about who
              wants it, and this is the line that answers it; pressing one asks the place the wall

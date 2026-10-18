@@ -23,7 +23,7 @@
             <ItemsControl ItemsSource="{Binding Parameters}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroParameterRow">
-                        <Border Background="#2E2E2E" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                        <Border Background="{DynamicResource AppField}" CornerRadius="4" Padding="8" Margin="0,0,0,6">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto"
                                   RowSpacing="4" ColumnSpacing="6">
                                 <TextBox Grid.Row="0" Text="{Binding Name}"
@@ -67,7 +67,7 @@
             <ItemsControl ItemsSource="{Binding Results}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroResultRow">
-                        <Border Background="#2E2E2E" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                        <Border Background="{DynamicResource AppField}" CornerRadius="4" Padding="8" Margin="0,0,0,6">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto"
                                   RowSpacing="4" ColumnSpacing="6">
                                 <TextBox Grid.Row="0" Text="{Binding Name}"

@@ -102,6 +102,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ActionCardViewModel">
                             <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
+                                    BorderBrush="{Binding Accent}" BorderThickness="1"
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">

@@ -23,10 +23,10 @@
             <Setter Property="Height" Value="32" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -73,11 +73,11 @@
     <Grid RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding [KeyPad.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="#E8E8E8" FontSize="13" VerticalAlignment="Center" />
+                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
@@ -109,7 +109,7 @@
                 <StackPanel Spacing="4" MaxWidth="900">
                     <TextBlock Name="FillingLine" Foreground="#7FC97F" FontSize="12.5"
                                TextWrapping="Wrap" />
-                    <TextBlock Foreground="#A0A0A0" FontSize="12" TextWrapping="Wrap"
+                    <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap"
                                Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
 

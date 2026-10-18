@@ -22,8 +22,8 @@
 
     <Window.Styles>
         <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="#404040" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="16,0" />
@@ -36,7 +36,7 @@
 
         <Style Selector="Button.PresetButton">
             <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="14,0" />
@@ -45,7 +45,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.PresetButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#454545" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <Style Selector="Button.PrimaryButton">
@@ -77,10 +77,10 @@
     </Window.Styles>
 
     <Grid RowDefinitions="38,Auto,Auto,Auto,*,Auto">
-        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
+                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
                            VerticalAlignment="Center" />
             </StackPanel>
 
@@ -92,7 +92,7 @@
         </Grid>
 
         <TextBlock Grid.Row="1" Margin="20,16,20,0" TextWrapping="Wrap"
-                   Foreground="#DADADA" FontSize="13" Text="{Binding Explanation}" />
+                   Foreground="{DynamicResource AppMuted}" FontSize="13" Text="{Binding Explanation}" />
 
         <ItemsControl Grid.Row="2" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
             <ItemsControl.ItemsPanel>
@@ -108,11 +108,11 @@
         </ItemsControl>
 
         <Grid Grid.Row="3" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-            <TextBlock Grid.Column="0" Foreground="#9A9A9A" FontSize="12.5"
+            <TextBlock Grid.Column="0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                        VerticalAlignment="Center" Text="×" />
             <views:NumberBox Grid.Column="1" Value="{Binding Factor}" Minimum="0.1" Maximum="10"
                            Increment="0.1" FormatString="0.##" Width="130" />
-            <TextBlock Grid.Column="2" Foreground="#E8E8E8" FontSize="15" FontWeight="SemiBold"
+            <TextBlock Grid.Column="2" Foreground="{DynamicResource AppText}" FontSize="15" FontWeight="SemiBold"
                        VerticalAlignment="Center" Text="{Binding Display}" />
         </Grid>
 

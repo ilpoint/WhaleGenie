@@ -156,7 +156,7 @@
         <!-- The two ends of a block: the line its steps start under, and the line that closes it.
              They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
         <Style Selector="Border.StepHead">
-            <Setter Property="Background" Value="#262626" />
+            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,2" />
         </Style>
