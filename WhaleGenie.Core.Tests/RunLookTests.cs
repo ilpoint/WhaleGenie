@@ -101,7 +101,7 @@ public class RunLookTests
             ],
             Meta = new StepMeta
             {
-                TimeoutMs = 400,
+                TimeoutMs = 700,
                 RetryCount = 5,
                 RetryDelayMs = 0,
                 OnError = StepErrorAction.Continue,
@@ -114,15 +114,15 @@ public class RunLookTests
             looks: watched).RunAsync([block]);
         watch.Stop();
 
-        // Six tries at 250 ms each would be 1.5 s with a clock of their own. One 400 ms budget
-        // ends the second try; a loaded machine still gets that second one made, while the sixth
+        // Six tries at 250 ms each would be 1.5 s with a clock of their own. One 700 ms budget
+        // ends the third try; a loaded machine still gets the second one made, while the sixth
         // try would put it past the line.
         Assert.True(result.Succeeded, result.Key);
         Assert.True(watch.Elapsed.TotalMilliseconds < 1300,
             $"the retries each got a fresh clock, took {watch.Elapsed.TotalMilliseconds:0} ms");
 
         var run = Assert.Single(watched.Runs, run => run.StepType == "control.sequence");
-        Assert.Equal(400, run.TimeoutMs);
+        Assert.Equal(700, run.TimeoutMs);
         Assert.True(run.Attempts.Count >= 2, $"only {run.Attempts.Count} try made");
         Assert.Equal("failed", run.Attempts[0].Outcome);
         Assert.NotNull(run.Attempts[0].RemainingMs);

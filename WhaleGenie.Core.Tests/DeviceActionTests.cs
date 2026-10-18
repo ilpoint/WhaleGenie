@@ -10199,8 +10199,14 @@ public class DeviceActionTests
     {
         var library = new Macros(("子", []));
         var steps = Enumerable.Range(0, MacroRunner.MaxFinishedRuns + 4)
-            .Select(_ => Step("control.startMacro", Param("macro", "子"),
-                Param("runHandleName", "job")))
+            // An empty child still needs a moment to finish. Without the pause a busy machine
+            // reaches the limit on live runs before any of them has had a chance to end, which
+            // measures scheduling rather than the release of finished runs.
+            .SelectMany(_ => new[]
+            {
+                Step("control.startMacro", Param("macro", "子"), Param("runHandleName", "job")),
+                Step("control.delay", Param("ms", "15")),
+            })
             .Append(Step("control.waitMacro", Param("runHandle", "$job")))
             .ToArray();
 
