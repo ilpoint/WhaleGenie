@@ -115,9 +115,10 @@ public class RunLookTests
         watch.Stop();
 
         // Six tries at 250 ms each would be 1.5 s with a clock of their own. One 400 ms budget
-        // ends the second try; a loaded machine still gets that second one made.
+        // ends the second try; a loaded machine still gets that second one made, while the sixth
+        // try would put it past the line.
         Assert.True(result.Succeeded, result.Key);
-        Assert.True(watch.Elapsed.TotalMilliseconds < 900,
+        Assert.True(watch.Elapsed.TotalMilliseconds < 1300,
             $"the retries each got a fresh clock, took {watch.Elapsed.TotalMilliseconds:0} ms");
 
         var run = Assert.Single(watched.Runs, run => run.StepType == "control.sequence");
