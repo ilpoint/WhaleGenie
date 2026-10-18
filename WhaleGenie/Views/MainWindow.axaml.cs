@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
@@ -699,6 +700,18 @@ public partial class MainWindow : Window
         => OpenFolder((DataContext as MainViewModel)?.CurrentFolder
             ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
 
+    /// <summary>The explicit way out, for people who never found the notification-area icon.</summary>
+    private void OnExitClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Tray is { } tray)
+        {
+            tray.RequestExit();
+            return;
+        }
+
+        Close();
+    }
+
     private async void OnCloseAllClicked(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel { HasMacros: true } viewModel)
@@ -880,6 +893,69 @@ public partial class MainWindow : Window
         ThemeController.Apply(next);
         ThemeController.Save(next);
     }
+    /// <summary>
+    /// Gives the flyout its window's data context. A flyout's content is not part of the window's
+    /// visual tree, so the bindings that name the MCP view model need this one hand-off. The button
+    /// only opens the flyout; the switch inside it owns the start and stop.
+    /// </summary>
+    private void OnMcpClicked(object? sender, RoutedEventArgs e)
+    {
+        if (this.FindControl<Button>("McpButton")?.Flyout is Flyout { Content: Control content })
+        {
+            content.DataContext = DataContext;
+        }
+    }
+
+    /// <summary>
+    /// MCP's save tool needs a package path. If this project has none yet, ask before starting the
+    /// server: choosing a location saves the project, "open anyway" starts MCP so a draft can still
+    /// be written, and cancelling leaves MCP off.
+    /// </summary>
+    internal async Task<bool> EnsureProjectSavedForMcpAsync()
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return false;
+        }
+
+        if (viewModel.CurrentPath is { Length: > 0 })
+        {
+            return true;
+        }
+
+        var choice = await ConfirmDialog.ShowAsync(this,
+            Strings.Get("Mcp.SaveTitle"),
+            Strings.Get("Mcp.SaveMessage"),
+            Strings.Get("Mcp.SaveChoose"),
+            Strings.Get("Mcp.OpenAnyway"));
+
+        if (choice == ConfirmChoice.Primary)
+        {
+            return await SaveAsAsync(viewModel);
+        }
+
+        return choice == ConfirmChoice.Secondary;
+    }
+
+    /// <summary>
+    /// Copies a client config that points at the address the switch just opened. The endpoint is
+    /// the only thing the external client needs: this server deliberately has no token.
+    /// </summary>
+    private async void OnCopyMcpConfig(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel { Mcp.Endpoint.Length: > 0 } viewModel
+            || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        {
+            return;
+        }
+
+        var config = $"{{\n  \"mcpServers\": {{\n    \"whalegenie\": {{\n"
+            + $"      \"type\": \"http\",\n      \"url\": \"{viewModel.Mcp.Endpoint}\"\n"
+            + "    }\n  }\n}\n";
+        await clipboard.SetTextAsync(config);
+        viewModel.Mcp.ShowCopied();
+    }
+
     private async void OnAboutClicked(object? sender, RoutedEventArgs e)
     {
         var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),

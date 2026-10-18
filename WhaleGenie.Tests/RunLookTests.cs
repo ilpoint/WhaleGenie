@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
@@ -123,6 +124,10 @@ public class RunLookTests
             {
                 await Task.Delay(10);
             }
+
+            // The window posts a step's results to this thread; let those posts run before the
+            // row is read.
+            Dispatcher.UIThread.RunJobs();
 
             var row = viewModel.Steps.First(step => step.Id == find.Id);
             var result = row.Results.Single(value => value.Name == "match");

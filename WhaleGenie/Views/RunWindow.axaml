@@ -362,9 +362,47 @@
             </StackPanel>
 
             <!-- ===================== Steps, variables and log ===================== -->
-            <Grid Grid.Row="3" ColumnDefinitions="340,*" Margin="14,0,14,0"
-                  IsVisible="{Binding IsDebugPage}">
-                <Border Classes="Panel">
+            <Grid Grid.Row="3" ColumnDefinitions="340,*" RowDefinitions="Auto,*"
+                  Margin="14,0,14,0" IsVisible="{Binding IsDebugPage}">
+                <!-- A direct run has no caller to fill the declaration in, so the values it is
+                     asked for are put here before the run starts. A trigger supplies none. -->
+                <Border Grid.Row="0" Grid.ColumnSpan="2" Name="RunArgumentsPanel"
+                        Classes="Panel" Padding="12,10" Margin="0,0,0,10"
+                        IsVisible="{Binding HasArguments}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="SectionHeader"
+                                   Text="{Binding [Run.Arguments], Source={x:Static loc:Strings.Current}}" />
+                        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Arguments}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RunArgumentViewModel">
+                                    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="5"
+                                            Padding="10" Margin="0,0,10,8" Width="250">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Label}" FontSize="12"
+                                                       Foreground="{DynamicResource AppText}" />
+                                            <TextBox Classes="VarInput" Text="{Binding Value}" />
+                                            <CheckBox FontSize="11.5"
+                                                      Foreground="{DynamicResource AppMuted}"
+                                                      IsChecked="{Binding Given}"
+                                                      Content="{Binding [Run.ArgumentGiven], Source={x:Static loc:Strings.Current}}" />
+                                            <TextBlock Text="{Binding Hint}" Classes="Muted"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Classes="Panel">
                     <Grid RowDefinitions="Auto,*">
                         <TextBlock Classes="SectionHeader"
                                    Text="{Binding [Run.Steps], Source={x:Static loc:Strings.Current}}" />
@@ -521,7 +559,7 @@
                     </Grid>
                 </Border>
 
-                <Grid Grid.Column="1" Margin="12,0,0,0" RowDefinitions="Auto,*,Auto,Auto,Auto,1.2*">
+                <Grid Grid.Row="1" Grid.Column="1" Margin="12,0,0,0" RowDefinitions="Auto,*,Auto,Auto,Auto,1.2*">
                     <TextBlock Classes="SectionHeader"
                                Text="{Binding [Run.Variables], Source={x:Static loc:Strings.Current}}" />
                     <Border Grid.Row="1" Classes="Panel" Padding="12,10">

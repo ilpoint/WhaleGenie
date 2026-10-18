@@ -94,9 +94,43 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning`、`System.Security.Cryptography.Pkcs` | 下载 NuGet 包（`script.nuget`）：到官方 v3 源上问一个包有哪些版本、把 nupkg 取下来、按目标框架挑最贴近的一份 lib、按版本区间解析传递依赖。包本身不跟着程序分发，下到程序自己的 `packages` 目录里。`System.Security.Cryptography.Pkcs` 单列一条钉在 10.0.13：`NuGet.Packaging` 7.9.0 拖来的 8.0.1 有两条已公开的公告（CVE-2026-84008 高、CVE-2026-70162 中），而 .NET 10 的 SDK 审计会把警告当错误，还原当场失败、CI 与发版都过不去；这个程序集由 WindowsDesktop 共享框架提供，钉住只是让还原图与运行时真正加载的那一份对上，包里不多一个文件 |
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 | `Avalonia.Controls.ColorPicker` | 界面：设置里的自定义主题用它做 HSV 色板、滑块与十六进制输入；只有界面引用，引擎不认，也不影响宏文件格式。MIT，Fluent 主题样式从包里的 `Themes/Fluent/Fluent.xaml` 引入 |
+| `ModelContextProtocol.AspNetCore` | 界面：主界面 MCP 开关启动的本机 HTTP 服务器。它只监听环回地址，不设令牌；工具读写当前项目草稿与运行日志，不能运行宏。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，工具的传输与发现由 SDK 管 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
 和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
+
+## MCP 服务器
+
+主界面「运行调试」左边的 MCP 按钮只负责打开浮层；浮层里的 `ToggleSwitch` 才启停
+`WhaleGenie/Mcp/McpServerHost.cs`：一个只绑定 `127.0.0.1` 的 ASP.NET Core HTTP 服务，路径 `/mcp`，
+**没有令牌**。`ModelContextProtocol.AspNetCore` 负责 Streamable HTTP、工具与 prompts 发现；开关关闭、
+程序退出都会 `StopAsync` 并丢弃草稿。版本号在「文件 / 帮助」菜单右边。
+
+- `McpLiveProject` 是界面与 HTTP 线程之间唯一的桥：快照、apply、save 全部通过
+  `Dispatcher.UIThread.InvokeAsync` 回到界面线程。`MainViewModel.Revision` 在每次 `MarkDirty` 时
+  增加；草稿 `apply` 前对不上就拒绝，避免覆盖人在界面里的修改。
+- `McpDraftStore` 只改内存草稿；`apply` 才替换 `MainViewModel` 的宏与全局变量，`save_project` 才
+  调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。
+- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。
+- `McpServerViewModel.EnsureSaved` 是启动前的保存回调：`App` 把它接到
+  `MainWindow.EnsureProjectSavedForMcpAsync`，后者在没有 `CurrentPath` 时弹「选择保存位置 / 先打开」，
+  选择位置走现有 `SaveAsAsync`。没有窗口的测试不设回调，仍可直接启动。
+- `McpPrompts`（`WhaleGenie/Mcp/McpPrompts.cs`）提供 `whalegenie_write_macro` 与
+  `whalegenie_debug_macro` 两条默认提示词，并通过 `McpServerOptions.ServerInstructions` 给只显示
+  服务说明的客户端一份简短版本；`McpTools.Instructions` 还给不显示 prompts 的客户端留了
+  一个同名工具。`McpServerHost` 用 `WithPrompts<McpPrompts>()` 注册。
+- 退出程序时不能在 UI 线程同步等 MCP 停止：MCP 请求可能正等 UI 线程，`GetResult()` 会让
+  `App.Exit` 永久卡住，留下一个无窗口进程。`App.Exit` 现在把停止放到工作线程并最多等 3 秒；
+  `McpServerHost.StopAsync` 另有 2 秒 Kestrel 超时和释放。主窗口关闭只是收进通知区域，真正的退出是
+  「文件 → 退出鲸灵」或托盘退出；`Program.Run` 在桌面生命周期结束后再做 `Environment.Exit(0)` 兜底。
+- MCP 端口由 `LocalSettings.McpPort` 保存（默认 3917），浮层里的 `NumberBox` 只在停止时可用；启动时
+  作为首选端口，被占用则回退到系统分配端口，浮层显示实际地址。
+- `RunLogStore`（`WhaleGenie/Execution/RunLogStore.cs`）保留最近 20 次运行的日志与步骤结局：
+  `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
+- 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组。没有
+  `run_macro` / `debug_macro` 工具。
+- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision
+  与保存；`RunLogTests` 验日志；无外网。
 
 ## 脚本怎么跑
 
@@ -154,6 +188,15 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写，形参与结果各带一个 `ActionReturnType`：
 调用处按它说明要的是什么，设计期按它标出明显不符的值。
 
+声明名是变量名：首字符字母或 `_`，其余字母、数字、`_`、`.`；空名、读不出来的名字、形参名以 `.given` 结尾、
+形参内或结果内重名、`sys.` 与 `step.<标识>.outcome` / `.error` 这类运行保留名，都在保存与写包前拦住。形参不能
+同时是必填又有默认值（`RequiredWithDefault`）。空名字的行不丢掉：`FromJson` 与恢复快照会把它带回来，编辑器
+显示声明问题，包写入则拒绝有致命声明错误的宏。被调用宏开始时先把形参写入局部表，再把尚未存在的声明结果初始化为
+空；形参与结果同名时保留形参值（in-out）。默认值留在声明里，不写进调用步：调用表单留空就不写 `arg.<名字>`，
+运行时才取默认值。宏接口里默认值一行的「表达式」「变量」复用 `ExpressionBuilderWindow` 与
+`VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
+局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
+
 包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 9。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
@@ -173,12 +216,17 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 ```
 
 `macro` 是被调用宏的名字；每一个形参各占一格，名字是 `arg.<形参名>`——带前缀是因为形参名是被调用宏
-自己的，不加前缀就会和 `macro`、`returns` 这些调用自己的键撞上。`returns` 一行一个要取回的结果：
-`key` 是被调用宏那边叫这个名字，`name` 是本宏这边落在哪个变量里。引擎按被调用宏声明的形参逐个读
-`arg.<名字>`（留空用默认值，必填留空报 `Run.MissingArgument`），并从 `returns` 的每一行取回一个值
-（名字没被声明过报 `Run.UndeclaredResult`），要取回什么在调用开始之前就说清楚，出错因此发生在送输入
-之前。F3 会把同步调用与后台启动拆成 `control.runMacro` / `control.startMacro`；后台句柄是记录，
-结果只在 `waitMacro` / `waitAll` 成功后写。
+自己的，不加前缀就会和 `macro`、`returns` 这些调用自己的键撞上。`arg.<名字>` 存在但为空、且没有
+`arg.<名字>.given` 为 `true` 时算“没给”：可选形参用默认值，必填报 `Run.MissingArgument`；只有 `.given`
+把空字段变成显式空串。`returns` 一行一个要取回的结果：`key` 是被调用宏那边叫这个名字，`name` 是本宏
+这边落在哪个变量里。引擎按被调用宏声明的形参逐个读，并从 `returns` 的每一行取回一个值（名字没被声明过报
+`Run.UndeclaredResult`），要取回什么在调用开始之前就说清楚，出错因此发生在送输入之前。结果变量在每次
+尝试开始时先清空；同步调用失败或后台等待失败时一个结果都不写。F3 会把同步调用与后台启动拆成
+`control.runMacro` / `control.startMacro`；后台句柄是记录，结果只在 `waitMacro` / `waitAll` / `waitAny`
+成功后写，`waitAll` / `waitAny` 失败时失败的那次运行的句柄仍留在表里，可以再用 `runStatus` 查看或
+`waitMacro` 逐个等待。顶层的运行调试与触发器没有调用者，`MacroRunner.StartSignature` / `StartArguments` 把同一份
+声明种进运行自己的表：调试窗口提供 `MacroStartArgument`，触发器不提供、默认值照用；两者都与调用共用
+`ReadArgument` 和 `MacroValues.Fits`。必填缺失在 `RunAsync` 进入步骤前以 `Run.MissingArgument` 结束并写失败日志。
 
 ## 改一个动作的固定顺序
 
@@ -238,9 +286,12 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 参数约束 | `MacroRunnerTests` + `ActionContractTests` + `MacroCheckTests` | 数字超出目录的 `MinimumValue` / `MaximumValue` 报 `Run.OutOfRange`（只算 `Shape = Number`）；必填且没有默认、没有空值含义的字段空着报它自己的 `MissingKey`（默认 `Run.MissingField`，路径 / 程序 / 句柄保留原键；`Conditional` 的字段不在此列）；选项不是目录里的词报 `OptionKey`（默认 `Run.BadOption`，`AllowsUnknownOption` 的窗口匹配方式与 `tabHow` 保留回退）；设计期用同一规则标出 `MissingField` / `BadOption` |
 | 位置与矩形 | `ActionContractTests` + `ActionPageTests` + `ActionDialogTests` | 每个位置字段声明 `Point`、每个矩形字段声明 `Rect`；目录里没有 `useRecord` / `record` 这类开关与第二格；记录格与数字格互斥，框选写数字时清空记录格；记录进数字格报 `Run.RecordWhereNumber` |
 | 记录字段 | `DeviceActionTests` + `ActionContractTests` | 引擎写出的记录字段与目录 `Fields` 一致；每个字段名都在 `FieldNames` 里；手册的记录字段表与目录一致 |
-| 类型检查 | `MacroCheckTests` + `MacroRunnerTests` | 记录进数字格、文本进位置格、记录进只收文本的字段、调用实参与形参声明不符，设计期标出；运行时实参报 `Run.BadArgumentType`、结果报 `Run.BadResultType`；窗口字段收记录不算错 |
+| 类型检查 | `MacroCheckTests` + `MacroRunnerTests` | 记录进数字格、文本进位置格、记录进只收文本的字段、调用实参与形参声明不符、常量实参与默认值明显不符，设计期标出；运行时实参报 `Run.BadArgumentType`、结果报 `Run.BadResultType`；空值对所有声明类型合法；窗口字段收记录不算错 |
 | 行列表 | `ActionContractTests` + `MacroRunnerTests` + `MacroCheckTests` | 每个 `Rows` 字段在目录里声明列与角色（`returns` / `region` / `narrow` / `images` / `keySequence`）；运行与设计期都拒绝没有的列与缺掉的必填列，报 `Run.BadRowColumn` |
-| 声明契约 | `MacroRunnerTests` + `MacroCheckTests` | 被调用宏的形参/结果为空名、重名或运行保留的名字时，调用前报 `Run.BadDeclaration`，设计期在调用步上标出；宏自己的声明问题由 `MacroCheck.DeclarationProblems` 列在编辑器步骤列表上方 |
+| 声明契约 | `MacroSignatureTests` + `MacroCallTests` + `MacroRunnerTests` + `MacroCheckTests` | 空名、读不出来的名字、形参 `.given` 后缀、重名、运行保留名、必填+默认值都在保存/写包/调用前拦住；空声明经文件与恢复快照保留；宏自己的声明问题由 `MacroCheck.DeclarationProblems` 列在编辑器步骤列表上方，致命项阻断保存，结果未写与默认值类型只提醒 |
+| 声明可见 | `VariableWallTests` + `VariableFieldTests` + `MacroCallTests` + `RunDebugTests` | 形参/结果进入变量墙、`$` 建议与运行窗口局部变量；Record 形参能被位置/矩形字段识别；宏内读声明结果不报未定义 |
+| 直接运行 | `MacroRunnerTests` + `RunDebugTests` | `StartSignature` / `StartArguments` 与调用共用 `ReadArgument`；可选默认值生效、必填缺失在第一步前报 `Run.MissingArgument`、显式空值合法、声明结果初始为空；调试窗口的必填行拦住运行按钮；触发器直接运行使用默认值 |
+| 结果交付 | `MacroRunnerTests` + `MacroCheckTests` | `waitAll` 失败不消耗已成功句柄；`waitAny` 失败保留失败句柄；`cancelMacro` 不结算结果，取消后读结果仍标 `ResultBeforeWait` |
 | 是否发输入 | `ActionContractTests` | 每个会调用 `Input(step)`、回退成真实鼠标点击或按快捷键的动作在目录里标真；`MacroCheck` 与 `InputGate` 查同一处，并沿宏调用图看可达步骤 |
 | 返回形状 | `ReturnsPageTests` + `ActionContractTests` | 返回值页的每一行、引擎写出的键与记录字段一致 |
 | 失败键 | `FailureKeyTests` | `RunKeys` 与手册表一致；日志键、状态键不与失败键混用 |

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -50,10 +51,12 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var viewModel = new MainViewModel();
             var window = new MainWindow
             {
-                DataContext = new MainViewModel(),
+                DataContext = viewModel,
             };
+            viewModel.Mcp.EnsureSaved = window.EnsureProjectSavedForMcpAsync;
 
             desktop.MainWindow = window;
 
@@ -73,6 +76,24 @@ public partial class App : Application
             desktop.Exit += (_, _) =>
             {
                 window.Tray?.Dispose();
+
+                // The MCP server owns a Kestrel socket; it has to be gone before the process is.
+                // This event runs on the UI thread, and an MCP request can be waiting for that same
+                // thread while Kestrel drains it. Blocking here on the UI thread deadlocks the exit,
+                // which is exactly what left a windowless WhaleGenie process behind. Stop on a
+                // worker, wait only briefly, and let Program.Run's final exit cover a host that
+                // still has not let go.
+                if (window.DataContext is MainViewModel viewModel)
+                {
+                    try
+                    {
+                        Task.Run(() => viewModel.Mcp.StopAsync()).Wait(TimeSpan.FromSeconds(3));
+                    }
+                    catch
+                    {
+                        // The host has stopped or is unreachable; the process is leaving anyway.
+                    }
+                }
 
                 // The program owns the device layer every window ran on, so this is where the
                 // models it loaded and the capture sessions it opened are let go.

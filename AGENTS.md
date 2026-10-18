@@ -59,7 +59,7 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 
 ## 当前路线
 
-路线图里的阶段已全部完成（P2 行列表 schema、P2.1 宏级声明与文本表达式、P2.2 宏名校验、U1 内嵌检查器、U2 宏接口页、U3 三列布局、O4 完成态清理、O5 引号、O6 等任意一个）；新的工作按 `doc/roadmap.md` 的衡量标准重新立阶段。
+路线图里的阶段已全部完成（P2 行列表 schema、P2.1 宏级声明与文本表达式、P2.2 宏名校验、U1 内嵌检查器、U2 宏接口页、U3 三列布局、O4 完成态清理、O5 引号、O6 等任意一个、MCP1 本机宏写作服务）；新的工作按 `doc/roadmap.md` 的衡量标准重新立阶段。
 判断标准有三条：
 **用户能不能把这件事表达出来；已经说出来的行为是否与实现一致；多条宏同时跑时是否仍然正确**。本文件的设计
 约定是目标；当前实现事实（如动作展示清单在
@@ -123,13 +123,19 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 `step.<id>.outcome`（`ok` / `failed` / `skipped`）与 `step.<id>.error`（失败键）；调试运行交出全部结果与耗时。
 
 **结果只属于这一次尝试**　每次尝试开始时清空它勾选的结果变量；步骤没写就是空，不是上一次的答案。同步子宏失败
-不把半截结果带回来；后台子宏的结果在 `waitMacro` / `waitAll` 成功之前不算已定义。
+不把半截结果带回来；后台子宏的结果在 `waitMacro` / `waitAll` 成功之前不算已定义。被调用宏开始时声明结果先写成空；
+形参与结果同名（in-out）时保留传进来的形参值。
+
+**MCP 服务器**　只在界面层；主界面「运行调试」左侧的 MCP 按钮打开浮层，浮层开关启停本机环回 HTTP，
+无令牌；无包路径启动前先问保存；默认 prompts 说明写宏与读日志；工具只读写项目草稿与运行日志，草稿
+`apply` 才进项目、`save` 才写包；不运行宏，`WhaleGenie.Core` 不依赖 MCP。退出时不得在 UI 线程同步等 MCP
+停止：MCP 请求可能正等 UI 线程，会永久卡住退出并留下无窗口进程。
 
 **流程控制**　用户可见的流程控制只有块，加上循环体内的 `break` / `continue`、结束当前子宏的 `return` 与
 "停止整个宏"，不得引入第二套：重复与遍历用 `control.repeat` / `forEach` / `for` / `while`，多分支用
 `control.switch`，兜底与收尾用 `control.try`（catch 可按失败键挑选、可原样重抛），一段流程用第二次用
 `control.runMacro`（同步、必等、步骤超时）或 `control.startMacro`（后台、交回句柄；句柄是记录，
-写清 `id` / `macro` / `status` / `error` / `results`，等完或取消后改写成结束时的样子）。调用形参留空且有默认值就用默认值；要空串勾「传空值」（`arg.<名字>.given`）。`repeat` / `for` /
+写清 `id` / `macro` / `status` / `error` / `results`，等完或取消后改写成结束时的样子）。声明名必须是宏语言读得回来的变量名，形参不能以 `.given` 结尾，必填与默认值不能同时有；调用形参没写、或写了空且没勾「传空值」时才用默认值，要空串勾「传空值」（`arg.<名字>.given`）。`repeat` / `for` /
 `forEach` / `while` 都交回 `ended`：正常结束 `count` / `range` / `items` / `condition` / `limit`，`break`
 为 `break`；到上限另写警告。`if` / `while` / `waitUntil` 没有条件时运行报 `Run.MissingCondition`、设计期
 标出。`sys.loopIndex`、`forEach` 的 item/index、`for` 的计数都只属于最内层循环，离开时恢复外层；

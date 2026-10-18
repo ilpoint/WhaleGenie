@@ -111,6 +111,10 @@ SOFTWARE.
 - Playwright（Microsoft.Playwright）— Apache-2.0
   <https://github.com/microsoft/playwright-dotnet>
   随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。
+- ModelContextProtocol.AspNetCore — Apache-2.0（项目同时保留 MIT 过渡声明）
+  <https://github.com/modelcontextprotocol/csharp-sdk>
+  本机 MCP 服务器用它在鲸灵自己的进程里映射 HTTP 端点；依赖的 `ModelContextProtocol` 与
+  `ModelContextProtocol.Core` 同属这一份 SDK。不随包分发额外的原生库。
 - CsvHelper — Apache-2.0 与 MS-PL 双许可
   <https://github.com/JoshClose/CsvHelper>
   读写的都是带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、

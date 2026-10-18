@@ -3122,7 +3122,10 @@ public class ActionDialogTests
 
             var times = Field(viewModel, "arg.次数");
             Assert.NotNull(times);
-            Assert.Equal("3", times!.CurrentText);
+            // The default belongs to the declaration, not to the call: an untouched field stays
+            // empty so a changed default is what every call without a value reads.
+            Assert.Equal(string.Empty, times!.CurrentText);
+            Assert.Contains("3", times.Hint, StringComparison.Ordinal);
             Assert.False(times.Definition.Required);
             Assert.True(Field(viewModel, "arg.标签")!.Definition.Required);
             Assert.Equal("答案", Assert.Single(viewModel.ReturnsRows).Key);
@@ -3209,7 +3212,9 @@ public class ActionDialogTests
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal("3", Field(viewModel, "arg.次数")!.CurrentText);
+            var next = Field(viewModel, "arg.次数")!;
+            Assert.Equal(string.Empty, next.CurrentText);
+            Assert.Contains("3", next.Hint, StringComparison.Ordinal);
         });
     }
 

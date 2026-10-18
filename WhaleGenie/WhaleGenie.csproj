@@ -31,6 +31,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The MCP server is a local HTTP endpoint hosted by this same program. ASP.NET Core supplies
+      Kestrel and the endpoint the SDK maps; the SDK supplies the protocol and tool discovery.
+      Nothing of this reaches WhaleGenie.Core: the engine stays free of network and AI.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.2" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />

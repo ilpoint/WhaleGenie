@@ -56,36 +56,24 @@ public sealed record MacroCallable(
     /// <summary>The steps the macro runs, for the checks that follow a call into it.</summary>
     public IReadOnlyList<MacroStep> OwnSteps => Steps ?? [];
 
-    /// <summary>The same, in the shape the engine calls macros by.</summary>
+    /// <summary>
+    /// The same, in the shape the engine calls macros by. Empty rows are kept: the engine has to
+    /// see them to refuse a call with <c>Run.BadDeclaration</c>, and the editor has to see them to
+    /// show what is wrong with the declaration.
+    /// </summary>
     public MacroSignature Signature => new(
-        [.. Parameters
-            .Where(parameter => parameter.Name.Trim().Length > 0)
-            .Select(parameter => new MacroArgument(parameter.Name.Trim(), parameter.Default,
-                parameter.Required, parameter.Type))],
-        [.. Results
-            .Where(result => result.Name.Trim().Length > 0)
-            .Select(result => new MacroReturn(result.Name.Trim(), result.Type))]);
+        [.. Parameters.Select(parameter => new MacroArgument(parameter.Name.Trim(),
+            parameter.Default, parameter.Required, parameter.Type))],
+        [.. Results.Select(result => new MacroReturn(result.Name.Trim(), result.Type))]);
 
     /// <summary>
-    /// Every declaration name that cannot be used: one left empty, one repeated, or one the run
-    /// keeps for itself. The signature drops empty names before the engine sees them, so this asks
-    /// the raw declarations as well; the editor shows these even when no call reaches the macro.
+    /// Every declaration name that cannot be used: one left empty, one the macro language cannot
+    /// read, one that collides with the supplied-empty marker, one repeated, one the run keeps
+    /// for itself, or a required argument that also has a default. The editor shows these even
+    /// when no call reaches the macro.
     /// </summary>
     public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
-    {
-        var problems = new List<(MacroSignatureFault, string)>();
-        foreach (var name in Parameters.Select(parameter => parameter.Name)
-                     .Concat(Results.Select(result => result.Name)))
-        {
-            if (name.Trim().Length == 0)
-            {
-                problems.Add((MacroSignatureFault.EmptyName, name));
-            }
-        }
-
-        problems.AddRange(Signature.Problems());
-        return problems;
-    }
+        => Signature.Problems();
     /// <summary>The declared parameter of this name, or null when the macro declares none.</summary>
     public MacroParameter? Parameter(string name)
         => Parameters.FirstOrDefault(parameter =>

@@ -131,7 +131,6 @@ public partial class MacroEditorWindow : Window
     private KeyRowViewModel? _keyRowCapture;
 
     private MacroInterfaceView? _interfaceView;
-    private MacroInterfaceViewModel? _interfaceModel;
 
     /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
     private Canvas? _dropLayer;
@@ -1163,27 +1162,14 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>Turns the inspector between the step form and the macro's own interface.</summary>
-    private void OnToggleInterface(object? sender, RoutedEventArgs e)
-    {
-        if (MacroInterfaceHost.IsVisible)
-        {
-            ShowInspectorSteps();
-            return;
-        }
-
-        EnsureInterface();
-        _interfaceModel?.Reload();
-        MacroInterfaceHost.IsVisible = true;
-        InspectorContent.IsVisible = false;
-    }
-
     /// <summary>Puts the inspector back on the step being written.</summary>
+    /// <remarks>
+    /// The macro interface lives on the macro-settings page now, not in the inspector, so this
+    /// must not hide it: a step written after visiting the interface would otherwise leave the
+    /// settings page with an empty place where the interface belongs.
+    /// </remarks>
     private void ShowInspectorSteps()
-    {
-        MacroInterfaceHost.IsVisible = false;
-        InspectorContent.IsVisible = true;
-    }
+        => InspectorContent.IsVisible = true;
 
     /// <summary>Builds the interface editor the first time it is asked for.</summary>
     private void EnsureInterface()
@@ -1193,8 +1179,8 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        _interfaceModel = new MacroInterfaceViewModel(_viewModel);
-        _interfaceView = new MacroInterfaceView { DataContext = _interfaceModel };
+        var model = new MacroInterfaceViewModel(_viewModel);
+        _interfaceView = new MacroInterfaceView { DataContext = model };
         MacroInterfaceHost.Content = _interfaceView;
     }
     /// <summary>Shows the recording page in the middle, instead of the settings or the step form.</summary>
@@ -1343,7 +1329,8 @@ public partial class MacroEditorWindow : Window
 
         _running?.Close();
         var window = new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
-            macroName: _editing?.Name ?? string.Empty);
+            macroName: _editing?.Name ?? string.Empty,
+            callable: _viewModel.BuildMacro().Callable);
         _running = window;
         window.Closed += (_, _) =>
         {

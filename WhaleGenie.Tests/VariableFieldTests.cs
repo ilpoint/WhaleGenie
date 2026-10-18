@@ -36,6 +36,23 @@ public class VariableFieldTests
     }
 
     [Fact]
+    public void A_declared_record_parameter_is_offered_to_a_record_field()
+    {
+        Ui.Run(() =>
+        {
+            var declared = VariableChoices.For([],
+                [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }],
+                []);
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions, declared, []);
+            viewModel.SelectAction("input.mouseMove");
+
+            var place = Parameter(viewModel, "place");
+
+            Assert.Contains("$窗口", place.ExpressionSuggestions);
+        });
+    }
+
+    [Fact]
     public void A_search_region_is_a_list_of_places_rather_than_a_line_of_punctuation()
     {
         Ui.Run(() =>

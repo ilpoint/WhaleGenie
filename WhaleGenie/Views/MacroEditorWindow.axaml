@@ -438,7 +438,7 @@
                     <Button Classes="FlatButton" Height="30" Padding="7,0"
                             Background="{DynamicResource AppControl}"
                             Foreground="{DynamicResource AppText}"
-                            Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}">
+                            Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Save}" />
                             <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
@@ -849,6 +849,8 @@
                                   Text="{Binding ProblemSummary}" />
                        <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasDeclarationProblems}"
                                   Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
+                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasCallImpact}"
+                                  Text="{Binding CallImpactSummary}" TextWrapping="Wrap" />
                    </StackPanel>
 
                    <!-- Empty state -->

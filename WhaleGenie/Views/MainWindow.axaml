@@ -50,6 +50,9 @@
         <Style Selector="Button.TitleBarButton:pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppMuted}" />
         </Style>
+        <Style Selector="Button.TitleBarButton.Active /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2E7D5A" />
+        </Style>
 
         <!-- Top-right round tool buttons -->
         <Style Selector="Button.ToolButton">
@@ -78,6 +81,9 @@
         </Style>
         <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+        </Style>
+        <Style Selector="Button.LabeledToolButton.Active /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2E7D5A" />
         </Style>
 
         <!-- The always-on-top switch lights up while it is holding the window above the rest. -->
@@ -151,7 +157,7 @@
         </Grid>
 
         <!-- ============ Menu bar ============ -->
-        <Grid Grid.Row="1" Background="{DynamicResource AppBackdrop}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="1" Background="{DynamicResource AppBackdrop}" ColumnDefinitions="Auto,Auto,*,Auto">
             <Menu Background="Transparent" VerticalAlignment="Center" Margin="4,0">
                 <MenuItem Header="{Binding [Main.File], Source={x:Static loc:Strings.Current}}"
                           FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
@@ -203,6 +209,13 @@
                             <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Trash}" />
                         </MenuItem.Icon>
                     </MenuItem>
+                    <Separator />
+                    <MenuItem Header="{Binding [Main.Exit], Source={x:Static loc:Strings.Current}}"
+                              Click="OnExitClicked">
+                        <MenuItem.Icon>
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                 </MenuItem>
 
                 <MenuItem Header="{Binding [Main.Help], Source={x:Static loc:Strings.Current}}"
@@ -246,8 +259,79 @@
                 </MenuItem>
             </Menu>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Version}" Foreground="{DynamicResource AppText}" FontSize="12" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Spacing="8" Orientation="Horizontal" Margin="8,0"
+                        VerticalAlignment="Center">
+                <Border Width="1" Height="14" Background="{DynamicResource AppBorder}" />
+                <TextBlock Name="VersionText" Text="{Binding Version}"
+                           Foreground="{DynamicResource AppMuted}" FontSize="12"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
+                <Button Classes="LabeledToolButton" Name="McpButton"
+                        Classes.Active="{Binding Mcp.IsRunning}"
+                        Click="OnMcpClicked"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="{Binding [Main.McpHint], Source={x:Static loc:Strings.Current}}">
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <Border Background="{DynamicResource AppSurface}" CornerRadius="6"
+                                    Padding="12" Width="360">
+                                <StackPanel Spacing="8">
+                                    <TextBlock FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AppText}"
+                                               Text="{Binding [Mcp.Title], Source={x:Static loc:Strings.Current}}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding [Mcp.Enable], Source={x:Static loc:Strings.Current}}" />
+                                        <ToggleSwitch Name="McpToggle"
+                                                      IsChecked="{Binding Mcp.IsRunning, Mode=OneWay}"
+                                                      Command="{Binding Mcp.ToggleCommand}"
+                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
+                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
+                                               Text="{Binding Mcp.Status}" />
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding [Mcp.Port], Source={x:Static loc:Strings.Current}}" />
+                                        <views:NumberBox Grid.Column="1" Width="110" Height="30"
+                                                         Value="{Binding Mcp.Port}"
+                                                         Minimum="1024" Maximum="65535" Increment="1"
+                                                         FormatString="0"
+                                                         IsEnabled="{Binding !Mcp.IsRunning}" />
+                                    </Grid>
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding [Mcp.PortHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                               Text="{Binding [Mcp.Endpoint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock FontFamily="Consolas" FontSize="11.5"
+                                               Foreground="{DynamicResource AppText}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding Mcp.Endpoint}" />
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding [Mcp.Note], Source={x:Static loc:Strings.Current}}" />
+                                    <Button Classes="FlatButton" Height="28" Padding="10,0"
+                                            HorizontalAlignment="Left"
+                                            Click="OnCopyMcpConfig"
+                                            Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </Border>
+                        </Flyout>
+                    </Button.Flyout>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}"
+                                        StrokeThickness="1.4" FitToBounds="True"
+                                        Data="{x:Static models:AppIcons.Sparkle}" />
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding [Main.Mcp], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </Button>
                 <Button Classes="LabeledToolButton" Name="RunDebugButton"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">

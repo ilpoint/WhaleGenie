@@ -59,13 +59,14 @@ public partial class RunWindow : Window
     /// </summary>
     public RunWindow(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
-        MacroTriggerService? triggers = null, string macroName = "")
+        MacroTriggerService? triggers = null, string macroName = "",
+        MacroCallable? callable = null)
     {
         InitializeComponent();
 
         _listed = listed ?? [];
         var viewModel = new RunViewModel(steps, devices ?? SharedDevices.Current, delayScale, macros,
-            _listed, triggers, macroName);
+            _listed, triggers, macroName, callable);
         DataContext = viewModel;
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");

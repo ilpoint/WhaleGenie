@@ -13,6 +13,7 @@ public partial class MainViewModel : ViewModelBase
 {
     public MainViewModel()
     {
+        Mcp = new McpServerViewModel(this);
         Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
@@ -22,12 +23,16 @@ public partial class MainViewModel : ViewModelBase
         Localization.Strings.Current.LanguageChanged += () =>
         {
             RefreshLanguage();
+            Mcp.RefreshLanguage();
             foreach (var macro in Macros)
             {
                 macro.RefreshLanguage();
             }
         };
     }
+
+    /// <summary>The local MCP server switch and the address it hands to an MCP client.</summary>
+    public McpServerViewModel Mcp { get; }
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
@@ -228,6 +233,7 @@ public partial class MainViewModel : ViewModelBase
 
         CurrentPath = path;
         IsDirty = false;
+        Revision++;
     }
 
     /// <summary>Adds the macros of a package file to the list without replacing what is there.</summary>
@@ -287,6 +293,34 @@ public partial class MainViewModel : ViewModelBase
     private void MarkDirty()
     {
         IsDirty = true;
+        Revision++;
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Which version of the project the interface is holding. An MCP draft remembers the number
+    /// it was taken from; applying it after the number moved would overwrite work done in between.
+    /// </summary>
+    public int Revision { get; private set; }
+
+    /// <summary>
+    /// Replaces the project with a draft the MCP tools have been editing. The caller has already
+    /// checked the revision; this is only the write.
+    /// </summary>
+    public void ApplyDraft(IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals)
+    {
+        Macros.Clear();
+        foreach (var macro in macros)
+        {
+            Macros.Add(macro);
+        }
+
+        VariableCatalog.Globals.Clear();
+        foreach (var global in globals)
+        {
+            VariableCatalog.Globals.Add(global);
+        }
+
+        MarkDirty();
     }
 }

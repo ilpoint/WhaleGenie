@@ -156,10 +156,16 @@ public sealed class ActionReturn
     public string LocalHint => Strings.Get($"{OwnerKey}.return.{Key}.hint", Hint);
 
     /// <summary>What the variable pickers call this kind of value.</summary>
-    public string TypeName => Type switch
+    public string TypeName => TypeNameOf(Type);
+
+    /// <summary>
+    /// The same name for a declared macro value, so a record parameter is offered to record fields
+    /// and a flag is shown under the word the variable tables use.
+    /// </summary>
+    public static string TypeNameOf(ActionReturnType type) => type switch
     {
         ActionReturnType.Number => "number",
-        ActionReturnType.Flag => "flag",
+        ActionReturnType.Flag => "bool",
         ActionReturnType.List => "list",
         ActionReturnType.Record => "record",
         ActionReturnType.Image => "image",

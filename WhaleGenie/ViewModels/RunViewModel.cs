@@ -285,6 +285,71 @@ public sealed record WatchedVariable(string Name, string Scope, string Value)
     public string Display => VariableCatalog.Display(Name, false);
 }
 
+/// <summary>
+/// One declared parameter as the debug window asks for it before a run. It is not a call site: a
+/// direct run supplies the values from this window, a trigger supplies none and takes the default.
+/// </summary>
+public sealed partial class RunArgumentViewModel : ObservableObject
+{
+    public required string Name { get; init; }
+
+    public required string TypeLabel { get; init; }
+
+    public required bool Required { get; init; }
+
+    public required string Default { get; init; }
+
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>The name shown beside the field; an optional one says so.</summary>
+    public string Label => Required
+        ? Name
+        : Strings.Format("Common.OptionalSuffix", Name);
+
+    /// <summary>What the field says under itself: the declaration's own words, the kind and the default.</summary>
+    public string Hint
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (Description.Length > 0)
+            {
+                parts.Add(Description);
+            }
+
+            parts.Add(Strings.Format("Run.ArgumentType", TypeLabel));
+            if (Required)
+            {
+                parts.Add(Strings.Get("Run.ArgumentRequired"));
+            }
+            else if (Default.Trim().Length > 0)
+            {
+                parts.Add(Strings.Format("Run.ArgumentDefault", Default));
+            }
+
+            return string.Join(" ", parts);
+        }
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMissing))]
+    public partial string Value { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMissing))]
+    public partial bool Given { get; set; }
+
+    /// <summary>True while a required value has neither been given nor marked as an empty one.</summary>
+    public bool IsMissing => Required && !Given && Value.Trim().Length == 0;
+
+    /// <summary>Raised when this row changes, so the run buttons can re-check what is still missing.</summary>
+    public event Action? Changed;
+
+    partial void OnValueChanged(string value) => Changed?.Invoke();
+
+    partial void OnGivenChanged(bool value) => Changed?.Invoke();
+}
+
 /// <summary>Which half of the run-and-debug window is showing.</summary>
 public enum RunPage
 {
@@ -486,6 +551,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </summary>
     private readonly IMacroLibrary? _macros;
 
+    /// <summary>
+    /// What the loaded macro declares, when the window was handed it: the debug window needs the
+    /// interface to offer parameters and results while the macro is being worked on, and the direct
+    /// run needs the declarations to seed them.
+    /// </summary>
+    private MacroCallable? _callable;
+
     /// <summary>The names worth watching, read off the macro that is loaded.</summary>
     private HashSet<string> _watched;
 
@@ -504,6 +576,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private readonly SystemVariableReader _system;
 
     private CancellationTokenSource? _cancellation;
+    private RunLogCapture? _capture;
     private TaskCompletionSource<bool>? _gate;
     private TaskCompletionSource<StepErrorChoice>? _answer;
     private TaskCompletionSource<AskAnswer>? _asked;
@@ -554,13 +627,15 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </param>
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer devices, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
-        MacroTriggerService? triggers = null, string macroName = "")
+        MacroTriggerService? triggers = null, string macroName = "",
+        MacroCallable? callable = null)
     {
         _devices = devices;
         _delayScale = delayScale;
         _macros = macros;
         _listed = listed ?? [];
         _triggers = triggers;
+        _callable = callable;
         Debugged = macroName;
         _system = new SystemVariableReader(_devices);
         _variables = MacroVariables.Seed(_system, SharedVariables.Current);
@@ -583,8 +658,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </summary>
     public void Load(IEnumerable<MacroStep> steps)
     {
+        BuildArguments();
         var source = steps as IReadOnlyList<MacroStep> ?? [.. steps];
-        _choices = VariableChoices.For(source);
+        _choices = VariableChoices.For(source, _callable?.Parameters, _callable?.Results);
         _steps = source.ToExecutable();
         _watched = VariablesUsed(source);
 
@@ -612,6 +688,59 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         RunCommand.NotifyCanExecuteChanged();
         StepCommand.NotifyCanExecuteChanged();
     }
+
+    /// <summary>
+    /// Rebuilds the parameter rows for the macro that is loaded. A window opened on steps alone has
+    /// no declaration to ask about; a macro loaded from the list or the editor does.
+    /// </summary>
+    private void BuildArguments()
+    {
+        foreach (var row in Arguments)
+        {
+            row.Changed -= OnArgumentChanged;
+        }
+
+        Arguments.Clear();
+        if (_callable is not null)
+        {
+            foreach (var parameter in _callable.Parameters)
+            {
+                var name = parameter.Name.Trim();
+                if (!VariableText.IsName(name))
+                {
+                    continue;
+                }
+
+                var row = new RunArgumentViewModel
+                {
+                    Name = name,
+                    TypeLabel = Strings.Get("ActionType." + parameter.Type,
+                        parameter.Type.ToString()),
+                    Required = parameter.Required,
+                    Default = parameter.Default,
+                    Description = parameter.Description,
+                };
+                row.Changed += OnArgumentChanged;
+                Arguments.Add(row);
+            }
+        }
+
+        OnPropertyChanged(nameof(HasArguments));
+        OnArgumentChanged();
+    }
+
+    /// <summary>Raised when an argument row changes: the required ones decide whether a run can start.</summary>
+    private void OnArgumentChanged()
+    {
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanStep));
+        RunCommand.NotifyCanExecuteChanged();
+        StepCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>The values a direct run hands to the macro's declaration.</summary>
+    private IReadOnlyList<MacroStartArgument> StartArguments()
+        => [.. Arguments.Select(row => new MacroStartArgument(row.Name, row.Value.Trim(), row.Given))];
 
     /// <summary>
     /// Points the window at a macro without running it, which is what all three ways in ask for: the
@@ -645,6 +774,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             await ending.Task;
         }
 
+        _callable = macro.Callable;
         Load(macro.Steps);
         Debugged = macro.Name;
         _exclusiveInput = macro.ExclusiveInput;
@@ -700,6 +830,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>What the variables hold right now.</summary>
     public ObservableCollection<WatchedVariable> Variables { get; } = [];
+
+    /// <summary>The declared parameters a direct run asks for before it starts, one row each.</summary>
+    public ObservableCollection<RunArgumentViewModel> Arguments { get; } = [];
+
+    public bool HasArguments => Arguments.Count > 0;
 
     /// <summary>
     /// How each step went. Kept apart from the macro's own values, and folded away by default: a
@@ -792,11 +927,14 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     [ObservableProperty]
     public partial string Question { get; set; } = string.Empty;
 
-    /// <summary>Running from the top needs steps and an idle window.</summary>
-    public bool CanStart => !IsBusy && _steps.Count > 0;
+    /// <summary>Running from the top needs steps, an idle window and every required parameter filled.</summary>
+    public bool CanStart => !IsBusy && _steps.Count > 0 && ArgumentsReady;
 
     /// <summary>Stepping works before a run starts and while one is paused.</summary>
-    public bool CanStep => _steps.Count > 0;
+    public bool CanStep => _steps.Count > 0 && ArgumentsReady;
+
+    /// <summary>True when the declaration's required parameters have a value or an explicit empty.</summary>
+    private bool ArgumentsReady => Arguments.All(row => !row.IsMissing);
 
     public bool CanStop => IsBusy;
 
@@ -980,8 +1118,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         using var cancellation = new CancellationTokenSource();
         _cancellation = cancellation;
+        _capture = RunLogStore.Begin(Debugged, "debug");
         var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _ended = ended;
+        RunResult? result = null;
 
         try
         {
@@ -991,6 +1131,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 FailureLogFolder = AppPaths.Logs,
                 RunName = Debugged,
                 ExclusiveInput = _exclusiveInput,
+                StartSignature = _callable?.Signature,
+                StartArguments = StartArguments(),
             };
             _childrenRunner = runner;
             runner.ChildrenChanged += OnChildrenChanged;
@@ -999,7 +1141,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             // the same call, and a page that has not drawn the element yet is waited on for the
             // browser's own half-minute. Doing that on the interface thread is half a minute of a
             // window that will not repaint — and of a stop button that cannot be pressed.
-            await Task.Run(() => runner.RunAsync(_steps, cancellation.Token), cancellation.Token);
+            result = await Task.Run(() => runner.RunAsync(_steps, cancellation.Token),
+                cancellation.Token);
         }
         finally
         {
@@ -1022,7 +1165,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             WindowRead?.Invoke(null);
 
             RefreshVariables();
+            RefreshStepOutcomes();
             Status = Lines.Count > 0 ? Lines[^1].Text : Strings.Get("Run.Ready");
+            _capture?.Finish(result, result?.Status.ToString() ?? Status,
+                StepOutcomes.Select(outcome =>
+                    new RunLogOutcome(outcome.Name, outcome.Label, outcome.Value)));
+            _capture = null;
         }
     }
 
@@ -1147,11 +1295,15 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>Writes one translated line into the log.</summary>
     public void Log(LogEntry entry)
-        => Lines.Add(new RunLineViewModel(
+    {
+        var text = RunLogText.Of(entry);
+        Lines.Add(new RunLineViewModel(
             entry.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
             entry.Level,
             new Thickness(entry.Depth * 14, 0, 0, 0),
-            RunLogText.Of(entry)));
+            text));
+        _capture?.Add(entry, text);
+    }
 
     /// <summary>
     /// The same wording the window shows, for the engine to put in the file a failed run leaves

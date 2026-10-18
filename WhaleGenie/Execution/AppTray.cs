@@ -281,6 +281,9 @@ public sealed class AppTray : IDisposable
         _window.Activate();
     }
 
+    /// <summary>The same way out the notification icon offers, for the File menu.</summary>
+    public void RequestExit() => Stop();
+
     private void Stop()
     {
         _exiting = true;

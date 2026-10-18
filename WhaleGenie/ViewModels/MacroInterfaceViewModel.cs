@@ -24,15 +24,7 @@ public partial class MacroInterfaceViewModel : ViewModelBase
     public MacroInterfaceViewModel(MacroEditorViewModel editor)
     {
         _editor = editor;
-        Types =
-        [
-            new(ActionReturnType.Text, Strings.Get("MacroInterface.Type.Text")),
-            new(ActionReturnType.Number, Strings.Get("MacroInterface.Type.Number")),
-            new(ActionReturnType.Flag, Strings.Get("MacroInterface.Type.Flag")),
-            new(ActionReturnType.List, Strings.Get("MacroInterface.Type.List")),
-            new(ActionReturnType.Record, Strings.Get("MacroInterface.Type.Record")),
-            new(ActionReturnType.Image, Strings.Get("MacroInterface.Type.Image")),
-        ];
+        Types = BuildTypes();
 
         Reload();
         Changed += () => _editor.RefreshDeclarations();
@@ -45,7 +37,35 @@ public partial class MacroInterfaceViewModel : ViewModelBase
         };
     }
 
-    public IReadOnlyList<MacroTypeChoice> Types { get; }
+    public IReadOnlyList<MacroTypeChoice> Types { get; private set; }
+
+    /// <summary>
+    /// The values a default can read. A default is evaluated at the call site, not in the called
+    /// macro's own table, so this lists the global and system variables a caller always has. A
+    /// caller's local name can still be typed by hand; it cannot be enumerated here.
+    /// </summary>
+    public IReadOnlyList<VariableChoice> ValueVariables => VariableChoices.For([]);
+
+    private static IReadOnlyList<MacroTypeChoice> BuildTypes() =>
+    [
+        new(ActionReturnType.Text, Strings.Get("MacroInterface.Type.Text")),
+        new(ActionReturnType.Number, Strings.Get("MacroInterface.Type.Number")),
+        new(ActionReturnType.Flag, Strings.Get("MacroInterface.Type.Flag")),
+        new(ActionReturnType.List, Strings.Get("MacroInterface.Type.List")),
+        new(ActionReturnType.Record, Strings.Get("MacroInterface.Type.Record")),
+        new(ActionReturnType.Image, Strings.Get("MacroInterface.Type.Image")),
+    ];
+
+    /// <summary>
+    /// A language switch reaches the kind names the rows hold copies of, so they are rebuilt along
+    /// with the rows rather than left in the language the window was opened in.
+    /// </summary>
+    public override void RefreshLanguage()
+    {
+        Types = BuildTypes();
+        OnPropertyChanged(nameof(Types));
+        Reload();
+    }
 
     public ObservableCollection<MacroParameterRow> Parameters { get; } = [];
 
