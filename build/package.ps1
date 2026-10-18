@@ -71,9 +71,13 @@ $hostFiles = @(
     'mscordbi.dll'
 )
 
-# 这两个 dll 也留在 exe 旁边，理由见上面那段注释。
+# 这几个 dll 也留在 exe 旁边，理由见上面那段注释。项目引用的两个程序集跟着主程序走：
+# 0.0.6 把它们和别的 dll 一起放进 lib 后，宿主在启动时找不到 WhaleGenie.Core，窗口还没
+# 建起来就退了；它们不是 NuGet 包，留在应用目录让宿主按简单名找到。
 $stayWithExe = @(
     'WhaleGenie.dll'
+    'WhaleGenie.Core.dll'
+    'WhaleGenie.GraphicsCapture.dll'
     'Microsoft.Playwright.dll'
 )
 
@@ -170,6 +174,14 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     [System.IO.File]::WriteAllText($deps, $json)
 
     Get-ChildItem $app -File | Where-Object { $moved -contains $_.Name } | Move-Item -Destination $lib
+
+    # A package that has these only in lib starts with FileNotFoundException before a window is
+    # made. Check the layout here, where the mistake is cheap to see, rather than after a release.
+    foreach ($assembly in 'WhaleGenie.Core.dll', 'WhaleGenie.GraphicsCapture.dll') {
+        if (-not (Test-Path (Join-Path $app $assembly))) {
+            throw "包里没有 $assembly：项目引用的程序集要留在 exe 旁边，不能只放进 lib。"
+        }
+    }
 
     return $app
 }
