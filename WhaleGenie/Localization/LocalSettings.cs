@@ -17,6 +17,11 @@ public static class LocalSettings
     /// </summary>
     internal static string FilePath { get; set; } = AppPaths.Settings;
 
+    /// <summary>Whether the window frame and controls use the light variant.</summary>
+    public static bool LoadLightTheme() => Read().LightTheme;
+
+    /// <summary>Stores the chosen theme variant. Failures are ignored on purpose.</summary>
+    public static void StoreLightTheme(bool light) => Write(model => model.LightTheme = light);
     /// <summary>Reads the stored language, falling back to English.</summary>
     public static Language Load()
         => Enum.TryParse<Language>(Read().Language, out var language)
@@ -113,5 +118,7 @@ public static class LocalSettings
         public string CaptureWindow { get; set; } = string.Empty;
 
         public string CaptureScreen { get; set; } = string.Empty;
+
+        public bool LightTheme { get; set; }
     }
 }

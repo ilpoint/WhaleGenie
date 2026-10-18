@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
@@ -867,6 +868,17 @@ public partial class MainWindow : Window
     /// and the list of what inside it was made by somebody else. Both the "?" button and "About"
     /// open this.
     /// </summary>
+    /// <summary>Switches the whole application between the light and dark variants and remembers the choice.</summary>
+    private void OnToggleTheme(object? sender, RoutedEventArgs e)
+    {
+        var light = Application.Current?.ActualThemeVariant != ThemeVariant.Light;
+        if (Application.Current is { } app)
+        {
+            app.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
+        }
+
+        LocalSettings.StoreLightTheme(light);
+    }
     private async void OnAboutClicked(object? sender, RoutedEventArgs e)
     {
         var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),

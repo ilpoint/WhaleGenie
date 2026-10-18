@@ -39,7 +39,7 @@
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:DurationUnit">
                             <TextBlock Text="{Binding Label}"
-                                       FontSize="12.5" Foreground="#E8E8E8" />
+                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
@@ -276,7 +276,7 @@
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:DurationUnit">
                                 <TextBlock Text="{Binding Label}"
-                                           FontSize="12.5" Foreground="#E8E8E8" />
+                                           FontSize="12.5" Foreground="{DynamicResource AppText}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -336,13 +336,13 @@
                              PlaceholderText="{Binding Placeholder}" />
                     <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                             Background="{Binding Text, Converter={StaticResource HexBrush}}"
-                            BorderBrush="#3A3A3A" BorderThickness="1" />
+                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
                     <Button Grid.Column="2" Classes="FlatButton" Name="PickColourButton"
                             Width="38" Height="33" Padding="0"
                             ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickParameterColor">
                         <Path Width="17" Height="17" Stretch="Uniform"
-                              Stroke="#E4E4E4" StrokeThickness="1.7"
+                              Stroke="{DynamicResource AppText}" StrokeThickness="1.7"
                               Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
                     </Button>
                     <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
@@ -380,7 +380,7 @@
                     </Grid>
 
                     <Border IsVisible="{Binding HasThumbnail}" Margin="0,8,0,0"
-                            Background="#1A1A1A" BorderBrush="#3A3A3A" BorderThickness="1"
+                            Background="#1A1A1A" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                             CornerRadius="5" Padding="4" HorizontalAlignment="Left">
                         <Image Source="{Binding Thumbnail}" MaxWidth="240" MaxHeight="110"
                                Stretch="Uniform" />
@@ -397,7 +397,7 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6"
                                       Margin="0,0,0,4">
                                     <Border Grid.Column="0" Width="54" Height="34"
-                                            Background="#1A1A1A" BorderBrush="#3A3A3A"
+                                            Background="#1A1A1A" BorderBrush="{DynamicResource AppBorder}"
                                             BorderThickness="1" CornerRadius="4" Padding="2">
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                                     </Border>
@@ -466,7 +466,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:WindowPreviewRow">
                                 <StackPanel Margin="2,0,0,0">
-                                    <TextBlock FontSize="12" Foreground="#E8E8E8"
+                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
                                                TextTrimming="CharacterEllipsis"
                                                Text="{Binding Title}" />
                                     <StackPanel Orientation="Horizontal" Spacing="5"
@@ -656,7 +656,7 @@
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate x:DataType="models:ActionParameterOption">
                                                     <TextBlock Text="{Binding Display}"
-                                                               FontSize="12.5" Foreground="#E8E8E8" />
+                                                               FontSize="12.5" Foreground="{DynamicResource AppText}" />
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
@@ -714,7 +714,7 @@
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:ActionParameterOption">
                                 <TextBlock Text="{Binding Display}"
-                                           FontSize="12.5" Foreground="#E8E8E8" />
+                                           FontSize="12.5" Foreground="{DynamicResource AppText}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -746,7 +746,7 @@
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:ActionParameterOption">
                             <TextBlock Text="{Binding Display}"
-                                       FontSize="12.5" Foreground="#E8E8E8" />
+                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
@@ -821,9 +821,9 @@
                                 <DataTemplate x:DataType="models:MacroStep">
                                     <StackPanel>
                                         <TextBlock Text="{Binding DisplayName}"
-                                                   FontSize="12" Foreground="#E4E4E4" />
+                                                   FontSize="12" Foreground="{DynamicResource AppText}" />
                                         <TextBlock Text="{Binding Detail}"
-                                                   FontSize="11" Foreground="#9A9A9A"
+                                                   FontSize="11" Foreground="{DynamicResource AppMuted}"
                                                    TextWrapping="Wrap" />
                                     </StackPanel>
                                 </DataTemplate>
@@ -955,12 +955,12 @@
                 <Button Classes="GroupToggle" Click="OnToggleActionGroup"
                         IsVisible="{Binding HasActions}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Path Width="10" Height="8" Stretch="Uniform" Stroke="#9A9A9A"
+                        <Path Width="10" Height="8" Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
                               StrokeThickness="1.6" Data="{Binding Caret}" VerticalAlignment="Center" />
                         <Path Width="15" Height="15" Stretch="Uniform" Stroke="#C0C0C0"
                               StrokeThickness="1.4" Data="{Binding Icon}" VerticalAlignment="Center"
                               IsVisible="{Binding HasIcon}" />
-                        <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="#E8E8E8"
+                        <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="{DynamicResource AppText}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
@@ -1002,13 +1002,13 @@
         <!-- A heading that divides the picker in two, rather than a group of actions: it is read
              on the way past, so it is quieter and smaller than a group heading. -->
         <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="2,16,0,6" />
         </Style>
         <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="#C8C8C8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Margin" Value="2,2,0,6" />
         </Style>
@@ -1022,13 +1022,13 @@
             <Setter Property="Margin" Value="2,3,5,6" />
         </Style>
         <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
 
         <Style Selector="Border.GroupBox">
             <Setter Property="Background" Value="#1F1F1F" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="12,4,12,14" />
@@ -1036,11 +1036,11 @@
         </Style>
 
         <Style Selector="ComboBox.ActionSelect">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -1058,7 +1058,7 @@
             <Setter Property="Height" Value="30" />
         </Style>
         <Style Selector="Button.Disclosure:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
         </Style>
 
         <!-- The heading of one group in the action picker: quiet, and the whole width of the list. -->
@@ -1071,16 +1071,16 @@
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
         <Style Selector="Button.GroupToggle:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
         </Style>
 
         <!-- One action in the picker: a card holding its name, laid out a grid to a group. -->
         <Style Selector="Button.ActionCard">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="11,0" />
             <Setter Property="Height" Value="30" />
@@ -1096,42 +1096,42 @@
              the fields on the right are fields of. -->
         <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
             <Setter Property="Background" Value="#3A2A22" />
-            <Setter Property="BorderBrush" Value="#C8401C" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
         <!-- One page of a step's settings. -->
         <Style Selector="Button.PageTab">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#C8C8C8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="Height" Value="32" />
         </Style>
         <Style Selector="Button.PageTab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
         </Style>
         <Style Selector="Button.PageTab.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="BorderBrush" Value="#C8401C" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
         <Style Selector="TextBox.ParamInput">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="9,7" />
         </Style>
 
         <Style Selector="TextBox.JsonPreview">
             <Setter Property="Background" Value="#1A1A1A" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Foreground" Value="#A9D6A9" />
@@ -1143,7 +1143,7 @@
         <!-- Nested step list shown inside structural actions such as repeat or if. -->
         <Style Selector="Border.NestedBox">
             <Setter Property="Background" Value="#242424" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8" />
@@ -1157,23 +1157,23 @@
 
         <!-- Variable name: free text with the known variables offered as suggestions. -->
         <Style Selector="AutoCompleteBox.VarInput">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="9,7" />
             <Setter Property="MinHeight" Value="34" />
         </Style>
         <Style Selector="AutoCompleteBox.VarInput TextBox">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
         </Style>
 
         <Style Selector="Button.FlatButton">
             <Setter Property="Background" Value="#404040" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="16,0" />
@@ -1185,7 +1185,7 @@
         </Style>
 
         <Style Selector="Button.AddButton">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="13" />
@@ -1237,10 +1237,10 @@
     <Grid Name="FormRoot" RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Name="FormHeader" Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+        <Grid Name="FormHeader" Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
+                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
                            VerticalAlignment="Center" />
             </StackPanel>
 
@@ -1290,7 +1290,7 @@
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
                         <TextBlock Text="{Binding SelectedActionName}" FontSize="15"
                                    Foreground="#F0F0F0" />
-                        <TextBlock Text="{Binding SelectedKey}" FontSize="12" Foreground="#9A9A9A" />
+                        <TextBlock Text="{Binding SelectedKey}" FontSize="12" Foreground="{DynamicResource AppMuted}" />
                         <TextBlock Classes="Muted" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -1425,7 +1425,7 @@
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="models:ActionParameterOption">
                                                 <TextBlock Text="{Binding Display}"
-                                                           FontSize="12.5" Foreground="#E8E8E8" />
+                                                           FontSize="12.5" Foreground="{DynamicResource AppText}" />
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
@@ -1441,7 +1441,7 @@
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="models:ActionParameterOption">
                                             <TextBlock Text="{Binding Display}"
-                                                       FontSize="12.5" Foreground="#E8E8E8" />
+                                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>

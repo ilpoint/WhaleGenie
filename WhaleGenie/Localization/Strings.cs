@@ -116,6 +116,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SystemDisableHint"] = "Press Home to disable",
         ["Main.MacroRunning"] = "Running",
         ["Main.RunDebug"] = "Run and Debug",
+        ["Main.Theme"] = "Light / dark theme",
         ["Main.AlwaysOnTop"] = "Always on Top",
         ["Main.AlwaysOnTopCancel"] = "Stop Staying on Top",
 
@@ -1633,6 +1634,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SystemDisableHint"] = "按 Home 键停用",
         ["Main.MacroRunning"] = "运行中",
         ["Main.RunDebug"] = "运行调试",
+        ["Main.Theme"] = "浅色 / 深色主题",
         ["Main.AlwaysOnTop"] = "窗口置顶",
         ["Main.AlwaysOnTopCancel"] = "取消置顶",
 

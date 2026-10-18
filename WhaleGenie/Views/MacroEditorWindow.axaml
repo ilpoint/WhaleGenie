@@ -52,7 +52,7 @@
             <Setter Property="Margin" Value="0,16,0,9" />
         </Style>
         <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="#C8C8C8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Margin" Value="2,2,0,6" />
         </Style>
@@ -61,7 +61,7 @@
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
             <Setter Property="Stretch" Value="Uniform" />
-            <Setter Property="Stroke" Value="#E4E4E4" />
+            <Setter Property="Stroke" Value="{DynamicResource AppText}" />
             <Setter Property="StrokeThickness" Value="1.6" />
             <Setter Property="StrokeLineCap" Value="Round" />
             <Setter Property="StrokeJoin" Value="Round" />
@@ -92,7 +92,7 @@
             </Style.Animations>
         </Style>
         <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
 
@@ -117,8 +117,8 @@
         </Style>
         <!-- The row look lives here, not on the element, so the selected state can win. -->
         <Style Selector="Border.StepRow">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="10,8" />
@@ -247,32 +247,32 @@
         </Style>
 
         <Style Selector="TextBox.NameInput">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="10,7" />
         </Style>
 
         <!-- Plain parameter input, without the spin buttons a NumericUpDown would add -->
         <Style Selector="TextBox.ParamInput">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="8,6" />
         </Style>
 
         <Style Selector="ComboBox.OptionSelect">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Width" Value="252" />
@@ -280,8 +280,8 @@
         </Style>
 
         <Style Selector="Border.ActionCell">
-            <Setter Property="Background" Value="#2E2E2E" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,6" />
@@ -290,7 +290,7 @@
         <!-- Groups a section so it reads separately from the settings above it -->
         <Style Selector="Border.GroupBox">
             <Setter Property="Background" Value="#1F1F1F" />
-            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="10,10,10,14" />
@@ -314,7 +314,7 @@
         <!-- Flat grey button used by Set Key / Record / the action palette -->
         <Style Selector="Button.FlatButton">
             <Setter Property="Background" Value="#404040" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="12,7" />
@@ -369,7 +369,7 @@
         </Style>
 
         <Style Selector="Button.SaveButton">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Height" Value="40" />
@@ -384,8 +384,8 @@
         <!-- The way into a run from here: the same weight as Save, because writing a macro and
              trying it are the two things this window is for. -->
         <Style Selector="Button.RunButton">
-            <Setter Property="Background" Value="#3A3A3A" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="BorderBrush" Value="#585858" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
@@ -402,10 +402,10 @@
     <Grid RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Foreground="#E8E8E8" FontSize="13" VerticalAlignment="Center"
+                <TextBlock Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center"
                            Text="{Binding [Editor.Title], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
 
@@ -443,7 +443,7 @@
             </Grid>
 
             <Border Grid.Column="2" Name="MacroSettingsDrawer"
-                    IsVisible="True" Background="#292929" CornerRadius="6">
+                    IsVisible="True" Background="{DynamicResource AppSurface}" CornerRadius="6">
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -470,10 +470,10 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.BindKey], Source={x:Static loc:Strings.Current}}" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <Border Background="#2E2E2E" BorderBrush="#3A3A3A" BorderThickness="1"
+                                    <Border Background="{DynamicResource AppField}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                                             CornerRadius="5" Padding="11,8">
                                         <TextBlock Text="{Binding BindKeyDisplay}" FontSize="12.5"
-                                                   Foreground="#E4E4E4" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
                                     </Border>
                                     <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0" Height="34"
                                             Content="{Binding SetKeyLabel}"
@@ -514,12 +514,12 @@
 
                                     <CheckBox Margin="0,10,0,0"
                                               Content="{Binding [Editor.UseCursorPosition], Source={x:Static loc:Strings.Current}}"
-                                              Foreground="#C8C8C8" FontSize="12.5"
+                                              Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                               IsChecked="{Binding UseCursorPosition}" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,25,0,0">
-                                    <CheckBox Foreground="#C8C8C8" FontSize="12.5"
+                                    <CheckBox Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                               Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                               IsChecked="{Binding TriggerOnce}" />
 
@@ -529,13 +529,13 @@
                                         <TextBox Classes="ParamInput" Text="{Binding HexColor}" />
                                         <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                                                 Background="{Binding HexColor, Converter={StaticResource HexBrush}}"
-                                                BorderBrush="#3A3A3A" BorderThickness="1" />
+                                                BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
                                         <Button Grid.Column="2" Classes="FlatButton" Name="PickColorButton"
                                                 Width="38" Height="33" Padding="0"
                                                 ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickColorClicked">
                                             <Path Width="17" Height="17" Stretch="Uniform"
-                                                  Stroke="#E4E4E4" StrokeThickness="1.7"
+                                                  Stroke="{DynamicResource AppText}" StrokeThickness="1.7"
                                                   Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
                                         </Button>
                                     </Grid>
@@ -544,7 +544,7 @@
                                                Text="{Binding [Editor.ColorTolerance], Source={x:Static loc:Strings.Current}}" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBox Classes="ParamInput" Width="90" Text="{Binding ColorTolerance}" />
-                                        <TextBlock Text="%" FontSize="12.5" Foreground="#C8C8C8"
+                                        <TextBlock Text="%" FontSize="12.5" Foreground="{DynamicResource AppMuted}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
@@ -592,7 +592,7 @@
                                          Text="{Binding ScheduleTime}"
                                          PlaceholderText="{Binding [Editor.ScheduleTimeHint], Source={x:Static loc:Strings.Current}}" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding TriggerOnce}" />
 
@@ -623,11 +623,11 @@
                                 <TextBox Classes="ParamInput" Text="{Binding WatchFilter}"
                                          PlaceholderText="*" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           Content="{Binding [Editor.WatchSubfolders], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding WatchSubfolders}" />
 
-                                <CheckBox Margin="0,6,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding TriggerOnce}" />
 
@@ -652,7 +652,7 @@
                                 <ComboBox Classes="OptionSelect" ItemsSource="{Binding ProcessChangeOptions}"
                                           SelectedIndex="{Binding ProcessChangeIndex}" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding TriggerOnce}" />
 
@@ -691,7 +691,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:WindowPreviewRow">
                                                 <StackPanel Margin="2,0,0,0">
-                                                    <TextBlock FontSize="12" Foreground="#E8E8E8"
+                                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
                                                                TextTrimming="CharacterEllipsis"
                                                                Text="{Binding Title}" />
                                                     <StackPanel Orientation="Horizontal" Spacing="5"
@@ -725,7 +725,7 @@
                                 <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowChangeOptions}"
                                           SelectedIndex="{Binding WindowChangeIndex}" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding TriggerOnce}" />
 
@@ -745,11 +745,11 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <views:NumberBox Width="112" Height="30" Value="{Binding IdleSeconds}"
                                                    Minimum="1" Maximum="86400" Increment="10" FormatString="0" />
-                                    <TextBlock FontSize="12.5" Foreground="#C8C8C8" VerticalAlignment="Center"
+                                    <TextBlock FontSize="12.5" Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center"
                                                Text="{Binding [Schedule.Unit.Seconds], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
-                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding TriggerOnce}" />
 
@@ -765,7 +765,7 @@
                                     <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
 
-                                    <CheckBox Foreground="#C8C8C8" FontSize="12.5"
+                                    <CheckBox Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                               Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
                                               IsChecked="{Binding ExclusiveInput}" />
 
@@ -786,7 +786,7 @@
             </Border>
 
 <!-- Right: steps, the column being edited -->
-     <Border Grid.Column="4" Background="#292929" CornerRadius="6">
+     <Border Grid.Column="4" Background="{DynamicResource AppSurface}" CornerRadius="6">
             <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="18,16">
             <TextBlock Grid.Row="0" Classes="SectionHeader"
                        Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
@@ -851,13 +851,13 @@
                                                   CommandParameter="{Binding}">
                                               <Path Data="{Binding FoldIcon}" />
                                           </Button>
-                                          <Path Width="16" Height="16" Stretch="Uniform" Stroke="#E4E4E4"
+                                          <Path Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource AppText}"
                                                 StrokeThickness="1.5" Data="{Binding Icon}"
                                                 VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <StackPanel VerticalAlignment="Center">
                                               <StackPanel Orientation="Horizontal" Spacing="6">
                                                   <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
-                                                             Foreground="#E4E4E4" />
+                                                             Foreground="{DynamicResource AppText}" />
                                                   <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding IsSkipped}">
@@ -940,7 +940,7 @@
             <GridSplitter Grid.Column="3" Width="16" Background="Transparent"
                           ResizeDirection="Columns" />
 
-            <Border Grid.Column="2" Name="RecordingPanel" Background="#292929"
+            <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource AppSurface}"
                     CornerRadius="6" IsVisible="False">
                 <StackPanel Margin="20,18" Spacing="10">
                     <TextBlock Classes="SectionHeader"
@@ -1064,7 +1064,7 @@
                                                    VerticalAlignment="Center" />
                                         <views:NumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
                                                        Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
-                                        <TextBlock FontSize="12.5" Foreground="#C8C8C8"
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppMuted}"
                                                    Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
@@ -1098,7 +1098,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="2" Name="InspectorHost" Background="#292929"
+            <Border Grid.Column="2" Name="InspectorHost" Background="{DynamicResource AppSurface}"
                     CornerRadius="6" IsVisible="False">
                 <Grid RowDefinitions="Auto,*">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,10,10,6">
@@ -1107,7 +1107,7 @@
                         <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="10,0"
                                 Click="OnCloseInspector"
                                 ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                            <Path Width="10" Height="10" Stroke="#E4E4E4" StrokeThickness="1.6"
+                            <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
                                   Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                         </Button>
                     </Grid>

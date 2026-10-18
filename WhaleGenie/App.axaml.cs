@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
@@ -20,6 +21,9 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        RequestedThemeVariant = LocalSettings.LoadLightTheme()
+            ? ThemeVariant.Light
+            : ThemeVariant.Dark;
         // Whether the virtual keyboard and mouse are to be put on the machine at startup was chosen
         // in the settings window and written beside the program; the engine does not read that file,
         // so it is told here, before anything can ask for driver-level input.

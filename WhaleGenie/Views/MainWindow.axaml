@@ -62,13 +62,13 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.ToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
 
         <!-- Tool button that carries a label next to its icon -->
         <Style Selector="Button.LabeledToolButton">
             <Setter Property="Background" Value="#2C2C2C" />
-            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Height" Value="24" />
             <Setter Property="Padding" Value="10,0" />
@@ -76,7 +76,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
 
         <!-- The always-on-top switch lights up while it is holding the window above the rest. -->
@@ -111,23 +111,29 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.CardButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="36,30,*,Auto">
 
         <!-- ============ Custom title bar ============ -->
-        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
             <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                    Margin="8,5" VerticalAlignment="Center" HorizontalAlignment="Left" />
 
-            <TextBlock Grid.Column="1" Foreground="#E8E8E8" FontSize="13"
+            <TextBlock Grid.Column="1" Foreground="{DynamicResource AppText}" FontSize="13"
                        Text="{Binding WindowTitle}"
                        VerticalAlignment="Center" Margin="4,0" />
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="TitleBarButton" Name="AlwaysOnTopButton"
+                <Button Classes="TitleBarButton" Name="ThemeButton"
+                        ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
+                        Click="OnToggleTheme">
+                    <Path Width="12" Height="12" Stretch="Uniform" Stroke="White"
+                          StrokeThickness="1.5"
+                          Data="M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,8 A4,4 0 1 0 12,16 A4,4 0 1 0 12,8" />
+                </Button>                <Button Classes="TitleBarButton" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
                     <Path Width="11" Height="11" Stretch="Uniform"
@@ -148,10 +154,10 @@
         </Grid>
 
         <!-- ============ Menu bar ============ -->
-        <Grid Grid.Row="1" Background="#1E1E1E" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="1" Background="{DynamicResource AppBackdrop}" ColumnDefinitions="Auto,*,Auto">
             <Menu Background="Transparent" VerticalAlignment="Center" Margin="4,0">
                 <MenuItem Header="{Binding [Main.File], Source={x:Static loc:Strings.Current}}"
-                          FontSize="13" Foreground="#E8E8E8" Padding="10,4">
+                          FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
                     <MenuItem Header="{Binding [Main.OpenProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenProjectClicked">
                         <MenuItem.Icon>
@@ -211,7 +217,7 @@
                 </MenuItem>
 
                 <MenuItem Header="{Binding [Main.Help], Source={x:Static loc:Strings.Current}}"
-                          FontSize="13" Foreground="#E8E8E8" Padding="10,4">
+                          FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
                     <MenuItem Header="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}"
                               Click="OnSettingsClicked">
                         <MenuItem.Icon>
@@ -258,7 +264,7 @@
             </Menu>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Version}" Foreground="#E8E8E8" FontSize="12" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Version}" Foreground="{DynamicResource AppText}" FontSize="12" VerticalAlignment="Center" />
                 <Button Classes="LabeledToolButton" Name="RunDebugButton"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
@@ -266,7 +272,7 @@
                         <!-- Filled bars: PathIcon paints with a fill, so lines alone stay invisible. -->
                         <PathIcon Width="14" Height="14" Foreground="#DADADA"
                                   Data="M 2,3.2 H 14 V 4.8 H 2 Z M 2,7.2 H 10.4 V 8.8 H 2 Z M 2,11.2 H 14 V 12.8 H 2 Z" />
-                        <TextBlock FontSize="12.5" Foreground="#E8E8E8" VerticalAlignment="Center"
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"
                                    Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
@@ -284,7 +290,7 @@
             <TextBox Grid.Row="0" Text="{Binding SearchText}"
                      PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
                      Background="#2A2A2A" BorderBrush="#2A2A2A"
-                     Foreground="#E8E8E8" FontSize="13"
+                     Foreground="{DynamicResource AppText}" FontSize="13"
                      CornerRadius="4" Padding="10,7" />
 
             <!-- Macro list -->
@@ -314,7 +320,7 @@
                                             <Ellipse Width="9" Height="9" Fill="#D8451B"
                                                      IsVisible="{Binding !IsEnabled}" />
                                         </Panel>
-                                        <TextBlock Text="{Binding Name}" Foreground="#E8E8E8" FontSize="13"
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AppText}" FontSize="13"
                                                    VerticalAlignment="Center" />
                                         <!-- Shows while a trigger is running this macro -->
                                         <Border IsVisible="{Binding IsRunning}" Background="#1E4529"
@@ -395,9 +401,9 @@
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
                                             <TextBlock FontSize="12.5">
-                                                <Run Text="{Binding Trigger}" Foreground="#E8E8E8" />
+                                                <Run Text="{Binding Trigger}" Foreground="{DynamicResource AppText}" />
                                                 <Run Text="  " />
-                                                <Run Text="{Binding Action}" Foreground="#9A9A9A" />
+                                                <Run Text="{Binding Action}" Foreground="{DynamicResource AppMuted}" />
                                             </TextBlock>
                                             <!-- What actually fires the macro: the bound key or the watched colour -->
                                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -426,7 +432,7 @@
                 <TextBlock Text="{Binding [Main.EmptyTitle], Source={x:Static loc:Strings.Current}}"
                            Foreground="#C0C0C0" FontSize="13" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding [Main.EmptyHint], Source={x:Static loc:Strings.Current}}"
-                           Foreground="#9A9A9A" FontSize="11.5" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource AppMuted}" FontSize="11.5" HorizontalAlignment="Center"
                            TextAlignment="Center" />
             </StackPanel>
 
@@ -434,7 +440,7 @@
             <TextBlock Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
                        IsVisible="{Binding HasNoMatch}"
                        Text="{Binding [Main.NoMatch], Source={x:Static loc:Strings.Current}}"
-                       Foreground="#9A9A9A" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
+                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
         </Grid>
 
         <!-- ============ Bottom buttons ============ -->
