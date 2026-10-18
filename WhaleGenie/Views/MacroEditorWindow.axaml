@@ -38,14 +38,14 @@
 
     <Window.Styles>
         <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="#C0C0C0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,0,10" />
         </Style>
         <Style Selector="TextBlock.GroupHeader">
-            <Setter Property="Foreground" Value="#C0C0C0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalAlignment" Value="Center" />
@@ -161,12 +161,12 @@
             <Setter Property="Padding" Value="8,2" />
         </Style>
         <Style Selector="TextBlock.StepHeadLabel">
-            <Setter Property="Foreground" Value="#B0B0B0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.StepFoot">
-            <Setter Property="BorderBrush" Value="#4A4A4A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
             <Setter Property="BorderThickness" Value="2,0,0,0" />
             <Setter Property="Padding" Value="8,1" />
         </Style>
@@ -186,7 +186,7 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.RowButton Path">
-            <Setter Property="Stroke" Value="#B0B0B0" />
+            <Setter Property="Stroke" Value="{DynamicResource AppMuted}" />
             <Setter Property="StrokeThickness" Value="1.6" />
             <Setter Property="StrokeLineCap" Value="Round" />
             <Setter Property="StrokeJoin" Value="Round" />
@@ -298,7 +298,7 @@
         </Style>
 
         <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="30" />
@@ -308,7 +308,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <!-- Flat grey button used by Set Key / Record / the action palette -->
@@ -322,10 +322,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4C4C4C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.FlatButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#565656" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <Style Selector="Button.PaletteButton">
@@ -339,10 +339,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.PaletteButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4F4F4F" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.PaletteButton Path">
-            <Setter Property="Stroke" Value="#E0E0E0" />
+            <Setter Property="Stroke" Value="{DynamicResource AppText}" />
             <Setter Property="StrokeThickness" Value="1.5" />
         </Style>
 
@@ -395,7 +395,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.RunButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </Window.Styles>
 
@@ -412,11 +412,11 @@
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton"
                         ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -427,6 +427,8 @@
             <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,Auto">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" Margin="4,4,4,2">
                     <Button Classes="FlatButton" Height="30" Padding="7,0"
+                            Background="{DynamicResource AppControl}"
+                            Foreground="{DynamicResource AppText}"
                             Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <Path Width="12" Height="12" Stretch="Uniform" Stroke="{DynamicResource AppText}"
@@ -437,6 +439,8 @@
                         </StackPanel>
                     </Button>
                     <Button Name="RunDebugButton" Classes="FlatButton" Height="30" Padding="7,0"
+                            Background="{DynamicResource AppControl}"
+                            Foreground="{DynamicResource AppText}"
                             Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource AppText}"
@@ -850,7 +854,7 @@
                    <!-- Empty state -->
                    <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
                                IsVisible="{Binding !HasSteps}">
-                       <TextBlock Foreground="#C0C0C0" FontSize="13"
+                       <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="13"
                                   Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
                                   HorizontalAlignment="Center" />
                        <TextBlock Text="{Binding [Editor.NoStepsHint], Source={x:Static loc:Strings.Current}}"

@@ -965,6 +965,7 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------------------ settings
         ["Settings.Title"] = "Settings",
         ["Settings.Language"] = "Language",
+        ["Settings.ThemeHint"] = "Off is dark; on is the softer light palette.",
         ["Settings.LanguageHint"] = "Applies immediately to every window.",
         ["Settings.CaptureWindow"] = "Reading a window",
         ["Settings.CaptureWindowHint"] =
@@ -2711,6 +2712,7 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------------------ settings
         ["Settings.Title"] = "设置",
         ["Settings.Language"] = "语言",
+        ["Settings.ThemeHint"] = "关是深色，开是较柔和的浅色。",
         ["Settings.LanguageHint"] = "立即应用到所有窗口。",
         ["Settings.CaptureWindow"] = "读窗口",
         ["Settings.CaptureWindowHint"] =

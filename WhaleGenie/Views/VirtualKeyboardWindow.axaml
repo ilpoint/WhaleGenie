@@ -12,7 +12,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="#232323">
+        Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
         <!-- One key of the keyboard. The cap shows the name the step will carry, which is how a
@@ -37,26 +37,26 @@
             <Setter Property="FontSize" Value="11" />
         </Style>
         <Style Selector="Button.Key:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4C4C4C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.Key:pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="#C8401C" />
         </Style>
 
         <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <!-- A named button in the title bar, for finishing rather than dismissing. -->
         <Style Selector="Button.TitleBarAction">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
@@ -66,7 +66,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </Window.Styles>
 
@@ -90,11 +90,11 @@
                      being read off, and putting it away leaves the add-action window as it was. -->
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
                           Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                 </Button>
             </StackPanel>

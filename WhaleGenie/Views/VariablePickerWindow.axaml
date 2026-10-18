@@ -15,7 +15,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="#232323">
+        Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
         <Style Selector="Button.FlatButton">
@@ -28,11 +28,11 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4C4C4C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="30" />
@@ -42,7 +42,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </Window.Styles>
 
@@ -57,7 +57,7 @@
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
                         VerticalAlignment="Center">
                 <Button Classes="TitleBarButton" Name="CloseButton">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
                           Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                 </Button>
             </StackPanel>

@@ -12,7 +12,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="#232323">
+        Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
         <Style Selector="TextBlock.Muted">
@@ -49,7 +49,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4C4C4C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <Style Selector="Button.PrimaryButton">
@@ -97,7 +97,7 @@
         </Style>
     </Window.Styles>
 
-    <Border Background="#232323" CornerRadius="8">
+    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
 
             <!-- title bar -->

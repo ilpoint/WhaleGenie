@@ -14,7 +14,7 @@
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="800"
         x:Class="WhaleGenie.Views.ActionEditorView"
         x:DataType="vm:AddActionViewModel"
-        Background="#232323">
+        Background="{DynamicResource AppBackdrop}">
 
     <Design.DataContext>
         <vm:AddActionViewModel />
@@ -957,7 +957,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Path Width="10" Height="8" Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
                               StrokeThickness="1.6" Data="{Binding Caret}" VerticalAlignment="Center" />
-                        <Path Width="15" Height="15" Stretch="Uniform" Stroke="#C0C0C0"
+                        <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
                               StrokeThickness="1.4" Data="{Binding Icon}" VerticalAlignment="Center"
                               IsVisible="{Binding HasIcon}" />
                         <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="{DynamicResource AppText}"
@@ -992,7 +992,7 @@
 
     <UserControl.Styles>
         <Style Selector="TextBlock.GroupHeader">
-            <Setter Property="Foreground" Value="#C0C0C0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalAlignment" Value="Center" />
@@ -1049,7 +1049,7 @@
         <!-- The fold that keeps the settings an action can live without out of the way. -->
         <Style Selector="Button.Disclosure">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="#4A4A4A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Foreground" Value="#C8A165" />
@@ -1181,7 +1181,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4C4C4C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <Style Selector="Button.AddButton">
@@ -1201,7 +1201,7 @@
         </Style>
 
         <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="30" />
@@ -1211,13 +1211,13 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <!-- A named button in the title bar, for the one thing the dialog can do besides hand the
              step back: run it. It is wider than the window buttons because it says what it is. -->
         <Style Selector="Button.TitleBarAction">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
@@ -1227,7 +1227,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.TitleBarAction:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="#242424" />
@@ -1249,10 +1249,10 @@
                      that is the question the dialog is open to answer, and closing it to ask loses
                      the half-written step on the way. -->
                 <Button Classes="TitleBarButton" Name="MinimizeButton">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                 </Button>
             </StackPanel>
         </Grid>

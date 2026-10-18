@@ -13,7 +13,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="#232323">
+        Background="{DynamicResource AppBackdrop}">
 
     <Design.DataContext>
         <vm:SettingsViewModel />
@@ -50,10 +50,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4C4C4C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="30" />
@@ -63,7 +63,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </Window.Styles>
 
@@ -77,7 +77,7 @@
 
             <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6"
                       Data="M 1,1 L 7,7 M 1,7 L 7,1" />
             </Button>
         </Grid>
@@ -97,6 +97,11 @@
                 <TextBlock Classes="Muted" Margin="2,7,0,0"
                            Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
 
+                <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                           Text="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}" />
+                <ToggleSwitch Name="LightThemeSwitch" OnContent="" OffContent="" />
+                <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
                            Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
                 <ComboBox Classes="LanguageSelect"

@@ -945,10 +945,8 @@ public partial class MainWindow : Window
         _editor = editor;
         editor.Closed += (_, _) => OnEditorClosed(editor, existing, viewModel);
 
-        // The list is what the editor was opened from, and on a screen with a game on it the list is
-        // one more thing in the way and one more window that takes the editor down with it when it
-        // is minimized. It steps aside for the while instead, and the icon brings it back.
-        editor.SteppedAside = Tray?.StepAside() ?? false;
+        // The editor stands beside the list rather than replacing it, so both stay on screen and
+        // either can be minimized without taking the other down.
         editor.ShowAsPeer(this);
         return editor;
     }

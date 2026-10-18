@@ -34,7 +34,7 @@
     <Window.Styles>
         <!-- Custom title bar buttons -->
         <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="30" />
@@ -44,7 +44,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A4A4A" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.TitleBarButton:pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="#5A5A5A" />
@@ -67,7 +67,7 @@
 
         <!-- Tool button that carries a label next to its icon -->
         <Style Selector="Button.LabeledToolButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Height" Value="24" />
@@ -89,7 +89,7 @@
 
         <!-- Bottom buttons -->
         <Style Selector="Button.BottomButton">
-            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="14,10" />
@@ -130,14 +130,14 @@
                 <Button Classes="TitleBarButton" Name="ThemeButton"
                         ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
                         Click="OnToggleTheme">
-                    <Path Width="12" Height="12" Stretch="Uniform" Stroke="White"
+                    <Path Width="12" Height="12" Stretch="Uniform" Stroke="{DynamicResource AppText}"
                           StrokeThickness="1.5"
                           Data="M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,8 A4,4 0 1 0 12,16 A4,4 0 1 0 12,8" />
                 </Button>                <Button Classes="TitleBarButton" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
                     <Path Width="11" Height="11" Stretch="Uniform"
-                          Stroke="White" StrokeThickness="1.4"
+                          Stroke="{DynamicResource AppText}" StrokeThickness="1.4"
                           Data="M 8.6,1.6 H 14.4 L 13.2,7.6 L 16.6,11 V 12.6 H 6.4 V 11 L 9.8,7.6 Z M 11.5,12.6 V 18.4" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="HelpButton" Content="?" FontWeight="Bold"
@@ -145,10 +145,10 @@
                         ToolTip.Tip="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                         Click="OnAboutClicked" />
                 <Button Classes="TitleBarButton" Name="MinimizeButton">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 0,5 H 8" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton">
-                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                    <Path Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -357,7 +357,7 @@
                                         Opacity="{Binding IsEnabled, Converter={StaticResource CardOpacity}}">
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                         <!-- Badge showing how the macro starts: keyboard, mouse or eyedropper -->
-                                        <Border Grid.Column="0" Background="#4A4A4A" CornerRadius="4"
+                                        <Border Grid.Column="0" Background="{DynamicResource AppHover}" CornerRadius="4"
                                                 Width="28" Height="28" VerticalAlignment="Center">
                                             <Panel>
                                                 <Path Width="15" Height="15" Stretch="Uniform"
@@ -430,7 +430,7 @@
             <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="5"
                         IsVisible="{Binding !HasMacros}">
                 <TextBlock Text="{Binding [Main.EmptyTitle], Source={x:Static loc:Strings.Current}}"
-                           Foreground="#C0C0C0" FontSize="13" HorizontalAlignment="Center" />
+                           Foreground="{DynamicResource AppMuted}" FontSize="13" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding [Main.EmptyHint], Source={x:Static loc:Strings.Current}}"
                            Foreground="{DynamicResource AppMuted}" FontSize="11.5" HorizontalAlignment="Center"
                            TextAlignment="Center" />
@@ -451,7 +451,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding SystemLabel}" FontSize="12" Foreground="White" />
-                        <TextBlock FontSize="12" Foreground="#B0B0B0"
+                        <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
                                    TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                    Text="{Binding SystemHint}" />
                     </StackPanel>

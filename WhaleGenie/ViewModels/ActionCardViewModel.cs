@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Models;
 
@@ -11,6 +12,9 @@ namespace WhaleGenie.ViewModels;
 public partial class ActionCardViewModel : ViewModelBase
 {
     public required ActionDefinition Definition { get; init; }
+
+    /// <summary>The colour of the category this action belongs to.</summary>
+    public IBrush Accent { get; init; } = Brushes.Transparent;
 
     /// <summary>True when this is the action the fields beside the list are fields of.</summary>
     [ObservableProperty]

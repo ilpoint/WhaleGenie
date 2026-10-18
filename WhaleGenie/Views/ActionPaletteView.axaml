@@ -44,9 +44,11 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="46" />
-            <Setter Property="Foreground" Value="#B8B8B8" />
-            <Setter Property="FontSize" Value="9.5" />
+            <Setter Property="Height" Value="50" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
@@ -75,11 +77,11 @@
                         <DataTemplate x:DataType="vm:ActionCategoryChoice">
                             <Button Classes="Category" ToolTip.Tip="{Binding Label}"
                                     Click="OnPickCategory">
-                                <StackPanel Spacing="3">
+                                <StackPanel Spacing="2" HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <Path Data="{Binding Icon}" Width="16" Height="16"
-                                          Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
+                                          Stretch="Uniform" Stroke="{Binding Accent}"
                                           StrokeThickness="1.4" />
-                                    <TextBlock Text="{Binding Short}" FontSize="8.5"
+                                    <TextBlock Text="{Binding Short}" FontSize="11"
                                                HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Button>
@@ -102,7 +104,11 @@
                             <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="6" Height="6" Fill="{Binding Accent}"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
+                                </StackPanel>
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

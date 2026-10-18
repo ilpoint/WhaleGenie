@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Styling;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
@@ -22,6 +23,18 @@ public partial class SettingsWindow : Window
         if (closeButton is not null)
         {
             closeButton.Click += (_, _) => Close();
+        }
+
+        var themeSwitch = this.FindControl<ToggleSwitch>("LightThemeSwitch");
+        if (themeSwitch is not null)
+        {
+            themeSwitch.IsChecked = Application.Current?.ActualThemeVariant == ThemeVariant.Light;
+            themeSwitch.IsCheckedChanged += (_, _) =>
+            {
+                var light = themeSwitch.IsChecked == true;
+                ThemePalette.Apply(light);
+                LocalSettings.StoreLightTheme(light);
+            };
         }
 
         var doneButton = this.FindControl<Button>("DoneButton");

@@ -19,7 +19,7 @@ namespace WhaleGenie.ViewModels;
 /// Drives the "Add Action" dialog: pick an action from the catalogue, fill in the
 /// parameters it asks for, then save the result as one step.
 /// </summary>
-public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short, Geometry Icon);
+public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short, Geometry Icon, IBrush Accent);
 
 public partial class AddActionViewModel : ViewModelBase
 {
@@ -125,14 +125,15 @@ public partial class AddActionViewModel : ViewModelBase
 
         Categories =
         [
-            new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"), CategoryIcon(null)),
+            new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"), CategoryIcon(null), CategoryAccent(null)),
             .. Enum.GetValues<ActionCategory>()
             .Where(category => category is not (ActionCategory.Ocr or ActionCategory.Window))
             .Select(category =>
             {
                 var label = Strings.Get($"Add.Category.{category}");
                 return new ActionCategoryChoice(category, label,
-                    Strings.Get($"Add.Category.{category}.short", label), CategoryIcon(category));
+                    Strings.Get($"Add.Category.{category}.short", label), CategoryIcon(category),
+                    CategoryAccent(category));
             }),
         ];
         SelectedCategory = Categories[0];
@@ -252,6 +253,25 @@ public partial class AddActionViewModel : ViewModelBase
             ActionCategory.Window => ActionCategory.Process,
             _ => category,
         };
+    /// <summary>The colour that marks a category in the dock and on every card of that group.</summary>
+    private static IBrush CategoryAccent(ActionCategory? category)
+        => new SolidColorBrush(Color.Parse(category switch
+        {
+            null => "#B9B3A8",
+            ActionCategory.Control => "#E07A3F",
+            ActionCategory.File => "#5B9BD5",
+            ActionCategory.Data => "#70AD47",
+            ActionCategory.Clipboard => "#A97FD1",
+            ActionCategory.Process => "#C586C0",
+            ActionCategory.System => "#D7BA7D",
+            ActionCategory.Input => "#4FC1E9",
+            ActionCategory.Vision => "#4EC9B0",
+            ActionCategory.Uia => "#FFB86C",
+            ActionCategory.Browser => "#61AFEF",
+            ActionCategory.Script => "#E5C07B",
+            ActionCategory.Condition => "#EF6F6C",
+            _ => "#B9B3A8",
+        }));
     /// <summary>The line icon the dock shows over a category's short name.</summary>
     private static Geometry CategoryIcon(ActionCategory? category)
         => Geometry.Parse(category switch
@@ -1094,6 +1114,7 @@ public partial class AddActionViewModel : ViewModelBase
         {
             Definition = action,
             IsSelected = action.Key == SelectedDefinition?.Key,
+            Accent = CategoryAccent(PickerCategory(action.Category)),
         })];
 
     /// <summary>Adds a heading that divides the picker into parts rather than holding actions.</summary>
