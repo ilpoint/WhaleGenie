@@ -874,7 +874,7 @@ public partial class MainWindow : Window
         var light = Application.Current?.ActualThemeVariant != ThemeVariant.Light;
         if (Application.Current is { } app)
         {
-            app.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
+            ThemePalette.Apply(light);
         }
 
         LocalSettings.StoreLightTheme(light);

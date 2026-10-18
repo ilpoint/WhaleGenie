@@ -289,7 +289,7 @@
             <!-- Search box -->
             <TextBox Grid.Row="0" Text="{Binding SearchText}"
                      PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
-                     Background="#2A2A2A" BorderBrush="#2A2A2A"
+                     Background="{DynamicResource AppDock}" BorderBrush="{DynamicResource AppDock}"
                      Foreground="{DynamicResource AppText}" FontSize="13"
                      CornerRadius="4" Padding="10,7" />
 
@@ -298,7 +298,7 @@
                           Margin="0,10,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:MacroItem">
-                        <Border Background="#2A2A2A" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                        <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <!-- The same three things the card's own buttons do, where a right click
                                  goes looking for them. -->
                             <Border.ContextMenu>
@@ -352,7 +352,7 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <Border Grid.Row="1" Background="#333333" CornerRadius="4" Margin="0,8,0,0"
+                                <Border Grid.Row="1" Background="{DynamicResource AppDock}" CornerRadius="4" Margin="0,8,0,0"
                                         Padding="12,9"
                                         Opacity="{Binding IsEnabled, Converter={StaticResource CardOpacity}}">
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">

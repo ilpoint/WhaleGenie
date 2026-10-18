@@ -34,7 +34,7 @@
             <Setter Property="Margin" Value="0,0,5,5" />
         </Style>
         <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3C3C3C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
             <Setter Property="Background" Value="#3A2A22" />
@@ -74,7 +74,15 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ActionCategoryChoice">
                             <Button Classes="Category" ToolTip.Tip="{Binding Label}"
-                                    Click="OnPickCategory" Content="{Binding Short}" />
+                                    Click="OnPickCategory">
+                                <StackPanel Spacing="3">
+                                    <Path Data="{Binding Icon}" Width="16" Height="16"
+                                          Stretch="Uniform" Stroke="{DynamicResource AppMuted}"
+                                          StrokeThickness="1.4" />
+                                    <TextBlock Text="{Binding Short}" FontSize="8.5"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

@@ -1027,7 +1027,7 @@
         </Style>
 
         <Style Selector="Border.GroupBox">
-            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
@@ -1089,7 +1089,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3C3C3C" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <!-- The one the dialog is about reads as chosen, so the list on the left always says what
@@ -1172,7 +1172,7 @@
         </Style>
 
         <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />

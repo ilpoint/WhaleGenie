@@ -17,7 +17,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="#232323">
+        Background="{DynamicResource AppBackdrop}">
 
     <Design.DataContext>
         <vm:MacroEditorViewModel />
@@ -289,7 +289,7 @@
 
         <!-- Groups a section so it reads separately from the settings above it -->
         <Style Selector="Border.GroupBox">
-            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
@@ -313,7 +313,7 @@
 
         <!-- Flat grey button used by Set Key / Record / the action palette -->
         <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
@@ -329,7 +329,7 @@
         </Style>
 
         <Style Selector="Button.PaletteButton">
-            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="34" />
             <Setter Property="Height" Value="32" />
@@ -426,20 +426,47 @@
             <!-- Left: Trigger Settings -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,Auto">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" Margin="4,4,4,2">
-                    <Button Classes="FlatButton" Height="30" Padding="8,0"
-                            Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}" />
-                    <Button Name="RunDebugButton" Classes="FlatButton" Height="30" Padding="8,0"
-                            Content="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}" />
+                    <Button Classes="FlatButton" Height="30" Padding="7,0"
+                            Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <Path Width="12" Height="12" Stretch="Uniform" Stroke="{DynamicResource AppText}"
+                                  StrokeThickness="1.5"
+                                  Data="M5,3 H17 L21,7 V21 H5 Z M8,3 V9 H16 V3 M8,14 H18 V21 H8 Z" />
+                            <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Name="RunDebugButton" Classes="FlatButton" Height="30" Padding="7,0"
+                            Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource AppText}"
+                                  Data="M8,5 L19,12 L8,19 Z" />
+                            <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
                 <views:ActionPaletteView Grid.Row="1" Name="ActionPalette" />
-                <Button Grid.Row="2" Classes="FlatButton" Height="32" Margin="4,2,4,2"
-                        Click="OnShowRecording"
-                        Content="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Row="3" Classes="FlatButton" Height="32" Margin="4,0,4,4"
-                        Click="OnToggleMacroSettings"
-                        Content="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Row="2" Classes="FlatButton" Height="34" Margin="4,2,4,2"
+                        Click="OnShowRecording">
+                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                        <Path Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource AppText}"
+                              StrokeThickness="1.5"
+                              Data="M12,4 A8,8 0 1 0 12,20 A8,8 0 1 0 12,4 M12,8 A4,4 0 1 0 12,16 A4,4 0 1 0 12,8" />
+                        <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Row="3" Classes="FlatButton" Height="34" Margin="4,0,4,4"
+                        Click="OnToggleMacroSettings">
+                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                        <Path Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource AppText}"
+                              StrokeThickness="1.5"
+                              Data="M4,7 H20 M4,12 H20 M4,17 H20 M8,4 V10 M16,9 V15 M11,14 V20" />
+                        <TextBlock Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
             <Border Grid.Column="2" Name="MacroSettingsDrawer"
@@ -1117,3 +1144,4 @@
         </Grid>
     </Grid>
 </Window>
+
