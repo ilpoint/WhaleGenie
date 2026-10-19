@@ -10,6 +10,7 @@ jobs:
   build-and-test:
     # WhaleGenie drives the real Windows desktop: SharpHook for input, UI Automation for
     # elements, OpenCV and PaddleOCR for the screen. It only builds on Windows.
+    name: CI   # 加上这行，以后列表里直接显示 CI
     runs-on: windows-latest
 
     steps:
