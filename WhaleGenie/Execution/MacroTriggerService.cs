@@ -401,6 +401,19 @@ public sealed class MacroTriggerService : IDisposable
         _programs.Change(Timeout.Infinite, Timeout.Infinite);
         _padTimer.Change(Timeout.Infinite, Timeout.Infinite);
         StopAll();
+
+        // Nothing the switch was running is left to look at the screen. The sessions are kept for
+        // reuse while the system is on, so this is the moment to give them back rather than hold
+        // the graphics device until the program goes away.
+        try
+        {
+            _devices.Screen.ReleaseCaptures();
+        }
+        catch (Exception)
+        {
+            // Switching the system off is not a macro step. A session that will not close now is
+            // still closed by the program's own exit, and it must not leave the switch half off.
+        }
     }
 
     /// <summary>

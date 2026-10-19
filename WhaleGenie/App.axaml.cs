@@ -97,7 +97,16 @@ public partial class App : Application
 
                 // The program owns the device layer every window ran on, so this is where the
                 // models it loaded and the capture sessions it opened are let go.
-                SharedDevices.Release();
+                try
+                {
+                    SharedDevices.Release();
+                }
+                catch
+                {
+                    // A device that will not let go must not stop the exit before Program takes the
+                    // virtual keyboard and mouse off the machine. Left behind, those devices are
+                    // what makes the pointer stutter after the window has gone.
+                }
             };
         }
 

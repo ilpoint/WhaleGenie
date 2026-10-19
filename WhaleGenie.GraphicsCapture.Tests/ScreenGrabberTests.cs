@@ -89,6 +89,40 @@ public class ScreenGrabberTests
         Assert.Equal([7L], sources.ClosedWindows);
     }
 
+    /// <summary>Letting go twice does not try to close a session on a thread that is already gone.</summary>
+    [Fact]
+    public void A_grabber_that_was_let_go_of_twice_does_not_close_anything_twice()
+    {
+        var sources = new FakeSources { Picture = Solid(4, 4) };
+        var grabber = new ScreenGrabber(sources);
+
+        grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
+        grabber.Dispose();
+        grabber.Dispose();
+
+        Assert.Equal([7L], sources.ClosedWindows);
+    }
+
+    /// <summary>
+    /// Letting the sessions go does not make the grabber useless: the screen is read next time by
+    /// opening a fresh session, which is what switching the macros off and on again asks for.
+    /// </summary>
+    [Fact]
+    public void Releasing_the_sessions_leaves_the_grabber_ready_to_open_them_again()
+    {
+        var sources = new FakeSources { Picture = Solid(4, 4) };
+        using var grabber = new ScreenGrabber(sources);
+
+        grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
+        grabber.ReleaseSessions();
+
+        Assert.Equal([7L], sources.ClosedWindows);
+
+        grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
+
+        Assert.Equal([7L, 7L], sources.OpenedWindows);
+    }
+
     /// <summary>
     /// A window Windows will not open a session on is remembered, because it will not open one the
     /// next time either, and a macro looking at it in a loop has no business paying for the same

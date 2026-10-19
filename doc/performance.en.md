@@ -81,6 +81,9 @@ cannot be read this way at all — layered windows, the Settings pages, the inpu
 graphics driver's overlay — are tried once and then remembered, so no session is opened and thrown
 away for them over and over.
 
+Sessions are kept while the system is enabled. Pressing Home to disable the macros closes them too;
+the first screen read after they are enabled again opens a fresh one.
+
 ## Finding something in the picture
 
 A 200×80 reference picture, the picture being the whole 2560×1440 screen except where noted:

@@ -107,6 +107,15 @@ public interface IScreenDevice
     ScreenShot Capture(ScreenCaptureRequest request);
 
     /// <summary>
+    /// Lets go of the capture sessions kept for reuse, without making the screen unusable: a later
+    /// capture opens what it needs again. Switching the macros off asks for this because nothing is
+    /// then waiting to look at the screen. A device with nothing to keep answers by doing nothing.
+    /// </summary>
+    void ReleaseCaptures()
+    {
+    }
+
+    /// <summary>
     /// How long one refresh of the screen lasts, in milliseconds. It is the shortest wait between
     /// two looks at the screen that can see something the look before it did not, because a picture
     /// that has not been drawn again cannot differ from the one already read; a step that waits for
