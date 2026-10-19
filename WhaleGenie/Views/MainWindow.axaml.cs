@@ -877,11 +877,8 @@ public partial class MainWindow : Window
         => WebPage.Open(Manual.Where());
 
     /// <summary>
-    /// Says what the program is and offers the two documents that belong with it: the project page,
-    /// and the list of what inside it was made by somebody else. Both the "?" button and "About"
-    /// open this.
+    /// Switches the whole application between the light and dark variants and remembers the choice.
     /// </summary>
-    /// <summary>Switches the whole application between the light and dark variants and remembers the choice.</summary>
     private void OnToggleTheme(object? sender, RoutedEventArgs e)
     {
         var current = ThemeController.Load();
@@ -956,28 +953,12 @@ public partial class MainWindow : Window
         viewModel.Mcp.ShowCopied();
     }
 
+    /// <summary>
+    /// Opens the window that says what the program is, shows the two donation codes, and offers the
+    /// project page and the list of third-party work. Both the "?" button and "About" open it.
+    /// </summary>
     private async void OnAboutClicked(object? sender, RoutedEventArgs e)
-    {
-        var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),
-            Strings.Format("Main.AboutText", AppVersion.Text), Strings.Get("Main.AboutOpenPage"),
-            Strings.Get("Main.AboutNotices"), showCancel: false, height: 320);
-
-        if (choice == ConfirmChoice.Primary)
-        {
-            WebPage.Open(ProjectLinks.Home);
-        }
-        else if (choice == ConfirmChoice.Secondary)
-        {
-            await ShowThirdPartyNoticesAsync();
-        }
-    }
-
-    /// <summary>Shows the third-party work the release ships, which the same document lists.</summary>
-    private async Task ShowThirdPartyNoticesAsync()
-    {
-        await ConfirmDialog.ShowAsync(this, Strings.Get("Main.AboutNotices"),
-            ThirdPartyNotices.Read(), Strings.Get("Common.Ok"), showCancel: false, height: 460);
-    }
+        => await new AboutWindow().ShowDialogOver(this);
 
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
     {
