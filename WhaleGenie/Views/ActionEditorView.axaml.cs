@@ -555,10 +555,82 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices);
+        RegionPickerWindow.Region? bounds = null;
+        if (viewModel.NeedsWindowCoordinates)
+        {
+            if (viewModel.CoordinateWindowBounds() is not { } target)
+            {
+                await ReportTestAsync(Strings.Get("Add.PickCoordinateNeedsWindow"));
+                return;
+            }
+
+            bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
+        }
+
+        if (viewModel.SelectedKey == "input.mouseDrag")
+        {
+            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices, bounds) is { } drag)
+            {
+                viewModel.ApplyDrag(drag.StartX, drag.StartY, drag.EndX, drag.EndY);
+            }
+
+            return;
+        }
+
+        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
+        }
+    }
+
+    /// <summary>
+    /// Frames the target window as it stands now, then lets its edges be adjusted before writing
+    /// the screen rectangle into the mover. Nothing is moved until the macro itself runs.
+    /// </summary>
+    private async void OnPickWindowBounds(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (viewModel.CurrentWindow() is not { } target)
+        {
+            await ReportTestAsync(Strings.Get("Add.PickWindowBoundsNeedsWindow"));
+            return;
+        }
+
+        var initial = new RegionPickerWindow.Region(target.Location.X, target.Location.Y,
+            target.Size.Width, target.Size.Height);
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, null, target.Handle)
+            is { } picked)
+        {
+            viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
+        }
+    }
+
+    /// <summary>
+    /// Follows the pointer with a crosshair and UI Automation outline. F1 takes the exact pixel,
+    /// and the action form stores it in whichever basis the step uses.
+    /// </summary>
+    private async void OnPickPoint(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (viewModel.NeedsWindowCoordinates && viewModel.CoordinateWindow() is null)
+        {
+            await ReportTestAsync(Strings.Get("Add.PickCoordinateNeedsWindow"));
+            return;
+        }
+
+        if (await PointPickerWindow.PickAsync(HostWindow!, Devices, viewModel.CoordinateWindow())
+            is { } point)
+        {
+            viewModel.ApplyCursorPosition(point.X, point.Y);
         }
     }
 
@@ -617,7 +689,21 @@ public partial class ActionEditorView : UserControl
 
         try
         {
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder)
+            RegionPickerWindow.Region? bounds = null;
+            if (viewModel.NeedsWindowCoordinates)
+            {
+                if (viewModel.CoordinateWindowBounds() is not { } target)
+                {
+                    await ReportTestAsync(Strings.Get("Add.PickCoordinateNeedsWindow"));
+                    return;
+                }
+
+                bounds = new RegionPickerWindow.Region(target.X, target.Y,
+                    target.Width, target.Height);
+            }
+
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder,
+                    bounds)
                 is { Length: > 0 } picture)
             {
                 row.Text = picture;
@@ -722,12 +808,25 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private async void OnPickRegionRow(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: RegionRowViewModel row })
+        if (sender is not Control { DataContext: RegionRowViewModel row }
+            || DataContext is not AddActionViewModel viewModel)
         {
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices) is { } picked)
+        RegionPickerWindow.Region? bounds = null;
+        if (viewModel.NeedsWindowCoordinates)
+        {
+            if (viewModel.CoordinateWindowBounds() is not { } target)
+            {
+                await ReportTestAsync(Strings.Get("Add.PickCoordinateNeedsWindow"));
+                return;
+            }
+
+            bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
+        }
+
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }
@@ -1369,7 +1468,21 @@ public partial class ActionEditorView : UserControl
 
         try
         {
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder)
+            RegionPickerWindow.Region? bounds = null;
+            if (viewModel.NeedsWindowCoordinates)
+            {
+                if (viewModel.CoordinateWindowBounds() is not { } target)
+                {
+                    await ReportTestAsync(Strings.Get("Add.PickCoordinateNeedsWindow"));
+                    return;
+                }
+
+                bounds = new RegionPickerWindow.Region(target.X, target.Y,
+                    target.Width, target.Height);
+            }
+
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder,
+                    bounds)
                 is { Length: > 0 } picture)
             {
                 parameter.Text = picture;
@@ -1409,6 +1522,50 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
+    /// Captures the window in front and edits its matching rule. The whole rule is one value, so
+    /// the action stores what the picker saw rather than losing the parts it did not use today.
+    /// </summary>
+    private async void OnPickWindowRule(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        WindowRule.TryParse(parameter.Text, out var current);
+        if (await WindowRuleWindow.PickAsync(HostWindow!, Devices, current) is { } picked)
+        {
+            parameter.ApplyWindowRule(picked);
+        }
+    }
+
+    /// <summary>Uses a window record a previous step handed over.</summary>
+    private async void OnPickWindowVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables()) is not { } picked
+            || picked.Token.Length == 0)
+        {
+            return;
+        }
+
+        parameter.UseWindowVariable(picked.Token);
+    }
+
+    private void OnClearWindowRule(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.ClearWindowRule();
+        }
+    }
+
+    /// <summary>
     /// Takes the control the pointer is put on through UI Automation and writes the selector it
     /// reads. The window that control sits in fills the action's window filter when that is still
     /// empty, which is what stops the selector from matching the same kind of control somewhere
@@ -1429,15 +1586,10 @@ public partial class ActionEditorView : UserControl
 
         parameter.Text = picked.Selector;
 
-        // The window filter is filled in for whichever field this action keeps it in, so a step
-        // that is anchored to a control gets the same narrowing as one that looks the control up.
         // What the picker reads is a title, so the rule goes back to holding the text up against
-        // the title: one left on the process name or on a pattern would be comparing something
-        // other than what was just picked, and would recognise nothing.
-        foreach (var name in new[] { "window", "anchorWindow" })
-        {
-            viewModel.FillWindowFromPick(name, picked.Window);
-        }
+        // the title: one left on the process name or on a pattern would compare something other
+        // than what was just picked and would recognise nothing.
+        viewModel.FillWindowFromPick("window", picked.Window);
     }
 
     /// <summary>
@@ -1501,10 +1653,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        // A control is measured from the same window field the picker fills in, so which one that
-        // is follows the field being tested rather than the action.
-        var filter = ParameterText(viewModel,
-            parameter.Definition.Name == "anchorSelector" ? "anchorWindow" : "window");
+        var filter = viewModel.WindowRuleFor("window");
 
         // Out of the way while the frame is up, the same way picking does it: the control is
         // usually behind the very window asking about it. The dialog waits the frame out, so it

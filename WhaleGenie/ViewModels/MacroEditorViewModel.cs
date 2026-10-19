@@ -13,9 +13,7 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
-// The choice of how a window is recognised is a property here as well as a type in the engine, so
-// the type is named by an alias rather than being shadowed by the property.
-using WindowWays = WhaleGenie.Core.Devices.WindowHow;
+using WindowRuleModel = WhaleGenie.Core.Devices.WindowRule;
 
 namespace WhaleGenie.ViewModels;
 
@@ -160,6 +158,12 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>Raised when the editor should open the run window for the current steps.</summary>
     public event Action? RunRequested;
+
+    /// <summary>
+    /// Raised when a save was asked for while the name or a declaration still blocks it. The window
+    /// answers by showing the page where the reason is written.
+    /// </summary>
+    public event Action? SaveBlocked;
 
     /// <summary>Raised when the palette asks to open the run-speed dialog.</summary>
     public event Action? AdjustDelaysRequested;
@@ -397,10 +401,11 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial int? IdleSeconds { get; set; } = 60;
 
-    /// <summary>What a window trigger recognises its window by.</summary>
+    /// <summary>The captured window and the rule a window trigger uses to recognise it again.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowRuleNow))]
-    public partial string WindowValue { get; set; } = string.Empty;
+    [NotifyPropertyChangedFor(nameof(WindowTargetSummary))]
+    public partial WindowRuleModel WindowTarget { get; set; } = WindowRuleModel.Empty;
 
     /// <summary>
     /// The windows this trigger would fire for right now, listed under the fields that say how the
@@ -423,46 +428,19 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private IWindowDevice? _windows;
 
-    /// <summary>The ways a window can be recognised, in the words the interface reads.</summary>
-    public IReadOnlyList<string> WindowHowOptions =>
-    [
-        Strings.Get("WindowHow.TitleContains"),
-        Strings.Get("WindowHow.TitleStartsWith"),
-        Strings.Get("WindowHow.TitleEndsWith"),
-        Strings.Get("WindowHow.TitleEquals"),
-        Strings.Get("WindowHow.TitleRegex"),
-        Strings.Get("WindowHow.Process"),
-        Strings.Get("WindowHow.ProcessEquals"),
-        Strings.Get("WindowHow.Class"),
-        Strings.Get("WindowHow.ClassEquals"),
-    ];
-
-    /// <summary>How this trigger recognises its window: one of the ways the engine reads.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(WindowHowIndex))]
-    [NotifyPropertyChangedFor(nameof(WindowRuleNow))]
-    public partial string WindowHow { get; set; } = WindowWays.TitleContains;
-
-    public int WindowHowIndex
-    {
-        get => WindowWays.IndexOf(WindowHow);
-        set
-        {
-            if (value >= 0 && value < WindowHowOptions.Count)
-            {
-                WindowHow = WindowWays.Values[value];
-            }
-        }
-    }
-
     /// <summary>The rule as the fields stand, which is what the preview of open windows follows.</summary>
-    public WindowRule WindowRuleNow
+    public WindowRuleModel WindowRuleNow => WindowTarget;
+
+    public string WindowTargetSummary => WindowTarget.HasTarget
+        ? $"{WindowTarget.MatchValue} · {Strings.Get($"WindowRule.Short.{WindowTarget.How}", WindowTarget.How)}"
+        : Strings.Get("WindowRule.NotSet");
+
+    /// <summary>Stores the rule the trigger picker captured.</summary>
+    public void UseWindowTarget(WindowRuleModel rule)
     {
-        get
-        {
-            var (match, compare) = WindowWays.Read(WindowHow);
-            return new WindowRule(WindowValue, match, compare, EmptyIsEvery: false);
-        }
+        WindowTarget = rule;
+        OnPropertyChanged(nameof(WindowRuleNow));
+        OnPropertyChanged(nameof(WindowTargetSummary));
     }
 
     public IReadOnlyList<string> WindowChangeOptions =>
@@ -1559,8 +1537,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             WatchSubfolders = macro.WatchSubfolders;
             ProcessName = macro.ProcessName;
             ProcessChange = macro.ProcessChange;
-            WindowValue = macro.WindowValue;
-            WindowHow = macro.WindowHow;
+            WindowTarget = macro.WindowTarget;
             WindowChange = macro.WindowChange;
             IdleSeconds = macro.IdleSeconds;
             PositionCapture = macro.PositionCapture;
@@ -1606,6 +1583,24 @@ public partial class MacroEditorViewModel : ViewModelBase
         _undo.Clear();
         _redo.Clear();
         IsDirty = false;
+    }
+
+    /// <summary>
+    /// Gives a new macro its first name without counting that name as an edit. The default is
+    /// already usable, so closing a new editor without touching anything still means "nothing to
+    /// save"; once a step is added, the default travels with it.
+    /// </summary>
+    internal void UseDefaultName(IEnumerable<string> existingNames)
+    {
+        _loading = true;
+        try
+        {
+            Name = MacroNames.NextDefault(existingNames);
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     /// <summary>
@@ -2277,6 +2272,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (!CanSave)
         {
+            SaveBlocked?.Invoke();
             return;
         }
 
@@ -2307,7 +2303,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         // little too wide is seen while it is being written. Only while the trigger is a window
         // trigger: a rule nothing reads has no windows to list, and a list of them would say the
         // macro does something it does not.
-        if (e.PropertyName is nameof(WindowValue) or nameof(WindowHow) or nameof(TriggerMode))
+        if (e.PropertyName is nameof(WindowTarget) or nameof(TriggerMode))
         {
             var asking = IsWindowTrigger;
             WindowPreview.Show(asking);
@@ -2366,8 +2362,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             WatchSubfolders = WatchSubfolders,
             ProcessName = ProcessName.Trim(),
             ProcessChange = ProcessChange,
-            WindowValue = WindowValue.Trim(),
-            WindowHow = WindowHow,
+            WindowTarget = WindowTarget,
             WindowChange = WindowChange,
             IdleSeconds = Math.Max(1, IdleSeconds ?? 60),
             PositionCapture = PositionCapture,

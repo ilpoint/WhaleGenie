@@ -19,10 +19,57 @@ namespace WhaleGenie.Core.Tests;
 /// The actions that drive the machine. They run against a stand-in for the device layer, so
 /// the checks are about what the engine asked for, not about what happened to the desktop.
 /// </summary>
+[Collection("InputGate")]
 public class DeviceActionTests
 {
+    /// <summary>
+    /// A step as the file now writes it. Window rules are one record, so the checks may keep saying
+    /// a title and the one choice beside it while the engine is handed the shape a saved macro holds.
+    /// </summary>
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
-        => new() { Type = type, Parameters = parameters };
+    {
+        var hasWindow = parameters.Any(parameter => parameter.Name == "window");
+        var how = hasWindow
+            ? parameters.FirstOrDefault(parameter => parameter.Name == "how")?.Text
+            : null;
+        var written = new List<ExecutableParameter>(parameters.Length);
+        foreach (var parameter in parameters)
+        {
+            if (hasWindow && parameter.Name == "how")
+            {
+                continue;
+            }
+
+            if (parameter.Name != "window")
+            {
+                written.Add(parameter);
+                continue;
+            }
+
+            var text = parameter.Text ?? string.Empty;
+            if (text.TrimStart().StartsWith('$'))
+            {
+                written.Add(parameter);
+                continue;
+            }
+
+            var rule = WindowRule.TryParse(text, out var parsed)
+                ? parsed
+                : new WindowRule(Title: text);
+            if (how is { Length: > 0 })
+            {
+                rule = how is WindowHow.Process or WindowHow.ProcessEquals
+                    ? rule with { How = how, Process = text }
+                    : how is WindowHow.Class or WindowHow.ClassEquals
+                        ? rule with { How = how, ClassName = text }
+                        : rule with { How = how, Title = text };
+            }
+
+            written.Add(Param("window", rule.ToJson().ToJsonString()));
+        }
+
+        return new ExecutableStep { Type = type, Parameters = [.. written] };
+    }
 
     /// <summary>See <see cref="SampleFiles.Within"/>: the same step, allowed this long.</summary>
     private static ExecutableStep Within(int milliseconds, ExecutableStep step,
@@ -523,7 +570,7 @@ public class DeviceActionTests
         [
             Step("input.keyPress",
                 Param("key", "F5"), Param("holdMs", "10"),
-                Param("inputMode", "background"), Param("targetWindow", "Notepad")),
+                Param("inputMode", "background"), Param("window", "Notepad")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -550,8 +597,8 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.keyPress", Param("key", "F5"), Param("holdMs", "10"),
-                Param("inputMode", "background"), Param("targetWindow", "notepad"),
-                Param("targetHow", "process")),
+                Param("inputMode", "background"), Param("window", "notepad"),
+                Param("how", "process")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -573,7 +620,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"),
-                Param("targetWindow", "Notepad["), Param("targetHow", "titleRegex")),
+                Param("window", "Notepad["), Param("how", "titleRegex")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -600,7 +647,7 @@ public class DeviceActionTests
     /// 一个鼠标消息也不发。
     /// </summary>
     [Fact]
-    public async Task Background_input_cannot_move_the_pointer_by_an_offset()
+    public async Task A_relative_move_has_no_background_mode()
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
@@ -609,11 +656,11 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseMoveRelative", Param("dx", "200"), Param("dy", "0"),
-                Param("inputMode", "background"), Param("targetWindow", "Notepad")),
+                Param("inputMode", "background"), Param("window", "Notepad")),
         ], devices);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Run.BackgroundNeedsPointer", result.Key);
+        Assert.Equal("Run.BadOption", result.Key);
         Assert.Empty(Asked(devices));
     }
 
@@ -622,7 +669,7 @@ public class DeviceActionTests
     /// 指针位置根本不是它自己的。两条路一起判，免得只剩其中一条还在发错的数。
     /// </summary>
     [Fact]
-    public async Task Background_input_cannot_bend_a_relative_move_either()
+    public async Task A_bent_relative_move_has_no_background_mode_either()
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
@@ -632,11 +679,11 @@ public class DeviceActionTests
         [
             Step("input.mouseMoveRelative", Param("dx", "200"), Param("dy", "0"),
                 Param("style", "smooth"), Param("durationMs", "100"),
-                Param("inputMode", "background"), Param("targetWindow", "Notepad")),
+                Param("inputMode", "background"), Param("window", "Notepad")),
         ], devices);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Run.BackgroundNeedsPointer", result.Key);
+        Assert.Equal("Run.BadOption", result.Key);
         Assert.Empty(devices.Paths);
         Assert.Empty(Asked(devices));
     }
@@ -736,8 +783,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
-                Param("x", "10"), Param("y", "20"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Gone")),
+                Param("x", "10"), Param("y", "20")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1057,7 +1103,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
-                Param("anchorMode", "screen"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "screen"), Param("window", "Notepad")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -1071,11 +1117,12 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("x", "10"), Param("y", "20"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "window"), Param("window", "Notepad")),
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(["findWindow Notepad", "click left 1010 520 1 0"], devices.Calls);
+        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "click left 1010 520 1 0"],
+            devices.Calls);
     }
 
     [Fact]
@@ -1087,13 +1134,136 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("input.mouseDown", Param("button", "left"), Param("x", "5"), Param("y", "6"),
-                Param("anchorMode", "client"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "window"), Param("window", "Notepad")),
         ], devices);
 
         // The button is also let go where it was pressed once the run ends, from the place the
         // press was read at rather than a fresh reading of where the window is now.
         Assert.Equal(["findWindow Notepad", "clientOrigin 1", "down left 1013 537", "up left 1013 537"],
             devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_window_search_returns_a_screen_point_and_a_window_point()
+    {
+        var devices = WithWindow();
+        devices.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Region((0, 0, 40, 40)),
+                Param("anchorMode", "window"), Param("window", "Game"),
+                Returns("match=hit", "screenPoint=screen", "windowPoint=window")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(Field(store, "hit", "x").AsText(), Field(store, "screen", "x").AsText());
+        Assert.Equal(Field(store, "hit", "y").AsText(), Field(store, "screen", "y").AsText());
+        Assert.Equal("screen", Field(store, "screen", "basis").AsText());
+        Assert.Equal("window", Field(store, "window", "basis").AsText());
+        Assert.Equal(108, Field(store, "screen", "x").AsNumber()
+            - Field(store, "window", "x").AsNumber());
+        Assert.Equal(81, Field(store, "screen", "y").AsNumber()
+            - Field(store, "window", "y").AsNumber());
+    }
+
+    [Fact]
+    public async Task Background_input_posts_client_pixels_and_returns_both_points()
+    {
+        var devices = WithWindow();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("inputMode", "background"), Param("window", "Game"),
+                Param("button", "left"), Param("x", "5"), Param("y", "6"),
+                Returns("screenPoint=screen", "windowPoint=window")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("click left 5 6 1 0", devices.Calls);
+        Assert.Equal(113, Field(store, "screen", "x").AsNumber());
+        Assert.Equal(87, Field(store, "screen", "y").AsNumber());
+        Assert.Equal(5, Field(store, "window", "x").AsNumber());
+        Assert.Equal(6, Field(store, "window", "y").AsNumber());
+    }
+
+    [Fact]
+    public async Task Background_input_can_take_its_window_from_a_record_variable()
+    {
+        var devices = WithWindow();
+        var store = new VariableStore();
+        store.Set("win", Value.FromRecord(
+        [
+            (FieldNames.Title, Value.FromText("Game")),
+            (FieldNames.Process, Value.FromText("game")),
+            (FieldNames.Class, Value.FromText("GameClass")),
+            (FieldNames.How, Value.FromText(WindowHow.TitleContains)),
+        ]));
+
+        var result = await new MacroRunner(store, new SilentRunHost(), devices)
+            .RunAsync([Step("input.mouseClick", Param("inputMode", "background"),
+                Param("window", "$win"), Param("button", "left"),
+                Param("x", "5"), Param("y", "6"))]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("click left 5 6 1 0", devices.Calls);
+        Assert.Equal(4, Assert.Single(devices.Routes).WindowHandle);
+    }
+
+    [Fact]
+    public async Task A_drag_returns_both_ends_in_both_coordinate_spaces()
+    {
+        var devices = WithWindow();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("input.mouseDrag", Param("anchorMode", "window"), Param("window", "Game"),
+                Param("startX", "10"), Param("startY", "20"),
+                Param("endX", "30"), Param("endY", "40"),
+                Param("button", "left"), Param("durationMs", "0"), Param("dragSteps", "2"),
+                Returns("screenStartPoint=ss", "screenEndPoint=se",
+                    "windowStartPoint=ws", "windowEndPoint=we")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal((118, 101), (Field(store, "ss", "x").AsNumber(),
+            Field(store, "ss", "y").AsNumber()));
+        Assert.Equal((138, 121), (Field(store, "se", "x").AsNumber(),
+            Field(store, "se", "y").AsNumber()));
+        Assert.Equal((10, 20), (Field(store, "ws", "x").AsNumber(),
+            Field(store, "ws", "y").AsNumber()));
+        Assert.Equal((30, 40), (Field(store, "we", "x").AsNumber(),
+            Field(store, "we", "y").AsNumber()));
+    }
+
+    [Fact]
+    public async Task A_screen_basis_does_not_write_a_window_point()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
+                Returns("windowPoint=window")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.TryGet("window", out var window));
+        Assert.Equal(string.Empty, window.AsText());
+    }
+
+    [Fact]
+    public async Task Capturing_a_whole_window_returns_its_middle_in_both_spaces()
+    {
+        var devices = WithWindow();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.captureWindow", Param("window", "Game"),
+                Returns("screenPoint=screen", "windowPoint=window")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(300, Field(store, "screen", "x").AsNumber());
+        Assert.Equal(200, Field(store, "screen", "y").AsNumber());
+        Assert.Equal(192, Field(store, "window", "x").AsNumber());
+        Assert.Equal(119, Field(store, "window", "y").AsNumber());
     }
 
     [Fact]
@@ -1106,10 +1276,11 @@ public class DeviceActionTests
                 Param("startX", "10"), Param("startY", "20"),
                 Param("endX", "30"), Param("endY", "40"),
                 Param("button", "left"), Param("durationMs", "0"), Param("dragSteps", "2"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "window"), Param("window", "Notepad")),
         ], devices);
 
-        Assert.Equal(["findWindow Notepad", "drag left 1010 520 1030 540 0 2"], devices.Calls);
+        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "drag left 1010 520 1030 540 0 2"],
+            devices.Calls);
     }
 
     /// <summary>
@@ -1199,7 +1370,7 @@ public class DeviceActionTests
                 Param("startPlace", "$spot"),
                 Param("endX", "30"), Param("endY", "40"),
                 Param("durationMs", "0"), Param("dragSteps", "2"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "window"), Param("window", "Notepad")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1219,7 +1390,7 @@ public class DeviceActionTests
         var step = Step("input.mouseDrag",
             Param("startX", "10"), Param("startY", "20"), Param("endX", "30"), Param("endY", "40"),
             Param("durationMs", "0"), Param("dragSteps", "2"),
-            Param("anchorMode", "window"), Param("anchorWindow", "Notepad"));
+            Param("anchorMode", "window"), Param("window", "Notepad"));
 
         await RunAsync([step], devices);
         devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
@@ -1227,8 +1398,8 @@ public class DeviceActionTests
 
         Assert.Equal(
         [
-            "findWindow Notepad", "drag left 1010 520 1030 540 0 2",
-            "findWindow Notepad", "drag left 310 420 330 440 0 2",
+            "findWindow Notepad", "clientOrigin 1", "drag left 1010 520 1030 540 0 2",
+            "findWindow Notepad", "clientOrigin 1", "drag left 310 420 330 440 0 2",
         ], devices.Calls);
     }
 
@@ -1353,9 +1524,9 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseMove", Param("place", "$spot"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "window"), Param("window", "Notepad")),
             Step("input.mouseMove", Param("x", "30"), Param("y", "40"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+                Param("anchorMode", "window"), Param("window", "Notepad")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1473,11 +1644,11 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("vision.capture", Param("rect", "$spot"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Param("anchorMode", "window"), Param("window", "Notepad"),
                 Returns("image=cut")),
             Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
                 Param("height", "40"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Param("anchorMode", "window"), Param("window", "Notepad"),
                 Returns("image=cut")),
         ], devices);
 
@@ -1524,14 +1695,17 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var step = Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
-            Param("anchorMode", "window"), Param("anchorWindow", "Notepad"));
+            Param("anchorMode", "window"), Param("window", "Notepad"));
 
         await RunAsync([step], devices);
         devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
         await RunAsync([step], devices);
 
         Assert.Equal(
-            ["findWindow Notepad", "move 1010 520 0", "findWindow Notepad", "move 310 420 0"],
+            [
+                "findWindow Notepad", "clientOrigin 1", "move 1010 520 0",
+                "findWindow Notepad", "clientOrigin 1", "move 310 420 0",
+            ],
             devices.Calls);
     }
 
@@ -1540,7 +1714,7 @@ public class DeviceActionTests
     {
         var (result, devices, _) = await RunAsync(
             [Step("input.mouseMove", Param("x", "1"), Param("y", "2"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Gone"))]);
+                Param("anchorMode", "window"), Param("window", "Gone"))]);
 
         Assert.False(result.Succeeded);
 
@@ -1557,7 +1731,7 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("vision.getPixel", Param("x", "7"), Param("y", "8"),
-                Param("anchorMode", "client"), Param("anchorWindow", "Notepad"),
+                Param("anchorMode", "window"), Param("window", "Notepad"),
                 Returns("color=tone")),
         ], devices);
 
@@ -1751,7 +1925,7 @@ public class DeviceActionTests
             Step("vision.findImage", Pictures("a.png"), Region((0, 0, 40, 30)),
                 Hit("match", "spot")),
             Step("vision.findImage", Pictures("b.png"), RegionFrom("$spot"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Param("anchorMode", "window"), Param("window", "Notepad"),
                 Hit("match", "again")),
         ], devices);
 
@@ -1771,7 +1945,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Region((10, 20, 30, 40)),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Param("anchorMode", "window"), Param("window", "Notepad"),
                 Hit("match", "where")),
         ], devices);
 
@@ -1800,8 +1974,8 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Region((10, 20, 30, 40)),
-                Param("anchorMode", "window"), Param("anchorWindow", "notepad"),
-                Param("anchorHow", "process"), Hit("match", "where")),
+                Param("anchorMode", "window"), Param("window", "notepad"),
+                Param("how", "process"), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1823,8 +1997,8 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Notepad["),
-                Param("anchorHow", "titleRegex")),
+                Param("anchorMode", "window"), Param("window", "Notepad["),
+                Param("how", "titleRegex")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -2651,8 +2825,8 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Capture(10, 20, 30, 40, Param("anchorMode", "client"),
-                Param("anchorWindow", "Game"), Parts("image", "shot")),
+            Capture(10, 20, 30, 40, Param("anchorMode", "window"),
+                Param("window", "Game"), Parts("image", "shot")),
         ], devices);
 
         var asked = Assert.Single(devices.Captures);
@@ -2676,7 +2850,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Capture(1, 1, 2, 2, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+            Capture(1, 1, 2, 2, Param("anchorMode", "window"), Param("window", "Game"),
                 Parts("image", "window")),
             Capture(1, 1, 2, 2, Parts("image", "screen")),
         ], devices);
@@ -2699,11 +2873,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Capture(7, 9, 10, 10, Param("anchorMode", "window"),
-                Param("anchorWindow", "Game"), Parts("image", "fromWindow")),
+                Param("window", "Game"), Parts("image", "fromWindow")),
             Capture(7, 9, 10, 10, Parts("image", "fromScreen")),
         ], devices);
 
-        Assert.Equal((107, 59, 10, 10),
+        Assert.Equal((115, 90, 10, 10),
             (devices.Captures[0].X, devices.Captures[0].Y, devices.Captures[0].Width,
                 devices.Captures[0].Height));
         Assert.Equal(4, devices.Captures[0].Window);
@@ -2727,7 +2901,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Capture(0, 0, 10, 10, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+            Capture(0, 0, 10, 10, Param("anchorMode", "window"), Param("window", "Game"),
                 Parts("image", "shot")),
         ], devices);
 
@@ -2748,13 +2922,13 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
-                Param("anchorMode", "window"), Param("anchorWindow", "Game"),
+                Param("anchorMode", "window"), Param("window", "Game"),
                 Hit("match", "match")),
         ], devices);
 
         var asked = Assert.Single(devices.Captures);
         Assert.Equal(9, asked.Window);
-        Assert.Equal((100, 50, 400, 300), (asked.X, asked.Y, asked.Width, asked.Height));
+        Assert.Equal((108, 81, 400, 300), (asked.X, asked.Y, asked.Width, asked.Height));
     }
 
     /// <summary>
@@ -2860,7 +3034,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
-                Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("anchorMode", "window"), Param("window", "Game"),
                 Returns("match=match", "window=match.window", "method=match.method")),
         ], devices);
 
@@ -2881,7 +3055,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
-                Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("anchorMode", "window"), Param("window", "Game"),
                 Returns("match=match", "window=match.window", "method=match.method")),
         ], devices);
 
@@ -2902,7 +3076,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
-                Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("anchorMode", "window"), Param("window", "Game"),
                 Returns("color=color")),
         ], devices);
 
@@ -4712,7 +4886,7 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Coordinates_can_be_measured_from_a_control()
+    public async Task Measuring_from_a_control_is_not_one_of_the_coordinate_bases()
     {
         var devices = new FakeDeviceLayer();
         devices.Elements.Add(new UiElementInfo("Panel", "panel", "Pane", "PaneClass",
@@ -4724,24 +4898,9 @@ public class DeviceActionTests
                 Param("anchorMode", "element"), Param("anchorSelector", "Pane[automationId='panel']")),
         ], devices);
 
-        Assert.True(result.Succeeded);
-        Assert.Contains("findElements Pane//panel #1 take 1", devices.Calls);
-        Assert.Contains("move 210 120 0", devices.Calls);
-    }
-
-    [Fact]
-    public async Task Measuring_from_a_control_that_is_not_there_fails_the_step()
-    {
-        var devices = new FakeDeviceLayer();
-        var (result, _, _) = await RunAsync(
-        [
-            Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
-                Param("anchorMode", "element"), Param("anchorSelector", "Pane[automationId='panel']")),
-        ], devices);
-
         Assert.False(result.Succeeded);
-        Assert.Equal("Run.ElementNotFound", result.Key);
-        Assert.DoesNotContain("move 10 20 0", devices.Calls);
+        Assert.Equal("Run.BadOption", result.Key);
+        Assert.DoesNotContain("findElements Pane//panel #1 take 1", devices.Calls);
     }
 
     [Fact]
@@ -7681,14 +7840,14 @@ public class DeviceActionTests
             var (looked, _, _) = await RunAsync(
             [
                 Step("vision.findImage", Pictures("ok.png"), Param("anchorMode", "window"),
-                    Param("anchorWindow", text), Param("anchorHow", how)),
+                    Param("window", text), Param("how", how)),
             ], Looking());
             Assert.Equal(found, looked.Succeeded);
 
             var (posted, _, _) = await RunAsync(
             [
                 Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"),
-                    Param("targetWindow", text), Param("targetHow", how)),
+                    Param("window", text), Param("how", how)),
             ], Named());
             Assert.Equal(found, posted.Succeeded);
 
@@ -8060,6 +8219,19 @@ public class DeviceActionTests
 
         Assert.Equal(["moveWindow 21 200 500 800 600", "moveWindow 21 1000 500 320 600"],
             devices.Calls.Where(call => call.StartsWith("moveWindow", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task A_window_move_with_no_bounds_leaves_the_window_alone()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+
+        await RunAsync([Step("window.move", Param("window", "Notepad"))], devices);
+
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("moveWindow", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -10199,19 +10371,20 @@ public class DeviceActionTests
     {
         var library = new Macros(("子", []));
         var steps = Enumerable.Range(0, MacroRunner.MaxFinishedRuns + 4)
-            .Select(_ => Step("control.startMacro", Param("macro", "子"),
-                Param("runHandleName", "job")))
-            .Append(Step("control.waitMacro", Param("runHandle", "$job")))
+            .SelectMany(_ => new[]
+            {
+                Step("control.startMacro", Param("macro", "子"),
+                    Param("runHandleName", "job")),
+                Step("control.waitMacro", Param("runHandle", "$job")),
+            })
             .ToArray();
 
         var store = new VariableStore();
         var runner = new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer(), 1, library);
         var result = await runner.RunAsync(steps);
-        await Task.Delay(100);
 
         Assert.True(result.Succeeded, result.Key + " " + result.Detail);
-        Assert.True(runner.Children.Count <= MacroRunner.MaxFinishedRuns + MacroRunner.MaxBackgroundRuns,
-            $"kept {runner.Children.Count} runs");
+        Assert.Empty(runner.Children);
     }
 
     [Fact]

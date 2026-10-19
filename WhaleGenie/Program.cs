@@ -57,12 +57,18 @@ sealed class Program
         // input while using WhaleGenie, not for virtual devices left plugged into their machine
         // afterwards. The program's own device layer is what knows about them, so that is where this
         // is asked.
-        SharedDevices.Current.Driver.Stop();
-
-        // The desktop lifetime has ended and every owned resource has had its turn. The MCP server
-        // is stopped first by App.Exit; this last exit makes sure a Kestrel or client thread that
-        // did not release its socket cannot leave a windowless WhaleGenie process behind.
-        Environment.Exit(0);
+        try
+        {
+            SharedDevices.Current.Driver.Stop();
+        }
+        finally
+        {
+            // The desktop lifetime has ended and every owned resource has had its turn. The MCP
+            // server is stopped first by App.Exit; this last exit makes sure a Kestrel or client
+            // thread that did not release its socket cannot leave a windowless WhaleGenie process
+            // behind.
+            Environment.Exit(0);
+        }
     }
 
     /// <summary>

@@ -38,18 +38,15 @@ public class PickerTests
     [Fact]
     public void Window_parameters_are_edited_with_the_window_picker()
     {
-        string[] windowFields = ["window", "title", "anchorWindow", "targetWindow"];
-
         var parameters = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters)
-            .Where(parameter => windowFields.Contains(parameter.Name, StringComparer.Ordinal))
+            .Where(parameter => parameter.Name == "window")
             .ToList());
 
         Assert.NotEmpty(parameters);
-        Assert.All(parameters, parameter => Assert.Equal(ActionParameterKind.Window, parameter.Kind));
+        Assert.All(parameters, parameter =>
+            Assert.Equal(ActionParameterKind.WindowRule, parameter.Kind));
         Assert.Contains(parameters, parameter => parameter.Name == "window");
-        Assert.Contains(parameters, parameter => parameter.Name == "anchorWindow");
-        Assert.Contains(parameters, parameter => parameter.Name == "targetWindow");
     }
 
     [Fact]
@@ -186,11 +183,10 @@ public class PickerTests
             // A step that says nothing about it reads titles, and the picker takes a title.
             Assert.Equal(WindowMatch.Title, viewModel.WindowMatchFor(text));
 
-            var how = viewModel.Parameters.First(parameter => parameter.Definition.Name == "how");
-            how.Option = how.Choices.First(choice => choice.Value == "process");
+            text.ApplyWindowRule(new WindowRule(Process: "notepad", How: WindowHow.Process));
             Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor(text));
 
-            how.Option = how.Choices.First(choice => choice.Value == "class");
+            text.ApplyWindowRule(new WindowRule(ClassName: "Notepad", How: WindowHow.Class));
             Assert.Equal(WindowMatch.ClassName, viewModel.WindowMatchFor(text));
         });
     }
@@ -203,34 +199,24 @@ public class PickerTests
             var viewModel = new AddActionViewModel(ActionCatalog.Definitions, [], []);
             viewModel.SelectAction("uia.click");
             var window = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
-            var how = viewModel.Parameters.First(parameter => parameter.Definition.Name == "how");
 
-            how.Option = how.Choices.First(choice => choice.Value == WindowHow.Process);
+            window.ApplyWindowRule(new WindowRule(Process: "notepad", How: WindowHow.Process));
             Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor(window));
 
             // What the picker reads is a title, so the rule goes back to holding the text up
             // against the title. Left as it was, it would compare a title with a process name and
             // recognise no window at all.
+            window.ClearWindowRule();
             Assert.True(viewModel.FillWindowFromPick("window", "Untitled - Notepad"));
-            Assert.Equal("Untitled - Notepad", window.Text);
-            Assert.Equal(WindowHow.TitleContains, how.CurrentText);
+            Assert.Equal(new WindowRule(Title: "Untitled - Notepad").ToJson().ToJsonString(),
+                window.Text);
             Assert.Equal(WindowMatch.Title, viewModel.WindowMatchFor(window));
 
             // A field that already says which window this is keeps what it says: nothing was picked
             // into it, so nothing about it changes.
-            how.Option = how.Choices.First(choice => choice.Value == WindowHow.Process);
+            window.ApplyWindowRule(new WindowRule(Process: "notepad", How: WindowHow.Process));
             Assert.False(viewModel.FillWindowFromPick("window", "Report.docx - Word"));
-            Assert.Equal("Untitled - Notepad", window.Text);
             Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor(window));
-
-            // The pair a screen-reading step counts its coordinates from behaves the same way.
-            viewModel.SelectAction("vision.findImage");
-            var anchorHow = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "anchorHow");
-            anchorHow.Option = anchorHow.Choices.First(choice => choice.Value == WindowHow.Class);
-
-            Assert.True(viewModel.FillWindowFromPick("anchorWindow", "Untitled - Notepad"));
-            Assert.Equal(WindowHow.TitleContains, anchorHow.CurrentText);
         });
     }
 

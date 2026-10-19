@@ -142,6 +142,8 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
     }
 
+    public void ReleaseCaptures() => _grabber.ReleaseSessions();
+
     /// <summary>
     /// Lets go of the sessions the capture library is holding. A macro that only ever read the
     /// desktop has nothing much here to release, but a window that was being read has a graphics

@@ -24,9 +24,55 @@ internal static class SampleFiles
     /// <summary>The folder with the sample files in it.</summary>
     public static string Folder => Path.Combine(Repository(), "testfile");
 
-    /// <summary>A step of a macro, written the way the editor writes one.</summary>
+    /// <summary>
+    /// A step of a macro, written the way the editor writes one. Window rules are one record, so a
+    /// check may keep saying a title and the one choice beside it; this is where that becomes the
+    /// shape a package holds.
+    /// </summary>
     public static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
-        => new() { Type = type, Parameters = parameters };
+    {
+        var hasWindow = parameters.Any(parameter => parameter.Name == "window");
+        var how = hasWindow
+            ? parameters.FirstOrDefault(parameter => parameter.Name == "how")?.Text
+            : null;
+        var written = new List<ExecutableParameter>(parameters.Length);
+        foreach (var parameter in parameters)
+        {
+            if (hasWindow && parameter.Name == "how")
+            {
+                continue;
+            }
+
+            if (parameter.Name != "window")
+            {
+                written.Add(parameter);
+                continue;
+            }
+
+            var text = parameter.Text ?? string.Empty;
+            if (text.TrimStart().StartsWith('$'))
+            {
+                written.Add(parameter);
+                continue;
+            }
+
+            var rule = WindowRule.TryParse(text, out var parsed)
+                ? parsed
+                : new WindowRule(Title: text);
+            if (how is { Length: > 0 })
+            {
+                rule = how is WindowHow.Process or WindowHow.ProcessEquals
+                    ? rule with { How = how, Process = text }
+                    : how is WindowHow.Class or WindowHow.ClassEquals
+                        ? rule with { How = how, ClassName = text }
+                        : rule with { How = how, Title = text };
+            }
+
+            written.Add(Param("window", rule.ToJson().ToJsonString()));
+        }
+
+        return new ExecutableStep { Type = type, Parameters = [.. written] };
+    }
 
     /// <summary>
     /// The same step with a clock of its own. A step that waits for something says how long it may

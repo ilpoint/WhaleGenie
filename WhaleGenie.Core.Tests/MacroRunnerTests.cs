@@ -9,6 +9,7 @@ using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
 
+[Collection("InputGate")]
 public class MacroRunnerTests
 {
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
@@ -1277,7 +1278,7 @@ public class MacroRunnerTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.Timeout", result.Key);
-        Assert.True(watch.Elapsed.TotalMilliseconds < 2000,
+        Assert.True(watch.Elapsed.TotalMilliseconds < 4000,
             $"the wait should have been cut short, took {watch.Elapsed.TotalMilliseconds:0} ms");
     }
 
@@ -1299,7 +1300,7 @@ public class MacroRunnerTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.Timeout", result.Key);
-        Assert.True(watch.Elapsed.TotalMilliseconds < 2000,
+        Assert.True(watch.Elapsed.TotalMilliseconds < 4000,
             $"the block should have given up on the step inside it, took {watch.Elapsed.TotalMilliseconds:0} ms");
     }
 

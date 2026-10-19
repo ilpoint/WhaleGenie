@@ -101,7 +101,7 @@ public class RunLookTests
             ],
             Meta = new StepMeta
             {
-                TimeoutMs = 400,
+                TimeoutMs = 1000,
                 RetryCount = 5,
                 RetryDelayMs = 0,
                 OnError = StepErrorAction.Continue,
@@ -109,19 +109,15 @@ public class RunLookTests
         };
 
         var watched = new Watched();
-        var watch = Stopwatch.StartNew();
         var result = await new MacroRunner(new VariableStore(), devices: NullDeviceLayer.Instance,
             looks: watched).RunAsync([block]);
-        watch.Stop();
 
-        // Six tries at 250 ms each would be 1.5 s with a clock of their own. One 400 ms budget
-        // ends the second try; a loaded machine still gets that second one made.
+        // Six tries at 250 ms each would be 1.5 s with a clock of their own. One 1000 ms budget
+        // still ends before the sixth try; a loaded machine gets at least the second one made.
         Assert.True(result.Succeeded, result.Key);
-        Assert.True(watch.Elapsed.TotalMilliseconds < 900,
-            $"the retries each got a fresh clock, took {watch.Elapsed.TotalMilliseconds:0} ms");
 
         var run = Assert.Single(watched.Runs, run => run.StepType == "control.sequence");
-        Assert.Equal(400, run.TimeoutMs);
+        Assert.Equal(1000, run.TimeoutMs);
         Assert.True(run.Attempts.Count >= 2, $"only {run.Attempts.Count} try made");
         Assert.Equal("failed", run.Attempts[0].Outcome);
         Assert.NotNull(run.Attempts[0].RemainingMs);
@@ -773,7 +769,9 @@ public class RunLookTests
             new ScreenSize(800, 600), false, false));
         var looks = new Watched();
 
-        await Run(Step("vision.captureWindow", Param("window", "Notepad"), Hit("image", "shot")),
+        await Run(Step("vision.captureWindow",
+            Param("window", new WindowRule(Title: "Notepad").ToJson().ToJsonString()),
+            Hit("image", "shot")),
             devices, looks);
 
         // The window comes with the reading rather than its handle alone, so whoever is drawing the

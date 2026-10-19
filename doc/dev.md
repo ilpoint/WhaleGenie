@@ -137,7 +137,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   增加；草稿 `apply` 前对不上就拒绝，避免覆盖人在界面里的修改。
 - `McpDraftStore` 只改内存草稿；`apply` 才替换 `MainViewModel` 的宏与全局变量，`save_project` 才
   调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。
-- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。
+- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。参数还带
+  `Fields`（记录内部字段名）、`Unit`、`EmptyMeans`、`Minimum` 与 `Maximum`，窗口规则字段直接取自
+  `WindowRule.ToJson`，MCP 客户端不必猜记录结构或数字范围。
 - `McpServerViewModel.EnsureSaved` 是启动前的保存回调：`App` 把它接到
   `MainWindow.EnsureProjectSavedForMcpAsync`，后者在没有 `CurrentPath` 时弹「选择保存位置 / 先打开」，
   选择位置走现有 `SaveAsAsync`。没有窗口的测试不设回调，仍可直接启动。
@@ -223,7 +225,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 9。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 10。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
 
@@ -338,7 +340,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 | 名字 | 保留理由 |
 | --- | --- |
-| `anchorMode` | 坐标基准是同一个概念；鼠标另多一档元素锚点，各动作的表单列出自己的选项 |
+| `anchorMode` | 识别方式只有屏幕与窗口两档，是基础设置第一行；窗口规则紧随其后且只在窗口档显示 |
 | `body` | 都是子步骤列表；标签按容器叫“试运行 / 接住 / 收尾 / 分支”，名字不必跟着容器换 |
 | `button` | 手柄按键与鼠标按键共用“哪个键”这个词，但选项表由动作给出 |
 | `color` | 都是颜色；标签统一为“颜色” |
@@ -351,6 +353,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | `from` | 都是来源路径；标签说明复制、移动还是解压 |
 | `height`、`width` | 都是长度；标签说明方向 |
 | `holdMs` | 都是按住多久 |
+| `inputMode` | 都是键鼠输入方式；相对移动只提供前台与驱动级，不提供后台 |
 | `intervalMs` | 都是间隔；标签统一为“间隔”，提示说明隔开的是什么；原来的 `pollMs` 已并到这里 |
 | `items` | 都是初始项或要遍历的项 |
 | `matchMode` | 都是文字比较的五档词，改名后只剩这一个用途 |
@@ -432,7 +435,17 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建和全部测试，
 失败即红。三个测试工程在 CI 上一个一个跑（`-m:1`）：它们同时跑会抢那几个核，按墙钟说话的用例
-就会替别的工程花掉的 CPU 时间买单。测试报告作为构建产物保留。
+就会替别的工程花掉的 CPU 时间买单。失败的运行保留 7 天测试报告，成功的运行不保存报告，免得
+构建产物把 Actions 存储配额占满。
+
+本地用 `act` 跑同一套步骤。`windows-latest` 指到本机执行，`DOTNET_INSTALL_DIR` 给 setup-dotnet
+一个不用管理员权限的目录；`ACT=true` 让工件上传在本地跳过，因为 act 自带的工件服务不接受
+`upload-artifact@v6`：
+
+```powershell
+act -W .github/workflows/ci.yml -j build-and-test -P windows-latest=-self-hosted `
+  --env ACT=true --env DOTNET_INSTALL_DIR="$env:LOCALAPPDATA\act-dotnet"
+```
 
 ## 发布
 

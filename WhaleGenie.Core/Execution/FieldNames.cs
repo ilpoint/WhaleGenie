@@ -46,6 +46,17 @@ public static class FieldNames
 
     public const string Handle = "handle";
 
+    public const string How = "how";
+
+    public const string CaseSensitive = "caseSensitive";
+
+    public const string Trim = "trim";
+
+    public const string Multiline = "multiline";
+
+    /// <summary>Which coordinate space a point's x and y are counted in.</summary>
+    public const string Basis = "basis";
+
     public const string Minimized = "minimized";
 
     public const string Maximized = "maximized";

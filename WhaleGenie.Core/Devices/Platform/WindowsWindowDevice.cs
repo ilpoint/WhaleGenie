@@ -34,6 +34,25 @@ public sealed class WindowsWindowDevice : IWindowDevice
         return EveryWindow();
     }
 
+    /// <summary>
+    /// The top-level window that currently has the foreground, with the rectangle it is seen at.
+    /// The picker asks this only after the person has clicked the window they mean.
+    /// </summary>
+    public WindowInfo? Foreground()
+    {
+        Require();
+        var handle = GetForegroundWindow();
+        if (handle == IntPtr.Zero || !IsWindowVisible(handle) || !Seen(handle, out var bounds))
+        {
+            return null;
+        }
+
+        var title = TitleOf(handle);
+        return new WindowInfo(handle.ToInt64(), title, new ScreenPoint(bounds.Left, bounds.Top),
+            new ScreenSize(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top),
+            IsIconic(handle), IsZoomed(handle));
+    }
+
     public WindowInfo? Find(string value, WindowMatch match,
         string compare = TextCompare.Contains, TextCompareOptions options = default)
         => Filter(value, match, compare, options: options).FirstOrDefault();
@@ -326,6 +345,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetShellWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr handle);

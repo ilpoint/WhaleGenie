@@ -199,6 +199,10 @@ public partial class MacroEditorWindow : Window
         {
             _viewModel.LoadFrom(existing);
         }
+        else
+        {
+            _viewModel.UseDefaultName(_project.Select(macro => macro.Name));
+        }
 
         // The other macros a call may point at, so a run-another-macro step that no longer names
         // one is marked while it is being read rather than when the trigger fires.
@@ -248,6 +252,7 @@ public partial class MacroEditorWindow : Window
         _viewModel.RunRequested += OnRunRequested;
         _viewModel.AdjustDelaysRequested += OnAdjustDelaysRequested;
         _viewModel.RunMacroRequested += OnRunMacroRequested;
+        _viewModel.SaveBlocked += OnSaveBlocked;
         _viewModel.MacroLifted += OnMacroLifted;
         _viewModel.RecordingChanged += OnRecordingChanged;
 
@@ -631,6 +636,13 @@ public partial class MacroEditorWindow : Window
             {
                 case Key.X:
                     e.Handled = true;
+                    if (InspectorHost.IsVisible
+                        && _inspector?.DataContext is AddActionViewModel action)
+                    {
+                        action.ApplyCursorPosition(Layer.Screen.Cursor.X, Layer.Screen.Cursor.Y);
+                        return;
+                    }
+
                     CaptureCursorPosition(viewModel);
                     return;
                 case Key.C:
@@ -885,6 +897,15 @@ public partial class MacroEditorWindow : Window
         viewModel.ColorPositionX = picked.At.X.ToString(CultureInfo.InvariantCulture);
         viewModel.ColorPositionY = picked.At.Y.ToString(CultureInfo.InvariantCulture);
         ShowPickStatus(Strings.Format("Editor.PickedColor", picked.Colour.ToHex()));
+    }
+
+    /// <summary>Captures the window a window trigger should watch.</summary>
+    private async void OnPickTriggerWindow(object? sender, RoutedEventArgs e)
+    {
+        if (await WindowRuleWindow.PickAsync(this, Layer, _viewModel.WindowTarget) is { } rule)
+        {
+            _viewModel.UseWindowTarget(rule);
+        }
     }
 
     /// <summary>Alt + X: the pointer's current screen position becomes the watched position.</summary>
@@ -1201,6 +1222,36 @@ public partial class MacroEditorWindow : Window
             InspectorHost.IsVisible = false;
         }
     }
+
+    /// <summary>
+    /// Puts the reason a save was refused in front of the person who asked for it. A close prompt
+    /// can ask for a save from any page, so the page holding the name and declarations has to come
+    /// back rather than leaving the attempt with no visible answer.
+    /// </summary>
+    private void OnSaveBlocked()
+    {
+        MacroSettingsDrawer.IsVisible = true;
+        RecordingPanel.IsVisible = false;
+        InspectorHost.IsVisible = false;
+
+        // The save may have been asked for by the way out from the notification area. That way out
+        // waits for this editor to close, so an editor that has to stay and explain itself must
+        // cancel it.
+        AppTray.Current?.CalledOff();
+
+        if (!_viewModel.HasNameProblem)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var name = this.FindControl<TextBox>("NameInput");
+            name?.Focus();
+            name?.SelectAll();
+        });
+    }
+
     /// <summary>
     /// Points the list at a step somebody asked to be shown: it is opened out of whatever block it
     /// sits in, scrolled to and selected. This is the answer to "which steps read this variable" —

@@ -20,6 +20,16 @@
     <Canvas Name="Surface" Background="Transparent" ClipToBounds="True">
         <Image Name="Desk" Canvas.Left="0" Canvas.Top="0" IsHitTestVisible="False" Stretch="Fill" />
 
+        <!-- A window-based pick is limited to the target's client area. These bands leave the
+             allowed area at full strength and push the rest of the desk back. -->
+        <Border Name="TargetDimTop" IsHitTestVisible="False" Background="#55000000" />
+        <Border Name="TargetDimBottom" IsHitTestVisible="False" Background="#55000000" />
+        <Border Name="TargetDimLeft" IsHitTestVisible="False" Background="#55000000" />
+        <Border Name="TargetDimRight" IsHitTestVisible="False" Background="#55000000" />
+
+        <Border Name="AllowedArea" IsVisible="False" IsHitTestVisible="False"
+                BorderBrush="#FF0A84FF" BorderThickness="2" />
+
         <!-- One band on each side of the rectangle, so that what is inside it stays as it is. -->
         <Border Name="DimTop" IsHitTestVisible="False" Background="#7F000000" />
         <Border Name="DimBottom" IsHitTestVisible="False" Background="#7F000000" />
@@ -35,7 +45,7 @@
             <StackPanel Spacing="3">
                 <TextBlock Name="SizeText" FontSize="15" Foreground="#F0F0F0"
                            FontFamily="Consolas,Menlo,monospace" />
-                <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}" MaxWidth="260" TextWrapping="Wrap"
+                <TextBlock Name="HintText" FontSize="12" Foreground="{DynamicResource AppMuted}" MaxWidth="260" TextWrapping="Wrap"
                            Text="{Binding [Region.Hint], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
         </Border>

@@ -3001,8 +3001,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool WindowThere(ExecutableStep condition)
     {
-        var rule = WindowRuleOf(condition, "window", "how");
-        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare, rule.Options) is not null;
+        var rule = WindowRuleOf(condition);
+        return _devices.Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+            rule.Options) is not null;
     }
 
     /// <summary>

@@ -105,6 +105,16 @@ public class ExpressionFieldTests
                 var listed = ValueFields.TryGetValue(action.Key, out var names)
                     && names.Contains(parameter.Name, StringComparer.Ordinal);
 
+                if (parameter.Kind is ActionParameterKind.WindowRule)
+                {
+                    if (listed)
+                    {
+                        undecided.Add($"{action.Key}.{parameter.Name} is a window rule");
+                    }
+
+                    continue;
+                }
+
                 if (listed && !parameter.AcceptsFormula)
                 {
                     missing.Add($"{action.Key}.{parameter.Name}");
@@ -150,7 +160,8 @@ public class ExpressionFieldTests
                 var isPicture = parameter.Kind
                     is ActionParameterKind.Image or ActionParameterKind.Images;
                 var isArea = parameter.Kind is ActionParameterKind.Region;
-                var isSelector = parameter.Name is "uiSelector" or "anchorSelector"
+                var isWindowRule = parameter.Kind is ActionParameterKind.WindowRule;
+                var isSelector = parameter.Name is "uiSelector"
                     || (parameter.Name == "pageSelector"
                         && parameter.OwnerKey.StartsWith("browser.", StringComparison.Ordinal));
 
@@ -161,6 +172,7 @@ public class ExpressionFieldTests
                 Count("picture", isPicture);
                 Count("area", isArea);
                 Count("selector", isSelector);
+                Count("windowRule", isWindowRule);
 
                 if ((isPath || isForeign || isName || isKey || isPicture || isArea || isSelector)
                     && parameter.AcceptsFormula)
@@ -174,7 +186,7 @@ public class ExpressionFieldTests
 
         // A rule that nothing in the catalogue fits proves nothing about the catalogue.
         Assert.Equal(
-            ["area", "foreign", "key", "name", "path", "picture", "selector"],
+            ["area", "foreign", "key", "name", "path", "picture", "selector", "windowRule"],
             matched.Keys.Order(StringComparer.Ordinal));
     }
 }

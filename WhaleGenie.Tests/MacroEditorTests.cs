@@ -325,9 +325,8 @@ public class MacroEditorTests
     }
 
     /// <summary>
-    /// The trigger page's "match by" list is the engine's own list, in its order: the item the user
-    /// picks is the way the engine reads, and every way has a word to read rather than a key that no
-    /// table has, which is what a mistyped name would put on screen.
+    /// Every way the engine can compare a window has a translated summary, so a captured rule never
+    /// puts a resource key on screen.
     /// </summary>
     [Fact]
     public void The_window_ways_are_offered_in_the_order_the_engine_reads_them()
@@ -336,14 +335,11 @@ public class MacroEditorTests
         {
             var (_, viewModel) = Open();
 
-            Assert.Equal(WindowHow.Values.Count, viewModel.WindowHowOptions.Count);
-            Assert.All(viewModel.WindowHowOptions, option =>
-                Assert.DoesNotContain("WindowHow.", option, StringComparison.Ordinal));
-
-            for (var index = 0; index < WindowHow.Values.Count; index++)
+            foreach (var way in WindowHow.Values)
             {
-                viewModel.WindowHowIndex = index;
-                Assert.Equal(WindowHow.Values[index], viewModel.WindowHow);
+                viewModel.UseWindowTarget(new WindowRule(Title: "Notepad", How: way));
+                Assert.DoesNotContain("WindowRule.", viewModel.WindowTargetSummary,
+                    StringComparison.Ordinal);
             }
         });
     }

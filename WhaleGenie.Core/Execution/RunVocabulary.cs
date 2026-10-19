@@ -32,6 +32,7 @@ public static class RunKeys
     public const string AlignNeedsNames = "Run.AlignNeedsNames";
     public const string AudioRefused = "Run.AudioRefused";
     public const string BackgroundNeedsPointer = "Run.BackgroundNeedsPointer";
+    public const string BackgroundPostFailed = "Run.BackgroundPostFailed";
     public const string BadArgumentType = "Run.BadArgumentType";
     public const string BadBase64 = "Run.BadBase64";
     public const string BadEnvironment = "Run.BadEnvironment";
@@ -124,6 +125,10 @@ public static class RunKeys
     public const string MissingScriptExtension = "Run.MissingScriptExtension";
     public const string MissingStep = "Run.MissingStep";
     public const string MissingTargetWindow = "Run.MissingTargetWindow";
+
+    /// <summary>A window field did not hold the one record shape every window rule uses.</summary>
+    public const string BadWindowRule = "Run.BadWindowRule";
+
     public const string MissingVariable = "Run.MissingVariable";
     public const string MissingWindow = "Run.MissingWindow";
     public const string NoAutoHotkey = "Run.NoAutoHotkey";

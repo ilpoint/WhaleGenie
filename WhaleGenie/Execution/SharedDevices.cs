@@ -38,8 +38,12 @@ public static class SharedDevices
     /// </summary>
     public static void Release()
     {
-        _layer?.Dispose();
+        // The layer is forgotten even when one of its devices cannot be let go of: the next call
+        // must not hand the same half-closed layer out again, and the way out still has the virtual
+        // devices to take off the machine.
+        var layer = _layer;
         _layer = null;
+        layer?.Dispose();
     }
 
     /// <summary>The layer itself, made the first time anything asks for it.</summary>

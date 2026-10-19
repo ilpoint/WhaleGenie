@@ -18,11 +18,26 @@ public sealed class ScreenGrabber : IDisposable
     /// The display's own picture of itself, taken on first use: a process is allowed to duplicate a
     /// display once, so the whole program shares one.
     /// </summary>
-    private readonly Lazy<DesktopDuplicator> _duplicator = new(SharedDesktopDuplicator.Take);
+    private DesktopDuplicator? _duplicator;
 
     private readonly IPictureSources _sources;
 
     private readonly Func<ScreenLayout> _displays;
+
+    /// <summary>
+    /// Keeps a capture from being taken away just as it is being read. A close waits for the reads
+    /// already under way, and a read that starts after it finds the sessions gone and opens its own.
+    /// </summary>
+    private readonly ReaderWriterLockSlim _access = new();
+
+    /// <summary>Keeps the session table and the desktop duplication consistent between readers.</summary>
+    private readonly object _openGate = new();
+
+    /// <summary>
+    /// Settles the question of whether a read may still begin while a close is taking the lock
+    /// away. The read lock is held for the whole capture, so it cannot also guard its own entry.
+    /// </summary>
+    private readonly object _lifeGate = new();
 
     /// <summary>
     /// One session per window, and one per display of the desktop: a window is kept under its
@@ -38,6 +53,13 @@ public sealed class ScreenGrabber : IDisposable
     /// a moment, and the way to tell is to ask again.
     /// </summary>
     private readonly HashSet<long> _refused = [];
+
+    /// <summary>
+    /// Whether everything this grabber opened has already been let go of. Closing twice is not a
+    /// second request to close: the capture thread is gone after the first one, so asking it to run
+    /// anything again would turn a harmless double release into an exception on the way out.
+    /// </summary>
+    private bool _disposed;
 
     /// <summary>A grabber reading this machine's screen.</summary>
     public ScreenGrabber() : this(new WindowsGraphicsCapture(), Displays.Read)
@@ -73,6 +95,25 @@ public sealed class ScreenGrabber : IDisposable
     /// the way that was asked for. Naming no window is reading the desktop.
     /// </summary>
     public ScreenGrab Grab(long window, int x, int y, int width, int height, CaptureWay way)
+    {
+        lock (_lifeGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _access.EnterReadLock();
+        }
+
+        try
+        {
+            return GrabWhileOpen(window, x, y, width, height, way);
+        }
+        finally
+        {
+            _access.ExitReadLock();
+        }
+    }
+
+    private ScreenGrab GrabWhileOpen(long window, int x, int y, int width, int height,
+        CaptureWay way)
     {
         if (width <= 0 || height <= 0)
         {
@@ -131,9 +172,17 @@ public sealed class ScreenGrabber : IDisposable
     /// because this way was asked for by name.
     /// </summary>
     private ScreenGrab Duplicated(int x, int y, int width, int height)
-        => _duplicator.Value.Try(x, y, width, height)
+        => Duplicator().Try(x, y, width, height)
             ?? throw new CaptureUnavailableException(
                 "the graphics card will not hand over this display");
+
+    private DesktopDuplicator Duplicator()
+    {
+        lock (_openGate)
+        {
+            return _duplicator ??= SharedDesktopDuplicator.Take();
+        }
+    }
 
     /// <summary>
     /// One window asked to draw itself. What it draws is the whole window, so the part that was
@@ -208,7 +257,7 @@ public sealed class ScreenGrabber : IDisposable
         {
             return Source(key).Read();
         }
-        catch (CaptureFailedException)
+        catch (Exception error) when (error is CaptureFailedException or ObjectDisposedException)
         {
             Drop(key);
             return Source(key).Read();
@@ -225,48 +274,128 @@ public sealed class ScreenGrabber : IDisposable
     /// </summary>
     private IPictureSource Source(SourceKey key)
     {
-        if (_open.TryGetValue(key, out var kept))
+        lock (_openGate)
         {
-            return kept;
+            if (_open.TryGetValue(key, out var kept))
+            {
+                return kept;
+            }
+
+            if (!key.IsDisplay && _refused.Contains(key.Window))
+            {
+                throw new CaptureUnavailableException($"{key.Window:X} (refused earlier)");
+            }
         }
 
+        IPictureSource opened;
         try
         {
-            return _open[key] = _sources.Open(key);
+            opened = _sources.Open(key);
         }
         catch (CaptureUnavailableException)
         {
             if (!key.IsDisplay)
             {
-                _refused.Add(key.Window);
+                lock (_openGate)
+                {
+                    _refused.Add(key.Window);
+                }
             }
 
             throw;
+        }
+
+        lock (_openGate)
+        {
+            if (_open.TryGetValue(key, out var kept))
+            {
+                opened.Dispose();
+                return kept;
+            }
+
+            _open[key] = opened;
+            return opened;
         }
     }
 
     private void Drop(SourceKey key)
     {
-        if (_open.Remove(key, out var session))
+        IPictureSource? session;
+        lock (_openGate)
+        {
+            _open.Remove(key, out session);
+        }
+
+        session?.Dispose();
+    }
+
+    /// <summary>
+    /// Lets go of every session and duplication held for reuse while keeping this grabber usable.
+    /// A capture that is already being read finishes first; the next one opens a fresh session.
+    /// </summary>
+    public void ReleaseSessions()
+    {
+        lock (_lifeGate)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _access.EnterWriteLock();
+            try
+            {
+                LetGo();
+            }
+            finally
+            {
+                _access.ExitWriteLock();
+            }
+        }
+    }
+
+    private void LetGo()
+    {
+        List<IPictureSource> sessions;
+        lock (_openGate)
+        {
+            sessions = [.. _open.Values];
+            _open.Clear();
+        }
+
+        foreach (var session in sessions)
         {
             session.Dispose();
+        }
+
+        if (_duplicator is not null)
+        {
+            _duplicator = null;
+            SharedDesktopDuplicator.Give();
         }
     }
 
     public void Dispose()
     {
-        foreach (var session in _open.Values)
+        lock (_lifeGate)
         {
-            session.Dispose();
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _access.EnterWriteLock();
+            try
+            {
+                LetGo();
+                _sources.Dispose();
+            }
+            finally
+            {
+                _access.ExitWriteLock();
+                _access.Dispose();
+            }
         }
-
-        _open.Clear();
-
-        if (_duplicator.IsValueCreated)
-        {
-            SharedDesktopDuplicator.Give();
-        }
-
-        _sources.Dispose();
     }
 }

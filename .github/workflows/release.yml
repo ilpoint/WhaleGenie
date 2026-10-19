@@ -78,6 +78,9 @@ jobs:
             dist/WhaleGenie-${{ steps.version.outputs.tag }}-${{ matrix.rid }}.zip
             dist/WhaleGenie-${{ steps.version.outputs.tag }}-${{ matrix.rid }}-standalone.zip
           if-no-files-found: error
+          # The release job attaches these to the Release in the same run. Keep the workflow copy
+          # only long enough to survive a retry; the Release owns the downloadable packages.
+          retention-days: 1
 
   release:
     needs: package

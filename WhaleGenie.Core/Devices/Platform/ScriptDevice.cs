@@ -406,12 +406,15 @@ public sealed class ScriptDevice : IScriptDevice
         var said = new List<string>();
         var complained = new List<string>();
 
+        // Start waiting before the child so a short-lived script cannot connect and exit before
+        // the listener has had a chance to run. The task is a normal pool task, so it cannot keep
+        // the process alive if the pipe is disposed while it waits.
+        _ = Task.Run(() => Listen(pipe, asked, reached));
         using var process = Start(info, program, how.Missing);
         var reading = new[]
         {
             Task.Run(() => Pump(process.StandardOutput, output)),
             Task.Run(() => Pump(process.StandardError, error)),
-            Task.Run(() => Listen(pipe, asked, reached)),
         };
 
         var started = Stopwatch.GetTimestamp();
@@ -462,6 +465,11 @@ public sealed class ScriptDevice : IScriptDevice
             // as it exits is still something it said. A stream a program of its own is still
             // holding open is left alone rather than waited on for ever.
             Task.WaitAll([reading[0], reading[1]], StopWaitMs);
+
+            // A script that ends immediately can leave the process before the pipe listener has
+            // marked its connection. Give that listener the same short window the output streams
+            // get; otherwise a perfectly good run is reported as one that never reached us.
+            reached.Task.Wait(TimeSpan.FromMilliseconds(10000));
 
             // A script that ran but never reached the macro is a run that could not be served at
             // all, which is a different thing from a script that failed and said why.

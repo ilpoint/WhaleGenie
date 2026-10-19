@@ -450,7 +450,7 @@
                             Foreground="{DynamicResource AppText}"
                             Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
-                            <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Play}" />
+                            <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
                             <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -480,7 +480,7 @@
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBox Classes="NameInput" Text="{Binding Name}"
+                            <TextBox Name="NameInput" Classes="NameInput" Text="{Binding Name}"
                                      PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
                             <TextBlock Classes="ProblemSummary" Margin="2,4,0,0"
                                        IsVisible="{Binding HasNameProblem}" Text="{Binding NameProblem}" />
@@ -699,9 +699,19 @@
                                           SelectedIndex="{Binding TriggerIndex}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
-                                           Text="{Binding [Editor.WindowValue], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding WindowValue}"
-                                         PlaceholderText="{Binding [Editor.WindowValueHint], Source={x:Static loc:Strings.Current}}" />
+                                           Text="{Binding [WindowRule.Title], Source={x:Static loc:Strings.Current}}" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <Border Background="{DynamicResource AppField}"
+                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                            CornerRadius="5" Padding="10,7">
+                                        <TextBlock Text="{Binding WindowTargetSummary}" FontSize="12.5"
+                                                   Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                                    </Border>
+                                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                            Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnPickTriggerWindow" />
+                                </Grid>
 
                                 <!-- The windows this rule picks out right now, so a rule written a
                                      little too wide is seen while it is being written rather than
@@ -745,11 +755,6 @@
                                                Text="{Binding WindowPreview.Note}"
                                                IsVisible="{Binding WindowPreview.HasNote}" />
                                 </StackPanel>
-
-                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
-                                           Text="{Binding [Editor.WindowHow], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowHowOptions}"
-                                          SelectedIndex="{Binding WindowHowIndex}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />

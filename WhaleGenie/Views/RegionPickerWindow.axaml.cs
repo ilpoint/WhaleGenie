@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -28,15 +29,15 @@ public partial class RegionPickerWindow : Window
     /// <summary>A rectangle of the screen, in the pixels the engine works in.</summary>
     public readonly record struct Region(int X, int Y, int Width, int Height);
 
+    /// <summary>The two ends of a drag, in the order the pointer visited them.</summary>
+    public readonly record struct DragSpan(int StartX, int StartY, int EndX, int EndY);
+
     /// <summary>A drag shorter than this is a click rather than a selection, and no handle pulls a
     /// rectangle smaller than this either: a rectangle too small to be seen cannot be confirmed.</summary>
     private const int MinimumSize = 4;
 
     /// <summary>How big a handle is drawn, which is also how close to an edge counts as being on it.</summary>
     private const double HandleSize = 7;
-
-    /// <summary>How far the pointer strays before a press counts as a drag rather than a click.</summary>
-    private const int ClickSlack = 2;
 
     /// <summary>Where a handle sits on a rectangle, as a fraction of it: the four corners first,
     /// then the middle of each side.</summary>
@@ -46,7 +47,7 @@ public partial class RegionPickerWindow : Window
         (0.5, 0), (0.5, 1), (0, 0.5), (1, 0.5),
     ];
 
-    private static readonly Cursor MoveCursor = new(StandardCursorType.SizeAll);
+    internal static readonly Cursor MoveCursor = new(StandardCursorType.Arrow);
     private static readonly Cursor WestEast = new(StandardCursorType.SizeWestEast);
     private static readonly Cursor NorthSouth = new(StandardCursorType.SizeNorthSouth);
     private static readonly Cursor NorthWestCursor = new(StandardCursorType.TopLeftCorner);
@@ -70,13 +71,25 @@ public partial class RegionPickerWindow : Window
         SouthWest,
     }
 
+    private readonly IDeviceLayer _devices;
     private readonly IScreenDevice _screen;
+    private readonly Region? _initial;
+    private readonly Region? _bounds;
+    private readonly bool _arrow;
+    private readonly long _liveWindow;
+    private readonly Region? _liveOriginal;
     private readonly Border[] _handles;
+    private readonly Border[] _targetDim;
 
     /// <summary>The four bands that push back what is outside the rectangle.</summary>
     private readonly Border[] _dim;
 
     private readonly Image? _desk;
+
+    private readonly Line _arrowShaft;
+    private readonly Line _arrowLeft;
+    private readonly Line _arrowRight;
+    private readonly Ellipse _arrowStart;
 
     /// <summary>The desk as it was when this opened, which is what stands in for the screen.</summary>
     private WriteableBitmap? _picture;
@@ -87,13 +100,14 @@ public partial class RegionPickerWindow : Window
     private double _scaling = 1;
 
     private Border? _selection;
+    private Border? _allowedArea;
     private Border? _readout;
     private TextBlock? _sizeText;
+    private TextBlock? _hintText;
 
     /// <summary>Whether a press is being followed, and what it is doing.</summary>
     private bool _active;
     private Grip _grip;
-    private bool _moved;
 
     /// <summary>Where the pointer went down, and the rectangle as it stood then.</summary>
     private PixelPoint _grab;
@@ -105,10 +119,12 @@ public partial class RegionPickerWindow : Window
     /// <summary>The rectangle as two opposite corners, which is how a drag is followed.</summary>
     private PixelPoint _start;
     private PixelPoint _end;
+    private PixelPoint? _pointer;
+    private Region? _liveAt;
     private bool _done;
 
     public RegionPickerWindow()
-        : this(SharedDevices.Current)
+        : this(SharedDevices.Current, null, null)
     {
     }
 
@@ -116,15 +132,24 @@ public partial class RegionPickerWindow : Window
     /// The picker over the desk the device layer describes, which is what a check hands over when it
     /// wants a rectangle drawn against a desk of its own.
     /// </summary>
-    internal RegionPickerWindow(IDeviceLayer devices)
+    internal RegionPickerWindow(IDeviceLayer devices, Region? initial = null, Region? bounds = null,
+        long liveWindow = 0, bool arrow = false)
     {
+        _devices = devices;
         _screen = devices.Screen;
+        _initial = initial;
+        _bounds = bounds is { Width: > 0, Height: > 0 } ? bounds : null;
+        _arrow = arrow;
+        _liveWindow = liveWindow;
+        _liveOriginal = liveWindow != 0 ? initial : null;
         InitializeComponent();
 
         Title = Strings.Get("Region.Title");
         _selection = this.FindControl<Border>("Selection");
+        _allowedArea = this.FindControl<Border>("AllowedArea");
         _readout = this.FindControl<Border>("Readout");
         _sizeText = this.FindControl<TextBlock>("SizeText");
+        _hintText = this.FindControl<TextBlock>("HintText");
         _desk = this.FindControl<Image>("Desk");
         _dim =
         [
@@ -132,6 +157,38 @@ public partial class RegionPickerWindow : Window
                 .Select(name => this.FindControl<Border>(name))
                 .OfType<Border>(),
         ];
+        _targetDim =
+        [
+            .. new[] { "TargetDimTop", "TargetDimBottom", "TargetDimLeft", "TargetDimRight" }
+                .Select(name => this.FindControl<Border>(name))
+                .OfType<Border>(),
+        ];
+
+        if (_hintText is not null)
+        {
+            _hintText.Text = Strings.Get(_arrow
+                ? "Region.ArrowHint"
+                : _bounds is null ? "Region.Hint" : "Region.WindowHint");
+        }
+
+        _arrowShaft = new Line { Name = "DragArrowShaft", IsVisible = false, IsHitTestVisible = false };
+        _arrowLeft = new Line { Name = "DragArrowLeft", IsVisible = false, IsHitTestVisible = false };
+        _arrowRight = new Line { Name = "DragArrowRight", IsVisible = false, IsHitTestVisible = false };
+        _arrowStart = new Ellipse
+        {
+            Name = "DragArrowStart",
+            Width = 8,
+            Height = 8,
+            IsVisible = false,
+            IsHitTestVisible = false,
+        };
+        foreach (var line in new[] { _arrowShaft, _arrowLeft, _arrowRight })
+        {
+            line.Stroke = new SolidColorBrush(Color.Parse("#FF3B30"));
+            line.StrokeThickness = 3;
+        }
+
+        _arrowStart.Fill = new SolidColorBrush(Color.Parse("#FF3B30"));
 
         // The handles are found by the same hit test as the rectangle itself, so they neither take
         // the press nor have to be looked up in the visual tree.
@@ -152,6 +209,14 @@ public partial class RegionPickerWindow : Window
             {
                 surface.Children.Add(handle);
             }
+
+            if (_arrow)
+            {
+                foreach (var shape in new Control[] { _arrowShaft, _arrowLeft, _arrowRight, _arrowStart })
+                {
+                    surface.Children.Add(shape);
+                }
+            }
         }
 
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
@@ -162,6 +227,9 @@ public partial class RegionPickerWindow : Window
 
     /// <summary>What the picker was closed with, which is what the dialog that opened it gets.</summary>
     internal Region? Confirmed { get; private set; }
+
+    /// <summary>The two ends in the order they were dragged, for the arrow-shaped picker.</summary>
+    internal DragSpan? ConfirmedDrag { get; private set; }
 
     /// <summary>The rectangle a drag covers, whichever way it was dragged.</summary>
     internal static Region Rectangle(PixelPoint start, PixelPoint end)
@@ -175,15 +243,37 @@ public partial class RegionPickerWindow : Window
     private static int Size(PixelPoint start, PixelPoint end)
         => Math.Max(Math.Abs(end.X - start.X), Math.Abs(end.Y - start.Y));
 
+    /// <summary>An arrow needs length in any direction; a rectangle needs two sides.</summary>
+    private bool Ready(Region region) => _arrow
+        ? Size(_start, _end) >= MinimumSize
+        : region.Width >= MinimumSize && region.Height >= MinimumSize;
+
     /// <summary>
     /// Shows the picker over <paramref name="owner"/> and reports the rectangle that was dragged.
     /// Every window this program has goes out of the way first, the window that asked included: the
     /// region being picked is usually behind one of them.
     /// </summary>
     public static async Task<Region?> PickAsync(Window owner, IDeviceLayer devices)
+        => await PickAsync(owner, devices, null, null);
+
+    public static async Task<Region?> PickAsync(Window owner, IDeviceLayer devices, Region? initial,
+        Region? bounds = null, long liveWindow = 0)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new RegionPickerWindow(devices).TakeAsync();
+        return await new RegionPickerWindow(devices, initial, bounds, liveWindow).TakeAsync();
+    }
+
+    /// <summary>
+    /// The picker that draws a direction rather than a rectangle, reporting the start and end in the
+    /// order the pointer visited them.
+    /// </summary>
+    public static async Task<DragSpan?> PickDragAsync(Window owner, IDeviceLayer devices,
+        Region? bounds = null)
+    {
+        using var aside = AppWindows.StepAside(owner);
+        var picker = new RegionPickerWindow(devices, null, bounds, arrow: true);
+        _ = await picker.TakeAsync();
+        return picker.ConfirmedDrag;
     }
 
     /// <summary>
@@ -191,11 +281,12 @@ public partial class RegionPickerWindow : Window
     /// for is a reference picture, and the windows stay away until that picture has been taken: a
     /// window put back in front of where the rectangle was drawn would be in the picture.
     /// </summary>
-    public static async Task<string?> CaptureAsync(Window owner, IDeviceLayer devices, string folder)
+    public static async Task<string?> CaptureAsync(Window owner, IDeviceLayer devices, string folder,
+        Region? bounds = null)
     {
         using var aside = AppWindows.StepAside(owner);
 
-        if (await new RegionPickerWindow(devices).TakeAsync() is not { } region)
+        if (await new RegionPickerWindow(devices, null, bounds).TakeAsync() is not { } region)
         {
             return null;
         }
@@ -215,6 +306,11 @@ public partial class RegionPickerWindow : Window
     internal async Task<Region?> TakeAsync()
     {
         TakeDesk();
+        if (ClampRegion(_initial) is { } initial)
+        {
+            _start = new PixelPoint(initial.X, initial.Y);
+            _end = new PixelPoint(initial.X + initial.Width, initial.Y + initial.Height);
+        }
         await AppWindows.ShowAndWaitAsync(this);
         return Confirmed;
     }
@@ -226,6 +322,8 @@ public partial class RegionPickerWindow : Window
         Cover();
         Activate();
         Focus();
+        var at = _screen.Cursor;
+        _pointer = PointIn(new PixelPoint(at.X, at.Y));
         Update();
     }
 
@@ -360,19 +458,11 @@ public partial class RegionPickerWindow : Window
         }
 
         var position = e.GetPosition(this);
-        var point = ToScreen(position);
-
-        // A double click means "use this one" wherever on the rectangle it lands.
-        if (e.ClickCount > 1 && Picked is { } clickable)
-        {
-            e.Handled = true;
-            Finish(clickable);
-            return;
-        }
+        var point = PointIn(ToScreen(position));
 
         _active = true;
-        _moved = false;
         _grab = point;
+        _pointer = point;
 
         var grip = HitTest(position);
         if (grip != Grip.None && Picked is { } current)
@@ -402,12 +492,11 @@ public partial class RegionPickerWindow : Window
         base.OnPointerMoved(e);
 
         var position = e.GetPosition(this);
+        _pointer = PointIn(ToScreen(position));
 
         if (_active)
         {
-            var point = ToScreen(position);
-            _moved |= Math.Abs(point.X - _grab.X) > ClickSlack
-                      || Math.Abs(point.Y - _grab.Y) > ClickSlack;
+            var point = _pointer.Value;
 
             switch (_grip)
             {
@@ -438,25 +527,17 @@ public partial class RegionPickerWindow : Window
             return;
         }
 
-        var grip = _grip;
+        var drawing = _grip == Grip.None;
         _active = false;
         _grip = Grip.None;
         e.Pointer.Capture(null);
         e.Handled = true;
+        _pointer = PointIn(ToScreen(e.GetPosition(this)));
 
-        if (grip == Grip.Move)
-        {
-            // Pressing inside the rectangle without moving it is the click that says "use this one".
-            if (!_moved)
-            {
-                Finish(Picked);
-                return;
-            }
-        }
-        else if (grip == Grip.None)
+        if (drawing)
         {
             // A drag that never moved is a click: with nothing to keep, it just clears the rectangle.
-            _end = ToScreen(e.GetPosition(this));
+            _end = PointIn(ToScreen(e.GetPosition(this)));
             if (Size(_start, _end) < MinimumSize)
             {
                 _end = _start;
@@ -467,7 +548,7 @@ public partial class RegionPickerWindow : Window
         Update();
     }
 
-    /// <summary>Enter takes the rectangle, Esc leaves without one.</summary>
+    /// <summary>F1 takes the rectangle, Esc leaves without one.</summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         switch (e.Key)
@@ -477,8 +558,7 @@ public partial class RegionPickerWindow : Window
                 Finish(null);
                 break;
 
-            case Key.Enter when Picked is { } region && region.Width >= MinimumSize
-                                                  && region.Height >= MinimumSize:
+            case Key.F1 when Picked is { } region && Ready(region):
                 e.Handled = true;
                 Finish(region);
                 break;
@@ -488,6 +568,11 @@ public partial class RegionPickerWindow : Window
     /// <summary>Which part of the rectangle a place on the window is on, if any.</summary>
     private Grip HitTest(Point point)
     {
+        if (_arrow)
+        {
+            return Grip.None;
+        }
+
         if (Picked is not { } region
             || region.Width < MinimumSize
             || region.Height < MinimumSize)
@@ -569,8 +654,26 @@ public partial class RegionPickerWindow : Window
     {
         var dx = point.X - _grab.X;
         var dy = point.Y - _grab.Y;
-        _start = new PixelPoint(_left + dx, _top + dy);
-        _end = new PixelPoint(_right + dx, _bottom + dy);
+        if (_bounds is { } bounds)
+        {
+            var width = _right - _left;
+            var height = _bottom - _top;
+            var left = Math.Clamp(_left + dx, bounds.X,
+                bounds.X + Math.Max(0, bounds.Width - width));
+            var top = Math.Clamp(_top + dy, bounds.Y,
+                bounds.Y + Math.Max(0, bounds.Height - height));
+            _start = new PixelPoint(left, top);
+            _end = new PixelPoint(left + width, top + height);
+            return;
+        }
+
+        var moved = Rectangle(new PixelPoint(_left + dx, _top + dy),
+            new PixelPoint(_right + dx, _bottom + dy));
+        if (ClampRegion(moved) is { } kept)
+        {
+            _start = new PixelPoint(kept.X, kept.Y);
+            _end = new PixelPoint(kept.X + kept.Width, kept.Y + kept.Height);
+        }
     }
 
     /// <summary>Moves the edges the grabbed handle belongs to, leaving the opposite ones put.</summary>
@@ -601,8 +704,51 @@ public partial class RegionPickerWindow : Window
             bottom = Math.Max(point.Y, top + MinimumSize);
         }
 
-        _start = new PixelPoint(left, top);
-        _end = new PixelPoint(right, bottom);
+        if (_bounds is { } bounds)
+        {
+            left = Math.Max(left, bounds.X);
+            top = Math.Max(top, bounds.Y);
+            right = Math.Min(right, bounds.X + bounds.Width);
+            bottom = Math.Min(bottom, bounds.Y + bounds.Height);
+        }
+
+        var pulled = Rectangle(new PixelPoint(left, top), new PixelPoint(right, bottom));
+        _start = new PixelPoint(pulled.X, pulled.Y);
+        _end = new PixelPoint(pulled.X + pulled.Width, pulled.Y + pulled.Height);
+    }
+
+    /// <summary>
+    /// A target window limits where a rectangle may be drawn. The frozen picture still shows the
+    /// whole desk, but the selection itself is kept inside the client area in screen pixels.
+    /// </summary>
+    private PixelPoint PointIn(PixelPoint point)
+    {
+        if (_bounds is not { } bounds)
+        {
+            return point;
+        }
+
+        var right = bounds.X + bounds.Width;
+        var bottom = bounds.Y + bounds.Height;
+        return new PixelPoint(
+            Math.Clamp(point.X, bounds.X, right),
+            Math.Clamp(point.Y, bounds.Y, bottom));
+    }
+
+    private Region? ClampRegion(Region? region)
+    {
+        if (region is not { } value || _bounds is not { } bounds)
+        {
+            return region;
+        }
+
+        var left = Math.Max(bounds.X, value.X);
+        var top = Math.Max(bounds.Y, value.Y);
+        var right = Math.Min(bounds.X + bounds.Width, value.X + value.Width);
+        var bottom = Math.Min(bounds.Y + bounds.Height, value.Y + value.Height);
+        return right > left && bottom > top
+            ? new Region(left, top, right - left, bottom - top)
+            : null;
     }
 
     /// <summary>Redraws the rectangle, its handles and the readout beside it.</summary>
@@ -614,15 +760,38 @@ public partial class RegionPickerWindow : Window
         }
 
         var region = Rectangle(_start, _end);
-        var big = region.Width >= MinimumSize && region.Height >= MinimumSize;
+        var big = Ready(region);
 
-        _selection.IsVisible = big;
+        _selection.IsVisible = big && !_arrow;
         foreach (var handle in _handles)
         {
-            handle.IsVisible = big;
+            handle.IsVisible = big && !_arrow;
         }
 
-        if (big)
+        if (_bounds is { } bounds)
+        {
+            var allowed = OnWindow(bounds);
+            _allowedArea!.IsVisible = true;
+            Canvas.SetLeft(_allowedArea, allowed.Left);
+            Canvas.SetTop(_allowedArea, allowed.Top);
+            _allowedArea.Width = allowed.Width;
+            _allowedArea.Height = allowed.Height;
+            PushTargetBack(allowed);
+        }
+        else
+        {
+            if (_allowedArea is not null)
+            {
+                _allowedArea.IsVisible = false;
+            }
+
+            foreach (var band in _targetDim)
+            {
+                Lay(band, 0, 0, 0, 0);
+            }
+        }
+
+        if (big && !_arrow)
         {
             var rect = OnWindow(region);
             Canvas.SetLeft(_selection, rect.X);
@@ -637,22 +806,105 @@ public partial class RegionPickerWindow : Window
             }
         }
 
-        // The desk is pushed back once there is a rectangle to leave alone, and not before: with
-        // nothing drawn the screen is the screen, which is what the user is looking for a place on.
-        PushBack(Picked is { } drawn ? OnWindow(drawn) : null);
+        if (_arrow)
+        {
+            DrawArrow(big);
+            PushBack(null);
+        }
+        else
+        {
+            // The desk is pushed back once there is a rectangle to leave alone, and not before: with
+            // nothing drawn the screen is the screen, which is what the user is looking for a place on.
+            PushBack(Picked is { } drawn ? OnWindow(drawn) : null);
+        }
 
         _sizeText.Text = big
-            ? Strings.Format("Region.Size", region.X, region.Y, region.Width, region.Height)
+            ? _arrow
+                ? Strings.Format("Region.Arrow", _start.X, _start.Y, _end.X, _end.Y)
+                : Strings.Format("Region.Size", region.X, region.Y, region.Width, region.Height)
             : Strings.Get("Region.Drag");
 
-        // The readout follows the corner in hand, kept inside the screen.
-        var left = ((_end.X - _origin.X) / _scaling) + 18;
-        var top = ((_end.Y - _origin.Y) / _scaling) + 18;
+        // The readout follows the pointer rather than a corner of the rectangle: a rectangle being
+        // dragged can put its corner under the text, and a hint nobody can find is no hint.
+        var at = _pointer ?? _end;
+        var left = ((at.X - _origin.X) / _scaling) + 18;
+        var top = ((at.Y - _origin.Y) / _scaling) + 18;
         var width = _readout.Bounds.Width > 0 ? _readout.Bounds.Width : 220;
         var height = _readout.Bounds.Height > 0 ? _readout.Bounds.Height : 60;
 
         Canvas.SetLeft(_readout, Math.Clamp(left, 0, Math.Max(0, Bounds.Width - width)));
         Canvas.SetTop(_readout, Math.Clamp(top, 0, Math.Max(0, Bounds.Height - height)));
+
+        PreviewWindow(region, big);
+    }
+
+    /// <summary>
+    /// Draws the start point and an arrowhead at the end, so the picker says which way the drag
+    /// goes instead of showing an undirected box.
+    /// </summary>
+    private void DrawArrow(bool visible)
+    {
+        foreach (var line in new[] { _arrowShaft, _arrowLeft, _arrowRight })
+        {
+            line.IsVisible = visible;
+        }
+
+        _arrowStart.IsVisible = visible;
+        if (!visible)
+        {
+            return;
+        }
+
+        var from = OnWindow(_start);
+        var to = OnWindow(_end);
+        _arrowShaft.StartPoint = from;
+        _arrowShaft.EndPoint = to;
+
+        var dx = to.X - from.X;
+        var dy = to.Y - from.Y;
+        var length = Math.Sqrt((dx * dx) + (dy * dy));
+        var head = Math.Min(18, length * 0.35);
+        var across = head * 0.5;
+        var baseX = to.X - ((dx / length) * head);
+        var baseY = to.Y - ((dy / length) * head);
+        var sideX = -(dy / length) * across;
+        var sideY = (dx / length) * across;
+
+        _arrowLeft.StartPoint = to;
+        _arrowLeft.EndPoint = new Point(baseX + sideX, baseY + sideY);
+        _arrowRight.StartPoint = to;
+        _arrowRight.EndPoint = new Point(baseX - sideX, baseY - sideY);
+
+        Canvas.SetLeft(_arrowStart, from.X - 4);
+        Canvas.SetTop(_arrowStart, from.Y - 4);
+    }
+
+    private Point OnWindow(PixelPoint point)
+        => new((point.X - _origin.X) / _scaling, (point.Y - _origin.Y) / _scaling);
+
+    /// <summary>
+    /// The mover's picker changes the target window while its frame is dragged, so the frame is the
+    /// window rather than a drawing of somewhere it could be. A window that will not move is left
+    /// alone; the numbers can still be corrected by hand.
+    /// </summary>
+    private void PreviewWindow(Region region, bool visible)
+    {
+        if (_liveWindow == 0 || !visible || region == _liveAt)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_devices.Windows.Move(_liveWindow, region.X, region.Y, region.Width, region.Height))
+            {
+                _liveAt = region;
+            }
+        }
+        catch (Exception)
+        {
+            // A window that has gone, or one that refuses this size, is still worth framing.
+        }
     }
 
     /// <summary>
@@ -688,6 +940,24 @@ public partial class RegionPickerWindow : Window
         Lay(_dim[3], right, top, Width - right, bottom - top);
     }
 
+    private void PushTargetBack(Rect allowed)
+    {
+        if (_targetDim.Length < 4)
+        {
+            return;
+        }
+
+        var left = Math.Max(0, allowed.Left);
+        var top = Math.Max(0, allowed.Top);
+        var right = Math.Min(Width, Math.Max(left, allowed.Right));
+        var bottom = Math.Min(Height, Math.Max(top, allowed.Bottom));
+
+        Lay(_targetDim[0], 0, 0, Width, top);
+        Lay(_targetDim[1], 0, bottom, Width, Height - bottom);
+        Lay(_targetDim[2], 0, top, left, bottom - top);
+        Lay(_targetDim[3], right, top, Width - right, bottom - top);
+    }
+
     /// <summary>Puts one band where it goes, measuring it to nothing rather than back to front.</summary>
     private static void Lay(Border band, double x, double y, double width, double height)
     {
@@ -702,6 +972,11 @@ public partial class RegionPickerWindow : Window
     {
         base.OnClosed(e);
 
+        if (!_done)
+        {
+            RestoreWindow();
+        }
+
         _picture?.Dispose();
         _picture = null;
     }
@@ -715,6 +990,33 @@ public partial class RegionPickerWindow : Window
 
         _done = true;
         Confirmed = region;
+        ConfirmedDrag = _arrow && region is not null
+            ? new DragSpan(_start.X, _start.Y, _end.X, _end.Y)
+            : null;
+        if (region is null)
+        {
+            RestoreWindow();
+        }
+
         Close();
+    }
+
+    /// <summary>Esc or closing the picker leaves the mover's window where it was before the drag.</summary>
+    private void RestoreWindow()
+    {
+        if (_liveWindow == 0 || _liveOriginal is not { } original)
+        {
+            return;
+        }
+
+        try
+        {
+            _devices.Windows.Move(_liveWindow, original.X, original.Y, original.Width,
+                original.Height);
+        }
+        catch (Exception)
+        {
+            // The window has gone; there is nothing left to put back.
+        }
     }
 }

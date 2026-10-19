@@ -122,7 +122,7 @@ public sealed partial class MacroRunner
         ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        var (corner, width, height) = Box(step, anchor.Corner);
+        var (corner, width, height) = Box(step, anchor.Corner, anchor.Window);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Origin, shot.Frame, ReadFrame(step, shot.Frame));
     }
@@ -227,6 +227,7 @@ public sealed partial class MacroRunner
     private void Recognize(ExecutableStep step, int depth)
     {
         var (corner, area, spans) = ReadBox(step);
+        GivePoints(step, Middle(corner, new ScreenSize(area.Width, area.Height)), null);
         var text = string.Join(' ', spans.Select(span => span.Text));
         Saw(step, LookKind.Text, area, corner, Marks([(area, corner)], TextMarks(spans, corner), 0), 0,
             note: text, minimum: Number(step, "minScore"));

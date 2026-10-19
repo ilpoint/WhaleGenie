@@ -250,7 +250,7 @@ public class PickerAsideTests
             picker.MouseMove(new Point(40, 60));
             picker.MouseUp(new Point(40, 60), MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
-            picker.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+            picker.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
 
             // The rectangle is known and the windows are still away, which is the moment a picture

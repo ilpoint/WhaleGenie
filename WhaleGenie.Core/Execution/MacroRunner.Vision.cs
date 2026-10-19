@@ -242,7 +242,7 @@ public sealed partial class MacroRunner
     private (ImageFrame Frame, ScreenPoint Corner) CaptureBox(ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        var (corner, width, height) = Box(step, anchor.Corner);
+        var (corner, width, height) = Box(step, anchor.Corner, anchor.Window);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
     }
@@ -258,7 +258,8 @@ public sealed partial class MacroRunner
     /// from. A side nobody wrote comes to whatever the catalogue says its empty cell means: a
     /// reading step runs to the edge of the screen.
     /// </summary>
-    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin)
+    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin,
+        WindowInfo? window)
     {
         if (RecordedRect(step, "rect") is { } sides)
         {
@@ -266,10 +267,25 @@ public sealed partial class MacroRunner
         }
 
         var corner = Placed(origin, Number(step, "x"), Number(step, "y"));
-        var desk = _devices.Screen.Desktop.Bounds;
+        int right;
+        int bottom;
+        if (window is { } target)
+        {
+            var originOfWindow = _devices.Windows.ClientOrigin(target.Handle);
+            var size = _devices.Windows.ClientSize(target.Handle);
+            right = originOfWindow.X + size.Width;
+            bottom = originOfWindow.Y + size.Height;
+        }
+        else
+        {
+            var desk = _devices.Screen.Desktop.Bounds;
+            right = desk.Right;
+            bottom = desk.Bottom;
+        }
+
         return (corner,
-            Reach(step, FieldNames.Width, corner.X, desk.Right),
-            Reach(step, FieldNames.Height, corner.Y, desk.Bottom));
+            Reach(step, FieldNames.Width, corner.X, right),
+            Reach(step, FieldNames.Height, corner.Y, bottom));
     }
 
     /// <summary>
@@ -305,17 +321,17 @@ public sealed partial class MacroRunner
     /// </summary>
     private void CaptureWindow(ExecutableStep step, int depth)
     {
-        var (frame, corner) = WindowBox(step);
-        Keep(step, depth, frame, corner);
+        var (frame, corner, window) = WindowBox(step);
+        Keep(step, depth, frame, corner, window);
     }
 
     /// <summary>The whole of the window a step names, taken off the screen.</summary>
-    private (ImageFrame Frame, ScreenPoint Corner) WindowBox(ExecutableStep step)
+    private (ImageFrame Frame, ScreenPoint Corner, WindowInfo Window) WindowBox(ExecutableStep step)
     {
         var window = Locate(step);
         var shot = Shot(step, window.Location.X, window.Location.Y, window.Size.Width,
             window.Size.Height, window);
-        return (shot.Frame, shot.Origin);
+        return (shot.Frame, shot.Origin, window);
     }
 
     /// <summary>
@@ -325,7 +341,8 @@ public sealed partial class MacroRunner
     /// edge of the screen comes back smaller, and a search region that is bigger than the picture
     /// would look at pixels that are not there.
     /// </summary>
-    private void Keep(ExecutableStep step, int depth, ImageFrame frame, ScreenPoint corner)
+    private void Keep(ExecutableStep step, int depth, ImageFrame frame, ScreenPoint corner,
+        WindowInfo? sourceWindow = null)
     {
         // The picture is kept under the name of the image result, and only there: a step that was
         // told not to hand the picture over leaves nothing for a later step to search in, which is
@@ -343,6 +360,13 @@ public sealed partial class MacroRunner
         // that is the point a step aims at, and a macro that means the middle of what it just took
         // should not have to work it out of two halves of the rectangle.
         var middle = Middle(corner, new ScreenSize(frame.Width, frame.Height));
+        ScreenPoint? client = null;
+        if (sourceWindow is { } source)
+        {
+            var origin = _devices.Windows.ClientOrigin(source.Handle);
+            client = new ScreenPoint(middle.X - origin.X, middle.Y - origin.Y);
+        }
+        GivePoints(step, middle, client);
         Give(step, "place", Value.FromRecord(
         [
             (FieldNames.X, Value.FromNumber(middle.X)),
@@ -388,6 +412,7 @@ public sealed partial class MacroRunner
     {
         var (point, window) = Spot(step);
         var colour = PixelAt(step, point, window);
+        GivePointAt(step, point, window);
         var asHex = !string.Equals(ReadText(step, "asHex").Trim(), "false", StringComparison.OrdinalIgnoreCase);
         var name = Give(step, "color", asHex
             ? Value.FromText(colour.ToHex())
@@ -411,6 +436,8 @@ public sealed partial class MacroRunner
         var interval = LookBeat(step);
         await WaitForFlagAsync(
             () => PixelAt(step).Matches(target, tolerance), interval, token);
+        (point, window) = Spot(step);
+        GivePointAt(step, point, window);
         SawPixel(step, point, target.ToHex(), window);
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.SawColor, target.ToHex());
@@ -674,6 +701,12 @@ public sealed partial class MacroRunner
             {
                 if (Elapsed() - since >= quiet)
                 {
+                    if (now.FirstOrDefault() is { Frame: { } frame, Origin: { } origin })
+                    {
+                        GivePoints(step,
+                            Middle(origin, new ScreenSize(frame.Width, frame.Height)), null);
+                    }
+
                     Log(LogLevel.Info, depth, step.Type, LogKeys.FrameStill, Elapsed());
                     return;
                 }

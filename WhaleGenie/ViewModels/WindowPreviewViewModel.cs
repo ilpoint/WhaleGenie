@@ -19,15 +19,6 @@ public sealed record WindowPreviewRow(string Title, string PartLabel, string Par
 }
 
 /// <summary>
-/// The rule a step recognises windows with, as its fields stand: the text, the part of a window it
-/// is held against, how it is compared, and what an empty text means to this step. A step that acts
-/// on one window means the one in front by saying nothing; a step that lists them means every window
-/// there is, and the list has to say the same thing the run would do.
-/// </summary>
-public readonly record struct WindowRule(string Text, WindowMatch Match, string Compare,
-    bool EmptyIsEvery);
-
-/// <summary>
 /// The windows a step recognises with the rule it is written with right now, shown under the fields
 /// that make up that rule. "Any window whose title matches this" is easy to write and hard to trust:
 /// whether it picks up the game window or the debugger beside it is otherwise only visible by running
@@ -61,7 +52,10 @@ public partial class WindowPreviewViewModel : ViewModelBase
     private Func<IWindowDevice?>? _windows;
 
     /// <summary>The rule the list was last read for, so a keystroke in some other field costs nothing.</summary>
-    private WindowRule? _rule;
+    private WhaleGenie.Core.Devices.WindowRule? _rule;
+
+    /// <summary>Whether an empty rule means every window rather than the one in front.</summary>
+    private bool _emptyIsEvery;
 
     /// <summary>Whether the list is on the screen at all, which the dialog says: a rule the step does
     /// not read has nothing to frame either.</summary>
@@ -124,16 +118,16 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// opening a step should show what it recognises; a rule that changes while it is being written
     /// waits for the typing to pause.
     /// </summary>
-    public void Follow(WindowRule rule)
+    public void Follow(WhaleGenie.Core.Devices.WindowRule rule, bool emptyIsEvery = false)
     {
-        rule = rule with { Text = rule.Text.Trim() };
-        if (_rule == rule)
+        if (_rule == rule && _emptyIsEvery == emptyIsEvery)
         {
             return;
         }
 
         var first = _rule is null;
         _rule = rule;
+        _emptyIsEvery = emptyIsEvery;
 
         if (first)
         {
@@ -209,7 +203,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
         IReadOnlyList<WindowInfo> found;
         try
         {
-            found = Look(windows, rule);
+            found = Look(windows, rule, _emptyIsEvery);
         }
         catch (Exception)
         {
@@ -253,12 +247,12 @@ public partial class WindowPreviewViewModel : ViewModelBase
         IReadOnlyList<WindowInfo> found;
         try
         {
-            found = Look(windows, rule);
+            found = Look(windows, rule, _emptyIsEvery);
         }
         catch (ArgumentException)
         {
             // The same words a run reports it with, because it is the same mistake.
-            Summary = Strings.Format("Run.BadPattern", rule.Text);
+            Summary = Strings.Format("Run.BadPattern", rule.MatchValue);
             Places = [];
             return;
         }
@@ -275,15 +269,15 @@ public partial class WindowPreviewViewModel : ViewModelBase
             ? Strings.Format("Add.WindowPreview.Count", found.Count)
             : Strings.Get("Add.WindowPreview.None");
 
-        Note = rule.Text.Length == 0
-            ? Strings.Get(rule.EmptyIsEvery ? "Add.WindowPreview.Every" : "Add.WindowPreview.Front")
-            : Expression.ReferencedNames(rule.Text).Count > 0
+        Note = rule.MatchValue.Length == 0
+            ? Strings.Get(_emptyIsEvery ? "Add.WindowPreview.Every" : "Add.WindowPreview.Front")
+            : Expression.ReferencedNames(rule.MatchValue).Count > 0
                 ? Strings.Get("Add.WindowPreview.Variable")
                 : string.Empty;
 
         foreach (var window in found.Take(Shown))
         {
-            Rows.Add(Row(window, rule.Match, windows));
+            Rows.Add(Row(window, rule.Reading.Match, windows));
         }
 
         var listed = found.Take(Shown).ToList();
@@ -320,8 +314,10 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// with the same answer for a text nobody wrote. A pattern that will not read comes back as an
     /// <see cref="ArgumentException"/> for whoever asked to report.
     /// </summary>
-    private static IReadOnlyList<WindowInfo> Look(IWindowDevice windows, WindowRule rule)
-        => windows.Filter(rule.Text, rule.Match, rule.Compare, rule.EmptyIsEvery);
+    private static IReadOnlyList<WindowInfo> Look(IWindowDevice windows,
+        WhaleGenie.Core.Devices.WindowRule rule, bool emptyIsEvery)
+        => windows.Filter(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+            everyWhenEmpty: emptyIsEvery, options: rule.Options);
 
     /// <summary>One line of the list: the title, and the part compared when that is not the title.</summary>
     private static WindowPreviewRow Row(WindowInfo window, WindowMatch match, IWindowDevice windows)

@@ -74,6 +74,42 @@ public class McpServerTests
     }
 
     [Fact]
+    public void The_action_tool_describes_record_fields_and_number_ranges()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+
+            var transport = new HttpClientTransport(new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(host.Endpoint),
+                TransportMode = HttpTransportMode.StreamableHttp,
+            });
+            await using var client = await McpClient.CreateAsync(transport);
+            var action = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "window.move" }));
+            var parameters = action.RootElement.GetProperty("parameters").EnumerateArray().ToArray();
+
+            var window = Assert.Single(parameters,
+                parameter => parameter.GetProperty("name").GetString() == "window");
+            Assert.Equal("WindowRule", window.GetProperty("shape").GetString());
+            Assert.Contains("multiline", window.GetProperty("fields").EnumerateArray()
+                .Select(field => field.GetString()));
+
+            var x = Assert.Single(parameters,
+                parameter => parameter.GetProperty("name").GetString() == "x");
+            Assert.Equal("Pixels", x.GetProperty("unit").GetString());
+            Assert.Equal("Keep", x.GetProperty("emptyMeans").GetString());
+            Assert.Equal(-100_000m, x.GetProperty("minimum").GetDecimal());
+            Assert.Equal(100_000m, x.GetProperty("maximum").GetDecimal());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    [Fact]
     public void The_main_window_has_an_mcp_switch_and_a_flyout()
     {
         Ui.Run(() =>

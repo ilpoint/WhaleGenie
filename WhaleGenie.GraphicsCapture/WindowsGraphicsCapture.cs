@@ -56,7 +56,7 @@ internal sealed class WindowsGraphicsCapture : IPictureSources
             var item = key.IsDisplay
                 ? Interop.ForDisplay(key.Display)
                 : Interop.ForWindow(new IntPtr(key.Window));
-            return (IPictureSource)Session(item, key);
+            return (IPictureSource)new OneThreadPictureSource(Session(item, key), _thread);
         }
         catch (CaptureUnavailableException)
         {
@@ -114,8 +114,16 @@ internal sealed class WindowsGraphicsCapture : IPictureSources
     {
         _thread.Run(() =>
         {
-            _devices?.Direct3D.Dispose();
-            _devices?.Context.Dispose();
+            if (_devices is { } devices)
+            {
+                // The Windows Runtime device holds its own reference to the Direct3D device. It has
+                // to be let go of here as well, or closing the Direct3D device only drops one of
+                // the references and leaves the graphics device alive after the last capture.
+                devices.Runtime.Dispose();
+                devices.Context.Dispose();
+                devices.Direct3D.Dispose();
+            }
+
             _devices = null;
             return true;
         });

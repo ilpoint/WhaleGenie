@@ -14,6 +14,7 @@ namespace WhaleGenie.Core.Tests;
 /// browser is left signed in on. All of it is true or false against a real browser, so the pages
 /// are served from a temporary folder and driven without a window.
 /// </summary>
+[Collection("Browser")]
 public class BrowserTargetTests : IDisposable
 {
     /// <summary>The folder the pages of this check are read from.</summary>

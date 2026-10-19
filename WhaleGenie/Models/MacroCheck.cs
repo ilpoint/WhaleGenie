@@ -509,9 +509,9 @@ public static class MacroCheck
                 CheckCall(step, guarded);
                 TrackPendingResults(step);
                 CheckNames(step, namesAreOpen);
-                CheckPostedMove(step);
                 CheckWait(step, bounded);
                 CheckPlace(step);
+                CheckWindowBounds(step);
                 CheckValueTypes(step);
                 CheckSwitch(step);
                 CheckReservedNames(step);
@@ -1028,15 +1028,6 @@ public static class MacroCheck
         /// "偏移多少"问的正是指针现在在哪儿。这是步骤自己的设置就能判定的事，所以写宏的时候就
         /// 说出来，不必等跑到这一步才发现位置是错的。
         /// </summary>
-        void CheckPostedMove(MacroStep step)
-        {
-            if (step.Type == "input.mouseMoveRelative"
-                && step.Text("inputMode").Trim().Equals("background", StringComparison.OrdinalIgnoreCase))
-            {
-                Add(step, Strings.Get("Editor.Problem.PostedMove"));
-            }
-        }
-
         /// <summary>
         /// A wait with no clock of its own is a legitimate "wait until it happens". It stops being
         /// one when the step retries or an outer block is on a clock: then the retry or the outer
@@ -1064,6 +1055,7 @@ public static class MacroCheck
         void CheckPlace(MacroStep step)
         {
             if (step.Definition is not { } definition
+                || step.Type == "window.move"
                 || definition.Parameters.Any(parameter => parameter.Name == "useCursor")
                 || step.Type is "vision.capture" or "ocr.recognize")
             {
@@ -1090,6 +1082,33 @@ public static class MacroCheck
                     // at all. Saying so is better than letting the step look like it uses both.
                     Add(step, Strings.Format("Editor.Problem.PlaceAndNumbers", field.LocalLabel));
                 }
+            }
+        }
+
+        /// <summary>
+        /// A mover that says nothing about any side would do nothing. One side is enough: the other
+        /// three are deliberately "keep what is there", so only the all-empty case is a mistake.
+        /// </summary>
+        void CheckWindowBounds(MacroStep step)
+        {
+            if (step.Type != "window.move")
+            {
+                return;
+            }
+
+            var hasRect = step.Text("rect").Trim().Length > 0;
+            var hasSides = new[] { "x", "y", "width", "height" }
+                .Any(name => step.Text(name).Trim().Length > 0);
+            if (hasRect && hasSides)
+            {
+                Add(step, Strings.Format("Editor.Problem.PlaceAndNumbers",
+                    ActionCatalog.Find(step.Type)?.Parameters
+                        .FirstOrDefault(parameter => parameter.Name == "rect")?.LocalLabel
+                    ?? "rect"));
+            }
+            else if (!hasRect && !hasSides)
+            {
+                Add(step, Strings.Get("Editor.Problem.WindowBounds"));
             }
         }
 
@@ -1140,8 +1159,7 @@ public static class MacroCheck
                 if (definition.ReadMode != ActionReadMode.Text
                     || definition.Shape is ActionValueShape.Point or ActionValueShape.Rect
                         or ActionValueShape.Record
-                    || definition.Picker == ActionPickerKind.Window
-                    || definition.Name is "window" or "anchorWindow" or "targetWindow")
+                    || definition.Picker == ActionPickerKind.Window)
                 {
                     continue;
                 }

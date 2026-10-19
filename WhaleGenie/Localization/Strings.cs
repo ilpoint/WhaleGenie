@@ -159,6 +159,7 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "Macro Editor",
+        ["Editor.DefaultMacroName"] = "Macro {0}",
         ["Editor.NamePlaceholder"] = "Enter a name for your macro..",
         ["Editor.LiftedMacroName"] = "{0}, a macro of its own",
         ["Editor.LiftedMacroNameEmpty"] = "A macro of its own",
@@ -198,9 +199,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.ProcessWhen"] = "When :",
         ["Editor.ProcessNote"] = "The macro runs once each time the program starts or stops. "
             + "A program that is already open when the system is switched on is not a start.",
-        ["Editor.WindowValue"] = "Match text :",
-        ["Editor.WindowValueHint"] = "the text to look for",
-        ["Editor.WindowHow"] = "Match by :",
         ["Editor.WindowWhen"] = "When :",
         ["Editor.WindowNote"] = "The open windows are looked at twice a second, so a window is "
             + "noticed about half a second after it arrives. A window open when the system is "
@@ -218,12 +216,48 @@ public sealed class Strings : INotifyPropertyChanged
         ["Picker.Position"] = "{0}, {1}",
         ["Region.Title"] = "Pick a region",
         ["Region.Hint"] =
-            "Drag inside the rectangle to move it, or drag a handle to change its size. Press Enter, "
-            + "or click inside it, to take it; Esc cancels.",
+            "Drag inside the rectangle to move it, or drag a handle to change its size. Press F1 "
+            + "to take it; Esc cancels.",
+        ["Region.WindowHint"] =
+            "Only the target window's client area can be selected. Drag inside it to move the "
+            + "rectangle, drag a handle to change its size; F1 takes it, Esc cancels.",
+        ["Region.Arrow"] = "Start {0}, {1} → End {2}, {3}",
+        ["Region.ArrowHint"] = "Drag from the start point to the end point; F1 takes it, Esc cancels.",
         ["Region.Drag"] = "Drag a rectangle over what the macro should look at",
         ["Region.Size"] = "x {0}  y {1}   {2} × {3}",
         ["Add.PickRegion"] = "Pick region",
-        ["Add.PickRegionHint"] = "Drag a rectangle on the screen to fill these fields.",
+        ["Add.PickRegionHint"] =
+            "Drag a rectangle on the screen to fill these fields. F1 takes it; Esc cancels.",
+        ["Add.PickRegionDrag"] = "Pick start → end",
+        ["Add.PickRegionDragHint"] =
+            "Drag on the screen from the start point to the end point. F1 takes both; Esc cancels.",
+        ["Add.PickWindowBounds"] = "Pick window bounds",
+        ["Add.PickWindowBoundsHint"] =
+            "Start from the target window's current rectangle, then drag it or pull its edges. "
+            + "F1 uses the frame; Esc cancels.",
+        ["Add.PickWindowBoundsNeedsWindow"] =
+            "Capture the target window first, and leave it visible while its bounds are picked.",
+        ["Add.PickCoordinateNeedsWindow"] =
+            "This step counts its position from a window. Capture the target window before picking a point.",
+        ["Add.PickCoordinate"] = "Pick coordinate",
+        ["Add.PickCoordinateHint"] =
+            "Follows the pointer with a crosshair and outlines the control under it. In window "
+            + "mode the crosshair stays inside the target client area. F1 takes the exact pixel; "
+            + "Esc cancels.",
+        ["PointPicker.Title"] = "Pick a window coordinate",
+        ["PointPicker.ReadoutWindow"] = "Window basis · Window {0},{1} · Screen {2},{3}",
+        ["PointPicker.ReadoutScreen"] = "Screen basis · Screen {0},{1}",
+        ["PointPicker.Element"] = "{0} · {1}",
+        ["PointPicker.ShortcutWindow"] =
+            "Press F1 to take the window-client coordinate · Esc cancels · clicking another window "
+            + "will not end picking",
+        ["PointPicker.ShortcutScreen"] =
+            "Press F1 to take the screen coordinate · Esc cancels · clicking another window will "
+            + "not end picking",
+        ["PointPicker.OutsideWindow"] =
+            "Window basis · Pointer is outside the target client area · Screen {0},{1}",
+        ["PointPicker.TargetLost"] =
+            "Window basis · Target window closed · press Esc, then capture it again",
         ["Add.RegionAdd"] = "Add a region",
         ["Add.RegionRemove"] = "Remove",
         ["Add.RegionRemoveHint"] = "Take this region out of the list.",
@@ -246,14 +280,14 @@ public sealed class Strings : INotifyPropertyChanged
             + "four numbers.",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
-        ["Add.EmptyReachesTheEdge"] = "Left empty, this side reaches the edge of what it is counted "
-            + "from: the screen, or the window it is counted from.",
-        ["Add.EmptyUsesDefault"] = "When the step does not write it, the value the action starts "
-            + "with applies: a hand-written step may leave the field out.",
-        ["Add.EmptyKeeps"] = "Left empty, the window keeps the position or size it has now: write "
-            + "only the sides this step is meant to change.",
-        ["Add.EmptyScreenRefresh"] = "Left empty, the wait follows the screen: it looks again after "
-            + "one refresh, because a picture that was not drawn again reads the same.",
+        ["Add.EmptyReachesTheEdge"] =
+            "Leave this field empty to extend it to the edge of the reference area.",
+        ["Add.EmptyUsesDefault"] =
+            "Leave this field empty to use the action's default.",
+        ["Add.EmptyKeeps"] =
+            "Leave this field empty to keep the current value; fill in only what this step changes.",
+        ["Add.EmptyScreenRefresh"] =
+            "Leave this field empty to check once per screen refresh.",
         ["ActionType.Text"] = "text",
         ["ActionType.Number"] = "a number",
         ["ActionType.Flag"] = "yes or no",
@@ -265,17 +299,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.CallArgumentType"] = "The called macro asks for {0}.",
         ["Add.CallArgumentRequired"] = "Required: this call has to fill it in.",
         ["Add.CallArgumentDefault"] = "Default {0}: leave the field empty to use it.",
-        ["Add.FieldTakesFormula"] = "This whole value is worked out when the macro runs, so an "
-            + "expression can be written here.",
-        ["Add.FieldIsText"] = "This is text rather than a formula: a $name in it is replaced with "
-            + "what that variable holds and the rest is used as written.",
-        ["Add.OriginNote"] = "Counted from {0}: the four numbers are its left, top, width and "
-            + "height.",
+        ["Add.FieldTakesFormula"] =
+            "This field accepts an expression; the expression is evaluated when the macro runs.",
+        ["Add.FieldIsText"] =
+            "This field is read as text; a $name is replaced by the variable's value.",
+        ["Add.OriginNote"] = "Recognition basis: {0}. All four values use this basis.",
         ["Add.Origin.Screen"] = "the whole screen",
-        ["Add.Origin.Window"] = "the top-left corner of the window this step names",
-        ["Add.Origin.Client"] = "the top-left corner inside that window's frame, title bar and "
-            + "borders aside",
-        ["Add.Origin.Element"] = "the top-left corner of the control this step is anchored to",
+        ["Add.Origin.Window"] = "the client-area top-left corner of the target window",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
         ["Add.ImageMoveUp"] = "Move up",
@@ -426,6 +456,52 @@ public sealed class Strings : INotifyPropertyChanged
             "The field holds a variable; what it comes to is only known when the macro runs, so the "
             + "text is read as it stands here.",
         ["Add.WindowPreview.Unreadable"] = "The open windows cannot be read right now.",
+        ["WindowRule.Title"] = "Capture a window",
+        ["WindowRule.CaptureHint"] =
+            "Click the window you mean, then press F1. F1 is kept from the other program while "
+            + "this picker is open. Press Esc to cancel.",
+        ["WindowRule.Waiting"] = "Waiting for a window. Click it, then press F1.",
+        ["WindowRule.None"] = "No foreground window was found. Click the target and press F1 again.",
+        ["WindowRule.OwnWindow"] =
+            "That is WhaleGenie's own window. Choose the window the macro should work on.",
+        ["WindowRule.Captured"] = "Window captured. Choose which part identifies it.",
+        ["WindowRule.Handle"] = "Handle: {0}",
+        ["WindowRule.Process"] = "Process",
+        ["WindowRule.Class"] = "Class",
+        ["WindowRule.How"] = "Match by",
+        ["WindowRule.MatchText"] = "Match text",
+        ["WindowRule.CaseSensitive"] = "Case sensitive",
+        ["WindowRule.Trim"] = "Ignore spaces at the ends",
+        ["WindowRule.Multiline"] = "Regex by line",
+        ["WindowRule.Matches"] = "{0} window(s) match now.",
+        ["WindowRule.More"] = "…and {0} more.",
+        ["WindowRule.BadPattern"] = "The matching pattern cannot be read.",
+        ["WindowRule.GetAgain"] = "Get again",
+        ["WindowRule.Use"] = "Use this window",
+        ["WindowRule.Cancel"] = "Cancel",
+        ["WindowRule.NotSet"] = "No window captured.",
+        ["WindowRule.Clear"] = "Clear",
+        ["WindowRule.FieldHint"] =
+            "Capture the window once, choose whether its title, program or class identifies it, "
+            + "and press F1 on every later run to find that same window again.",
+        ["WindowRule.How.titleContains"] = "Title contains",
+        ["WindowRule.How.titleStartsWith"] = "Title starts with",
+        ["WindowRule.How.titleEndsWith"] = "Title ends with",
+        ["WindowRule.How.titleEquals"] = "Title is exactly",
+        ["WindowRule.How.titleRegex"] = "Title matches a pattern",
+        ["WindowRule.How.process"] = "Process name contains",
+        ["WindowRule.How.processEquals"] = "Process name is exactly",
+        ["WindowRule.How.class"] = "Window class contains",
+        ["WindowRule.How.classEquals"] = "Window class is exactly",
+        ["WindowRule.Short.titleContains"] = "title contains",
+        ["WindowRule.Short.titleStartsWith"] = "title starts with",
+        ["WindowRule.Short.titleEndsWith"] = "title ends with",
+        ["WindowRule.Short.titleEquals"] = "title exactly",
+        ["WindowRule.Short.titleRegex"] = "title regex",
+        ["WindowRule.Short.process"] = "process contains",
+        ["WindowRule.Short.processEquals"] = "process exactly",
+        ["WindowRule.Short.class"] = "class contains",
+        ["WindowRule.Short.classEquals"] = "class exactly",
         ["WindowPicker.Title"] = "Pick a window",
         ["WindowPicker.Filter"] = "Filter by title, program or class",
         ["WindowPicker.Refresh"] = "Refresh",
@@ -700,15 +776,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPart.Title"] = "Title",
         ["WindowPart.Process"] = "Program name",
         ["WindowPart.ClassName"] = "Window class",
-        ["WindowHow.TitleContains"] = "Title contains",
-        ["WindowHow.TitleStartsWith"] = "Title starts with",
-        ["WindowHow.TitleEndsWith"] = "Title ends with",
-        ["WindowHow.TitleEquals"] = "Title is exactly",
-        ["WindowHow.TitleRegex"] = "Title matches a pattern",
-        ["WindowHow.Process"] = "Process name",
-        ["WindowHow.ProcessEquals"] = "Process name is exactly",
-        ["WindowHow.Class"] = "Window class",
-        ["WindowHow.ClassEquals"] = "Window class is exactly",
         ["Loop.Toggle"] = "Until Key Pressed Again (Toggle)",
         ["Loop.Hold"] = "While Holding Key (Hold)",
         ["Loop.Press"] = "Once, When Key Pressed (Press)",
@@ -792,8 +859,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ExpressionWhenRun"] = "This reads as an expression; what it works out to is known "
             + "when the macro runs.",
         ["Add.ExpressionResult"] = "= {0}",
-        ["Add.FormulaNumber"] = "This box holds an expression. Clear it, or write a plain number, "
-            + "to go back to the spinner.",
+        ["Add.FormulaNumber"] =
+            "This box holds an expression. Clear it or enter a plain number to return to number input.",
         ["Add.FormulaMilliseconds"] = "An expression is counted in milliseconds.",
         ["Add.Unit.ms"] = "ms",
         ["Add.Unit.s"] = "s",
@@ -1069,7 +1136,8 @@ public sealed class Strings : INotifyPropertyChanged
             + "wrong. PrintWindow gives the whole window with its title bar; Graphics Capture gives "
             + "the part the window draws in, and finds a window another window covers. Applies from "
             + "the next look; a step that is reading the screen at this moment finishes the way it "
-            + "started.",
+            + "started. Windows 10 shows the system capture border while Graphics Capture is in use; "
+            + "Windows 11 can turn it off.",
         ["Settings.CaptureScreen"] = "Reading the screen",
         ["Settings.CaptureScreenHint"] =
             "How a picture of the desktop is taken on this machine, for every step of every macro. "
@@ -1468,14 +1536,18 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingHandle"] = "This step starts a background run but does not name a variable for its handle.",
         ["Run.WindowNotFound"] = "No window matches that title: {0}",
         ["Run.WindowRecordField"] = "This window record has no {0} field, which is what the chosen way of matching reads. Choose another way of matching, give the record that field, or write field(window, \"…\") for the one you mean.",
+        ["Run.BadWindowRule"] = "A window field must hold one captured window rule or a variable that holds one; what was written is not a rule: {0}",
         ["Log.FocusedWindow"] = "Brought the window to the front: {0}",
         ["Run.EmptySelector"] = "No element selector was given.",
         ["Run.MissingWindow"] = "No window title was given: {0}",
-        ["Run.MissingTargetWindow"] = "Background input needs a window to post its messages at; fill in the target window title.",
+        ["Run.MissingTargetWindow"] = "Background input needs a window to post its messages at; capture the target window first.",
         ["Run.BackgroundNeedsPointer"] =
             "Background input does not move the pointer: it posts messages at the window, and the "
             + "pointer on screen stays where it is. A relative move asks where the pointer is, so "
             + "use foreground or driver input for it, or write the whole place with Mouse Move.",
+        ["Run.BackgroundPostFailed"] =
+            "Windows refused a background mouse or keyboard message: {0}. The target may have "
+            + "closed, or it may run at a higher privilege than WhaleGenie.",
         ["Log.ReadFile"] = "Read {0}, {1} characters long.",
         ["Log.ReadFileLines"] = "Read {0}, {1} lines long.",
         ["Log.WroteFile"] = "Wrote {0}, {1} characters long.",
@@ -1665,6 +1737,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.BadDefaultType"] = "\"{0}\" gives the parameter \"{1}\" a default that does not look like {2}: a call that leaves the field empty will fail.",
         ["Editor.Problem.EmptyDeclaration"] = "\"{0}\" has a declaration with no name.",
         ["Editor.Problem.EmptyMacroName"] = "A macro needs a name.",
+        ["Editor.Problem.WindowBounds"] =
+            "Set at least one side, or pick the window bounds, so the mover has something to change.",
         ["Editor.MacroSettings"] = "Macro settings",
         ["Editor.MacroInterface"] = "Macro interface",
         ["MacroInterface.Parameters"] = "Parameters",
@@ -1785,6 +1859,7 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "宏编辑器",
+        ["Editor.DefaultMacroName"] = "Macro {0}",
         ["Editor.NamePlaceholder"] = "给这个宏起个名字..",
         ["Editor.LiftedMacroName"] = "{0} 的子宏",
         ["Editor.LiftedMacroNameEmpty"] = "新的子宏",
@@ -1821,9 +1896,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.ProcessNameHint"] = "notepad、chrome，不用写 .exe",
         ["Editor.ProcessWhen"] = "时机：",
         ["Editor.ProcessNote"] = "程序每次启动或退出时执行一遍；启用系统时已在运行的程序不算启动。",
-        ["Editor.WindowValue"] = "匹配内容：",
-        ["Editor.WindowValueHint"] = "要找的那段文字",
-        ["Editor.WindowHow"] = "匹配方式：",
         ["Editor.WindowWhen"] = "时机：",
         ["Editor.WindowNote"] = "每秒检查两次窗口列表，窗口出现后约半秒内会被检测到；"
             + "启用系统时已存在的窗口不算刚出现。",
@@ -1838,19 +1910,42 @@ public sealed class Strings : INotifyPropertyChanged
         ["Picker.Position"] = "{0}, {1}",
         ["Region.Title"] = "框选区域",
         ["Region.Hint"] =
-            "在矩形内拖动可移动它，拖动手柄可改变大小；按 Enter 或在矩形内单击取用，Esc 取消。",
+            "在矩形内拖动可移动它，拖动手柄可改变大小；按 F1 取用，Esc 取消。",
+        ["Region.WindowHint"] =
+            "只能框选目标窗口客户区。在选区内拖动可移动它，拖动手柄可改变大小；"
+            + "按 F1 取用，Esc 取消。",
+        ["Region.Arrow"] = "起点 {0}, {1} → 终点 {2}, {3}",
+        ["Region.ArrowHint"] = "从起点拖到终点；按 F1 确认，Esc 取消。",
         ["Region.Drag"] = "在屏幕上拖出宏需要看的区域",
         ["Region.Size"] = "x {0}  y {1}   宽 {2} × 高 {3}",
         ["Add.PickRegion"] = "框选区域",
-        ["Add.PickRegionHint"] = "在屏幕上拖出一个矩形，自动填入这些字段。",
+        ["Add.PickRegionHint"] = "在屏幕上拖出一个矩形，自动填入这些字段；按 F1 确认，Esc 取消。",
+        ["Add.PickRegionDrag"] = "拾取起点 → 终点",
+        ["Add.PickRegionDragHint"] = "在屏幕上从起点拖到终点；按 F1 确认，Esc 取消。",
+        ["Add.PickWindowBounds"] = "拾取窗口位置和尺寸",
+        ["Add.PickWindowBoundsHint"] = "从目标窗口现在的矩形开始，拖动会同时移动或调整目标窗口；按 F1 使用这个框，Esc 取消并放回原处。",
+        ["Add.PickWindowBoundsNeedsWindow"] = "先获取目标窗口，并在拾取位置和尺寸时让它保持显示。",
+        ["Add.PickCoordinateNeedsWindow"] = "这一步按窗口坐标取位置，请先获取目标窗口再拾取坐标。",
+        ["Add.PickCoordinate"] = "拾取坐标",
+        ["Add.PickCoordinateHint"] = "十字线跟随指针，并用 UIA 圈出下面的控件；窗口模式下只显示在目标窗口客户区内。F1 取十字线所指像素，Esc 取消。",
+        ["PointPicker.Title"] = "拾取窗口坐标",
+        ["PointPicker.ReadoutWindow"] = "窗口基准 · 窗口 {0},{1} · 屏幕 {2},{3}",
+        ["PointPicker.ReadoutScreen"] = "屏幕基准 · 屏幕 {0},{1}",
+        ["PointPicker.Element"] = "{0} · {1}",
+        ["PointPicker.ShortcutWindow"] =
+            "按 F1 获取窗口基准坐标 · Esc 取消 · 点击其他窗口不会结束拾取",
+        ["PointPicker.ShortcutScreen"] =
+            "按 F1 获取屏幕坐标 · Esc 取消 · 点击其他窗口不会结束拾取",
+        ["PointPicker.OutsideWindow"] = "窗口基准 · 指针不在目标窗口客户区内 · 屏幕 {0},{1}",
+        ["PointPicker.TargetLost"] = "窗口基准 · 目标窗口已关闭 · 按 Esc 返回后重新获取窗口",
         ["Add.RegionAdd"] = "加一条区域",
         ["Add.RegionRemove"] = "删除",
         ["Add.RegionRemoveHint"] = "把这一条从列表里去掉了。",
         ["Add.RegionX"] = "左上角 X",
-        ["Add.RegionXHint"] = "这一处的左边界距屏幕左边的像素数；坐标基准选窗口时，从窗口自己的"
+        ["Add.RegionXHint"] = "这一处的左边界距屏幕左边的像素数；识别方式选窗口时，从窗口客户区的"
             + "左边算起。",
         ["Add.RegionY"] = "左上角 Y",
-        ["Add.RegionYHint"] = "这一处的上边界距屏幕上边的像素数；坐标基准选窗口时，从窗口自己的"
+        ["Add.RegionYHint"] = "这一处的上边界距屏幕上边的像素数；识别方式选窗口时，从窗口客户区的"
             + "上边算起。",
         ["Add.RegionWidth"] = "向右的宽",
         ["Add.RegionWidthHint"] = "这一处有多宽，单位像素：从左边界量到右边界。",
@@ -1862,11 +1957,10 @@ public sealed class Strings : INotifyPropertyChanged
             + "东西，四个数就清空。",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
-        ["Add.EmptyReachesTheEdge"] = "留空即从这一边一直量到屏幕边缘；坐标基准选窗口或客户区时，"
-            + "量到那个窗口的那一边为止。",
-        ["Add.EmptyUsesDefault"] = "没写时按动作的默认值：这一项有默认值，手写文件里略过它也算完整的一步。",
-        ["Add.EmptyKeeps"] = "留空即保持窗口当前的位置或大小：只填这一步要改的那几项。",
-        ["Add.EmptyScreenRefresh"] = "留空即按屏幕刷新一次的时间：画面没重画，再看也只能读到同一张。",
+        ["Add.EmptyReachesTheEdge"] = "此字段留空表示延伸到参照区域的边缘。",
+        ["Add.EmptyUsesDefault"] = "此字段留空表示使用动作的默认值。",
+        ["Add.EmptyKeeps"] = "此字段留空表示保持当前值；只填写需要修改的项目。",
+        ["Add.EmptyScreenRefresh"] = "此字段留空表示按屏幕刷新间隔读取。",
         ["ActionType.Text"] = "文本",
         ["ActionType.Number"] = "数字",
         ["ActionType.Flag"] = "真假",
@@ -1878,14 +1972,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.CallArgumentType"] = "调用的宏要的是{0}。",
         ["Add.CallArgumentRequired"] = "必填：这一步必须填。",
         ["Add.CallArgumentDefault"] = "默认值 {0}：留空就用它。",
-        ["Add.FieldTakesFormula"] = "这里可以写算式：整段值由引擎在运行时算出来。",
-        ["Add.FieldIsText"] = "这里不计算式：$名字 只是就地替换成那个变量此刻的值，其余部分照原样"
-            + "使用。",
-        ["Add.OriginNote"] = "坐标基准是{0}，这四个数是它的左、上、宽、高。",
+        ["Add.FieldTakesFormula"] = "此字段可填写表达式；表达式在宏运行时计算。",
+        ["Add.FieldIsText"] = "此字段按文本读取；$名字 会替换为变量值。",
+        ["Add.OriginNote"] = "识别基准为{0}；四个值均按此基准测量。",
         ["Add.Origin.Screen"] = "屏幕",
-        ["Add.Origin.Window"] = "这一步认的那个窗口的左上角",
-        ["Add.Origin.Client"] = "那个窗口内容区的左上角（不含标题栏与边框）",
-        ["Add.Origin.Element"] = "这一步锚定的那个控件的左上角",
+        ["Add.Origin.Window"] = "目标窗口客户区左上角",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",
         ["Add.ImageMoveUp"] = "上移",
@@ -2018,6 +2109,47 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.WindowPreview.Variable"] =
             "字段里写着变量，它是什么要等宏跑起来才知道，这里按字面看。",
         ["Add.WindowPreview.Unreadable"] = "现在读不到窗口列表。",
+        ["WindowRule.Title"] = "获取窗口",
+        ["WindowRule.CaptureHint"] = "先点击要用的窗口，再按 F1；拾取期间 F1 不会交给别的程序。按 Esc 取消。",
+        ["WindowRule.Waiting"] = "等待窗口：点击目标窗口后按 F1。",
+        ["WindowRule.None"] = "没有读到前台窗口。请再点一次目标窗口并按 F1。",
+        ["WindowRule.OwnWindow"] = "这是鲸灵自己的窗口。请点宏要操作的那个窗口。",
+        ["WindowRule.Captured"] = "已取得窗口，请选择用哪一项认出它。",
+        ["WindowRule.Handle"] = "句柄：{0}",
+        ["WindowRule.Process"] = "进程名",
+        ["WindowRule.Class"] = "窗口类",
+        ["WindowRule.How"] = "匹配方式",
+        ["WindowRule.MatchText"] = "匹配内容",
+        ["WindowRule.CaseSensitive"] = "区分大小写",
+        ["WindowRule.Trim"] = "去掉两端空格",
+        ["WindowRule.Multiline"] = "正则按行",
+        ["WindowRule.Matches"] = "现在会认到 {0} 个窗口。",
+        ["WindowRule.More"] = "……还有 {0} 个。",
+        ["WindowRule.BadPattern"] = "这条匹配模式读不出来。",
+        ["WindowRule.GetAgain"] = "重新获取",
+        ["WindowRule.Use"] = "使用这个窗口",
+        ["WindowRule.Cancel"] = "取消",
+        ["WindowRule.NotSet"] = "还没有获取窗口。",
+        ["WindowRule.Clear"] = "清除",
+        ["WindowRule.FieldHint"] = "获取一次窗口，选好用标题、进程名还是窗口类认出它；以后每次运行都按这条规则重新找同一个窗口。",
+        ["WindowRule.How.titleContains"] = "标题包含",
+        ["WindowRule.How.titleStartsWith"] = "标题开头",
+        ["WindowRule.How.titleEndsWith"] = "标题结尾",
+        ["WindowRule.How.titleEquals"] = "标题等于",
+        ["WindowRule.How.titleRegex"] = "标题正则",
+        ["WindowRule.How.process"] = "进程名包含",
+        ["WindowRule.How.processEquals"] = "进程名等于",
+        ["WindowRule.How.class"] = "窗口类包含",
+        ["WindowRule.How.classEquals"] = "窗口类等于",
+        ["WindowRule.Short.titleContains"] = "标题包含",
+        ["WindowRule.Short.titleStartsWith"] = "标题开头",
+        ["WindowRule.Short.titleEndsWith"] = "标题结尾",
+        ["WindowRule.Short.titleEquals"] = "标题等于",
+        ["WindowRule.Short.titleRegex"] = "标题正则",
+        ["WindowRule.Short.process"] = "进程名包含",
+        ["WindowRule.Short.processEquals"] = "进程名等于",
+        ["WindowRule.Short.class"] = "窗口类包含",
+        ["WindowRule.Short.classEquals"] = "窗口类等于",
         ["WindowPicker.Title"] = "拾取窗口",
         ["WindowPicker.Filter"] = "按标题、程序或类名筛选",
         ["WindowPicker.Refresh"] = "刷新",
@@ -2251,15 +2383,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPart.Title"] = "标题",
         ["WindowPart.Process"] = "进程名",
         ["WindowPart.ClassName"] = "窗口类名",
-        ["WindowHow.TitleContains"] = "标题包含",
-        ["WindowHow.TitleStartsWith"] = "标题开头",
-        ["WindowHow.TitleEndsWith"] = "标题结尾",
-        ["WindowHow.TitleEquals"] = "标题等于",
-        ["WindowHow.TitleRegex"] = "标题正则",
-        ["WindowHow.Process"] = "进程名",
-        ["WindowHow.ProcessEquals"] = "进程名等于",
-        ["WindowHow.Class"] = "窗口类名",
-        ["WindowHow.ClassEquals"] = "窗口类名等于",
         ["Loop.Toggle"] = "再次按键时停止（切换）",
         ["Loop.Hold"] = "按住期间循环（长按）",
         ["Loop.Press"] = "按下时执行一次（按下）",
@@ -2339,7 +2462,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ExpressionValid"] = "表达式有效",
         ["Add.ExpressionWhenRun"] = "这一段读得通；算出来是什么，要等跑起来才知道。",
         ["Add.ExpressionResult"] = "= {0}",
-        ["Add.FormulaNumber"] = "这个框里是一个表达式；清空它，或写一个普通数字，就回到数字框。",
+        ["Add.FormulaNumber"] = "此框为表达式；清空或输入普通数字后恢复数字输入。",
         ["Add.FormulaMilliseconds"] = "表达式按毫秒计算。",
         ["Add.Unit.ms"] = "毫秒",
         ["Add.Unit.s"] = "秒",
@@ -2920,7 +3043,8 @@ public sealed class Strings : INotifyPropertyChanged
             + "Capture，再让窗口自己画一遍，最后读它在屏幕上的那块像素。点名哪一档就只走那一档，"
             + "所以窗口取出来不对时改这里。PrintWindow 取到整窗，含标题栏；Graphics Capture "
             + "取窗口自己画的那部分，被别的窗口压住也取得到。改完从下一次看画面起生效，"
-            + "正在读画面的那一步会按开始时的档位读完。",
+            + "正在读画面的那一步会按开始时的档位读完。Windows 10 使用 Graphics Capture 时"
+            + "会显示系统捕获边框，Windows 11 可以关闭。",
         ["Settings.CaptureScreen"] = "读屏幕",
         ["Settings.CaptureScreenHint"] =
             "这台机器上桌面的画面怎么取，对所有宏的每一步都生效。自动（默认）：先取显卡正在为"
@@ -3274,13 +3398,16 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ScriptBridgeLost"] = "脚本起来了，但没能连上鲸灵：{0}",
         ["Run.WindowNotFound"] = "没有找到这个标题的窗口：{0}",
         ["Run.WindowRecordField"] = "这条窗口记录里没有 {0} 这一项，而现在的匹配方式要从它取值。换一种匹配方式，给记录补上这一项，或者用 field(记录, \"字段名\") 取出你要的那一项。",
+        ["Run.BadWindowRule"] = "窗口字段要放一条获取窗口得到的规则，或者放一个保存这类规则的变量；现在写的内容不是规则：{0}",
         ["Log.FocusedWindow"] = "已把窗口调到最前：{0}",
         ["Run.EmptySelector"] = "没有填写要查找的元素选择器。",
         ["Run.MissingWindow"] = "没有填写窗口标题：{0}",
-        ["Run.MissingTargetWindow"] = "后台输入需要目标窗口，请先填写目标窗口的标题。",
+        ["Run.MissingTargetWindow"] = "后台输入需要目标窗口，请先获取目标窗口。",
         ["Run.BackgroundNeedsPointer"] = "「后台消息」这一档不做相对移动：它只把消息投给窗口，屏幕上的"
             + "指针并没有动过。相对移动问的是指针现在在哪儿，改用前台或驱动级，或者用「鼠标移动到」把"
             + "位置按绝对坐标写全。",
+        ["Run.BackgroundPostFailed"] = "Windows 没有接受这次后台键鼠消息：{0}。目标窗口可能已经关闭，"
+            + "或者它的权限比鲸灵高。",
         ["Log.ReadFile"] = "已读取 {0}，共 {1} 个字符。",
         ["Log.ReadFileLines"] = "已读取 {0}，共 {1} 行。",
         ["Log.WroteFile"] = "已写入 {0}，共 {1} 个字符。",
@@ -3459,6 +3586,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.BadDefaultType"] = "「{0}」的形参「{1}」的默认值看起来不是{2}：调用处留空时会失败。",
         ["Editor.Problem.EmptyDeclaration"] = "「{0}」有一条声明没有名字。",
         ["Editor.Problem.EmptyMacroName"] = "宏需要一个名字。",
+        ["Editor.Problem.WindowBounds"] = "至少填写一条边，或先拾取窗口位置和尺寸，否则这一步不会改动窗口。",
         ["Editor.MacroSettings"] = "宏设置",
         ["Editor.MacroInterface"] = "宏接口",
         ["MacroInterface.Parameters"] = "形参",

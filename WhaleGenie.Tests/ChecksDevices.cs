@@ -15,6 +15,7 @@ namespace WhaleGenie.Tests;
 internal sealed class WindowsForChecks : IWindowDevice
 {
     private readonly Dictionary<long, (string Process, string Class)> _facts = [];
+    private readonly Dictionary<long, ScreenPoint> _clientOrigins = [];
 
     /// <summary>The windows on this desktop, frontmost first.</summary>
     public List<WindowInfo> Open { get; } = [];
@@ -44,6 +45,12 @@ internal sealed class WindowsForChecks : IWindowDevice
     {
         var at = Open.FindIndex(window => window.Handle == handle);
         Open[at] = Open[at] with { Minimized = true };
+        return this;
+    }
+
+    public WindowsForChecks ClientAt(long handle, int x, int y)
+    {
+        _clientOrigins[handle] = new ScreenPoint(x, y);
         return this;
     }
 
@@ -94,11 +101,29 @@ internal sealed class WindowsForChecks : IWindowDevice
 
     public bool Close(long handle) => true;
 
-    public bool Move(long handle, int x, int y, int width, int height) => true;
+    public bool Move(long handle, int x, int y, int width, int height)
+    {
+        var at = Open.FindIndex(window => window.Handle == handle);
+        if (at < 0)
+        {
+            return false;
+        }
 
-    public ScreenPoint ClientOrigin(long handle) => new(0, 0);
+        Open[at] = Open[at] with
+        {
+            Location = new ScreenPoint(x, y),
+            Size = new ScreenSize(width, height),
+        };
+        return true;
+    }
 
-    public ScreenSize ClientSize(long handle) => new(0, 0);
+    public ScreenPoint ClientOrigin(long handle)
+        => _clientOrigins.TryGetValue(handle, out var at)
+            ? at
+            : Open.FirstOrDefault(window => window.Handle == handle)?.Location ?? new ScreenPoint(0, 0);
+
+    public ScreenSize ClientSize(long handle)
+        => Open.FirstOrDefault(window => window.Handle == handle)?.Size ?? new ScreenSize(0, 0);
 }
 
 /// <summary>

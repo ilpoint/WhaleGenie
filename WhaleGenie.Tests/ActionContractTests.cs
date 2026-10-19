@@ -18,6 +18,43 @@ namespace WhaleGenie.Tests;
 public class ActionContractTests
 {
     [Fact]
+    public void Coordinates_and_window_rules_have_one_shape()
+    {
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            Assert.DoesNotContain(action.Parameters, parameter =>
+                parameter.Name is "anchorWindow" or "targetWindow" or "anchorHow" or "targetHow"
+                    or "anchorSelector");
+
+            if (action.Parameter("anchorMode") is { } mode)
+            {
+                Assert.Equal(["screen", "window"], mode.Options);
+                Assert.Equal("anchorMode", action.Parameters[0].Name);
+                Assert.Equal("window", action.Parameters[1].Name);
+            }
+
+            foreach (var window in action.Parameters.Where(parameter =>
+                         parameter.Shape is ActionValueShape.WindowRule))
+            {
+                Assert.Equal(ActionPickerKind.Window, window.Picker);
+                Assert.Equal("window", window.Name);
+            }
+
+            if (action.Key.StartsWith("input.", StringComparison.Ordinal)
+                && action.Key != "input.waitKey")
+            {
+                Assert.Equal("inputMode", action.Parameters[0].Name);
+            }
+
+            if (action.IsCondition)
+            {
+                Assert.DoesNotContain(action.Returns, result =>
+                    result.Key.Contains("Point", StringComparison.Ordinal));
+            }
+        }
+    }
+
+    [Fact]
     public void Every_displayed_action_projects_one_engine_definition()
     {
         var problems = new List<string>();
@@ -86,12 +123,12 @@ public class ActionContractTests
 
                     var picker = facts.Picker;
                     if (picker == ActionPickerKind.Window
-                        && parameter.Kind != ActionParameterKind.Window)
+                        && parameter.Kind is not ActionParameterKind.WindowRule)
                     {
                         problems.Add($"{field}: a window picker sits on a field that is not a window");
                     }
 
-                    if (parameter.Kind == ActionParameterKind.Window
+                    if (parameter.Kind is ActionParameterKind.WindowRule
                         && picker != ActionPickerKind.Window)
                     {
                         problems.Add($"{field}: a window field has no window picker");
@@ -110,7 +147,7 @@ public class ActionContractTests
                     }
 
                     if (picker == ActionPickerKind.Element
-                        && parameter.Name is not ("uiSelector" or "anchorSelector"))
+                        && parameter.Name is not "uiSelector")
                     {
                         problems.Add($"{field}: an element picker sits on a field that names no element");
                     }
@@ -529,6 +566,7 @@ public class ActionContractTests
                      || line.StartsWith("| 显示器（", StringComparison.Ordinal)
                      || line.StartsWith("| 程序（", StringComparison.Ordinal)
                      || line.StartsWith("| 元素（", StringComparison.Ordinal)
+                     || line.StartsWith("| 点（", StringComparison.Ordinal)
                      || line.StartsWith("| 运行句柄（", StringComparison.Ordinal)))
         {
             var cells = line.Split('|');
@@ -760,6 +798,7 @@ public class ActionContractTests
         ActionParameterKind.Record => ActionValueShape.Record,
         ActionParameterKind.Point => ActionValueShape.Point,
         ActionParameterKind.Rect => ActionValueShape.Rect,
+        ActionParameterKind.WindowRule => ActionValueShape.WindowRule,
         _ => ActionValueShape.Text,
     };
 
