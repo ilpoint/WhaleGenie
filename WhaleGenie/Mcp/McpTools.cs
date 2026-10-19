@@ -70,7 +70,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         => Encode(await Ui(() => ActionKnowledge.Search(query, limit)));
 
     [McpServerTool(Name = "whalegenie_get_action", ReadOnly = true),
-     Description("Describes one action: parameters, kinds, defaults, options, reading rules and returns.")]
+     Description("Describes one action: parameters, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns.")]
     public async Task<string> GetAction(
         [Description("The action key, for example control.delay.")] string key)
         => await Ui(() => ActionKnowledge.Find(key) is { } action

@@ -35,9 +35,10 @@ public sealed class McpPrompts
            the project once in WhaleGenie (or choose "Choose location" when MCP starts). Do not
            invent a path.
         2. Call whalegenie_open_project to get a draft id. Do not edit through any other route.
-        3. Call whalegenie_list_actions / whalegenie_get_action to learn exact action keys and
-           parameter names. Call whalegenie_macro_template or whalegenie_get_macro to get the JSON
-           shape. Action keys and field names must come from the catalogue; never guess them.
+        3. Call whalegenie_list_actions / whalegenie_get_action to learn exact action keys,
+           parameter names, record fields and number ranges. Call whalegenie_macro_template or
+           whalegenie_get_macro to get the JSON shape. Action keys and field names must come from
+           the catalogue; never guess them.
         4. Put the whole macro back with whalegenie_put_macro, then call whalegenie_validate and fix
            every reported problem.
         5. Call whalegenie_apply only when the user wants the draft in the open project. Applying

@@ -137,7 +137,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   增加；草稿 `apply` 前对不上就拒绝，避免覆盖人在界面里的修改。
 - `McpDraftStore` 只改内存草稿；`apply` 才替换 `MainViewModel` 的宏与全局变量，`save_project` 才
   调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。
-- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。
+- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。参数还带
+  `Fields`（记录内部字段名）、`Unit`、`EmptyMeans`、`Minimum` 与 `Maximum`，窗口规则字段直接取自
+  `WindowRule.ToJson`，MCP 客户端不必猜记录结构或数字范围。
 - `McpServerViewModel.EnsureSaved` 是启动前的保存回调：`App` 把它接到
   `MainWindow.EnsureProjectSavedForMcpAsync`，后者在没有 `CurrentPath` 时弹「选择保存位置 / 先打开」，
   选择位置走现有 `SaveAsAsync`。没有窗口的测试不设回调，仍可直接启动。
