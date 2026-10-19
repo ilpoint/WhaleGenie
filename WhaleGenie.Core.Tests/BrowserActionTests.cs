@@ -13,6 +13,7 @@ namespace WhaleGenie.Core.Tests;
 /// browser really picks the option or really waits is only true or false against a browser, and a
 /// page served from a temporary folder answers that with no person and no screen involved.
 /// </summary>
+[Collection("Browser")]
 public class BrowserActionTests : IDisposable
 {
     /// <summary>The folder the pages of this check are read from.</summary>

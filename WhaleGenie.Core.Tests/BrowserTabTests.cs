@@ -12,6 +12,7 @@ namespace WhaleGenie.Core.Tests;
 /// against a browser that really opens one. No person and no screen are needed for any of it, so
 /// unlike picking an element off a page this is a check rather than something to do by hand.
 /// </summary>
+[Collection("Browser")]
 public class BrowserTabTests : IDisposable
 {
     /// <summary>A folder of pages that link to each other, the way a site's pages do.</summary>
