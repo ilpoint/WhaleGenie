@@ -1,0 +1,51 @@
+name: Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - "doc/images/**"
+      - "WhaleGenie/Assets/WhaleGenie.png"
+      - "WhaleGenie/Assets/DonateWeChat.png"
+      - "WhaleGenie/Assets/DonateAlipay.png"
+      - "build/site.ps1"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/configure-pages@v6
+
+      # The screenshots and logo stay where the program and README keep them. The script copies
+      # those files into the site rather than asking for a second copy that can drift.
+      - name: Assemble the site
+        shell: pwsh
+        run: ./build/site.ps1
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

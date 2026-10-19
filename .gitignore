@@ -34,6 +34,9 @@ bld/
 # 发布产物：publish 的输出目录，release.yml 和本地打包都往这里放
 dist/
 
+# 介绍页：build/site.ps1 把 site、截图和资源拼到这里，GitHub Pages 直接发布这个目录
+_site/
+
 [Ll]og/
 [Ll]ogs/
 

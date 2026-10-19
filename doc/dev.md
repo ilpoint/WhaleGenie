@@ -13,6 +13,7 @@ dotnet build WhaleGenie.slnx -c Release          # 构建（含警告检查）
 dotnet test  WhaleGenie.slnx -c Release          # 全部测试
 dotnet format WhaleGenie.slnx --verify-no-changes --no-restore   # 格式检查
 dotnet run --project WhaleGenie                  # 启动程序
+pwsh build/site.ps1                              # 拼出介绍页 _site
 ```
 
 解决方案只声明 `x64` 一个平台（`WhaleGenie.slnx`），没有 `Any CPU`：程序依赖的 OpenCV 与
@@ -22,6 +23,26 @@ Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotne
 
 构建把警告当成错误（`Directory.Build.props` 里的 `TreatWarningsAsErrors`），
 所以"能编译过"就等于"零警告"。
+
+## 介绍页与短片
+
+`site/` 是 GitHub Pages 的源：`index.html` 是单页介绍，`vibe/index.html` 是短片的时间轴；截图、
+图标和收款码仍从 `doc/images` 与 `WhaleGenie/Assets` 取，由 `build/site.ps1` 拼到 `_site`，不在
+仓库里多放一份会过期的副本。推送到 `master` 后 `.github/workflows/pages.yml` 发布 `_site`。
+第一次发布前，在仓库的 Settings → Pages 把 Source 选为 GitHub Actions。
+
+短片 `site/assets/whalegenie-vibe.mp4` 是 1280×720、24 秒、H.264 的无声文件，可以直接替换；要按
+`site/vibe/index.html` 重录时，用一份临时安装的 Playwright 驱动本机 Edge：
+
+```powershell
+npm install --prefix "$env:TEMP\whalegenie-site-tools" playwright-core@1.64.1
+npx --yes playwright@1.64.1 install ffmpeg
+$env:WHALEGENIE_PLAYWRIGHT = "$env:TEMP\whalegenie-site-tools\node_modules\playwright-core"
+node build/record-vibe.mjs .
+```
+
+录制脚本同时重做海报与社交分享图；它只用于改介绍页，不是程序的运行依赖。机器上还要有 `ffmpeg`
+和 Edge（Windows 11 自带）。
 
 只改文档时不必跑三项全绿，但要跑 `git diff --check`，并逐个确认 Markdown 相对链接指向存在的文件；
 手册的函数表、失败键表或文案有改动时，再跑对应的 `FunctionTableTests` / `LocalizationTests`。

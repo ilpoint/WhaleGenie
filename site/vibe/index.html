@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhaleGenie Vibe Video</title>
+  <style>
+    :root {
+      --ink: #0c1412;
+      --paper: #f6f0e5;
+      --coral: #ef6848;
+      --teal: #49b79b;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+    }
+    body {
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      color: var(--paper);
+    }
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw;
+      max-height: 100vh;
+      max-width: 177.7778vh;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 80% 22%, rgba(239, 104, 72, 0.25), transparent 34%),
+        radial-gradient(circle at 14% 84%, rgba(73, 183, 155, 0.2), transparent 38%),
+        var(--ink);
+    }
+    .grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.16;
+      background-image:
+        linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(to bottom, #000 20%, transparent 85%);
+    }
+    .glow {
+      position: absolute;
+      width: 42vw;
+      height: 42vw;
+      border-radius: 50%;
+      filter: blur(12px);
+      opacity: 0.55;
+    }
+    .glow-a {
+      right: -14vw;
+      top: -18vw;
+      background: radial-gradient(circle, rgba(239,104,72,.4), transparent 68%);
+    }
+    .glow-b {
+      left: -20vw;
+      bottom: -25vw;
+      background: radial-gradient(circle, rgba(73,183,155,.36), transparent 68%);
+    }
+    .mark {
+      position: absolute;
+      left: 8.5%;
+      top: 8%;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      opacity: 0;
+      transform: translateY(-12px);
+      animation: mark-in .8s 1.7s cubic-bezier(.22,.8,.25,1) forwards;
+    }
+    .mark img {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+    }
+    .mark span {
+      font-size: 13px;
+      letter-spacing: .16em;
+      color: rgba(246,240,229,.68);
+    }
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 8.5%;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .scene-inner { position: relative; z-index: 2; }
+    .scene-intro {
+      animation: scene-intro 4.8s 1.0s both;
+    }
+    .scene-main {
+      animation: scene-main 5.2s 5.8s both;
+    }
+    .scene-editor {
+      animation: scene-editor 5.2s 11.0s both;
+    }
+    .scene-features {
+      animation: scene-features 4.6s 16.2s both;
+    }
+    .scene-end {
+      animation: scene-end 3.4s 20.8s both;
+    }
+    .kicker {
+      margin: 0 0 23px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      max-width: 880px;
+      margin-bottom: 27px;
+      font-size: 104px;
+      line-height: .96;
+      letter-spacing: -.075em;
+      font-weight: 720;
+    }
+    h1 em {
+      color: var(--coral);
+      font-style: normal;
+    }
+    h2 {
+      max-width: 640px;
+      margin-bottom: 20px;
+      font-size: 62px;
+      line-height: 1.04;
+      letter-spacing: -.06em;
+    }
+    h2 em {
+      color: var(--coral);
+      font-style: normal;
+    }
+    .sub {
+      max-width: 620px;
+      margin-bottom: 0;
+      color: rgba(246,240,229,.64);
+      font-size: 21px;
+      line-height: 1.55;
+    }
+    .line {
+      display: block;
+      overflow: hidden;
+    }
+    .line > span {
+      display: block;
+      transform: translateY(115%);
+      animation: line-up 1s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .line:nth-child(2) > span { animation-delay: .12s; }
+    .line:nth-child(3) > span { animation-delay: .24s; }
+    @keyframes line-up {
+      to { transform: translateY(0); }
+    }
+    @keyframes mark-in {
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes scene-intro {
+      0% { opacity: 0; transform: translateY(18px); }
+      10%, 86% { opacity: 1; transform: none; }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    @keyframes scene-main {
+      0% { opacity: 0; }
+      8%, 88% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @keyframes scene-editor {
+      0% { opacity: 0; }
+      8%, 88% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @keyframes scene-features {
+      0% { opacity: 0; transform: translateY(16px); }
+      10%, 84% { opacity: 1; transform: none; }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    @keyframes scene-end {
+      0% { opacity: 0; transform: scale(.975); }
+      12%, 100% { opacity: 1; transform: none; }
+    }
+
+    .intro-rule {
+      width: 0;
+      height: 1px;
+      margin-top: 42px;
+      background: linear-gradient(90deg, var(--coral), rgba(239,104,72,0));
+      animation: rule-grow 1.4s 2.6s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    @keyframes rule-grow { to { width: 410px; } }
+
+    .shot-scene {
+      position: absolute;
+      right: -3%;
+      top: 16%;
+      width: 57%;
+      padding: 13px;
+      border: 1px solid rgba(255,255,255,.17);
+      border-radius: 18px;
+      background: rgba(255,255,255,.07);
+      box-shadow: 0 35px 80px rgba(0,0,0,.38);
+      transform: translateX(90px) rotate(1.2deg);
+      opacity: 0;
+    }
+    .scene-main .shot-scene {
+      animation: shot-in 1.1s 6.15s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .scene-editor .shot-scene {
+      width: 63%;
+      right: -5%;
+      top: 12%;
+      animation: shot-in 1.1s 11.35s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .shot-scene img {
+      display: block;
+      width: 100%;
+      border-radius: 10px;
+    }
+    @keyframes shot-in {
+      to { opacity: 1; transform: translateX(0) rotate(0); }
+    }
+    .scene-main .scene-inner,
+    .scene-editor .scene-inner {
+      width: 45%;
+    }
+    .scene-editor .stage,
+    .scene-editor .scene-inner { z-index: 2; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 31px;
+    }
+    .chips span {
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      color: rgba(246,240,229,.78);
+      font-size: 13px;
+    }
+
+    .feature-cloud {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 880px;
+      margin-top: 38px;
+    }
+    .feature-cloud div {
+      padding: 18px 20px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 13px;
+      background: rgba(255,255,255,.045);
+      color: rgba(246,240,229,.9);
+      font-size: 19px;
+    }
+    .feature-cloud small {
+      display: block;
+      margin-top: 3px;
+      color: rgba(246,240,229,.42);
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .end-card {
+      width: 100%;
+      text-align: center;
+      transform: translateY(-3%);
+    }
+    .end-card img {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 25px;
+      border-radius: 22px;
+      box-shadow: 0 20px 50px rgba(239,104,72,.2);
+    }
+    .end-card h2 {
+      max-width: none;
+      margin: 0 auto 13px;
+      font-size: 72px;
+    }
+    .end-card p {
+      margin: 0;
+      color: rgba(246,240,229,.55);
+      font-size: 17px;
+      letter-spacing: .02em;
+    }
+    .end-card .link {
+      margin-top: 28px;
+      color: var(--teal);
+      font-size: 16px;
+      letter-spacing: .08em;
+    }
+    .corner {
+      position: absolute;
+      right: 5%;
+      bottom: 6%;
+      color: rgba(246,240,229,.25);
+      font-size: 10px;
+      letter-spacing: .2em;
+    }
+    .progress {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 3px;
+      width: 0;
+      background: var(--coral);
+      animation: progress 24.2s linear 0s forwards;
+    }
+    @keyframes progress { to { width: 100%; } }
+  </style>
+</head>
+<body>
+  <main class="stage" aria-label="WhaleGenie 介绍短片">
+    <div class="grid"></div>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+
+    <div class="mark">
+      <img src="../assets/logo.png" alt="">
+      <span>WHALEGENIE / 鲸灵</span>
+    </div>
+
+    <section class="scene scene-intro">
+      <div class="scene-inner">
+        <p class="kicker">Windows automation, without the busywork</p>
+        <h1>
+          <span class="line"><span>把重复操作，</span></span>
+          <span class="line"><span><em>写成一条宏。</em></span></span>
+        </h1>
+        <p class="sub">键盘、鼠标、手柄、屏幕和窗口。<br>让鲸灵替你把下一步接上。</p>
+        <div class="intro-rule"></div>
+      </div>
+    </section>
+
+    <section class="scene scene-main">
+      <div class="scene-inner">
+        <p class="kicker">01 / One step at a time</p>
+        <h2>每一步，<br><em>都看得见。</em></h2>
+        <p class="sub">动作逐行排列。触发、条件、循环和收尾，都在同一条流程里。</p>
+        <div class="chips"><span>热键</span><span>鼠标</span><span>手柄</span><span>像素</span></div>
+      </div>
+      <div class="shot-scene"><img src="../assets/main-window.png" alt=""></div>
+    </section>
+
+    <section class="scene scene-editor">
+      <div class="scene-inner">
+        <p class="kicker">02 / Compose the flow</p>
+        <h2>想一遍，<br><em>排一遍。</em></h2>
+        <p class="sub">找图、取字、读窗口、点页面。<br>复杂的事，拆成可以改的步骤。</p>
+      </div>
+      <div class="shot-scene"><img src="../assets/macro-editor.png" alt=""></div>
+    </section>
+
+    <section class="scene scene-features">
+      <div class="scene-inner">
+        <p class="kicker">03 / A wider reach</p>
+        <h2>一套引擎，<br><em>五种掌控。</em></h2>
+        <div class="feature-cloud">
+          <div>找图找色<small>Vision</small></div>
+          <div>屏幕取字<small>OCR</small></div>
+          <div>浏览器<small>Playwright</small></div>
+          <div>窗口元素<small>UI Automation</small></div>
+          <div>文件数据<small>CSV / JSON</small></div>
+          <div>子宏与调试<small>Flow</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene scene-end">
+      <div class="end-card">
+        <img src="../assets/logo.png" alt="">
+        <h2>WhaleGenie <em>鲸灵</em></h2>
+        <p>Windows 10 / 11 · 开源免费 · 一条宏开始</p>
+        <p class="link">github.com/ilpoint/WhaleGenie</p>
+      </div>
+    </section>
+
+    <span class="corner">A SMALL AUTOMATION COMPANION</span>
+    <div class="progress"></div>
+  </main>
+  <script>
+    // The recorder waits for this flag instead of guessing when the last card has settled.
+    window.__vibeDone = false;
+    setTimeout(() => { window.__vibeDone = true; }, 24200);
+  </script>
+</body>
+</html>

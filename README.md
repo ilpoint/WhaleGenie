@@ -62,6 +62,7 @@ Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回�
 | [doc/roadmap.md](doc/roadmap.md) | 后续计划：未完成阶段、可并行的零散项、明确不做的范围 |
 | [doc/performance.md](doc/performance.md)（[English](doc/performance.en.md)） | 单次画面读取的单位成本与测量方法 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与图标出处 |
+| [项目介绍页](https://ilpoint.github.io/WhaleGenie/) | 功能概览、界面预览与 24 秒介绍短片 |
 
 ## 打赏支持
 
