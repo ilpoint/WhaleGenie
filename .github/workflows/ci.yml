@@ -36,10 +36,12 @@ jobs:
 
       - name: Keep the test report
         # act cannot use GitHub's artifact service; its bundled server rejects upload-artifact v6.
-        # Local runs set ACT=true so the quality gates above are the whole job.
-        if: always() && env.ACT != 'true'
+        # Local runs set ACT=true so the quality gates above are the whole job. A successful run
+        # needs no report, and seven days is enough to read one from a failed run.
+        if: failure() && env.ACT != 'true'
         uses: actions/upload-artifact@v6
         with:
           name: test-results
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
+          retention-days: 7
