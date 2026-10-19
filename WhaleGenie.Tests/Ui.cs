@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Avalonia.Headless;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 // The headless session is one thread carrying one Avalonia application. Two test classes that
@@ -62,6 +63,10 @@ internal static class SessionStartsFirst
     [ModuleInitializer]
     internal static void Start() => Ui.Run(() =>
     {
+        // The checks below read the Chinese wording unless they switch to English themselves.
+        // Pinning it here keeps a runner with an English system language from changing what they
+        // are looking at.
+        Strings.Current.Language = Language.Chinese;
         _ = ActionCatalog.Definitions.Count;
         _ = AppIcons.Workflow;
     });

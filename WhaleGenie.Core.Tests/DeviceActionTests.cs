@@ -10370,19 +10370,20 @@ public class DeviceActionTests
     {
         var library = new Macros(("子", []));
         var steps = Enumerable.Range(0, MacroRunner.MaxFinishedRuns + 4)
-            .Select(_ => Step("control.startMacro", Param("macro", "子"),
-                Param("runHandleName", "job")))
-            .Append(Step("control.waitMacro", Param("runHandle", "$job")))
+            .SelectMany(_ => new[]
+            {
+                Step("control.startMacro", Param("macro", "子"),
+                    Param("runHandleName", "job")),
+                Step("control.waitMacro", Param("runHandle", "$job")),
+            })
             .ToArray();
 
         var store = new VariableStore();
         var runner = new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer(), 1, library);
         var result = await runner.RunAsync(steps);
-        await Task.Delay(100);
 
         Assert.True(result.Succeeded, result.Key + " " + result.Detail);
-        Assert.True(runner.Children.Count <= MacroRunner.MaxFinishedRuns + MacroRunner.MaxBackgroundRuns,
-            $"kept {runner.Children.Count} runs");
+        Assert.Empty(runner.Children);
     }
 
     [Fact]
