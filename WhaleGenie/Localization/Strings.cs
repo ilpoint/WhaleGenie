@@ -280,14 +280,14 @@ public sealed class Strings : INotifyPropertyChanged
             + "four numbers.",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
-        ["Add.EmptyReachesTheEdge"] = "Left empty, this side reaches the edge of what it is counted "
-            + "from: the screen, or the window it is counted from.",
-        ["Add.EmptyUsesDefault"] = "When the step does not write it, the value the action starts "
-            + "with applies: a hand-written step may leave the field out.",
-        ["Add.EmptyKeeps"] = "Left empty, the window keeps the position or size it has now: write "
-            + "only the sides this step is meant to change.",
-        ["Add.EmptyScreenRefresh"] = "Left empty, the wait follows the screen: it looks again after "
-            + "one refresh, because a picture that was not drawn again reads the same.",
+        ["Add.EmptyReachesTheEdge"] =
+            "Leave this field empty to extend it to the edge of the reference area.",
+        ["Add.EmptyUsesDefault"] =
+            "Leave this field empty to use the action's default.",
+        ["Add.EmptyKeeps"] =
+            "Leave this field empty to keep the current value; fill in only what this step changes.",
+        ["Add.EmptyScreenRefresh"] =
+            "Leave this field empty to check once per screen refresh.",
         ["ActionType.Text"] = "text",
         ["ActionType.Number"] = "a number",
         ["ActionType.Flag"] = "yes or no",
@@ -299,12 +299,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.CallArgumentType"] = "The called macro asks for {0}.",
         ["Add.CallArgumentRequired"] = "Required: this call has to fill it in.",
         ["Add.CallArgumentDefault"] = "Default {0}: leave the field empty to use it.",
-        ["Add.FieldTakesFormula"] = "This whole value is worked out when the macro runs, so an "
-            + "expression can be written here.",
-        ["Add.FieldIsText"] = "This is text rather than a formula: a $name in it is replaced with "
-            + "what that variable holds and the rest is used as written.",
-        ["Add.OriginNote"] = "Recognition source: {0}. The four numbers are measured from the same "
-            + "place: left, top, width and height.",
+        ["Add.FieldTakesFormula"] =
+            "This field accepts an expression; the expression is evaluated when the macro runs.",
+        ["Add.FieldIsText"] =
+            "This field is read as text; a $name is replaced by the variable's value.",
+        ["Add.OriginNote"] = "Recognition basis: {0}. All four values use this basis.",
         ["Add.Origin.Screen"] = "the whole screen",
         ["Add.Origin.Window"] = "the client-area top-left corner of the target window",
         ["Add.ImageAdd"] = "Add a picture",
@@ -860,8 +859,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ExpressionWhenRun"] = "This reads as an expression; what it works out to is known "
             + "when the macro runs.",
         ["Add.ExpressionResult"] = "= {0}",
-        ["Add.FormulaNumber"] = "This box holds an expression. Clear it, or write a plain number, "
-            + "to go back to the spinner.",
+        ["Add.FormulaNumber"] =
+            "This box holds an expression. Clear it or enter a plain number to return to number input.",
         ["Add.FormulaMilliseconds"] = "An expression is counted in milliseconds.",
         ["Add.Unit.ms"] = "ms",
         ["Add.Unit.s"] = "s",
@@ -1958,11 +1957,10 @@ public sealed class Strings : INotifyPropertyChanged
             + "东西，四个数就清空。",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
-        ["Add.EmptyReachesTheEdge"] = "留空即从这一边一直量到屏幕边缘；识别方式选窗口时，"
-            + "量到那个窗口的那一边为止。",
-        ["Add.EmptyUsesDefault"] = "没写时按动作的默认值：这一项有默认值，手写文件里略过它也算完整的一步。",
-        ["Add.EmptyKeeps"] = "留空即保持窗口当前的位置或大小：只填这一步要改的那几项。",
-        ["Add.EmptyScreenRefresh"] = "留空即按屏幕刷新一次的时间：画面没重画，再看也只能读到同一张。",
+        ["Add.EmptyReachesTheEdge"] = "此字段留空表示延伸到参照区域的边缘。",
+        ["Add.EmptyUsesDefault"] = "此字段留空表示使用动作的默认值。",
+        ["Add.EmptyKeeps"] = "此字段留空表示保持当前值；只填写需要修改的项目。",
+        ["Add.EmptyScreenRefresh"] = "此字段留空表示按屏幕刷新间隔读取。",
         ["ActionType.Text"] = "文本",
         ["ActionType.Number"] = "数字",
         ["ActionType.Flag"] = "真假",
@@ -1974,10 +1972,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.CallArgumentType"] = "调用的宏要的是{0}。",
         ["Add.CallArgumentRequired"] = "必填：这一步必须填。",
         ["Add.CallArgumentDefault"] = "默认值 {0}：留空就用它。",
-        ["Add.FieldTakesFormula"] = "这里可以写算式：整段值由引擎在运行时算出来。",
-        ["Add.FieldIsText"] = "这里不计算式：$名字 只是就地替换成那个变量此刻的值，其余部分照原样"
-            + "使用。",
-        ["Add.OriginNote"] = "识别方式是{0}，这四个数也从同一处量起：左、上、宽、高。",
+        ["Add.FieldTakesFormula"] = "此字段可填写表达式；表达式在宏运行时计算。",
+        ["Add.FieldIsText"] = "此字段按文本读取；$名字 会替换为变量值。",
+        ["Add.OriginNote"] = "识别基准为{0}；四个值均按此基准测量。",
         ["Add.Origin.Screen"] = "屏幕",
         ["Add.Origin.Window"] = "目标窗口客户区左上角",
         ["Add.ImageAdd"] = "加一张",
@@ -2465,7 +2462,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ExpressionValid"] = "表达式有效",
         ["Add.ExpressionWhenRun"] = "这一段读得通；算出来是什么，要等跑起来才知道。",
         ["Add.ExpressionResult"] = "= {0}",
-        ["Add.FormulaNumber"] = "这个框里是一个表达式；清空它，或写一个普通数字，就回到数字框。",
+        ["Add.FormulaNumber"] = "此框为表达式；清空或输入普通数字后恢复数字输入。",
         ["Add.FormulaMilliseconds"] = "表达式按毫秒计算。",
         ["Add.Unit.ms"] = "毫秒",
         ["Add.Unit.s"] = "秒",

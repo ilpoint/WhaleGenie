@@ -1412,17 +1412,17 @@ internal static class ActionStrings
         ["window.move.window.label"] = WindowMatchTextLabel,
         ["window.move.window.hint"] = WindowTitleHint,
         ["window.move.x.label"] = "X",
-        ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。按窗口被看见的样子算：Windows 留着"
-            + "用来拉伸的那圈边框不画出来也不算；范围 -100000 到 100000，默认 0。window.info 交回来的那组数"
-            + "可以原样填在这里。",
+        ["window.move.x.hint"] = "窗口可见区域左边缘的屏幕横坐标，单位为像素。需要改变窗口的水平位置时填写；"
+            + "范围 -100000 到 100000。",
         ["window.move.y.label"] = "Y",
-        ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素，和 X 一样按窗口被看见的样子算，范围"
-            + " -100000 到 100000，默认 0。",
+        ["window.move.y.hint"] = "窗口可见区域上边缘的屏幕纵坐标，单位为像素。需要改变窗口的垂直位置时填写；"
+            + "范围 -100000 到 100000。",
         ["window.move.width.label"] = "宽度",
-        ["window.move.width.hint"] = "窗口要改成多宽，单位像素，同样按被看见的样子量，那圈看不见的"
-            + "边框不算；范围 1 到 100000，默认 800。",
+        ["window.move.width.hint"] = "窗口可见区域的宽度，单位为像素。需要改变窗口宽度时填写；"
+            + "范围 1 到 100000。",
         ["window.move.height.label"] = "高度",
-        ["window.move.height.hint"] = "窗口要改成多高，单位像素，和宽度一样算，范围 1 到 100000，默认 600。",
+        ["window.move.height.hint"] = "窗口可见区域的高度，单位为像素。需要改变窗口高度时填写；"
+            + "范围 1 到 100000。",
         ["window.move.rect.label"] = "矩形",
         ["window.move.rect.hint"] = "一条说明矩形的记录：命中、窗口、截图都带着 left、top、width、height，单位是屏幕像素；要读刚找到或刚截下的那一块时填它。填了记录，旁边四格数字不参与，也不再写进宏文件。",
 
