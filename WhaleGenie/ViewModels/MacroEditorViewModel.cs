@@ -161,6 +161,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Raised when the editor should open the run window for the current steps.</summary>
     public event Action? RunRequested;
 
+    /// <summary>
+    /// Raised when a save was asked for while the name or a declaration still blocks it. The window
+    /// answers by showing the page where the reason is written.
+    /// </summary>
+    public event Action? SaveBlocked;
+
     /// <summary>Raised when the palette asks to open the run-speed dialog.</summary>
     public event Action? AdjustDelaysRequested;
 
@@ -1609,6 +1615,24 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gives a new macro its first name without counting that name as an edit. The default is
+    /// already usable, so closing a new editor without touching anything still means "nothing to
+    /// save"; once a step is added, the default travels with it.
+    /// </summary>
+    internal void UseDefaultName(IEnumerable<string> existingNames)
+    {
+        _loading = true;
+        try
+        {
+            Name = MacroNames.NextDefault(existingNames);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>
     /// Variables the pickers offer: the ones this macro makes for itself, the shared ones the
     /// Variable Center defines, the ones WhaleGenie provides, and the ending every step leaves
     /// behind — each with what a person choosing one needs to know about it.
@@ -2277,6 +2301,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (!CanSave)
         {
+            SaveBlocked?.Invoke();
             return;
         }
 

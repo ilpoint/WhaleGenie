@@ -21,6 +21,21 @@ public class MainWindowIconTests
         Assert.DoesNotContain("Text=\"+\"", add, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Every_run_debug_entry_wears_the_bug_play_icon()
+    {
+        var main = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+        var editor = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
+            "MacroEditorWindow.axaml"));
+
+        Assert.Contains("models:AppIcons.BugPlay",
+            Block(main, "Name=\"RunDebugButton\""), StringComparison.Ordinal);
+        Assert.Contains("models:AppIcons.BugPlay",
+            Block(main, "Name=\"MacroRunDebugButton\""), StringComparison.Ordinal);
+        Assert.Contains("models:AppIcons.BugPlay",
+            Block(editor, "Name=\"RunDebugButton\""), StringComparison.Ordinal);
+    }
+
     /// <summary>The markup of the button whose definition starts at the given text.</summary>
     private static string Block(string xaml, string marker)
     {

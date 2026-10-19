@@ -336,8 +336,7 @@
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <!-- The debug view is the step list. -->
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.List}" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
                         <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"
                                    Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
@@ -396,10 +395,10 @@
                                         </Border>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                                        <Button Classes="CardButton"
+                                        <Button Name="MacroRunDebugButton" Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDebugMacroClicked">
-                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Play}" />
+                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
                                         </Button>
                                         <Button Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"

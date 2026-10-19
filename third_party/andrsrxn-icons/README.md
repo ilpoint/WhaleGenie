@@ -5,10 +5,10 @@
 - 上游：<https://github.com/andrsrxn/icons>，npm 包 `@andrsrxn/icons@7.6.0`（2026-10-15 发布）；
   Iconify 的集合数据取于 2026-10-16。
 - 许可：MIT，版权 2026 Andrés Raxón；原文见同目录的 `LICENSE`。
-- 取用的 58 个图标：`workflow`、`file`、`variable`、`clipboard`、`cpu`、`settings`、`app-window`、
+- 取用的 59 个图标：`workflow`、`file`、`variable`、`clipboard`、`cpu`、`settings`、`app-window`、
   `keyboard`、`eye`、`text-scan`、`cursor-click`、`browser`、`code`、`split`、`undo`、`redo`、`pencil`、
   `toggle`、`copy`、`scissors`、`paste`、`trash`、`group`、`external-link`、`arrow-up`、`arrow-down`、
-  `x`、`clock`、`play`、`pause`、`grid-four`、`minus`、`sun`、`pin`、`moon`、`folder`、`folder-open`、
+  `x`、`clock`、`play`、`bug-play`、`pause`、`grid-four`、`minus`、`sun`、`pin`、`moon`、`folder`、`folder-open`、
   `save`、`file-plus`、`download`、`search`、`reload`、`sparkle`、`message`、`question-mark`、`info`、
   `list`、`mouse`、`game-controller`、`dropper`、`cursor`、`filter`、`record`、`sliders`、`plus`、
   `chevron-down`、`chevron-right`、`warning-triangle`。

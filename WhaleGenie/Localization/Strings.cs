@@ -159,6 +159,7 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "Macro Editor",
+        ["Editor.DefaultMacroName"] = "Macro {0}",
         ["Editor.NamePlaceholder"] = "Enter a name for your macro..",
         ["Editor.LiftedMacroName"] = "{0}, a macro of its own",
         ["Editor.LiftedMacroNameEmpty"] = "A macro of its own",
@@ -1785,6 +1786,7 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "宏编辑器",
+        ["Editor.DefaultMacroName"] = "Macro {0}",
         ["Editor.NamePlaceholder"] = "给这个宏起个名字..",
         ["Editor.LiftedMacroName"] = "{0} 的子宏",
         ["Editor.LiftedMacroNameEmpty"] = "新的子宏",

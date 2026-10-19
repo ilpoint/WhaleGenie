@@ -144,7 +144,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(macro.Name))
         {
-            macro.Name = $"Macro {Macros.Count + 1}";
+            macro.Name = MacroNames.NextDefault(Macros.Select(item => item.Name));
         }
 
         Macros.Add(macro);

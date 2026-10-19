@@ -450,7 +450,7 @@
                             Foreground="{DynamicResource AppText}"
                             Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
-                            <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Play}" />
+                            <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
                             <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -480,7 +480,7 @@
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBox Classes="NameInput" Text="{Binding Name}"
+                            <TextBox Name="NameInput" Classes="NameInput" Text="{Binding Name}"
                                      PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
                             <TextBlock Classes="ProblemSummary" Margin="2,4,0,0"
                                        IsVisible="{Binding HasNameProblem}" Text="{Binding NameProblem}" />
