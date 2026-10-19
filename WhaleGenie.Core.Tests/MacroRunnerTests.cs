@@ -9,6 +9,7 @@ using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
 
+[Collection("InputGate")]
 public class MacroRunnerTests
 {
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)

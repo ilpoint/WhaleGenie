@@ -19,6 +19,7 @@ namespace WhaleGenie.Core.Tests;
 /// The actions that drive the machine. They run against a stand-in for the device layer, so
 /// the checks are about what the engine asked for, not about what happened to the desktop.
 /// </summary>
+[Collection("InputGate")]
 public class DeviceActionTests
 {
     /// <summary>
