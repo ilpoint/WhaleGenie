@@ -406,16 +406,10 @@ public sealed class ScriptDevice : IScriptDevice
         var said = new List<string>();
         var complained = new List<string>();
 
-        // The listener starts before the child does and owns a background thread, so neither a
-        // busy pool nor a short-lived script can make the connection look lost. A background
-        // thread also cannot keep the run alive if the pipe is disposed while it waits.
-        var listener = new Thread(() => Listen(pipe, asked, reached))
-        {
-            IsBackground = true,
-            Name = "WhaleGenie script pipe",
-        };
-        listener.Start();
-
+        // Start waiting before the child so a short-lived script cannot connect and exit before
+        // the listener has had a chance to run. The task is a normal pool task, so it cannot keep
+        // the process alive if the pipe is disposed while it waits.
+        _ = Task.Run(() => Listen(pipe, asked, reached));
         using var process = Start(info, program, how.Missing);
         var reading = new[]
         {
@@ -475,7 +469,7 @@ public sealed class ScriptDevice : IScriptDevice
             // A script that ends immediately can leave the process before the pipe listener has
             // marked its connection. Give that listener the same short window the output streams
             // get; otherwise a perfectly good run is reported as one that never reached us.
-            reached.Task.Wait(StopWaitMs);
+            reached.Task.Wait(TimeSpan.FromMilliseconds(10000));
 
             // A script that ran but never reached the macro is a run that could not be served at
             // all, which is a different thing from a script that failed and said why.
