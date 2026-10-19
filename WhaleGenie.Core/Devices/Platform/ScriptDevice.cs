@@ -411,7 +411,11 @@ public sealed class ScriptDevice : IScriptDevice
         {
             Task.Run(() => Pump(process.StandardOutput, output)),
             Task.Run(() => Pump(process.StandardError, error)),
-            Task.Run(() => Listen(pipe, asked, reached)),
+            // The listener owns the connection for the life of this step. A long-running task
+            // gets a thread of its own, so a busy pool cannot delay it until a short-lived script
+            // has already exited and been reported as never having reached us.
+            Task.Factory.StartNew(() => Listen(pipe, asked, reached), CancellationToken.None,
+                TaskCreationOptions.LongRunning, TaskScheduler.Default),
         };
 
         var started = Stopwatch.GetTimestamp();
