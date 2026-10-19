@@ -437,6 +437,15 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 失败即红。三个测试工程在 CI 上一个一个跑（`-m:1`）：它们同时跑会抢那几个核，按墙钟说话的用例
 就会替别的工程花掉的 CPU 时间买单。测试报告作为构建产物保留。
 
+本地用 `act` 跑同一套步骤。`windows-latest` 指到本机执行，`DOTNET_INSTALL_DIR` 给 setup-dotnet
+一个不用管理员权限的目录；`ACT=true` 让工件上传在本地跳过，因为 act 自带的工件服务不接受
+`upload-artifact@v6`：
+
+```powershell
+act -W .github/workflows/ci.yml -j build-and-test -P windows-latest=-self-hosted `
+  --env ACT=true --env DOTNET_INSTALL_DIR="$env:LOCALAPPDATA\act-dotnet"
+```
+
 ## 发布
 
 发布走 `.github/workflows/release.yml`：**打一个 `v` 开头的标签就是发版**。

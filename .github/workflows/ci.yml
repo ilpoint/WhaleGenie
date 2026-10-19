@@ -35,7 +35,9 @@ jobs:
         run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore -m:1 --logger "trx;LogFileName=results.trx"
 
       - name: Keep the test report
-        if: always()
+        # act cannot use GitHub's artifact service; its bundled server rejects upload-artifact v6.
+        # Local runs set ACT=true so the quality gates above are the whole job.
+        if: always() && env.ACT != 'true'
         uses: actions/upload-artifact@v6
         with:
           name: test-results
