@@ -406,16 +406,21 @@ public sealed class ScriptDevice : IScriptDevice
         var said = new List<string>();
         var complained = new List<string>();
 
+        // The listener starts before the child does and owns a background thread, so neither a
+        // busy pool nor a short-lived script can make the connection look lost. A background
+        // thread also cannot keep the run alive if the pipe is disposed while it waits.
+        var listener = new Thread(() => Listen(pipe, asked, reached))
+        {
+            IsBackground = true,
+            Name = "WhaleGenie script pipe",
+        };
+        listener.Start();
+
         using var process = Start(info, program, how.Missing);
         var reading = new[]
         {
             Task.Run(() => Pump(process.StandardOutput, output)),
             Task.Run(() => Pump(process.StandardError, error)),
-            // The listener owns the connection for the life of this step. A long-running task
-            // gets a thread of its own, so a busy pool cannot delay it until a short-lived script
-            // has already exited and been reported as never having reached us.
-            Task.Factory.StartNew(() => Listen(pipe, asked, reached), CancellationToken.None,
-                TaskCreationOptions.LongRunning, TaskScheduler.Default),
         };
 
         var started = Stopwatch.GetTimestamp();
