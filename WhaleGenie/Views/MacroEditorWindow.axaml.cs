@@ -636,6 +636,13 @@ public partial class MacroEditorWindow : Window
             {
                 case Key.X:
                     e.Handled = true;
+                    if (InspectorHost.IsVisible
+                        && _inspector?.DataContext is AddActionViewModel action)
+                    {
+                        action.ApplyCursorPosition(Layer.Screen.Cursor.X, Layer.Screen.Cursor.Y);
+                        return;
+                    }
+
                     CaptureCursorPosition(viewModel);
                     return;
                 case Key.C:
@@ -890,6 +897,15 @@ public partial class MacroEditorWindow : Window
         viewModel.ColorPositionX = picked.At.X.ToString(CultureInfo.InvariantCulture);
         viewModel.ColorPositionY = picked.At.Y.ToString(CultureInfo.InvariantCulture);
         ShowPickStatus(Strings.Format("Editor.PickedColor", picked.Colour.ToHex()));
+    }
+
+    /// <summary>Captures the window a window trigger should watch.</summary>
+    private async void OnPickTriggerWindow(object? sender, RoutedEventArgs e)
+    {
+        if (await WindowRuleWindow.PickAsync(this, Layer, _viewModel.WindowTarget) is { } rule)
+        {
+            _viewModel.UseWindowTarget(rule);
+        }
     }
 
     /// <summary>Alt + X: the pointer's current screen position becomes the watched position.</summary>

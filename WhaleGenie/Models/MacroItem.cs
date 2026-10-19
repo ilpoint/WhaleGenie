@@ -8,10 +8,6 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
-// The choice of how a window is recognised is a property here as well as a type in the engine, so
-// the type is named by an alias rather than being shadowed by the property.
-using WindowWays = WhaleGenie.Core.Devices.WindowHow;
-
 namespace WhaleGenie.Models;
 
 public partial class MacroItem : ObservableObject, ILanguageAware
@@ -120,14 +116,11 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     /// <summary>Whether the program starting or the program finishing starts the macro.</summary>
     public ProcessChangeKind ProcessChange { get; set; } = ProcessChangeKind.Started;
 
-    /// <summary>What a window trigger recognises its window by.</summary>
-    public string WindowValue { get; set; } = string.Empty;
-
     /// <summary>
-    /// How a window trigger recognises it: the one choice of five every window rule asks, held as
-    /// the macro file writes it.
+    /// The window rule a window trigger watches. It is the same record an action uses, so the
+    /// picker and every runtime lookup recognise a window in one way.
     /// </summary>
-    public string WindowHow { get; set; } = WindowWays.TitleContains;
+    public WindowRule WindowTarget { get; set; } = WindowRule.Empty;
 
     /// <summary>Whether the window appearing or going away starts the macro.</summary>
     public WindowChangeKind WindowChange { get; set; } = WindowChangeKind.Appeared;
@@ -187,7 +180,9 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         MacroTrigger.Process =>
             string.IsNullOrWhiteSpace(ProcessName) ? NoPreview : ProcessName,
         MacroTrigger.Window =>
-            string.IsNullOrWhiteSpace(WindowValue) ? NoPreview : WindowValue,
+            WindowTarget.MatchValue is { Length: > 0 } value
+                ? value
+                : NoPreview,
         MacroTrigger.Idle => Strings.Format("Idle.Summary", Math.Max(1, IdleSeconds)),
         _ => string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey,
     };
@@ -354,12 +349,8 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["name"] = ProcessName,
                 ["change"] = ProcessChange.ToString(),
             },
-            ["window"] = new JsonObject
-            {
-                ["value"] = WindowValue,
-                ["how"] = WindowHow,
-                ["change"] = WindowChange.ToString(),
-            },
+            ["window"] = WindowTarget.ToJson(),
+            ["windowChange"] = WindowChange.ToString(),
             ["idleSeconds"] = IdleSeconds,
             ["positionCapture"] = PositionCapture.ToString(),
             ["colorMatch"] = ColorMatch.ToString(),
@@ -459,9 +450,8 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             WatchSubfolders = ReadBool(watch?["subfolders"]),
             ProcessName = program?["name"]?.GetValue<string>() ?? string.Empty,
             ProcessChange = ReadEnum(program, "change", ProcessChangeKind.Started),
-            WindowValue = window?["value"]?.GetValue<string>() ?? string.Empty,
-            WindowHow = window?["how"]?.GetValue<string>() ?? WindowWays.TitleContains,
-            WindowChange = ReadEnum(window, "change", WindowChangeKind.Appeared),
+            WindowTarget = window is null ? WindowRule.Empty : WindowRule.FromJson(window),
+            WindowChange = ReadEnum(node, "windowChange", WindowChangeKind.Appeared),
             IdleSeconds = ReadInt(node["idleSeconds"], 60),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
             ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),

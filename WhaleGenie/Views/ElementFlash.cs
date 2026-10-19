@@ -21,6 +21,12 @@ internal static class ElementFlash
     /// window field does.
     /// </summary>
     public static UiElementInfo? Locate(IUiDevice? ui, string selector, string window)
+        => Locate(ui, selector, string.IsNullOrWhiteSpace(window)
+            ? WindowRule.Empty
+            : new WindowRule(Title: window));
+
+    /// <summary>The same, with the captured rule's chosen part and comparison.</summary>
+    public static UiElementInfo? Locate(IUiDevice? ui, string selector, WindowRule rule)
     {
         var wanted = (selector ?? string.Empty).Trim();
         if (ui is null || wanted.Length == 0)
@@ -30,7 +36,9 @@ internal static class ElementFlash
 
         try
         {
-            var query = UiQuery.Parse(wanted, string.IsNullOrWhiteSpace(window) ? null : window);
+            var (match, compare) = rule.Reading;
+            var query = UiQuery.Parse(wanted, rule.HasTarget ? rule.MatchValue : null, 1, match,
+                compare, rule.Options);
             return ui.FindAll(query, 1).FirstOrDefault();
         }
         catch (Exception)

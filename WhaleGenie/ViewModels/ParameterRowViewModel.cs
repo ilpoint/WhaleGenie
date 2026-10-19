@@ -70,6 +70,12 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// </summary>
     public bool IsRegionAnchor => First.IsRegionAnchor;
 
+    /// <summary>True when this line carries the point picker.</summary>
+    public bool IsPointAnchor => First.IsPointAnchor;
+
+    /// <summary>True when this line carries the window-bounds picker.</summary>
+    public bool IsWindowBoundsAnchor => First.IsWindowBoundsAnchor;
+
     /// <summary>True when this line carries the button that picks a click point on the picture.</summary>
     public bool ShowsOffsetPick => First.IsOffsetAnchor;
 

@@ -23,8 +23,7 @@ public class TriggerWatchTests
             {
                 Name = "等一个不存在的窗口",
                 TriggerMode = MacroTrigger.Window,
-                WindowValue = "鲸灵等不到的这个窗口标题",
-                WindowHow = WindowHow.TitleContains,
+                WindowTarget = new WindowRule(Title: "鲸灵等不到的这个窗口标题"),
                 WindowChange = WindowChangeKind.Appeared,
             };
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
@@ -59,8 +58,7 @@ public class TriggerWatchTests
             {
                 Name = "等这个程序",
                 TriggerMode = MacroTrigger.Window,
-                WindowValue = "notepad",
-                WindowHow = WindowHow.Process,
+                WindowTarget = new WindowRule(Process: "notepad", How: WindowHow.Process),
                 WindowChange = WindowChangeKind.Appeared,
             };
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
@@ -76,7 +74,7 @@ public class TriggerWatchTests
 
             // A rule nothing answers to waits, rather than being taken for the window it is not.
             // The window list is looked at every half second, which is what the wait is for.
-            macro.WindowValue = "excel";
+            macro.WindowTarget = macro.WindowTarget with { Process = "excel" };
             await Task.Delay(600);
             service.Look();
 
@@ -94,7 +92,7 @@ public class TriggerWatchTests
             {
                 Name = "等窗口",
                 TriggerMode = MacroTrigger.Window,
-                WindowValue = "鲸灵等不到的这个窗口标题",
+                WindowTarget = new WindowRule(Title: "鲸灵等不到的这个窗口标题"),
             };
             waiting.Steps.Add(new MacroStep { Type = "control.stop" });
 
@@ -108,7 +106,7 @@ public class TriggerWatchTests
                 Name = "关掉的",
                 IsEnabled = false,
                 TriggerMode = MacroTrigger.Window,
-                WindowValue = "鲸灵等不到的这个窗口标题",
+                WindowTarget = new WindowRule(Title: "鲸灵等不到的这个窗口标题"),
             };
             off.Steps.Add(new MacroStep { Type = "control.stop" });
 

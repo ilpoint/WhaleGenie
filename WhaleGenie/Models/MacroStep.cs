@@ -78,6 +78,8 @@ public class StepParameter
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
             or ActionParameterKind.Returns or ActionParameterKind.Narrow => RowsJson(),
         ActionParameterKind.Condition => Condition?.ToJson(),
+        ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
+            => JsonNode.Parse(Value),
         _ => JsonValue.Create(Value),
     };
 
@@ -159,6 +161,12 @@ public class StepParameter
                 Name = name,
                 Kind = ActionParameterKind.Condition,
                 Condition = MacroStep.FromJson(child),
+            },
+            JsonObject record when definition?.Kind is ActionParameterKind.WindowRule => new StepParameter
+            {
+                Name = name,
+                Kind = ActionParameterKind.WindowRule,
+                Value = record.ToJsonString(),
             },
             _ => new StepParameter
             {

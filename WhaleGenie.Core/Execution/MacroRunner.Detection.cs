@@ -663,8 +663,9 @@ public sealed partial class MacroRunner
             var anchor = AnchorOf(step);
             if (anchor.Window is { } window)
             {
-                var whole = Shot(step, window.Location.X, window.Location.Y, window.Size.Width,
-                    window.Size.Height, window);
+                var client = _devices.Windows.ClientOrigin(window.Handle);
+                var size = _devices.Windows.ClientSize(window.Handle);
+                var whole = Shot(step, client.X, client.Y, size.Width, size.Height, window);
                 return [(whole.Frame, whole.Origin)];
             }
 

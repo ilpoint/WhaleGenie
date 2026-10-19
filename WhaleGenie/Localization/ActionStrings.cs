@@ -23,26 +23,13 @@ internal static class ActionStrings
         + "需要 usbip-win2 驱动，设置窗口里能看它在不在。";
 
     /// <summary>
-    /// The hint for the window background input posts its messages at. The window is recognised the
-    /// way a window action recognises one, so the hint says so in the same words.
-    /// </summary>
-    private const string TargetWindowHint =
-        "后台输入把消息投给哪个窗口，靠下面两行认出，认法与窗口动作一致，不区分大小写。"
-        + "只有输入方式选后台消息时用得到它。";
-
-    /// <summary>
     /// The hint every action that takes a position or a rectangle shares for its coordinate-origin
     /// picker, written once for the same reason the input-mode hint is.
     /// </summary>
     private const string AnchorModeHint =
-        "这一步的坐标从哪儿量起，默认屏幕像素。屏幕像素＝桌面上的位置；窗口左上角＝从目标窗口"
-        + "外框的左上角算起；窗口客户区＝从窗口边框内侧算起。选后两种时这一步跟着窗口走："
-        + "窗口移动或缩放之后，坐标仍落在窗口里的同一处。";
-
-    /// <summary>The matching hint for the window those coordinates are measured from.</summary>
-    private const string AnchorWindowHint =
-        "坐标基准选窗口时才用：这个窗口的标题，填一部分即可，不区分大小写。"
-        + "留空表示运行时最前面的那个窗口。";
+        "这一步在哪儿识别，默认屏幕。屏幕＝直接看桌面；窗口＝看目标窗口客户区。选窗口时"
+        + "读取下面的窗口规则，识别画面、区域和坐标都从客户区左上角算起；窗口移动或缩放后，"
+        + "识别仍落在窗口里的同一处。";
 
     /// <summary>
     /// The same rule as the window actions use, said for a step that reads the screen: the window
@@ -50,7 +37,7 @@ internal static class ActionStrings
     /// it is matters twice over.
     /// </summary>
     private const string AnchorWindowRuleHint =
-        "坐标基准选窗口时才用：这个窗口靠下面两行认出，认法与窗口动作一致，不区分大小写；"
+        "识别方式选窗口时才用：获取一次目标窗口，运行时按这条规则重新找它；"
         + "这一步读到的画面也取自这个窗口。留空表示运行时最前面的那个窗口。";
 
 
@@ -116,12 +103,12 @@ internal static class ActionStrings
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
-        "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示最前面那个窗口。";
+        "获取一次目标窗口：标题、进程名、窗口类与句柄一起记下，运行时按选中的一项重新找窗。"
+        + "留空表示最前面那个窗口。";
 
     /// <summary>What an empty match text means to a step that lists windows rather than acting on one.</summary>
     private const string WindowListTitleHint =
-        "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示所有窗口（一次列完，"
-        + "不做筛选）。";
+        "获取一次目标窗口，运行时按这条规则筛选；留空表示所有窗口（一次列完，不做筛选）。";
 
     /// <summary>
     /// Where the picture a capture step just took is written out. The two capture steps ask it the
@@ -132,20 +119,7 @@ internal static class ActionStrings
         + "同名文件会被替换。";
 
     /// <summary>The label every window action gives the text its window is recognised by.</summary>
-    private const string WindowMatchTextLabel = "匹配内容";
-
-    /// <summary>
-    /// The one choice every window rule asks: what the text is held up against, and how. It is
-    /// written once because it is the same nine ways wherever a window is recognised, and the three
-    /// families of actions that ask it each add the sentence about what the settings beside the
-    /// field do.
-    /// </summary>
-    private const string WindowHowLabel = "匹配方式";
-
-    private const string WindowHowHint =
-        "这个窗口靠什么认出来：「匹配内容」里那段文字和窗口的哪一部分比、怎么比，不区分大小写。标题上有"
-        + "五档：包含、开头、结尾、等于、正则；进程名与窗口类名各两档：包含或等于。标题随文档名或界面语言"
-        + "变化时，改用进程名或窗口类名；名字会带上版本号之类的尾巴时，用「等于」而不是「包含」。";
+    private const string WindowMatchTextLabel = "窗口";
 
     /// <summary>
     /// How the writing a step read is held up against the writing it looks for. Written once because
@@ -157,16 +131,6 @@ internal static class ActionStrings
         + "大小写。「等于」在比之前去掉两端的空格，屏幕上读到的字常带着边上的空白。只看一头时用「以…开头」"
         + "或「以…结尾」，不必写正则；这一段要当通配用才选「正则匹配」。这一格留空按「包含」走；手写的宏"
         + "文件里写了这五档以外的字，这一步失败并写出为什么。";
-
-    private const string WindowHowTitleContains = "标题包含";
-    private const string WindowHowTitleStartsWith = "标题开头";
-    private const string WindowHowTitleEndsWith = "标题结尾";
-    private const string WindowHowTitleEquals = "标题等于";
-    private const string WindowHowTitleRegex = "标题正则";
-    private const string WindowHowProcess = "进程名";
-    private const string WindowHowProcessEquals = "进程名等于";
-    private const string WindowHowClass = "窗口类名";
-    private const string WindowHowClassEquals = "窗口类名等于";
 
     /// <summary>The hint the four text-file actions share for their encoding picker.</summary>
     private const string EncodingHintText =
@@ -180,20 +144,12 @@ internal static class ActionStrings
     private const string EncodingGbk = "GBK（中文）";
     private const string EncodingUtf16 = "UTF-16";
 
-    /// <summary>
-    /// The hint the actions that can measure from a control share for the control they measure from,
-    /// written once for the same reason the coordinate-origin hint is.
-    /// </summary>
-    private const string AnchorElementHint =
-        "坐标基准选界面元素时才用：这个元素的写法，例如 Button[name='Save']，可以用"
-        + "“拾取元素”从屏幕上取。每次运行时都会重新找它，元素移动之后坐标仍落在它身上。";
-
     /// <summary>The hint every search-region field shares, in the wording the English one uses.</summary>
     private const string RegionHintText =
         "搜索范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；"
         + "一行也可以填变量：图片变量（在前一步截取的那张图上搜索）或写成 x,y,宽,高 的矩形"
         + "变量，还可以填一条带矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，"
-        + "「坐标基准」只挪写出来的四个数字。留空表示整个屏幕（默认）。";
+        + "「识别方式」只挪写出来的四个数字。留空表示整个屏幕（默认）。";
 
     /// <summary>The hint the "which hit" fields share.</summary>
     private const string MatchIndexHint =
@@ -419,7 +375,7 @@ internal static class ActionStrings
     private const string DetectRegionHint =
         "检测范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；一行也可以"
         + "填变量：图片变量（在前面截取的那张图上检测）或写成 x,y,宽,高 的矩形变量，还可以填一条带"
-        + "矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，「坐标基准」只挪写出来的四个数字。"
+        + "矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，「识别方式」只挪写出来的四个数字。"
         + "留空表示整个屏幕（默认）。";
 
     /// <summary>
@@ -437,13 +393,7 @@ internal static class ActionStrings
     /// in fourteen of them, so it is written once rather than fourteen times the same sentence.
     /// </summary>
     private const string ElementWindowHint =
-        "可选：只在认得出的窗口里找，「匹配内容」与「匹配方式」两行一起说怎么认；留空表示在所有窗口里找。";
-
-    /// <summary>
-    /// What an empty match text means to a step that looks inside a window: it looks inside them
-    /// all, which is the answer a step that names no window has always given.
-    /// </summary>
-    private const string ElementLookInExtra = "不填「匹配内容」时在每个窗口里找。";
+        "可选：只在认得出的窗口里找；获取一次窗口，运行时按这条规则重新找它。留空表示在所有窗口里找。";
 
     /// <summary>How a selector is written, as much of it as every element action says.</summary>
     private const string SelectorPickHint =
@@ -1428,37 +1378,37 @@ internal static class ActionStrings
 
         // ------------------------------------------------------------------ window
         ["window.exists.name"] = "窗口是否存在",
-        ["window.exists.desc"] = "检查当前有没有符合匹配内容的窗口。",
+        ["window.exists.desc"] = "检查当前有没有符合窗口规则的窗口。",
         ["window.exists.window.label"] = WindowMatchTextLabel,
         ["window.exists.window.hint"] = WindowTitleHint,
 
         ["window.waitFor.name"] = "等待窗口",
-        ["window.waitFor.desc"] = "等到符合匹配内容的窗口出现为止，超过给定时间算失败。",
+        ["window.waitFor.desc"] = "等到符合窗口规则的窗口出现为止，超过给定时间算失败。",
         ["window.waitFor.window.label"] = WindowMatchTextLabel,
         ["window.waitFor.window.hint"] = WindowTitleHint,
 
         ["window.activate.name"] = "激活窗口",
-        ["window.activate.desc"] = "把符合匹配内容的窗口调到最前，已最小化时先恢复。",
+        ["window.activate.desc"] = "把符合窗口规则的窗口调到最前，已最小化时先恢复。",
         ["window.activate.window.label"] = WindowMatchTextLabel,
         ["window.activate.window.hint"] = WindowTitleHint,
 
         ["window.minimize.name"] = "最小化窗口",
-        ["window.minimize.desc"] = "把符合匹配内容的窗口最小化到任务栏。",
+        ["window.minimize.desc"] = "把符合窗口规则的窗口最小化到任务栏。",
         ["window.minimize.window.label"] = WindowMatchTextLabel,
         ["window.minimize.window.hint"] = WindowTitleHint,
 
         ["window.maximize.name"] = "最大化窗口",
-        ["window.maximize.desc"] = "把符合匹配内容的窗口最大化，铺满整个屏幕。",
+        ["window.maximize.desc"] = "把符合窗口规则的窗口最大化，铺满整个屏幕。",
         ["window.maximize.window.label"] = WindowMatchTextLabel,
         ["window.maximize.window.hint"] = WindowTitleHint,
 
         ["window.restore.name"] = "还原窗口",
-        ["window.restore.desc"] = "把符合匹配内容的窗口从最小化或最大化恢复成正常大小。",
+        ["window.restore.desc"] = "把符合窗口规则的窗口从最小化或最大化恢复成正常大小。",
         ["window.restore.window.label"] = WindowMatchTextLabel,
         ["window.restore.window.hint"] = WindowTitleHint,
 
-        ["window.move.name"] = "移动窗口",
-        ["window.move.desc"] = "把符合匹配内容的窗口移到指定位置，并改成指定大小。",
+        ["window.move.name"] = "移动或调整窗口大小",
+        ["window.move.desc"] = "把符合条件的窗口移到指定位置或改成指定大小；留空的边保持原值。",
         ["window.move.window.label"] = WindowMatchTextLabel,
         ["window.move.window.hint"] = WindowTitleHint,
         ["window.move.x.label"] = "X",
@@ -1477,12 +1427,12 @@ internal static class ActionStrings
         ["window.move.rect.hint"] = "一条说明矩形的记录：命中、窗口、截图都带着 left、top、width、height，单位是屏幕像素；要读刚找到或刚截下的那一块时填它。填了记录，旁边四格数字不参与，也不再写进宏文件。",
 
         ["window.close.name"] = "关闭窗口",
-        ["window.close.desc"] = "请求符合匹配内容的窗口关闭，相当于点它的关闭按钮。",
+        ["window.close.desc"] = "请求符合窗口规则的窗口关闭，相当于点它的关闭按钮。",
         ["window.close.window.label"] = WindowMatchTextLabel,
         ["window.close.window.hint"] = WindowTitleHint,
 
         ["window.list.name"] = "列出窗口",
-        ["window.list.desc"] = "把当前打开的窗口收集成一个列表，每个窗口一条记录，可以只留「匹配内容」认到的那些。",
+        ["window.list.desc"] = "把当前打开的窗口收集成一个列表，每个窗口一条记录，可以只留窗口规则认到的那些。",
         ["window.list.window.label"] = WindowMatchTextLabel,
         ["window.list.window.hint"] = WindowListTitleHint,
         ["window.list.details.label"] = "每个窗口都读程序名与类名（慢）",
@@ -1491,7 +1441,7 @@ internal static class ActionStrings
             + "读一次要给每个窗口问一次系统，所以默认关；要按程序名或按类名分辨窗口时打开它。",
 
         ["window.info.name"] = "窗口信息",
-        ["window.info.desc"] = "读取符合匹配内容的窗口的位置和大小。",
+        ["window.info.desc"] = "读取符合窗口规则的窗口的位置和大小。",
         ["window.info.window.label"] = WindowMatchTextLabel,
         ["window.info.window.hint"] = WindowTitleHint,
 
@@ -1579,10 +1529,10 @@ internal static class ActionStrings
         ["input.mouseMove.name"] = "鼠标移动到",
         ["input.mouseMove.desc"] = "把光标移动到屏幕上的指定位置。",
         ["input.mouseMove.x.label"] = "X",
-        ["input.mouseMove.x.hint"] = "目标位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
-            + "数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。",
+        ["input.mouseMove.x.hint"] = "目标位置的横坐标，按这一步的输入方式量起，单位是像素，默认 0。位置固定时填"
+            + "数字；位置会变时在这里填一个变量或算式。",
         ["input.mouseMove.y.label"] = "Y",
-        ["input.mouseMove.y.hint"] = "目标位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseMove.y.hint"] = "目标位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseMove.place.label"] = "位置",
         ["input.mouseMove.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
         ["input.mouseMove.durationMs.label"] = "用时",
@@ -1620,10 +1570,10 @@ internal static class ActionStrings
         ["input.mouseClick.useCursor.label"] = AtPointerLabel,
         ["input.mouseClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseClick.x.label"] = "X",
-        ["input.mouseClick.x.hint"] = "点击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
+        ["input.mouseClick.x.hint"] = "点击位置的横坐标，按这一步的输入方式量起，单位是像素，默认 0。位置固定时填"
             + "数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
         ["input.mouseClick.y.label"] = "Y",
-        ["input.mouseClick.y.hint"] = "点击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseClick.y.hint"] = "点击位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseClick.place.label"] = "位置",
         ["input.mouseClick.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
         ["input.mouseClick.repeat.label"] = "重复次数",
@@ -1650,10 +1600,10 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.useCursor.label"] = AtPointerLabel,
         ["input.mouseDoubleClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseDoubleClick.x.label"] = "X",
-        ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定"
+        ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标，按这一步的输入方式量起，单位是像素，默认 0。位置固定"
             + "时填数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
         ["input.mouseDoubleClick.y.label"] = "Y",
-        ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseDoubleClick.place.label"] = "位置",
         ["input.mouseDoubleClick.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
         ["input.mouseDoubleClick.repeat.label"] = "重复次数",
@@ -1676,10 +1626,10 @@ internal static class ActionStrings
         ["input.mouseDown.useCursor.label"] = AtPointerLabel,
         ["input.mouseDown.useCursor.hint"] = AtPointerHint,
         ["input.mouseDown.x.label"] = "X",
-        ["input.mouseDown.x.hint"] = "按下位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
+        ["input.mouseDown.x.hint"] = "按下位置的横坐标，按这一步的输入方式量起，单位是像素，默认 0。勾上「就在指针"
             + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseDown.y.label"] = "Y",
-        ["input.mouseDown.y.hint"] = "按下位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseDown.y.hint"] = "按下位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseDown.place.label"] = "位置",
         ["input.mouseDown.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
 
@@ -1690,10 +1640,10 @@ internal static class ActionStrings
         ["input.mouseUp.useCursor.label"] = AtPointerLabel,
         ["input.mouseUp.useCursor.hint"] = AtPointerHint,
         ["input.mouseUp.x.label"] = "X",
-        ["input.mouseUp.x.hint"] = "松开位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
+        ["input.mouseUp.x.hint"] = "松开位置的横坐标，按这一步的输入方式量起，单位是像素，默认 0。勾上「就在指针"
             + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseUp.y.label"] = "Y",
-        ["input.mouseUp.y.hint"] = "松开位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseUp.y.hint"] = "松开位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseUp.place.label"] = "位置",
         ["input.mouseUp.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
 
@@ -1712,10 +1662,10 @@ internal static class ActionStrings
         ["input.mouseScroll.smoothMs.hint"] = "把这次滚动分摊到这段时间里分小段发送，单位是毫秒，默认 0，即一次"
             + "滚完。程序自己带动画时用它。",
         ["input.mouseScroll.x.label"] = "X",
-        ["input.mouseScroll.x.hint"] = "滚动位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
+        ["input.mouseScroll.x.hint"] = "滚动位置的横坐标，按这一步的输入方式量起，单位是像素，默认 0。勾上「就在指针"
             + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseScroll.y.label"] = "Y",
-        ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseScroll.place.label"] = "位置",
         ["input.mouseScroll.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
         ["input.mouseScroll.useCursor.label"] = AtPointerLabel,
@@ -1728,7 +1678,7 @@ internal static class ActionStrings
         ["input.mouseDrag.name"] = "鼠标拖拽",
         ["input.mouseDrag.desc"] = "在起点按下，拖至终点后松开。",
         ["input.mouseDrag.startX.label"] = "起点 X",
-        ["input.mouseDrag.startX.hint"] = "拖拽从哪一列开始，按「坐标基准」量起，单位是像素，默认 0。"
+        ["input.mouseDrag.startX.hint"] = "拖拽从哪一列开始，按这一步的输入方式量起，单位是像素，默认 0。"
             + "「框选区域」把两端一次填满：拖出来的那个矩形的左上角填在这里。",
         ["input.mouseDrag.startY.label"] = "起点 Y",
         ["input.mouseDrag.startY.hint"] = "拖拽从哪一行开始，和起点的横坐标一样量，单位是像素，默认 0。",
@@ -1832,48 +1782,36 @@ internal static class ActionStrings
         ["input.keyPress.inputMode.option.foreground"] = "前台",
         ["input.keyPress.inputMode.option.background"] = "后台消息",
         ["input.keyPress.inputMode.option.driver"] = "驱动级",
-        ["input.keyPress.targetWindow.label"] = "目标窗口",
-        ["input.keyPress.targetWindow.hint"] = TargetWindowHint,
 
         ["input.keySequence.inputMode.label"] = "输入方式",
         ["input.keySequence.inputMode.hint"] = InputModeHint,
         ["input.keySequence.inputMode.option.foreground"] = "前台",
         ["input.keySequence.inputMode.option.background"] = "后台消息",
         ["input.keySequence.inputMode.option.driver"] = "驱动级",
-        ["input.keySequence.targetWindow.label"] = "目标窗口",
-        ["input.keySequence.targetWindow.hint"] = TargetWindowHint,
 
         ["input.keyDown.inputMode.label"] = "输入方式",
         ["input.keyDown.inputMode.hint"] = InputModeHint,
         ["input.keyDown.inputMode.option.foreground"] = "前台",
         ["input.keyDown.inputMode.option.background"] = "后台消息",
         ["input.keyDown.inputMode.option.driver"] = "驱动级",
-        ["input.keyDown.targetWindow.label"] = "目标窗口",
-        ["input.keyDown.targetWindow.hint"] = TargetWindowHint,
 
         ["input.keyUp.inputMode.label"] = "输入方式",
         ["input.keyUp.inputMode.hint"] = InputModeHint,
         ["input.keyUp.inputMode.option.foreground"] = "前台",
         ["input.keyUp.inputMode.option.background"] = "后台消息",
         ["input.keyUp.inputMode.option.driver"] = "驱动级",
-        ["input.keyUp.targetWindow.label"] = "目标窗口",
-        ["input.keyUp.targetWindow.hint"] = TargetWindowHint,
 
         ["input.hotkey.inputMode.label"] = "输入方式",
         ["input.hotkey.inputMode.hint"] = InputModeHint,
         ["input.hotkey.inputMode.option.foreground"] = "前台",
         ["input.hotkey.inputMode.option.background"] = "后台消息",
         ["input.hotkey.inputMode.option.driver"] = "驱动级",
-        ["input.hotkey.targetWindow.label"] = "目标窗口",
-        ["input.hotkey.targetWindow.hint"] = TargetWindowHint,
 
         ["input.typeText.inputMode.label"] = "输入方式",
         ["input.typeText.inputMode.hint"] = InputModeHint,
         ["input.typeText.inputMode.option.foreground"] = "前台",
         ["input.typeText.inputMode.option.background"] = "后台消息",
         ["input.typeText.inputMode.option.driver"] = "驱动级",
-        ["input.typeText.targetWindow.label"] = "目标窗口",
-        ["input.typeText.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseMove.inputMode.label"] = "输入方式",
         ["input.mouseMove.inputMode.hint"] = InputModeHint
@@ -1881,8 +1819,6 @@ internal static class ActionStrings
         ["input.mouseMove.inputMode.option.foreground"] = "前台",
         ["input.mouseMove.inputMode.option.background"] = "后台消息",
         ["input.mouseMove.inputMode.option.driver"] = "驱动级",
-        ["input.mouseMove.targetWindow.label"] = "目标窗口",
-        ["input.mouseMove.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseMoveRelative.inputMode.label"] = "输入方式",
         ["input.mouseMoveRelative.inputMode.hint"] = InputModeHint
@@ -1890,211 +1826,96 @@ internal static class ActionStrings
             + "相对移动问的是指针现在在哪儿，而这一档从来没让指针动过。改用前台或驱动级，或者用"
             + "「鼠标移动到」把位置按绝对坐标写全。",
         ["input.mouseMoveRelative.inputMode.option.foreground"] = "前台",
-        ["input.mouseMoveRelative.inputMode.option.background"] = "后台消息",
         ["input.mouseMoveRelative.inputMode.option.driver"] = "驱动级",
-        ["input.mouseMoveRelative.targetWindow.label"] = "目标窗口",
-        ["input.mouseMoveRelative.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseClick.inputMode.label"] = "输入方式",
         ["input.mouseClick.inputMode.hint"] = InputModeHint,
         ["input.mouseClick.inputMode.option.foreground"] = "前台",
         ["input.mouseClick.inputMode.option.background"] = "后台消息",
         ["input.mouseClick.inputMode.option.driver"] = "驱动级",
-        ["input.mouseClick.targetWindow.label"] = "目标窗口",
-        ["input.mouseClick.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseDoubleClick.inputMode.label"] = "输入方式",
         ["input.mouseDoubleClick.inputMode.hint"] = InputModeHint,
         ["input.mouseDoubleClick.inputMode.option.foreground"] = "前台",
         ["input.mouseDoubleClick.inputMode.option.background"] = "后台消息",
         ["input.mouseDoubleClick.inputMode.option.driver"] = "驱动级",
-        ["input.mouseDoubleClick.targetWindow.label"] = "目标窗口",
-        ["input.mouseDoubleClick.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseDown.inputMode.label"] = "输入方式",
         ["input.mouseDown.inputMode.hint"] = InputModeHint,
         ["input.mouseDown.inputMode.option.foreground"] = "前台",
         ["input.mouseDown.inputMode.option.background"] = "后台消息",
         ["input.mouseDown.inputMode.option.driver"] = "驱动级",
-        ["input.mouseDown.targetWindow.label"] = "目标窗口",
-        ["input.mouseDown.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseUp.inputMode.label"] = "输入方式",
         ["input.mouseUp.inputMode.hint"] = InputModeHint,
         ["input.mouseUp.inputMode.option.foreground"] = "前台",
         ["input.mouseUp.inputMode.option.background"] = "后台消息",
         ["input.mouseUp.inputMode.option.driver"] = "驱动级",
-        ["input.mouseUp.targetWindow.label"] = "目标窗口",
-        ["input.mouseUp.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseScroll.inputMode.label"] = "输入方式",
         ["input.mouseScroll.inputMode.hint"] = InputModeHint,
         ["input.mouseScroll.inputMode.option.foreground"] = "前台",
         ["input.mouseScroll.inputMode.option.background"] = "后台消息",
         ["input.mouseScroll.inputMode.option.driver"] = "驱动级",
-        ["input.mouseScroll.targetWindow.label"] = "目标窗口",
-        ["input.mouseScroll.targetWindow.hint"] = TargetWindowHint,
 
         ["input.mouseDrag.inputMode.label"] = "输入方式",
         ["input.mouseDrag.inputMode.hint"] = InputModeHint,
         ["input.mouseDrag.inputMode.option.foreground"] = "前台",
         ["input.mouseDrag.inputMode.option.background"] = "后台消息",
         ["input.mouseDrag.inputMode.option.driver"] = "驱动级",
-        ["input.mouseDrag.targetWindow.label"] = "目标窗口",
-        ["input.mouseDrag.targetWindow.hint"] = TargetWindowHint,
 
-        // 坐标基准：所有带坐标或矩形的动作共用一组文案。
-        ["input.mouseMove.anchorMode.label"] = "坐标基准",
-        ["input.mouseMove.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseMove.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseMove.anchorSelector.label"] = "锚点元素",
-        ["input.mouseMove.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseMove.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseMove.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseMove.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseMove.anchorWindow.label"] = "基准窗口",
-        ["input.mouseMove.anchorWindow.hint"] = AnchorWindowHint,
+        // 识别方式：所有带坐标或矩形的动作共用一组文案。
 
-        ["input.mouseClick.anchorMode.label"] = "坐标基准",
-        ["input.mouseClick.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseClick.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseClick.anchorSelector.label"] = "锚点元素",
-        ["input.mouseClick.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseClick.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseClick.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseClick.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseClick.anchorWindow.label"] = "基准窗口",
-        ["input.mouseClick.anchorWindow.hint"] = AnchorWindowHint,
 
-        ["input.mouseDoubleClick.anchorMode.label"] = "坐标基准",
-        ["input.mouseDoubleClick.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseDoubleClick.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseDoubleClick.anchorSelector.label"] = "锚点元素",
-        ["input.mouseDoubleClick.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseDoubleClick.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseDoubleClick.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseDoubleClick.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseDoubleClick.anchorWindow.label"] = "基准窗口",
-        ["input.mouseDoubleClick.anchorWindow.hint"] = AnchorWindowHint,
 
-        ["input.mouseDown.anchorMode.label"] = "坐标基准",
-        ["input.mouseDown.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseDown.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseDown.anchorSelector.label"] = "锚点元素",
-        ["input.mouseDown.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseDown.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseDown.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseDown.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseDown.anchorWindow.label"] = "基准窗口",
-        ["input.mouseDown.anchorWindow.hint"] = AnchorWindowHint,
 
-        ["input.mouseUp.anchorMode.label"] = "坐标基准",
-        ["input.mouseUp.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseUp.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseUp.anchorSelector.label"] = "锚点元素",
-        ["input.mouseUp.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseUp.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseUp.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseUp.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseUp.anchorWindow.label"] = "基准窗口",
-        ["input.mouseUp.anchorWindow.hint"] = AnchorWindowHint,
 
-        ["input.mouseScroll.anchorMode.label"] = "坐标基准",
-        ["input.mouseScroll.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseScroll.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseScroll.anchorSelector.label"] = "锚点元素",
-        ["input.mouseScroll.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseScroll.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseScroll.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseScroll.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseScroll.anchorWindow.label"] = "基准窗口",
-        ["input.mouseScroll.anchorWindow.hint"] = AnchorWindowHint,
 
-        ["input.mouseDrag.anchorMode.label"] = "坐标基准",
-        ["input.mouseDrag.anchorMode.hint"] = AnchorModeHint,
-        ["input.mouseDrag.anchorMode.option.element"] = "界面元素左上角",
-        ["input.mouseDrag.anchorSelector.label"] = "锚点元素",
-        ["input.mouseDrag.anchorSelector.hint"] = AnchorElementHint,
-        ["input.mouseDrag.anchorMode.option.screen"] = "屏幕像素",
-        ["input.mouseDrag.anchorMode.option.window"] = "窗口左上角",
-        ["input.mouseDrag.anchorMode.option.client"] = "窗口客户区",
-        ["input.mouseDrag.anchorWindow.label"] = "基准窗口",
-        ["input.mouseDrag.anchorWindow.hint"] = AnchorWindowHint,
 
-        ["vision.capture.anchorMode.label"] = "坐标基准",
+        ["vision.capture.anchorMode.label"] = "识别方式",
         ["vision.capture.anchorMode.hint"] = AnchorModeHint,
-        ["vision.capture.anchorMode.option.element"] = "界面元素左上角",
-        ["vision.capture.anchorSelector.label"] = "锚点元素",
-        ["vision.capture.anchorSelector.hint"] = AnchorElementHint,
-        ["vision.capture.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.capture.anchorMode.option.window"] = "窗口左上角",
-        ["vision.capture.anchorMode.option.client"] = "窗口客户区",
-        ["vision.capture.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.capture.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.capture.anchorMode.option.screen"] = "屏幕",
+        ["vision.capture.anchorMode.option.window"] = "窗口",
 
-        ["vision.findImage.anchorMode.label"] = "坐标基准",
+        ["vision.findImage.anchorMode.label"] = "识别方式",
         ["vision.findImage.anchorMode.hint"] = AnchorModeHint,
-        ["vision.findImage.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.findImage.anchorMode.option.window"] = "窗口左上角",
-        ["vision.findImage.anchorMode.option.client"] = "窗口客户区",
-        ["vision.findImage.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.findImage.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.findImage.anchorMode.option.screen"] = "屏幕",
+        ["vision.findImage.anchorMode.option.window"] = "窗口",
 
-        ["vision.getPixel.anchorMode.label"] = "坐标基准",
+        ["vision.getPixel.anchorMode.label"] = "识别方式",
         ["vision.getPixel.anchorMode.hint"] = AnchorModeHint,
-        ["vision.getPixel.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.getPixel.anchorMode.option.window"] = "窗口左上角",
-        ["vision.getPixel.anchorMode.option.client"] = "窗口客户区",
-        ["vision.getPixel.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.getPixel.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.getPixel.anchorMode.option.screen"] = "屏幕",
+        ["vision.getPixel.anchorMode.option.window"] = "窗口",
 
-        ["vision.waitColor.anchorMode.label"] = "坐标基准",
+        ["vision.waitColor.anchorMode.label"] = "识别方式",
         ["vision.waitColor.anchorMode.hint"] = AnchorModeHint,
-        ["vision.waitColor.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.waitColor.anchorMode.option.window"] = "窗口左上角",
-        ["vision.waitColor.anchorMode.option.client"] = "窗口客户区",
-        ["vision.waitColor.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.waitColor.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.waitColor.anchorMode.option.screen"] = "屏幕",
+        ["vision.waitColor.anchorMode.option.window"] = "窗口",
 
-        ["ocr.recognize.anchorMode.label"] = "坐标基准",
+        ["ocr.recognize.anchorMode.label"] = "识别方式",
         ["ocr.recognize.anchorMode.hint"] = AnchorModeHint,
-        ["ocr.recognize.anchorMode.option.screen"] = "屏幕像素",
-        ["ocr.recognize.anchorMode.option.window"] = "窗口左上角",
-        ["ocr.recognize.anchorMode.option.client"] = "窗口客户区",
-        ["ocr.recognize.anchorWindow.label"] = WindowMatchTextLabel,
-        ["ocr.recognize.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["ocr.recognize.anchorMode.option.screen"] = "屏幕",
+        ["ocr.recognize.anchorMode.option.window"] = "窗口",
 
-        ["ocr.findText.anchorMode.label"] = "坐标基准",
+        ["ocr.findText.anchorMode.label"] = "识别方式",
         ["ocr.findText.anchorMode.hint"] = AnchorModeHint,
-        ["ocr.findText.anchorMode.option.screen"] = "屏幕像素",
-        ["ocr.findText.anchorMode.option.window"] = "窗口左上角",
-        ["ocr.findText.anchorMode.option.client"] = "窗口客户区",
-        ["ocr.findText.anchorWindow.label"] = WindowMatchTextLabel,
-        ["ocr.findText.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["ocr.findText.anchorMode.option.screen"] = "屏幕",
+        ["ocr.findText.anchorMode.option.window"] = "窗口",
 
-        ["condition.imageExists.anchorMode.label"] = "坐标基准",
+        ["condition.imageExists.anchorMode.label"] = "识别方式",
         ["condition.imageExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.imageExists.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.imageExists.anchorMode.option.window"] = "窗口左上角",
-        ["condition.imageExists.anchorMode.option.client"] = "窗口客户区",
-        ["condition.imageExists.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.imageExists.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.imageExists.anchorMode.option.screen"] = "屏幕",
+        ["condition.imageExists.anchorMode.option.window"] = "窗口",
 
-        ["condition.textExists.anchorMode.label"] = "坐标基准",
+        ["condition.textExists.anchorMode.label"] = "识别方式",
         ["condition.textExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.textExists.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.textExists.anchorMode.option.window"] = "窗口左上角",
-        ["condition.textExists.anchorMode.option.client"] = "窗口客户区",
-        ["condition.textExists.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.textExists.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.textExists.anchorMode.option.screen"] = "屏幕",
+        ["condition.textExists.anchorMode.option.window"] = "窗口",
 
-        ["condition.colorEquals.anchorMode.label"] = "坐标基准",
+        ["condition.colorEquals.anchorMode.label"] = "识别方式",
         ["condition.colorEquals.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorEquals.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.colorEquals.anchorMode.option.window"] = "窗口左上角",
-        ["condition.colorEquals.anchorMode.option.client"] = "窗口客户区",
-        ["condition.colorEquals.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.colorEquals.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.colorEquals.anchorMode.option.screen"] = "屏幕",
+        ["condition.colorEquals.anchorMode.option.window"] = "窗口",
 
         // ------------------------------------- 找图 / 找色做厚：多命中、多区域、多点比色
         // 识别算法：找图那三个动作共用一组文案。
@@ -2151,13 +1972,10 @@ internal static class ActionStrings
         ["vision.waitImage.imageSet.option.first"] = "认出的第一张",
         ["vision.waitImage.imageSet.option.best"] = "最像的那一张",
         ["vision.waitImage.imageSet.option.every"] = "每一张都要",
-        ["vision.waitImage.anchorMode.label"] = "坐标基准",
+        ["vision.waitImage.anchorMode.label"] = "识别方式",
         ["vision.waitImage.anchorMode.hint"] = AnchorModeHint,
-        ["vision.waitImage.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.waitImage.anchorMode.option.window"] = "窗口左上角",
-        ["vision.waitImage.anchorMode.option.client"] = "窗口客户区",
-        ["vision.waitImage.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.waitImage.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.waitImage.anchorMode.option.screen"] = "屏幕",
+        ["vision.waitImage.anchorMode.option.window"] = "窗口",
 
         ["vision.clickImage.region.label"] = "搜索区域",
         ["vision.clickImage.region.hint"] = RegionHintText,
@@ -2184,13 +2002,10 @@ internal static class ActionStrings
         ["vision.clickImage.imageSet.option.first"] = "认出的第一张",
         ["vision.clickImage.imageSet.option.best"] = "最像的那一张",
         ["vision.clickImage.imageSet.option.every"] = "每一张都要",
-        ["vision.clickImage.anchorMode.label"] = "坐标基准",
+        ["vision.clickImage.anchorMode.label"] = "识别方式",
         ["vision.clickImage.anchorMode.hint"] = AnchorModeHint,
-        ["vision.clickImage.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.clickImage.anchorMode.option.window"] = "窗口左上角",
-        ["vision.clickImage.anchorMode.option.client"] = "窗口客户区",
-        ["vision.clickImage.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.clickImage.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.clickImage.anchorMode.option.screen"] = "屏幕",
+        ["vision.clickImage.anchorMode.option.window"] = "窗口",
 
         ["vision.findColor.name"] = "查找颜色",
         ["vision.findColor.desc"] = "在屏幕的一块区域里找某个颜色。",
@@ -2217,13 +2032,10 @@ internal static class ActionStrings
         ["vision.findColor.return.every.hint"] = EveryHitHint,
         ["vision.findColor.region.label"] = "搜索区域",
         ["vision.findColor.region.hint"] = RegionHintText,
-        ["vision.findColor.anchorMode.label"] = "坐标基准",
+        ["vision.findColor.anchorMode.label"] = "识别方式",
         ["vision.findColor.anchorMode.hint"] = AnchorModeHint,
-        ["vision.findColor.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.findColor.anchorMode.option.window"] = "窗口左上角",
-        ["vision.findColor.anchorMode.option.client"] = "窗口客户区",
-        ["vision.findColor.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.findColor.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.findColor.anchorMode.option.screen"] = "屏幕",
+        ["vision.findColor.anchorMode.option.window"] = "窗口",
 
         ["vision.findColors.name"] = "多点找色",
         ["vision.findColors.desc"] = "找一个颜色，并要求它周围指定的位置上也各有指定的颜色。",
@@ -2252,13 +2064,10 @@ internal static class ActionStrings
         ["vision.findColors.return.match.hint"] = HitRecordHintColour,
         ["vision.findColors.return.every.label"] = EveryHitLabel,
         ["vision.findColors.return.every.hint"] = EveryHitHint,
-        ["vision.findColors.anchorMode.label"] = "坐标基准",
+        ["vision.findColors.anchorMode.label"] = "识别方式",
         ["vision.findColors.anchorMode.hint"] = AnchorModeHint,
-        ["vision.findColors.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.findColors.anchorMode.option.window"] = "窗口左上角",
-        ["vision.findColors.anchorMode.option.client"] = "窗口客户区",
-        ["vision.findColors.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.findColors.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.findColors.anchorMode.option.screen"] = "屏幕",
+        ["vision.findColors.anchorMode.option.window"] = "窗口",
         ["vision.findColors.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.findColors.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.findColors.returns.label"] = "要留下的结果",
@@ -2291,13 +2100,10 @@ internal static class ActionStrings
         ["vision.detect.orderBy.option.random"] = "随机",
         ["vision.detect.matchIndex.label"] = "第几个命中",
         ["vision.detect.matchIndex.hint"] = MatchIndexHint,
-        ["vision.detect.anchorMode.label"] = "坐标基准",
+        ["vision.detect.anchorMode.label"] = "识别方式",
         ["vision.detect.anchorMode.hint"] = AnchorModeHint,
-        ["vision.detect.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.detect.anchorMode.option.window"] = "窗口左上角",
-        ["vision.detect.anchorMode.option.client"] = "窗口客户区",
-        ["vision.detect.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.detect.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.detect.anchorMode.option.screen"] = "屏幕",
+        ["vision.detect.anchorMode.option.window"] = "窗口",
         ["vision.detect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.detect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.detect.intervalMs.label"] = LookIntervalLabel,
@@ -2335,13 +2141,10 @@ internal static class ActionStrings
         ["vision.waitDetect.orderBy.option.random"] = "随机",
         ["vision.waitDetect.matchIndex.label"] = "第几个命中",
         ["vision.waitDetect.matchIndex.hint"] = MatchIndexHint,
-        ["vision.waitDetect.anchorMode.label"] = "坐标基准",
+        ["vision.waitDetect.anchorMode.label"] = "识别方式",
         ["vision.waitDetect.anchorMode.hint"] = AnchorModeHint,
-        ["vision.waitDetect.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.waitDetect.anchorMode.option.window"] = "窗口左上角",
-        ["vision.waitDetect.anchorMode.option.client"] = "窗口客户区",
-        ["vision.waitDetect.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.waitDetect.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.waitDetect.anchorMode.option.screen"] = "屏幕",
+        ["vision.waitDetect.anchorMode.option.window"] = "窗口",
         ["vision.waitDetect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.waitDetect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.waitDetect.intervalMs.label"] = LookIntervalLabel,
@@ -2392,13 +2195,10 @@ internal static class ActionStrings
         ["vision.clickDetect.orderBy.option.random"] = "随机",
         ["vision.clickDetect.matchIndex.label"] = "第几个命中",
         ["vision.clickDetect.matchIndex.hint"] = MatchIndexHint,
-        ["vision.clickDetect.anchorMode.label"] = "坐标基准",
+        ["vision.clickDetect.anchorMode.label"] = "识别方式",
         ["vision.clickDetect.anchorMode.hint"] = AnchorModeHint,
-        ["vision.clickDetect.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.clickDetect.anchorMode.option.window"] = "窗口左上角",
-        ["vision.clickDetect.anchorMode.option.client"] = "窗口客户区",
-        ["vision.clickDetect.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.clickDetect.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.clickDetect.anchorMode.option.screen"] = "屏幕",
+        ["vision.clickDetect.anchorMode.option.window"] = "窗口",
         ["vision.clickDetect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.clickDetect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.clickDetect.intervalMs.label"] = LookIntervalLabel,
@@ -2433,13 +2233,10 @@ internal static class ActionStrings
         ["vision.waitStable.changedPercent.hint"] =
             "整块区域里最多有多少比例的像素在动还算静止，0–100（百分比），默认 0.1。"
             + "转动的圆圈、滚动的列表、走动的进度条都会超过这个数。",
-        ["vision.waitStable.anchorMode.label"] = "坐标基准",
+        ["vision.waitStable.anchorMode.label"] = "识别方式",
         ["vision.waitStable.anchorMode.hint"] = AnchorModeHint,
-        ["vision.waitStable.anchorMode.option.screen"] = "屏幕像素",
-        ["vision.waitStable.anchorMode.option.window"] = "窗口左上角",
-        ["vision.waitStable.anchorMode.option.client"] = "窗口客户区",
-        ["vision.waitStable.anchorWindow.label"] = WindowMatchTextLabel,
-        ["vision.waitStable.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.waitStable.anchorMode.option.screen"] = "屏幕",
+        ["vision.waitStable.anchorMode.option.window"] = "窗口",
 
         ["condition.colorsMatch.name"] = "多点比色",
         ["condition.colorsMatch.desc"] = "当若干个点都显示指定的颜色时为真。",
@@ -2452,13 +2249,10 @@ internal static class ActionStrings
         ["condition.colorsMatch.colorMatchMode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。默认「每个点都要匹配」。",
         ["condition.colorsMatch.colorMatchMode.option.all"] = "全部匹配",
         ["condition.colorsMatch.colorMatchMode.option.any"] = "任意一个匹配",
-        ["condition.colorsMatch.anchorMode.label"] = "坐标基准",
+        ["condition.colorsMatch.anchorMode.label"] = "识别方式",
         ["condition.colorsMatch.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorsMatch.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.colorsMatch.anchorMode.option.window"] = "窗口左上角",
-        ["condition.colorsMatch.anchorMode.option.client"] = "窗口客户区",
-        ["condition.colorsMatch.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.colorsMatch.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.colorsMatch.anchorMode.option.screen"] = "屏幕",
+        ["condition.colorsMatch.anchorMode.option.window"] = "窗口",
 
         ["condition.colorsExist.name"] = "颜色组合存在",
         ["condition.colorsExist.desc"] = "当某个颜色在屏幕上、且它周围指定的位置上也各有指定的颜色时为真。",
@@ -2475,13 +2269,10 @@ internal static class ActionStrings
         ["condition.colorsExist.region.hint"] = RegionHintText,
         ["condition.colorsExist.intervalMs.label"] = LookIntervalLabel,
         ["condition.colorsExist.intervalMs.hint"] = LookGapHint,
-        ["condition.colorsExist.anchorMode.label"] = "坐标基准",
+        ["condition.colorsExist.anchorMode.label"] = "识别方式",
         ["condition.colorsExist.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorsExist.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.colorsExist.anchorMode.option.window"] = "窗口左上角",
-        ["condition.colorsExist.anchorMode.option.client"] = "窗口客户区",
-        ["condition.colorsExist.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.colorsExist.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.colorsExist.anchorMode.option.screen"] = "屏幕",
+        ["condition.colorsExist.anchorMode.option.window"] = "窗口",
         ["condition.colorsExist.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorsExist.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
@@ -2501,13 +2292,10 @@ internal static class ActionStrings
         ["condition.colorCoverage.region.hint"] = RegionHintText,
         ["condition.colorCoverage.intervalMs.label"] = LookIntervalLabel,
         ["condition.colorCoverage.intervalMs.hint"] = LookGapHint,
-        ["condition.colorCoverage.anchorMode.label"] = "坐标基准",
+        ["condition.colorCoverage.anchorMode.label"] = "识别方式",
         ["condition.colorCoverage.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorCoverage.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.colorCoverage.anchorMode.option.window"] = "窗口左上角",
-        ["condition.colorCoverage.anchorMode.option.client"] = "窗口客户区",
-        ["condition.colorCoverage.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.colorCoverage.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.colorCoverage.anchorMode.option.screen"] = "屏幕",
+        ["condition.colorCoverage.anchorMode.option.window"] = "窗口",
         ["condition.colorCoverage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorCoverage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
@@ -2515,11 +2303,11 @@ internal static class ActionStrings
         ["vision.capture.name"] = "截屏",
         ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里；四个数都不填就是整块屏幕。",
         ["vision.capture.x.label"] = "左上角 X",
-        ["vision.capture.x.hint"] = "要截取的那块屏幕的左边界距屏幕左边多少像素；坐标基准选"
+        ["vision.capture.x.hint"] = "要截取的那块屏幕的左边界距屏幕左边多少像素；识别方式选"
             + "窗口时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
             + "用「框选区域」拖一次会把四个数一起填好。",
         ["vision.capture.y.label"] = "左上角 Y",
-        ["vision.capture.y.hint"] = "要截取的那块屏幕的上边界距屏幕上边多少像素；坐标基准选"
+        ["vision.capture.y.hint"] = "要截取的那块屏幕的上边界距屏幕上边多少像素；识别方式选"
             + "窗口时，从窗口自己的上边算起。留空就从那条边开始。",
         ["vision.capture.width.label"] = "向右的宽",
         ["vision.capture.width.hint"] = "要截取的那块屏幕有多宽，单位像素，至少 1；从左上角向"
@@ -2584,9 +2372,9 @@ internal static class ActionStrings
         ["vision.getPixel.name"] = "取色",
         ["vision.getPixel.desc"] = "读取某个像素的颜色。",
         ["vision.getPixel.x.label"] = "X",
-        ["vision.getPixel.x.hint"] = "取样点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.getPixel.x.hint"] = "取样点的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.getPixel.y.label"] = "Y",
-        ["vision.getPixel.y.hint"] = "取样点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.getPixel.y.hint"] = "取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.getPixel.place.label"] = "位置",
         ["vision.getPixel.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
         ["vision.getPixel.asHex.label"] = "存为十六进制",
@@ -2596,9 +2384,9 @@ internal static class ActionStrings
         ["vision.waitColor.desc"] =
             "等待某个像素变成指定颜色，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.waitColor.x.label"] = "X",
-        ["vision.waitColor.x.hint"] = "监视点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.waitColor.x.hint"] = "监视点的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.waitColor.y.label"] = "Y",
-        ["vision.waitColor.y.hint"] = "监视点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.waitColor.y.hint"] = "监视点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.waitColor.place.label"] = "位置",
         ["vision.waitColor.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
         ["vision.waitColor.color.label"] = "颜色",
@@ -2610,11 +2398,11 @@ internal static class ActionStrings
         ["ocr.recognize.name"] = "识别文字",
         ["ocr.recognize.desc"] = "识别屏幕某块区域里的文字；四个数都不填就是整块屏幕。",
         ["ocr.recognize.x.label"] = "左上角 X",
-        ["ocr.recognize.x.hint"] = "要读的那块屏幕的左边界距屏幕左边多少像素；坐标基准选窗口"
+        ["ocr.recognize.x.hint"] = "要读的那块屏幕的左边界距屏幕左边多少像素；识别方式选窗口"
             + "时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
             + "用「框选区域」拖一次会把四个数一起填好。",
         ["ocr.recognize.y.label"] = "左上角 Y",
-        ["ocr.recognize.y.hint"] = "要读的那块屏幕的上边界距屏幕上边多少像素；坐标基准选窗口"
+        ["ocr.recognize.y.hint"] = "要读的那块屏幕的上边界距屏幕上边多少像素；识别方式选窗口"
             + "时，从窗口自己的上边算起。留空就从那条边开始。",
         ["ocr.recognize.width.label"] = "向右的宽",
         ["ocr.recognize.width.hint"] = "要读的那块屏幕有多宽，单位像素，至少 1；从左上角向右"
@@ -2688,13 +2476,10 @@ internal static class ActionStrings
         ["ocr.clickText.queryText.hint"] = "要查找的文字，例如 Save，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里。",
         ["ocr.clickText.region.label"] = "搜索区域",
         ["ocr.clickText.region.hint"] = RegionHintText,
-        ["ocr.clickText.anchorMode.label"] = "坐标基准",
+        ["ocr.clickText.anchorMode.label"] = "识别方式",
         ["ocr.clickText.anchorMode.hint"] = AnchorModeHint,
-        ["ocr.clickText.anchorMode.option.screen"] = "屏幕像素",
-        ["ocr.clickText.anchorMode.option.window"] = "窗口左上角",
-        ["ocr.clickText.anchorMode.option.client"] = "窗口客户区",
-        ["ocr.clickText.anchorWindow.label"] = WindowMatchTextLabel,
-        ["ocr.clickText.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["ocr.clickText.anchorMode.option.screen"] = "屏幕",
+        ["ocr.clickText.anchorMode.option.window"] = "窗口",
         ["ocr.clickText.matchMode.label"] = "匹配方式",
         ["ocr.clickText.matchMode.hint"] = TextMatchHint,
         ["ocr.clickText.expected.label"] = "整段须匹配",
@@ -3403,9 +3188,9 @@ internal static class ActionStrings
         ["condition.colorEquals.name"] = "颜色相同",
         ["condition.colorEquals.desc"] = "当某个像素的颜色匹配时为真。",
         ["condition.colorEquals.x.label"] = "X",
-        ["condition.colorEquals.x.hint"] = "要比较的像素的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["condition.colorEquals.x.hint"] = "要比较的像素的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["condition.colorEquals.y.label"] = "Y",
-        ["condition.colorEquals.y.hint"] = "要比较的像素的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["condition.colorEquals.y.hint"] = "要比较的像素的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["condition.colorEquals.color.label"] = "颜色",
         ["condition.colorEquals.color.hint"] = "拿来和这个像素比较的颜色，写成 #RRGGBB，默认黑色。用放大镜取色时，取到的那一点同时写进 X、Y。",
         ["condition.colorEquals.tolerance.label"] = "容差 %",
@@ -3427,13 +3212,10 @@ internal static class ActionStrings
         ["condition.imageNotExists.imageSet.option.first"] = "认出的第一张",
         ["condition.imageNotExists.imageSet.option.best"] = "最像的那一张",
         ["condition.imageNotExists.imageSet.option.every"] = "每一张都要",
-        ["condition.imageNotExists.anchorMode.label"] = "坐标基准",
+        ["condition.imageNotExists.anchorMode.label"] = "识别方式",
         ["condition.imageNotExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.imageNotExists.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.imageNotExists.anchorMode.option.window"] = "窗口左上角",
-        ["condition.imageNotExists.anchorMode.option.client"] = "窗口客户区",
-        ["condition.imageNotExists.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.imageNotExists.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.imageNotExists.anchorMode.option.screen"] = "屏幕",
+        ["condition.imageNotExists.anchorMode.option.window"] = "窗口",
 
         ["condition.textNotExists.name"] = "文字不存在",
         ["condition.textNotExists.desc"] = "当屏幕上没有指定文字时为真。",
@@ -3448,13 +3230,10 @@ internal static class ActionStrings
         ["condition.textNotExists.matchMode.option.endsWith"] = "以…结尾",
         ["condition.textNotExists.matchMode.option.equals"] = "等于",
         ["condition.textNotExists.matchMode.option.regex"] = "正则匹配",
-        ["condition.textNotExists.anchorMode.label"] = "坐标基准",
+        ["condition.textNotExists.anchorMode.label"] = "识别方式",
         ["condition.textNotExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.textNotExists.anchorMode.option.screen"] = "屏幕像素",
-        ["condition.textNotExists.anchorMode.option.window"] = "窗口左上角",
-        ["condition.textNotExists.anchorMode.option.client"] = "窗口客户区",
-        ["condition.textNotExists.anchorWindow.label"] = WindowMatchTextLabel,
-        ["condition.textNotExists.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["condition.textNotExists.anchorMode.option.screen"] = "屏幕",
+        ["condition.textNotExists.anchorMode.option.window"] = "窗口",
 
         ["condition.uiaNotExists.name"] = "UI 元素不存在",
         ["condition.uiaNotExists.desc"] = "当某个 UI Automation 元素不存在时为真。",
@@ -3565,8 +3344,7 @@ internal static class ActionStrings
         ["condition.windowExists.desc"] = "某个窗口打开着时成立。",
         ["condition.windowExists.window.label"] = WindowMatchTextLabel,
         ["condition.windowExists.window.hint"] =
-            "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示只要有一个窗口"
-            + "开着就成立。",
+            "获取一次窗口，运行时按这条规则重新找；留空表示只要有一个窗口开着就成立。",
 
         ["condition.valueInRange.name"] = "值在区间内",
         ["condition.valueInRange.desc"] = "一个值落在另外两个值之间时成立。",
@@ -4040,7 +3818,7 @@ internal static class ActionStrings
             + "「maximized」（是否收进任务栏、是否铺满屏幕）、「x」「y」（窗口矩形的中心，也就是动作要点"
             + "的那一点）、「left」「top」「width」「height」（矩形四个"
             + "数）、「box」（同一个矩形，写成 左,上,宽,高，整条记录直接填进搜索区域那一行的变量格即可看同一"
-            + "块）与「clientBox」（窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高，坐标基准选「窗口客户"
+            + "块）与「clientBox」（窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高，识别方式选「窗口客户"
             + "区」的这一步看的就是它）。取其中一项用 field($变量, \"left\")。给的是窗口被看见的那个矩形："
             + "Windows 留着用来拉伸的那圈边框不画出来也不算，最大化的窗口按它在屏幕上的样子量。",
         ["window.info.returns.label"] = "要留下的结果",
@@ -4330,6 +4108,208 @@ internal static class ActionStrings
         ["vision.captureWindow.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
         ["vision.captureWindow.return.method.label"] = "取画面方式",
         ["vision.captureWindow.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["input.keyPress.window.label"] = "窗口",
+        ["input.keyPress.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.keyDown.window.label"] = "窗口",
+        ["input.keyDown.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.keyUp.window.label"] = "窗口",
+        ["input.keyUp.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.hotkey.window.label"] = "窗口",
+        ["input.hotkey.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.keySequence.window.label"] = "窗口",
+        ["input.keySequence.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.typeText.window.label"] = "窗口",
+        ["input.typeText.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseMove.window.label"] = "窗口",
+        ["input.mouseMove.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseMove.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseMove.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseMove.return.windowPoint.label"] = "窗口坐标点",
+        ["input.mouseMove.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["input.mouseMoveRelative.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseMoveRelative.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseClick.window.label"] = "窗口",
+        ["input.mouseClick.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseClick.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseClick.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseClick.return.windowPoint.label"] = "窗口坐标点",
+        ["input.mouseClick.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["input.mouseDoubleClick.window.label"] = "窗口",
+        ["input.mouseDoubleClick.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseDoubleClick.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseDoubleClick.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseDoubleClick.return.windowPoint.label"] = "窗口坐标点",
+        ["input.mouseDoubleClick.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["input.mouseDown.window.label"] = "窗口",
+        ["input.mouseDown.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseDown.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseDown.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseDown.return.windowPoint.label"] = "窗口坐标点",
+        ["input.mouseDown.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["input.mouseUp.window.label"] = "窗口",
+        ["input.mouseUp.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseUp.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseUp.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseUp.return.windowPoint.label"] = "窗口坐标点",
+        ["input.mouseUp.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["input.mouseScroll.window.label"] = "窗口",
+        ["input.mouseScroll.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseScroll.return.screenPoint.label"] = "屏幕坐标点",
+        ["input.mouseScroll.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["input.mouseScroll.return.windowPoint.label"] = "窗口坐标点",
+        ["input.mouseScroll.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["input.mouseDrag.window.label"] = "窗口",
+        ["input.mouseDrag.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseDrag.return.screenStartPoint.label"] = "屏幕起点",
+        ["input.mouseDrag.return.screenStartPoint.hint"] = "拖拽实际起点的屏幕坐标，basis 为 screen。",
+        ["input.mouseDrag.return.screenEndPoint.label"] = "屏幕终点",
+        ["input.mouseDrag.return.screenEndPoint.hint"] = "拖拽实际终点的屏幕坐标，basis 为 screen。",
+        ["input.mouseDrag.return.windowStartPoint.label"] = "窗口起点",
+        ["input.mouseDrag.return.windowStartPoint.hint"] = "拖拽实际起点按目标窗口客户区左上角计算，basis 为 window。",
+        ["input.mouseDrag.return.windowEndPoint.label"] = "窗口终点",
+        ["input.mouseDrag.return.windowEndPoint.hint"] = "拖拽实际终点按目标窗口客户区左上角计算，basis 为 window。",
+        ["vision.captureWindow.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.captureWindow.return.screenPoint.hint"] = "截取窗口矩形的中心，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.captureWindow.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.captureWindow.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.capture.window.label"] = "窗口",
+        ["vision.capture.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.capture.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.capture.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.capture.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.capture.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.findImage.window.label"] = "窗口",
+        ["vision.findImage.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.findImage.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.findImage.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.findImage.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.findImage.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.waitImage.window.label"] = "窗口",
+        ["vision.waitImage.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.waitImage.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.waitImage.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.waitImage.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.waitImage.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.clickImage.window.label"] = "窗口",
+        ["vision.clickImage.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.clickImage.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.clickImage.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.clickImage.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.clickImage.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.getPixel.window.label"] = "窗口",
+        ["vision.getPixel.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.getPixel.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.getPixel.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.getPixel.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.getPixel.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.waitColor.window.label"] = "窗口",
+        ["vision.waitColor.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.waitColor.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.waitColor.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.waitColor.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.waitColor.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.findColor.window.label"] = "窗口",
+        ["vision.findColor.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.findColor.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.findColor.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.findColor.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.findColor.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.waitStable.window.label"] = "窗口",
+        ["vision.waitStable.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.waitStable.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.waitStable.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.waitStable.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.waitStable.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.findColors.window.label"] = "窗口",
+        ["vision.findColors.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.findColors.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.findColors.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.findColors.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.findColors.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.detect.window.label"] = "窗口",
+        ["vision.detect.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.detect.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.detect.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.detect.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.detect.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.waitDetect.window.label"] = "窗口",
+        ["vision.waitDetect.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.waitDetect.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.waitDetect.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.waitDetect.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.waitDetect.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["vision.clickDetect.window.label"] = "窗口",
+        ["vision.clickDetect.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.clickDetect.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.clickDetect.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.clickDetect.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.clickDetect.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["ocr.recognize.window.label"] = "窗口",
+        ["ocr.recognize.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["ocr.recognize.return.screenPoint.label"] = "屏幕坐标点",
+        ["ocr.recognize.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["ocr.recognize.return.windowPoint.label"] = "窗口坐标点",
+        ["ocr.recognize.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["ocr.findText.window.label"] = "窗口",
+        ["ocr.findText.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["ocr.findText.return.screenPoint.label"] = "屏幕坐标点",
+        ["ocr.findText.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["ocr.findText.return.windowPoint.label"] = "窗口坐标点",
+        ["ocr.findText.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["ocr.clickText.window.label"] = "窗口",
+        ["ocr.clickText.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["ocr.clickText.return.screenPoint.label"] = "屏幕坐标点",
+        ["ocr.clickText.return.screenPoint.hint"] = "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["ocr.clickText.return.windowPoint.label"] = "窗口坐标点",
+        ["ocr.clickText.return.windowPoint.hint"] = "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+        ["uia.exists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.find.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.waitElement.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.click.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.invoke.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.setText.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.read.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.select.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.check.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.expand.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.scrollIntoView.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["uia.readTable.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.imageExists.window.label"] = "窗口",
+        ["condition.imageExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.imageNotExists.window.label"] = "窗口",
+        ["condition.imageNotExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.textExists.window.label"] = "窗口",
+        ["condition.textExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.textNotExists.window.label"] = "窗口",
+        ["condition.textNotExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.colorEquals.window.label"] = "窗口",
+        ["condition.colorEquals.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.colorsMatch.window.label"] = "窗口",
+        ["condition.colorsMatch.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.colorsExist.window.label"] = "窗口",
+        ["condition.colorsExist.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["condition.colorCoverage.window.label"] = "窗口",
+        ["condition.colorCoverage.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["input.mouseMove.returns.label"] = "要留下的结果",
+        ["input.mouseMove.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseMoveRelative.returns.label"] = "要留下的结果",
+        ["input.mouseMoveRelative.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseClick.returns.label"] = "要留下的结果",
+        ["input.mouseClick.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseDoubleClick.returns.label"] = "要留下的结果",
+        ["input.mouseDoubleClick.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseDown.returns.label"] = "要留下的结果",
+        ["input.mouseDown.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseUp.returns.label"] = "要留下的结果",
+        ["input.mouseUp.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseScroll.returns.label"] = "要留下的结果",
+        ["input.mouseScroll.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["input.mouseDrag.returns.label"] = "要留下的结果",
+        ["input.mouseDrag.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["vision.waitColor.returns.label"] = "要留下的结果",
+        ["vision.waitColor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["vision.waitStable.returns.label"] = "要留下的结果",
+        ["vision.waitStable.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
     };
 
     /// <summary>
@@ -4360,42 +4340,16 @@ internal static class ActionStrings
             }
         }
 
-        WindowHowFill(Chinese, "how", WindowActions, string.Empty);
-        WindowHowFill(Chinese, "anchorHow", AnchorActions, "坐标基准选屏幕像素或界面元素时用不到它。");
-        WindowHowFill(Chinese, "targetHow", TargetActions, "只有输入方式选后台消息时用得到它。");
 
         // The element actions recognise the window they look in with the same two fields the window
         // actions use, and they all say the same thing about an empty one. Bringing a window to the
         // front is the one of them with nothing to do without a match text, so its own line says so.
-        WindowHowFill(Chinese, "how", [.. ElementActions, "uia.focusWindow"], ElementLookInExtra);
         foreach (var action in ElementActions)
         {
             Chinese[$"{action}.window.label"] = WindowMatchTextLabel;
             Chinese[$"{action}.window.hint"] = ElementWindowHint;
         }
 
-        WindowHowFill(Chinese, "how", ["condition.windowExists"],
-            "不填「匹配内容」时问的是有没有窗口开着。");
-    }
-
-    private static void WindowHowFill(Dictionary<string, string> table, string name,
-        string[] actions, string extra)
-    {
-        var hint = extra.Length == 0 ? WindowHowHint : WindowHowHint + extra;
-        foreach (var action in actions)
-        {
-            table[$"{action}.{name}.label"] = WindowHowLabel;
-            table[$"{action}.{name}.hint"] = hint;
-            table[$"{action}.{name}.option.titleContains"] = WindowHowTitleContains;
-            table[$"{action}.{name}.option.titleStartsWith"] = WindowHowTitleStartsWith;
-            table[$"{action}.{name}.option.titleEndsWith"] = WindowHowTitleEndsWith;
-            table[$"{action}.{name}.option.titleEquals"] = WindowHowTitleEquals;
-            table[$"{action}.{name}.option.titleRegex"] = WindowHowTitleRegex;
-            table[$"{action}.{name}.option.process"] = WindowHowProcess;
-            table[$"{action}.{name}.option.processEquals"] = WindowHowProcessEquals;
-            table[$"{action}.{name}.option.class"] = WindowHowClass;
-            table[$"{action}.{name}.option.classEquals"] = WindowHowClassEquals;
-        }
     }
 
     /// <summary>The actions that name the one window they act on.</summary>

@@ -844,26 +844,12 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// The field that says how the window written in <paramref name="text"/> is recognised. The two
-    /// fields of a window rule sit together, and a step can name two windows at once — the one it
-    /// counts its coordinates from and the one it posts its input at — so each of those pairs keeps
-    /// its own answer rather than taking the other's.
-    /// </summary>
-    private StepParameterViewModel? HowField(StepParameterViewModel text)
-        => Parameter(text.Definition.Name switch
-        {
-            "anchorWindow" => "anchorHow",
-            "targetWindow" => "targetHow",
-            _ => "how",
-        });
-
-    /// <summary>
     /// Which part of a window one of the step's window fields is held against, which is what the
     /// window picker has to take away from that field: a class picked while the step compares
     /// titles would match nothing.
     /// </summary>
     public WindowMatch WindowMatchFor(StepParameterViewModel text)
-        => WindowHow.Read(HowField(text)?.CurrentText).Match;
+        => RuleOf(text.CurrentText).Reading.Match;
 
     /// <summary>
     /// Writes the title a picker read into the field that holds a window rule's text, and puts the
@@ -880,13 +866,7 @@ public partial class AddActionViewModel : ViewModelBase
             return false;
         }
 
-        text.Text = title;
-        if (HowField(text) is { } how
-            && how.Choices.FirstOrDefault(choice => choice.Value == WindowHow.TitleContains)
-                is { } byTitle)
-        {
-            how.Option = byTitle;
-        }
+        text.ApplyWindowRule(new WindowRule(Title: title));
 
         return true;
     }
@@ -936,16 +916,13 @@ public partial class AddActionViewModel : ViewModelBase
         _previewGate = PreviewGate.Always;
 
         var text = Parameter("window");
-        if (text is null && Parameter("anchorHow") is not null)
+        if (text is not null)
         {
-            text = Parameter("anchorWindow");
-            _previewGate = PreviewGate.AnchorOrigin;
-        }
-
-        if (text is null && Parameter("targetHow") is not null)
-        {
-            text = Parameter("targetWindow");
-            _previewGate = PreviewGate.BackgroundPost;
+            _previewGate = Parameter("inputMode") is not null
+                ? PreviewGate.BackgroundPost
+                : Parameter("anchorMode") is not null
+                    ? PreviewGate.AnchorOrigin
+                    : PreviewGate.Always;
         }
 
         if (text is null)
@@ -970,7 +947,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// names is read: the screen and element origins do not use it.
     /// </summary>
     private bool AnchorNamesWindow()
-        => Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() is "window" or "client";
+        => Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() is "window";
 
     /// <summary>
     /// True when this step posts its input at a window, which is the only time the window it names
@@ -983,8 +960,8 @@ public partial class AddActionViewModel : ViewModelBase
     /// Says under the fields that place a step where their four numbers are counted from, and gives
     /// that line to the one field of the step that carries it: the search region when the step
     /// looks in places of its own, otherwise the first of the numbers that say where it reads. The
-    /// same four numbers mean a place on the screen, inside a window or inside a control depending
-    /// on the origin, and none of that is written in the numbers themselves.
+    /// same four numbers mean a place on the screen or inside a window's client area depending on
+    /// the origin, and none of that is written in the numbers themselves.
     /// </summary>
     private void RefreshOriginNote()
     {
@@ -992,8 +969,6 @@ public partial class AddActionViewModel : ViewModelBase
             Strings.Get(Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() switch
             {
                 "window" => "Add.Origin.Window",
-                "client" => "Add.Origin.Client",
-                "element" => "Add.Origin.Element",
                 _ => "Add.Origin.Screen",
             }));
 
@@ -1762,6 +1737,7 @@ public partial class AddActionViewModel : ViewModelBase
 
         x.IsCoordinate = true;
         y.IsCoordinate = true;
+        x.IsPointAnchor = x.Definition.Picker is not (ActionPickerKind.Region or ActionPickerKind.WindowBounds);
 
         // The switch stands beside what it belongs to: the button for the actions that click, press
         // or scroll, and the pair of numbers it replaces for the rest.
@@ -1844,6 +1820,104 @@ public partial class AddActionViewModel : ViewModelBase
     private StepParameterViewModel? Parameter(string name)
         => Parameters.FirstOrDefault(parameter => parameter.Definition.Name == name);
 
+    /// <summary>
+    /// The rule a window field shows in the preview. A variable cannot be read before the run, and
+    /// a bare line of text is still read as a title.
+    /// </summary>
+    private static WindowRule RuleOf(string? text)
+    {
+        var written = (text ?? string.Empty).Trim();
+        if (written.StartsWith('$'))
+        {
+            return new WindowRule(Title: written);
+        }
+
+        return WindowRule.TryParse(written, out var rule)
+            ? rule
+            : new WindowRule(Title: written);
+    }
+
+    /// <summary>The rule a named window field holds right now, or an empty rule when it holds none.</summary>
+    public WindowRule WindowRuleFor(string name)
+        => Parameter(name) is { } field ? RuleOf(field.CurrentText) : WindowRule.Empty;
+
+    /// <summary>The visible rectangle of the window this mover names right now, when it is open.</summary>
+    public (int X, int Y, int Width, int Height)? CurrentWindowBounds()
+    {
+        if (Windows is null || Parameter("window") is not { } field)
+        {
+            return null;
+        }
+
+        var rule = RuleOf(field.CurrentText);
+        if (!rule.HasTarget)
+        {
+            return null;
+        }
+
+        try
+        {
+            return Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                       rule.Options) is { } window
+                ? (window.Location.X, window.Location.Y, window.Size.Width, window.Size.Height)
+                : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The window whose client coordinates this action uses, or null for screen pixels.</summary>
+    public WindowRule? CoordinateWindow()
+    {
+        var background = Parameter("inputMode")?.CurrentText.Trim().Equals(
+            "background", StringComparison.OrdinalIgnoreCase) == true;
+        var windowBasis = Parameter("anchorMode")?.CurrentText.Trim().Equals(
+            "window", StringComparison.OrdinalIgnoreCase) == true;
+        if ((!background && !windowBasis) || Parameter("window") is not { } field
+            || field.CurrentText.TrimStart().StartsWith('$'))
+        {
+            return null;
+        }
+
+        var rule = RuleOf(field.CurrentText);
+        return rule.HasTarget ? rule : null;
+    }
+
+    /// <summary>True when this action's position fields are counted from a window.</summary>
+    public bool NeedsWindowCoordinates
+        => Parameter("inputMode")?.CurrentText.Trim().Equals(
+               "background", StringComparison.OrdinalIgnoreCase) == true
+           || Parameter("anchorMode")?.CurrentText.Trim().Equals(
+               "window", StringComparison.OrdinalIgnoreCase) == true;
+
+    /// <summary>The target's client area on screen, which the region picker highlights.</summary>
+    public (int X, int Y, int Width, int Height)? CoordinateWindowBounds()
+    {
+        if (Windows is null || CoordinateWindow() is not { } rule)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                    rule.Options) is not { } window)
+            {
+                return null;
+            }
+
+            var origin = Windows.ClientOrigin(window.Handle);
+            var size = Windows.ClientSize(window.Handle);
+            return (origin.X, origin.Y, size.Width, size.Height);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     /// <summary>True when this action works on a rectangle the region picker can fill in.</summary>
     public bool HasRegion => Parameters.Any(parameter => parameter.IsRegionAnchor);
 
@@ -1883,23 +1957,20 @@ public partial class AddActionViewModel : ViewModelBase
     private ScreenPoint? AnchorOrigin()
     {
         var mode = Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant();
-        if (mode == "element")
-        {
-            return ElementOrigin();
-        }
-
-        if (Windows is null || mode is not ("window" or "client"))
+        var background = Parameter("inputMode")?.CurrentText.Trim().Equals(
+            "background", StringComparison.OrdinalIgnoreCase) == true;
+        if (Windows is null || (mode != "window" && !background))
         {
             return null;
         }
 
-        if (Parameter("anchorWindow") is not { } text)
+        if (Parameter("window") is not { } text)
         {
             return null;
         }
 
-        var title = text.Text?.Trim() ?? string.Empty;
-        if (title.Length == 0)
+        var rule = RuleOf(text.CurrentText);
+        if (!rule.HasTarget)
         {
             return null;
         }
@@ -1908,46 +1979,19 @@ public partial class AddActionViewModel : ViewModelBase
         {
             // Recognised the way the run will recognise it, so a position taken off the screen is
             // counted from the same corner the step will count from.
-            var (match, compare) = WindowHow.Read(HowField(text)?.CurrentText);
-            if (Windows.Find(title, match, compare) is not { } window)
+            if (Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                    rule.Options) is not { } window)
             {
                 return null;
             }
 
-            return mode == "client" ? Windows.ClientOrigin(window.Handle) : window.Location;
+            return Windows.ClientOrigin(window.Handle);
         }
         catch (Exception)
         {
             // A window that is not open right now, or a pattern that will not read, leaves the
             // numbers as screen pixels, which is the best that can be done; the step says what it
             // needed when the macro runs.
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Where the control a step is anchored to sits right now. Null when nothing has been picked
-    /// yet, when the control is not on screen, or when the dialog has no way to look it up: the
-    /// plain numbers are then the best that can be done, and the engine says so when the macro runs.
-    /// </summary>
-    private ScreenPoint? ElementOrigin()
-    {
-        var selector = Parameter("anchorSelector")?.Text?.Trim() ?? string.Empty;
-        if (Ui is null || selector.Length == 0)
-        {
-            return null;
-        }
-
-        try
-        {
-            var query = UiQuery.Parse(selector, Parameter("anchorWindow")?.Text);
-            return Ui.FindAll(query, 1).FirstOrDefault() is { } anchor ? anchor.Location : null;
-        }
-        catch (Exception)
-        {
-            // A control that cannot be looked up right now is not worth failing the dialog over:
-            // the numbers are written down as screen pixels, and the step says what it needed when
-            // the macro runs.
             return null;
         }
     }
@@ -2062,9 +2106,8 @@ public partial class AddActionViewModel : ViewModelBase
             preview.Show(asking);
             if (asking)
             {
-                var (match, compare) = WindowHow.Read(HowField(text)?.CurrentText);
-                preview.Follow(new WindowRule(text.CurrentText, match, compare,
-                    SelectedDefinition?.Key == ListWindowsKey));
+                preview.Follow(RuleOf(text.CurrentText),
+                    SelectedDefinition?.Key == ListWindowsKey);
             }
         }
 

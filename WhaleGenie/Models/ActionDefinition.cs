@@ -37,9 +37,9 @@ public enum ActionParameterKind
     Region,
 
     /// <summary>
-    /// The title of a window, edited with free text and the window picker.
+    /// A captured window and the rule that finds it again, edited as one field.
     /// </summary>
-    Window,
+    WindowRule,
 
     /// <summary>A list of child steps, rendered as a nested step editor.</summary>
     Steps,

@@ -171,14 +171,14 @@ public sealed partial class MacroRunner
 
     private void FocusWindow(ExecutableStep step, int depth)
     {
-        var rule = WindowRuleOf(step, "window", "how");
-        if (!_devices.Ui.FocusWindow(UiQuery.Parse(string.Empty, rule.Text, 1, rule.Match,
-                rule.Compare, rule.Options)))
+        var rule = WindowRuleOf(step);
+        if (!_devices.Ui.FocusWindow(UiQuery.Parse(string.Empty, rule.MatchValue, 1, rule.Reading.Match,
+                rule.Reading.Compare, rule.Options)))
         {
-            throw new StepFailure(RunKeys.WindowNotFound, rule.Text);
+            throw new StepFailure(RunKeys.WindowNotFound, rule.MatchValue);
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.FocusedWindow, rule.Text);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.FocusedWindow, rule.MatchValue);
     }
 
     /// <summary>

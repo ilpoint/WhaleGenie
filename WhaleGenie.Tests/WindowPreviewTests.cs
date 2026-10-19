@@ -266,10 +266,9 @@ public class WindowPreviewTests
             var viewModel = Open("input.keyPress");
             viewModel.Windows = Desk().Add(1, "笔记 - 第 3 关", "notepad", "Notepad");
 
-            var text = Parameter(viewModel, "targetWindow");
+            var text = Parameter(viewModel, "window");
             Choose(viewModel, "inputMode", "background");
-            Choose(viewModel, "targetHow", "process");
-            text.Text = "notepad";
+            PutWindowRule(viewModel, "notepad", "process");
             Dispatcher.UIThread.RunJobs();
 
             var preview = viewModel.WindowPreview!;
@@ -401,7 +400,7 @@ public class WindowPreviewTests
                 Dispatcher.UIThread.RunJobs();
 
                 var viewModel = (MacroEditorViewModel)window.DataContext!;
-                viewModel.WindowValue = "o";
+                viewModel.UseWindowTarget(new WindowRule(Title: "o"));
                 Dispatcher.UIThread.RunJobs();
                 viewModel.WindowPreview.RefreshCommand.Execute(null);
                 Dispatcher.UIThread.RunJobs();
@@ -432,7 +431,7 @@ public class WindowPreviewTests
                 var (viewModel, preview) = Rule(windows, "notes");
                 Assert.Equal("Notepad - notes.txt", Assert.Single(preview.Rows).Title);
 
-                Typing(viewModel, "calc");
+                PutWindowRule(viewModel, "calc", WindowHow.TitleContains);
 
                 // Reading the desktop once per keystroke is what waiting for the pause avoids.
                 Assert.Equal("Notepad - notes.txt", Assert.Single(preview.Rows).Title);
@@ -457,7 +456,7 @@ public class WindowPreviewTests
             var window = Shell("window.exists");
             var viewModel = (AddActionViewModel)window.DataContext!;
             viewModel.Windows = Desk().Add(1, "Notepad - notes.txt", "notepad", "Notepad");
-            Typing(viewModel, "Notepad");
+            PutWindowRule(viewModel, "Notepad", WindowHow.TitleContains);
 
             var preview = viewModel.WindowPreview!;
             preview.RefreshCommand.Execute(null);
@@ -465,20 +464,14 @@ public class WindowPreviewTests
 
             double Top(Control control) => control.TranslatePoint(default, window)!.Value.Y;
 
-            // The window's text is written in the box the variables are offered in, like any other
-            // text a macro works out earlier: what matters is that the list stands under that box.
-            var box = window.GetVisualDescendants().OfType<Control>()
-                .First(one => one.IsEffectivelyVisible
-                    && one is TextBox or AutoCompleteBox
-                    && ReferenceEquals(one.DataContext, Parameter(viewModel, "window")));
+            var field = Parameter(viewModel, "window");
+            var box = window.GetVisualDescendants().OfType<Border>()
+                .First(one => one.IsEffectivelyVisible && ReferenceEquals(one.DataContext, field));
             var list = window.GetVisualDescendants().OfType<TextBlock>()
                 .First(one => one.IsEffectivelyVisible && one.Text == preview.Summary);
-            var comparing = window.GetVisualDescendants().OfType<ComboBox>()
-                .First(one => ReferenceEquals(one.DataContext, Parameter(viewModel, "how")));
 
-            // Under the box it is about, rather than between a field and the editor of that field.
-            Assert.True(Top(list) > Top(box), "the list is not under the match text");
-            Assert.True(Top(list) < Top(comparing), "the list is not above the comparing field");
+            // Under the captured-rule field it is about.
+            Assert.True(Top(list) > Top(box), "the list is not under the window rule");
         });
     }
 
@@ -525,8 +518,7 @@ public class WindowPreviewTests
             Assert.Equal(Strings.Get("Add.WindowPreview.Every"), preview.Note);
 
             // Narrowed down by program name: the same three fields the other window actions use.
-            Choose(viewModel, "how", "process");
-            text.Text = "calc";
+            PutWindowRule(viewModel, "calc", "process");
             Dispatcher.UIThread.RunJobs();
             preview.RefreshCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -552,14 +544,13 @@ public class WindowPreviewTests
                 .Add(1, "笔记 - 第 3 关", "notepad", "Notepad")
                 .Add(2, "Calculator", "calc", "CalcFrame");
 
-            var text = Parameter(viewModel, "targetWindow");
+            var text = Parameter(viewModel, "window");
 
             // Sending in front: the window is not read, so nothing hangs under its name.
             Assert.False(text.ShowsWindowPreview);
 
             Choose(viewModel, "inputMode", "background");
-            Choose(viewModel, "targetHow", "process");
-            text.Text = "notepad";
+            PutWindowRule(viewModel, "notepad", "process");
             Dispatcher.UIThread.RunJobs();
 
             var preview = viewModel.WindowPreview!;
@@ -595,14 +586,13 @@ public class WindowPreviewTests
                 .Add(1, "笔记 - 第 3 关", "notepad", "Notepad")
                 .Add(2, "Calculator", "calc", "CalcFrame");
 
-            var text = Parameter(viewModel, "anchorWindow");
+            var text = Parameter(viewModel, "window");
 
             // Counting from the screen: the window is not read, so nothing hangs under its name.
             Assert.False(text.ShowsWindowPreview);
 
             Choose(viewModel, "anchorMode", "window");
-            Choose(viewModel, "anchorHow", "process");
-            text.Text = "notepad";
+            PutWindowRule(viewModel, "notepad", "process");
             Dispatcher.UIThread.RunJobs();
 
             var preview = viewModel.WindowPreview!;
@@ -638,8 +628,7 @@ public class WindowPreviewTests
             var viewModel = Open("vision.getPixel");
             viewModel.Windows = windows;
             Choose(viewModel, "anchorMode", "window");
-            Choose(viewModel, "anchorHow", "process");
-            Parameter(viewModel, "anchorWindow").Text = "notepad";
+            PutWindowRule(viewModel, "notepad", "process");
 
             Assert.True(viewModel.ApplyCursorPosition(1010, 520));
 
@@ -669,8 +658,7 @@ public class WindowPreviewTests
             // A condition is asked about rather than done, so there is nothing for the run button.
             Assert.False(viewModel.ShowsRun);
 
-            Choose(viewModel, "how", "process");
-            text.Text = "calc";
+            PutWindowRule(viewModel, "calc", "process");
             Dispatcher.UIThread.RunJobs();
 
             var preview = viewModel.WindowPreview!;
@@ -708,8 +696,7 @@ public class WindowPreviewTests
             var viewModel = (MacroEditorViewModel)window.DataContext!;
             Assert.True(viewModel.IsWindowTrigger);
 
-            viewModel.WindowHow = WindowHow.Process;
-            viewModel.WindowValue = "calc";
+            viewModel.UseWindowTarget(new WindowRule(Process: "calc", How: WindowHow.Process));
             Dispatcher.UIThread.RunJobs();
 
             // A rule that changes while it is being written waits for the typing to pause, so the
@@ -737,8 +724,7 @@ public class WindowPreviewTests
     {
         var viewModel = Open("window.exists");
         viewModel.Windows = windows;
-        Choose(viewModel, "how", how);
-        Typing(viewModel, text);
+        PutWindowRule(viewModel, text, how);
 
         var preview = viewModel.WindowPreview!;
         preview.RefreshCommand.Execute(null);
@@ -746,8 +732,23 @@ public class WindowPreviewTests
         return (viewModel, preview);
     }
 
-    private static void Typing(AddActionViewModel viewModel, string text)
-        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "window").Text = text;
+    private static void PutWindowRule(AddActionViewModel viewModel, string text, string how)
+    {
+        var parameter = viewModel.Parameters.First(item => item.Definition.Name == "window");
+        if (text.StartsWith('$'))
+        {
+            parameter.UseWindowVariable(text[1..]);
+            return;
+        }
+
+        var rule = how switch
+        {
+            "process" or "processEquals" => new WindowRule(Process: text, How: how),
+            "class" or "classEquals" => new WindowRule(ClassName: text, How: how),
+            _ => new WindowRule(Title: text, How: how),
+        };
+        parameter.ApplyWindowRule(rule);
+    }
 
     private static void Choose(AddActionViewModel viewModel, string name, string value)
     {

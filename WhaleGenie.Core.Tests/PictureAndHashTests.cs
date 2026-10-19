@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
@@ -85,7 +86,9 @@ public class PictureAndHashTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.captureWindow", Param("window", "Notepad"), Parts("image", "shot"),
+            Step("vision.captureWindow",
+                Param("window", new WindowRule(Title: "Notepad").ToJson().ToJsonString()),
+                Parts("image", "shot"),
                 Param("path", "window.png")),
         ], devices);
 

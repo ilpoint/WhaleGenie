@@ -712,20 +712,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private UiQuery Query(ExecutableStep step)
     {
-        var rule = WindowRuleOf(step, "window", "how");
-        return UiQuery.Parse(ReadText(step, "uiSelector"), rule.Text, Index(step, "matchIndex", 1),
-            rule.Match, rule.Compare, rule.Options);
-    }
-
-    /// <summary>
-    /// The same, for the control a step measures its coordinates from. A step that is anchored to a
-    /// control keeps its own pair of fields, so the two readings never take each other's values.
-    /// </summary>
-    private UiQuery AnchorQuery(ExecutableStep step)
-    {
-        var rule = WindowRuleOf(step, "anchorWindow", "anchorHow");
-        return UiQuery.Parse(ReadText(step, "anchorSelector"), rule.Text, 1, rule.Match,
-            rule.Compare, rule.Options);
+        var rule = WindowRuleOf(step);
+        return UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
+            Index(step, "matchIndex", 1), rule.Reading.Match, rule.Reading.Compare, rule.Options);
     }
 
     /// <summary>

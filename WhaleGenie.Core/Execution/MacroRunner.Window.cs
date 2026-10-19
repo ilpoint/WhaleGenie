@@ -103,6 +103,7 @@ public sealed partial class MacroRunner
         string text = "", string label = "", int classId = -1)
     {
         Give(step, "match", Hit(corner, size, score, text, label, classId));
+        GivePoints(step, Middle(corner, size), null);
         GiveTaken(step);
     }
 
@@ -159,6 +160,15 @@ public sealed partial class MacroRunner
         Give(step, "every", Value.FromList([]));
         Give(step, "window", Value.FromText(string.Empty));
         Give(step, "method", Value.FromText(string.Empty));
+        foreach (var name in new[]
+                 {
+                     "screenPoint", "windowPoint",
+                     "screenStartPoint", "screenEndPoint",
+                     "windowStartPoint", "windowEndPoint",
+                 })
+        {
+            Give(step, name, Value.FromText(string.Empty));
+        }
     }
 
     /// <summary>
@@ -219,6 +229,7 @@ public sealed partial class MacroRunner
     private void ListWindows(ExecutableStep step, int depth)
     {
         var windows = Matching(step);
+        var rule = WindowRuleOf(step);
 
         // The program and the class of a window are read only when the step keeps the list and asks
         // for them, because looking either of them up costs a look at the window. Every entry is
@@ -230,7 +241,7 @@ public sealed partial class MacroRunner
             Store(step, "windows", Value.FromList(windows.Select(window => WindowRecord(window,
                 details ? _devices.Windows.ProcessOf(window.Handle) : string.Empty,
                 details ? _devices.Windows.ClassOf(window.Handle) : string.Empty,
-                string.Empty))), depth);
+                string.Empty, rule))), depth);
         }
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.ListedWindows, windows.Count);
@@ -242,9 +253,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private IReadOnlyList<WindowInfo> Matching(ExecutableStep step)
     {
-        var rule = WindowRuleOf(step, "window", "how");
-        return _devices.Windows.Filter(rule.Text, rule.Match, rule.Compare, everyWhenEmpty: true,
-            options: rule.Options);
+        var rule = WindowRuleOf(step);
+        return _devices.Windows.Filter(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+            everyWhenEmpty: true, options: rule.Options);
     }
 
     /// <summary>Does something to the window a step names, or fails the step when it is not open.</summary>
@@ -281,6 +292,12 @@ public sealed partial class MacroRunner
             Side(FieldNames.Height, window.Size.Height, 1));
     }
 
+    /// <summary>Whether the step says enough about a window's rectangle to move it at all.</summary>
+    private static bool MoveTargetWritten(ExecutableStep step)
+        => step.Text("rect").Trim().Length > 0
+           || new[] { "x", "y", FieldNames.Width, FieldNames.Height }
+               .Any(name => step.Text(name).Trim().Length > 0);
+
     /// <summary>
     /// The window a step names, or a failure saying which one could not be found. "Match by" says
     /// what the text is held up against and how; an empty text means whatever window is in front.
@@ -291,66 +308,103 @@ public sealed partial class MacroRunner
     /// <summary>The same, for the steps that report rather than fail when no window matches.</summary>
     private WindowInfo? Lookup(ExecutableStep step)
     {
-        var rule = WindowRuleOf(step, "window", "how");
-        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare, rule.Options);
+        var rule = WindowRuleOf(step);
+        if (!rule.HasTarget)
+        {
+            return _devices.Windows.Foreground();
+        }
+
+        return _devices.Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+            rule.Options);
     }
 
     /// <summary>
-    /// The window a step names, read off the two fields the rule is made of: the text, with the
-    /// variables in it filled in, and the one choice that says what the text is held up against and
-    /// how. The step families that name a window — a window action, a step that reads the screen
-    /// and one that posts its input at a window — say it in these same two fields, so they are read
-    /// in this one place.
+    /// The one window rule every step family reads. A literal rule is written as a record and a
+    /// variable may hand over a record read earlier; no older title-only shape is read.
     /// </summary>
-    private (string Text, WindowMatch Match, string Compare, TextCompareOptions Options)
-        WindowRuleOf(ExecutableStep step,
-        string textField, string howField)
+    private WindowRule WindowRuleOf(ExecutableStep step, string field = "window")
     {
-        var (match, compare) = WindowHow.Read(step.Text(howField));
-        var value = WindowValue(step, textField);
+        var written = step.Text(field).Trim();
+        if (written.Length == 0)
+        {
+            return WindowRule.Empty;
+        }
 
-        string text;
+        var value = WindowValue(step, field);
+        WindowRule rule;
         if (value.IsRecord)
         {
-            // A record says what a window is three times over: what it is called, what program
-            // owns it and what class it was registered under. Which of the three is compared is
-            // the same choice the text form is held up against.
-            var name = match switch
-            {
-                WindowMatch.Process => FieldNames.Process,
-                WindowMatch.ClassName => FieldNames.Class,
-                _ => FieldNames.Title,
-            };
-            text = value.Field(name)?.AsText().Trim()
-                ?? throw new StepFailure(RunKeys.WindowRecordField, name);
+            rule = RuleFromRecord(value);
+        }
+        else if (WindowRule.TryParse(written, out var parsed))
+        {
+            rule = parsed;
         }
         else
         {
-            text = value.AsText().Trim();
+            throw new StepFailure(RunKeys.BadWindowRule, written);
         }
 
-        var options = OptionsOf(step, compare);
+        var (match, compare) = rule.Reading;
+        var selected = rule.MatchValue.Trim();
 
         // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
         // puzzle over, so it comes back as a failed step before anything is looked at — the same
         // words whichever step asked.
         try
         {
-            WindowHow.Check(text, compare, options);
+            WindowHow.Check(selected, compare, rule.Options);
         }
         catch (ArgumentException)
         {
-            throw new StepFailure(RunKeys.BadPattern, text);
+            throw new StepFailure(RunKeys.BadPattern, selected);
         }
 
-        return (text, match, compare, options);
+        return rule with { How = string.IsNullOrWhiteSpace(rule.How) ? WindowHow.TitleContains : rule.How };
+    }
+
+    /// <summary>A window record read by a step, with the rule fields a match needs.</summary>
+    private static WindowRule RuleFromRecord(Value record)
+    {
+        string Text(string name, string fallback = "")
+            => record.Field(name)?.AsText().Trim() ?? fallback;
+
+        bool Flag(string name, bool fallback)
+            => record.Field(name)?.AsBool() ?? fallback;
+
+        var how = Text(FieldNames.How, WindowHow.TitleContains);
+        var selected = WindowHow.Read(how).Match switch
+        {
+            WindowMatch.Process => Text(FieldNames.Process),
+            WindowMatch.ClassName => Text(FieldNames.Class),
+            _ => Text(FieldNames.Title),
+        };
+        if (selected.Length == 0)
+        {
+            var needed = WindowHow.Read(how).Match switch
+            {
+                WindowMatch.Process => FieldNames.Process,
+                WindowMatch.ClassName => FieldNames.Class,
+                _ => FieldNames.Title,
+            };
+            throw new StepFailure(RunKeys.WindowRecordField, needed);
+        }
+
+        return new WindowRule(
+            Text(FieldNames.Title),
+            Text(FieldNames.Process),
+            Text(FieldNames.Class),
+            record.Field(FieldNames.Handle)?.AsNumber() is { } handle ? (long)handle : 0,
+            how,
+            Flag(FieldNames.CaseSensitive, false),
+            Flag(FieldNames.Trim, true),
+            Flag(FieldNames.Multiline, false));
     }
 
     /// <summary>
     /// What a step wrote into a window field: the value of the variable it names when that variable
-    /// holds a window record, and the text it looks like otherwise. A cell that is one known name is
-    /// read as that value so a record can be handed over whole; everything else keeps the old
-    /// reading, where a dollar sign is filled in and text around it stays as written.
+    /// holds a window record, and the literal text otherwise. A cell that is one known name is read
+    /// as that value so a record can be handed over whole.
     /// </summary>
     private Value WindowValue(ExecutableStep step, string field)
     {
@@ -384,7 +438,7 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
-    private string WindowText(ExecutableStep step) => WindowValue(step, "window").AsText().Trim();
+    private string WindowText(ExecutableStep step) => WindowRuleOf(step).MatchValue.Trim();
 
     /// <summary>
     /// Reads where a window is and how big it is. The rectangle is written the way a search region
@@ -410,7 +464,8 @@ public sealed partial class MacroRunner
             Give(step, "window", WindowRecord(window,
                 _devices.Windows.ProcessOf(window.Handle),
                 _devices.Windows.ClassOf(window.Handle),
-                $"{client.X},{client.Y},{inner.Width},{inner.Height}"));
+                $"{client.X},{client.Y},{inner.Width},{inner.Height}",
+                WindowRuleOf(step)));
         }
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.WindowBox, window.Title, box);
@@ -423,7 +478,8 @@ public sealed partial class MacroRunner
     /// search region is spelled with. The part inside the border is always there as a field; a
     /// listing leaves it empty, because reading it costs a look at every window found.
     /// </summary>
-    private static Value WindowRecord(WindowInfo window, string program, string kind, string clientBox)
+    private static Value WindowRecord(WindowInfo window, string program, string kind, string clientBox,
+        WindowRule rule)
     {
         var left = window.Location.X;
         var top = window.Location.Y;
@@ -447,6 +503,10 @@ public sealed partial class MacroRunner
             (FieldNames.Height, Value.FromNumber(height)),
             (FieldNames.Box, Value.FromText($"{left},{top},{width},{height}")),
             (FieldNames.ClientBox, Value.FromText(clientBox)),
+            (FieldNames.How, Value.FromText(rule.How)),
+            (FieldNames.CaseSensitive, Value.FromBool(rule.CaseSensitive)),
+            (FieldNames.Trim, Value.FromBool(rule.Trim)),
+            (FieldNames.Multiline, Value.FromBool(rule.Multiline)),
         ]);
     }
 
@@ -479,11 +539,15 @@ public sealed partial class MacroRunner
                 Act(step, depth, LogKeys.RestoredWindow, window => _devices.Windows.Restore(window.Handle));
                 return Signal.Normal;
             case "window.move":
-                Act(step, depth, LogKeys.MovedWindow, window =>
+                if (MoveTargetWritten(step))
                 {
-                    var (x, y, width, height) = MoveTarget(step, window);
-                    return _devices.Windows.Move(window.Handle, x, y, width, height);
-                });
+                    Act(step, depth, LogKeys.MovedWindow, window =>
+                    {
+                        var (x, y, width, height) = MoveTarget(step, window);
+                        return _devices.Windows.Move(window.Handle, x, y, width, height);
+                    });
+                }
+
                 return Signal.Normal;
             case "window.close":
                 Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));

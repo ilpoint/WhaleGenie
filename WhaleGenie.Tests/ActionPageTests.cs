@@ -85,8 +85,7 @@ public class ActionPageTests
     private static readonly string[] Tuning =
     [
         "minFeatures", "ignoreColor", "matchIndex", "orderBy",
-        "anchorMode", "anchorWindow", "anchorHow", "anchorSelector",
-        "inputMode", "targetWindow", "targetHow", "style",
+        "style",
         "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
@@ -125,9 +124,9 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// A listing names its windows with the same two fields the other window actions use, so what to
-    /// match and how the window is recognised both stand on the basic page next to what the step is;
-    /// whether every program and class is read as well is tuning.
+    /// A listing names its windows with the same captured rule the other window actions use, and that
+    /// rule stands on the basic page next to what the step is; whether every program and class is
+    /// read as well is tuning.
     /// </summary>
     [Fact]
     public void A_listing_names_its_windows_the_way_the_window_actions_do()
@@ -136,11 +135,44 @@ public class ActionPageTests
 
         var basic = On(list, viewModel => viewModel.Rows);
         Assert.Contains("window", basic);
-        Assert.Contains("how", basic);
+        Assert.DoesNotContain("how", basic);
 
         var advanced = On(list, viewModel => viewModel.AdvancedRows);
         Assert.DoesNotContain("how", advanced);
         Assert.Contains("details", advanced);
+    }
+
+    /// <summary>
+    /// Visual actions call the same field "recognition source"; it belongs on the basic page
+    /// because it decides which picture is read. The window-only capture has no such choice.
+    /// </summary>
+    [Fact]
+    public void Visual_actions_keep_recognition_source_on_the_basic_page()
+    {
+        var actions = Ui.Run(() => ActionCatalog.Definitions
+            .Where(action => action.Parameters.Any(parameter => parameter.Name == "anchorMode"))
+            .ToList());
+        var problems = new List<string>();
+        foreach (var action in actions)
+        {
+            var basic = On(action, viewModel => viewModel.Rows);
+            if (!basic.Contains("anchorMode", StringComparer.Ordinal))
+            {
+                problems.Add($"{action.Key}: anchorMode is not on the basic page");
+            }
+            else if (basic[0] != "anchorMode" || basic[1] != "window")
+            {
+                problems.Add($"{action.Key}: recognition source is not the first row");
+            }
+        }
+
+        if (Ui.Run(() => ActionCatalog.Find("vision.captureWindow")!.Parameters
+                .Any(parameter => parameter.Name == "anchorMode")))
+        {
+            problems.Add("vision.captureWindow has an anchorMode");
+        }
+
+        Assert.Empty(problems);
     }
 
     /// <summary>
@@ -428,37 +460,6 @@ public class ActionPageTests
         Assert.Equal(intervalMs, field.DefaultValue);
         Assert.Equal(0m, field.Minimum);
         Assert.Equal(60000m, field.Maximum);
-    }
-
-    /// <summary>
-    /// Which window a step works on, and how that window is recognised, is what the step is rather
-    /// than how it does it: a window named wrongly is a step that quietly does nothing, so both
-    /// fields of the name are read on the basic page.
-    /// </summary>
-    [Fact]
-    public void How_a_window_is_recognised_is_on_the_basic_page()
-    {
-        var misplaced = new List<string>();
-
-        foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
-        {
-            // "How" is a word other actions use for other questions, such as which tab a browser
-            // step switches to, so the rule is found by the window field it stands beside rather
-            // than by that name alone.
-            if (!action.Parameters.Any(parameter => parameter.Name == "window"
-                    && parameter.Kind is ActionParameterKind.Window)
-                || action.Parameters.All(parameter => parameter.Name != "how"))
-            {
-                continue;
-            }
-
-            var basic = On(action, viewModel => viewModel.Rows);
-            misplaced.AddRange(new[] { "window", "how" }
-                .Where(name => !basic.Contains(name, StringComparer.Ordinal))
-                .Select(name => $"{action.Key}: {name}"));
-        }
-
-        Assert.Empty(misplaced);
     }
 
     /// <summary>

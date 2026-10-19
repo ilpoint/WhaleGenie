@@ -152,6 +152,32 @@
                             Click="OnTestStep" />
                 </Grid>
 
+                <!-- A window is one field even though it remembers several things. The button
+                     captures the window in front after F1 and edits the matching rule there. -->
+                <Border IsVisible="{Binding IsWindowRule}" Background="{DynamicResource AppField}"
+                        BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                        CornerRadius="5" Padding="10,8">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{Binding WindowRuleSummary}" FontSize="12.5"
+                                       Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                       Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnPickWindowRule" />
+                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnPickWindowVariable" />
+                        <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="10,0"
+                                Content="{Binding [WindowRule.Clear], Source={x:Static loc:Strings.Current}}"
+                                Click="OnClearWindowRule" />
+                    </Grid>
+                </Border>
+
                 <!-- A value that may name variables: the names are offered while it is typed in,
                      and a whole value may be built with the expression editor. A window is written
                      here like anything else, with the picker beside it that fills in one of the
@@ -909,6 +935,20 @@
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <!-- What fills the whole rectangle stands above the pair of numbers it fills,
                      because it is one button for both of them rather than an answer to one. -->
+                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
+                        Width="150" Margin="0,0,0,6"
+                        HorizontalAlignment="Left"
+                        IsVisible="{Binding IsPointAnchor}"
+                        ToolTip.Tip="{Binding [Add.PickCoordinateHint], Source={x:Static loc:Strings.Current}}"
+                        Content="{Binding [Add.PickCoordinate], Source={x:Static loc:Strings.Current}}"
+                        Click="OnPickPoint" />
+                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
+                        Width="150" Margin="0,0,0,6"
+                        HorizontalAlignment="Left"
+                        IsVisible="{Binding IsWindowBoundsAnchor}"
+                        ToolTip.Tip="{Binding [Add.PickWindowBoundsHint], Source={x:Static loc:Strings.Current}}"
+                        Content="{Binding [Add.PickWindowBounds], Source={x:Static loc:Strings.Current}}"
+                        Click="OnPickWindowBounds" />
                 <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
                         Height="30" Padding="10,0" Margin="0,0,0,8"
                         HorizontalAlignment="Left"

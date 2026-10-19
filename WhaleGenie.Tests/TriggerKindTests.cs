@@ -47,7 +47,6 @@ public class TriggerKindTests
             Assert.Equal(editor.WatchChangeOptions.Count, Enum.GetValues<FileChangeKind>().Length);
             Assert.Equal(editor.ProcessChangeOptions.Count, Enum.GetValues<ProcessChangeKind>().Length);
             Assert.Equal(editor.WindowChangeOptions.Count, Enum.GetValues<WindowChangeKind>().Length);
-            Assert.Equal(editor.WindowHowOptions.Count, WindowHow.Values.Count);
 
             foreach (var mode in Enum.GetValues<ScheduleMode>())
             {
@@ -79,11 +78,6 @@ public class TriggerKindTests
                 Assert.Equal(change, editor.WindowChange);
             }
 
-            foreach (var way in WindowHow.Values)
-            {
-                editor.WindowHowIndex = WindowHow.IndexOf(way);
-                Assert.Equal(way, editor.WindowHow);
-            }
         });
     }
 
@@ -92,6 +86,15 @@ public class TriggerKindTests
     {
         Ui.Run(() =>
         {
+            var windowRule = new WindowRule(
+                Title: "Setup",
+                Process: "notepad",
+                ClassName: "NotepadClass",
+                Handle: 42,
+                How: WindowHow.Class,
+                CaseSensitive: true,
+                Trim: false,
+                Multiline: true);
             var macro = new MacroItem
             {
                 Name = "Probe",
@@ -107,8 +110,7 @@ public class TriggerKindTests
                 ScheduleTime = "21:15",
                 ScheduleInterval = 30,
                 ScheduleUnit = ScheduleUnit.Minutes,
-                WindowValue = " Setup ",
-                WindowHow = WindowHow.Class,
+                WindowTarget = windowRule,
                 WindowChange = WindowChangeKind.Disappeared,
                 IdleSeconds = 90,
             };
@@ -133,8 +135,7 @@ public class TriggerKindTests
             Assert.Equal("21:15", saved.ScheduleTime);
             Assert.Equal(30, saved.ScheduleInterval);
             Assert.Equal(ScheduleUnit.Minutes, saved.ScheduleUnit);
-            Assert.Equal("Setup", saved.WindowValue);
-            Assert.Equal(WindowHow.Class, saved.WindowHow);
+            Assert.Equal(windowRule, saved.WindowTarget);
             Assert.Equal(WindowChangeKind.Disappeared, saved.WindowChange);
             Assert.Equal(90, saved.IdleSeconds);
         });
@@ -187,8 +188,7 @@ public class TriggerKindTests
         var macro = new MacroItem
         {
             TriggerMode = MacroTrigger.Window,
-            WindowValue = "Save As",
-            WindowHow = WindowHow.TitleContains,
+            WindowTarget = new WindowRule(Title: "Save As"),
             WindowChange = WindowChangeKind.Appeared,
         };
 
@@ -197,8 +197,7 @@ public class TriggerKindTests
 
         var restored = MacroItem.FromJson(macro.ToJson());
 
-        Assert.Equal("Save As", restored.WindowValue);
-        Assert.Equal(WindowHow.TitleContains, restored.WindowHow);
+        Assert.Equal(new WindowRule(Title: "Save As"), restored.WindowTarget);
         Assert.Equal(WindowChangeKind.Appeared, restored.WindowChange);
     }
 
@@ -207,8 +206,7 @@ public class TriggerKindTests
     {
         var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
 
-        Assert.Equal(string.Empty, macro.WindowValue);
-        Assert.Equal(WindowHow.TitleContains, macro.WindowHow);
+        Assert.Equal(WindowRule.Empty, macro.WindowTarget);
         Assert.Equal(WindowChangeKind.Appeared, macro.WindowChange);
     }
 

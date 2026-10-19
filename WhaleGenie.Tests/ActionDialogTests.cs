@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
+using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -23,6 +24,39 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ActionDialogTests
 {
+    [Fact]
+    public void A_background_input_rule_survives_the_form_and_reaches_the_engine()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            var mode = viewModel.Parameters.First(parameter =>
+                parameter.Definition.Name == "inputMode");
+            mode.Option = mode.Choices.First(choice => choice.Value == "background");
+            Dispatcher.UIThread.RunJobs();
+
+            var window = viewModel.Parameters.First(parameter =>
+                parameter.Definition.Name == "window");
+            var rule = new WindowRule(Title: "Game", Process: "game", ClassName: "GameClass",
+                Handle: 42, How: WindowHow.Process);
+            window.ApplyWindowRule(rule);
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "key")
+                .WriteValue("F5");
+
+            var step = viewModel.BuildStep();
+            var saved = Assert.Single(step.Parameters,
+                parameter => parameter.Name == "window");
+            Assert.True(WindowRule.TryParse(saved.Value, out var written));
+            Assert.Equal(rule, written);
+
+            var executable = Assert.Single(new[] { step }.ToExecutable());
+            var posted = Assert.Single(executable.Parameters,
+                parameter => parameter.Name == "window");
+            Assert.True(WindowRule.TryParse(posted.Text, out var reached));
+            Assert.Equal(rule, reached);
+        });
+    }
+
     /// <summary>
     /// A note is part of what a step is rather than one of its settings, so it is written on the
     /// basic page, first, where every step of every action has it.
@@ -83,12 +117,8 @@ public class ActionDialogTests
     private static string Value(AddActionViewModel viewModel, string name)
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name).CurrentText;
 
-    /// <summary>
-    /// A window is recognised by two fields and no more: the text, which keeps its name and its
-    /// example whatever the other field says, and the one choice of the five ways. A pattern is one
-    /// of those five rather than a second name for the same box, so nothing on the page changes
-    /// name while the step is being written.
-    /// </summary>
+    /// <summary>A window is one captured rule, so its label and placeholder do not change with a
+    /// second field beside it.</summary>
     [Fact]
     public void A_window_text_keeps_its_name_however_the_window_is_recognised()
     {
@@ -100,15 +130,8 @@ public class ActionDialogTests
             // A field that may be left empty says so.
             Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
                 text.Label);
-            Assert.Equal("Notepad", text.Placeholder);
-
-            foreach (var how in new[] { "titleRegex", "titleStartsWith", "titleContains" })
-            {
-                Choose(viewModel, "how", how);
-                Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
-                    text.Label);
-                Assert.Equal("Notepad", text.Placeholder);
-            }
+            Assert.Equal("Click the target window, then press F1", text.Placeholder);
+            Assert.True(text.IsWindowRule);
         });
     }
 
@@ -268,8 +291,7 @@ public class ActionDialogTests
             Assert.False(Shown(viewModel, "trim"));
             Assert.True(Shown(viewModel, "multiline"));
 
-            // A condition compares text too, so the same three answers are folded away with its
-            // tuning rather than being written into the line that says what is compared.
+            // A condition compares text too, so the same three answers are asked for there.
             var condition = Open("condition.compare");
             var folded = condition.AdvancedRows.SelectMany(Names).ToList();
             Assert.Contains("caseSensitive", folded);
@@ -437,8 +459,8 @@ public class ActionDialogTests
             Assert.Equal(string.Empty, width.BasisNote);
 
             // The line follows the origin the moment it is changed.
-            Choose(capture, "anchorMode", "client");
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Client")),
+            Choose(capture, "anchorMode", "window");
+            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Window")),
                 x.BasisNote);
 
             // A step that looks in places of its own says it under the list of places.
@@ -597,8 +619,6 @@ public class ActionDialogTests
     }
 
     [Theory]
-    [InlineData("input.mouseClick")]
-    [InlineData("input.mouseDrag")]
     [InlineData("vision.capture")]
     [InlineData("vision.clickImage")]
     [InlineData("vision.findColor")]
@@ -614,19 +634,15 @@ public class ActionDialogTests
             var mode = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "anchorMode");
             Assert.True(mode.IsChoice);
+            Assert.Equal("识别方式", mode.Label);
             Assert.Equal("screen", mode.CurrentText);
 
-            // A step that puts the pointer somewhere can be measured from a control as well,
-            // which is the fourth basis and only makes sense for the ones that move the pointer.
-            Assert.Equal(
-                viewModel.Parameters.Any(parameter => parameter.Definition.Name == "anchorSelector")
-                    ? ["screen", "window", "client", "element"]
-                    : ["screen", "window", "client"],
-                mode.Choices.Select(choice => choice.Value));
+            Assert.Equal(["screen", "window"], mode.Choices.Select(choice => choice.Value));
+            Assert.Equal(["屏幕", "窗口"], mode.Choices.Select(choice => choice.Display));
 
             var window = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "anchorWindow");
-            Assert.True(window.IsWindow);
+                .First(parameter => parameter.Definition.Name == "window");
+            Assert.True(window.IsWindowRule);
             Assert.False(window.Definition.Required);
         });
     }
@@ -643,7 +659,8 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["match", "every", "coverage", "window", "method"],
+            Assert.Equal(["match", "every", "coverage", "window", "method", "screenPoint",
+                "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
@@ -676,7 +693,7 @@ public class ActionDialogTests
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal(["match", "every", "window", "method"],
+            Assert.Equal(["match", "every", "window", "method", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
@@ -1242,35 +1259,18 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_position_picked_on_screen_is_stored_relative_to_the_windows_corner()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("input.mouseClick");
-            viewModel.Windows = new OneOpenWindow();
-            Anchor(viewModel, "window");
-
-            Assert.True(viewModel.ApplyCursorPosition(1010, 520));
-
-            Assert.Equal("10", Value(viewModel, "x"));
-            Assert.Equal("20", Value(viewModel, "y"));
-        });
-    }
-
-    [Fact]
-    public void A_position_picked_on_screen_is_stored_relative_to_the_inside_of_the_border()
+    public void A_position_picked_on_screen_is_stored_relative_to_the_window_client()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("vision.capture");
             viewModel.Windows = new OneOpenWindow();
-            Anchor(viewModel, "client");
+            Anchor(viewModel, "window");
 
             Assert.True(viewModel.ApplyRegion(1008, 530, 30, 40));
 
             // The rectangle a step reads is stored the way the engine will read it back: counted
-            // from the window's own corner rather than from the screen, because that is what tells
-            // the step where inside the window to look.
+            // from the client-area corner rather than from the screen.
             Assert.Equal("8", Value(viewModel, "x"));
             Assert.Equal("10", Value(viewModel, "y"));
             Assert.Equal("30", Value(viewModel, "width"));
@@ -1279,61 +1279,16 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_position_picked_on_screen_is_stored_relative_to_a_controls_corner()
+    public void The_coordinate_bases_are_only_screen_and_window()
     {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("input.mouseClick");
-            viewModel.Ui = new OneFoundElement();
-            Anchor(viewModel, "element");
-            viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "anchorSelector").Text =
-                "Button[automationId='saveButton']";
-
-            Assert.True(viewModel.ApplyCursorPosition(1010, 520));
-
-            Assert.Equal("10", Value(viewModel, "x"));
-            Assert.Equal("20", Value(viewModel, "y"));
-        });
-    }
-
-    [Fact]
-    public void A_step_measured_from_a_control_keeps_that_choice_when_it_is_saved()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("input.mouseMove");
-            Anchor(viewModel, "element");
-            viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "anchorSelector").Text =
-                "Button[automationId='saveButton']";
-
-            MacroStep? saved = null;
-            viewModel.CloseRequested += result => saved = result;
-            viewModel.SaveCommand.Execute(null);
-
-            Assert.NotNull(saved);
-            Assert.Contains(saved!.Parameters, parameter =>
-                parameter.Name == "anchorMode" && parameter.Value == "element");
-            Assert.Contains(saved.Parameters, parameter =>
-                parameter.Name == "anchorSelector"
-                && parameter.Value == "Button[automationId='saveButton']");
-        });
-    }
-
-    [Fact]
-    public void Only_the_actions_that_put_the_pointer_somewhere_measure_from_a_control()
-    {
-        var keys = Ui.Run(() => ActionCatalog.Definitions
-            .Where(definition => definition.Parameters.Any(parameter => parameter.Name == "anchorSelector"))
-            .Select(definition => definition.Key)
-            .Order()
+        var modes = Ui.Run(() => ActionCatalog.Definitions
+            .SelectMany(definition => definition.Parameters)
+            .Where(parameter => parameter.Name == "anchorMode")
+            .Select(parameter => parameter.Options)
+            .Distinct()
             .ToList());
 
-        Assert.Equal(
-            ["input.mouseClick", "input.mouseDoubleClick", "input.mouseDown", "input.mouseDrag",
-             "input.mouseMove", "input.mouseScroll", "input.mouseUp", "vision.capture"],
-            keys);
+        Assert.All(modes, options => Assert.Equal(["screen", "window"], options));
     }
 
     /// <summary>Turns the coordinate picker of a dialog onto a named window.</summary>
@@ -1351,7 +1306,8 @@ public class ActionDialogTests
 
         choice.Option = choice.Choices.First(option => option.Value == mode);
         viewModel.Parameters
-            .First(parameter => parameter.Definition.Name == "anchorWindow").Text = "Notepad";
+            .First(parameter => parameter.Definition.Name == "window")
+            .ApplyWindowRule(new WindowRule(Title: "Notepad"));
     }
 
     /// <summary>
@@ -2119,8 +2075,8 @@ public class ActionDialogTests
             // action rather than something to show without being asked for. The three
             // text-comparison switches sit there too: they are questions about how a window title is
             // recognised, not about where the pointer goes.
-            Assert.Equal(3, viewModel.Rows.Count);
-            Assert.Equal(11, viewModel.AdvancedRows.Count);
+            Assert.Equal(5, viewModel.Rows.Count);
+            Assert.Single(viewModel.AdvancedRows);
             Assert.True(viewModel.OnBase);
 
             // The pages are opened by their own tabs rather than by a fold, so a step's settings
@@ -2174,17 +2130,17 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("input.keyPress");
+            var viewModel = Open("input.mouseMove");
             viewModel.LoadFrom(new MacroStep
             {
-                Type = "input.keyPress",
+                Type = "input.mouseMove",
                 Parameters =
                 [
                     new StepParameter
                     {
-                        Name = "inputMode",
+                        Name = "style",
                         Kind = ActionParameterKind.Choice,
-                        Value = "background",
+                        Value = "smooth",
                     },
                 ],
             });
@@ -2247,26 +2203,23 @@ public class ActionDialogTests
         {
             var viewModel = Open("input.keyPress");
 
-            Assert.False(Shown(viewModel, "targetWindow"));
-            Assert.False(Shown(viewModel, "targetHow"));
+            Assert.False(Shown(viewModel, "window"));
 
             Choose(viewModel, "inputMode", "background");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.True(Shown(viewModel, "targetWindow"));
-            Assert.True(Shown(viewModel, "targetHow"));
+            Assert.True(Shown(viewModel, "window"));
 
-            // Both are tuning rather than what the step is, so they are behind the fold.
-            var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
-            Assert.Contains("targetWindow", folded);
-            Assert.Contains("targetHow", folded);
+            // The window is the first question after the input mode, on the basic page.
+            var basic = viewModel.Rows.SelectMany(Names).ToList();
+            Assert.Contains("window", basic);
+            Assert.Contains("inputMode", basic);
 
             // Back to sending in front, and the two go with the mode that reads them.
             Choose(viewModel, "inputMode", "foreground");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.False(Shown(viewModel, "targetWindow"));
-            Assert.False(Shown(viewModel, "targetHow"));
+            Assert.False(Shown(viewModel, "window"));
         });
     }
 
@@ -2282,16 +2235,14 @@ public class ActionDialogTests
         {
             var viewModel = Open("input.keyPress");
             var text = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "targetWindow");
+                .First(parameter => parameter.Definition.Name == "window");
 
             Choose(viewModel, "inputMode", "background");
-            Choose(viewModel, "targetHow", "titleRegex");
-            text.Text = @"^notepad$";
+            text.ApplyWindowRule(new WindowRule(Title: @"^notepad$", How: WindowHow.TitleRegex));
             Dispatcher.UIThread.RunJobs();
 
-            // The text keeps its name; what the field wants is what the choice beside it says.
-            Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
-                text.Label);
+            // One field carries the captured window and the way it is compared.
+            Assert.True(text.IsWindowRule);
 
             MacroStep? posted = null;
             viewModel.CloseRequested += step => posted = step;
@@ -2300,22 +2251,21 @@ public class ActionDialogTests
             var written = posted!.Parameters.ToDictionary(parameter => parameter.Name,
                 parameter => parameter.Value, StringComparer.Ordinal);
             Assert.Equal("background", written["inputMode"]);
-            Assert.Equal(@"^notepad$", written["targetWindow"]);
-            Assert.Equal("titleRegex", written["targetHow"]);
+            Assert.True(WindowRule.TryParse(written["window"], out var savedRule));
+            Assert.Equal(@"^notepad$", savedRule.Title);
+            Assert.Equal(WindowHow.TitleRegex, savedRule.How);
 
             // Told again to send in front, the step carries nothing about a window it does not read.
             Choose(viewModel, "inputMode", "foreground");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.DoesNotContain("targetWindow", viewModel.JsonPreview, StringComparison.Ordinal);
-            Assert.DoesNotContain("targetHow", viewModel.JsonPreview, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"window\"", viewModel.JsonPreview, StringComparison.Ordinal);
 
             MacroStep? inFront = null;
             viewModel.CloseRequested += step => inFront = step;
             viewModel.SaveCommand.Execute(null);
 
-            Assert.DoesNotContain(inFront!.Parameters, parameter => parameter.Name == "targetWindow");
-            Assert.DoesNotContain(inFront.Parameters, parameter => parameter.Name == "targetHow");
+            Assert.DoesNotContain(inFront!.Parameters, parameter => parameter.Name == "window");
         });
     }
 
@@ -2328,13 +2278,13 @@ public class ActionDialogTests
             var visible = viewModel.Rows.SelectMany(Names).ToList();
             var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
-            // Which hit to take and what the search is measured from are worth having and not worth
-            // showing on every step; how alike the picture has to be is part of what the step is.
+            // Which hit to take is worth having and not worth showing on every step; where the
+            // picture is recognised and how alike it has to be are part of what the step is.
             // The colour of the reference picture that keeps changing is a knob of that same kind:
             // a step that leaves it alone wants the default.
             Assert.Contains("confidence", visible);
             Assert.Contains("matchIndex", folded);
-            Assert.Contains("anchorMode", folded);
+            Assert.Contains("anchorMode", visible);
             Assert.Contains("ignoreColor", folded);
 
             // What the step is about stays in front.
@@ -2503,7 +2453,7 @@ public class ActionDialogTests
             var folded = reading.AdvancedRows.SelectMany(Names).ToList();
             Assert.Contains("encoding", folded);
             Assert.Contains("separator", folded);
-            Assert.Contains("trim", folded);
+            Assert.Contains("trimCells", folded);
             // Reading part of a file — these columns, these rows — is how the step is tuned rather
             // than what it is, so those fields are folded away with the rest.
             Assert.Contains("columns", folded);

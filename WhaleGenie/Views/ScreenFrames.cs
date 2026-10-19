@@ -47,9 +47,17 @@ internal sealed class ScreenFrames : IDisposable
 
         foreach (var (handle, place) in wanted)
         {
-            if (!_up.ContainsKey(handle) && ScreenFrameWindow.Show(place.Location, place.Size) is { } frame)
+            if (!_up.ContainsKey(handle)
+                && ScreenFrameWindow.Show(place.Location, place.Size, place.Handle) is { } frame)
             {
                 _up[handle] = frame;
+                frame.Closed += (_, _) =>
+                {
+                    if (_up.TryGetValue(handle, out var current) && ReferenceEquals(current, frame))
+                    {
+                        _up.Remove(handle);
+                    }
+                };
             }
         }
     }
@@ -57,7 +65,7 @@ internal sealed class ScreenFrames : IDisposable
     /// <summary>Takes every frame down, which is what the window that put them up does when it goes.</summary>
     public void Clear()
     {
-        foreach (var frame in _up.Values)
+        foreach (var frame in _up.Values.ToList())
         {
             frame.Close();
         }

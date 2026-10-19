@@ -19,6 +19,14 @@ public class ConditionCatalogueTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    private static ExecutableParameter Window(string text, string how = WindowHow.TitleContains)
+        => Param("window", (how is WindowHow.Process or WindowHow.ProcessEquals
+                ? new WindowRule(Process: text, How: how)
+                : how is WindowHow.Class or WindowHow.ClassEquals
+                    ? new WindowRule(ClassName: text, How: how)
+                    : new WindowRule(Title: text, How: how))
+            .ToJson().ToJsonString());
+
     private static ExecutableStep Set(string id, string name, string value)
         => new()
         {
@@ -189,21 +197,21 @@ public class ConditionCatalogueTests
         foreach (var (how, text, holds) in ways)
         {
             var one = await AskAsync(
-                Condition("condition.windowExists", Param("window", text), Param("how", how)),
+                Condition("condition.windowExists", Window(text, how)),
                 devices: devices);
 
             Assert.Equal(holds, one.Holds);
         }
 
         var any = await AskAsync(Condition("condition.windowExists",
-            Param("window", string.Empty)), devices: devices);
+            Window(string.Empty)), devices: devices);
 
         // A rule with no match text asks about every window there is.
         Assert.True(any.Holds);
 
         // And a pattern that will not read is the same mistake it is wherever a window is named.
         var (badHolds, bad) = await AskAsync(
-            Condition("condition.windowExists", Param("window", "["), Param("how", WindowHow.TitleRegex)),
+            Condition("condition.windowExists", Window("[", WindowHow.TitleRegex)),
             devices: devices);
 
         Assert.False(badHolds);

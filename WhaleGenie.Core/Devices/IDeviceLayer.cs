@@ -7,9 +7,25 @@ using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Devices;
 
+/// <summary>The space in which an input device's x and y are counted.</summary>
+public enum InputCoordinateSpace
+{
+    /// <summary>Screen pixels, the desktop's own space.</summary>
+    Screen,
+
+    /// <summary>Pixels from the target window's client-area top-left corner.</summary>
+    WindowClient,
+}
+
 /// <summary>The keyboard and the mouse.</summary>
 public interface IInputDevice
 {
+    /// <summary>
+    /// What the x and y of this device mean. The front and driver devices take screen pixels;
+    /// a background device takes client-area pixels of the window it posts at.
+    /// </summary>
+    InputCoordinateSpace CoordinateSpace => InputCoordinateSpace.Screen;
+
     /// <summary>Where the pointer is right now.</summary>
     ScreenPoint Cursor { get; }
 
@@ -1006,6 +1022,13 @@ public interface IWindowDevice
 {
     /// <summary>Every top-level window that has a title, in the order Windows lists them.</summary>
     IReadOnlyList<WindowInfo> List();
+
+    /// <summary>
+    /// The window Windows currently calls the foreground window, or null when nothing has one.
+    /// The default is the first visible window a device lists, which is what a stand-in desktop
+    /// has to offer; the Windows device asks the machine directly.
+    /// </summary>
+    WindowInfo? Foreground() => List().FirstOrDefault();
 
     /// <summary>
     /// Every window that matches <paramref name="value"/> the way <paramref name="match"/> and

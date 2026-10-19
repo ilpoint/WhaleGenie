@@ -96,66 +96,42 @@ public class VariableFieldTests
     }
 
     /// <summary>
-    /// The text a window is recognised by is written like any other text a macro works out earlier:
-    /// a name goes in as it is typed and the window picker stands beside the same box. The whole
-    /// value is not read as one, so the expression editor stays away from it: a window name is a
-    /// name rather than a calculation, and $name in it is filled in where it stands.
+    /// A window is one captured rule rather than a text box beside a comparison choice. The field
+    /// can still be handed a variable holding a window record, through its own variable picker.
     /// </summary>
     [Fact]
-    public void A_window_is_named_in_the_box_the_variables_are_offered_in()
+    public void A_window_is_one_rule_and_a_variable_can_be_used_instead()
     {
         Ui.Run(() =>
         {
-            foreach (var (key, name) in new[]
-                     {
-                         ("window.exists", "window"),
-                         ("vision.findImage", "anchorWindow"),
-                         ("input.keyPress", "targetWindow"),
-                     })
+            foreach (var key in new[] { "window.exists", "vision.findImage", "input.keyPress" })
             {
-                var field = Parameter(Open(key), name);
+                var field = Parameter(Open(key), "window");
 
-                Assert.True(field.IsWindow, $"{key}'s {name} is not a window field");
-                Assert.True(field.OffersVariables, $"{key}'s {name} offers no variables");
-                Assert.False(field.OffersFormula, $"{key}'s {name} offers the expression editor");
-                Assert.False(field.IsPlainText, $"{key}'s {name} went back to a plain box");
-                Assert.Contains(field.ExpressionSuggestions, entry => entry == "$count");
+                Assert.True(field.IsWindowRule, $"{key}'s window is not one rule field");
+                Assert.False(field.OffersFormula, $"{key}'s window offers the expression editor");
+
+                field.UseWindowVariable("count");
+                Assert.Equal("$count", field.Text);
             }
         });
     }
 
     /// <summary>
-    /// How a window is recognised is one choice of five, the same five wherever a window is named:
-    /// a window action, a step that reads the screen and one that posts its input at a window all
-    /// offer the values the engine reads, in the order it reads them.
+    /// Every action that names a window uses the same one field shape.
     /// </summary>
     [Fact]
-    public void Every_window_rule_offers_the_same_five_ways()
+    public void Every_window_is_one_rule_field()
     {
         var wrong = Ui.Run(() =>
         {
-            var found = new List<string>();
-            foreach (var definition in ActionCatalog.Definitions)
-            {
-                // "How" is also the word a browser step uses for which tab it switches to, which is
-                // a different question: a window rule is found by the window field beside it.
-                if (!definition.Parameters.Any(parameter =>
-                        parameter.Kind is ActionParameterKind.Window))
-                {
-                    continue;
-                }
-
-                foreach (var way in definition.Parameters.Where(parameter =>
-                             parameter.Name is "how" or "anchorHow" or "targetHow"))
-                {
-                    if (!way.Options.SequenceEqual(WindowHow.Values))
-                    {
-                        found.Add($"{definition.Key}.{way.Name}");
-                    }
-                }
-            }
-
-            return found;
+            return ActionCatalog.Definitions
+                .SelectMany(definition => definition.Parameters)
+                .Where(parameter => parameter.Name == "window"
+                    && parameter.Kind is not ActionParameterKind.WindowRule)
+                .Select(parameter => $"{parameter.OwnerKey}.{parameter.Name}")
+                .Order()
+                .ToList();
         });
 
         Assert.Empty(wrong);
@@ -447,17 +423,6 @@ public class VariableFieldTests
 
         Assert.Empty(gaps);
 
-        // A window is written in the box the variables are offered in, so every field that names one
-        // says it takes them: that answer is what puts the list of names over the box.
-        var silent = Ui.Run(() => ActionCatalog.Definitions
-            .SelectMany(definition => definition.Parameters.Select(parameter => (definition.Key, parameter)))
-            .Where(row => row.parameter.Kind is ActionParameterKind.Window)
-            .Where(row => !row.parameter.AcceptsVariables)
-            .Select(row => $"{row.Key}.{row.parameter.Name}")
-            .Order()
-            .ToList());
-
-        Assert.Empty(silent);
     }
 
     private static StepParameterViewModel Parameter(AddActionViewModel viewModel, string name)

@@ -235,20 +235,18 @@ public class MacroCheckTests
         Assert.Empty(Inspect(trying));
     }
 
-    /// <summary>
-    /// 相对移动在后台这一档做不了：位置会算错，而且错得看不出来。步骤自己的设置就能判定，所以
-    /// 写宏的时候就标出来；把输入方式改成前台或驱动级（或者根本没写这一格）就不标。
-    /// </summary>
+    /// <summary>A relative move offers foreground and driver only, so background is marked as an
+    /// option the action does not have.</summary>
     [Fact]
-    public void A_relative_move_posted_at_a_window_is_reported()
+    public void A_relative_move_has_no_background_option()
     {
         var posted = Step("input.mouseMoveRelative",
-            Text("dx", "200"), Text("inputMode", "background"), Text("targetWindow", "Notepad"));
+            Text("dx", "200"), Text("inputMode", "background"));
 
         var problem = Assert.Single(Inspect(posted));
 
         Assert.Same(posted, problem.Step);
-        Assert.Equal(Strings.Get("Editor.Problem.PostedMove"), problem.Message);
+        Assert.Contains("background", problem.Message, StringComparison.Ordinal);
 
         // 前台与驱动级各自都是从指针当前位置往前走的，不标；别的动手的事也问不到这一条。
         Assert.Empty(Inspect(Step("input.mouseMoveRelative", Text("dx", "200"))));
@@ -256,7 +254,7 @@ public class MacroCheckTests
             Text("dx", "200"), Text("inputMode", "driver"))));
         Assert.Empty(Inspect(Step("input.mouseMove",
             Text("x", "10"), Text("y", "20"), Text("inputMode", "background"),
-            Text("targetWindow", "Notepad"))));
+            Text("window", "Notepad"))));
     }
 
     [Fact]
@@ -748,9 +746,7 @@ public class MacroCheckTests
         var problem = Assert.Single(Inspect(empty));
         Assert.Same(empty, problem.Step);
 
-        var label = Ui.Run(() => ActionCatalog.Find("window.move")!.Parameters
-            .First(parameter => parameter.Name == "rect").LocalLabel);
-        Assert.Equal(Strings.Format("Editor.Problem.NoPlace", label), problem.Message);
+        Assert.Equal(Strings.Get("Editor.Problem.WindowBounds"), problem.Message);
 
         // A record named in the field is a whole answer as far as the steps alone can tell.
         var writes = Step("control.setVariable", Text("name", "spot"), Text("value", "1"));
@@ -803,7 +799,7 @@ public class MacroCheckTests
     {
         var info = Step("window.info", Text("window", "Notepad"), Results("window"));
         var press = Step("input.keyPress", Text("key", "F5"), Text("inputMode", "background"),
-            Text("targetWindow", "$window"));
+            Text("window", "$window"));
 
         var problems = Inspect(info, press);
         Assert.DoesNotContain(problems, problem => problem.Step == press);

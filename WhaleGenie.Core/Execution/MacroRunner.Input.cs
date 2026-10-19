@@ -75,12 +75,13 @@ public sealed partial class MacroRunner
         var device = Input(step);
         var button = Button(step);
         var point = Point(step, "x", "y");
-        device.MouseDown(button, point.X, point.Y);
+        device.MouseDown(button, point.Device.X, point.Device.Y);
         if (!_heldButtons.Any(held =>
                 Same(held.Device, device) && Same(held.Button, button)))
         {
-            _heldButtons.Add((device, button, point));
+            _heldButtons.Add((device, button, point.Device));
         }
+        GivePoints(step, point.Screen, point.Window);
     }
 
     /// <summary>Releases a mouse button the macro asked to release, wherever it is now held.</summary>
@@ -89,8 +90,9 @@ public sealed partial class MacroRunner
         var device = Input(step);
         var button = Button(step);
         var point = Point(step, "x", "y");
-        device.MouseUp(button, point.X, point.Y);
+        device.MouseUp(button, point.Device.X, point.Device.Y);
         _heldButtons.RemoveAll(held => Same(held.Device, device) && Same(held.Button, button));
+        GivePoints(step, point.Screen, point.Window);
     }
 
     /// <summary>True when two device handles or two names stand for the same thing.</summary>
@@ -186,14 +188,15 @@ public sealed partial class MacroRunner
         // actions name one — the text held up against the window the way it says to hold it up —
         // so a step that types into a window whose title moves with the document is not left
         // without a handle on it.
-        var rule = WindowRuleOf(step, "targetWindow", "targetHow");
-        if (rule.Text.Length == 0)
+        var rule = WindowRuleOf(step);
+        if (rule.MatchValue.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingTargetWindow);
         }
 
-        var window = _devices.Windows.Find(rule.Text, rule.Match, rule.Compare, rule.Options)
-                     ?? throw new StepFailure(RunKeys.WindowNotFound, rule.Text);
+        var window = _devices.Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                         rule.Options)
+                     ?? throw new StepFailure(RunKeys.WindowNotFound, rule.MatchValue);
 
         return new InputRoute(InputDelivery.Background, window.Handle);
     }
@@ -233,29 +236,29 @@ public sealed partial class MacroRunner
     private (ScreenPoint? Corner, WindowInfo? Window) AnchorOf(ExecutableStep step)
     {
         var mode = ReadText(step, "anchorMode").Trim().ToLowerInvariant();
-
-        if (mode == "element")
+        if (mode.Length > 0 && mode is not ("screen" or "window"))
         {
-            var selector = ReadText(step, "anchorSelector");
-            var anchor = _devices.Ui.FindAll(AnchorQuery(step), 1).FirstOrDefault()
-                         ?? throw new StepFailure(RunKeys.ElementNotFound, selector);
-
-            return (anchor.Location, null);
+            throw new StepFailure(RunKeys.BadOption, "anchorMode");
         }
 
-        if (mode is not ("window" or "client"))
+        if (mode != "window")
         {
             return (null, null);
         }
 
-        // The window is recognised the way the window actions recognise one, and no text at all
-        // means the window in front, the same way every other window field reads.
-        var rule = WindowRuleOf(step, "anchorWindow", "anchorHow");
-        var window = _devices.Windows.Find(rule.Text, rule.Match, rule.Compare, rule.Options)
-                     ?? throw new StepFailure(RunKeys.WindowNotFound, rule.Text);
+        // The window is recognised by the same captured rule every window action reads.
+        var rule = WindowRuleOf(step);
+        if (!rule.HasTarget)
+        {
+            var front = _devices.Windows.Foreground();
+            return (front is { } there ? _devices.Windows.ClientOrigin(there.Handle) : null, front);
+        }
 
-        var corner = mode == "client" ? _devices.Windows.ClientOrigin(window.Handle)
-            : window.Location;
+        var window = _devices.Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                         rule.Options)
+                     ?? throw new StepFailure(RunKeys.WindowNotFound, rule.MatchValue);
+
+        var corner = _devices.Windows.ClientOrigin(window.Handle);
         return (corner, window);
     }
 
@@ -493,6 +496,10 @@ public sealed partial class MacroRunner
             // here when it really takes one; a step asked to try its looking writes nothing.
             1, step.Return("image"));
 
+    private void Took(ExecutableStep step,
+        (ImageFrame Frame, ScreenPoint Corner, WindowInfo Window) taken)
+        => Took(step, (taken.Frame, taken.Corner));
+
     /// <summary>Hands over what was read off a picture, without writing the reading anywhere.</summary>
     private void WasRead(ExecutableStep step,
         (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) read)
@@ -521,8 +528,10 @@ public sealed partial class MacroRunner
     private (ScreenPoint Corner, WindowInfo? Window) Spot(ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        return (RecordedPlace(step, "place")
-                ?? Placed(anchor.Corner, Number(step, "x"), Number(step, "y")),
+        var point = RecordedPlaceAndBasis(step, "place") is { } place
+            ? Resolve(step, place.Point, place.Basis, anchor).Screen
+            : Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
+        return (point,
             anchor.Window);
     }
 
@@ -536,23 +545,39 @@ public sealed partial class MacroRunner
     /// works there whatever else it carries, and a step that takes it from a record does not read the
     /// numbers at all.
     /// </summary>
-    private ScreenPoint Point(ExecutableStep step, string xName, string yName)
+    private ResolvedPoint Point(ExecutableStep step, string xName, string yName)
     {
         if (Flag(step, "useCursor", false))
         {
-            return Input(step).Cursor;
+            if (PostsMessages(step))
+            {
+                throw new StepFailure(RunKeys.BackgroundNeedsPointer);
+            }
+
+            var pointer = Input(step).Cursor;
+            return new ResolvedPoint(pointer, pointer, null);
         }
 
-        if (RecordedPlace(step, "place") is { } place)
+        if (RecordedPlaceAndBasis(step, "place") is { } place)
         {
-            return place;
+            return Resolve(step, place.Point, place.Basis);
         }
 
         var x = ReadText(step, xName).Trim();
         var y = ReadText(step, yName).Trim();
-        return x.Length == 0 && y.Length == 0
-            ? Input(step).Cursor
-            : Placed(Anchor(step), Number(step, xName), Number(step, yName));
+        if (x.Length == 0 && y.Length == 0)
+        {
+            if (PostsMessages(step))
+            {
+                throw new StepFailure(RunKeys.BadPoint, step.Type);
+            }
+
+            var pointer = Input(step).Cursor;
+            return new ResolvedPoint(pointer, pointer, null);
+        }
+
+        return Resolve(step, new ScreenPoint(Number(step, xName), Number(step, yName)),
+            PostsMessages(step) ? "window" : "step");
     }
 
     /// <summary>
@@ -561,16 +586,18 @@ public sealed partial class MacroRunner
     /// move has no "wherever the pointer already is" of its own, so both numbers missing is a move
     /// to the corner the step counts from rather than to nowhere.
     /// </summary>
-    private ScreenPoint MovePlace(ExecutableStep step)
-        => RecordedPlace(step, "place")
-            ?? Placed(Anchor(step), Number(step, "x"), Number(step, "y"));
+    private ResolvedPoint MovePlace(ExecutableStep step)
+        => RecordedPlaceAndBasis(step, "place") is { } place
+            ? Resolve(step, place.Point, place.Basis)
+            : Resolve(step, new ScreenPoint(Number(step, "x"), Number(step, "y")),
+                PostsMessages(step) ? "window" : "step");
 
     /// <summary>
     /// The place a record field names, or null when nobody filled it in. A value written there that
     /// is not a record is refused with what was written, so a macro that aimed at the wrong thing
     /// can be read back from its own log.
     /// </summary>
-    private ScreenPoint? RecordedPlace(ExecutableStep step, string name)
+    private (ScreenPoint Point, string Basis)? RecordedPlaceAndBasis(ExecutableStep step, string name)
     {
         var value = ReadValue(step, name);
         if (value.IsNull)
@@ -580,8 +607,160 @@ public sealed partial class MacroRunner
 
         var written = step.Text(name).Trim();
         return value.IsRecord
-            ? RecordPoint(value, written)
+            ? (RecordPoint(value, written),
+                value.Field(FieldNames.Basis)?.AsText().Trim().ToLowerInvariant() is { Length: > 0 } basis
+                    ? basis
+                    : "screen")
             : throw new StepFailure(RunKeys.BadPoint, written);
+    }
+
+    /// <summary>A point as the device needs it and in both coordinate spaces a macro may read.</summary>
+    private readonly record struct ResolvedPoint(ScreenPoint Device, ScreenPoint Screen,
+        ScreenPoint? Window);
+
+    /// <summary>
+    /// Turns a written point into the device's own space. Window-client coordinates are the step's
+    /// numbers in the background; a record says its own basis and is converted only when the step
+    /// knows which window that basis belongs to.
+    /// </summary>
+    private ResolvedPoint Resolve(ExecutableStep step, ScreenPoint point, string basis,
+        (ScreenPoint? Corner, WindowInfo? Window)? knownAnchor = null)
+    {
+        if (PostsMessages(step))
+        {
+            var window = knownAnchor?.Window ?? BackgroundWindow(step);
+            var origin = _devices.Windows.ClientOrigin(window.Handle);
+            return string.Equals(basis, "window", StringComparison.OrdinalIgnoreCase)
+                ? new ResolvedPoint(point, new ScreenPoint(origin.X + point.X, origin.Y + point.Y), point)
+                : new ResolvedPoint(new ScreenPoint(point.X - origin.X, point.Y - origin.Y), point,
+                    new ScreenPoint(point.X - origin.X, point.Y - origin.Y));
+        }
+
+        var mode = ReadText(step, "anchorMode").Trim().ToLowerInvariant();
+        if (mode.Length > 0 && mode is not ("screen" or "window"))
+        {
+            throw new StepFailure(RunKeys.BadOption, "anchorMode");
+        }
+
+        var corner = knownAnchor is { } known
+            ? known.Corner
+            : mode == "window" ? Anchor(step) : null;
+        if (!string.Equals(basis, "step", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(basis, "window", StringComparison.OrdinalIgnoreCase))
+            {
+                if (mode != "window" || corner is not { } fromWindow)
+                {
+                    throw new StepFailure(RunKeys.BadPoint, "window point without a window basis");
+                }
+
+                return new ResolvedPoint(
+                    new ScreenPoint(fromWindow.X + point.X, fromWindow.Y + point.Y),
+                    new ScreenPoint(fromWindow.X + point.X, fromWindow.Y + point.Y), point);
+            }
+
+            return new ResolvedPoint(point, point,
+                mode == "window" && corner is { } from
+                    ? new ScreenPoint(point.X - from.X, point.Y - from.Y)
+                    : null);
+        }
+
+        if (mode != "window")
+        {
+            return new ResolvedPoint(point, point, null);
+        }
+
+        var originOfWindow = corner
+            ?? throw new StepFailure(RunKeys.WindowNotFound, WindowText(step));
+        var screen = new ScreenPoint(originOfWindow.X + point.X, originOfWindow.Y + point.Y);
+        return new ResolvedPoint(screen, screen, point);
+    }
+
+    /// <summary>
+    /// Hands over the point a step actually used in the spaces it knows. A point from a window
+    /// action carries both; a foreground action with no window carries only the screen point.
+    /// </summary>
+    private void GivePoints(ExecutableStep step, ScreenPoint screen, ScreenPoint? window,
+        string screenKey = "screenPoint", string windowKey = "windowPoint")
+    {
+        if (Wants(step, screenKey))
+        {
+            Give(step, screenKey, PointRecord(screen, "screen"));
+        }
+
+        if (!Wants(step, windowKey))
+        {
+            return;
+        }
+
+        if ((window ?? WindowPointAt(step, screen)) is { } client)
+        {
+            Give(step, windowKey, PointRecord(client, "window"));
+        }
+    }
+
+    /// <summary>The same screen point counted from the step's window-client origin, when it has one.</summary>
+    private ScreenPoint? WindowPointAt(ExecutableStep step, ScreenPoint screen)
+    {
+        try
+        {
+            var origin = PostsMessages(step)
+                ? _devices.Windows.ClientOrigin(BackgroundWindow(step).Handle)
+                : ReadText(step, "anchorMode").Trim().Equals("window", StringComparison.OrdinalIgnoreCase)
+                    ? Anchor(step)
+                    : null;
+            return origin is { } corner
+                ? new ScreenPoint(screen.X - corner.X, screen.Y - corner.Y)
+                : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Hands over a screen point and, when the reading came from a window, its client point.</summary>
+    private void GivePointAt(ExecutableStep step, ScreenPoint screen, WindowInfo? window)
+    {
+        if (!Wants(step, "screenPoint") && !Wants(step, "windowPoint"))
+        {
+            return;
+        }
+
+        if (!Wants(step, "windowPoint"))
+        {
+            GivePoints(step, screen, null);
+            return;
+        }
+
+        var client = window is null
+            ? WindowPointAt(step, screen)
+            : new ScreenPoint(screen.X - _devices.Windows.ClientOrigin(window.Handle).X,
+                screen.Y - _devices.Windows.ClientOrigin(window.Handle).Y);
+        GivePoints(step, screen, client);
+    }
+
+    /// <summary>One point as a record a later position field can read directly.</summary>
+    private static Value PointRecord(ScreenPoint point, string basis)
+        => Value.FromRecord(
+        [
+            (FieldNames.X, Value.FromNumber(point.X)),
+            (FieldNames.Y, Value.FromNumber(point.Y)),
+            (FieldNames.Basis, Value.FromText(basis)),
+        ]);
+
+    /// <summary>The window a background step posts at, or a failure naming the missing rule.</summary>
+    private WindowInfo BackgroundWindow(ExecutableStep step)
+    {
+        var rule = WindowRuleOf(step);
+        if (rule.MatchValue.Length == 0)
+        {
+            throw new StepFailure(RunKeys.MissingTargetWindow);
+        }
+
+        return _devices.Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                   rule.Options)
+               ?? throw new StepFailure(RunKeys.WindowNotFound, rule.MatchValue);
     }
 
     /// <summary>
@@ -617,10 +796,13 @@ public sealed partial class MacroRunner
     /// measured from and is read once so both ends share it. <paramref name="end"/> names which end
     /// this is, because a drag has two of everything and the fields are read by name.
     /// </summary>
-    private ScreenPoint DragPlace(ExecutableStep step, string end, ScreenPoint? origin)
+    private ResolvedPoint DragPlace(ExecutableStep step, string end,
+        (ScreenPoint? Corner, WindowInfo? Window) anchor)
     {
-        return RecordedPlace(step, end + "Place")
-            ?? Placed(origin, Number(step, end + "X"), Number(step, end + "Y"));
+        return RecordedPlaceAndBasis(step, end + "Place") is { } place
+            ? Resolve(step, place.Point, place.Basis, anchor)
+            : Resolve(step, new ScreenPoint(Number(step, end + "X"), Number(step, end + "Y")),
+                PostsMessages(step) ? "window" : "step", anchor);
     }
 
     /// <summary>
@@ -628,17 +810,19 @@ public sealed partial class MacroRunner
     /// was; a bent or hand-like one is worked out into a path first, because the shape of that
     /// path is the whole point of those styles.
     /// </summary>
-    private void MovePointer(ExecutableStep step, ScreenPoint to)
+    private void MovePointer(ExecutableStep step, ResolvedPoint to)
     {
         var route = MousePath.Route(ReadText(step, "style"));
         var duration = Pace(Number(step, "durationMs"));
-        if (route is MouseRoute.Direct)
+        if (route is MouseRoute.Direct || PostsMessages(step))
         {
-            Input(step).MoveMouse(to.X, to.Y, duration);
+            Input(step).MoveMouse(to.Device.X, to.Device.Y, duration);
+            GivePoints(step, to.Screen, to.Window);
             return;
         }
 
-        WalkPointer(Input(step), route, Input(step).Cursor, to, duration);
+        WalkPointer(Input(step), route, Input(step).Cursor, to.Device, duration);
+        GivePoints(step, to.Screen, to.Window);
     }
 
     /// <summary>The same, for a move written as an offset from wherever the pointer is.</summary>
@@ -661,11 +845,15 @@ public sealed partial class MacroRunner
         if (route is MouseRoute.Direct)
         {
             Input(step).MoveMouseRelative(dx, dy, duration);
+            var at = Input(step).Cursor;
+            GivePoints(step, at, null);
             return;
         }
 
         var from = Input(step).Cursor;
         WalkPointer(Input(step), route, from, new ScreenPoint(from.X + dx, from.Y + dy), duration);
+        var arrived = Input(step).Cursor;
+        GivePoints(step, arrived, null);
     }
 
     private void WalkPointer(IInputDevice input, MouseRoute route, ScreenPoint from,
@@ -687,9 +875,9 @@ public sealed partial class MacroRunner
         // and a record handed to one of them says where on the screen it is, so it comes back
         // already in screen pixels rather than moved by that corner a second time. The corner is
         // read once, here, rather than once per end.
-        var origin = Anchor(step);
-        var from = DragPlace(step, "start", origin);
-        var to = DragPlace(step, "end", origin);
+        var anchor = AnchorOf(step);
+        var from = DragPlace(step, "start", anchor);
+        var to = DragPlace(step, "end", anchor);
         var duration = Pace(Number(step, "durationMs"));
         var settle = Pace(Number(step, "settleMs"));
         var steps = Math.Clamp(Number(step, "dragSteps"), 1, 200);
@@ -706,13 +894,17 @@ public sealed partial class MacroRunner
         {
             if (route is MouseRoute.Direct)
             {
-                Input(step).Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
+                Input(step).Drag(Button(step), from.Device.X, from.Device.Y, to.Device.X,
+                    to.Device.Y, duration, steps);
             }
             else
             {
-                Input(step).DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
+                Input(step).DragAlong(Button(step),
+                    MousePath.Plan(route, from.Device, to.Device, steps), duration);
             }
 
+            GivePoints(step, from.Screen, from.Window, "screenStartPoint", "windowStartPoint");
+            GivePoints(step, to.Screen, to.Window, "screenEndPoint", "windowEndPoint");
             return;
         }
 
@@ -720,10 +912,12 @@ public sealed partial class MacroRunner
         // it once the pointer has rested over it, and letting go the instant the pointer arrives is
         // how a drag onto something turns into a drag past it. That is three calls rather than the
         // one the devices offer, because the one they offer lets go before it comes back.
-        Input(step).MouseDown(Button(step), from.X, from.Y);
-        Input(step).MoveMouseAlong(MousePath.Plan(route, from, to, steps), duration);
+        Input(step).MouseDown(Button(step), from.Device.X, from.Device.Y);
+        Input(step).MoveMouseAlong(MousePath.Plan(route, from.Device, to.Device, steps), duration);
         await Pause(settle, token);
-        Input(step).MouseUp(Button(step), to.X, to.Y);
+        Input(step).MouseUp(Button(step), to.Device.X, to.Device.Y);
+        GivePoints(step, from.Screen, from.Window, "screenStartPoint", "windowStartPoint");
+        GivePoints(step, to.Screen, to.Window, "screenEndPoint", "windowEndPoint");
     }
 
     private IReadOnlyList<string> Keys(ExecutableStep step)
@@ -977,7 +1171,7 @@ public sealed partial class MacroRunner
 
             if (smooth <= 0)
             {
-                Input(step).Scroll(direction, total, point.X, point.Y);
+                Input(step).Scroll(direction, total, point.Device.X, point.Device.Y);
                 continue;
             }
 
@@ -995,9 +1189,12 @@ public sealed partial class MacroRunner
                     await Pause(smooth / events, token);
                 }
 
-                Input(step).Scroll(direction, share + (index < extra ? 1 : 0), point.X, point.Y);
+                Input(step).Scroll(direction, share + (index < extra ? 1 : 0),
+                    point.Device.X, point.Device.Y);
             }
         }
+
+        GivePoints(step, point.Screen, point.Window);
     }
 
     private async Task ClickMouse(ExecutableStep step, CancellationToken token)
@@ -1008,17 +1205,19 @@ public sealed partial class MacroRunner
         var interval = Pace(Number(step, "intervalMs"));
         var hold = Pace(Number(step, "holdMs"));
         var spread = Spread(step);
-        var from = ArrivedFrom(step);
+        var from = PostsMessages(step) ? null : ArrivedFrom(step);
 
         // A step that lets the clicks drift, or that wants the pointer put back, has to place every
         // click itself: sending them all at once would put them all on the same pixel, and there
         // would be nowhere to put the pointer back from.
         if (hold <= 0 && spread == 0 && from is null)
         {
-            Input(step).Click(button, point.X, point.Y, clicks, interval);
+            Input(step).Click(button, point.Device.X, point.Device.Y, clicks, interval);
+            GivePoints(step, point.Screen, point.Window);
             return;
         }
 
+        var last = point;
         for (var count = 0; count < clicks; count++)
         {
             token.ThrowIfCancellationRequested();
@@ -1027,7 +1226,13 @@ public sealed partial class MacroRunner
                 await Pause(interval, token);
             }
 
-            var at = Scattered(point, spread);
+            var at = Scattered(point.Device, spread);
+            last = new ResolvedPoint(at, new ScreenPoint(
+                point.Screen.X + (at.X - point.Device.X),
+                point.Screen.Y + (at.Y - point.Device.Y)), point.Window is { } window
+                ? new ScreenPoint(window.X + (at.X - point.Device.X),
+                    window.Y + (at.Y - point.Device.Y))
+                : null);
             if (hold <= 0)
             {
                 Input(step).Click(button, at.X, at.Y, 1, 0);
@@ -1038,6 +1243,8 @@ public sealed partial class MacroRunner
             await Pause(hold, token);
             Input(step).MouseUp(button, at.X, at.Y);
         }
+
+        GivePoints(step, last.Screen, last.Window);
 
         if (from is { } back)
         {
@@ -1058,7 +1265,7 @@ public sealed partial class MacroRunner
         var repeats = Math.Max(1, Number(step, "repeat"));
         var interval = Pace(Number(step, "intervalMs"));
         var spread = Spread(step);
-        var from = ArrivedFrom(step);
+        var from = PostsMessages(step) ? null : ArrivedFrom(step);
 
         for (var count = 0; count < repeats; count++)
         {
@@ -1068,8 +1275,15 @@ public sealed partial class MacroRunner
                 await Pause(interval, token);
             }
 
-            var at = Scattered(point, spread);
+            var at = Scattered(point.Device, spread);
+            var actual = new ResolvedPoint(at, new ScreenPoint(
+                point.Screen.X + (at.X - point.Device.X),
+                point.Screen.Y + (at.Y - point.Device.Y)), point.Window is { } window
+                ? new ScreenPoint(window.X + (at.X - point.Device.X),
+                    window.Y + (at.Y - point.Device.Y))
+                : null);
             Input(step).Click(Button(step), at.X, at.Y, 2, 0);
+            GivePoints(step, actual.Screen, actual.Window);
         }
 
         if (from is { } back)

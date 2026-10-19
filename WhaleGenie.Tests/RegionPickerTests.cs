@@ -56,6 +56,48 @@ public class RegionPickerTests
     }
 
     [Fact]
+    public void A_window_pick_clamps_a_new_rectangle_to_the_client_area()
+    {
+        Ui.Run(() =>
+        {
+            var bounds = new RegionPickerWindow.Region(10, 20, 100, 80);
+            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() },
+                null, bounds);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            window.MouseDown(new Point(0, 0), MouseButton.Left);
+            window.MouseMove(new Point(200, 200));
+            window.MouseUp(new Point(200, 200), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(10, 20, 100, 80), window.Picked);
+        });
+    }
+
+    [Fact]
+    public void A_window_pick_clips_an_initial_rectangle_and_keeps_a_move_inside()
+    {
+        Ui.Run(() =>
+        {
+            var bounds = new RegionPickerWindow.Region(10, 20, 100, 80);
+            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() },
+                new RegionPickerWindow.Region(0, 0, 50, 50), bounds);
+            _ = window.TakeAsync();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(10, 20, 40, 30), window.Picked);
+
+            window.MouseDown(new Point(20, 30), MouseButton.Left);
+            window.MouseMove(new Point(200, 200));
+            window.MouseUp(new Point(200, 200), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(70, 70, 40, 30), window.Picked);
+        });
+    }
+
+    [Fact]
     public void Escape_leaves_without_a_rectangle()
     {
         Ui.Run(() =>

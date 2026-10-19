@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -29,23 +30,27 @@ internal sealed class ScreenFrameWindow : Window
     private const int Frame = 3;
 
     private readonly DispatcherTimer? _life;
+    private readonly DispatcherTimer? _layer;
+    private readonly long _targetHandle;
     private readonly TaskCompletionSource _finished =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private ScreenPoint _location;
     private ScreenSize _size;
 
-    private ScreenFrameWindow(ScreenPoint location, ScreenSize size, TimeSpan? living)
+    private ScreenFrameWindow(ScreenPoint location, ScreenSize size, TimeSpan? living,
+        long targetHandle)
     {
         _location = location;
         _size = size;
+        _targetHandle = targetHandle;
 
         Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
         WindowDecorations = WindowDecorations.None;
         CanResize = false;
         ShowInTaskbar = false;
         ShowActivated = false;
-        Topmost = true;
+        Topmost = targetHandle == 0;
         WindowStartupLocation = WindowStartupLocation.Manual;
 
         // An empty title, and that is the point: a macro names windows by their title, and the
@@ -63,6 +68,15 @@ internal sealed class ScreenFrameWindow : Window
             _life = new DispatcherTimer { Interval = span };
             _life.Tick += (_, _) => Close();
         }
+
+        if (targetHandle != 0)
+        {
+            // A target may be activated or raised after the frame is placed. Reasserting the
+            // relative layer keeps the frame on that target instead of above every window until
+            // the next place update.
+            _layer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            _layer.Tick += (_, _) => ApplyLayer();
+        }
     }
 
     /// <summary>Completes when the frame is off the screen, whether it timed out or was closed.</summary>
@@ -72,15 +86,19 @@ internal sealed class ScreenFrameWindow : Window
     /// Puts a frame around a place and leaves it there. Null when the place measures to nothing:
     /// there is no rectangle to draw around.
     /// </summary>
-    public static ScreenFrameWindow? Show(ScreenPoint location, ScreenSize size)
-        => Open(location, size, null);
+    public static ScreenFrameWindow? Show(ScreenPoint location, ScreenSize size,
+        long targetHandle = 0)
+        => Open(location, size, null, targetHandle);
 
     /// <summary>
     /// The same frame with a clock on it: it goes away by itself after <paramref name="living"/>,
     /// which is what an answer worth a moment and not an overlay to get rid of looks like.
     /// </summary>
     public static ScreenFrameWindow? Flash(ScreenPoint location, ScreenSize size, TimeSpan living)
-        => Open(location, size, living);
+        => Open(location, size, living, 0);
+
+    /// <summary>The window this frame follows, or zero for an independent flash.</summary>
+    internal long TargetHandle => _targetHandle;
 
     /// <summary>
     /// Moves a frame that is already up to another place, so a frame following something around does
@@ -93,6 +111,7 @@ internal sealed class ScreenFrameWindow : Window
         // nothing, and on a window that is being read many times a second it is work done often.
         if (_location == location && _size == size)
         {
+            ApplyLayer();
             return;
         }
 
@@ -101,14 +120,15 @@ internal sealed class ScreenFrameWindow : Window
         Fit();
     }
 
-    private static ScreenFrameWindow? Open(ScreenPoint location, ScreenSize size, TimeSpan? living)
+    private static ScreenFrameWindow? Open(ScreenPoint location, ScreenSize size, TimeSpan? living,
+        long targetHandle)
     {
         if (size.Width <= 0 || size.Height <= 0)
         {
             return null;
         }
 
-        var frame = new ScreenFrameWindow(location, size, living);
+        var frame = new ScreenFrameWindow(location, size, living, targetHandle);
         frame.Show();
         return frame;
     }
@@ -118,12 +138,17 @@ internal sealed class ScreenFrameWindow : Window
         base.OnOpened(e);
         Fit();
         _life?.Start();
+        if (IsVisible)
+        {
+            _layer?.Start();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
         _life?.Stop();
+        _layer?.Stop();
         _finished.TrySetResult();
     }
 
@@ -143,5 +168,64 @@ internal sealed class ScreenFrameWindow : Window
         Height = height / scaling;
 
         WindowHole.Cut(this, width, height, Frame);
+        ApplyLayer();
     }
+
+    /// <summary>
+    /// Keeps the frame in the target's own layer. The target is the window the frame is put
+    /// after, which places the frame immediately below it. A topmost target needs the frame in
+    /// the topmost band as well. The element flash has no target and stays an independent overlay.
+    /// </summary>
+    private void ApplyLayer()
+    {
+        if (!OperatingSystem.IsWindows() || TryGetPlatformHandle() is not { } own
+            || own.Handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var style = GetWindowLongPtr(own.Handle, GwlExStyle).ToInt64();
+        SetWindowLongPtr(own.Handle, GwlExStyle,
+            new IntPtr(style | WsExTransparent | WsExNoActivate | WsExToolWindow));
+
+        if (_targetHandle == 0)
+        {
+            Topmost = true;
+            return;
+        }
+
+        var target = new IntPtr(_targetHandle);
+        if (!IsWindow(target))
+        {
+            Close();
+            return;
+        }
+
+        var targetStyle = GetWindowLongPtr(target, GwlExStyle).ToInt64();
+        Topmost = (targetStyle & WsExTopmost) != 0;
+        SetWindowPos(own.Handle, target, 0, 0, 0, 0,
+            SwpNoMove | SwpNoSize | SwpNoActivate);
+    }
+
+    private const int GwlExStyle = -20;
+    private const long WsExTransparent = 0x00000020;
+    private const long WsExNoActivate = 0x08000000;
+    private const long WsExToolWindow = 0x00000080;
+    private const long WsExTopmost = 0x00000008;
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoActivate = 0x0010;
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter,
+        int x, int y, int width, int height, uint flags);
 }

@@ -192,6 +192,10 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is a list of the places to search.</summary>
     public bool IsRegion => Definition.Kind is ActionParameterKind.Region;
 
+    /// <summary>The first of the four bounds a window mover can take from one framed rectangle.</summary>
+    public bool IsWindowBoundsAnchor =>
+        Definition.Picker is ActionPickerKind.WindowBounds && Definition.Name == "x";
+
     /// <summary>
     /// True when this field belongs beside the one before it on the same line rather than taking a
     /// line of its own, which is how the switch that takes a mouse step's place from the pointer
@@ -582,7 +586,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// element of a page is not, because the box it is written in is drawn by the page picker
     /// itself: a list of names standing over that one would be the same field written twice.
     /// </summary>
-    public bool OffersVariables => (IsText || IsWindow)
+    public bool OffersVariables => !IsWindowRule && (IsText || IsWindow)
         && !IsSelector
         && !IsBrowserTarget
         && (Definition.AcceptsVariables || Definition.AcceptsFormula);
@@ -614,7 +618,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// box and for one picked from a variable list alike — an operand of a calculation is the
     /// second kind, and being able to build it is the difference between this and the editor.
     /// </summary>
-    public bool OffersFormula => Definition.AcceptsFormula;
+    public bool OffersFormula => Definition.AcceptsFormula && !IsWindowRule;
 
     /// <summary>
     /// True when the whole value written here is read as one rather than as text with the names in
@@ -786,6 +790,61 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsWindow => Definition.Picker is ActionPickerKind.Window;
 
+    /// <summary>True when this field holds a captured window and its matching rule.</summary>
+    public bool IsWindowRule => Definition.Kind is ActionParameterKind.WindowRule;
+
+    /// <summary>What the window field shows at a glance, or the variable name it reads.</summary>
+    public string WindowRuleSummary
+    {
+        get
+        {
+            var written = Text?.Trim() ?? string.Empty;
+            if (written.StartsWith('$'))
+            {
+                return written;
+            }
+
+            if (!WindowRule.TryParse(written, out var rule) || !rule.HasTarget)
+            {
+                return Strings.Get("WindowRule.NotSet");
+            }
+
+            return $"{rule.MatchValue} · {Strings.Get($"WindowRule.Short.{rule.How}", rule.How)}";
+        }
+    }
+
+    public bool HasWindowRule => !string.IsNullOrWhiteSpace(Text);
+
+    /// <summary>Stores a captured rule as the one value this field writes.</summary>
+    public void ApplyWindowRule(WindowRule rule)
+    {
+        Text = rule.ToJson().ToJsonString();
+        OnPropertyChanged(nameof(WindowRuleSummary));
+        OnPropertyChanged(nameof(HasWindowRule));
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsIncluded));
+    }
+
+    /// <summary>Uses a variable that holds a window record instead of a literal rule.</summary>
+    public void UseWindowVariable(string name)
+    {
+        Text = "$" + name.Trim().TrimStart('$');
+        OnPropertyChanged(nameof(WindowRuleSummary));
+        OnPropertyChanged(nameof(HasWindowRule));
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsIncluded));
+    }
+
+    /// <summary>Forgets the window this field names.</summary>
+    public void ClearWindowRule()
+    {
+        Text = string.Empty;
+        OnPropertyChanged(nameof(WindowRuleSummary));
+        OnPropertyChanged(nameof(HasWindowRule));
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsIncluded));
+    }
+
     /// <summary>
     /// Where pictures live while this dialog is open: beside the macro package when it has a
     /// path, and WhaleGenie's own folder otherwise. A relative picture value is looked up here.
@@ -852,6 +911,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// knows the action carries both an x and a y, so either field can take the pointer's place.
     /// </summary>
     public bool IsCoordinate { get; set; }
+
+    /// <summary>True on the first of the two numbers a point picker can fill together.</summary>
+    public bool IsPointAnchor { get; set; }
 
     /// <summary>
     /// True when this parameter shares its line with the next one. The two halves of a screen
@@ -1372,6 +1434,14 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        if (IsWindowRule)
+        {
+            OnPropertyChanged(nameof(WindowRuleSummary));
+            OnPropertyChanged(nameof(HasWindowRule));
+            OnPropertyChanged(nameof(IsMissing));
+            OnPropertyChanged(nameof(IsIncluded));
+        }
+
         // A number written as an expression goes back to the spinner the moment what is in the box
         // is a plain number again — which is also how the box is emptied. The expression builder and
         // a number typed by hand both land here, so neither has to know which box it wrote into.

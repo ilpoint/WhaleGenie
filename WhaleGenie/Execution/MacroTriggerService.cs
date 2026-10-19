@@ -1199,8 +1199,8 @@ public sealed class MacroTriggerService : IDisposable
                 continue;
             }
 
-            var value = macro.WindowValue.Trim();
-            if (value.Length == 0)
+            var rule = macro.WindowTarget;
+            if (!rule.HasTarget)
             {
                 continue;
             }
@@ -1210,8 +1210,8 @@ public sealed class MacroTriggerService : IDisposable
             {
                 // Recognised the way every window rule is, so a trigger waiting for a window whose
                 // title moves with the document can name the program or a pattern instead.
-                var (match, compare) = WindowHow.Read(macro.WindowHow);
-                there = _devices.Windows.Find(value, match, compare) is not null;
+                there = _devices.Windows.Find(rule.MatchValue, rule.Reading.Match,
+                    rule.Reading.Compare, rule.Options) is not null;
             }
             catch (Exception)
             {

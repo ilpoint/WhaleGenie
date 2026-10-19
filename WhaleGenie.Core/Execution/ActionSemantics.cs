@@ -69,6 +69,12 @@ public enum ActionValueShape
 
     /// <summary>A list of values, read whole.</summary>
     List,
+
+    /// <summary>
+    /// One window rule: the captured window plus the part and way it is compared. A literal rule
+    /// is written as a record, and a variable holding a window record is read whole.
+    /// </summary>
+    WindowRule,
 }
 
 /// <summary>
@@ -145,6 +151,7 @@ public enum ActionPickerKind
     None,
     Window,
     Region,
+    WindowBounds,
     Element,
     Image,
     Color,
