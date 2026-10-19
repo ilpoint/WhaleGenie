@@ -555,7 +555,6 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        RegionPickerWindow.Region? initial = null;
         RegionPickerWindow.Region? bounds = null;
         if (viewModel.NeedsWindowCoordinates)
         {
@@ -565,11 +564,20 @@ public partial class ActionEditorView : UserControl
                 return;
             }
 
-            initial = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
-            bounds = initial;
+            bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
         }
 
-        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, bounds);
+        if (viewModel.SelectedKey == "input.mouseDrag")
+        {
+            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices, bounds) is { } drag)
+            {
+                viewModel.ApplyDrag(drag.StartX, drag.StartY, drag.EndX, drag.EndY);
+            }
+
+            return;
+        }
+
+        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -587,14 +595,16 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (viewModel.CurrentWindowBounds() is not { } bounds)
+        if (viewModel.CurrentWindow() is not { } target)
         {
             await ReportTestAsync(Strings.Get("Add.PickWindowBoundsNeedsWindow"));
             return;
         }
 
-        var initial = new RegionPickerWindow.Region(bounds.X, bounds.Y, bounds.Width, bounds.Height);
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, initial) is { } picked)
+        var initial = new RegionPickerWindow.Region(target.Location.X, target.Location.Y,
+            target.Size.Width, target.Size.Height);
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, null, target.Handle)
+            is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
         }
@@ -816,7 +826,7 @@ public partial class ActionEditorView : UserControl
             bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
         }
 
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, bounds, bounds) is { } picked)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }

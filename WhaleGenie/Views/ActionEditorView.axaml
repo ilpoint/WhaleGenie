@@ -953,8 +953,8 @@
                         Height="30" Padding="10,0" Margin="0,0,0,8"
                         HorizontalAlignment="Left"
                         IsVisible="{Binding IsRegionAnchor}"
-                        ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
-                        Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding RegionPickerHint}"
+                        Content="{Binding RegionPickerLabel}"
                         Click="OnPickRegion" />
                 <ContentControl Grid.Row="1" Grid.Column="0"
                                 Grid.ColumnSpan="{Binding FirstSpan}"

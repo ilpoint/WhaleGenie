@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
 
@@ -69,6 +70,19 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// that adds a picked place belongs under the list.
     /// </summary>
     public bool IsRegionAnchor => First.IsRegionAnchor;
+
+    /// <summary>
+    /// What the region button says. A drag fills two points rather than one rectangle, so its
+    /// button names the direction instead of repeating the rectangle wording used elsewhere.
+    /// </summary>
+    public string RegionPickerLabel => First.Definition.OwnerKey == "input.mouseDrag"
+        ? Strings.Get("Add.PickRegionDrag")
+        : Strings.Get("Add.PickRegion");
+
+    /// <summary>What the region button does, worded for the same two fields.</summary>
+    public string RegionPickerHint => First.Definition.OwnerKey == "input.mouseDrag"
+        ? Strings.Get("Add.PickRegionDragHint")
+        : Strings.Get("Add.PickRegionHint");
 
     /// <summary>True when this line carries the point picker.</summary>
     public bool IsPointAnchor => First.IsPointAnchor;

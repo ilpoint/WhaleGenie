@@ -1,9 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Views;
@@ -47,7 +49,7 @@ public class RegionPickerTests
             Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Picked);
 
             // The rectangle stays put until it is confirmed, so it can be corrected.
-            window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Confirmed);
@@ -66,12 +68,23 @@ public class RegionPickerTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
+            // A window is the limit of the drag, not a rectangle selected in advance.
+            Assert.Null(window.Picked);
+
             window.MouseDown(new Point(0, 0), MouseButton.Left);
             window.MouseMove(new Point(200, 200));
             window.MouseUp(new Point(200, 200), MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(new RegionPickerWindow.Region(10, 20, 100, 80), window.Picked);
+            Assert.Null(window.Confirmed);
+            Assert.True(window.IsVisible);
+
+            window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(10, 20, 100, 80), window.Confirmed);
+            Assert.False(window.IsVisible);
         });
     }
 
@@ -116,6 +129,36 @@ public class RegionPickerTests
 
             Assert.Null(window.Confirmed);
             Assert.False(window.IsVisible);
+        });
+    }
+
+    [Fact]
+    public void F1_takes_the_rectangle()
+    {
+        Ui.Run(() =>
+        {
+            var window = Dragged();
+
+            window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Confirmed);
+            Assert.False(window.IsVisible);
+        });
+    }
+
+    [Fact]
+    public void Enter_does_not_take_the_rectangle()
+    {
+        Ui.Run(() =>
+        {
+            var window = Dragged();
+
+            window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Null(window.Confirmed);
+            Assert.True(window.IsVisible);
         });
     }
 
@@ -172,11 +215,65 @@ public class RegionPickerTests
             Assert.Equal(40d, Canvas.GetLeft(window.FindControl<Border>("DimRight")!), 3);
             Assert.Equal(60d, Canvas.GetTop(window.FindControl<Border>("DimBottom")!), 3);
 
-            window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Confirmed);
             Assert.True(taken.IsCompleted);
+        });
+    }
+
+    [Fact]
+    public void The_readout_follows_the_pointer()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() });
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var readout = window.FindControl<Border>("Readout")!;
+
+            window.MouseMove(new Point(500, 400));
+            Dispatcher.UIThread.RunJobs();
+            var first = (Canvas.GetLeft(readout), Canvas.GetTop(readout));
+
+            window.MouseMove(new Point(800, 600));
+            Dispatcher.UIThread.RunJobs();
+            var second = (Canvas.GetLeft(readout), Canvas.GetTop(readout));
+
+            Assert.True(first.Item1 > 400 && first.Item2 > 300);
+            Assert.True(second.Item1 > first.Item1 && second.Item2 > first.Item2);
+        });
+    }
+
+    [Fact]
+    public void A_drag_picker_draws_an_arrow_and_keeps_the_dragged_direction()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() },
+                arrow: true);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            // Drag from the lower-right back to the upper-left: the arrow must keep that direction.
+            window.MouseDown(new Point(40, 60), MouseButton.Left);
+            window.MouseMove(new Point(10, 20));
+            window.MouseUp(new Point(10, 20), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            var shaft = window.GetVisualDescendants().OfType<Line>()
+                .Single(line => line.Name == "DragArrowShaft");
+            Assert.True(shaft.IsVisible);
+            Assert.Equal(new Point(40, 60), shaft.StartPoint);
+            Assert.Equal(new Point(10, 20), shaft.EndPoint);
+            Assert.False(window.FindControl<Border>("Selection")!.IsVisible);
+
+            window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.DragSpan(40, 60, 10, 20), window.ConfirmedDrag);
         });
     }
 
@@ -217,6 +314,10 @@ public class RegionPickerTests
         Ui.Run(() =>
         {
             var window = Dragged();
+
+            window.MouseMove(new Point(25, 40));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(RegionPickerWindow.MoveCursor, window.Cursor);
 
             window.MouseDown(new Point(25, 40), MouseButton.Left);
             window.MouseMove(new Point(35, 50));
@@ -266,7 +367,7 @@ public class RegionPickerTests
     }
 
     [Fact]
-    public void A_click_inside_the_rectangle_takes_it()
+    public void A_click_inside_the_rectangle_keeps_it_until_f1()
     {
         Ui.Run(() =>
         {
@@ -274,6 +375,13 @@ public class RegionPickerTests
 
             window.MouseDown(new Point(25, 40), MouseButton.Left);
             window.MouseUp(new Point(25, 40), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Picked);
+            Assert.Null(window.Confirmed);
+            Assert.True(window.IsVisible);
+
+            window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Confirmed);
@@ -296,6 +404,37 @@ public class RegionPickerTests
 
             Assert.Null(window.Picked);
             Assert.True(window.IsVisible);
+        });
+    }
+
+    [Fact]
+    public void Moving_the_window_frame_moves_the_window_and_escape_puts_it_back()
+    {
+        Ui.Run(() =>
+        {
+            var windows = new WindowsForChecks()
+                .Add(9, "Game", "game", "GameClass")
+                .Place(9, 10, 20, 100, 80);
+            var devices = new ChecksDevices { Screen = new Desk(), Windows = windows };
+            var initial = new RegionPickerWindow.Region(10, 20, 100, 80);
+            var window = new RegionPickerWindow(devices, initial, null, liveWindow: 9);
+            _ = window.TakeAsync();
+            Dispatcher.UIThread.RunJobs();
+
+            window.MouseDown(new Point(20, 30), MouseButton.Left);
+            window.MouseMove(new Point(40, 50));
+            window.MouseUp(new Point(40, 50), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            var moved = windows.Open.Single(open => open.Handle == 9);
+            Assert.Equal(new ScreenPoint(30, 40), moved.Location);
+
+            window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            var restored = windows.Open.Single(open => open.Handle == 9);
+            Assert.Equal(new ScreenPoint(10, 20), restored.Location);
+            Assert.Equal(new ScreenSize(100, 80), restored.Size);
         });
     }
 

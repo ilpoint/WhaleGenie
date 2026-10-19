@@ -1841,8 +1841,8 @@ public partial class AddActionViewModel : ViewModelBase
     public WindowRule WindowRuleFor(string name)
         => Parameter(name) is { } field ? RuleOf(field.CurrentText) : WindowRule.Empty;
 
-    /// <summary>The visible rectangle of the window this mover names right now, when it is open.</summary>
-    public (int X, int Y, int Width, int Height)? CurrentWindowBounds()
+    /// <summary>The window this mover names right now, when it is open.</summary>
+    public WindowInfo? CurrentWindow()
     {
         if (Windows is null || Parameter("window") is not { } field)
         {
@@ -1858,15 +1858,19 @@ public partial class AddActionViewModel : ViewModelBase
         try
         {
             return Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
-                       rule.Options) is { } window
-                ? (window.Location.X, window.Location.Y, window.Size.Width, window.Size.Height)
-                : null;
+                rule.Options);
         }
         catch (Exception)
         {
             return null;
         }
     }
+
+    /// <summary>The visible rectangle of the window this mover names right now, when it is open.</summary>
+    public (int X, int Y, int Width, int Height)? CurrentWindowBounds()
+        => CurrentWindow() is { } window
+            ? (window.Location.X, window.Location.Y, window.Size.Width, window.Size.Height)
+            : null;
 
     /// <summary>The window whose client coordinates this action uses, or null for screen pixels.</summary>
     public WindowRule? CoordinateWindow()
@@ -2045,6 +2049,32 @@ public partial class AddActionViewModel : ViewModelBase
             row.Put(left, top, width, height);
             region.AddRegion(row);
             filled = true;
+        }
+
+        return filled;
+    }
+
+    /// <summary>
+    /// Writes the two ends of a drag in the order they were dragged, rather than turning them into
+    /// a top-left corner and a size.
+    /// </summary>
+    public bool ApplyDrag(int startX, int startY, int endX, int endY)
+    {
+        var origin = AnchorOrigin();
+        var left = origin?.X ?? 0;
+        var top = origin?.Y ?? 0;
+        var filled = false;
+        foreach (var (name, value) in new (string Name, int Value)[]
+                 {
+                     ("startX", startX - left), ("startY", startY - top),
+                     ("endX", endX - left), ("endY", endY - top),
+                 })
+        {
+            if (Parameter(name) is { IsNumber: true } parameter)
+            {
+                parameter.SetNumber(value);
+                filled = true;
+            }
         }
 
         return filled;

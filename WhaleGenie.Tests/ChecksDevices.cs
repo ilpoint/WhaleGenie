@@ -101,7 +101,21 @@ internal sealed class WindowsForChecks : IWindowDevice
 
     public bool Close(long handle) => true;
 
-    public bool Move(long handle, int x, int y, int width, int height) => true;
+    public bool Move(long handle, int x, int y, int width, int height)
+    {
+        var at = Open.FindIndex(window => window.Handle == handle);
+        if (at < 0)
+        {
+            return false;
+        }
+
+        Open[at] = Open[at] with
+        {
+            Location = new ScreenPoint(x, y),
+            Size = new ScreenSize(width, height),
+        };
+        return true;
+    }
 
     public ScreenPoint ClientOrigin(long handle)
         => _clientOrigins.TryGetValue(handle, out var at)

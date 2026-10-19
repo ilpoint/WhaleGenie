@@ -1431,6 +1431,35 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A drag names two points rather than one rectangle. Its picker button therefore says where
+    /// the drag goes, while the other region fields keep the ordinary rectangle wording.
+    /// </summary>
+    [Fact]
+    public void A_drag_picker_button_names_its_start_and_end()
+    {
+        Ui.Run(() =>
+        {
+            var (window, drag) = OpenWindow("input.mouseDrag");
+            var dragRow = drag.Rows.First(row => row.First.Definition.Name == "startX");
+
+            Assert.Equal(Strings.Get("Add.PickRegionDrag"), dragRow.RegionPickerLabel);
+            Assert.Equal(Strings.Get("Add.PickRegionDragHint"), dragRow.RegionPickerHint);
+            Assert.Contains(window.GetVisualDescendants().OfType<Button>(),
+                button => button.IsEffectivelyVisible
+                    && Equals(button.Content, Strings.Get("Add.PickRegionDrag")));
+
+            var region = Open("ocr.recognize");
+            var regionRow = region.Rows.First(row => row.First.Definition.Name == "x");
+
+            Assert.Equal(Strings.Get("Add.PickRegion"), regionRow.RegionPickerLabel);
+            Assert.Contains("RegionPickerWindow.PickDragAsync", File.ReadAllText(
+                Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml.cs")),
+                StringComparison.Ordinal);
+            window.Close();
+        });
+    }
+
     [Theory]
     [InlineData("input.mouseClick")]
     [InlineData("vision.getPixel")]
@@ -1453,6 +1482,35 @@ public class ActionDialogTests
             Assert.Equal("30", Value(viewModel, "width"));
             Assert.Equal("40", Value(viewModel, "height"));
         });
+    }
+
+    /// <summary>
+    /// A window bounds where a rectangle may be drawn; it is not a rectangle already drawn. The
+    /// ordinary region buttons therefore pass no starting rectangle even when the step reads a
+    /// window.
+    /// </summary>
+    [Fact]
+    public void A_window_bound_region_picker_starts_with_nothing_selected()
+    {
+        var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
+            "ActionEditorView.axaml.cs"));
+
+        Assert.Contains("RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds)", code,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("RegionPickerWindow.PickAsync(HostWindow!, Devices, bounds, bounds)", code,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>The mover's picker hands the target window to the frame, which moves it as it is dragged.</summary>
+    [Fact]
+    public void The_window_bounds_picker_moves_the_target_window()
+    {
+        var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
+            "ActionEditorView.axaml.cs"));
+
+        Assert.Contains(
+            "RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, null, target.Handle)",
+            code, StringComparison.Ordinal);
     }
 
 
@@ -1568,6 +1626,22 @@ public class ActionDialogTests
             Assert.Equal("20", Value(viewModel, "startY"));
             Assert.Equal("40", Value(viewModel, "endX"));
             Assert.Equal("60", Value(viewModel, "endY"));
+        });
+    }
+
+    /// <summary>A drag is a direction, so its two ends stay in the order they were dragged.</summary>
+    [Fact]
+    public void A_drag_keeps_the_direction_it_was_dragged()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseDrag");
+
+            Assert.True(viewModel.ApplyDrag(90, 80, 10, 20));
+            Assert.Equal("90", Value(viewModel, "startX"));
+            Assert.Equal("80", Value(viewModel, "startY"));
+            Assert.Equal("10", Value(viewModel, "endX"));
+            Assert.Equal("20", Value(viewModel, "endY"));
         });
     }
 

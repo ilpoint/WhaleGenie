@@ -216,19 +216,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Picker.Position"] = "{0}, {1}",
         ["Region.Title"] = "Pick a region",
         ["Region.Hint"] =
-            "Drag inside the rectangle to move it, or drag a handle to change its size. Press Enter, "
-            + "or click inside it, to take it; Esc cancels.",
+            "Drag inside the rectangle to move it, or drag a handle to change its size. Press F1 "
+            + "to take it; Esc cancels.",
         ["Region.WindowHint"] =
             "Only the target window's client area can be selected. Drag inside it to move the "
-            + "rectangle, drag a handle to change its size, Enter or a click takes it, Esc cancels.",
+            + "rectangle, drag a handle to change its size; F1 takes it, Esc cancels.",
+        ["Region.Arrow"] = "Start {0}, {1} → End {2}, {3}",
+        ["Region.ArrowHint"] = "Drag from the start point to the end point; F1 takes it, Esc cancels.",
         ["Region.Drag"] = "Drag a rectangle over what the macro should look at",
         ["Region.Size"] = "x {0}  y {1}   {2} × {3}",
         ["Add.PickRegion"] = "Pick region",
-        ["Add.PickRegionHint"] = "Drag a rectangle on the screen to fill these fields.",
+        ["Add.PickRegionHint"] =
+            "Drag a rectangle on the screen to fill these fields. F1 takes it; Esc cancels.",
+        ["Add.PickRegionDrag"] = "Pick start → end",
+        ["Add.PickRegionDragHint"] =
+            "Drag on the screen from the start point to the end point. F1 takes both; Esc cancels.",
         ["Add.PickWindowBounds"] = "Pick window bounds",
         ["Add.PickWindowBoundsHint"] =
             "Start from the target window's current rectangle, then drag it or pull its edges. "
-            + "F1 or Enter uses the frame; Esc cancels.",
+            + "F1 uses the frame; Esc cancels.",
         ["Add.PickWindowBoundsNeedsWindow"] =
             "Capture the target window first, and leave it visible while its bounds are picked.",
         ["Add.PickCoordinateNeedsWindow"] =
@@ -1905,16 +1911,20 @@ public sealed class Strings : INotifyPropertyChanged
         ["Picker.Position"] = "{0}, {1}",
         ["Region.Title"] = "框选区域",
         ["Region.Hint"] =
-            "在矩形内拖动可移动它，拖动手柄可改变大小；按 Enter 或在矩形内单击取用，Esc 取消。",
+            "在矩形内拖动可移动它，拖动手柄可改变大小；按 F1 取用，Esc 取消。",
         ["Region.WindowHint"] =
-            "只能框选目标窗口客户区。在选区内拖动可移动它，拖动手柄可改变大小；按 Enter "
-            + "或在选区内单击取用，Esc 取消。",
+            "只能框选目标窗口客户区。在选区内拖动可移动它，拖动手柄可改变大小；"
+            + "按 F1 取用，Esc 取消。",
+        ["Region.Arrow"] = "起点 {0}, {1} → 终点 {2}, {3}",
+        ["Region.ArrowHint"] = "从起点拖到终点；按 F1 确认，Esc 取消。",
         ["Region.Drag"] = "在屏幕上拖出宏需要看的区域",
         ["Region.Size"] = "x {0}  y {1}   宽 {2} × 高 {3}",
         ["Add.PickRegion"] = "框选区域",
-        ["Add.PickRegionHint"] = "在屏幕上拖出一个矩形，自动填入这些字段。",
+        ["Add.PickRegionHint"] = "在屏幕上拖出一个矩形，自动填入这些字段；按 F1 确认，Esc 取消。",
+        ["Add.PickRegionDrag"] = "拾取起点 → 终点",
+        ["Add.PickRegionDragHint"] = "在屏幕上从起点拖到终点；按 F1 确认，Esc 取消。",
         ["Add.PickWindowBounds"] = "拾取窗口位置和尺寸",
-        ["Add.PickWindowBoundsHint"] = "从目标窗口现在的矩形开始，可以拖动整体或拉四边与角；F1 或 Enter 使用这个框，Esc 取消。",
+        ["Add.PickWindowBoundsHint"] = "从目标窗口现在的矩形开始，拖动会同时移动或调整目标窗口；按 F1 使用这个框，Esc 取消并放回原处。",
         ["Add.PickWindowBoundsNeedsWindow"] = "先获取目标窗口，并在拾取位置和尺寸时让它保持显示。",
         ["Add.PickCoordinateNeedsWindow"] = "这一步按窗口坐标取位置，请先获取目标窗口再拾取坐标。",
         ["Add.PickCoordinate"] = "拾取坐标",
