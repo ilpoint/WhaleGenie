@@ -121,7 +121,7 @@ public class ThirdPartyNoticesTests
     {
         // The button on About says there is a list; this is what makes sure the list it opens is
         // this document rather than a promise with nothing behind it.
-        var window = Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml.cs");
+        var window = Path.Combine(Repository(), "WhaleGenie", "Views", "AboutWindow.axaml.cs");
         var code = File.ReadAllText(window);
 
         Assert.Contains("ThirdPartyNotices.Read()", code, StringComparison.Ordinal);

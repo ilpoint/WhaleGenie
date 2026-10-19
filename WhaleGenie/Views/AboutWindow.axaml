@@ -1,0 +1,133 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="720"
+        x:Class="WhaleGenie.Views.AboutWindow"
+        Title="WhaleGenie"
+        Width="560" Height="720"
+        MinWidth="540" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="{DynamicResource AppBackdrop}">
+
+    <Window.Styles>
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D9502A" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                <TextBlock Text="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
+                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
+                    Margin="8,0" VerticalAlignment="Center">
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
+                                StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="22,18,22,10" Spacing="16">
+                <TextBlock Name="AboutText" TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppMuted}" FontSize="13" />
+
+                <Border Height="1" Background="{DynamicResource AppBorder}" />
+
+                <StackPanel Name="SupportPanel" Spacing="9">
+                    <TextBlock Text="{Binding [About.SupportTitle], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource AppTextStrong}" FontSize="15"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding [About.SupportText], Source={x:Static loc:Strings.Current}}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}" FontSize="13" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,6,0,0">
+                        <Border Background="{DynamicResource AppSurface}" CornerRadius="6" Padding="12">
+                            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
+                                    <Image Name="WeChatQr" Source="/Assets/DonateWeChat.png"
+                                           Width="190" Height="190" Stretch="Uniform" />
+                                </Border>
+                                <TextBlock Text="{Binding [About.WeChat], Source={x:Static loc:Strings.Current}}"
+                                           Foreground="{DynamicResource AppText}" FontSize="12.5"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Background="{DynamicResource AppSurface}"
+                                CornerRadius="6" Padding="12">
+                            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
+                                    <Image Name="AlipayQr" Source="/Assets/DonateAlipay.png"
+                                           Width="190" Height="190" Stretch="Uniform" />
+                                </Border>
+                                <TextBlock Text="{Binding [About.Alipay], Source={x:Static loc:Strings.Current}}"
+                                           Foreground="{DynamicResource AppText}" FontSize="12.5"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8"
+              Margin="20,4,20,18">
+            <Button Classes="FlatButton" Name="ProjectButton" Height="36" MinWidth="112"
+                    Content="{Binding [Main.AboutOpenPage], Source={x:Static loc:Strings.Current}}"
+                    Click="OnOpenProjectClicked" />
+            <Button Grid.Column="1" Classes="FlatButton" Name="NoticesButton" Height="36" MinWidth="112"
+                    Content="{Binding [Main.AboutNotices], Source={x:Static loc:Strings.Current}}"
+                    Click="OnNoticesClicked" />
+            <Button Grid.Column="3" Classes="PrimaryButton" Name="DoneButton" Height="36" MinWidth="92"
+                    Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                    Click="OnDoneClicked" />
+        </Grid>
+    </Grid>
+</Window>

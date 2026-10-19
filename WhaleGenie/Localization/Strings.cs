@@ -126,6 +126,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.AboutOpenPage"] = "Open the project page",
         ["Main.AboutNotices"] = "Third-party components",
         ["Main.AboutUnknownVersion"] = "unknown",
+        ["About.SupportTitle"] = "Support WhaleGenie",
+        ["About.SupportText"] = "WhaleGenie is a completely free open-source project.\n\n"
+            + "If you find it useful, you are welcome to buy 🐋 a bowl of rice 🍚.",
+        ["About.WeChat"] = "WeChat",
+        ["About.Alipay"] = "Alipay",
         ["Main.SearchPlaceholder"] = "Type to search..",
         ["Main.EmptyTitle"] = "No macros yet.",
         ["Main.NoMatch"] = "No macro matches what you typed.",
@@ -1749,6 +1754,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.AboutOpenPage"] = "打开项目主页",
         ["Main.AboutNotices"] = "第三方组件",
         ["Main.AboutUnknownVersion"] = "未知",
+        ["About.SupportTitle"] = "打赏支持",
+        ["About.SupportText"] = "WhaleGenie（鲸灵）是完全免费的开源项目。\n\n"
+            + "如果你觉得它对你有帮助，欢迎请🐋吃白饭🍚。",
+        ["About.WeChat"] = "微信",
+        ["About.Alipay"] = "支付宝",
         ["Main.SearchPlaceholder"] = "输入以搜索..",
         ["Main.EmptyTitle"] = "还没有宏。",
         ["Main.NoMatch"] = "没有宏匹配你输入的内容。",

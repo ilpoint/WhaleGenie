@@ -63,6 +63,21 @@ Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回�
 | [doc/performance.md](doc/performance.md)（[English](doc/performance.en.md)） | 单次画面读取的单位成本与测量方法 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与图标出处 |
 
+## 打赏支持
+
+WhaleGenie（鲸灵）是完全免费的开源项目。如果你觉得它对你有帮助，欢迎请🐋吃白饭🍚。
+
+<table>
+  <tr>
+    <td align="center"><img src="WhaleGenie/Assets/DonateWeChat.png" alt="微信打赏码" width="220"></td>
+    <td align="center"><img src="WhaleGenie/Assets/DonateAlipay.png" alt="支付宝打赏码" width="220"></td>
+  </tr>
+  <tr>
+    <td align="center">微信</td>
+    <td align="center">支付宝</td>
+  </tr>
+</table>
+
 ## 许可与致谢
 
 程序按 AGPL-3.0 授权，条款原文见 `LICENSE.txt`，版权归 ilpoint 所有，署名见 `NOTICE`。两份文件
