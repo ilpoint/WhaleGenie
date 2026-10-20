@@ -142,6 +142,13 @@
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <!-- The warning itself is small, but its tooltip has to be easy to reach with the pointer. -->
+        <Style Selector="Border.ProblemTip">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
         <Style Selector="TextBlock.ProblemSummary">
             <Setter Property="Foreground" Value="#E0A23C" />
             <Setter Property="FontSize" Value="11.5" />
@@ -956,7 +963,12 @@
                                                          Foreground="#8FB3D9" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
-                                          <views:IconView Classes="ProblemMark" IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                          <Border Classes="ProblemTip" IsVisible="{Binding HasProblem}"
+                                                  ToolTip.Tip="{Binding Problem}">
+                                              <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
+                                                              FitToBounds="True"
+                                                              Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                          </Border>
                                       </StackPanel>
                                   </Border>
 
