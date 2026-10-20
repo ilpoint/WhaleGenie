@@ -72,4 +72,18 @@ public class AppIconTests
         Assert.Equal(15, palette.Count);
         Assert.All(palette, action => Assert.NotNull(action.Icon));
     }
+
+    [Fact]
+    public void The_menu_icon_picker_offers_a_broad_set_of_named_lucide_icons()
+    {
+        Assert.True(MenuIconCatalog.Options.Count >= 70);
+        Assert.Equal(MenuIconCatalog.Options.Count,
+            MenuIconCatalog.Options.Select(option => option.Key).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(MenuIconCatalog.Options, option =>
+        {
+            Assert.True(Enum.IsDefined(option.Icon));
+            Assert.NotEmpty(option.Key);
+            Assert.NotEmpty(option.Label);
+        });
+    }
 }
