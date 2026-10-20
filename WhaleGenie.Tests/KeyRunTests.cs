@@ -221,8 +221,9 @@ public class KeyRunTests
             run.AddKeyRow();
             Dispatcher.UIThread.RunJobs();
 
-            FindButton(window, run.KeyRows[0], Strings.Get("Add.OpenKeyPad"))
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var field = FindKeyField(window, run.KeyRows[0]);
+            Assert.Equal(Strings.Get("Add.ChooseKeys"), field.Content);
+            field.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 
             var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
@@ -232,6 +233,8 @@ public class KeyRunTests
             Cap(pad, "A");
 
             Assert.Equal("左Ctrl+A", run.KeyRows[0].Keys);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("左Ctrl+A", field.Content);
             Assert.True(pad.IsVisible);
         });
     }
@@ -259,7 +262,7 @@ public class KeyRunTests
             run.AddKeyRow();
             Dispatcher.UIThread.RunJobs();
 
-            var ask = FindButton(window, run.KeyRows[0], Strings.Get("Add.OpenKeyPad"));
+            var ask = FindKeyField(window, run.KeyRows[0]);
             ask.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 
@@ -290,4 +293,10 @@ public class KeyRunTests
             candidate.IsEffectivelyVisible
             && Equals(candidate.Content, content)
             && (data is null || Equals(candidate.DataContext, data)));
+
+    private static Button FindKeyField(Window window, object data)
+        => window.GetVisualDescendants().OfType<Button>().Single(candidate =>
+            candidate.IsEffectivelyVisible
+            && candidate.Classes.Contains("KeyFieldButton")
+            && Equals(candidate.DataContext, data));
 }

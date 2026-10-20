@@ -384,7 +384,13 @@ public partial class StepParameterViewModel : ViewModelBase
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KeyFieldDisplay))]
     public partial string Text { get; set; }
+
+    /// <summary>The key or chord shown on the keyboard field's button.</summary>
+    public string KeyFieldDisplay => Text.Trim().Length > 0
+        ? Text
+        : Strings.Get(IsKeys ? "Add.ChooseKeys" : "Add.ChooseKey");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JitterRange))]
@@ -497,11 +503,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsPlainText => IsText && !IsKeyField && !IsSelector && !IsBrowserTarget && !OffersVariables;
 
-    /// <summary>
-    /// True when this parameter names a key, which is written in a box the key names are offered
-    /// in: a key has a name a person should not have to remember the spelling of, and the box
-    /// stays editable so one still may be typed.
-    /// </summary>
+    /// <summary>True when this parameter names one key chosen on the keyboard drawn on screen.</summary>
     public bool IsKey => Definition.Kind is ActionParameterKind.Key;
 
     /// <summary>
@@ -553,9 +555,6 @@ public partial class StepParameterViewModel : ViewModelBase
             Text = key;
         }
     }
-
-    /// <summary>The key names the picker offers, which is every name a macro may write.</summary>
-    public IReadOnlyList<string> KeyChoices => KeyNames.Names;
 
     /// <summary>
     /// True when this choice is a control of the virtual controller, so the answer can be given by
@@ -1271,6 +1270,10 @@ public partial class StepParameterViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
+        foreach (var row in KeyRows)
+        {
+            row.RefreshLanguage();
+        }
 
         if (Definition.Kind is ActionParameterKind.Step)
         {

@@ -843,10 +843,16 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotstringTextDisplay))]
     [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
     [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
     [NotifyPropertyChangedFor(nameof(CanSave))]
     public partial string HotstringText { get; set; } = string.Empty;
+
+    /// <summary>The literal abbreviation shown on the typed-string keyboard button.</summary>
+    public string HotstringTextDisplay => HotstringText.Length > 0
+        ? HotstringCharacters.Display(HotstringText)
+        : Strings.Get("Editor.HotstringChoose");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HotstringEndKeySummary))]

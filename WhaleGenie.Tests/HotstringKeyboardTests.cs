@@ -156,6 +156,30 @@ public class HotstringKeyboardTests
     }
 
     [Fact]
+    public void The_typed_string_field_is_a_keyboard_button()
+    {
+        Ui.Run(() =>
+        {
+            var (window, editor) = OpenHotstringEditor();
+            editor.HotstringText = "a b";
+            Dispatcher.UIThread.RunJobs();
+
+            var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
+                button.Classes.Contains("KeyFieldButton")
+                && ReferenceEquals(editor, button.DataContext));
+            Assert.Equal("a␠b", field.Content);
+
+            field.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
+            Assert.Equal("a b", keyboard.Text);
+            keyboard.Close();
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void Neither_language_mentions_AutoHotkey_escaping_in_the_ending_key_help()
     {
         Ui.Run(() =>

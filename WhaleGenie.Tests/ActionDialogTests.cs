@@ -2806,18 +2806,21 @@ public class ActionDialogTests
             viewModel.SelectAction("input.hotkey");
             Dispatcher.UIThread.RunJobs();
 
-            // The combination is written in one box with the keyboard beside it, and what the
-            // keyboard hands back joins what is written: Ctrl+Shift+S is put together one key at a
-            // time, so a key that replaced the rest would throw away the two already picked.
+            // The combination is a keyboard field button. What the keyboard hands back joins what
+            // is already there, so Ctrl+Shift+S is put together one key at a time.
             var keys = viewModel.Parameters.First(parameter => parameter.Definition.Name == "keys");
             Assert.True(keys.IsKeys);
             Assert.False(keys.IsKey);
 
-            var keyboard = window.GetVisualDescendants().OfType<Button>()
+            var field = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
-                    && Equals(button.Content, Strings.Get("Add.OpenKeyPad")));
-            Assert.NotNull(keyboard);
-            Assert.Same(keys, keyboard.DataContext);
+                    && button.Classes.Contains("KeyFieldButton")
+                    && ReferenceEquals(keys, button.DataContext));
+            Assert.NotNull(field);
+            Assert.Equal(Strings.Get("Add.ChooseKeys"), field.Content);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBox>()
+                    .Where(box => box.IsEffectivelyVisible),
+                box => ReferenceEquals(keys, box.DataContext));
 
             // The sides are named apart on the drawn keyboard, so a combination can say which
             // Ctrl or Shift it means — the same names the trigger bindings use.
@@ -2848,18 +2851,30 @@ public class ActionDialogTests
             viewModel.SelectAction("input.keyPress");
             Dispatcher.UIThread.RunJobs();
 
-            // The key can be typed, offered as a name, or pointed at on the keyboard drawn on
-            // screen; the three live on the same line, so the field never looks like it must be
-            // spelled from memory.
+            // The key is chosen on the keyboard drawn on screen; there is no text box whose
+            // spelling has to be remembered.
             var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
             Assert.True(field.IsKey);
-            Assert.Contains("F5", field.KeyChoices);
 
-            var keyboard = window.GetVisualDescendants().OfType<Button>()
+            var keyboardField = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
-                    && Equals(button.Content, Strings.Get("Add.OpenKeyPad")));
-            Assert.NotNull(keyboard);
-            Assert.Same(field, keyboard.DataContext);
+                    && button.Classes.Contains("KeyFieldButton")
+                    && ReferenceEquals(field, button.DataContext));
+            Assert.NotNull(keyboardField);
+            Assert.Equal(Strings.Get("Add.ChooseKey"), keyboardField.Content);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<AutoCompleteBox>()
+                    .Where(box => box.IsEffectivelyVisible),
+                box => ReferenceEquals(field, box.DataContext));
+
+            field.Text = "F5";
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("F5", keyboardField.Content);
+
+            keyboardField.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
+            Assert.Equal(field.Definition.LocalLabel, pad.Filling);
+            pad.Close();
 
             // Nothing else gets it: a plain text field has no keys to point at.
             viewModel.SelectAction("input.typeText");
@@ -2867,7 +2882,8 @@ public class ActionDialogTests
 
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
                     .Where(button => button.IsEffectivelyVisible),
-                button => button.DataContext is StepParameterViewModel { IsKey: true });
+                button => button.Classes.Contains("KeyFieldButton")
+                    && button.DataContext is StepParameterViewModel { IsKey: true });
         });
     }
 
