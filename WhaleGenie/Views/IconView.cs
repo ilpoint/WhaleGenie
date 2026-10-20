@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Media;
 using Lucide.Avalonia;
@@ -10,6 +11,8 @@ namespace WhaleGenie.Views;
 /// </summary>
 public sealed class IconView : LucideIcon
 {
+    private bool _syncingSize;
+
     public static readonly StyledProperty<LucideIconKind?> DataProperty =
         AvaloniaProperty.Register<IconView, LucideIconKind?>(nameof(Data));
 
@@ -67,5 +70,45 @@ public sealed class IconView : LucideIcon
         {
             StrokeWidth = StrokeThickness;
         }
+        else if (change.Property == WidthProperty || change.Property == HeightProperty)
+        {
+            SyncSizeToBounds();
+        }
     }
+
+    /// <summary>
+    /// Lucide draws on its own square canvas, so the layout size inherited from the old icon
+    /// control has to reach <see cref="LucideIcon.Size"/> as well. The smaller side wins for
+    /// deliberately non-square layouts, keeping the drawing inside the space the layout assigned.
+    /// </summary>
+    private void SyncSizeToBounds()
+    {
+        if (_syncingSize)
+        {
+            return;
+        }
+
+        double? width = IsUsableLength(Width) ? Width : null;
+        double? height = IsUsableLength(Height) ? Height : null;
+        var size = width is not null && height is not null
+            ? Math.Min(width.Value, height.Value)
+            : width ?? height;
+        if (size is null || Math.Abs(Size - size.Value) < 0.01)
+        {
+            return;
+        }
+
+        _syncingSize = true;
+        try
+        {
+            Size = size.Value;
+        }
+        finally
+        {
+            _syncingSize = false;
+        }
+    }
+
+    private static bool IsUsableLength(double value)
+        => double.IsFinite(value) && value > 0;
 }

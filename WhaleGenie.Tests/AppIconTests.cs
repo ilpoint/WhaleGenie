@@ -40,6 +40,22 @@ public class AppIconTests
     }
 
     [Fact]
+    public void Icon_layout_width_and_height_drive_the_lucide_canvas()
+    {
+        Ui.Run(() =>
+        {
+            var small = new IconView { Data = AppIcons.X, Width = 10, Height = 10 };
+            Assert.Equal(10, small.Size);
+
+            var nonSquare = new IconView { Data = AppIcons.Minus, Width = 10, Height = 8 };
+            Assert.Equal(8, nonSquare.Size);
+
+            var widthOnly = new IconView { Data = AppIcons.X, Width = 14 };
+            Assert.Equal(14, widthOnly.Size);
+        });
+    }
+
+    [Fact]
     public void Every_category_has_an_icon()
     {
         foreach (var category in Enum.GetValues<ActionCategory>())
