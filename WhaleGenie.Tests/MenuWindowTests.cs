@@ -248,6 +248,25 @@ public class MenuWindowTests
         });
     }
 
+    [Fact]
+    public void Menu_position_is_near_the_pointer_and_clamped_to_the_work_area()
+    {
+        Ui.Run(() =>
+        {
+            var window = new MacroMenuWindow(Layout(), Actions());
+
+            Assert.Equal(new Avalonia.PixelPoint(512, 412),
+                window.PlaceNear(new Avalonia.PixelPoint(500, 400),
+                    new Avalonia.PixelRect(0, 0, 1000, 1200), 1));
+            Assert.Equal(new Avalonia.PixelPoint(618, 58),
+                window.PlaceNear(new Avalonia.PixelPoint(980, 700),
+                    new Avalonia.PixelRect(0, 0, 1000, 800), 1));
+            Assert.Equal(new Avalonia.PixelPoint(-1888, 112),
+                window.PlaceNear(new Avalonia.PixelPoint(-1900, 100),
+                    new Avalonia.PixelRect(-1920, 0, 1920, 1080), 1));
+        });
+    }
+
     private static MenuRuntimeLayout Layout()
     {
         var macro = new MacroItem { Name = "one" };

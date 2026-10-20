@@ -13,6 +13,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Lucide.Avalonia;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -78,6 +79,7 @@ public sealed class MacroMenuWindow : Window
     private readonly TextBlock _contextTitle;
     private readonly TextBox _search;
     private readonly Button _editButton;
+    private DispatcherTimer? _menuMoveTimer;
     private readonly TaskCompletionSource<MacroItem?> _answer =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private MenuRuntimeLayout _layout;
@@ -92,6 +94,8 @@ public sealed class MacroMenuWindow : Window
     private bool _editing;
     private bool _closing;
     private int _searchFocused;
+    private bool _menuDragging;
+    private bool _restoreAfterMenuDrag;
 
     public MacroMenuWindow(MenuRuntimeLayout layout, MenuWindowActions actions)
     {
@@ -150,7 +154,22 @@ public sealed class MacroMenuWindow : Window
             Height = TitleHeight,
             ColumnDefinitions = new ColumnDefinitions("28,*"),
             Margin = new Thickness(0, 0, 0, 0),
+            Cursor = new Cursor(StandardCursorType.SizeAll),
+            Background = Brush("AppChrome", Color.FromArgb(120, 20, 20, 20)),
         };
+        ToolTip.SetTip(title, Strings.Get("Menu.Drag"));
+        title.PointerPressed += (_, e) =>
+        {
+            if (e.GetCurrentPoint(title).Properties.IsLeftButtonPressed)
+            {
+                _menuDragging = true;
+                _restoreAfterMenuDrag = IsSearchFocused;
+                BeginMoveDrag(e);
+                _menuMoveTimer?.Stop();
+                _menuMoveTimer?.Start();
+            }
+        };
+        title.PointerReleased += (_, _) => _menuMoveTimer?.Start();
         title.Children.Add(new Image
         {
             Width = 22,
@@ -230,13 +249,24 @@ public sealed class MacroMenuWindow : Window
         };
 
         RenderLayout();
+        _menuMoveTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(120),
+            DispatcherPriority.Background, (_, _) => CompleteMenuMove());
+        PositionChanged += (_, _) =>
+        {
+            if (_menuDragging)
+            {
+                _menuMoveTimer?.Stop();
+                _menuMoveTimer?.Start();
+            }
+        };
         Opened += (_, _) =>
         {
             ApplyNoActivate();
-            Position = Centre();
+            Position = NearCursor();
         };
         Closed += (_, _) =>
         {
+            _menuMoveTimer?.Stop();
             _closing = true;
             Volatile.Write(ref _searchFocused, 0);
             Finish(null);
@@ -442,7 +472,7 @@ public sealed class MacroMenuWindow : Window
         ShowActivated = false;
         ApplyNoActivate();
         SearchFocusChanged?.Invoke(false);
-        if (restore)
+        if (restore && !_menuDragging)
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(_actions.RestoreForeground);
         }
@@ -935,6 +965,30 @@ public sealed class MacroMenuWindow : Window
         }
     }
 
+    private void CompleteMenuMove()
+    {
+        if (!_menuDragging)
+        {
+            _menuMoveTimer?.Stop();
+            return;
+        }
+
+        if (OperatingSystem.IsWindows() && (GetAsyncKeyState(0x01) & 0x8000) != 0)
+        {
+            return;
+        }
+
+        _menuMoveTimer?.Stop();
+        _menuDragging = false;
+        if (_restoreAfterMenuDrag)
+        {
+            _restoreAfterMenuDrag = false;
+            ShowActivated = false;
+            ApplyNoActivate();
+            _actions.RestoreForeground();
+        }
+    }
+
     private static Button DividerButton(LucideIconKind icon, string tip)
     {
         var button = new Button
@@ -1039,7 +1093,7 @@ public sealed class MacroMenuWindow : Window
         _answer.TrySetResult(macro);
     }
 
-    private PixelPoint Centre()
+    private PixelPoint NearCursor()
     {
         var screen = Screens.Primary;
         var cursor = screen?.Bounds.Center ?? new PixelPoint(0, 0);
@@ -1055,10 +1109,26 @@ public sealed class MacroMenuWindow : Window
 
         var area = screen?.WorkingArea ?? new PixelRect(0, 0,
             Math.Max(1, (int)Width), Math.Max(1, (int)Height));
-        var x = Math.Clamp(cursor.X - (int)(Width / 2),
-            area.X, Math.Max(area.X, area.Right - (int)Width));
-        var y = Math.Clamp(cursor.Y - (int)(Height / 2),
-            area.Y, Math.Max(area.Y, area.Bottom - (int)Height));
+        return PlaceNear(cursor, area, screen?.Scaling ?? RenderScaling);
+    }
+
+    internal PixelPoint PlaceNear(PixelPoint cursor, PixelRect workArea, double scale)
+    {
+        var width = Math.Max(1, (int)Math.Ceiling(Width * scale));
+        var height = Math.Max(1, (int)Math.Ceiling(Height * scale));
+        var x = cursor.X + 12;
+        var y = cursor.Y + 12;
+        if (x + width > workArea.Right)
+        {
+            x = cursor.X - width - 12;
+        }
+        if (y + height > workArea.Bottom)
+        {
+            y = cursor.Y - height - 12;
+        }
+
+        x = Math.Clamp(x, workArea.X, Math.Max(workArea.X, workArea.Right - width));
+        y = Math.Clamp(y, workArea.Y, Math.Max(workArea.Y, workArea.Bottom - height));
         return new PixelPoint(x, y);
     }
 
@@ -1086,6 +1156,9 @@ public sealed class MacroMenuWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int key);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
