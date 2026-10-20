@@ -488,7 +488,7 @@ public class MacroStep : INotifyPropertyChanged
                 (parameter.Jitter * 100m).ToString("0.##", CultureInfo.InvariantCulture))
             : string.Empty;
 
-    public Geometry? Icon => Definition?.Icon;
+    public Lucide.Avalonia.LucideIconKind? Icon => Definition?.Icon;
 
     /// <summary>Localized label of a parameter, falling back to its raw name.</summary>
     public string ParameterLabel(StepParameter parameter)

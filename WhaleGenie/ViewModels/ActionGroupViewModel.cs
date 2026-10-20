@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lucide.Avalonia;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -13,7 +13,7 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class ActionGroupViewModel : ViewModelBase
 {
-    public ActionGroupViewModel(string key, string title, Geometry? icon,
+    public ActionGroupViewModel(string key, string title, LucideIconKind? icon,
         IReadOnlyList<ActionCardViewModel> actions, bool open, string note = "", bool section = false)
     {
         Key = key;
@@ -41,7 +41,7 @@ public partial class ActionGroupViewModel : ViewModelBase
     public bool HasActions => !IsSection;
 
     /// <summary>The mark the category is drawn with, when it has one.</summary>
-    public Geometry? Icon { get; }
+    public LucideIconKind? Icon { get; }
 
     public bool HasIcon => Icon is not null;
 
@@ -63,5 +63,5 @@ public partial class ActionGroupViewModel : ViewModelBase
     public partial bool IsOpen { get; set; }
 
     /// <summary>The mark that says the heading opens and closes, pointing the way it will go.</summary>
-    public Geometry Caret => IsOpen ? AppIcons.ChevronDown : AppIcons.ChevronRight;
+    public LucideIconKind Caret => IsOpen ? AppIcons.ChevronDown : AppIcons.ChevronRight;
 }

@@ -13,6 +13,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Lucide.Avalonia;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -605,7 +606,7 @@ public sealed class MacroMenuWindow : Window
             {
                 Width = 44,
                 Height = 44,
-                Data = option.Geometry,
+                Data = option.Icon,
                 Stroke = Brush("AppText", Colors.White),
                 StrokeThickness = 1.5,
             };
@@ -934,7 +935,7 @@ public sealed class MacroMenuWindow : Window
         }
     }
 
-    private static Button DividerButton(Geometry icon, string tip)
+    private static Button DividerButton(LucideIconKind icon, string tip)
     {
         var button = new Button
         {

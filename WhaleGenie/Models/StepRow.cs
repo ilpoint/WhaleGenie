@@ -87,7 +87,8 @@ public sealed class StepRow : ILanguageAware
     public bool CanFold => IsStep && Step.HasChildren;
 
     /// <summary>Arrow on the fold button, pointing down while the block is open.</summary>
-    public Geometry FoldIcon => Step.IsExpanded ? AppIcons.ChevronDown : AppIcons.ChevronRight;
+    public Lucide.Avalonia.LucideIconKind FoldIcon =>
+        Step.IsExpanded ? AppIcons.ChevronDown : AppIcons.ChevronRight;
 
     /// <summary>What the fold button says it will do.</summary>
     public string FoldHint => Strings.Get(Step.IsExpanded ? "Editor.Fold" : "Editor.Unfold");
@@ -114,7 +115,7 @@ public sealed class StepRow : ILanguageAware
 
     // The step's own look, passed through so one row template binds one kind of thing.
 
-    public Geometry? Icon => Step.Icon;
+    public Lucide.Avalonia.LucideIconKind? Icon => Step.Icon;
 
     public string DisplayName => Step.DisplayName;
 

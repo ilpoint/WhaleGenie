@@ -77,8 +77,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
 拾取器、是否发输入、是否条件、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
 提示与页面归属（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
-这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，来自 `third_party/andrsrxn-icons`（MIT），由
-`IconView` 画；分类栏与工具栏按 24 格，菜单和窗口按钮用 `FitToBounds` 填自己的方框。
+这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
+`IconView` 包装 `Lucide.Avalonia` 的 `LucideIcon`，把旧属性名映射到 `Kind`、`Foreground` 与
+`StrokeWidth`。新增图标只加语义别名或直接使用 Lucide 枚举。
 一个数值字段的范围由它的单位给出（像素 −100000..100000、毫秒 0..`LongestPauseMs`、计数 0..1000000、
 百分比 0..100、手柄轴 −100..100、整数 −1000000..1000000），动作另有更窄的真实上限时在语义目录里写
 `Minimum` / `Maximum`。`ActionContractTests` 卡住两边动作、参数与返回结果一一对应，并禁止展示清单再写一份
@@ -120,6 +121,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning`、`System.Security.Cryptography.Pkcs` | 下载 NuGet 包（`script.nuget`）：到官方 v3 源上问一个包有哪些版本、把 nupkg 取下来、按目标框架挑最贴近的一份 lib、按版本区间解析传递依赖。包本身不跟着程序分发，下到程序自己的 `packages` 目录里。`System.Security.Cryptography.Pkcs` 单列一条钉在 10.0.13：`NuGet.Packaging` 7.9.0 拖来的 8.0.1 有两条已公开的公告（CVE-2026-84008 高、CVE-2026-70162 中），而 .NET 10 的 SDK 审计会把警告当错误，还原当场失败、CI 与发版都过不去；这个程序集由 WindowsDesktop 共享框架提供，钉住只是让还原图与运行时真正加载的那一份对上，包里不多一个文件 |
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 | `Avalonia.Controls.ColorPicker` | 界面：设置里的自定义主题用它做 HSV 色板、滑块与十六进制输入；只有界面引用，引擎不认，也不影响宏文件格式。MIT，Fluent 主题样式从包里的 `Themes/Fluent/Fluent.xaml` 引入 |
+| `Lucide.Avalonia` 0.2.27 | 界面：所有动作分类、工具栏、窗口按钮与菜单图标由 `LucideIconKind` 渲染；`IconView` 只做旧属性名到 Lucide `Kind`、`Foreground`、`StrokeWidth` 的映射。包按 MIT 授权，图形来自 ISC 授权的 Lucide |
 | `ModelContextProtocol.AspNetCore` | 界面：主界面 MCP 开关启动的本机 HTTP 服务器。它只监听环回地址，不设令牌；工具读写当前项目草稿与运行日志，不能运行宏。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，工具的传输与发现由 SDK 管 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）

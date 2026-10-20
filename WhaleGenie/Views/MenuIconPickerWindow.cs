@@ -49,7 +49,7 @@ public sealed class MenuIconPickerWindow : Window
                         {
                             Width = 24,
                             Height = 24,
-                            Data = option.Geometry,
+                            Data = option.Icon,
                             Stroke = Brush("AppText", Colors.White),
                             StrokeThickness = 1.5,
                             HorizontalAlignment = HorizontalAlignment.Center,

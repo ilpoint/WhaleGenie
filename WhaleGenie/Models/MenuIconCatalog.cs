@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
-using Avalonia.Media;
+using Lucide.Avalonia;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
 
-public sealed record MenuIconOption(string Key, Geometry Geometry, string LabelKey)
+public sealed record MenuIconOption(string Key, LucideIconKind Icon, string LabelKey)
 {
     public string Label => Strings.Get(LabelKey);
 }

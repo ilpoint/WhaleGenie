@@ -19,7 +19,8 @@ namespace WhaleGenie.ViewModels;
 /// Drives the "Add Action" dialog: pick an action from the catalogue, fill in the
 /// parameters it asks for, then save the result as one step.
 /// </summary>
-public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short, Geometry Icon, IBrush Accent);
+public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short,
+    Lucide.Avalonia.LucideIconKind Icon, IBrush Accent);
 
 public partial class AddActionViewModel : ViewModelBase
 {
@@ -296,7 +297,7 @@ public partial class AddActionViewModel : ViewModelBase
             _ => "#B9B3A8",
         }));
     /// <summary>The line icon the dock shows over a category's short name.</summary>
-    private static Geometry CategoryIcon(ActionCategory? category)
+    private static Lucide.Avalonia.LucideIconKind CategoryIcon(ActionCategory? category)
         => category is { } value
             ? ActionCatalog.IconFor(value) ?? AppIcons.GridFour
             : AppIcons.GridFour;
@@ -1115,7 +1116,7 @@ public partial class AddActionViewModel : ViewModelBase
     private static int BlockRank(ActionDefinition action)
         => Array.IndexOf(BlockOrder, action.Key) is var at && at >= 0 ? at : BlockOrder.Length;
 
-    private void Group(string key, string title, Geometry? icon,
+    private void Group(string key, string title, Lucide.Avalonia.LucideIconKind? icon,
         IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
         => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, Cards(actions), open, note));
 

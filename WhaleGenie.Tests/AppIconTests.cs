@@ -1,45 +1,40 @@
 using System.Reflection;
-using Avalonia.Media;
+using Lucide.Avalonia;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
-/// <summary>
-/// Every icon in the interface comes from one set, drawn on one grid. A path that does not
-/// parse throws when its property is first touched, which is while a window is being built, so
-/// these tests touch all of them here instead and check they stay inside the grid. They run on
-/// the UI thread because Avalonia parses a geometry through the platform render interface, and a
-/// static initializer that fails there stays failed for every test after it.
-/// </summary>
+/// <summary>Every semantic interface icon resolves to one enum in the Lucide set.</summary>
 public class AppIconTests
 {
     [Fact]
-    public void Every_icon_parses_and_stays_on_the_grid()
+    public void Every_app_icon_is_a_defined_lucide_icon()
+    {
+        var icons = typeof(AppIcons)
+            .GetProperties(BindingFlags.Public | BindingFlags.Static)
+            .Where(property => property.PropertyType == typeof(LucideIconKind))
+            .ToArray();
+
+        Assert.NotEmpty(icons);
+        foreach (var property in icons)
+        {
+            var value = Assert.IsType<LucideIconKind>(property.GetValue(null));
+            Assert.True(Enum.IsDefined(value), $"{property.Name} is not a Lucide icon");
+        }
+    }
+
+    [Fact]
+    public void Every_icon_can_be_created_by_the_interface_control()
     {
         Ui.Run(() =>
         {
-            var icons = typeof(AppIcons)
-                .GetProperties(BindingFlags.Public | BindingFlags.Static)
-                .Where(property => property.PropertyType == typeof(Geometry))
-                .ToArray();
-
-            Assert.NotEmpty(icons);
-
-            foreach (var property in icons)
+            foreach (var icon in Enum.GetValues<LucideIconKind>())
             {
-                var value = Assert.IsAssignableFrom<Geometry>(property.GetValue(null));
-                var bounds = value.Bounds;
-
-                Assert.True(bounds.Width > 0 || bounds.Height > 0, $"{property.Name} has no bounds");
-                Assert.InRange(bounds.Left, 0, AppIcons.ViewBox + 0.01);
-                Assert.InRange(bounds.Top, 0, AppIcons.ViewBox + 0.01);
-                Assert.InRange(bounds.Right, 0, AppIcons.ViewBox + 0.01);
-                Assert.InRange(bounds.Bottom, 0, AppIcons.ViewBox + 0.01);
-                Assert.True(
-                    Math.Max(bounds.Width, bounds.Height) > 4,
-                    $"{property.Name} is too small to read as an icon");
+                var control = new IconView { Data = icon };
+                Assert.Equal(icon, control.Data);
             }
         });
     }
@@ -47,24 +42,18 @@ public class AppIconTests
     [Fact]
     public void Every_category_has_an_icon()
     {
-        Ui.Run(() =>
+        foreach (var category in Enum.GetValues<ActionCategory>())
         {
-            foreach (var category in Enum.GetValues<ActionCategory>())
-            {
-                Assert.NotNull(ActionCatalog.IconFor(category));
-            }
-        });
+            Assert.NotNull(ActionCatalog.IconFor(category));
+        }
     }
 
     [Fact]
     public void The_palette_toolbar_has_an_icon_for_every_entry()
     {
-        Ui.Run(() =>
-        {
-            var palette = new MacroEditorViewModel().ActionPalette;
+        var palette = new MacroEditorViewModel().ActionPalette;
 
-            Assert.Equal(15, palette.Count);
-            Assert.All(palette, action => Assert.NotNull(action.Icon));
-        });
+        Assert.Equal(15, palette.Count);
+        Assert.All(palette, action => Assert.NotNull(action.Icon));
     }
 }

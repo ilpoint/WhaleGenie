@@ -483,7 +483,7 @@ public class ActionDefinition
     public bool Hidden => Semantics.Hidden;
 
     /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
-    public Avalonia.Media.Geometry? Icon => ActionCatalog.IconFor(Category);
+    public Lucide.Avalonia.LucideIconKind? Icon => ActionCatalog.IconFor(Category);
 
     /// <summary>
     /// The step timeout a step of this action starts out with, in milliseconds, or 0 for an action

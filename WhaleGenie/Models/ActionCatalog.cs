@@ -133,7 +133,7 @@ public static class ActionCatalog
         => [.. keys.Select(Find).OfType<ActionDefinition>()];
 
     /// <summary>Line-art icon shared by every action of a category.</summary>
-    public static Geometry? IconFor(ActionCategory category) => category switch
+    public static Lucide.Avalonia.LucideIconKind? IconFor(ActionCategory category) => category switch
     {
         ActionCategory.Control => AppIcons.Workflow,
         ActionCategory.File => AppIcons.File,

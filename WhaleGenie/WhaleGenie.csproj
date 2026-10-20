@@ -85,6 +85,7 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Lucide.Avalonia" Version="0.2.27" />
   </ItemGroup>
 
   <ItemGroup>
