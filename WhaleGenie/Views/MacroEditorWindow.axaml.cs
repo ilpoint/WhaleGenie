@@ -1282,17 +1282,19 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private string? TakeStep(MacroStep? editing, MacroStep built)
     {
+        string? refusal = null;
         if (editing is not null)
         {
             _viewModel.ReplaceStep(editing, built);
-            return null;
         }
-
-        if (_viewModel.AddStepHere(built) is not { } refusal)
+        else
         {
-            return null;
+            refusal = _viewModel.AddStepHere(built);
         }
 
+        // The form stays open for the next step. A result this step just started handing over is
+        // not in the candidate list it received when it opened, so the list is handed over again
+        // before the form resets and builds the next step.
         _inspector?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroCalls(),
             _viewModel.StepChoices(), _assetFolder);
         return refusal;

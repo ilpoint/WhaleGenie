@@ -101,6 +101,35 @@ public class AddStepWindowTests
     }
 
     [Fact]
+    public void A_result_from_the_step_just_written_is_offered_to_the_next_one()
+    {
+        Ui.Run(() =>
+        {
+            var (_, editor, picker) = OpenEditor();
+            var form = Form(picker);
+
+            form.SelectAction("control.input");
+            form.Parameters.First(parameter => parameter.Definition.Name == "message").Text = "订单号？";
+            var result = Assert.Single(form.ReturnsRows);
+            Assert.True(result.Ticked);
+            Assert.False(string.IsNullOrWhiteSpace(result.Name));
+            var name = result.Name.Trim();
+
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(editor.Steps);
+            Assert.Contains(editor.CollectVariables(), choice => choice.Name == name);
+
+            form.SelectAction("control.log");
+            Dispatcher.UIThread.RunJobs();
+
+            var message = form.Parameters.First(parameter => parameter.Definition.Name == "message");
+            Assert.Contains("$" + name, message.NameChoices);
+        });
+    }
+
+    [Fact]
     public void The_inspector_that_was_closed_comes_back_when_a_step_is_asked_for()
     {
         Ui.Run(() =>
