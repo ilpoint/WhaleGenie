@@ -875,8 +875,11 @@
                                   Classes="Muted" HorizontalAlignment="Center" TextAlignment="Center" />
                    </StackPanel>
 
+                   <!-- Selection is restored after every edit. Following it would drag a long
+                        macro from the reader's place to whichever row the rebuild picked last. -->
                    <ListBox Grid.Row="3" Name="StepList" Classes="StepList"
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
+                            AutoScrollToSelectedItem="False"
                             IsVisible="{Binding HasSteps}"
                             DoubleTapped="OnStepDoubleTapped">
                        <ListBox.ContextMenu>
