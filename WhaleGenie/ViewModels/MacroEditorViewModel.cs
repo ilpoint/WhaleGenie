@@ -618,15 +618,33 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems
         && !HasBlockingHotstringProblem;
 
-    private bool HasBlockingHotstringProblem => TriggerEntries.Any(entry =>
-        entry.Kind == TriggerKind.Hotstring
-        && (entry.Abbreviation.Length == 0
-            || entry.Abbreviation.Length > HotstringCharacters.MaximumLength
-            || !HotstringCharacters.IsAllowed(entry.Abbreviation)
-            || (entry.RequireEndChar
-                && (HotstringCharacters.ParseEndChars(entry.HotstringEndChars).Count == 0
-                    || HotstringCharacters.ParseEndChars(entry.HotstringEndChars)
-                        .Any(value => value.Length != 1 || !HotstringCharacters.IsAllowed(value[0]))))));
+    private bool HasBlockingHotstringProblem
+        => (SelectedTrigger?.Kind == TriggerKind.Hotstring
+            && IsBlockingHotstring(HotstringText, HotstringRequireEnd, HotstringEndChars))
+            || TriggerEntries.Any(entry => entry.Kind == TriggerKind.Hotstring
+                && !ReferenceEquals(entry, SelectedTrigger)
+                && IsBlockingHotstring(
+                    entry.Abbreviation, entry.RequireEndChar, entry.HotstringEndChars));
+
+    private static bool IsBlockingHotstring(
+        string abbreviation, bool requireEndChar, string endChars)
+    {
+        if (abbreviation.Length is 0 or > HotstringCharacters.MaximumLength
+            || !HotstringCharacters.IsAllowed(abbreviation))
+        {
+            return true;
+        }
+
+        if (!requireEndChar)
+        {
+            return false;
+        }
+
+        var characters = HotstringCharacters.ParseEndChars(endChars);
+        return characters.Count == 0
+            || characters.Any(value =>
+                value.Length != 1 || !HotstringCharacters.IsAllowed(value[0]));
+    }
 
     /// <summary>
     /// One line saying how many calls in the project no longer match these declarations. The

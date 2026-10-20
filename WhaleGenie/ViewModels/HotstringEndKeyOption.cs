@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace WhaleGenie.ViewModels;
 
-/// <summary>One checkbox in the ending-key set; custom entries are captured from the keyboard.</summary>
+/// <summary>One toggle button in the ending-key set; custom entries are captured from the keyboard.</summary>
 public partial class HotstringEndKeyOption(
     string value, string label, bool isCustom) : ObservableObject
 {

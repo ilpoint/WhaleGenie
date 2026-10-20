@@ -1,5 +1,8 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -67,25 +70,114 @@ public class HotstringKeyboardTests
     }
 
     [Fact]
-    public void End_key_checkboxes_and_custom_capture_write_back_to_end_chars()
+    public void Every_default_end_key_is_a_selected_toggle_button_without_checkbox_chrome()
     {
-        var editor = new MacroEditorViewModel { Name = "typed" };
-        editor.TriggerMode = TriggerKind.Hotstring;
-        Assert.Contains(editor.HotstringEndKeys, option => option.Value == " " && option.IsChecked);
-
-        editor.HotstringEndKeys.Single(option => option.Value == " ").IsChecked = false;
-        editor.BeginHotstringEndCapture();
-        editor.CaptureHotstringEnd("$");
-
-        Assert.Contains(editor.HotstringEndKeys,
-            option => option.Value == "$" && option.IsCustom && option.IsChecked);
-        Assert.DoesNotContain(" ", HotstringCharacters.ParseEndChars(editor.HotstringEndChars));
-
-        foreach (var option in editor.HotstringEndKeys)
+        Ui.Run(() =>
         {
-            option.IsChecked = false;
-        }
-        Assert.False(editor.CanSave);
+            var (window, _) = OpenHotstringEditor();
+
+            var buttons = EndKeyButtons(window).ToList();
+            Assert.Equal(HotstringCharacters.EndKeyChoices.Count, buttons.Count);
+            Assert.All(buttons, button => Assert.True(button.IsChecked));
+
+            var endingLabels = HotstringCharacters.EndKeyChoices
+                .Select(choice => choice.Name)
+                .ToHashSet(StringComparer.Ordinal);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<CheckBox>(),
+                box => box.Content is string text && endingLabels.Contains(text));
+
+            var space = EndKeyButton(window, "Space");
+            var selectedBackground = Assert.IsAssignableFrom<ISolidColorBrush>(space.Background);
+            Assert.Equal(Color.Parse("#2E5F8A"), selectedBackground.Color);
+            Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(space.Foreground).Color);
+
+            space.IsChecked = false;
+            Dispatcher.UIThread.RunJobs();
+
+            var offBackground = Assert.IsAssignableFrom<ISolidColorBrush>(space.Background);
+            Assert.NotEqual(selectedBackground.Color, offBackground.Color);
+            Assert.NotEqual(Colors.White,
+                Assert.IsAssignableFrom<ISolidColorBrush>(space.Foreground).Color);
+
+            space.IsChecked = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(selectedBackground.Color,
+                Assert.IsAssignableFrom<ISolidColorBrush>(space.Background).Color);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Toggle_buttons_sync_end_chars_and_keep_custom_captures()
+    {
+        Ui.Run(() =>
+        {
+            var (window, editor) = OpenHotstringEditor();
+            var space = EndKeyButton(window, "Space");
+
+            space.IsChecked = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.DoesNotContain(" ",
+                HotstringCharacters.ParseEndChars(editor.HotstringEndChars));
+
+            space.IsChecked = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Contains(" ",
+                HotstringCharacters.ParseEndChars(editor.HotstringEndChars));
+
+            editor.BeginHotstringEndCapture();
+            editor.CaptureHotstringEnd("$");
+            Dispatcher.UIThread.RunJobs();
+
+            var custom = EndKeyButton(window, "$");
+            Assert.True(custom.IsChecked);
+            Assert.Contains(editor.HotstringEndKeys,
+                option => option.Value == "$" && option.IsCustom && option.IsChecked);
+
+            var restore = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.Content is string text
+                    && text == Strings.Get("Editor.HotstringEndCharsReset"));
+            restore.Command!.Execute(restore.CommandParameter);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(HotstringCharacters.ParseEndChars(HotstringCharacters.DefaultEndChars),
+                HotstringCharacters.ParseEndChars(editor.HotstringEndChars));
+            Assert.DoesNotContain("$",
+                HotstringCharacters.ParseEndChars(editor.HotstringEndChars));
+            Assert.All(EndKeyButtons(window), button => Assert.True(button.IsChecked));
+
+            foreach (var option in editor.HotstringEndKeys)
+            {
+                option.IsChecked = false;
+            }
+            Assert.False(editor.CanSave);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Neither_language_mentions_AutoHotkey_escaping_in_the_ending_key_help()
+    {
+        Ui.Run(() =>
+        {
+            var language = Strings.Current.Language;
+            try
+            {
+                foreach (var current in new[] { Language.English, Language.Chinese })
+                {
+                    Strings.Current.Language = current;
+                    var hint = Strings.Get("Editor.HotstringEndCharsHint");
+                    Assert.DoesNotContain("AutoHotkey", hint, StringComparison.OrdinalIgnoreCase);
+                    Assert.DoesNotContain("AutoHotKey", hint, StringComparison.Ordinal);
+                    Assert.Contains(current == Language.English ? "highlighted" : "点亮", hint,
+                        StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            finally
+            {
+                Strings.Current.Language = language;
+            }
+        });
     }
 
     [Theory]
@@ -101,6 +193,29 @@ public class HotstringKeyboardTests
         var modifiers = shift ? Avalonia.Input.KeyModifiers.Shift : Avalonia.Input.KeyModifiers.None;
         Assert.Equal(expected, HotstringKeyCapture.Character(key, modifiers));
     }
+
+    private static (MacroEditorWindow Window, MacroEditorViewModel ViewModel) OpenHotstringEditor()
+    {
+        var macro = new MacroItem { Name = "typed" };
+        macro.Triggers.Add(new TriggerEntry
+        {
+            Kind = TriggerKind.Hotstring,
+            MacroName = macro.Name,
+            Abbreviation = "btw",
+        });
+        var window = new MacroEditorWindow(macro, [macro]);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return (window, (MacroEditorViewModel)window.DataContext!);
+    }
+
+    private static IEnumerable<ToggleButton> EndKeyButtons(Window window)
+        => window.GetVisualDescendants().OfType<ToggleButton>()
+            .Where(button => button.Classes.Contains("EndKeyChip"));
+
+    private static ToggleButton EndKeyButton(Window window, string label)
+        => EndKeyButtons(window).Single(button =>
+            string.Equals(button.Content as string, label, StringComparison.Ordinal));
 
     private static void Click(Window window, string content)
     {
