@@ -267,6 +267,29 @@ public class MenuWindowTests
         });
     }
 
+    [Fact]
+    public void The_opened_menu_keeps_the_pointer_position_instead_of_jumping_to_the_screen_center()
+    {
+        Ui.Run(() =>
+        {
+            var window = new MacroMenuWindow(Layout(), Actions());
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var screen = window.Screens.ScreenFromPoint(
+                window.Screens.Primary?.Bounds.Center ?? default) ?? window.Screens.Primary;
+            Assert.NotNull(screen);
+            var cursor = new Avalonia.PixelPoint(
+                screen.WorkingArea.X + 30,
+                screen.WorkingArea.Y + 40);
+
+            Assert.Equal(
+                window.PlaceNear(cursor, screen.WorkingArea, screen.Scaling),
+                window.NearCursor(cursor));
+            window.Close();
+        });
+    }
+
     private static MenuRuntimeLayout Layout()
     {
         var macro = new MacroItem { Name = "one" };

@@ -1095,18 +1095,22 @@ public sealed class MacroMenuWindow : Window
 
     private PixelPoint NearCursor()
     {
-        var screen = Screens.Primary;
-        var cursor = screen?.Bounds.Center ?? new PixelPoint(0, 0);
+        PixelPoint cursor;
         try
         {
-            screen = Screens.ScreenFromPoint(SystemCursor()) ?? screen;
-            cursor = screen?.Bounds.Center ?? cursor;
+            cursor = SystemCursor();
         }
         catch
         {
-            // The primary screen is still a usable answer.
+            cursor = Screens.Primary?.Bounds.Center ?? default;
         }
 
+        return NearCursor(cursor);
+    }
+
+    internal PixelPoint NearCursor(PixelPoint cursor)
+    {
+        var screen = Screens.ScreenFromPoint(cursor) ?? Screens.Primary;
         var area = screen?.WorkingArea ?? new PixelRect(0, 0,
             Math.Max(1, (int)Width), Math.Max(1, (int)Height));
         return PlaceNear(cursor, area, screen?.Scaling ?? RenderScaling);
