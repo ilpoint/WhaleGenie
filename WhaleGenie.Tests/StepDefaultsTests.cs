@@ -64,6 +64,21 @@ public class StepDefaultsTests
         => Assert.Equal(StepErrorAction.AskUser,
             new RecordedAction(RecordedActionKind.KeyPress, Key: "Ctrl+C").ToStep().Meta.OnError);
 
+    [Fact]
+    public void A_recorded_mouse_click_names_only_fields_the_action_still_has()
+    {
+        var step = new RecordedAction(RecordedActionKind.MouseClick,
+            Button: "left", X: 10, Y: 20, Amount: 1).ToStep();
+        var fields = ActionCatalog.Find(step.Type)!.Parameters
+            .Select(parameter => parameter.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(["button", "x", "y", "intervalMs"],
+            step.Parameters.Select(parameter => parameter.Name));
+        Assert.All(step.Parameters, parameter => Assert.Contains(parameter.Name, fields));
+        Assert.DoesNotContain(step.Parameters, parameter => parameter.Name == "clicks");
+    }
+
     /// <summary>
     /// How long a browser step is allowed to take is the step's own kind of answer: one that waits
     /// for the page to put an element up needs a clock, one that waits for the page itself needs a

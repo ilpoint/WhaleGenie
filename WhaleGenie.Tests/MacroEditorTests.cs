@@ -602,7 +602,11 @@ public class MacroEditorTests
 
             var mark = Assert.Single(Marks(window));
             Assert.True(mark.IsVisible);
-            Assert.Contains("break", ToolTip.GetTip(mark) as string ?? string.Empty);
+            var tip = Assert.IsType<Border>(mark.Parent);
+            Assert.Equal(28, tip.Width);
+            Assert.Equal(28, tip.Height);
+            Assert.NotNull(tip.Background);
+            Assert.Contains("break", ToolTip.GetTip(tip) as string ?? string.Empty);
 
             // The line above the list says there is something to look at.
             var summary = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
@@ -621,7 +625,8 @@ public class MacroEditorTests
             viewModel.AddStep(new MacroStep { Type = "control.delay" });
             Dispatcher.UIThread.RunJobs();
 
-            Assert.False(Assert.Single(Marks(window)).IsVisible);
+            var tip = Assert.IsType<Border>(Assert.Single(Marks(window)).Parent);
+            Assert.False(tip.IsVisible);
         });
     }
 

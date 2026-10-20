@@ -429,6 +429,68 @@ public class StepTreeTests
         });
     }
 
+    [Fact]
+    public void Selecting_every_step_keeps_the_list_where_it_is()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            macro.Steps.AddRange(Enumerable.Range(0, 80).Select(_ => Step("control.delay")));
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var list = window.GetVisualDescendants().OfType<ListBox>().First();
+            var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().First();
+            Assert.True(scroll.Extent.Height > scroll.Viewport.Height);
+
+            scroll.Offset = new Vector(0, 0);
+            list.Focus();
+            Dispatcher.UIThread.RunJobs();
+
+            window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(editor.Steps.Count, editor.SelectedSteps.Count);
+            Assert.Equal(0, scroll.Offset.Y);
+        });
+    }
+
+    [Fact]
+    public void Undoing_a_deletion_keeps_the_list_where_it_is()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            macro.Steps.AddRange(Enumerable.Range(0, 80).Select(_ => Step("control.delay")));
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var list = window.GetVisualDescendants().OfType<ListBox>().First();
+            var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().First();
+            scroll.Offset = new Vector(0, 0);
+            list.Focus();
+            Dispatcher.UIThread.RunJobs();
+
+            window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            editor.DeleteSelectedCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var offsets = new List<double>();
+            scroll.ScrollChanged += (_, _) => offsets.Add(scroll.Offset.Y);
+            editor.UndoCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(editor.Steps.Count, editor.SelectedSteps.Count);
+            Assert.All(offsets, offset => Assert.Equal(0, offset));
+            Assert.Equal(0, scroll.Offset.Y);
+        });
+    }
+
     /// <summary>The visible button a row carries, such as the fold arrow or the one that adds.</summary>
     private static Button RowButton(Window window, Func<StepRow, bool> match)
         => window.GetVisualDescendants().OfType<Button>()

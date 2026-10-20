@@ -51,7 +51,6 @@ public static class RecordingStepBuilder
                 ("button", action.Button),
                 ("x", Number(action.X)),
                 ("y", Number(action.Y)),
-                ("clicks", Number(Math.Max(1, action.Amount))),
                 ("intervalMs", Number(0))),
 
         RecordedActionKind.MouseDoubleClick =>

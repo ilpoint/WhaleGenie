@@ -343,28 +343,46 @@ public partial class MacroEditorWindow : Window
                 // because that is the row everything acts on.
                 var rows = stepList.SelectedItems?.OfType<StepRow>().ToList() ?? [];
                 _viewModel.SetSelection(rows.Select(row => row.Step).Distinct());
-                _viewModel.RefreshSelection();
+
+                // Ctrl+A selects every row at once, including each block's title and closing
+                // line. Clearing that selection and adding every row back one by one makes the
+                // list follow each addition to the bottom. The block's own row is already picked
+                // in that case, so only a title or closing line picked on its own needs the move.
+                var pickedSteps = rows
+                    .Where(row => row.IsStep)
+                    .Select(row => row.Step)
+                    .ToHashSet();
+                if (rows.Any(row => !row.IsStep && !pickedSteps.Contains(row.Step)))
+                {
+                    _viewModel.RefreshSelection();
+                }
             };
 
             // The list drops its selection when rows move, so the view model asks for it back.
             _viewModel.SelectionRefreshRequested += () =>
             {
-                if (stepList.SelectedItems is not { } selected)
-                {
-                    return;
-                }
-
                 _syncingSelection = true;
                 try
                 {
-                    selected.Clear();
-
                     // The rows are rebuilt on every change, so the highlights have to be put on
                     // the rows as they are now rather than on the ones that were picked.
-                    var wanted = _viewModel.SelectedSteps;
-                    foreach (var row in _viewModel.Rows.Where(row => row.IsStep && wanted.Contains(row.Step)))
+                    var wanted = _viewModel.SelectedSteps.ToHashSet();
+                    var selection = stepList.Selection;
+                    selection.BeginBatchUpdate();
+                    try
                     {
-                        selected.Add(row);
+                        selection.Clear();
+                        for (var index = 0; index < _viewModel.Rows.Count; index++)
+                        {
+                            if (_viewModel.Rows[index] is { IsStep: true } row && wanted.Contains(row.Step))
+                            {
+                                selection.Select(index);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        selection.EndBatchUpdate();
                     }
                 }
                 finally
@@ -664,6 +682,10 @@ public partial class MacroEditorWindow : Window
         {
             switch (e.Key)
             {
+                case Key.A:
+                    e.Handled = true;
+                    SelectAllSteps();
+                    return;
                 case Key.C:
                     e.Handled = true;
                     _ = CopySelectionAsync();
@@ -729,6 +751,33 @@ public partial class MacroEditorWindow : Window
         }
 
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Selects every step the list is showing. The list is asked for one bulk change and the
+    /// editor takes the same rows from it, so a long macro is not scrolled one row at a time.
+    /// </summary>
+    private void SelectAllSteps()
+    {
+        if (_stepList is null)
+        {
+            return;
+        }
+
+        _syncingSelection = true;
+        try
+        {
+            _stepList.SelectAll();
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
+
+        _viewModel.SetSelection(_viewModel.Rows
+            .Where(row => row.IsStep)
+            .Select(row => row.Step)
+            .Distinct());
     }
 
     /// <summary>Puts the selected steps on the clipboard as the editor's step JSON.</summary>
@@ -1282,17 +1331,19 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private string? TakeStep(MacroStep? editing, MacroStep built)
     {
+        string? refusal = null;
         if (editing is not null)
         {
             _viewModel.ReplaceStep(editing, built);
-            return null;
         }
-
-        if (_viewModel.AddStepHere(built) is not { } refusal)
+        else
         {
-            return null;
+            refusal = _viewModel.AddStepHere(built);
         }
 
+        // The form stays open for the next step. A result this step just started handing over is
+        // not in the candidate list it received when it opened, so the list is handed over again
+        // before the form resets and builds the next step.
         _inspector?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroCalls(),
             _viewModel.StepChoices(), _assetFolder);
         return refusal;
