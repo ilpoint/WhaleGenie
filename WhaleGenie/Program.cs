@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using System.Threading.Tasks;
 using Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
@@ -23,6 +24,15 @@ sealed class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        AppDomain.CurrentDomain.UnhandledException += (_, error) =>
+            AppDiagnostics.Record("process.unhandled",
+                error.ExceptionObject as Exception ?? new Exception(error.ExceptionObject?.ToString()));
+        TaskScheduler.UnobservedTaskException += (_, error) =>
+        {
+            AppDiagnostics.Record("process.task", error.Exception);
+            error.SetObserved();
+        };
+
         // Hooking has to stay in its own method: the moment Main itself names a type from
         // Avalonia, compiling Main needs Avalonia loaded, and the hook would be too late.
         HookLibraryFolder();

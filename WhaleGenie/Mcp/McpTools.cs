@@ -118,7 +118,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
         => await Ui(() => Encode(drafts.Get(draftId).Find(name) is { } macro
-            ? macro.ToJson()
+            ? macro.ToJson(includeTriggers: true)
             : throw new McpException($"There is no macro named \"{name}\".")));
 
     [McpServerTool(Name = "whalegenie_put_macro", Destructive = true),
@@ -136,7 +136,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             name = macro.Name,
             steps = macro.Steps.Count,
             problems = problems.Messages,
-            macro = await Ui(() => macro.ToJson()),
+            macro = await Ui(() => macro.ToJson(includeTriggers: true)),
         });
     }
 
@@ -189,8 +189,14 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         }
 
         var macros = draft.MacroSnapshot();
+        var triggers = draft.Triggers.Copy();
+        await Ui(() =>
+        {
+            triggers.Attach(macros);
+            return true;
+        });
         var globals = await Ui(() => draft.Globals.ToList());
-        var revision = await project.ApplyAsync(draft.Basis, macros, globals);
+        var revision = await project.ApplyAsync(draft.Basis, macros, triggers, globals);
         draft.MarkApplied();
         return Encode(new { revision, macros = macros.Count });
     }

@@ -11,12 +11,12 @@ namespace WhaleGenie.Execution;
 /// </summary>
 internal sealed class WindowWatches
 {
-    private readonly Dictionary<MacroItem, bool> _there = [];
+    private readonly Dictionary<object, bool> _there = [];
 
     /// <summary>Whether a window the macro waits for is there, or null while nothing has been looked at.</summary>
-    public bool? For(MacroItem macro) => _there.TryGetValue(macro, out var there) ? there : null;
+    public bool? For(object owner) => _there.TryGetValue(owner, out var there) ? there : null;
 
-    public IReadOnlyCollection<MacroItem> Macros => _there.Keys;
+    public IReadOnlyCollection<object> Macros => _there.Keys;
 
     public int Count => _there.Count;
 
@@ -26,15 +26,15 @@ internal sealed class WindowWatches
     /// appeared — and after that only a change counts, so the same window seen again, however many
     /// times it is reported, is still one appearance.
     /// </summary>
-    public bool Changed(MacroItem macro, bool there)
+    public bool Changed(object owner, bool there)
     {
-        var before = For(macro);
-        _there[macro] = there;
+        var before = For(owner);
+        _there[owner] = there;
         return before is { } known && known != there;
     }
 
     /// <summary>Stops watching a macro, so the next look starts from nothing again.</summary>
-    public void Forget(MacroItem macro) => _there.Remove(macro);
+    public void Forget(object owner) => _there.Remove(owner);
 
     public void Clear() => _there.Clear();
 }

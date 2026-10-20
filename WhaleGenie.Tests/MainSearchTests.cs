@@ -13,7 +13,7 @@ public class MainSearchTests
     [Fact]
     public void The_search_box_narrows_the_macro_list()
     {
-        var viewModel = new MainViewModel();
+        var viewModel = Project();
         viewModel.AddMacro(new MacroItem { Name = "登录" });
         viewModel.AddMacro(new MacroItem { Name = "导出表格" });
 
@@ -32,7 +32,7 @@ public class MainSearchTests
     [Fact]
     public void A_search_that_matches_nothing_says_so()
     {
-        var viewModel = new MainViewModel();
+        var viewModel = Project();
         viewModel.AddMacro(new MacroItem { Name = "登录" });
 
         viewModel.SearchText = "找不到的宏";
@@ -49,7 +49,8 @@ public class MainSearchTests
     [Fact]
     public void A_macro_added_while_a_search_is_on_is_kept_only_when_it_matches()
     {
-        var viewModel = new MainViewModel { SearchText = "log" };
+        var viewModel = Project();
+        viewModel.SearchText = "log";
         viewModel.AddMacro(new MacroItem { Name = "login" });
         viewModel.AddMacro(new MacroItem { Name = "logout" });
         viewModel.AddMacro(new MacroItem { Name = "save" });
@@ -61,7 +62,7 @@ public class MainSearchTests
     [Fact]
     public void Removing_a_macro_takes_it_out_of_the_narrowed_list_too()
     {
-        var viewModel = new MainViewModel();
+        var viewModel = Project();
         var login = new MacroItem { Name = "login" };
         viewModel.AddMacro(login);
         viewModel.AddMacro(new MacroItem { Name = "save" });
@@ -73,5 +74,12 @@ public class MainSearchTests
 
         Assert.Empty(viewModel.VisibleMacros);
         Assert.True(viewModel.HasNoMatch);
+    }
+
+    private static MainViewModel Project()
+    {
+        var viewModel = new MainViewModel();
+        viewModel.SelectedDock = DockPage.Keys;
+        return viewModel;
     }
 }

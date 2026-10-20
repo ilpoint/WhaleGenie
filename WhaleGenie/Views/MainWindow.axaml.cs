@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -28,6 +31,21 @@ public partial class MainWindow : Window
     /// <summary>Runs the macros the list is waiting for; null until the window is open.</summary>
     private MacroTriggerService? _triggers;
 
+    private readonly Dictionary<string, FloatingSurfaceWindow> _surfaces = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, WindowInfo> _surfaceTargets = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, WindowRule> _surfaceRules = new(StringComparer.Ordinal);
+    private MacroMenuWindow? _menu;
+    private WindowInfo? _menuForeground;
+    private int _menuOpen;
+    private int _menuChildOpen;
+    private int _menuSearchFocused;
+    private MenuScreenBounds? _menuBounds;
+
+    private sealed record MenuScreenBounds(int Left, int Top, int Right, int Bottom)
+    {
+        public bool Contains(int x, int y) => x >= Left && x < Right && y >= Top && y < Bottom;
+    }
+
     /// <summary>
     /// The macro editor on screen, or null while there is none. One at a time, because two of them
     /// on one macro would hand back two versions of it and the last one closed would win.
@@ -47,12 +65,10 @@ public partial class MainWindow : Window
     /// <summary>The shared hook the Home key is answered through; null until the window is open.</summary>
     private IInputHook? _hotkeyHook;
 
-    /// <summary>
-    /// The key the system switch is bound to, looked up once rather than compared by name on every
-    /// key press. A name that does not resolve leaves a key nothing can match, which is the safe
-    /// way round: the button on the window still works.
-    /// </summary>
-    private static readonly HookKey SystemHotkey = KeyNames.Resolve("Home") ?? default;
+    private readonly HashSet<string> _globalHeld = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
+    private readonly TriggerRuntimeSnapshotStore _runtimeTriggers = new();
+    private GlobalHotkeyPlan _globalHotkeyPlan = GlobalHotkeyPlan.Empty;
 
     /// <summary>Set by the tray once the answer to the leaving question is "go".</summary>
     private bool _allowClose;
@@ -328,8 +344,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        RecoveryStore.SaveProject([.. viewModel.Macros], [.. VariableCatalog.Globals],
-            viewModel.CurrentPath);
+        RecoveryStore.SaveProject([.. viewModel.Macros], viewModel.Triggers,
+            [.. VariableCatalog.Globals], viewModel.CurrentPath);
     }
 
     /// <summary>
@@ -347,7 +363,8 @@ public partial class MainWindow : Window
 
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
-        _triggers = new MacroTriggerService(() => viewModel.Macros, SharedDevices.Current);
+        PublishRuntimeState(viewModel);
+        _triggers = new MacroTriggerService(() => _runtimeTriggers.Current, SharedDevices.Current);
         _triggers.Ask = AskAboutFailedStep;
         _triggers.AskUser = AskWhatTheMacroWantsToKnow;
         _triggers.StatusChanged += OnTriggerStatusChanged;
@@ -358,8 +375,23 @@ public partial class MainWindow : Window
             if (args.PropertyName == nameof(MainViewModel.IsRunning) && _triggers is not null)
             {
                 _triggers.IsEnabled = viewModel.IsRunning;
+                if (!viewModel.IsRunning)
+                {
+                    _menu?.CloseFromLauncher();
+                }
+                PublishRuntimeState(viewModel);
+                RefreshSurface(viewModel);
             }
+
         };
+
+        _triggers.MenuRequested += OnMenuRequested;
+        var windowEvents = SharedDevices.Current.WindowEvents;
+        windowEvents.ForegroundChanged += OnSurfaceForegroundChanged;
+        windowEvents.BoundsChanged += OnSurfaceBoundsChanged;
+        viewModel.Triggers.Changed += OnProjectTriggersChanged;
+        viewModel.Changed += OnProjectChanged;
+        viewModel.Macros.CollectionChanged += OnMacrosChanged;
 
         RefreshRunning(viewModel);
         AttachSystemHotkey();
@@ -367,9 +399,614 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             DetachSystemHotkey();
+            _triggers.MenuRequested -= OnMenuRequested;
+            windowEvents.ForegroundChanged -= OnSurfaceForegroundChanged;
+            windowEvents.BoundsChanged -= OnSurfaceBoundsChanged;
+            viewModel.Triggers.Changed -= OnProjectTriggersChanged;
+            viewModel.Changed -= OnProjectChanged;
+            viewModel.Macros.CollectionChanged -= OnMacrosChanged;
+            HideSurface();
             StopTriggers();
             _recovery?.Stop();
         };
+    }
+
+    private void OnProjectTriggersChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            PublishRuntimeState(viewModel);
+            RefreshSurface(viewModel);
+        }
+    }
+
+    private void OnProjectChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            PublishRuntimeState(viewModel);
+        }
+    }
+
+    private void OnMacrosChanged(object? sender,
+        System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            PublishRuntimeState(viewModel);
+        }
+    }
+
+    private void PublishRuntimeState(MainViewModel viewModel)
+    {
+        _runtimeTriggers.Publish(viewModel.Triggers, [.. viewModel.Macros]);
+        Volatile.Write(ref _globalHotkeyPlan, GlobalHotkeyPlan.From(viewModel));
+    }
+
+    private void OnSurfaceForegroundChanged()
+        => Dispatcher.UIThread.Post(() =>
+        {
+            if (_menu is { IsEditing: false } menu && _menuForeground is { } expected)
+            {
+                try
+                {
+                    if (SharedDevices.Current.Windows.Foreground() is { } current
+                        && current.Handle != expected.Handle
+                        && current.Handle != menu.NativeHandle.ToInt64())
+                    {
+                        if (menu.IsSearchFocused)
+                        {
+                            menu.CloseFromOutside();
+                        }
+                        else
+                        {
+                            menu.CloseFromLauncher();
+                        }
+                    }
+                }
+                catch
+                {
+                    // The next foreground event can close it when the answer is readable.
+                }
+            }
+
+            RefreshSurface(DataContext as MainViewModel);
+        });
+
+    private void OnSurfaceBoundsChanged(long handle)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_surfaceTargets.Values.Any(target => target.Handle == handle))
+            {
+                RefreshSurface(DataContext as MainViewModel);
+            }
+        });
+    }
+
+    private void RefreshSurface(MainViewModel? viewModel)
+    {
+        if (_surfaces.Values.Any(surface => surface.IsMoving))
+        {
+            return;
+        }
+
+        if (viewModel is null
+            || !viewModel.IsRunning
+            || MacroTriggerGate.IsOpen
+            || _menu is not null)
+        {
+            HideSurface();
+            return;
+        }
+
+        WindowInfo? foreground;
+        try
+        {
+            foreground = SharedDevices.Current.Windows.Foreground();
+        }
+        catch
+        {
+            HideSurface();
+            return;
+        }
+
+        if (foreground is null || foreground.Minimized)
+        {
+            HideSurface();
+            return;
+        }
+
+        var allGroups = viewModel.Triggers.InterfaceGroups();
+        var groups = allGroups
+            .Where(group => ForegroundRuleMatches(group.Rule, foreground))
+            .ToList();
+        var active = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var group in groups)
+        {
+            if (_hiddenInterfaceGroups.Contains(group.Key))
+            {
+                RemoveSurface(group.Key);
+                continue;
+            }
+
+            var macros = InterfaceMemberResolver.Resolve(group, [.. viewModel.Macros])
+                .Where(member => member.IsVisibleOnSurface)
+                .Select(member => member.Macro!)
+                .ToList();
+            if (macros.Count == 0)
+            {
+                RemoveSurface(group.Key);
+                continue;
+            }
+
+            active.Add(group.Key);
+            var created = false;
+            if (!_surfaces.TryGetValue(group.Key, out var surface))
+            {
+                surface = new FloatingSurfaceWindow(macros, macro =>
+                {
+                    if (_triggers is not null && macro.IsEnabled)
+                    {
+                        _triggers.RunOnce(macro);
+                    }
+                });
+                surface.MoveCompleted += position => OnSurfaceMoved(group.Key, position);
+                _surfaces[group.Key] = surface;
+                created = true;
+            }
+            else
+            {
+                surface.SetMacros(macros);
+            }
+
+            _surfaceTargets[group.Key] = foreground;
+            _surfaceRules[group.Key] = group.Rule;
+            if (!surface.IsMoving)
+            {
+                surface.PlaceAt(foreground, SharedDevices.Current.Windows,
+                    viewModel.Triggers.LayoutFor(group.Rule));
+                if (created)
+                {
+                    surface.ShowAsPeer(this);
+                }
+            }
+        }
+
+        foreach (var key in _surfaces.Keys.Where(key => !active.Contains(key)).ToList())
+        {
+            RemoveSurface(key);
+        }
+
+        foreach (var gone in _hiddenInterfaceGroups
+                     .Where(key => allGroups.All(group => group.Key != key)).ToList())
+        {
+            _hiddenInterfaceGroups.Remove(gone);
+        }
+    }
+
+    private void OnSurfaceMoved(string groupKey, PixelPoint position)
+    {
+        if (!_surfaceTargets.TryGetValue(groupKey, out var target)
+            || !_surfaceRules.TryGetValue(groupKey, out var rule)
+            || DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        try
+        {
+            var origin = SharedDevices.Current.Windows.ClientOrigin(target.Handle);
+            viewModel.Triggers.StoreLayout(rule, position.X - origin.X, position.Y - origin.Y);
+        }
+        catch
+        {
+            // A target that went away has no place to remember.
+        }
+    }
+
+    private void HideSurface()
+    {
+        foreach (var key in _surfaces.Keys.ToList())
+        {
+            RemoveSurface(key);
+        }
+    }
+
+    private void RemoveSurface(string key)
+    {
+        if (_surfaces.Remove(key, out var surface))
+        {
+            surface.Close();
+        }
+
+        _surfaceTargets.Remove(key);
+        _surfaceRules.Remove(key);
+    }
+
+    private static bool ForegroundRuleMatches(WindowRule rule, WindowInfo foreground)
+    {
+        try
+        {
+            return SharedDevices.Current.Windows.Find(rule.MatchValue, rule.Reading.Match,
+                rule.Reading.Compare, rule.Options)?.Handle == foreground.Handle;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void OnMenuRequested()
+        => Dispatcher.UIThread.Post(() => _ = OpenMacroMenuAsync());
+
+    private async Task OpenMacroMenuAsync()
+    {
+        if (_menu is not null || DataContext is not MainViewModel viewModel)
+        {
+            _menu?.Activate();
+            return;
+        }
+
+        WindowInfo? previous = null;
+        try
+        {
+            previous = SharedDevices.Current.Windows.Foreground();
+        }
+        catch
+        {
+            // The menu can still run a macro that names its own window.
+        }
+
+        var layout = viewModel.Triggers.BuildMenuLayout(previous,
+            SharedDevices.Current.Windows, [.. viewModel.Macros]);
+        HideSurface();
+        MacroTriggerGate.Enter();
+        MacroMenuWindow menu;
+        try
+        {
+            var actions = new MenuWindowActions(
+                _triggers is null ? _ => { }
+            : macro => _triggers.RunOnce(macro),
+                () =>
+                {
+                    var foreground = _menuForeground;
+                    Dispatcher.UIThread.Post(() => _ = OpenMenuSettingsAsync(foreground));
+                },
+                RestoreMenuForeground,
+                () => AddCommonMenuPageAsync(viewModel),
+                pageId => RemoveCommonMenuPageAsync(pageId, viewModel),
+                pageId => AddContextMenuPageAsync(pageId, viewModel),
+                pageId => RemoveContextMenuPageAsync(pageId, viewModel),
+                slot => ChooseMenuMacroAsync(slot, viewModel),
+                (slot, command) => EditMenuCellAsync(slot, command, viewModel),
+                (source, target) => MoveMenuCellAsync(source, target, viewModel));
+            menu = new MacroMenuWindow(layout, actions);
+        }
+        catch (Exception error)
+        {
+            MacroTriggerGate.Exit();
+            AppDiagnostics.Record("menu.create", error);
+            return;
+        }
+        _menu = menu;
+        _menuForeground = previous;
+        _menuChildOpen = 0;
+        _menuSearchFocused = 0;
+        Volatile.Write(ref _menuOpen, 1);
+        menu.SearchFocusChanged += focused =>
+            Volatile.Write(ref _menuSearchFocused, focused ? 1 : 0);
+        menu.PositionChanged += (_, _) => UpdateMenuBounds(menu);
+        menu.SizeChanged += (_, _) => UpdateMenuBounds(menu);
+        menu.Closed += (_, _) =>
+        {
+            MacroTriggerGate.Exit();
+            Volatile.Write(ref _menuOpen, 0);
+            Volatile.Write(ref _menuChildOpen, 0);
+            Volatile.Write(ref _menuSearchFocused, 0);
+            Volatile.Write(ref _menuBounds, null);
+            if (ReferenceEquals(_menu, menu))
+            {
+                _menu = null;
+                _menuForeground = null;
+            }
+
+            Dispatcher.UIThread.Post(() => RefreshSurface(viewModel));
+        };
+        try
+        {
+            menu.ShowAsPeer(this);
+            UpdateMenuBounds(menu);
+        }
+        catch (Exception error)
+        {
+            _menu = null;
+            _menuForeground = null;
+            Volatile.Write(ref _menuOpen, 0);
+            MacroTriggerGate.Exit();
+            AppDiagnostics.Record("menu.show", error);
+            return;
+        }
+
+        var chosen = await menu.Answer;
+        if (chosen is null)
+        {
+            return;
+        }
+
+        if (previous is not null)
+        {
+            try
+            {
+                SharedDevices.Current.Windows.Activate(previous.Handle);
+                await Task.Delay(40);
+            }
+            catch
+            {
+                // Best effort: a macro that names its own target does not depend on this.
+            }
+        }
+
+        _triggers?.RunOnce(chosen);
+    }
+
+    private MenuRuntimeLayout RebuildMenuLayout(MainViewModel viewModel)
+    {
+        WindowInfo? foreground = null;
+        try
+        {
+            foreground = _menuForeground ?? SharedDevices.Current.Windows.Foreground();
+        }
+        catch
+        {
+            // The default context page is still valid when the foreground cannot be read.
+        }
+
+        return viewModel.Triggers.BuildMenuLayout(foreground,
+            SharedDevices.Current.Windows, [.. viewModel.Macros]);
+    }
+
+    private void UpdateMenuBounds(MacroMenuWindow menu)
+    {
+        var left = menu.Position.X;
+        var top = menu.Position.Y;
+        var scale = menu.RenderScaling;
+        var right = left + (int)Math.Ceiling(menu.Width * scale);
+        var bottom = top + (int)Math.Ceiling(menu.Height * scale);
+        Volatile.Write(ref _menuBounds, new MenuScreenBounds(left, top, right, bottom));
+    }
+
+    private void RestoreMenuForeground()
+    {
+        if (_menuForeground is not { } foreground)
+        {
+            return;
+        }
+
+        try
+        {
+            SharedDevices.Current.Windows.Activate(foreground.Handle);
+        }
+        catch
+        {
+            // The window can be gone; the menu still remains usable.
+        }
+    }
+
+    private async Task<MenuRuntimeLayout?> ChooseMenuMacroAsync(MenuSlotRef slot,
+        MainViewModel viewModel)
+    {
+        if (_menu is null)
+        {
+            return null;
+        }
+
+        MacroItem? macro;
+        Interlocked.Increment(ref _menuChildOpen);
+        try
+        {
+            macro = await MenuMacroPickerWindow.ShowAsync(_menu, [.. viewModel.Macros]);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _menuChildOpen);
+        }
+        if (macro is null)
+        {
+            return null;
+        }
+
+        if (slot.Cell is { } existing)
+        {
+            existing.Entry.MacroName = macro.Name;
+            existing.Entry.MenuLabel = string.Empty;
+        }
+        else
+        {
+            viewModel.Triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Menu,
+                MacroName = macro.Name,
+                MenuPageId = slot.PageId,
+                MenuRow = slot.Row,
+                MenuColumn = slot.Column,
+                IsEnabled = true,
+            });
+        }
+
+        viewModel.Triggers.Attach([.. viewModel.Macros]);
+        viewModel.MarkMenuChanged();
+        return RebuildMenuLayout(viewModel);
+    }
+
+    private Task<MenuRuntimeLayout?> AddCommonMenuPageAsync(MainViewModel viewModel)
+    {
+        if (viewModel.Triggers.CommonMenuPages().Count < ProjectTriggers.MaxCommonMenuPages)
+        {
+            viewModel.Triggers.AddCommonMenuPage();
+            viewModel.MarkMenuChanged();
+        }
+        return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+    }
+
+    private Task<MenuRuntimeLayout?> RemoveCommonMenuPageAsync(string pageId,
+        MainViewModel viewModel)
+    {
+        if (viewModel.Triggers.CommonMenuPages().Count > 1)
+        {
+            viewModel.Triggers.RemoveMenuPage(pageId);
+            viewModel.MarkMenuChanged();
+        }
+        return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+    }
+
+    private Task<MenuRuntimeLayout?> AddContextMenuPageAsync(string pageId,
+        MainViewModel viewModel)
+    {
+        var page = viewModel.Triggers.MenuPages.FirstOrDefault(candidate =>
+            candidate.Id == pageId);
+        if (page is null)
+        {
+            return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+        }
+
+        if (page.IsDefault)
+        {
+            if (viewModel.Triggers.DefaultContextMenuPages().Count
+                < ProjectTriggers.MaxCommonMenuPages)
+            {
+                viewModel.Triggers.AddDefaultContextPage();
+                viewModel.MarkMenuChanged();
+            }
+        }
+        else if (viewModel.Triggers.ContextPagesFor(page.Window).Count
+                 < ProjectTriggers.MaxCommonMenuPages)
+        {
+            viewModel.Triggers.AddContextMenuPage(page.Window);
+            viewModel.MarkMenuChanged();
+        }
+        return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+    }
+
+    private Task<MenuRuntimeLayout?> RemoveContextMenuPageAsync(string pageId,
+        MainViewModel viewModel)
+    {
+        var page = viewModel.Triggers.MenuPages.FirstOrDefault(candidate =>
+            candidate.Id == pageId);
+        if (page is not null)
+        {
+            var siblings = page.IsDefault
+                ? viewModel.Triggers.DefaultContextMenuPages()
+                : viewModel.Triggers.ContextPagesFor(page.Window);
+            if (siblings.Count > 1)
+            {
+                viewModel.Triggers.RemoveMenuPage(pageId);
+                viewModel.MarkMenuChanged();
+            }
+        }
+        return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+    }
+
+    private async Task<MenuRuntimeLayout?> EditMenuCellAsync(MenuSlotRef slot,
+        MenuEditCommand command, MainViewModel viewModel)
+    {
+        Interlocked.Increment(ref _menuChildOpen);
+        try
+        {
+            if (command == MenuEditCommand.Replace || slot.Cell is null)
+            {
+                return command == MenuEditCommand.Replace
+                    ? await ChooseMenuMacroAsync(slot, viewModel)
+                    : null;
+            }
+
+            var entry = slot.Cell.Entry;
+            switch (command)
+            {
+                case MenuEditCommand.EditLabel:
+                    if (_menu is null)
+                    {
+                        return null;
+                    }
+                    var answer = await TextPromptDialog.ShowAsync(_menu,
+                        Strings.Get("Menu.EditLabel"),
+                        new AskQuestion(AskKind.Text, Strings.Get("Menu.EditLabelPrompt"),
+                            entry.MenuLabel));
+                    if (!answer.Confirmed)
+                    {
+                        return null;
+                    }
+                    entry.MenuLabel = answer.Text;
+                    break;
+                case MenuEditCommand.ChooseIcon:
+                    if (_menu is null
+                        || await MenuIconPickerWindow.ShowAsync(_menu) is not { } icon)
+                    {
+                        return null;
+                    }
+                    entry.MenuIcon = icon.Kind == MenuIconKind.Image
+                        ? new MenuIconReference(icon.Kind, CopyMenuIcon(icon.Value, viewModel))
+                        : icon;
+                    break;
+                case MenuEditCommand.ClearIcon:
+                    entry.MenuIcon = null;
+                    break;
+                case MenuEditCommand.ClearCell:
+                    viewModel.Triggers.Entries.Remove(entry);
+                    break;
+            }
+
+            viewModel.Triggers.Attach([.. viewModel.Macros]);
+            viewModel.MarkMenuChanged();
+            return RebuildMenuLayout(viewModel);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _menuChildOpen);
+        }
+    }
+
+    private async Task<MenuRuntimeLayout?> MoveMenuCellAsync(MenuSlotRef source,
+        MenuSlotRef target, MainViewModel viewModel)
+    {
+        if (source.Cell is not { } from)
+        {
+            return null;
+        }
+
+        if (target.Cell is { } to)
+        {
+            (from.Entry.MenuPageId, to.Entry.MenuPageId) =
+                (target.PageId, source.PageId);
+            (from.Entry.MenuRow, to.Entry.MenuRow) = (target.Row, source.Row);
+            (from.Entry.MenuColumn, to.Entry.MenuColumn) = (target.Column, source.Column);
+        }
+        else
+        {
+            from.Entry.MenuPageId = target.PageId;
+            from.Entry.MenuRow = target.Row;
+            from.Entry.MenuColumn = target.Column;
+        }
+
+        viewModel.Triggers.Attach([.. viewModel.Macros]);
+        viewModel.MarkMenuChanged();
+        return await Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+    }
+
+    private static string CopyMenuIcon(string path, MainViewModel viewModel)
+    {
+        var folder = ImageAssets.FolderFor(viewModel.CurrentPath);
+        Directory.CreateDirectory(folder);
+        var extension = Path.GetExtension(path).ToLowerInvariant();
+        if (extension is not (".png" or ".jpg" or ".jpeg" or ".bmp"))
+        {
+            extension = ".png";
+        }
+
+        var target = Path.Combine(folder,
+            "menu-icon-" + Guid.NewGuid().ToString("N")[..10] + extension);
+        File.Copy(path, target, overwrite: false);
+        return target;
     }
 
     /// <summary>
@@ -382,6 +1019,8 @@ public partial class MainWindow : Window
         {
             var hook = SharedDevices.Current.Hook;
             hook.KeyDown += OnSystemHotkeyDown;
+            hook.KeyUp += OnSystemHotkeyUp;
+            hook.MouseDown += OnMenuMouseDown;
             _hotkeyHook = hook;
         }
         catch (Exception)
@@ -396,25 +1035,144 @@ public partial class MainWindow : Window
         if (_hotkeyHook is { } hook)
         {
             hook.KeyDown -= OnSystemHotkeyDown;
+            hook.KeyUp -= OnSystemHotkeyUp;
+            hook.MouseDown -= OnMenuMouseDown;
+            _globalHeld.Clear();
             _hotkeyHook = null;
         }
     }
 
     private void OnSystemHotkeyDown(KeyHookEvent e)
     {
-        // The editor and the other dialogs own the keyboard while they are open.
-        if (e.Key != SystemHotkey || MacroTriggerGate.IsOpen)
+        var name = string.Empty;
+        try
         {
-            return;
-        }
+            // The editor and the other dialogs own the keyboard while they are open.
+            name = KeyNames.Name(e.Key, sided: true);
+            if (name.Length == 0)
+            {
+                return;
+            }
 
-        // A key WhaleGenie sent itself is its own output, not the user asking for a switch.
-        if (WhaleGenieInputGate.RecentlySent(KeyNames.Name(e.Key, sided: true)))
+            // A key WhaleGenie sent itself is its own output, not the user asking for a switch.
+            if (WhaleGenieInputGate.RecentlySent(name))
+            {
+                return;
+            }
+
+            var plan = Volatile.Read(ref _globalHotkeyPlan);
+            if (Volatile.Read(ref _menuOpen) == 1)
+            {
+                if (plan.MenuLauncher.Length > 0
+                    && MacroTriggerService.Binds(plan.MenuLauncher, name, _globalHeld))
+                {
+                    e.Suppress = true;
+                    Dispatcher.UIThread.Post(() => _menu?.CloseFromLauncher());
+                    return;
+                }
+
+                if (Volatile.Read(ref _menuSearchFocused) == 1)
+                {
+                    return;
+                }
+
+                if (name is "Left" or "Right" or "Up" or "Down"
+                    or "左" or "右" or "上" or "下"
+                    or "Enter" or "Return" or "回车" or "Esc" or "Escape")
+                {
+                    e.Suppress = true;
+                    Dispatcher.UIThread.Post(() => _menu?.HandleKey(name));
+                    return;
+                }
+            }
+
+            if (Volatile.Read(ref _menuOpen) == 1
+                && plan.SystemHotkey.Length > 0
+                && MacroTriggerService.Binds(plan.SystemHotkey, name, _globalHeld))
+            {
+                e.Suppress = true;
+                Dispatcher.UIThread.Post(ToggleSystemFromHotkey);
+                return;
+            }
+
+            if (MacroTriggerGate.IsOpen)
+            {
+                return;
+            }
+
+            var match = plan.Match(name, _globalHeld);
+            if (match.Action == GlobalHotkeyAction.ToggleSystem)
+            {
+                Dispatcher.UIThread.Post(ToggleSystemFromHotkey);
+            }
+            else if (match.Action == GlobalHotkeyAction.ToggleInterfaceGroup)
+            {
+                Dispatcher.UIThread.Post(() => ToggleInterfaceGroupFromHotkey(match.GroupKey));
+            }
+        }
+        catch (Exception error)
         {
-            return;
+            AppDiagnostics.Record("hook.global-shortcut", error);
         }
+        finally
+        {
+            if (name.Length > 0)
+            {
+                _globalHeld.Add(name);
+            }
+        }
+    }
 
-        Dispatcher.UIThread.Post(ToggleSystemFromHotkey);
+    private void OnMenuMouseDown(MouseHookEvent e)
+    {
+        try
+        {
+            if (Volatile.Read(ref _menuOpen) == 0)
+            {
+                return;
+            }
+
+            if (e.Button is HookMouseButton.Back or HookMouseButton.Forward)
+            {
+                var name = KeyNames.MouseName(e.Button);
+                var plan = Volatile.Read(ref _globalHotkeyPlan);
+                if (plan.MenuLauncher.Length > 0
+                    && MacroTriggerService.Binds(plan.MenuLauncher, name, []))
+                {
+                    e.Suppress = true;
+                    Dispatcher.UIThread.Post(() => _menu?.CloseFromLauncher());
+                    return;
+                }
+            }
+
+            if (Volatile.Read(ref _menuChildOpen) == 0
+                && Volatile.Read(ref _menuBounds) is { } bounds
+                && GetCursorPosition() is { } point
+                && !bounds.Contains(point.X, point.Y))
+            {
+                Dispatcher.UIThread.Post(() => _menu?.CloseFromOutside());
+            }
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.menu-mouse", error);
+        }
+    }
+
+    private void OnSystemHotkeyUp(KeyHookEvent e)
+    {
+        try
+        {
+            var name = KeyNames.Name(e.Key, sided: true);
+            if (name.Length > 0)
+            {
+                _globalHeld.Remove(name);
+            }
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.global-shortcut-up", error);
+        }
     }
 
     /// <summary>Flips the system switch, unless a field on the window has the keyboard.</summary>
@@ -430,18 +1188,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        // A macro bound to Home keeps the key for itself; the button still switches the system.
-        foreach (var macro in viewModel.Macros)
+        viewModel.IsRunning = !viewModel.IsRunning;
+    }
+
+    private void ToggleInterfaceGroupFromHotkey(string groupKey)
+    {
+        if (!_hiddenInterfaceGroups.Add(groupKey))
         {
-            if (macro.IsEnabled
-                && macro.TriggerMode == MacroTrigger.KeystrokesButtonInputs
-                && string.Equals(macro.BindKey.Trim(), "Home", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
+            _hiddenInterfaceGroups.Remove(groupKey);
         }
 
-        viewModel.IsRunning = !viewModel.IsRunning;
+        RefreshSurface(DataContext as MainViewModel);
     }
 
     /// <summary>Whether the pressed key should answer a macro, rather than the app being edited.</summary>
@@ -962,8 +1719,46 @@ public partial class MainWindow : Window
 
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsWindow();
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        var dialog = new SettingsWindow(viewModel, viewModel.CurrentPath);
         await dialog.ShowDialogOver(this);
+        PublishRuntimeState(viewModel);
+        viewModel.RefreshHotkeyHints();
+    }
+
+    private Task OpenMenuSettingsAsync(WindowInfo? foreground)
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return Task.CompletedTask;
+        }
+
+        _ = ShowMenuSettingsAsync(viewModel, foreground);
+        return Task.CompletedTask;
+    }
+
+    private async Task ShowMenuSettingsAsync(MainViewModel viewModel, WindowInfo? foreground)
+    {
+        var dialog = new SettingsWindow(viewModel, viewModel.CurrentPath,
+            SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
+        await dialog.ShowDialogOver(this);
+        if (foreground is not null)
+        {
+            try
+            {
+                SharedDevices.Current.Windows.Activate(foreground.Handle);
+            }
+            catch
+            {
+                // The target may have closed while settings were open.
+            }
+        }
+        PublishRuntimeState(viewModel);
+        viewModel.RefreshHotkeyHints();
     }
 
     /// <summary>
@@ -991,7 +1786,7 @@ public partial class MainWindow : Window
         // layer is the program's own, so the trials and the runs started from here use the one layer
         // whose text recognition models are already loaded.
         var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath,
-            SharedDevices.Current);
+            SharedDevices.Current, viewModel.Triggers);
 
         // Recovered work is unsaved by definition, so closing that editor has to ask about it rather
         // than let it go without a word.
@@ -1037,6 +1832,7 @@ public partial class MainWindow : Window
 
         if (existing is null)
         {
+            ApplyEditorTriggerSettings(viewModel, macro);
             viewModel.AddMacro(macro);
             WriteUnsavedProject(viewModel);
             return;
@@ -1054,6 +1850,7 @@ public partial class MainWindow : Window
 
         // The edited macro replaces the one the trigger may be running.
         _triggers?.Stop(existing);
+        ApplyEditorTriggerSettings(viewModel, macro);
         viewModel.ReplaceMacro(existing, macro);
         RefreshRunning(viewModel);
 
@@ -1069,7 +1866,35 @@ public partial class MainWindow : Window
     /// </summary>
     private static bool Same(MacroItem one, MacroItem other)
         => string.Equals(one.ToJson().ToJsonString(), other.ToJson().ToJsonString(),
-            StringComparison.Ordinal);
+            StringComparison.Ordinal)
+           && string.Equals(TriggerJson(one), TriggerJson(other), StringComparison.Ordinal)
+           && string.Equals(EditorSettingsJson(one), EditorSettingsJson(other), StringComparison.Ordinal);
+
+    private static string TriggerJson(MacroItem macro)
+    {
+        var entries = new JsonArray();
+        foreach (var entry in macro.Triggers)
+        {
+            entries.Add(entry.ToJson());
+        }
+
+        return entries.ToJsonString();
+    }
+
+    private static string EditorSettingsJson(MacroItem macro)
+        => new JsonObject
+        {
+            ["layouts"] = new JsonArray(
+                [.. macro.InterfaceLayouts.Select(layout => layout.ToJson())]),
+        }.ToJsonString();
+
+    private static void ApplyEditorTriggerSettings(MainViewModel viewModel, MacroItem macro)
+    {
+        foreach (var layout in macro.InterfaceLayouts)
+        {
+            viewModel.Triggers.StoreInterfaceHotkey(layout.Window, layout.ToggleHotkey);
+        }
+    }
 
     private void OnEditMacroClicked(object? sender, RoutedEventArgs e)
     {
@@ -1159,5 +1984,25 @@ public partial class MainWindow : Window
         {
             BeginMoveDrag(e);
         }
+    }
+
+    private static NativePoint? GetCursorPosition()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        return GetCursorPos(out var point) ? point : null;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
     }
 }

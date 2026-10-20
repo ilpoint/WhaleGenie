@@ -13,7 +13,30 @@ namespace WhaleGenie.Models;
 public partial class MacroItem : ObservableObject, ILanguageAware
 {
     /// <summary>Re-reads the words this macro is shown with, without rebuilding the card.</summary>
-    public void RefreshLanguage() => OnPropertyChanged(string.Empty);
+    public void RefreshLanguage()
+    {
+        RefreshTriggerDisplay();
+        OnPropertyChanged(string.Empty);
+    }
+
+    /// <summary>
+    /// Trigger entries attached to this macro while the project, editor or recovery snapshot is
+    /// being read. The package's trigger collection remains the project-wide source of truth.
+    /// </summary>
+    public List<TriggerEntry> Triggers { get; } = [];
+
+    /// <summary>Interface layouts held with an editor draft; positions are merged at the window.</summary>
+    public List<InterfaceLayout> InterfaceLayouts { get; } = [];
+
+    public void RefreshTriggers()
+    {
+        RefreshTriggerDisplay();
+        OnPropertyChanged(nameof(TriggerSummaries));
+    }
+
+    public string TriggerSummaries => Triggers.Count == 0
+        ? Strings.Get("Trigger.Unset")
+        : string.Join(" · ", Triggers.Select(entry => entry.Summary));
 
     /// <summary>Whether the macro is armed; the macro list shows this as a coloured dot.</summary>
     [ObservableProperty]
@@ -46,16 +69,26 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         _ => Strings.Get("Trigger.Keys"),
     };
 
-    /// <summary>How a key trigger loops, or empty when a clock does the starting.</summary>
-    public string Action => TriggerMode == MacroTrigger.Timer
-        ? string.Empty
-        : LoopMode switch
+    /// <summary>Loop wording for key/colour entries; one-shot entries contribute no action text.</summary>
+    public string Action
+    {
+        get
         {
-            MacroLoop.Hold => Strings.Get("Loop.Hold"),
-            MacroLoop.Press => Strings.Get("Loop.Press"),
-            MacroLoop.Release => Strings.Get("Loop.Release"),
-            _ => Strings.Get("Loop.Toggle"),
-        };
+            IEnumerable<MacroLoop> loops = Triggers.Count > 0
+                ? Triggers.Where(entry => entry.Kind is TriggerKind.Key or TriggerKind.Color)
+                    .Select(entry => entry.LoopMode)
+                : TriggerMode == MacroTrigger.Timer
+                    ? []
+                    : [LoopMode];
+            return string.Join(" · ", loops.Distinct().Select(loop => loop switch
+            {
+                MacroLoop.Hold => Strings.Get("Loop.Hold"),
+                MacroLoop.Press => Strings.Get("Loop.Press"),
+                MacroLoop.Release => Strings.Get("Loop.Release"),
+                _ => Strings.Get("Loop.Toggle"),
+            }));
+        }
+    }
 
     /// <summary>Key bound to the macro, or empty when no key has been selected.</summary>
     [ObservableProperty]
@@ -316,7 +349,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     }
 
     /// <summary>Serialises the macro into the JSON document the runtime consumes.</summary>
-    public JsonObject ToJson()
+    public JsonObject ToJson(bool includeTriggers = false)
     {
         var steps = new JsonArray();
         foreach (var step in Steps)
@@ -324,7 +357,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             steps.Add(step.ToJson());
         }
 
-        return new JsonObject
+        var node = new JsonObject
         {
             ["name"] = Name,
             ["triggerMode"] = TriggerMode.ToString(),
@@ -379,6 +412,21 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             ["returns"] = ResultsJson(),
             ["steps"] = steps,
         };
+
+        if (includeTriggers)
+        {
+            var triggers = new JsonArray();
+            foreach (var trigger in Triggers)
+            {
+                triggers.Add(trigger.ToJson());
+            }
+
+            node["triggers"] = triggers;
+            node["interfaceLayouts"] = new JsonArray(
+                [.. InterfaceLayouts.Select(layout => layout.ToJson())]);
+        }
+
+        return node;
     }
 
     /// <summary>
@@ -508,6 +556,24 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 {
                     macro.Steps.Add(MacroStep.FromJson(child));
                 }
+            }
+        }
+
+        if (node["triggers"] is JsonArray triggers)
+        {
+            foreach (var trigger in triggers.OfType<JsonObject>())
+            {
+                var entry = TriggerEntry.FromJson(trigger);
+                entry.MacroName = macro.Name;
+                macro.Triggers.Add(entry);
+            }
+        }
+
+        if (node["interfaceLayouts"] is JsonArray layouts)
+        {
+            foreach (var layout in layouts.OfType<JsonObject>())
+            {
+                macro.InterfaceLayouts.Add(InterfaceLayout.FromJson(layout));
             }
         }
 

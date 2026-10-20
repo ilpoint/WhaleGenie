@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -101,6 +102,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     private bool _captureKeyboardOnly;
     private bool _captureSingleKey;
     private bool _captureContinues;
+    private TriggerEntry? _selectedTrigger;
+    private bool _updatingHotstringEndKeys;
+    private readonly Dictionary<string, InterfaceLayout> _interfaceLayouts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<InterfaceGroupMember>> _interfaceMembers =
+        new(StringComparer.Ordinal);
+    private string _projectMenuLauncher = string.Empty;
 
     /// <summary>How many step-list changes can be undone.</summary>
     private const int HistoryLimit = 60;
@@ -118,7 +125,351 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public MacroEditorViewModel()
     {
+        TriggerEntries.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(TriggerProblemSummary));
+            OnPropertyChanged(nameof(HasTriggerProblem));
+        };
+        var first = new TriggerEntry { Kind = TriggerKind.Key };
+        WatchTriggerEntry(first);
+        TriggerEntries.Add(first);
+        _selectedTrigger = first;
+        LoadTriggerFields(first);
+        RebuildHotstringEndKeys();
         RefreshPaletteState();
+    }
+
+    public ObservableCollection<TriggerEntry> TriggerEntries { get; } = [];
+
+    public ObservableCollection<HotstringEndKeyOption> HotstringEndKeys { get; } = [];
+
+    public ObservableCollection<string> InterfaceGroupMembers { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InterfaceHotkeyButton))]
+    public partial bool IsCapturingInterfaceHotkey { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InterfaceHotkeyButton))]
+    [NotifyPropertyChangedFor(nameof(InterfaceToggleHotkeyDisplay))]
+    public partial string InterfaceToggleHotkey { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string InterfaceHotkeyProblem { get; set; } = string.Empty;
+
+    public string InterfaceHotkeyButton => Strings.Get(IsCapturingInterfaceHotkey
+        ? "Editor.HotstringEndCaptureWaiting"
+        : "Settings.HotkeySet");
+
+    public string InterfaceToggleHotkeyDisplay => InterfaceToggleHotkey.Length > 0
+        ? InterfaceToggleHotkey
+        : Strings.Get("Common.None");
+
+    public void LoadProjectTriggerSettings(ProjectTriggers triggers,
+        IReadOnlyList<MacroItem> macros)
+    {
+        _projectMenuLauncher = triggers.MenuLauncher;
+        _interfaceLayouts.Clear();
+        foreach (var layout in triggers.InterfaceLayouts)
+        {
+            _interfaceLayouts[layout.GroupKey] = layout with { };
+        }
+
+        _interfaceMembers.Clear();
+        foreach (var group in triggers.InterfaceGroups())
+        {
+            _interfaceMembers[group.Key] = InterfaceMemberResolver.Resolve(group, macros);
+        }
+
+        UpdateInterfaceGroupFields();
+    }
+
+    public void LoadDraftProjectSettings(MacroItem macro)
+    {
+        var loading = _loading;
+        _loading = true;
+        try
+        {
+            _interfaceLayouts.Clear();
+            foreach (var layout in macro.InterfaceLayouts)
+            {
+                _interfaceLayouts[layout.GroupKey] = layout with { };
+            }
+        }
+        finally
+        {
+            _loading = loading;
+        }
+        UpdateInterfaceGroupFields();
+    }
+
+    public bool SetInterfaceToggleHotkey(string binding)
+    {
+        var text = binding.Trim();
+        if (text.Length > 0 && !HotkeyBinding.IsSupported(text))
+        {
+            IsCapturingInterfaceHotkey = false;
+            InterfaceHotkeyProblem = Strings.Get("Editor.InterfaceHotkeyUnsupported");
+            return false;
+        }
+
+        IsCapturingInterfaceHotkey = false;
+        InterfaceHotkeyProblem = string.Empty;
+        InterfaceToggleHotkey = text;
+        RememberInterfaceHotkey();
+        return true;
+    }
+
+    public void ClearInterfaceToggleHotkey()
+    {
+        IsCapturingInterfaceHotkey = false;
+        InterfaceHotkeyProblem = string.Empty;
+        InterfaceToggleHotkey = string.Empty;
+        RememberInterfaceHotkey();
+    }
+
+    [RelayCommand]
+    private void ClearInterfaceHotkey()
+    {
+        ClearInterfaceToggleHotkey();
+        MarkDirty();
+    }
+
+    private void RememberInterfaceHotkey()
+    {
+        if (!WindowTarget.HasTarget)
+        {
+            return;
+        }
+
+        var key = ProjectTriggers.GroupKey(WindowTarget);
+        var current = _interfaceLayouts.TryGetValue(key, out var layout)
+            ? layout
+            : new InterfaceLayout(WindowTarget, 16, 64);
+        _interfaceLayouts[key] = current with { ToggleHotkey = InterfaceToggleHotkey.Trim() };
+    }
+
+    private void UpdateInterfaceGroupFields()
+    {
+        InterfaceGroupMembers.Clear();
+        var previousLoading = _loading;
+        _loading = true;
+        try
+        {
+            if (!WindowTarget.HasTarget || SelectedTrigger?.Kind != TriggerKind.Interface)
+            {
+                InterfaceToggleHotkey = string.Empty;
+                return;
+            }
+
+            var key = ProjectTriggers.GroupKey(WindowTarget);
+            InterfaceToggleHotkey = _interfaceLayouts.TryGetValue(key, out var layout)
+                ? layout.ToggleHotkey
+                : string.Empty;
+            if (_interfaceMembers.TryGetValue(key, out var members))
+            {
+                foreach (var member in members)
+                {
+                    InterfaceGroupMembers.Add(member.Display);
+                }
+            }
+
+            if (Name.Length > 0
+                && !InterfaceGroupMembers.Contains(Name, StringComparer.OrdinalIgnoreCase))
+            {
+                InterfaceGroupMembers.Add(Name);
+            }
+        }
+        finally
+        {
+            _loading = previousLoading;
+        }
+    }
+
+    public TriggerEntry? SelectedTrigger
+    {
+        get => _selectedTrigger;
+        set
+        {
+            if (ReferenceEquals(_selectedTrigger, value))
+            {
+                return;
+            }
+
+            CommitTriggerFields();
+            _selectedTrigger = value;
+            LoadTriggerFields(value);
+            UpdateInterfaceGroupFields();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasSelectedTrigger));
+        }
+    }
+
+    public bool HasSelectedTrigger => SelectedTrigger is not null;
+
+    public string TriggerProblemSummary
+    {
+        get
+        {
+            var problems = new List<string>();
+            foreach (var entry in TriggerEntries.Where(entry => entry.Kind == TriggerKind.Hotstring))
+            {
+                if (entry.Abbreviation.Length == 0)
+                {
+                    problems.Add(Strings.Get("Editor.Problem.EmptyHotstring"));
+                }
+                else if (entry.Abbreviation.Length > HotstringRecognizer.MaximumAbbreviationLength)
+                {
+                    problems.Add(Strings.Format("Editor.Problem.LongHotstring",
+                        HotstringRecognizer.MaximumAbbreviationLength));
+                }
+
+                if (!HotstringCharacters.IsAllowed(entry.Abbreviation))
+                {
+                    problems.Add(Strings.Get("Editor.Problem.HotstringCharacters"));
+                }
+
+                if (entry.RequireEndChar
+                    && HotstringCharacters.ParseEndChars(entry.HotstringEndChars).Count == 0)
+                {
+                    problems.Add(Strings.Get("Editor.Problem.EmptyHotstringEndChars"));
+                }
+
+                if (HotstringCharacters.ParseEndChars(entry.HotstringEndChars)
+                    .Any(value => value.Length != 1 || !HotstringCharacters.IsAllowed(value[0])))
+                {
+                    problems.Add(Strings.Get("Editor.Problem.HotstringEndCharacters"));
+                }
+            }
+
+            var bindings = TriggerEntries
+                .Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Key
+                    && entry.BindKey.Trim().Length > 0)
+                .Select(entry => entry.BindKey.Trim())
+                .Concat(InterfaceHotkeysForChecks())
+                .Append(_projectMenuLauncher)
+                .Append(LocalSettings.LoadSystemHotkey())
+                .Where(binding => binding.Length > 0)
+                .GroupBy(binding => binding, StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key);
+            foreach (var binding in bindings.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                problems.Add(Strings.Format("Editor.Problem.TriggerConflict", binding));
+            }
+
+            return string.Join("\n", problems);
+        }
+    }
+
+    private IEnumerable<string> InterfaceHotkeysForChecks()
+    {
+        var currentKey = WindowTarget.HasTarget
+            ? ProjectTriggers.GroupKey(WindowTarget)
+            : string.Empty;
+        return _interfaceLayouts.Values
+            .Where(layout => layout.ToggleHotkey.Trim().Length > 0
+                && (layout.GroupKey == currentKey
+                    || _interfaceMembers.ContainsKey(layout.GroupKey)))
+            .Select(layout => layout.ToggleHotkey.Trim());
+    }
+
+    public bool HasTriggerProblem => TriggerProblemSummary.Length > 0;
+
+    private static readonly TriggerKind[] EditableTriggerKinds =
+    [
+        TriggerKind.Key,
+        TriggerKind.Color,
+        TriggerKind.Interface,
+        TriggerKind.Hotstring,
+        TriggerKind.Timer,
+        TriggerKind.File,
+        TriggerKind.Process,
+        TriggerKind.Window,
+        TriggerKind.Idle,
+    ];
+
+    public IReadOnlyList<string> TriggerKindOptions =>
+    [
+        .. EditableTriggerKinds.Select(kind => Strings.Get(kind switch
+        {
+            TriggerKind.Key => "Trigger.Keys",
+            TriggerKind.Color => "Trigger.Color",
+            TriggerKind.Interface => "Trigger.Interface",
+            TriggerKind.Hotstring => "Trigger.Hotstring",
+            TriggerKind.Timer => "Trigger.Timer",
+            TriggerKind.File => "Trigger.File",
+            TriggerKind.Process => "Trigger.Process",
+            TriggerKind.Window => "Trigger.Window",
+            _ => "Trigger.Idle",
+        })),
+    ];
+
+    [ObservableProperty]
+    public partial int NewTriggerKindIndex { get; set; }
+
+    [RelayCommand]
+    private void AddTrigger()
+    {
+        CommitTriggerFields();
+        var index = Math.Clamp(NewTriggerKindIndex, 0, TriggerKindOptions.Count - 1);
+        var entry = new TriggerEntry
+        {
+            Kind = EditableTriggerKinds[index],
+            MacroName = Name.Trim(),
+        };
+        WatchTriggerEntry(entry);
+        TriggerEntries.Add(entry);
+        SelectedTrigger = entry;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void SelectTrigger(TriggerEntry? entry)
+    {
+        if (entry is not null)
+        {
+            SelectedTrigger = entry;
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedTrigger()
+    {
+        if (SelectedTrigger is not { } removing)
+        {
+            return;
+        }
+
+        if (removing.Kind == TriggerKind.Menu)
+        {
+            return;
+        }
+
+        var index = TriggerEntries.IndexOf(removing);
+        removing.PropertyChanged -= OnTriggerEntryChanged;
+        TriggerEntries.Remove(removing);
+        _selectedTrigger = TriggerEntries.Count == 0
+            ? null
+            : TriggerEntries[Math.Clamp(index, 0, TriggerEntries.Count - 1)];
+        LoadTriggerFields(_selectedTrigger);
+        OnPropertyChanged(nameof(SelectedTrigger));
+        OnPropertyChanged(nameof(HasSelectedTrigger));
+        MarkDirty();
+    }
+
+    private void WatchTriggerEntry(TriggerEntry entry)
+        => entry.PropertyChanged += OnTriggerEntryChanged;
+
+    private void OnTriggerEntryChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!_loading)
+        {
+            MarkDirty();
+            OnPropertyChanged(nameof(TriggerProblemSummary));
+            OnPropertyChanged(nameof(HasTriggerProblem));
+            OnPropertyChanged(nameof(CanSave));
+        }
     }
 
     /// <summary>Re-reads the labels this editor computes, the palette's tips and the step rows.</summary>
@@ -137,6 +488,9 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         WindowPreview.RefreshLanguage();
     }
+
+    /// <summary>Clears changes made only by controls taking their initial bound values.</summary>
+    internal void AcceptInitialBindings() => IsDirty = false;
 
     /// <summary>Raised when the editor should open the "Add Action" dialog.</summary>
     public event Action? AddStepRequested;
@@ -261,7 +615,18 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool HasBlockingDeclarationProblems => OwnCallable.Problems().Count > 0;
 
     /// <summary>The save button's answer: the macro name and the declarations both have to be usable.</summary>
-    public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems;
+    public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems
+        && !HasBlockingHotstringProblem;
+
+    private bool HasBlockingHotstringProblem => TriggerEntries.Any(entry =>
+        entry.Kind == TriggerKind.Hotstring
+        && (entry.Abbreviation.Length == 0
+            || entry.Abbreviation.Length > HotstringCharacters.MaximumLength
+            || !HotstringCharacters.IsAllowed(entry.Abbreviation)
+            || (entry.RequireEndChar
+                && (HotstringCharacters.ParseEndChars(entry.HotstringEndChars).Count == 0
+                    || HotstringCharacters.ParseEndChars(entry.HotstringEndChars)
+                        .Any(value => value.Length != 1 || !HotstringCharacters.IsAllowed(value[0]))))));
 
     /// <summary>
     /// One line saying how many calls in the project no longer match these declarations. The
@@ -334,27 +699,23 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(TriggerIndex))]
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
     [NotifyPropertyChangedFor(nameof(IsKeyTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsInterfaceTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsHotstringTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsMenuTrigger))]
     [NotifyPropertyChangedFor(nameof(IsTimerTrigger))]
     [NotifyPropertyChangedFor(nameof(IsFileTrigger))]
     [NotifyPropertyChangedFor(nameof(IsProcessTrigger))]
     [NotifyPropertyChangedFor(nameof(IsWindowTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsWindowRuleTrigger))]
     [NotifyPropertyChangedFor(nameof(IsIdleTrigger))]
-    public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
+    public partial TriggerKind TriggerMode { get; set; } = TriggerKind.Key;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LoopIndex))]
     public partial MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
 
     public IReadOnlyList<string> TriggerOptions =>
-    [
-        Strings.Get("Trigger.Keys"),
-        Strings.Get("Trigger.Color"),
-        Strings.Get("Trigger.Timer"),
-        Strings.Get("Trigger.File"),
-        Strings.Get("Trigger.Process"),
-        Strings.Get("Trigger.Window"),
-        Strings.Get("Trigger.Idle"),
-    ];
+        TriggerKindOptions;
 
     public IReadOnlyList<string> LoopOptions =>
     [
@@ -366,36 +727,44 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public int TriggerIndex
     {
-        get => (int)TriggerMode;
+        get => Array.IndexOf(EditableTriggerKinds, TriggerMode);
         set
         {
-            if (value >= 0 && value < TriggerOptions.Count)
+            if (value >= 0 && value < EditableTriggerKinds.Length)
             {
-                TriggerMode = (MacroTrigger)value;
+                TriggerMode = EditableTriggerKinds[value];
             }
         }
     }
 
     /// <summary>True when the macro is started by a key or a mouse button.</summary>
-    public bool IsKeyTrigger => TriggerMode == MacroTrigger.KeystrokesButtonInputs;
+    public bool IsKeyTrigger => TriggerMode == TriggerKind.Key;
 
     /// <summary>True when the macro is started by a colour / pixel change rather than by input.</summary>
-    public bool IsColorTrigger => TriggerMode == MacroTrigger.ColorPixelChanges;
+    public bool IsColorTrigger => TriggerMode == TriggerKind.Color;
+
+    public bool IsInterfaceTrigger => TriggerMode == TriggerKind.Interface;
+
+    public bool IsHotstringTrigger => TriggerMode == TriggerKind.Hotstring;
+
+    public bool IsMenuTrigger => TriggerMode == TriggerKind.Menu;
 
     /// <summary>True when the macro is started by the clock.</summary>
-    public bool IsTimerTrigger => TriggerMode == MacroTrigger.Timer;
+    public bool IsTimerTrigger => TriggerMode == TriggerKind.Timer;
 
     /// <summary>True when the macro is started by a file or a folder changing.</summary>
-    public bool IsFileTrigger => TriggerMode == MacroTrigger.FileChanges;
+    public bool IsFileTrigger => TriggerMode == TriggerKind.File;
 
     /// <summary>True when the macro is started by a program starting or finishing.</summary>
-    public bool IsProcessTrigger => TriggerMode == MacroTrigger.Process;
+    public bool IsProcessTrigger => TriggerMode == TriggerKind.Process;
 
     /// <summary>True when the macro is started by a window appearing or going away.</summary>
-    public bool IsWindowTrigger => TriggerMode == MacroTrigger.Window;
+    public bool IsWindowTrigger => TriggerMode == TriggerKind.Window;
+
+    public bool IsWindowRuleTrigger => TriggerMode is TriggerKind.Window or TriggerKind.Interface;
 
     /// <summary>True when the macro is started by the machine going untouched.</summary>
-    public bool IsIdleTrigger => TriggerMode == MacroTrigger.Idle;
+    public bool IsIdleTrigger => TriggerMode == TriggerKind.Idle;
 
     /// <summary>How long the machine has to be left alone before an idle trigger runs the macro.</summary>
     [ObservableProperty]
@@ -442,6 +811,193 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(WindowRuleNow));
         OnPropertyChanged(nameof(WindowTargetSummary));
     }
+
+    partial void OnWindowTargetChanged(WindowRuleModel value)
+        => UpdateInterfaceGroupFields();
+
+    partial void OnInterfaceToggleHotkeyChanged(string value)
+    {
+        if (!_loading)
+        {
+            RememberInterfaceHotkey();
+            MarkDirty();
+        }
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    public partial string HotstringText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotstringEndKeySummary))]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    public partial string HotstringEndChars { get; set; } = HotstringCharacters.DefaultEndChars;
+
+    public string HotstringEndKeySummary
+        => HotstringCharacters.DescribeEndChars(HotstringEndChars);
+
+    public int HotstringMaximumLength => HotstringCharacters.MaximumLength;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotstringEndCaptureButton))]
+    public partial bool IsCapturingHotstringEnd { get; set; }
+
+    [ObservableProperty]
+    public partial string HotstringEndCaptureStatus { get; set; } = string.Empty;
+
+    public string HotstringEndCaptureButton => Strings.Get(IsCapturingHotstringEnd
+        ? "Editor.HotstringEndCaptureWaiting"
+        : "Editor.HotstringEndCapture");
+
+    partial void OnHotstringEndCharsChanged(string value)
+    {
+        if (!_updatingHotstringEndKeys)
+        {
+            RebuildHotstringEndKeys();
+        }
+    }
+
+    [RelayCommand]
+    private void ResetHotstringEndChars()
+    {
+        HotstringEndChars = HotstringCharacters.DefaultEndChars;
+        MarkDirty();
+    }
+
+    public void BeginHotstringEndCapture()
+    {
+        StopCapturingKey();
+        HotstringEndCaptureStatus = string.Empty;
+        IsCapturingHotstringEnd = true;
+    }
+
+    public void StopHotstringEndCapture()
+    {
+        IsCapturingHotstringEnd = false;
+        HotstringEndCaptureStatus = string.Empty;
+    }
+
+    public void CaptureHotstringEnd(string? character)
+    {
+        if (!IsCapturingHotstringEnd)
+        {
+            return;
+        }
+
+        if (character is not { Length: 1 } || !HotstringCharacters.IsAllowed(character[0]))
+        {
+            HotstringEndCaptureStatus = Strings.Get("Editor.HotstringEndCaptureInvalid");
+            return;
+        }
+
+        var existing = HotstringEndKeys.FirstOrDefault(option => option.Value == character);
+        if (existing is not null)
+        {
+            existing.IsChecked = true;
+        }
+        else
+        {
+            AddHotstringEndKey(character);
+        }
+
+        IsCapturingHotstringEnd = false;
+        HotstringEndCaptureStatus = string.Empty;
+    }
+
+    private void AddHotstringEndKey(string value)
+    {
+        var values = HotstringCharacters.ParseEndChars(HotstringEndChars)
+            .Append(value)
+            .Distinct(StringComparer.Ordinal);
+        _updatingHotstringEndKeys = true;
+        try
+        {
+            HotstringEndChars = HotstringCharacters.WriteEndChars(values);
+        }
+        finally
+        {
+            _updatingHotstringEndKeys = false;
+        }
+        RebuildHotstringEndKeys();
+    }
+
+    private void RebuildHotstringEndKeys()
+    {
+        foreach (var option in HotstringEndKeys)
+        {
+            option.PropertyChanged -= OnHotstringEndKeyChanged;
+        }
+        HotstringEndKeys.Clear();
+
+        var selected = HotstringCharacters.ParseEndChars(HotstringEndChars);
+        foreach (var (name, value) in HotstringCharacters.EndKeyChoices)
+        {
+            AddHotstringEndOption(new HotstringEndKeyOption(value, name, isCustom: false)
+            {
+                IsChecked = selected.Contains(value),
+            });
+        }
+
+        var standard = HotstringCharacters.EndKeyChoices
+            .Select(choice => choice.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var value in selected.Where(value => !standard.Contains(value))
+                     .Order(StringComparer.Ordinal))
+        {
+            AddHotstringEndOption(new HotstringEndKeyOption(
+                value, HotstringCharacters.Display(value), isCustom: true)
+            {
+                IsChecked = true,
+            });
+        }
+    }
+
+    private void AddHotstringEndOption(HotstringEndKeyOption option)
+    {
+        option.PropertyChanged += OnHotstringEndKeyChanged;
+        HotstringEndKeys.Add(option);
+    }
+
+    private void OnHotstringEndKeyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_updatingHotstringEndKeys || e.PropertyName != nameof(HotstringEndKeyOption.IsChecked))
+        {
+            return;
+        }
+
+        _updatingHotstringEndKeys = true;
+        try
+        {
+            HotstringEndChars = HotstringCharacters.WriteEndChars(
+                HotstringEndKeys.Where(option => option.IsChecked).Select(option => option.Value));
+        }
+        finally
+        {
+            _updatingHotstringEndKeys = false;
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool HotstringCaseSensitive { get; set; }
+
+    [ObservableProperty]
+    public partial bool HotstringInsideWord { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    public partial bool HotstringRequireEnd { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool HotstringEraseTyped { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool HotstringKeepEnd { get; set; } = true;
 
     public IReadOnlyList<string> WindowChangeOptions =>
     [
@@ -753,6 +1309,111 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public string SetKeyLabel => IsCapturingKey ? Strings.Get("Editor.PressKey") : Strings.Get("Editor.SetKey");
 
+    partial void OnTriggerModeChanged(TriggerKind value)
+    {
+        if (!_loading && SelectedTrigger is { } selected)
+        {
+            selected.Kind = value;
+        }
+
+        OnPropertyChanged(nameof(IsKeyTrigger));
+        OnPropertyChanged(nameof(IsColorTrigger));
+        OnPropertyChanged(nameof(IsInterfaceTrigger));
+        OnPropertyChanged(nameof(IsHotstringTrigger));
+        OnPropertyChanged(nameof(IsMenuTrigger));
+        OnPropertyChanged(nameof(IsTimerTrigger));
+        OnPropertyChanged(nameof(IsFileTrigger));
+        OnPropertyChanged(nameof(IsProcessTrigger));
+        OnPropertyChanged(nameof(IsWindowTrigger));
+        OnPropertyChanged(nameof(IsWindowRuleTrigger));
+        OnPropertyChanged(nameof(IsIdleTrigger));
+        UpdateInterfaceGroupFields();
+    }
+
+    /// <summary>Copies the fields of the form into the selected trigger entry.</summary>
+    private void CommitTriggerFields()
+    {
+        if (SelectedTrigger is not { } entry)
+        {
+            return;
+        }
+
+        entry.Kind = TriggerMode;
+        entry.MacroName = Name.Trim();
+        entry.BindKey = BindKey.Trim();
+        entry.LoopMode = LoopMode;
+        entry.TriggerOnce = TriggerOnce;
+        entry.ScheduleMode = ScheduleMode;
+        entry.ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5);
+        entry.ScheduleUnit = ScheduleUnit;
+        entry.ScheduleTime = ScheduleTime.Trim();
+        entry.WatchPath = WatchPath.Trim();
+        entry.WatchChange = WatchChange;
+        entry.WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim();
+        entry.WatchSubfolders = WatchSubfolders;
+        entry.ProcessName = ProcessName.Trim();
+        entry.ProcessChange = ProcessChange;
+        entry.WindowTarget = WindowTarget;
+        entry.WindowChange = WindowChange;
+        entry.IdleSeconds = Math.Max(1, IdleSeconds ?? 60);
+        entry.ColorMatch = ColorMatch;
+        entry.ColorPositionX = ParseCoordinate(ColorPositionX);
+        entry.ColorPositionY = ParseCoordinate(ColorPositionY);
+        entry.UseCursorPosition = UseCursorPosition;
+        entry.HexColor = HexColor;
+        entry.ColorTolerance = ParseCoordinate(ColorTolerance);
+        entry.Abbreviation = HotstringText;
+        entry.HotstringEndChars = HotstringEndChars;
+        entry.CaseSensitive = HotstringCaseSensitive;
+        entry.MatchInsideWord = HotstringInsideWord;
+        entry.RequireEndChar = HotstringRequireEnd;
+        entry.EraseTyped = HotstringEraseTyped;
+        entry.KeepEndChar = HotstringKeepEnd;
+    }
+
+    /// <summary>Brings the trigger form onto the entry selected in the list.</summary>
+    private void LoadTriggerFields(TriggerEntry? entry)
+    {
+        _loading = true;
+        try
+        {
+            TriggerMode = entry?.Kind ?? TriggerKind.Key;
+            BindKey = entry?.BindKey ?? string.Empty;
+            LoopMode = entry?.LoopMode ?? MacroLoop.Toggle;
+            TriggerOnce = entry?.TriggerOnce ?? false;
+            ScheduleMode = entry?.ScheduleMode ?? ScheduleMode.Interval;
+            ScheduleInterval = entry?.ScheduleInterval ?? 5;
+            ScheduleUnit = entry?.ScheduleUnit ?? ScheduleUnit.Seconds;
+            ScheduleTime = entry?.ScheduleTime ?? "08:00";
+            WatchPath = entry?.WatchPath ?? string.Empty;
+            WatchChange = entry?.WatchChange ?? FileChangeKind.Any;
+            WatchFilter = entry?.WatchFilter ?? "*";
+            WatchSubfolders = entry?.WatchSubfolders ?? false;
+            ProcessName = entry?.ProcessName ?? string.Empty;
+            ProcessChange = entry?.ProcessChange ?? ProcessChangeKind.Started;
+            WindowTarget = entry?.WindowTarget ?? WindowRule.Empty;
+            WindowChange = entry?.WindowChange ?? WindowChangeKind.Appeared;
+            IdleSeconds = entry?.IdleSeconds ?? 60;
+            ColorMatch = entry?.ColorMatch ?? ColorMatchCondition.ColorMatches;
+            ColorPositionX = (entry?.ColorPositionX ?? 0).ToString(CultureInfo.InvariantCulture);
+            ColorPositionY = (entry?.ColorPositionY ?? 0).ToString(CultureInfo.InvariantCulture);
+            UseCursorPosition = entry?.UseCursorPosition ?? false;
+            HexColor = entry?.HexColor ?? "#000000";
+            ColorTolerance = (entry?.ColorTolerance ?? 5).ToString(CultureInfo.InvariantCulture);
+            HotstringText = entry?.Abbreviation ?? string.Empty;
+            HotstringEndChars = entry?.HotstringEndChars ?? HotstringCharacters.DefaultEndChars;
+            HotstringCaseSensitive = entry?.CaseSensitive ?? false;
+            HotstringInsideWord = entry?.MatchInsideWord ?? false;
+            HotstringRequireEnd = entry?.RequireEndChar ?? true;
+            HotstringEraseTyped = entry?.EraseTyped ?? true;
+            HotstringKeepEnd = entry?.KeepEndChar ?? true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
     public string RecordLabel => IsRecording ? Strings.Get("Editor.StopRecording") : Strings.Get("Editor.Record");
 
     /// <summary>Hint under the record button, so the stop shortcuts stay discoverable.</summary>
@@ -774,7 +1435,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// instead of the trigger, and only the keyboard is listened to: a key field cannot hold a
     /// mouse button. A combination takes the modifiers with the key, the way a trigger does.
     /// </summary>
-    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false)
+    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false,
+        bool keyboardOnly = true)
     {
         if (IsRecording)
         {
@@ -782,7 +1444,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         _keyCaptureTarget = deliver;
-        _captureKeyboardOnly = true;
+        _captureKeyboardOnly = keyboardOnly;
         _captureSingleKey = !combination;
         _captureContinues = continuous;
         IsCapturingKey = true;
@@ -823,6 +1485,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void StopCapturingKey()
     {
         IsCapturingKey = false;
+        IsCapturingInterfaceHotkey = false;
         _keyCaptureTarget = null;
         _captureKeyboardOnly = false;
         _captureSingleKey = false;
@@ -1524,31 +2187,29 @@ public partial class MacroEditorViewModel : ViewModelBase
         try
         {
             Name = macro.Name;
-            TriggerMode = macro.TriggerMode;
-            LoopMode = macro.LoopMode;
-            BindKey = macro.BindKey;
-            ScheduleMode = macro.ScheduleMode;
-            ScheduleInterval = macro.ScheduleInterval;
-            ScheduleUnit = macro.ScheduleUnit;
-            ScheduleTime = macro.ScheduleTime;
-            WatchPath = macro.WatchPath;
-            WatchChange = macro.WatchChange;
-            WatchFilter = macro.WatchFilter;
-            WatchSubfolders = macro.WatchSubfolders;
-            ProcessName = macro.ProcessName;
-            ProcessChange = macro.ProcessChange;
-            WindowTarget = macro.WindowTarget;
-            WindowChange = macro.WindowChange;
-            IdleSeconds = macro.IdleSeconds;
+            TriggerEntries.Clear();
+            if (macro.Triggers.Count == 0)
+            {
+                var initial = TriggerEntry.FromMacro(macro);
+                WatchTriggerEntry(initial);
+                TriggerEntries.Add(initial);
+            }
+            else
+            {
+                foreach (var entry in macro.Triggers)
+                {
+                    var copy = entry.Copy();
+                    WatchTriggerEntry(copy);
+                    TriggerEntries.Add(copy);
+                }
+            }
+
+            _selectedTrigger = TriggerEntries[0];
+            OnPropertyChanged(nameof(SelectedTrigger));
+            OnPropertyChanged(nameof(HasSelectedTrigger));
+            LoadTriggerFields(_selectedTrigger);
             PositionCapture = macro.PositionCapture;
-            ColorMatch = macro.ColorMatch;
-            ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
-            ColorPositionY = macro.ColorPositionY.ToString(CultureInfo.InvariantCulture);
-            UseCursorPosition = macro.UseCursorPosition;
-            TriggerOnce = macro.TriggerOnce;
             ExclusiveInput = macro.ExclusiveInput;
-            HexColor = macro.HexColor;
-            ColorTolerance = macro.ColorTolerance.ToString(CultureInfo.InvariantCulture);
             RecordMouseMovement = macro.RecordMouseMovement;
             RecordMouseButtons = macro.RecordMouseButtons;
             RecordKeyboardKeys = macro.RecordKeyboardKeys;
@@ -2291,6 +2952,15 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
                 or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
                 or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
+                or nameof(SelectedTrigger) or nameof(HasSelectedTrigger)
+                or nameof(NewTriggerKindIndex) or nameof(TriggerEntries)
+                or nameof(TriggerKindOptions)
+                or nameof(TriggerProblemSummary) or nameof(HasTriggerProblem)
+                or nameof(HotstringEndKeys) or nameof(IsCapturingHotstringEnd)
+                or nameof(HotstringEndCaptureStatus) or nameof(HotstringEndCaptureButton)
+                or nameof(IsCapturingInterfaceHotkey) or nameof(InterfaceToggleHotkey)
+                or nameof(InterfaceHotkeyProblem)
+                or nameof(InterfaceHotkeyButton) or nameof(InterfaceToggleHotkeyDisplay)
                 or nameof(HasBlockingDeclarationProblems) or nameof(CanSave)
                 or nameof(CallImpactSummary) or nameof(HasCallImpact)
                 or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)
@@ -2305,7 +2975,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         // macro does something it does not.
         if (e.PropertyName is nameof(WindowTarget) or nameof(TriggerMode))
         {
-            var asking = IsWindowTrigger;
+            var asking = IsWindowRuleTrigger;
             WindowPreview.Show(asking);
             if (asking)
             {
@@ -2334,6 +3004,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     partial void OnNameChanged(string value)
     {
+        UpdateInterfaceGroupFields();
         if (!_loading)
         {
             NotifyStepsChanged();
@@ -2346,34 +3017,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     internal MacroItem BuildMacro()
     {
+        CommitTriggerFields();
         var macro = new MacroItem
         {
             Name = Name.Trim(),
-            TriggerMode = TriggerMode,
-            LoopMode = LoopMode,
-            BindKey = BindKey,
-            ScheduleMode = ScheduleMode,
-            ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5),
-            ScheduleUnit = ScheduleUnit,
-            ScheduleTime = ScheduleTime.Trim(),
-            WatchPath = WatchPath.Trim(),
-            WatchChange = WatchChange,
-            WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim(),
-            WatchSubfolders = WatchSubfolders,
-            ProcessName = ProcessName.Trim(),
-            ProcessChange = ProcessChange,
-            WindowTarget = WindowTarget,
-            WindowChange = WindowChange,
-            IdleSeconds = Math.Max(1, IdleSeconds ?? 60),
             PositionCapture = PositionCapture,
-            ColorMatch = ColorMatch,
-            ColorPositionX = ParseCoordinate(ColorPositionX),
-            ColorPositionY = ParseCoordinate(ColorPositionY),
-            UseCursorPosition = UseCursorPosition,
-            TriggerOnce = TriggerOnce,
             ExclusiveInput = ExclusiveInput,
-            HexColor = HexColor,
-            ColorTolerance = ParseCoordinate(ColorTolerance),
             RecordMouseMovement = RecordMouseMovement,
             RecordMouseButtons = RecordMouseButtons,
             RecordKeyboardKeys = RecordKeyboardKeys,
@@ -2383,6 +3032,52 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordIgnoreInjected = RecordIgnoreInjected,
             DelayScale = DelayScale,
         };
+        RememberInterfaceHotkey();
+        macro.InterfaceLayouts.AddRange(_interfaceLayouts.Values.Select(layout => layout with { }));
+
+        if (SelectedTrigger is { } current)
+        {
+            // Keep the legacy projections in step for the macro card and old entry guards while
+            // the project-wide trigger collection is becoming the only saved source.
+            macro.TriggerMode = current.Kind switch
+            {
+                TriggerKind.Color => MacroTrigger.ColorPixelChanges,
+                TriggerKind.Timer => MacroTrigger.Timer,
+                TriggerKind.File => MacroTrigger.FileChanges,
+                TriggerKind.Process => MacroTrigger.Process,
+                TriggerKind.Window or TriggerKind.Interface => MacroTrigger.Window,
+                TriggerKind.Idle => MacroTrigger.Idle,
+                _ => MacroTrigger.KeystrokesButtonInputs,
+            };
+            macro.LoopMode = current.LoopMode;
+            macro.BindKey = current.BindKey;
+            macro.ScheduleMode = current.ScheduleMode;
+            macro.ScheduleInterval = current.ScheduleInterval;
+            macro.ScheduleUnit = current.ScheduleUnit;
+            macro.ScheduleTime = current.ScheduleTime;
+            macro.WatchPath = current.WatchPath;
+            macro.WatchChange = current.WatchChange;
+            macro.WatchFilter = current.WatchFilter;
+            macro.WatchSubfolders = current.WatchSubfolders;
+            macro.ProcessName = current.ProcessName;
+            macro.ProcessChange = current.ProcessChange;
+            macro.WindowTarget = current.WindowTarget;
+            macro.WindowChange = current.WindowChange;
+            macro.IdleSeconds = current.IdleSeconds;
+            macro.ColorMatch = current.ColorMatch;
+            macro.ColorPositionX = current.ColorPositionX;
+            macro.ColorPositionY = current.ColorPositionY;
+            macro.UseCursorPosition = current.UseCursorPosition;
+            macro.TriggerOnce = current.TriggerOnce;
+            macro.HexColor = current.HexColor;
+            macro.ColorTolerance = current.ColorTolerance;
+        }
+
+        foreach (var entry in TriggerEntries)
+        {
+            entry.MacroName = macro.Name;
+            macro.Triggers.Add(entry.Copy());
+        }
 
         foreach (var step in Steps)
         {

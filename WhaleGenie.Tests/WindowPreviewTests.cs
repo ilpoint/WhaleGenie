@@ -710,7 +710,7 @@ public class WindowPreviewTests
 
             // A trigger that is not a window trigger has no rule to read, and the frames go with the
             // list rather than standing over a rule nothing reads.
-            viewModel.TriggerMode = MacroTrigger.Timer;
+            viewModel.TriggerMode = TriggerKind.Timer;
             Dispatcher.UIThread.RunJobs();
 
             Assert.Empty(viewModel.WindowPreview.Places);

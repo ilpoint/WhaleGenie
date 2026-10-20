@@ -1,5 +1,6 @@
 using System.IO;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
@@ -97,6 +98,8 @@ public class DriverInputTests
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
             Assert.False(string.IsNullOrWhiteSpace(viewModel.DriverStatus));
+            viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.Devices);
+            Dispatcher.UIThread.RunJobs();
 
             var install = window.FindControl<Button>("DriverInstallButton");
             Assert.True(install is not null && install.IsVisible);

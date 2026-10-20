@@ -276,7 +276,23 @@ internal sealed class WindowsCaptureSession : IPictureSource
     /// </summary>
     public void Dispose()
     {
-        _session.Dispose();
-        _pool.Dispose();
+        try
+        {
+            _session.Dispose();
+        }
+        catch (COMException)
+        {
+            // The desktop lifetime can dispose this after its owning apartment has gone. There is
+            // no useful retry from another thread; dropping our references is the safe last act.
+        }
+
+        try
+        {
+            _pool.Dispose();
+        }
+        catch (COMException)
+        {
+            // Same last-act rule as the session above.
+        }
     }
 }

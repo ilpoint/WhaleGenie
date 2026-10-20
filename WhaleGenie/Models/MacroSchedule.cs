@@ -25,9 +25,15 @@ public static class MacroSchedule
 
     /// <summary>The wait between the runs of an interval schedule, clamped to something sane.</summary>
     public static TimeSpan Interval(MacroItem macro)
+        => Interval(macro.ScheduleInterval, macro.ScheduleUnit);
+
+    public static TimeSpan Interval(TriggerEntry entry)
+        => Interval(entry.ScheduleInterval, entry.ScheduleUnit);
+
+    private static TimeSpan Interval(int interval, ScheduleUnit unit)
     {
-        var value = Math.Max(1, macro.ScheduleInterval);
-        var gap = macro.ScheduleUnit switch
+        var value = Math.Max(1, interval);
+        var gap = unit switch
         {
             ScheduleUnit.Hours => TimeSpan.FromHours(value),
             ScheduleUnit.Minutes => TimeSpan.FromMinutes(value),
@@ -81,10 +87,19 @@ public static class MacroSchedule
     /// time that has already gone today comes round tomorrow.
     /// </summary>
     public static bool TryNextDue(MacroItem macro, DateTime from, out DateTime due)
+        => TryNextDue(macro.ScheduleMode, macro.ScheduleTime, macro.ScheduleInterval,
+            macro.ScheduleUnit, from, out due);
+
+    public static bool TryNextDue(TriggerEntry entry, DateTime from, out DateTime due)
+        => TryNextDue(entry.ScheduleMode, entry.ScheduleTime, entry.ScheduleInterval,
+            entry.ScheduleUnit, from, out due);
+
+    private static bool TryNextDue(ScheduleMode mode, string timeText, int interval,
+        ScheduleUnit unit, DateTime from, out DateTime due)
     {
-        if (macro.ScheduleMode == ScheduleMode.Daily)
+        if (mode == ScheduleMode.Daily)
         {
-            if (!TryDaily(macro.ScheduleTime, out var time))
+            if (!TryDaily(timeText, out var time))
             {
                 due = default;
                 return false;
@@ -95,28 +110,34 @@ public static class MacroSchedule
             return true;
         }
 
-        due = from + Interval(macro);
+        due = from + Interval(interval, unit);
         return true;
     }
 
     /// <summary>How a person would say this schedule, for the macro card.</summary>
     public static string Describe(MacroItem macro)
+        => Describe(macro.ScheduleMode, macro.ScheduleTime, macro.ScheduleInterval, macro.ScheduleUnit);
+
+    public static string Describe(TriggerEntry entry)
+        => Describe(entry.ScheduleMode, entry.ScheduleTime, entry.ScheduleInterval, entry.ScheduleUnit);
+
+    private static string Describe(ScheduleMode mode, string timeText, int interval, ScheduleUnit unit)
     {
-        if (macro.ScheduleMode == ScheduleMode.Daily)
+        if (mode == ScheduleMode.Daily)
         {
-            return TryDaily(macro.ScheduleTime, out var time)
+            return TryDaily(timeText, out var time)
                 ? Strings.Format("Schedule.DailySummary", Spell(time))
                 : Strings.Get("Schedule.DailyUnset");
         }
 
-        var unit = macro.ScheduleUnit switch
+        var unitName = unit switch
         {
             ScheduleUnit.Hours => Strings.Get("Schedule.Unit.Hours"),
             ScheduleUnit.Minutes => Strings.Get("Schedule.Unit.Minutes"),
             _ => Strings.Get("Schedule.Unit.Seconds"),
         };
 
-        return Strings.Format("Schedule.IntervalSummary", Math.Max(1, macro.ScheduleInterval), unit);
+        return Strings.Format("Schedule.IntervalSummary", Math.Max(1, interval), unitName);
     }
 
     /// <summary>A time of day as <c>08:30</c>, with the seconds only when there are any.</summary>

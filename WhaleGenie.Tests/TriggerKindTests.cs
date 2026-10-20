@@ -17,21 +17,39 @@ public class TriggerKindTests
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();
+            TriggerKind[] offered =
+            [
+                TriggerKind.Key,
+                TriggerKind.Color,
+                TriggerKind.Interface,
+                TriggerKind.Hotstring,
+                TriggerKind.Timer,
+                TriggerKind.File,
+                TriggerKind.Process,
+                TriggerKind.Window,
+                TriggerKind.Idle,
+            ];
 
-            Assert.Equal(Enum.GetValues<MacroTrigger>().Length, editor.TriggerOptions.Count);
+            Assert.Equal(offered.Length, editor.TriggerOptions.Count);
 
-            foreach (var kind in Enum.GetValues<MacroTrigger>())
+            for (var index = 0; index < offered.Length; index++)
             {
-                editor.TriggerIndex = (int)kind;
+                var kind = offered[index];
+                editor.TriggerIndex = index;
 
                 Assert.Equal(kind, editor.TriggerMode);
-                Assert.Equal(kind == MacroTrigger.KeystrokesButtonInputs, editor.IsKeyTrigger);
-                Assert.Equal(kind == MacroTrigger.ColorPixelChanges, editor.IsColorTrigger);
-                Assert.Equal(kind == MacroTrigger.Timer, editor.IsTimerTrigger);
-                Assert.Equal(kind == MacroTrigger.FileChanges, editor.IsFileTrigger);
-                Assert.Equal(kind == MacroTrigger.Process, editor.IsProcessTrigger);
-                Assert.Equal(kind == MacroTrigger.Window, editor.IsWindowTrigger);
-                Assert.Equal(kind == MacroTrigger.Idle, editor.IsIdleTrigger);
+                Assert.Equal(kind == TriggerKind.Key, editor.IsKeyTrigger);
+                Assert.Equal(kind == TriggerKind.Color, editor.IsColorTrigger);
+                Assert.Equal(kind == TriggerKind.Interface, editor.IsInterfaceTrigger);
+                Assert.Equal(kind == TriggerKind.Hotstring, editor.IsHotstringTrigger);
+                Assert.False(editor.IsMenuTrigger);
+                Assert.Equal(kind == TriggerKind.Timer, editor.IsTimerTrigger);
+                Assert.Equal(kind == TriggerKind.File, editor.IsFileTrigger);
+                Assert.Equal(kind == TriggerKind.Process, editor.IsProcessTrigger);
+                Assert.Equal(kind == TriggerKind.Window, editor.IsWindowTrigger);
+                Assert.Equal(kind is TriggerKind.Window or TriggerKind.Interface,
+                    editor.IsWindowRuleTrigger);
+                Assert.Equal(kind == TriggerKind.Idle, editor.IsIdleTrigger);
             }
         });
     }

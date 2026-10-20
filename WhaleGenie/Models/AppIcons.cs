@@ -126,6 +126,24 @@ public static class AppIcons
 
     public static Geometry Plus { get; } = Geometry.Parse("M4 12h16m-8 8V4");
 
+    /// <summary>A four-way move handle, drawn as an outline only.</summary>
+    public static Geometry Move { get; } = Geometry.Parse(
+        "M8.94 19.17l.25.25c1.34 1.34 2 2 2.83 2s1.5-.66 2.83-2l.26-.25"
+        + "M19.17 9.17l.24.24c1.33 1.33 2 2 2 2.83s-.67 1.5-2 2.83l-.24.24"
+        + "M4.83 15.26l-.24-.24c-1.33-1.33-2-2-2-2.83c0-.82.67-1.5 2-2.83l.24-.24"
+        + "M15.03 5.02l-.22-.22c-1.34-1.33-2-2-2.83-2s-1.5.66-2.83 2l-.23.22"
+        + "M21.22 12H2.78M11.97 21.22V2.78");
+
+    /// <summary>The add-cell affordance used by the menu editor, without the source fill layer.</summary>
+    public static Geometry SelectionPlus { get; } = Geometry.Parse(
+        "M12 16.36V7.64M16.36 12H7.64"
+        + "M6.03 2.66h-.08l-.45.01a3 3 0 0 0-2.8 2.8v.45"
+        + "M18.26 2.66h.07l.45.01a3 3 0 0 1 2.8 2.8v.45"
+        + "M6.03 21.24H5.5a3 3 0 0 1-2.8-2.8V18"
+        + "M18.26 21.24h.52a3 3 0 0 0 2.8-2.8V18"
+        + "M2.76 10.14v3.57m18.48-3.57v3.57"
+        + "m-11.02 7.43h3.57M10.22 2.67h3.57");
+
     public static Geometry ChevronDown { get; } = Geometry.Parse("M4.48 8.97l4.68 4.7c1.34 1.33 2 2 2.83 2s1.5-.67 2.83-2l4.7-4.7");
 
     public static Geometry ChevronRight { get; } = Geometry.Parse("M9 4.52l4.64 4.64c1.34 1.34 2 2 2 2.83s-.66 1.5-2 2.83L9 19.48");

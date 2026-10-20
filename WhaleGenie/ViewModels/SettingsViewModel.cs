@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
 
@@ -30,6 +32,33 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
     public override string ToString() => Strings.Get(Key);
 }
 
+public enum SettingsRootPage
+{
+    System,
+    Triggers,
+    Appearance,
+}
+
+public enum SettingsSubPage
+{
+    General,
+    CaptureInput,
+    Devices,
+    MenuLauncher,
+    WindowRules,
+    Theme,
+}
+
+public sealed record MenuRuleRow(
+    string GroupKey,
+    string Summary,
+    WhaleGenie.Core.Devices.WindowRule Rule,
+    bool IsDefault,
+    int PageCount)
+{
+    public string PageCountLabel => Strings.Format("Settings.MenuRulePageCount", PageCount);
+}
+
 /// <summary>Backs the settings window. Changing the language applies immediately.</summary>
 public partial class SettingsViewModel : ViewModelBase
 {
@@ -42,8 +71,9 @@ public partial class SettingsViewModel : ViewModelBase
     /// The same, over whatever stands behind driver-level input: the program's own, or one a check
     /// hands in so that a machine which is not this one can be described.
     /// </summary>
-    internal SettingsViewModel(IDriverInput driver, bool? elevated = null)
-        : this(() => driver.State, elevated)
+    internal SettingsViewModel(IDriverInput driver, bool? elevated = null,
+        MainViewModel? project = null, string? packagePath = null)
+        : this(() => driver.State, elevated, project, packagePath)
     {
     }
 
@@ -52,8 +82,11 @@ public partial class SettingsViewModel : ViewModelBase
     /// a machine that is not this one instead of asking the registry — and with what rights the
     /// program has, which a check cannot give itself either.
     /// </summary>
-    internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null)
+    internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null,
+        MainViewModel? project = null, string? packagePath = null)
     {
+        Project = project;
+        PackagePath = packagePath;
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         SelectedTheme = ThemeOptions.First(option => option.Mode == LocalSettings.LoadTheme().Mode);
         _themeReady = true;
@@ -65,6 +98,8 @@ public partial class SettingsViewModel : ViewModelBase
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
+        MenuLauncher = project?.Triggers.MenuLauncher ?? string.Empty;
+        RefreshMenuRules();
     }
 
     /// <summary>Re-reads the capture choices, which show their own language when read.</summary>
@@ -75,7 +110,333 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ScreenWays));
         OnPropertyChanged(nameof(ThemeOptions));
         OnPropertyChanged(nameof(SelectedTheme));
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+        OnPropertyChanged(nameof(MenuRuleProblem));
     }
+
+    public MainViewModel? Project { get; }
+
+    public string? PackagePath { get; }
+
+    public bool HasProject => Project is not null;
+
+    [ObservableProperty]
+    public partial SettingsRootPage SelectedRootPage { get; set; } = SettingsRootPage.System;
+
+    [ObservableProperty]
+    public partial SettingsSubPage SelectedSubPage { get; set; } = SettingsSubPage.General;
+
+    public bool IsSystemRoot => SelectedRootPage == SettingsRootPage.System;
+    public bool IsTriggersRoot => SelectedRootPage == SettingsRootPage.Triggers;
+    public bool IsAppearanceRoot => SelectedRootPage == SettingsRootPage.Appearance;
+    public bool IsGeneralPage => SelectedSubPage == SettingsSubPage.General;
+    public bool IsCapturePage => SelectedSubPage == SettingsSubPage.CaptureInput;
+    public bool IsDevicesPage => SelectedSubPage == SettingsSubPage.Devices;
+    public bool IsMenuLauncherPage => SelectedSubPage == SettingsSubPage.MenuLauncher;
+    public bool IsWindowRulesPage => SelectedSubPage == SettingsSubPage.WindowRules;
+    public bool IsThemePage => SelectedSubPage == SettingsSubPage.Theme;
+
+    partial void OnSelectedRootPageChanged(SettingsRootPage value)
+    {
+        OnPropertyChanged(nameof(IsSystemRoot));
+        OnPropertyChanged(nameof(IsTriggersRoot));
+        OnPropertyChanged(nameof(IsAppearanceRoot));
+    }
+
+    partial void OnSelectedSubPageChanged(SettingsSubPage value)
+    {
+        OnPropertyChanged(nameof(IsGeneralPage));
+        OnPropertyChanged(nameof(IsCapturePage));
+        OnPropertyChanged(nameof(IsDevicesPage));
+        OnPropertyChanged(nameof(IsMenuLauncherPage));
+        OnPropertyChanged(nameof(IsWindowRulesPage));
+        OnPropertyChanged(nameof(IsThemePage));
+    }
+
+    public ObservableCollection<MenuRuleRow> MenuRules { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MenuLauncherDisplay))]
+    public partial string MenuLauncher { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MenuLauncherButton))]
+    public partial bool IsCapturingMenuLauncher { get; set; }
+
+    [ObservableProperty]
+    public partial string MenuLauncherMessage { get; set; } = string.Empty;
+
+    public string MenuLauncherDisplay => MenuLauncher.Length == 0
+        ? Strings.Get("Common.None")
+        : MenuLauncher;
+
+    public string MenuLauncherButton => Strings.Get(IsCapturingMenuLauncher
+        ? "Settings.HotkeyPress"
+        : "Settings.HotkeySet");
+
+    public string MenuLauncherStatus
+    {
+        get
+        {
+            if (Project is null)
+            {
+                return Strings.Get("Settings.MenuNoProject");
+            }
+
+            if (MenuLauncherMessage.Length > 0)
+            {
+                return MenuLauncherMessage;
+            }
+
+            if (MenuLauncher.Length == 0)
+            {
+                return Strings.Get("Settings.MenuLauncherMissing");
+            }
+
+            if (!Project.IsRunning)
+            {
+                return Strings.Get("Settings.MenuSystemOff");
+            }
+
+            var conflicts = ConflictBindings().ToList();
+            if (conflicts.Any(binding =>
+                    string.Equals(binding, MenuLauncher, StringComparison.OrdinalIgnoreCase)))
+            {
+                return Strings.Get("Settings.MenuLauncherConflict");
+            }
+
+            var menuProblems = Project.Triggers.MenuProblems([.. Project.Macros]);
+            if (menuProblems.Count > 0)
+            {
+                return menuProblems[0];
+            }
+
+            return Project.Triggers.Entries.Any(entry =>
+                entry.Kind == TriggerKind.Menu && entry.IsEnabled)
+                ? Strings.Get("Settings.MenuReady")
+                : Strings.Get("Settings.MenuEmpty");
+        }
+    }
+
+    public string MenuRuleProblem
+    {
+        get
+        {
+            if (Project is null)
+            {
+                return string.Empty;
+            }
+
+            return Project.Triggers.ContextMenuPages()
+                .Any(page => !page.Window.HasTarget)
+                ? Strings.Get("Menu.Problem.RuleEmpty")
+                : string.Empty;
+        }
+    }
+
+    public void SetPage(SettingsRootPage root, SettingsSubPage sub)
+    {
+        SelectedRootPage = root;
+        SelectedSubPage = sub;
+    }
+
+    public void BeginMenuLauncherCapture()
+    {
+        MenuLauncherMessage = string.Empty;
+        IsCapturingMenuLauncher = true;
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+    }
+
+    public void StopMenuLauncherCapture()
+    {
+        IsCapturingMenuLauncher = false;
+        MenuLauncherMessage = string.Empty;
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+    }
+
+    public bool CaptureMenuLauncher(string binding)
+    {
+        if (!AllowedMenuLauncher(binding))
+        {
+            MenuLauncherMessage = Strings.Get("Settings.MenuLauncherInvalid");
+            OnPropertyChanged(nameof(MenuLauncherStatus));
+            return false;
+        }
+
+        IsCapturingMenuLauncher = false;
+        MenuLauncherMessage = string.Empty;
+        MenuLauncher = binding.Trim();
+        if (Project is not null)
+        {
+            Project.Triggers.MenuLauncher = MenuLauncher;
+            Project.MarkMenuChanged();
+        }
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+        return true;
+    }
+
+    public void ClearMenuLauncher()
+    {
+        IsCapturingMenuLauncher = false;
+        MenuLauncherMessage = string.Empty;
+        MenuLauncher = string.Empty;
+        if (Project is not null)
+        {
+            Project.Triggers.MenuLauncher = string.Empty;
+            Project.MarkMenuChanged();
+        }
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+    }
+
+    public void RefreshMenuRules()
+    {
+        MenuRules.Clear();
+        if (Project is null)
+        {
+            return;
+        }
+
+        var defaults = Project.Triggers.DefaultContextMenuPages();
+        MenuRules.Add(new MenuRuleRow("default",
+            Strings.Get("Settings.MenuRuleDefault"),
+            WhaleGenie.Core.Devices.WindowRule.Empty, true, defaults.Count));
+        foreach (var group in Project.Triggers.ContextRuleGroups())
+        {
+            MenuRules.Add(new MenuRuleRow(group.Key,
+                $"{group.Rule.MatchValue} · {Strings.Get($"WindowRule.Short.{group.Rule.How}", group.Rule.How)}",
+                group.Rule, false, group.Pages.Count));
+        }
+        OnPropertyChanged(nameof(MenuRuleProblem));
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+    }
+
+    public void AddMenuRule(WhaleGenie.Core.Devices.WindowRule rule)
+    {
+        if (Project is null || !rule.HasTarget)
+        {
+            return;
+        }
+
+        Project.Triggers.AddContextMenuPage(rule);
+        Project.MarkMenuChanged();
+        RefreshMenuRules();
+    }
+
+    public void UpdateMenuRule(MenuRuleRow row, WhaleGenie.Core.Devices.WindowRule rule)
+    {
+        if (Project is null || row.IsDefault || !rule.HasTarget)
+        {
+            return;
+        }
+
+        var pages = Project.Triggers.ContextPagesFor(row.Rule).ToList();
+        if (pages.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var page in pages)
+        {
+            var index = Project.Triggers.MenuPages.IndexOf(page);
+            Project.Triggers.MenuPages[index] = page with { Window = rule };
+        }
+        Project.MarkMenuChanged();
+        RefreshMenuRules();
+    }
+
+    public void RemoveMenuRule(MenuRuleRow row)
+    {
+        if (Project is null || row.IsDefault)
+        {
+            return;
+        }
+
+        Project.Triggers.RemoveContextRule(row.GroupKey);
+        Project.MarkMenuChanged();
+        RefreshMenuRules();
+    }
+
+    public void AddMenuPage(MenuRuleRow row)
+    {
+        if (Project is null)
+        {
+            return;
+        }
+
+        if (row.IsDefault)
+        {
+            if (Project.Triggers.DefaultContextMenuPages().Count
+                < ProjectTriggers.MaxCommonMenuPages)
+            {
+                Project.Triggers.AddDefaultContextPage();
+            }
+        }
+        else if (Project.Triggers.ContextPagesFor(row.Rule).Count
+                 < ProjectTriggers.MaxCommonMenuPages)
+        {
+            Project.Triggers.AddContextMenuPage(row.Rule);
+        }
+        Project.MarkMenuChanged();
+        RefreshMenuRules();
+    }
+
+    public void MoveMenuRule(MenuRuleRow row, int step)
+    {
+        if (Project is null || row.IsDefault)
+        {
+            return;
+        }
+
+        var groups = Project.Triggers.ContextRuleGroups().ToList();
+        var currentGroup = groups.FindIndex(group => group.Key == row.GroupKey);
+        if (currentGroup < 0)
+        {
+            return;
+        }
+        var target = groups[Math.Clamp(currentGroup + step, 0, groups.Count - 1)];
+        Project.Triggers.MoveContextRule(row.GroupKey, target.Key);
+        Project.MarkMenuChanged();
+        RefreshMenuRules();
+    }
+
+    public void MoveMenuRuleTo(MenuRuleRow row, MenuRuleRow target)
+    {
+        if (Project is null || row.IsDefault || target.IsDefault
+            || row.GroupKey == target.GroupKey)
+        {
+            return;
+        }
+        Project.Triggers.MoveContextRule(row.GroupKey, target.GroupKey);
+        Project.MarkMenuChanged();
+        RefreshMenuRules();
+    }
+
+    private IEnumerable<string> ConflictBindings()
+    {
+        if (Project is null)
+        {
+            yield break;
+        }
+
+        if (SystemHotkey.Length > 0)
+        {
+            yield return SystemHotkey;
+        }
+        foreach (var entry in Project.Triggers.Entries.Where(entry =>
+                     entry.IsEnabled && entry.Kind == TriggerKind.Key
+                     && entry.BindKey.Trim().Length > 0))
+        {
+            yield return entry.BindKey.Trim();
+        }
+        foreach (var layout in Project.Triggers.InterfaceLayouts.Where(layout =>
+                     layout.ToggleHotkey.Trim().Length > 0))
+        {
+            yield return layout.ToggleHotkey.Trim();
+        }
+    }
+
+    private static bool AllowedMenuLauncher(string binding)
+        => ProjectTriggers.IsAllowedMenuLauncher(binding);
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
     [
@@ -169,6 +530,61 @@ public partial class SettingsViewModel : ViewModelBase
     /// hotkey still reaches it while a window of a higher privilege is in front.
     /// </summary>
     public bool IsElevated { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SystemHotkeyDisplay))]
+    public partial string SystemHotkey { get; set; } = LocalSettings.LoadSystemHotkey();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SystemHotkeyButton))]
+    public partial bool IsCapturingSystemHotkey { get; set; }
+
+    [ObservableProperty]
+    public partial string SystemHotkeyProblem { get; set; } = string.Empty;
+
+    public bool IsCapturingHotkey => IsCapturingSystemHotkey || IsCapturingMenuLauncher;
+
+    public string SystemHotkeyDisplay => SystemHotkey.Length == 0
+        ? Strings.Get("Common.None")
+        : SystemHotkey;
+
+    public string SystemHotkeyButton => Strings.Get(
+        IsCapturingSystemHotkey ? "Settings.HotkeyPress" : "Settings.HotkeySet");
+
+    partial void OnSystemHotkeyChanged(string value)
+    {
+        LocalSettings.StoreSystemHotkey(value);
+        OnPropertyChanged(nameof(MenuLauncherStatus));
+    }
+
+    partial void OnIsCapturingSystemHotkeyChanged(bool value)
+        => OnPropertyChanged(nameof(IsCapturingHotkey));
+
+    partial void OnIsCapturingMenuLauncherChanged(bool value)
+        => OnPropertyChanged(nameof(IsCapturingHotkey));
+
+    public bool CaptureSystemHotkey(string binding)
+    {
+        var text = binding.Trim();
+        if (text.Length > 0 && !HotkeyBinding.IsSupported(text))
+        {
+            IsCapturingSystemHotkey = false;
+            SystemHotkeyProblem = Strings.Get("Settings.HotkeyUnsupported");
+            return false;
+        }
+
+        IsCapturingSystemHotkey = false;
+        SystemHotkeyProblem = string.Empty;
+        SystemHotkey = text;
+        return true;
+    }
+
+    public void ClearSystemHotkey()
+    {
+        IsCapturingSystemHotkey = false;
+        SystemHotkeyProblem = string.Empty;
+        SystemHotkey = string.Empty;
+    }
 
     /// <summary>The line above the button that restarts the program with that token.</summary>
     public string AdminStatus

@@ -62,6 +62,8 @@ public partial class MacroEditorWindow : Window
     private bool _prompting;
     private bool _syncingSelection;
     private bool _closing;
+    private bool _mustStayUnsaved;
+    private bool _initialBindingsSettled;
 
     /// <summary>
     /// The run window this editor opened, kept so that pressing 「运行调试」 twice does not leave two
@@ -69,6 +71,8 @@ public partial class MacroEditorWindow : Window
     /// same button then opens a fresh one on the steps as they now stand.
     /// </summary>
     private RunWindow? _running;
+
+    private HotstringKeyboardWindow? _hotstringKeyboard;
 
     /// <summary>Writes the macro being edited out as it changes, while it is not saved.</summary>
     private readonly RecoveryWriter _recovery;
@@ -166,7 +170,7 @@ public partial class MacroEditorWindow : Window
     /// here can call it. The package path is where pictures taken from the screen are stored.
     /// </summary>
     public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
-        string? packagePath = null, IDeviceLayer? devices = null)
+        string? packagePath = null, IDeviceLayer? devices = null, ProjectTriggers? triggers = null)
     {
         InitializeComponent();
 
@@ -204,6 +208,12 @@ public partial class MacroEditorWindow : Window
             _viewModel.UseDefaultName(_project.Select(macro => macro.Name));
         }
 
+        _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _project);
+        if (existing is not null)
+        {
+            _viewModel.LoadDraftProjectSettings(existing);
+        }
+
         // The other macros a call may point at, so a run-another-macro step that no longer names
         // one is marked while it is being read rather than when the trigger fires.
         _viewModel.SetProjectMacros(_project
@@ -213,6 +223,22 @@ public partial class MacroEditorWindow : Window
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
+        Opened += (_, _) =>
+        {
+            if (_initialBindingsSettled)
+            {
+                return;
+            }
+
+            _initialBindingsSettled = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!_mustStayUnsaved)
+                {
+                    _viewModel.AcceptInitialBindings();
+                }
+            }, DispatcherPriority.Background);
+        };
 
         // The form's "set key" button says it is waiting only while a capture is up; a capture
         // ended by the record button or by another binding has to put the label back.
@@ -260,6 +286,12 @@ public partial class MacroEditorWindow : Window
         // it changes. This window is the only place it can be kept: it is not in the list yet.
         _viewModel.PropertyChanged += (_, args) =>
         {
+            if (args.PropertyName == nameof(MacroEditorViewModel.HotstringText)
+                && _hotstringKeyboard is { } keyboard)
+            {
+                keyboard.SetText(_viewModel.HotstringText);
+            }
+
             if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey))
             {
                 if (_viewModel.IsCapturingKey)
@@ -286,6 +318,7 @@ public partial class MacroEditorWindow : Window
         // If the editor goes away by any route, the hook has to go with it. There is no point
         // telling the user an empty recording was empty once the editor is gone.
         Closed += (_, _) => StopRecorder(announceEmpty: false);
+        Closed += (_, _) => _hotstringKeyboard?.Close();
 
         // And the reading of the controller, which has nothing left to tell once the window is gone.
         Closed += (_, _) => WatchController(false);
@@ -415,6 +448,42 @@ public partial class MacroEditorWindow : Window
 
         // The wheel is a trigger of its own: a notch up or down can start a macro.
         AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheel, RoutingStrategies.Tunnel);
+    }
+
+    private void OnOpenHotstringKeyboard(object? sender, RoutedEventArgs e)
+    {
+        if (_hotstringKeyboard is { } open)
+        {
+            open.Activate();
+            return;
+        }
+
+        var keyboard = new HotstringKeyboardWindow(_viewModel.HotstringText);
+        keyboard.TextChanged += text => _viewModel.HotstringText = text;
+        keyboard.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_hotstringKeyboard, keyboard))
+            {
+                _hotstringKeyboard = null;
+            }
+        };
+        _hotstringKeyboard = keyboard;
+        keyboard.ShowOver(this);
+    }
+
+    private void OnCaptureHotstringEnd(object? sender, RoutedEventArgs e)
+        => _viewModel.BeginHotstringEndCapture();
+
+    private void OnSetInterfaceHotkey(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel.BeginKeyCapture(binding =>
+            {
+                _viewModel.SetInterfaceToggleHotkey(binding);
+                ResetKeyCaptureLabel();
+            }, combination: true, keyboardOnly: true))
+        {
+            _viewModel.IsCapturingInterfaceHotkey = true;
+        }
     }
 
     /// <summary>
@@ -607,6 +676,41 @@ public partial class MacroEditorWindow : Window
     {
         if (DataContext is not MacroEditorViewModel viewModel)
         {
+            return;
+        }
+
+        if (viewModel.IsCapturingHotstringEnd)
+        {
+            if (e.Key == Key.Escape)
+            {
+                viewModel.StopHotstringEndCapture();
+                _captureModifiers.Clear();
+                e.Handled = true;
+                return;
+            }
+
+            if (IsModifier(e.Key))
+            {
+                if (!_captureModifiers.Contains(e.Key))
+                {
+                    _captureModifiers.Add(e.Key);
+                }
+
+                e.Handled = true;
+                return;
+            }
+
+            var character = HotstringKeyCapture.Character(e.Key, e.KeyModifiers);
+            viewModel.CaptureHotstringEnd(character);
+            if (character is not null)
+            {
+                _swallowReleases.Clear();
+                _swallowReleases.AddRange(_captureModifiers);
+                _swallowReleases.Add(e.Key);
+                _captureModifiers.Clear();
+            }
+
+            e.Handled = true;
             return;
         }
 
@@ -847,15 +951,6 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>The modifiers a combination is written with, in the order a binding reads them.</summary>
-    private static readonly (KeyModifiers Flag, string Name)[] ChordModifiers =
-    [
-        (KeyModifiers.Control, "Ctrl"),
-        (KeyModifiers.Shift, "Shift"),
-        (KeyModifiers.Alt, "Alt"),
-        (KeyModifiers.Meta, "Win"),
-    ];
-
     /// <summary>Whether the key is one of the eight halves of Ctrl, Shift, Alt and Win.</summary>
     private static bool IsModifier(Key key) => ModifierFlag(key) != KeyModifiers.None;
 
@@ -891,38 +986,9 @@ public partial class MacroEditorWindow : Window
     /// keeps its side in <see cref="DescribeKey"/>.
     /// </summary>
     private static string Chord(Key key, KeyModifiers held)
-    {
-        var parts = new List<string>(ChordModifiers.Length + 1);
-        foreach (var (flag, name) in ChordModifiers)
-        {
-            if (held.HasFlag(flag))
-            {
-                parts.Add(name);
-            }
-        }
+        => HotkeyNameMapper.Chord(key, held);
 
-        parts.Add(DescribeKey(key));
-        return string.Join("+", parts);
-    }
-
-    private static string DescribeKey(Key key) => key switch
-    {
-        // The two halves of a modifier are separate keys, so a binding keeps the side it saw.
-        Key.LeftCtrl => "左Ctrl",
-        Key.RightCtrl => "右Ctrl",
-        Key.LeftShift => "左Shift",
-        Key.RightShift => "右Shift",
-        Key.LeftAlt => "左Alt",
-        Key.RightAlt => "右Alt",
-        Key.LWin => "左Win",
-        Key.RWin => "右Win",
-        Key.Return => "Enter",
-        Key.Back => "Backspace",
-        Key.Space => "Space",
-        Key.OemComma => ",",
-        Key.OemPeriod => ".",
-        _ => key.ToString(),
-    };
+    private static string DescribeKey(Key key) => HotkeyNameMapper.Name(key);
 
     /// <summary>Opens the magnifier, which follows the pointer and reads the pixel under it.</summary>
     private async void OnPickColorClicked(object? sender, RoutedEventArgs e)
@@ -1230,6 +1296,7 @@ public partial class MacroEditorWindow : Window
             row.IsCapturing = false;
             _keyRowCapture = null;
         }
+
     }
 
     /// <summary>Puts the inspector back on the step being written.</summary>
@@ -1475,7 +1542,11 @@ public partial class MacroEditorWindow : Window
     /// stopped without notice is unsaved by definition, so closing the editor has to ask about it
     /// rather than let it go without a word.
     /// </summary>
-    internal void MarkUnsaved() => _viewModel.IsDirty = true;
+    internal void MarkUnsaved()
+    {
+        _mustStayUnsaved = true;
+        _viewModel.IsDirty = true;
+    }
 
     /// <summary>
     /// The macro the editor finished with, or null when it was let go. The editor is not a dialog —

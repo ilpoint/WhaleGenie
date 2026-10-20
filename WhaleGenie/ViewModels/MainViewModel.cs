@@ -5,6 +5,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Execution;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -14,10 +15,17 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel()
     {
         Mcp = new McpServerViewModel(this);
+        SelectedDock = LocalSettings.LoadDockPage();
         Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
             OnPropertyChanged(nameof(HasUnsavedChanges));
+            RefreshVisibleMacros();
+        };
+        Triggers.Changed += (_, _) =>
+        {
+            Triggers.Attach([.. Macros]);
+            MarkDirty();
             RefreshVisibleMacros();
         };
         Localization.Strings.Current.LanguageChanged += () =>
@@ -39,6 +47,29 @@ public partial class MainViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value) => RefreshVisibleMacros();
 
+    /// <summary>Every trigger entry in the project, including the active dock page's filter.</summary>
+    public ProjectTriggers Triggers { get; } = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsKeysDock))]
+    [NotifyPropertyChangedFor(nameof(IsInterfaceDock))]
+    [NotifyPropertyChangedFor(nameof(IsHotstringDock))]
+    [NotifyPropertyChangedFor(nameof(IsMenuDock))]
+    [NotifyPropertyChangedFor(nameof(IsOtherDock))]
+    public partial DockPage SelectedDock { get; set; } = DockPage.Keys;
+
+    public bool IsKeysDock => SelectedDock == DockPage.Keys;
+    public bool IsInterfaceDock => SelectedDock == DockPage.Interface;
+    public bool IsHotstringDock => SelectedDock == DockPage.Hotstring;
+    public bool IsMenuDock => SelectedDock == DockPage.Menu;
+    public bool IsOtherDock => SelectedDock == DockPage.Other;
+
+    partial void OnSelectedDockChanged(DockPage value)
+    {
+        LocalSettings.StoreDockPage(value);
+        RefreshVisibleMacros();
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SystemLabel))]
     [NotifyPropertyChangedFor(nameof(SystemHint))]
@@ -54,8 +85,22 @@ public partial class MainViewModel : ViewModelBase
     /// Hint under the button. Which macros are running is already plain on their cards, so this
     /// only has to point at the key that switches the system.
     /// </summary>
-    public string SystemHint => Localization.Strings.Get(
-        IsRunning ? "Main.SystemDisableHint" : "Main.SystemEnableHint");
+    public string SystemHint
+    {
+        get
+        {
+            var hotkey = LocalSettings.LoadSystemHotkey();
+            return hotkey.Length == 0
+                ? Localization.Strings.Get(IsRunning
+                    ? "Main.SystemDisableNoHotkey"
+                    : "Main.SystemEnableNoHotkey")
+                : Localization.Strings.Format(
+                    IsRunning ? "Main.SystemDisableHint" : "Main.SystemEnableHint",
+                    hotkey);
+        }
+    }
+
+    public void RefreshHotkeyHints() => OnPropertyChanged(nameof(SystemHint));
 
     /// <summary>
     /// What the program is called in the corner of the window, and what a package says wrote it.
@@ -125,14 +170,15 @@ public partial class MainViewModel : ViewModelBase
     private void RefreshVisibleMacros()
     {
         var wanted = SearchText.Trim();
-        var keeping = wanted.Length == 0
-            ? Macros
-            : Macros.Where(macro =>
-                macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase));
+        var keeping = Macros.Where(macro =>
+            Triggers.HasPage(macro.Name, SelectedDock)
+            && (wanted.Length == 0
+                || macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)));
 
         VisibleMacros.Clear();
         foreach (var macro in keeping.ToList())
         {
+            macro.RefreshTriggers();
             VisibleMacros.Add(macro);
         }
 
@@ -147,7 +193,15 @@ public partial class MainViewModel : ViewModelBase
             macro.Name = MacroNames.NextDefault(Macros.Select(item => item.Name));
         }
 
+        if (macro.Triggers.Count == 0)
+        {
+            var entry = TriggerEntry.FromMacro(macro);
+            entry.MacroName = macro.Name;
+            macro.Triggers.Add(entry);
+        }
+
         Macros.Add(macro);
+        Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
         MarkDirty();
     }
 
@@ -161,7 +215,13 @@ public partial class MainViewModel : ViewModelBase
         }
 
         edited.IsEnabled = original.IsEnabled;
+        if (!string.Equals(original.Name, edited.Name, StringComparison.Ordinal))
+        {
+            Triggers.RenameMacro(original.Name, edited.Name);
+        }
+
         Macros[index] = edited;
+        Triggers.ReplaceMacro(edited.Name, edited.Triggers.Select(entry => entry.Copy()));
         MarkDirty();
     }
 
@@ -169,6 +229,7 @@ public partial class MainViewModel : ViewModelBase
     public void RemoveMacro(MacroItem macro)
     {
         Macros.Remove(macro);
+        Triggers.RemoveMacro(macro.Name);
         MarkDirty();
     }
 
@@ -176,6 +237,9 @@ public partial class MainViewModel : ViewModelBase
     public void ClearMacros()
     {
         Macros.Clear();
+        Triggers.Entries.Clear();
+        Triggers.InterfaceLayouts.Clear();
+        Triggers.ResetMenu();
         MarkDirty();
     }
 
@@ -206,10 +270,16 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Notes that the shared variables themselves were changed.</summary>
     public void MarkSharedVariablesChanged() => MarkDirty();
 
+    internal void MarkMenuChanged()
+    {
+        Triggers.NotifyChanged();
+        MarkDirty();
+    }
+
     /// <summary>Writes the macro list and the shared variables to a package file.</summary>
     public void SavePackage(string path)
     {
-        Storage.MacroPackage.Save(path, [.. Macros], [.. VariableCatalog.Globals], Version);
+        Storage.MacroPackage.Save(path, [.. Macros], Triggers, [.. VariableCatalog.Globals], Version);
         CurrentPath = path;
         IsDirty = false;
     }
@@ -224,6 +294,8 @@ public partial class MainViewModel : ViewModelBase
         {
             Macros.Add(macro);
         }
+        Triggers.ReplaceAll(contents.Triggers);
+        Triggers.Attach([.. Macros]);
 
         VariableCatalog.Globals.Clear();
         foreach (var global in contents.Globals)
@@ -244,7 +316,11 @@ public partial class MainViewModel : ViewModelBase
         foreach (var macro in contents.Macros)
         {
             AddMacro(macro);
+            Triggers.ReplaceMacro(macro.Name, contents.Triggers.ForMacro(macro.Name)
+                .Select(entry => entry.Copy()));
         }
+
+        Triggers.MergeMenuFrom(contents.Triggers, contents.Macros);
 
         foreach (var global in contents.Globals)
         {
@@ -267,6 +343,8 @@ public partial class MainViewModel : ViewModelBase
         {
             Macros.Add(macro);
         }
+        Triggers.ReplaceAll(contents.Triggers);
+        Triggers.Attach([.. Macros]);
 
         VariableCatalog.Globals.Clear();
         foreach (var global in contents.Globals)
@@ -280,6 +358,15 @@ public partial class MainViewModel : ViewModelBase
 
     [RelayCommand]
     private void ToggleRun() => IsRunning = !IsRunning;
+
+    [RelayCommand]
+    private void SelectDock(string? page)
+    {
+        if (Enum.TryParse<DockPage>(page, true, out var selected))
+        {
+            SelectedDock = selected;
+        }
+    }
 
     /// <summary>
     /// Raised for every change to the work this holds, where <see cref="IsDirty"/> only says
@@ -308,12 +395,18 @@ public partial class MainViewModel : ViewModelBase
     /// checked the revision; this is only the write.
     /// </summary>
     public void ApplyDraft(IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals)
+        => ApplyDraft(macros, ProjectTriggers.FromMacros(macros), globals);
+
+    public void ApplyDraft(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition> globals)
     {
         Macros.Clear();
         foreach (var macro in macros)
         {
             Macros.Add(macro);
         }
+        Triggers.ReplaceAll(triggers);
+        Triggers.Attach([.. Macros]);
 
         VariableCatalog.Globals.Clear();
         foreach (var global in globals)

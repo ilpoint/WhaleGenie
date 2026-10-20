@@ -225,9 +225,37 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 10。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 15。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
+触发器入口从宏文档移进项目级的 `triggers.json` 时升到 11；字串入口增加 `endChars` 时升到 12；
+菜单增加标题、行列格子与每项标签，界面组增加显示/隐藏快捷键时升到 13；菜单改为固定 4×6
+通用/窗口规则页、图标和单一呼出键，字串结束键改为实际字符时升到 14；菜单移除自定义标题并把每条窗口
+规则升级为多页时升到 15。
+触发入口按名称引用宏，宏改名时同一份
+`ProjectTriggers` 改写所有引用，保存、恢复和 MCP 草稿都不允许悬空引用。
+
+`ProjectTriggers` 是触发入口的唯一真源。`TriggerKind` 只有 `key`、`color`、`interface`、`hotstring`、
+`menu`、`timer`、`file`、`process`、`window`、`idle` 十个词。编辑器把每条入口按类型写成同一份
+`TriggerEntry` JSON；`MacroItem` 上的旧触发字段只作为写入前兼容投影，不参与包里的触发判断。界面宏按
+窗口规则的规范化键自动分组，`InterfaceLayout` 保存目标客户区内的位置与本组显示快捷键；同一规则下的全部
+宏共用一个悬浮窗，不同匹配规则各自保留一个悬浮窗。拖动只在松开后写一次布局。`MacroTriggerService` 从
+触发入口分派，但一个宏同时最多只占一条运行。
+
+菜单配置属于项目：固定为 4 列、上下各 3 行，格子为 80×80。`MenuPage` 分为最多 8 个通用页、默认窗口页和
+按顺序保存的窗口规则页；同一窗口规则可拥有最多 8 个下区子页。菜单入口的 `MenuPageId`、`MenuRow`、
+`MenuColumn`、`MenuLabel` 与 `MenuIconReference` 指定页面、位置、文字和图标。启用项撞格、悬空页面或缺失宏
+会阻止保存；同一宏允许在不同格子重复出现。普通运行态使用 `WS_EX_NOACTIVATE`，通过全局钩子处理方向键、
+Enter 与 Esc；搜索框聚焦时临时移除该样式，失焦后恢复并把前台交还原窗口。主窗口用全局鼠标坐标判断菜单外
+点击，只读取不可变屏幕边界，不访问 Avalonia 控件。
+
+字串识别器只读全局键盘钩子送来的字面字符，最多保留 40 个字符；它处理常见热字串的结束键、大小写、词中、
+`B0`（保留输入）和 `O`（舍弃结束键），命中后同步退格并重放结束键，再启动宏一次。菜单入口在项目里显式列出，
+`MenuLauncher` 只保存一个键盘组合或鼠标 4/5 侧键；滚轮和中键不用于菜单。菜单打开时进入
+`MacroTriggerGate`，点击宏后关闭并恢复前台再运行一次。
+每个字串入口的 `endChars` 保存实际字符：空格就是一个空格，换行与 Tab 由 JSON 的标准转义承载，反引号也是普通字符。钩子和计时器只能读取
+UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotkeyPlan`，二者都不访问 Avalonia 控件或
+可变 UI 集合。所有后台回调经过异常隔离，重复故障按阶段节流写入 `logs/runtime.log`。
 
 调用另一个宏的步骤（`control.runMacro`）写三个部分：
 

@@ -6,6 +6,7 @@ using System.Text.Json;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
+using WhaleGenie.Models;
 
 namespace WhaleGenie.Localization;
 
@@ -123,6 +124,19 @@ public static class LocalSettings
     public static void StoreCaptureScreen(CaptureWay way)
         => Write(model => model.CaptureScreen = CaptureWayNames.Written(way));
 
+    /// <summary>The global key that switches all triggers on or off. Home remains the default.</summary>
+    public static string LoadSystemHotkey()
+        => Read().SystemHotkey.Trim();
+
+    public static void StoreSystemHotkey(string value)
+        => Write(model => model.SystemHotkey = value.Trim());
+
+    public static DockPage LoadDockPage()
+        => Enum.TryParse<DockPage>(Read().DockPage, true, out var page) ? page : DockPage.Keys;
+
+    public static void StoreDockPage(DockPage page)
+        => Write(model => model.DockPage = page.ToString());
+
     private static Model Read()
     {
         try
@@ -169,6 +183,10 @@ public static class LocalSettings
         public string CaptureWindow { get; set; } = string.Empty;
 
         public string CaptureScreen { get; set; } = string.Empty;
+
+        public string SystemHotkey { get; set; } = "Home";
+
+        public string DockPage { get; set; } = nameof(Models.DockPage.Keys);
 
         public bool LightTheme { get; set; }
 
