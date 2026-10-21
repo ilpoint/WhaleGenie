@@ -100,9 +100,9 @@ public class ActionDialogTests
     /// The same dialog, window and all, for a check that looks at what the form draws rather than
     /// only at what the view model holds.
     /// </summary>
-    private static (AddActionWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
+    private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("match.x", "match.y", "spot"), []);
 
         window.Show();
@@ -514,7 +514,7 @@ public class ActionDialogTests
             Assert.Equal("$count + 1",
                 saved!.Parameters.First(parameter => parameter.Name == "x").Value);
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions,
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("count"), []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
@@ -573,7 +573,7 @@ public class ActionDialogTests
     /// </summary>
     private static StepParameterViewModel Number(string key, string name, params string[] variables)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named(variables), []);
 
         window.Show();
@@ -821,7 +821,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, null, [], []);
+            var window = new ActionEditorWindow(null, null, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -849,7 +849,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, null, [], []);
+            var window = new ActionEditorWindow(null, null, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -997,7 +997,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
+            var window = new ActionEditorWindow(
                 new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -1016,11 +1016,11 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_block_can_be_given_a_step_from_its_own_dialog()
+    public void A_block_adds_children_in_the_editor_step_list_not_a_second_dialog()
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
+            var window = new ActionEditorWindow(
                 new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -1029,38 +1029,27 @@ public class ActionDialogTests
             var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
             var before = body.StepsNote;
 
-            // The block's settings carry the line about where its steps are ordered, and beside it
-            // the one thing this dialog still does to them: add another.
+            // The block's settings say where its steps are edited. They do not offer a second
+            // child-action window; the child is dropped into the macro list once the block exists.
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
                 text => text.IsEffectivelyVisible && text.Text == body.StepsNote);
-            var button = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(),
                 candidate => candidate.IsEffectivelyVisible
                     && Equals(candidate.Content, body.List!.AddLabel));
 
-            button.Command!.Execute(button.CommandParameter);
+            body.List!.AddCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
-            // The action is picked in the same dialog the editor opens for a step of its own, and
-            // what it returns is appended to this block's list rather than to the macro.
-            var nested = window.OwnedWindows.OfType<AddActionWindow>().Single();
-            var picker = (AddActionViewModel)nested.DataContext!;
-            picker.SelectAction("control.delay");
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(picker.CanSave, picker.ValidationMessage);
-            picker.SaveCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal("control.delay", Assert.Single(body.List!.Steps).Type);
-
-            // The line under the settings is the count, so it has to follow what was added.
-            Assert.NotEqual(before, body.StepsNote);
+            Assert.Empty(body.List.Steps);
+            Assert.Empty(window.OwnedWindows);
+            Assert.Equal(before, body.StepsNote);
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            Assert.Equal("control.delay",
-                Assert.Single(saved!.StepLists.Single().Steps).Type);
+            Assert.Equal("control.repeat", saved!.Type);
+            Assert.Equal(0, saved.ChildCount);
         });
     }
 
@@ -1190,7 +1179,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -1245,7 +1234,7 @@ public class ActionDialogTests
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], []);
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions, [], []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -1837,7 +1826,7 @@ public class ActionDialogTests
                 },
             };
 
-            var window = new AddActionWindow(step, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(step, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2050,7 +2039,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2133,7 +2122,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2167,7 +2156,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2561,7 +2550,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2698,7 +2687,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2737,7 +2726,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2767,7 +2756,7 @@ public class ActionDialogTests
             viewModel.CloseRequested += _ => { };
             viewModel.SaveCommand.Execute(null);
 
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2798,7 +2787,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2843,7 +2832,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2892,7 +2881,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2945,7 +2934,7 @@ public class ActionDialogTests
         {
             var screen = new ColourScreen { Colour = new PixelColor(0x11, 0x22, 0x33) };
             var hook = new ClickingHook();
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], [])
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [])
             {
                 Devices = new ChecksDevices { Screen = screen, Hook = hook },
             };
@@ -3079,7 +3068,7 @@ public class ActionDialogTests
     {
         Ui.RunAsync(async () =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -3111,7 +3100,7 @@ public class ActionDialogTests
     {
         Ui.RunAsync(async () =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -3216,7 +3205,7 @@ public class ActionDialogTests
             Assert.Equal("答案", row.Text("key"));
             Assert.Equal("答案", row.Text("name"));
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], Macros());
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions, [], Macros());
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -3259,9 +3248,9 @@ public class ActionDialogTests
     }
 
     /// <summary>The dialog open on a call, with the project's macros to point it at.</summary>
-    private static AddActionWindow CallWindow()
+    private static ActionEditorWindow CallWindow()
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions, [], Macros());
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], Macros());
         window.Show();
         Dispatcher.UIThread.RunJobs();
 

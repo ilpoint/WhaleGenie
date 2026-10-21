@@ -13,10 +13,10 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ReturnNameTests
 {
-    private static AddActionViewModel Open(string key, string stepId, out AddActionWindow window,
+    private static AddActionViewModel Open(string key, string stepId, out ActionEditorWindow window,
         IReadOnlyList<VariableChoice>? variables = null)
     {
-        window = new AddActionWindow(null, ActionCatalog.Definitions, variables ?? [], [],
+        window = new ActionEditorWindow(null, ActionCatalog.Definitions, variables ?? [], [],
             null, null, null, stepId);
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -205,7 +205,7 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
+            var window = new ActionEditorWindow(
                 new MacroStep
                 {
                     Type = "file.readText",

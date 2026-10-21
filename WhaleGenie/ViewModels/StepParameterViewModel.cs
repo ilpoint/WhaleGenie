@@ -171,7 +171,8 @@ public partial class StepParameterViewModel : ViewModelBase
                     ? Strings.Get(isCondition ? "Add.NestedCondition" : "Add.NestedAddCondition")
                     : addLabel,
                 isCondition,
-                catalog);
+                catalog,
+                conditions);
 
             // The line under the list says how many steps are in it, so it has to follow the list.
             List.PropertyChanged += (_, _) => OnPropertyChanged(nameof(StepsNote));

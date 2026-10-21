@@ -91,5 +91,15 @@ public static class FieldNames
     public const string Status = "status";
     public const string Macro = "macro";
 
+    /// <summary>A callable macro copied beneath another macro.</summary>
+    public const string SubMacros = "subMacros";
+
+    /// <summary>Where a copied submacro came from and which source version it froze.</summary>
+    public const string Origin = "origin";
+
+    public const string Version = "version";
+
+    public const string Description = "description";
+
     public const string CpuSeconds = "cpuSeconds";
 }

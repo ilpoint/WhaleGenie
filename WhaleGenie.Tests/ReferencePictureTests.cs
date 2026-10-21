@@ -158,7 +158,7 @@ public class ReferencePictureTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("shot"), []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -187,7 +187,7 @@ public class ReferencePictureTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("shot"), []);
             window.Show();
             Dispatcher.UIThread.RunJobs();

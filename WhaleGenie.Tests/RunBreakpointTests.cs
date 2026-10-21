@@ -34,7 +34,7 @@ public class RunBreakpointTests
 
             // The form is the one the editor writes conditions in, held to the conditions: what a
             // breakpoint waits for and what an if waits for are the same question.
-            var dialog = window.OwnedWindows.OfType<AddActionWindow>().Single();
+            var dialog = window.OwnedWindows.OfType<ActionEditorWindow>().Single();
             var form = (AddActionViewModel)dialog.DataContext!;
             Assert.All(form.AvailableActions,
                 action => Assert.StartsWith("condition.", action.Key, System.StringComparison.Ordinal));
@@ -53,7 +53,7 @@ public class RunBreakpointTests
 
             // The dialog is gone and the step's dot is on: setting a condition on a step that had
             // no breakpoint means "stop here when this holds".
-            Assert.Empty(window.OwnedWindows.OfType<AddActionWindow>());
+            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
             Assert.True(row.HasBreakpoint);
             Assert.Equal("condition.compare", viewModel.BreakpointCondition(row.Id)!.Type);
 
@@ -63,7 +63,7 @@ public class RunBreakpointTests
 
             // Opening it again shows what was written rather than a blank form.
             Click(window, row, "condition");
-            var again = (AddActionViewModel)window.OwnedWindows.OfType<AddActionWindow>().Single().DataContext!;
+            var again = (AddActionViewModel)window.OwnedWindows.OfType<ActionEditorWindow>().Single().DataContext!;
             Assert.Equal("condition.compare", again.SelectedDefinition!.Key);
             Assert.Equal("$n", again.Parameters
                 .First(parameter => parameter.Definition.Name == "variable").Text);

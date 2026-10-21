@@ -17,13 +17,15 @@ public partial class StepListEditorViewModel : ViewModelBase
 {
     /// <summary>Creates an editor for a step list, or for a single condition.</summary>
     public StepListEditorViewModel(string addLabel, bool isCondition,
-        IReadOnlyList<ActionDefinition>? catalog = null)
+        IReadOnlyList<ActionDefinition>? catalog = null, bool acceptsConditions = false)
     {
         AddLabel = addLabel;
         IsCondition = isCondition;
+        AcceptsConditions = acceptsConditions || isCondition;
         Catalog = catalog;
 
         OnPropertyChanged(nameof(HasSteps));
+        OnPropertyChanged(nameof(HasNoSteps));
     }
 
     /// <summary>Raised when the dialog should open the picker to add a step.</summary>
@@ -43,7 +45,12 @@ public partial class StepListEditorViewModel : ViewModelBase
     /// <summary>True when this editor holds one condition rather than a list of steps.</summary>
     public bool IsCondition { get; }
 
+    /// <summary>True for a single condition or a group that contains several conditions.</summary>
+    public bool AcceptsConditions { get; }
+
     public bool HasSteps => Steps.Count > 0;
+
+    public bool HasNoSteps => !HasSteps;
 
     /// <summary>True when there is a condition picked to edit.</summary>
     public bool CanEdit => SelectedStep is not null;
@@ -53,7 +60,15 @@ public partial class StepListEditorViewModel : ViewModelBase
     public partial MacroStep? SelectedStep { get; set; }
 
     [RelayCommand]
-    private void Add() => AddRequested?.Invoke(this);
+    private void Add()
+    {
+        // Step lists are edited in the macro's main list once the block exists. Conditions are
+        // not steps, so they are still chosen inside the action window.
+        if (AcceptsConditions)
+        {
+            AddRequested?.Invoke(this);
+        }
+    }
 
     [RelayCommand]
     private void Edit()
@@ -109,6 +124,7 @@ public partial class StepListEditorViewModel : ViewModelBase
     private void Refresh()
     {
         OnPropertyChanged(nameof(HasSteps));
+        OnPropertyChanged(nameof(HasNoSteps));
         OnPropertyChanged(nameof(Steps));
         OnPropertyChanged(nameof(CanEdit));
     }

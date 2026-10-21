@@ -271,36 +271,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// group, so the picker joins those pairs back together.
     /// </summary>
     private static ActionCategory PickerCategory(ActionCategory category)
-        => category switch
-        {
-            ActionCategory.Ocr => ActionCategory.Vision,
-            ActionCategory.Window => ActionCategory.Process,
-            _ => category,
-        };
+        => ActionCategoryPresentation.PickerCategory(category);
     /// <summary>The colour that marks a category in the dock and on every card of that group.</summary>
     private static IBrush CategoryAccent(ActionCategory? category)
-        => new SolidColorBrush(Color.Parse(category switch
-        {
-            null => "#B9B3A8",
-            ActionCategory.Control => "#E07A3F",
-            ActionCategory.File => "#5B9BD5",
-            ActionCategory.Data => "#70AD47",
-            ActionCategory.Clipboard => "#A97FD1",
-            ActionCategory.Process => "#C586C0",
-            ActionCategory.System => "#D7BA7D",
-            ActionCategory.Input => "#4FC1E9",
-            ActionCategory.Vision => "#4EC9B0",
-            ActionCategory.Uia => "#FFB86C",
-            ActionCategory.Browser => "#61AFEF",
-            ActionCategory.Script => "#E5C07B",
-            ActionCategory.Condition => "#EF6F6C",
-            _ => "#B9B3A8",
-        }));
+        => ActionCategoryPresentation.Accent(category);
     /// <summary>The line icon the dock shows over a category's short name.</summary>
     private static Lucide.Avalonia.LucideIconKind CategoryIcon(ActionCategory? category)
-        => category is { } value
-            ? ActionCatalog.IconFor(value) ?? AppIcons.GridFour
-            : AppIcons.GridFour;
+        => ActionCategoryPresentation.Icon(category);
     /// <summary>The dock order: the categories a macro reaches for first, then the rest.</summary>
     private static readonly ActionCategory[] DockOrder =
     [
@@ -2347,27 +2324,33 @@ public partial class AddActionViewModel : ViewModelBase
     /// tried has to be what the step says, settings and all, rather than the fields read again
     /// somewhere else.
     /// </summary>
-    internal MacroStep BuildStep() => new()
+    internal MacroStep BuildStep()
     {
-        Type = SelectedDefinition!.Key,
-        Id = _editingId,
-        Parameters = Parameters
-            .Where(parameter => parameter.IsIncluded)
-            .Select(parameter => parameter.ToStepParameter())
-            .ToList(),
-        Meta = new StepMeta
+        var step = new MacroStep
         {
-            Comment = MetaComment.Trim(),
-            IsEnabled = MetaEnabled,
-            TimeoutMs = MetaTimeout.Milliseconds,
-            RetryCount = Whole(MetaRetryCount),
-            RetryDelayMs = MetaRetryDelay.Milliseconds,
-            RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
-            DelayBeforeMs = MetaDelayBefore.Milliseconds,
-            DelayAfterMs = MetaDelayAfter.Milliseconds,
-            OnError = StepMeta.Action(MetaOnError.Value),
-        },
-    };
+            Type = SelectedDefinition!.Key,
+            Id = _editingId,
+            Parameters = Parameters
+                .Where(parameter => parameter.IsIncluded
+                    || parameter.Definition.Kind == ActionParameterKind.Steps)
+                .Select(parameter => parameter.ToStepParameter())
+                .ToList(),
+            Meta = new StepMeta
+            {
+                Comment = MetaComment.Trim(),
+                IsEnabled = MetaEnabled,
+                TimeoutMs = MetaTimeout.Milliseconds,
+                RetryCount = Whole(MetaRetryCount),
+                RetryDelayMs = MetaRetryDelay.Milliseconds,
+                RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
+                DelayBeforeMs = MetaDelayBefore.Milliseconds,
+                DelayAfterMs = MetaDelayAfter.Milliseconds,
+                OnError = StepMeta.Action(MetaOnError.Value),
+            },
+        };
+        step.EnsureDeclaredLists();
+        return step;
+    }
 
     /// <summary>Reads a whole-number box that may be left empty, counting an empty one as zero.</summary>
     private static int Whole(decimal? value) => value is null ? 0 : Math.Max(0, (int)value.Value);

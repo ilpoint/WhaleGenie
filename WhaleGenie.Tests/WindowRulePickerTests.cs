@@ -278,24 +278,21 @@ public class WindowRulePickerTests
     }
 
     [Fact]
-    public void AltX_writes_the_embedded_action_position_and_leaves_the_trigger_alone()
+    public void AltX_writes_the_action_window_position()
     {
         Ui.Run(() =>
         {
-            var macro = new MacroItem { Name = "probe" };
             var devices = new ChecksDevices { Screen = new ScreenAt(new ScreenPoint(321, 123)) };
-            var window = new MacroEditorWindow(macro, [macro], null, devices);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [])
+            {
+                Devices = devices,
+            };
             try
             {
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
-                var model = (MacroEditorViewModel)window.DataContext!;
-                model.NewStepCommand.Execute(null);
-                Dispatcher.UIThread.RunJobs();
-
-                var content = window.FindControl<ContentControl>("InspectorContent");
-                var view = Assert.IsType<ActionEditorView>(content!.Content);
+                var view = Assert.IsType<ActionEditorView>(window.Content);
                 view.SelectAction("vision.getPixel");
                 Dispatcher.UIThread.RunJobs();
 
@@ -307,8 +304,6 @@ public class WindowRulePickerTests
                     .First(parameter => parameter.Definition.Name == "x").CurrentText);
                 Assert.Equal("123", action.Parameters
                     .First(parameter => parameter.Definition.Name == "y").CurrentText);
-                Assert.Equal("0", model.ColorPositionX);
-                Assert.Equal("0", model.ColorPositionY);
             }
             finally
             {

@@ -35,7 +35,7 @@ public class LookWindowTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("match"), []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -708,7 +708,7 @@ public class LookWindowTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("match"), []);
             window.Show();
             Dispatcher.UIThread.RunJobs();

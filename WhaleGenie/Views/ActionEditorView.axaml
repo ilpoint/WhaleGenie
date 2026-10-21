@@ -835,8 +835,10 @@
                      of the macro; the steps inside a block are edited in the editor's own list,
                      where the block's shape can be seen. -->
                 <Border Classes="NestedBox" IsVisible="{Binding IsConditionList}">
-                    <StackPanel>
-                        <ListBox Classes="NestedList" Height="128"
+                    <StackPanel Spacing="7">
+                        <ListBox Classes="NestedList"
+                                 MaxHeight="180"
+                                 IsVisible="{Binding List.HasSteps}"
                                  ItemsSource="{Binding List.Steps}"
                                  SelectedItem="{Binding List.SelectedStep}">
                             <ListBox.ItemTemplate>
@@ -853,10 +855,26 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
 
-                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,7,0,0">
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding List.AddLabel}"
-                                    Command="{Binding List.AddCommand}" />
+                        <Border IsVisible="{Binding List.HasNoSteps}"
+                                Padding="10,8" CornerRadius="4"
+                                BorderBrush="{DynamicResource AppBorder}"
+                                BorderThickness="1">
+                            <TextBlock Classes="Muted"
+                                       Text="{Binding [Add.NoCondition], Source={x:Static loc:Strings.Current}}" />
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Classes="AddButton" Height="34"
+                                    Command="{Binding List.AddCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <views:IconView Width="14" Height="14"
+                                                    Stroke="#FFFFFF" StrokeThickness="1.6"
+                                                    FitToBounds="True"
+                                                    Data="{x:Static models:AppIcons.Plus}" />
+                                    <TextBlock Text="{Binding List.AddLabel}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                             <Button Classes="FlatButton" Height="30" Padding="10,0"
                                     Content="{Binding [Add.NestedEdit], Source={x:Static loc:Strings.Current}}"
                                     IsEnabled="{Binding List.CanEdit}"
@@ -871,11 +889,6 @@
                      are open. -->
                 <StackPanel IsVisible="{Binding IsStepList}" Margin="2,8,0,0">
                     <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding StepsNote}" />
-                    <Button Classes="FlatButton" Height="30" Padding="10,0" Margin="0,7,0,0"
-                            HorizontalAlignment="Left"
-                            Content="{Binding List.AddLabel}"
-                            ToolTip.Tip="{Binding [Add.AddStepToBlockHint], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding List.AddCommand}" />
                 </StackPanel>
 
                 <TextBlock Classes="Muted" Text="{Binding Hint}"

@@ -87,12 +87,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     private readonly List<MacroStep> _selection = [];
 
     /// <summary>
-    /// Where the next step the dialog builds is to land, remembered between the press that asked
-    /// for it and the dialog coming back with an answer. The step that owns the list comes along
-    /// because a list may only take certain kinds of step — a switch's branches, or a condition.
-    /// Null means the end of the macro.
+    /// The exact list and index an action chosen from the library will occupy. The owner and
+    /// parameter travel with it because a section can limit which action kinds it accepts.
     /// </summary>
-    private (MacroStep Owner, StepParameter Parameter, int Index)? _insertAt;
+    private StepInsertionTarget? _insertAt;
+
+    private sealed record StepInsertionTarget(IList<MacroStep> List, int Index,
+        MacroStep? Owner, StepParameter? Parameter);
 
     private bool _loading;
 
@@ -556,6 +557,30 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public bool HasSteps => Steps.Count > 0;
 
+    /// <summary>The document tabs shared by the parent and every child editor in one window.</summary>
+    public ObservableCollection<MacroDocumentPageViewModel> Documents { get; internal set; } = [];
+
+    /// <summary>Child definitions carried by this document when it is read back or saved.</summary>
+    public List<MacroItem> SubMacros { get; } = [];
+
+    /// <summary>
+    /// True when this editor is showing a callable definition owned by another macro. Such a
+    /// definition has no trigger of its own, so trigger-only validation must not block it.
+    /// </summary>
+    public bool IsSubMacro { get; internal set; }
+
+    /// <summary>The public macro this definition was copied from, if any.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OriginLabel))]
+    [NotifyPropertyChangedFor(nameof(HasOrigin))]
+    public partial MacroOrigin? Origin { get; set; }
+
+    public bool HasOrigin => Origin is not null;
+
+    public string OriginLabel => Origin is { } origin
+        ? Strings.Format("Editor.PublicOrigin", origin.Name, origin.Version)
+        : string.Empty;
+
     /// <summary>
     /// Names of the other macros in the project. A step that calls a macro is checked against
     /// these, so a call left pointing at a name that has gone is called out here rather than
@@ -616,7 +641,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>The save button's answer: the macro name and the declarations both have to be usable.</summary>
     public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems
-        && !HasBlockingHotstringProblem;
+        && (IsSubMacro || !HasBlockingHotstringProblem);
 
     private bool HasBlockingHotstringProblem
         => (SelectedTrigger?.Kind == TriggerKind.Hotstring
@@ -712,6 +737,10 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasNameProblem))]
     [NotifyPropertyChangedFor(nameof(CanSave))]
     public partial string Name { get; set; } = string.Empty;
+
+    /// <summary>A sentence shown with a callable macro in pickers and libraries.</summary>
+    [ObservableProperty]
+    public partial string Description { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TriggerIndex))]
@@ -1601,7 +1630,8 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
-        _insertAt = (row.Step, parameter, parameter.Steps.Count);
+        _insertAt = new StepInsertionTarget(parameter.Steps, parameter.Steps.Count,
+            row.Step, parameter);
         AddStepRequested?.Invoke();
     }
 
@@ -1610,8 +1640,9 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// only takes branches, a condition list only takes conditions, everything else takes
     /// anything. Read by the window when it opens the dialog.
     /// </summary>
-    public IReadOnlyList<ActionDefinition>? InsertChoices => _insertAt is { } at
-        ? ChoicesFor(at.Owner, at.Parameter)
+    public IReadOnlyList<ActionDefinition>? InsertChoices => _insertAt is
+    { Owner: { } owner, Parameter: { } parameter }
+        ? ChoicesFor(owner, parameter)
         : null;
 
     private static IReadOnlyList<ActionDefinition>? ChoicesFor(MacroStep owner, StepParameter parameter)
@@ -2045,9 +2076,14 @@ public partial class MacroEditorViewModel : ViewModelBase
     public void AddStep(MacroStep step)
     {
         PushUndo();
+        step.EnsureDeclaredLists();
+        if (step.StepLists.Any())
+        {
+            step.IsExpanded = true;
+        }
 
         var (list, index) = _insertAt is { } at
-            ? ((IList<MacroStep>)at.Parameter.Steps, at.Index)
+            ? (at.List, at.Index)
             : ((IList<MacroStep>)Steps, Steps.Count);
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
@@ -2083,6 +2119,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Swaps a step for the edited version returned by the dialog.</summary>
     public void ReplaceStep(MacroStep original, MacroStep replacement)
     {
+        replacement.EnsureDeclaredLists();
         if (ListOf(original) is not { } list)
         {
             return;
@@ -2211,6 +2248,8 @@ public partial class MacroEditorViewModel : ViewModelBase
         try
         {
             Name = macro.Name;
+            Description = macro.Description;
+            Origin = macro.Origin;
             TriggerEntries.Clear();
             if (macro.Triggers.Count == 0)
             {
@@ -2253,6 +2292,9 @@ public partial class MacroEditorViewModel : ViewModelBase
             {
                 Steps.Add(step);
             }
+
+            SubMacros.Clear();
+            SubMacros.AddRange(macro.SubMacros);
 
             // A macro written before steps had names, or one edited by hand outside the program,
             // arrives with none or with the same one twice; both are settled here, once, rather
@@ -2520,15 +2562,58 @@ public partial class MacroEditorViewModel : ViewModelBase
         return (row.List?.Steps ?? (IList<MacroStep>)Steps, Math.Max(0, row.Index));
     }
 
+    /// <summary>
+    /// Locks the place a dropped action will occupy. The form opens after this, so the list cannot
+    /// move the target under it while the person fills the fields.
+    /// </summary>
+    public void PrepareInsertionAt(int slot, MacroStep? into)
+    {
+        if (into is not null)
+        {
+            if (into.StepLists.FirstOrDefault() is not { } parameter)
+            {
+                return;
+            }
+
+            into.IsExpanded = true;
+            _insertAt = new StepInsertionTarget(parameter.Steps,
+                parameter.Steps.Count, into, parameter);
+            return;
+        }
+
+        var (list, index) = DropTarget(slot);
+        var owner = DocumentOrder().FirstOrDefault(candidate =>
+            candidate.StepLists.Any(parameter => ReferenceEquals(parameter.Steps, list)));
+        if (owner is not null
+            && owner.StepLists.First(parameter => ReferenceEquals(parameter.Steps, list))
+                is { } ownerParameter)
+        {
+            _insertAt = new StepInsertionTarget(list, index, owner, ownerParameter);
+        }
+        else
+        {
+            _insertAt = new StepInsertionTarget(list, index, null, null);
+        }
+    }
+
+    /// <summary>True when the place currently accepting a drop allows this action.</summary>
+    public bool CanPlace(string actionKey)
+        => InsertChoices is not { } allowed
+           || allowed.Any(definition => definition.Key == actionKey);
+
+    public void ClearPendingInsertion()
+        => _insertAt = null;
+
     /// <summary>Where a step asked for now should go: below the picked one, in its own block.</summary>
-    private (MacroStep Owner, StepParameter Parameter, int Index)? InsertionPoint()
+    private StepInsertionTarget? InsertionPoint()
     {
         if (Ordered(_selection).LastOrDefault() is not { } anchor || OwnerOf(anchor) is not { } at)
         {
             return null;
         }
 
-        return (at.Owner, at.Parameter, at.Parameter.Steps.IndexOf(anchor) + 1);
+        return new StepInsertionTarget(at.Parameter.Steps,
+            at.Parameter.Steps.IndexOf(anchor) + 1, at.Owner, at.Parameter);
     }
 
     /// <summary>
@@ -2692,7 +2777,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// Rebuilds the rows the list shows and puts the selection back on them, in that order: the
     /// view can only highlight a row that is there.
     /// </summary>
-    private void NotifyStepsChanged()
+    internal void NotifyStepsChanged()
     {
         RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
@@ -2761,6 +2846,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         for (var index = 0; index < steps.Count; index++)
         {
             var step = steps[index];
+            step.EnsureDeclaredLists();
             Rows.Add(new StepRow
             {
                 Kind = StepRowKind.Step,
@@ -3045,6 +3131,8 @@ public partial class MacroEditorViewModel : ViewModelBase
         var macro = new MacroItem
         {
             Name = Name.Trim(),
+            Description = Description.Trim(),
+            Origin = Origin,
             PositionCapture = PositionCapture,
             ExclusiveInput = ExclusiveInput,
             RecordMouseMovement = RecordMouseMovement,
@@ -3110,6 +3198,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         macro.Parameters.AddRange(DeclaredParameters);
         macro.Results.AddRange(DeclaredResults);
+        macro.SubMacros.AddRange(SubMacros);
 
         return macro;
     }

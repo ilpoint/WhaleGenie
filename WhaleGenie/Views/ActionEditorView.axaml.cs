@@ -471,7 +471,7 @@ public partial class ActionEditorView : UserControl
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
         var steps = (DataContext as AddActionViewModel)?.StepChoices;
-        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets, steps,
+        var dialog = new ActionEditorWindow(null, list.Catalog, variables, null, null, assets, steps,
             FreeStepId(steps));
 
         // The trial inside the dialog that opened this one runs on the same devices, so a nested
@@ -500,7 +500,7 @@ public partial class ActionEditorView : UserControl
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
         var steps = (DataContext as AddActionViewModel)?.StepChoices;
-        var dialog = new AddActionWindow(step, null, variables, null, null, assets, steps);
+        var dialog = new ActionEditorWindow(step, null, variables, null, null, assets, steps);
         dialog.Devices = Devices;
         var edited = await dialog.ShowDialogOver<MacroStep?>(HostWindow!);
 

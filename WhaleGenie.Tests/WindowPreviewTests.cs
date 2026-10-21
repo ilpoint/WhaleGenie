@@ -765,9 +765,9 @@ public class WindowPreviewTests
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name);
 
     /// <summary>The dialog, opened on an action the way the editor opens it.</summary>
-    private static AddActionWindow Shell(string key)
+    private static ActionEditorWindow Shell(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("wanted"), []);
 
         window.Show();

@@ -17,9 +17,9 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class PathPickerTests
 {
-    private static AddActionViewModel Open(string key, out AddActionWindow window)
+    private static AddActionViewModel Open(string key, out ActionEditorWindow window)
     {
-        window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+        window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
         window.Show();
         Dispatcher.UIThread.RunJobs();
 

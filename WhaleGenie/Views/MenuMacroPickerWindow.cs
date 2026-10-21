@@ -18,9 +18,10 @@ public sealed class MenuMacroPickerWindow : Window
     private readonly TextBox _search;
     private readonly IReadOnlyList<MacroItem> _macros;
 
-    private MenuMacroPickerWindow(IReadOnlyList<MacroItem> macros)
+    private MenuMacroPickerWindow(IReadOnlyList<MacroItem> macros, string? title = null,
+        string? placeholder = null, bool enabledOnly = true)
     {
-        _macros = [.. macros.Where(macro => macro.IsEnabled)];
+        _macros = [.. (enabledOnly ? macros.Where(macro => macro.IsEnabled) : macros)];
         Width = 380;
         Height = 440;
         MinWidth = 320;
@@ -29,14 +30,14 @@ public sealed class MenuMacroPickerWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
-        Title = Strings.Get("Menu.PickMacro");
+        Title = title ?? Strings.Get("Menu.PickMacro");
         Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
 
         _search = new TextBox
         {
             Height = 36,
             Margin = new Thickness(12, 12, 12, 8),
-            PlaceholderText = Strings.Get("Menu.PickMacroSearch"),
+            PlaceholderText = placeholder ?? Strings.Get("Menu.PickMacroSearch"),
         };
         _search.TextChanged += (_, _) => Fill();
         _list = new ListBox
@@ -95,8 +96,10 @@ public sealed class MenuMacroPickerWindow : Window
         Fill();
     }
 
-    public static Task<MacroItem?> ShowAsync(Window owner, IReadOnlyList<MacroItem> macros)
-        => new MenuMacroPickerWindow(macros).ShowDialogOver<MacroItem?>(owner);
+    public static Task<MacroItem?> ShowAsync(Window owner, IReadOnlyList<MacroItem> macros,
+        string? title = null, string? placeholder = null, bool enabledOnly = true)
+        => new MenuMacroPickerWindow(macros, title, placeholder, enabledOnly)
+            .ShowDialogOver<MacroItem?>(owner);
 
     private void Fill()
     {

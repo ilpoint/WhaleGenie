@@ -309,7 +309,7 @@ public partial class RunWindow : Window
                 viewModel.ToggleBreakpointCommand.Execute(row);
                 break;
             case "condition":
-                var dialog = new AddActionWindow(
+                var dialog = new ActionEditorWindow(
                     viewModel.BreakpointCondition(row.Id), ActionCatalog.Conditions, viewModel.Choices,
                     null, null, ImageAssets.FolderFor(null))
                 {

@@ -22,6 +22,7 @@ public class MacroPackageFormatTests
     [InlineData(12)]
     [InlineData(13)]
     [InlineData(14)]
+    [InlineData(15)]
     [InlineData(9)]
     public void A_package_from_an_older_format_is_refused(int version)
     {
@@ -39,6 +40,46 @@ public class MacroPackageFormatTests
             Assert.Contains(version.ToString(), error.Message, StringComparison.Ordinal);
             Assert.Contains(MacroPackage.FormatVersion.ToString(), error.Message,
                 StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void Child_macros_and_their_public_origin_survive_the_package()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            var path = Path.Combine(folder, "children.wgmacro");
+            var parent = new MacroItem
+            {
+                Name = "parent",
+                Description = "Parent description",
+            };
+            var child = new MacroItem
+            {
+                Name = "child",
+                Description = "Child description",
+                Origin = new MacroOrigin("public-id", "Public child", 6),
+            };
+            child.Steps.Add(new MacroStep { Type = "control.log" });
+            parent.SubMacros.Add(child);
+
+            MacroPackage.Save(path, [parent], [], "test");
+            var loaded = Assert.Single(MacroPackage.Load(path).Macros);
+            var loadedChild = Assert.Single(loaded.SubMacros);
+
+            Assert.Equal("Parent description", loaded.Description);
+            Assert.Equal("Child description", loadedChild.Description);
+            Assert.Equal("public-id", loadedChild.Origin!.Id);
+            Assert.Equal(6, loadedChild.Origin.Version);
+            Assert.Equal("control.log", Assert.Single(loadedChild.Steps).Type);
         }
         finally
         {

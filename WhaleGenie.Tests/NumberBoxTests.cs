@@ -256,9 +256,9 @@ public class NumberBoxTests
         }
     }
 
-    private static AddActionWindow Open(string key)
+    private static ActionEditorWindow Open(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("shot"), []);
 
         window.Show();

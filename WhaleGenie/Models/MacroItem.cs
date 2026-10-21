@@ -52,6 +52,12 @@ public partial class MacroItem : ObservableObject, ILanguageAware
 
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// A sentence for the macro library or for a call made to this macro. It does not describe a
+    /// particular trigger, so it belongs to the callable part shared by projects and submacros.
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
@@ -301,6 +307,15 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     public List<MacroStep> Steps { get; } = [];
 
     /// <summary>
+    /// Callable macros owned by this macro. They travel inside the parent document, are not listed
+    /// as project macros, and are reached by name from the parent or from one another.
+    /// </summary>
+    public List<MacroItem> SubMacros { get; } = [];
+
+    /// <summary>The public macro copy this definition came from, when it came from one.</summary>
+    public MacroOrigin? Origin { get; set; }
+
+    /// <summary>
     /// The values this macro asks whoever calls it to fill in. A call is a form of exactly these
     /// fields, so what a macro expects is written down once, where it is called from.
     /// </summary>
@@ -360,6 +375,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         var node = new JsonObject
         {
             ["name"] = Name,
+            [FieldNames.Description] = Description,
             ["triggerMode"] = TriggerMode.ToString(),
             ["loopMode"] = LoopMode.ToString(),
             ["bindKey"] = BindKey,
@@ -411,6 +427,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             ["arguments"] = ArgumentsJson(),
             ["returns"] = ResultsJson(),
             ["steps"] = steps,
+            [FieldNames.SubMacros] = SubMacrosJson(),
         };
 
         if (includeTriggers)
@@ -427,6 +444,52 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         }
 
         return node;
+    }
+
+    /// <summary>
+    /// The shape of a child macro document. A child is only callable, so trigger, recorder and
+    /// interface fields are deliberately absent rather than written as irrelevant defaults.
+    /// </summary>
+    public JsonObject ToSubMacroJson()
+    {
+        var steps = new JsonArray();
+        foreach (var step in Steps)
+        {
+            steps.Add(step.ToJson());
+        }
+
+        var node = new JsonObject
+        {
+            ["name"] = Name.Trim(),
+            [FieldNames.Description] = Description,
+            ["exclusiveInput"] = ExclusiveInput,
+            ["arguments"] = ArgumentsJson(),
+            ["returns"] = ResultsJson(),
+            ["steps"] = steps,
+        };
+
+        if (Origin is { } origin)
+        {
+            node[FieldNames.Origin] = origin.ToJson();
+        }
+
+        if (SubMacros.Count > 0)
+        {
+            node[FieldNames.SubMacros] = SubMacrosJson();
+        }
+
+        return node;
+    }
+
+    private JsonArray SubMacrosJson()
+    {
+        var children = new JsonArray();
+        foreach (var child in SubMacros)
+        {
+            children.Add(child.ToSubMacroJson());
+        }
+
+        return children;
     }
 
     /// <summary>
@@ -485,6 +548,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         var macro = new MacroItem
         {
             Name = node["name"]?.GetValue<string>() ?? string.Empty,
+            Description = node[FieldNames.Description]?.GetValue<string>() ?? string.Empty,
             TriggerMode = ReadEnum(node, "triggerMode", MacroTrigger.KeystrokesButtonInputs),
             LoopMode = ReadEnum(node, "loopMode", MacroLoop.Toggle),
             BindKey = node["bindKey"]?.GetValue<string>() ?? string.Empty,
@@ -518,6 +582,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             IgnoreDelaysBelowMs = ReadInt(record?["ignoreDelaysBelowMs"], 50),
             RecordIgnoreInjected = ReadBool(record?["ignoreInjected"], true),
             DelayScale = ReadDouble(node["delayScale"], 1),
+            Origin = MacroOrigin.FromJson(node[FieldNames.Origin] as JsonObject),
         };
 
         if (node["arguments"] is JsonArray arguments)
@@ -556,6 +621,14 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 {
                     macro.Steps.Add(MacroStep.FromJson(child));
                 }
+            }
+        }
+
+        if (node[FieldNames.SubMacros] is JsonArray subMacros)
+        {
+            foreach (var child in subMacros.OfType<JsonObject>())
+            {
+                macro.SubMacros.Add(FromJson(child));
             }
         }
 

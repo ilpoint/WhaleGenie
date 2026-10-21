@@ -62,6 +62,22 @@ public static class StepIds
         }
     }
 
+    /// <summary>
+    /// Settles several callable documents against one set of names. A parent and its submacros run
+    /// under the same parent identity, so steps in different documents still need distinct ids.
+    /// </summary>
+    public static void SettleAcross(IEnumerable<IEnumerable<MacroStep>> documents)
+    {
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var steps in documents)
+        {
+            foreach (var step in steps)
+            {
+                Settle(step, taken);
+            }
+        }
+    }
+
     private static void Settle(MacroStep step, ISet<string> taken)
     {
         if (step.Id.Length == 0 || !taken.Add(step.Id))

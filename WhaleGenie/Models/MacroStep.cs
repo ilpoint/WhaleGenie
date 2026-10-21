@@ -20,7 +20,7 @@ public class StepParameter
 
     public required ActionParameterKind Kind { get; init; }
 
-    public string Value { get; init; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 
     /// <summary>
     /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%
@@ -270,6 +270,38 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>The parameters of this step that hold steps, in the order they were written.</summary>
     public IEnumerable<StepParameter> StepLists
         => Parameters.Where(parameter => parameter.Kind == ActionParameterKind.Steps);
+
+    /// <summary>
+    /// Restores the empty child lists the action catalogue declares but the file or form omitted.
+    /// An empty block still has a place for its first child; that place is part of the action's
+    /// shape, not data that only exists after a child has been added.
+    /// </summary>
+    public void EnsureDeclaredLists()
+    {
+        if (Definition is { } definition)
+        {
+            foreach (var declared in definition.Parameters
+                         .Where(parameter => parameter.Kind == ActionParameterKind.Steps))
+            {
+                if (!Parameters.Any(parameter => parameter.Name == declared.Name))
+                {
+                    Parameters.Add(new StepParameter
+                    {
+                        Name = declared.Name,
+                        Kind = ActionParameterKind.Steps,
+                    });
+                }
+            }
+        }
+
+        foreach (var child in Parameters.SelectMany(parameter => parameter.Steps)
+                     .Concat(Parameters
+                         .Where(parameter => parameter.Condition is not null)
+                         .Select(parameter => parameter.Condition!)))
+        {
+            child.EnsureDeclaredLists();
+        }
+    }
 
     /// <summary>How many steps are written inside this one, all of its lists together.</summary>
     public int ChildCount => StepLists.Sum(list => list.Steps.Count);
@@ -659,6 +691,8 @@ public class MacroStep : INotifyPropertyChanged
                     StepParameter.FromJson(name, value, definition, JitterOf(jitters, name)));
             }
         }
+
+        step.EnsureDeclaredLists();
 
         return step;
     }

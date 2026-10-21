@@ -21,10 +21,10 @@ public class StepPickerTests
             Meta = new StepMeta { Comment = comment },
         };
 
-    private static (AddActionViewModel ViewModel, AddActionWindow Window) Open(
+    private static (AddActionViewModel ViewModel, ActionEditorWindow Window) Open(
         MacroStep? editing, IReadOnlyList<ActionParameterOption> steps)
     {
-        var window = new AddActionWindow(editing, ActionCatalog.Conditions, [], [], null, null, steps);
+        var window = new ActionEditorWindow(editing, ActionCatalog.Conditions, [], [], null, null, steps);
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -103,7 +103,7 @@ public class StepPickerTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
+            var window = new ActionEditorWindow(
                 new MacroStep
                 {
                     Type = "condition.stepResult",
