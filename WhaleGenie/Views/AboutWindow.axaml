@@ -8,8 +8,8 @@
         mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="720"
         x:Class="WhaleGenie.Views.AboutWindow"
         Title="WhaleGenie"
-        Width="560" Height="720"
-        MinWidth="540" MinHeight="560"
+        Width="560" Height="430"
+        MinWidth="540" MinHeight="380"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -84,14 +84,20 @@
                     <TextBlock Text="{Binding [About.SupportTitle], Source={x:Static loc:Strings.Current}}"
                                Foreground="{DynamicResource AppTextStrong}" FontSize="15"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding [About.SupportText], Source={x:Static loc:Strings.Current}}"
+                    <TextBlock Name="SupportText"
+                               Text="{Binding [About.SupportText], Source={x:Static loc:Strings.Current}}"
                                TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}" FontSize="13" />
+                    <Button Classes="FlatButton" Name="SupportButton"
+                            Height="30" MinWidth="82" HorizontalAlignment="Left"
+                            Content="{Binding [About.SupportButton], Source={x:Static loc:Strings.Current}}"
+                            Click="OnSupportClicked" />
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,6,0,0">
+                    <Grid Name="SupportCodes" IsVisible="False"
+                          ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,6,0,0">
                         <Border Background="{DynamicResource AppSurface}" CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8" HorizontalAlignment="Center">
                                 <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
-                                    <Image Name="WeChatQr" Source="/Assets/DonateWeChat.png"
+                                    <Image Name="WeChatQr"
                                            Width="190" Height="190" Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Text="{Binding [About.WeChat], Source={x:Static loc:Strings.Current}}"
@@ -104,7 +110,7 @@
                                 CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8" HorizontalAlignment="Center">
                                 <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
-                                    <Image Name="AlipayQr" Source="/Assets/DonateAlipay.png"
+                                    <Image Name="AlipayQr"
                                            Width="190" Height="190" Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Text="{Binding [About.Alipay], Source={x:Static loc:Strings.Current}}"

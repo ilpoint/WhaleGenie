@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -20,7 +21,8 @@ public sealed class MenuIconPickerWindow : Window
     internal const int IconsPerRow = 7;
     internal const int MaximumIconsPerPage = IconsPerRow * 20;
     private readonly TextBox _search;
-    private readonly ListBox _list;
+    private readonly ScrollViewer _scroll;
+    private readonly ItemsControl _icons;
     private readonly TextBlock _empty;
     private readonly Button _previousPage;
     private readonly Button _nextPage;
@@ -29,6 +31,9 @@ public sealed class MenuIconPickerWindow : Window
     private readonly DispatcherTimer _searchDelay;
     private IReadOnlyList<MenuIconOption> _matches = [];
     private IReadOnlyList<MenuIconOption> _pageOptions = [];
+    private string _appliedSearch = string.Empty;
+    private bool _hasAppliedSearch;
+    private int _renderRevision;
     private int _page = 1;
     private int _pageCount = 1;
 
@@ -65,13 +70,13 @@ public sealed class MenuIconPickerWindow : Window
                 e.Handled = true;
             }
         };
-        _list = new ListBox
+        _icons = new ItemsControl
         {
             Name = "MenuIconList",
-            Margin = new Thickness(8, 0, 8, 8),
+            Focusable = false,
             ItemsPanel = new FuncTemplate<Panel?>(() => new VirtualizingStackPanel()),
         };
-        _list.ItemTemplate = new FuncDataTemplate<IReadOnlyList<MenuIconOption>>((row, _) =>
+        _icons.ItemTemplate = new FuncDataTemplate<IReadOnlyList<MenuIconOption>>((row, _) =>
         {
             var strip = new StackPanel
             {
@@ -84,6 +89,13 @@ public sealed class MenuIconPickerWindow : Window
             }
             return strip;
         });
+        _scroll = new ScrollViewer
+        {
+            Margin = new Thickness(8, 0, 8, 8),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = _icons,
+        };
 
         _empty = new TextBlock
         {
@@ -139,7 +151,7 @@ public sealed class MenuIconPickerWindow : Window
 
         var listArea = new Grid
         {
-            Children = { _list, _empty },
+            Children = { _scroll, _empty },
         };
         var buttons = new Grid
         {
@@ -160,12 +172,9 @@ public sealed class MenuIconPickerWindow : Window
         Grid.SetRow(listArea, 2);
         Grid.SetRow(buttons, 3);
 
-        Opened += (_, _) =>
-        {
-            ApplySearch(resetPage: true);
-            _search.Focus();
-        };
+        Opened += (_, _) => _search.Focus();
         Closed += (_, _) => _searchDelay.Stop();
+        ApplySearch(resetPage: true);
     }
 
     internal int PageForCheck => _page;
@@ -175,6 +184,8 @@ public sealed class MenuIconPickerWindow : Window
     internal int MatchCountForCheck => _matches.Count;
 
     internal IReadOnlyList<MenuIconOption> PageOptionsForCheck => _pageOptions;
+
+    internal int RenderRevisionForCheck => _renderRevision;
 
     internal void ApplySearchForCheck() => ApplySearch(resetPage: true);
 
@@ -237,6 +248,8 @@ public sealed class MenuIconPickerWindow : Window
 
     private void ChangePage(int step)
     {
+        _searchDelay.Stop();
+        ApplySearch(resetPage: true);
         var page = Math.Clamp(_page + step, 1, _pageCount);
         if (page == _page)
         {
@@ -250,12 +263,20 @@ public sealed class MenuIconPickerWindow : Window
     private void ApplySearch(bool resetPage)
     {
         var wanted = _search.Text?.Trim() ?? string.Empty;
+        var queryChanged = !string.Equals(_appliedSearch, wanted,
+            StringComparison.Ordinal);
+        if (_hasAppliedSearch && !queryChanged)
+        {
+            return;
+        }
+        _appliedSearch = wanted;
+        _hasAppliedSearch = true;
         _matches = [.. MenuIconCatalog.Options
             .Where(option => wanted.Length == 0
                 || option.Label.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
         _pageCount = Math.Max(1,
             (_matches.Count + MaximumIconsPerPage - 1) / MaximumIconsPerPage);
-        if (resetPage)
+        if (resetPage && queryChanged)
         {
             _page = 1;
         }
@@ -268,13 +289,14 @@ public sealed class MenuIconPickerWindow : Window
         _pageOptions = [.. _matches
             .Skip((_page - 1) * MaximumIconsPerPage)
             .Take(MaximumIconsPerPage)];
-        _list.ItemsSource = _pageOptions.Chunk(IconsPerRow).ToList();
-        _list.IsVisible = _pageOptions.Count > 0;
+        _icons.ItemsSource = _pageOptions.Chunk(IconsPerRow).ToList();
+        _scroll.IsVisible = _pageOptions.Count > 0;
         _empty.IsVisible = _pageOptions.Count == 0;
         _pageBar.IsVisible = _pageCount > 1;
         _previousPage.IsEnabled = _page > 1;
         _nextPage.IsEnabled = _page < _pageCount;
         _pageLabel.Text = Strings.Format("Menu.IconPage", _page, _pageCount);
+        _renderRevision++;
     }
 
     private async Task PickImageAsync()

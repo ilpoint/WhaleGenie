@@ -26,11 +26,13 @@ public class MenuIconPickerTests
                 window.PageCountForCheck);
             Assert.Contains(window.GetVisualDescendants(),
                 visual => visual is VirtualizingStackPanel);
+            Assert.Equal(1, window.RenderRevisionForCheck);
             var realized = window.GetVisualDescendants().OfType<Button>()
                 .Count(button => button.Classes.Contains("MenuIconChoice"));
             Assert.InRange(realized, 1, MenuIconPickerWindow.MaximumIconsPerPage);
+            Assert.Empty(window.GetVisualDescendants().OfType<ListBox>());
 
-            var list = window.GetVisualDescendants().OfType<ListBox>()
+            var list = window.GetVisualDescendants().OfType<ItemsControl>()
                 .Single(control => control.Name == "MenuIconList");
             var next = window.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.Name == "MenuIconNextPage");
@@ -42,6 +44,11 @@ public class MenuIconPickerTests
                 window.PageOptionsForCheck[0].Key);
             Assert.True(list.ItemCount <= MenuIconPickerWindow.MaximumIconsPerPage
                 / MenuIconPickerWindow.IconsPerRow);
+            Assert.Equal(2, window.RenderRevisionForCheck);
+
+            window.ApplySearchForCheck();
+            Assert.Equal(2, window.PageForCheck);
+            Assert.Equal(2, window.RenderRevisionForCheck);
             window.Close();
         });
     }

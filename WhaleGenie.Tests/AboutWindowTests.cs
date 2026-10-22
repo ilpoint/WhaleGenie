@@ -1,26 +1,72 @@
+using System;
+using System.IO;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Localization;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// The donation section is made of two pictures and the words that explain them. A missing asset
-/// would leave an empty frame in the About window, and text written in only one place would let the
-/// file people read on the project page drift away from the one the program shows.
+/// The support section starts folded, loads its two pictures only when asked for, and keeps the
+/// longer documents reachable from the same window.
 /// </summary>
 public class AboutWindowTests
 {
     [Fact]
-    public void The_about_window_shows_both_donation_codes()
+    public void Support_codes_start_collapsed_and_load_only_when_expanded()
     {
-        var xaml = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "AboutWindow.axaml"));
+        Ui.Run(() =>
+        {
+            var window = new AboutWindow();
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var codes = window.FindControl<Grid>("SupportCodes")!;
+            var button = window.FindControl<Button>("SupportButton")!;
+            var supportText = window.FindControl<TextBlock>("SupportText")!;
+            var weChat = window.FindControl<Image>("WeChatQr")!;
+            var alipay = window.FindControl<Image>("AlipayQr")!;
 
-        Assert.Contains("Name=\"SupportPanel\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Source=\"/Assets/DonateWeChat.png\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Source=\"/Assets/DonateAlipay.png\"", xaml, StringComparison.Ordinal);
+            Assert.False(codes.IsVisible);
+            Assert.Equal(430, window.Height);
+            Assert.Equal(Strings.Get("About.SupportButton"), button.Content);
+            Assert.Null(weChat.Source);
+            Assert.Null(alipay.Source);
+            var textBottom = supportText.TranslatePoint(
+                new Avalonia.Point(0, supportText.Bounds.Height), window)!.Value.Y;
+            var buttonTop = button.TranslatePoint(default, window)!.Value.Y;
+            Assert.True(buttonTop >= textBottom);
+
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(codes.IsVisible);
+            Assert.Equal(720, window.Height);
+            Assert.Equal(Strings.Get("About.SupportCollapse"), button.Content);
+            Assert.NotNull(weChat.Source);
+            Assert.NotNull(alipay.Source);
+
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.False(codes.IsVisible);
+            Assert.Equal(430, window.Height);
+            Assert.Equal(Strings.Get("About.SupportButton"), button.Content);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void The_about_window_has_both_valid_support_assets()
+    {
+        var code = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "AboutWindow.axaml.cs"));
+
+        Assert.Contains("DonateWeChat.png", code, StringComparison.Ordinal);
+        Assert.Contains("DonateAlipay.png", code, StringComparison.Ordinal);
 
         Ui.Run(() =>
         {
@@ -37,18 +83,15 @@ public class AboutWindowTests
     }
 
     [Fact]
-    public void The_donation_text_is_in_both_languages()
+    public void The_support_text_is_in_both_languages()
     {
-        Assert.Equal("打赏支持", Strings.Chinese["About.SupportTitle"]);
-        Assert.Contains("WhaleGenie（鲸灵）是完全免费的开源项目。",
+        Assert.Equal("支持开发者", Strings.Chinese["About.SupportTitle"]);
+        Assert.Contains("支持开发者",
             Strings.Chinese["About.SupportText"], StringComparison.Ordinal);
-        Assert.Contains("请🐋吃白饭🍚", Strings.Chinese["About.SupportText"], StringComparison.Ordinal);
 
-        Assert.Equal("Support WhaleGenie", Strings.English["About.SupportTitle"]);
-        Assert.Contains("completely free open-source project",
+        Assert.Equal("Support the developer", Strings.English["About.SupportTitle"]);
+        Assert.Contains("support the developer",
             Strings.English["About.SupportText"], StringComparison.Ordinal);
-        Assert.Contains("🐋", Strings.English["About.SupportText"], StringComparison.Ordinal);
-        Assert.Contains("🍚", Strings.English["About.SupportText"], StringComparison.Ordinal);
     }
 
     [Fact]
