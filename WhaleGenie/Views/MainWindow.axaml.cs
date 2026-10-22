@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private WindowInfo? _menuForeground;
     private int _menuOpen;
     private int _menuChildOpen;
+    private int _menuPopupOpen;
     private int _menuSearchFocused;
     private MenuScreenBounds? _menuBounds;
 
@@ -469,7 +470,11 @@ public partial class MainWindow : Window
     private void OnSurfaceForegroundChanged()
         => Dispatcher.UIThread.Post(() =>
         {
-            if (_menu is { IsEditing: false } menu && _menuForeground is { } expected)
+            if (_menu is { IsPinned: false } menu
+                && _menuForeground is { } expected
+                && CanCloseMenuFromOutside(
+                    Volatile.Read(ref _menuChildOpen),
+                    Volatile.Read(ref _menuPopupOpen)))
             {
                 try
                 {
@@ -681,6 +686,12 @@ public partial class MainWindow : Window
             // The menu can still run a macro that names its own window.
         }
 
+        if (previous is not null
+            && viewModel.Triggers.IsMenuBlocked(previous, SharedDevices.Current.Windows))
+        {
+            return;
+        }
+
         var layout = viewModel.Triggers.BuildMenuLayout(previous,
             SharedDevices.Current.Windows, [.. viewModel.Macros]);
         HideSurface();
@@ -689,22 +700,28 @@ public partial class MainWindow : Window
         try
         {
             var actions = new MenuWindowActions(
-                _triggers is null ? _ => { }
-            : macro => _triggers.RunOnce(macro),
+                macro =>
+                {
+                    RestoreMenuForeground();
+                    OpenEditor(macro, macro, draft: false);
+                },
+                macro => Dispatcher.UIThread.Post(() => _ = ShowRunDebugAsync(macro)),
                 () =>
                 {
                     var foreground = _menuForeground;
                     Dispatcher.UIThread.Post(() => _ = OpenMenuSettingsAsync(foreground));
                 },
                 RestoreMenuForeground,
+                () => AddCurrentWindowRuleAsync(viewModel),
+                () => BlockCurrentWindowAsync(viewModel),
                 () => AddCommonMenuPageAsync(viewModel),
                 pageId => RemoveCommonMenuPageAsync(pageId, viewModel),
                 pageId => AddContextMenuPageAsync(pageId, viewModel),
                 pageId => RemoveContextMenuPageAsync(pageId, viewModel),
                 slot => ChooseMenuMacroAsync(slot, viewModel),
-                (slot, command) => EditMenuCellAsync(slot, command, viewModel),
+                slot => ChooseMenuIconAsync(slot, viewModel),
                 (source, target) => MoveMenuCellAsync(source, target, viewModel));
-            menu = new MacroMenuWindow(layout, actions);
+            menu = new MacroMenuWindow(layout, actions, MenuForegroundProcess(previous));
         }
         catch (Exception error)
         {
@@ -715,10 +732,13 @@ public partial class MainWindow : Window
         _menu = menu;
         _menuForeground = previous;
         _menuChildOpen = 0;
+        _menuPopupOpen = 0;
         _menuSearchFocused = 0;
         Volatile.Write(ref _menuOpen, 1);
         menu.SearchFocusChanged += focused =>
             Volatile.Write(ref _menuSearchFocused, focused ? 1 : 0);
+        menu.PopupOpenChanged += open =>
+            Volatile.Write(ref _menuPopupOpen, open ? 1 : 0);
         menu.PositionChanged += (_, _) => UpdateMenuBounds(menu);
         menu.SizeChanged += (_, _) => UpdateMenuBounds(menu);
         menu.Closed += (_, _) =>
@@ -726,6 +746,7 @@ public partial class MainWindow : Window
             MacroTriggerGate.Exit();
             Volatile.Write(ref _menuOpen, 0);
             Volatile.Write(ref _menuChildOpen, 0);
+            Volatile.Write(ref _menuPopupOpen, 0);
             Volatile.Write(ref _menuSearchFocused, 0);
             Volatile.Write(ref _menuBounds, null);
             if (ReferenceEquals(_menu, menu))
@@ -842,7 +863,6 @@ public partial class MainWindow : Window
         if (slot.Cell is { } existing)
         {
             existing.Entry.MacroName = macro.Name;
-            existing.Entry.MenuLabel = string.Empty;
         }
         else
         {
@@ -862,6 +882,53 @@ public partial class MainWindow : Window
         return RebuildMenuLayout(viewModel);
     }
 
+    private Task<MenuRuntimeLayout?> AddCurrentWindowRuleAsync(MainViewModel viewModel)
+    {
+        if (_menuForeground is not { } foreground
+            || MenuForegroundProcess(foreground) is not { Length: > 0 } process)
+        {
+            return Task.FromResult<MenuRuntimeLayout?>(null);
+        }
+
+        string className;
+        try
+        {
+            className = SharedDevices.Current.Windows.ClassOf(foreground.Handle);
+        }
+        catch
+        {
+            className = string.Empty;
+        }
+        viewModel.Triggers.EnsureProcessMenuRule(foreground, process, className);
+        viewModel.MarkMenuChanged();
+        return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
+    }
+
+    private Task<bool> BlockCurrentWindowAsync(MainViewModel viewModel)
+    {
+        if (_menuForeground is not { } foreground
+            || MenuForegroundProcess(foreground) is not { Length: > 0 } process)
+        {
+            return Task.FromResult(false);
+        }
+
+        string className;
+        try
+        {
+            className = SharedDevices.Current.Windows.ClassOf(foreground.Handle);
+        }
+        catch
+        {
+            className = string.Empty;
+        }
+        if (viewModel.Triggers.BlockMenuForProcess(foreground, process, className))
+        {
+            viewModel.MarkMenuChanged();
+        }
+
+        return Task.FromResult(true);
+    }
+
     private Task<MenuRuntimeLayout?> AddCommonMenuPageAsync(MainViewModel viewModel)
     {
         if (viewModel.Triggers.CommonMenuPages().Count < ProjectTriggers.MaxCommonMenuPages)
@@ -875,7 +942,7 @@ public partial class MainWindow : Window
     private Task<MenuRuntimeLayout?> RemoveCommonMenuPageAsync(string pageId,
         MainViewModel viewModel)
     {
-        if (viewModel.Triggers.CommonMenuPages().Count > 1)
+        if (viewModel.Triggers.CanRemoveMenuPage(pageId))
         {
             viewModel.Triggers.RemoveMenuPage(pageId);
             viewModel.MarkMenuChanged();
@@ -914,70 +981,31 @@ public partial class MainWindow : Window
     private Task<MenuRuntimeLayout?> RemoveContextMenuPageAsync(string pageId,
         MainViewModel viewModel)
     {
-        var page = viewModel.Triggers.MenuPages.FirstOrDefault(candidate =>
-            candidate.Id == pageId);
-        if (page is not null)
+        if (viewModel.Triggers.CanRemoveMenuPage(pageId))
         {
-            var siblings = page.IsDefault
-                ? viewModel.Triggers.DefaultContextMenuPages()
-                : viewModel.Triggers.ContextPagesFor(page.Window);
-            if (siblings.Count > 1)
-            {
-                viewModel.Triggers.RemoveMenuPage(pageId);
-                viewModel.MarkMenuChanged();
-            }
+            viewModel.Triggers.RemoveMenuPage(pageId);
+            viewModel.MarkMenuChanged();
         }
         return Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
     }
 
-    private async Task<MenuRuntimeLayout?> EditMenuCellAsync(MenuSlotRef slot,
-        MenuEditCommand command, MainViewModel viewModel)
+    private async Task<MenuRuntimeLayout?> ChooseMenuIconAsync(MenuSlotRef slot,
+        MainViewModel viewModel)
     {
         Interlocked.Increment(ref _menuChildOpen);
         try
         {
-            if (command == MenuEditCommand.Replace || slot.Cell is null)
+            if (slot.Cell is not { } cell || _menu is null
+                || await MenuIconPickerWindow.ShowAsync(_menu) is not { } icon)
             {
-                return command == MenuEditCommand.Replace
-                    ? await ChooseMenuMacroAsync(slot, viewModel)
-                    : null;
+                return null;
             }
 
-            var entry = slot.Cell.Entry;
-            switch (command)
-            {
-                case MenuEditCommand.EditLabel:
-                    if (_menu is null)
-                    {
-                        return null;
-                    }
-                    var answer = await TextPromptDialog.ShowAsync(_menu,
-                        Strings.Get("Menu.EditLabel"),
-                        new AskQuestion(AskKind.Text, Strings.Get("Menu.EditLabelPrompt"),
-                            entry.MenuLabel));
-                    if (!answer.Confirmed)
-                    {
-                        return null;
-                    }
-                    entry.MenuLabel = answer.Text;
-                    break;
-                case MenuEditCommand.ChooseIcon:
-                    if (_menu is null
-                        || await MenuIconPickerWindow.ShowAsync(_menu) is not { } icon)
-                    {
-                        return null;
-                    }
-                    entry.MenuIcon = icon.Kind == MenuIconKind.Image
-                        ? new MenuIconReference(icon.Kind, CopyMenuIcon(icon.Value, viewModel))
-                        : icon;
-                    break;
-                case MenuEditCommand.ClearIcon:
-                    entry.MenuIcon = null;
-                    break;
-                case MenuEditCommand.ClearCell:
-                    viewModel.Triggers.Entries.Remove(entry);
-                    break;
-            }
+            cell.Entry.MenuIcon = icon.IsEmpty
+                ? null
+                : icon.Kind == MenuIconKind.Image
+                    ? new MenuIconReference(icon.Kind, CopyMenuIcon(icon.Value, viewModel))
+                    : icon;
 
             viewModel.Triggers.Attach([.. viewModel.Macros]);
             viewModel.MarkMenuChanged();
@@ -986,6 +1014,28 @@ public partial class MainWindow : Window
         finally
         {
             Interlocked.Decrement(ref _menuChildOpen);
+        }
+    }
+
+    private static string MenuForegroundProcess(WindowInfo? foreground)
+    {
+        if (foreground is null)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var process = SharedDevices.Current.Windows.ProcessOf(foreground.Handle).Trim();
+            var own = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
+            return process.Length == 0
+                   || string.Equals(process, own, StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : process;
+        }
+        catch
+        {
+            return string.Empty;
         }
     }
 
@@ -1099,6 +1149,11 @@ public partial class MainWindow : Window
                     return;
                 }
 
+                if (_menu?.IsPinned == true)
+                {
+                    return;
+                }
+
                 if (name is "Left" or "Right" or "Up" or "Down"
                     or "左" or "右" or "上" or "下"
                     or "Enter" or "Return" or "回车" or "Esc" or "Escape")
@@ -1155,7 +1210,8 @@ public partial class MainWindow : Window
                 return;
             }
 
-            if (e.Button is HookMouseButton.Back or HookMouseButton.Forward)
+            if (e.Button is HookMouseButton.Middle
+                or HookMouseButton.Back or HookMouseButton.Forward)
             {
                 var name = KeyNames.MouseName(e.Button);
                 var plan = Volatile.Read(ref _globalHotkeyPlan);
@@ -1168,7 +1224,9 @@ public partial class MainWindow : Window
                 }
             }
 
-            if (Volatile.Read(ref _menuChildOpen) == 0
+            if (CanCloseMenuFromOutside(
+                    Volatile.Read(ref _menuChildOpen),
+                    Volatile.Read(ref _menuPopupOpen))
                 && Volatile.Read(ref _menuBounds) is { } bounds
                 && GetCursorPosition() is { } point
                 && !bounds.Contains(point.X, point.Y))
@@ -1181,6 +1239,9 @@ public partial class MainWindow : Window
             AppDiagnostics.Record("hook.menu-mouse", error);
         }
     }
+
+    internal static bool CanCloseMenuFromOutside(int childOpen, int popupOpen)
+        => childOpen == 0 && popupOpen == 0;
 
     private void OnSystemHotkeyUp(KeyHookEvent e)
     {

@@ -46,15 +46,30 @@ public class MenuEditorTests
         Assert.DoesNotContain(triggers.Entries, entry => entry.MenuPageId == page.Id);
     }
 
+    [Fact]
+    public void The_first_page_of_each_region_cannot_be_removed()
+    {
+        var triggers = new ProjectTriggers();
+        var common = triggers.CommonMenuPages();
+        triggers.AddCommonMenuPage();
+        var context = triggers.DefaultContextMenuPage();
+        triggers.AddDefaultContextPage();
+
+        Assert.False(triggers.CanRemoveMenuPage(common[0].Id));
+        Assert.True(triggers.CanRemoveMenuPage(triggers.CommonMenuPages()[1].Id));
+        Assert.False(triggers.CanRemoveMenuPage(context.Id));
+        Assert.True(triggers.CanRemoveMenuPage(triggers.DefaultContextMenuPages()[1].Id));
+    }
+
     [Theory]
     [InlineData("F11", true)]
     [InlineData("Ctrl+Alt+M", true)]
     [InlineData("Mouse 4", true)]
     [InlineData("Mouse 5", true)]
-    [InlineData("Mouse Middle", false)]
+    [InlineData("Mouse Middle", true)]
     [InlineData("Mouse Left", false)]
     [InlineData("Wheel Up", false)]
-    public void Menu_launchers_accept_keyboard_and_side_buttons_only(string binding, bool allowed)
+    public void Menu_launchers_accept_keyboard_middle_and_side_buttons(string binding, bool allowed)
         => Assert.Equal(allowed, ProjectTriggers.IsAllowedMenuLauncher(binding));
 
     [Fact]

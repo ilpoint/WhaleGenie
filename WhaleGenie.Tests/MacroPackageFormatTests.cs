@@ -24,6 +24,7 @@ public class MacroPackageFormatTests
     [InlineData(14)]
     [InlineData(15)]
     [InlineData(16)]
+    [InlineData(17)]
     [InlineData(9)]
     public void A_package_from_an_older_format_is_refused(int version)
     {
@@ -119,18 +120,25 @@ public class MacroPackageFormatTests
             {
                 Kind = TriggerKind.Menu,
                 MacroName = macro.Name,
-                MenuLabel = "Run",
                 MenuPageId = page.Id,
                 MenuRow = 1,
                 MenuColumn = 2,
             });
             triggers.MenuLauncher = "Ctrl+Alt+M";
+            var blocked = new WindowRule(Process: "game", How: WindowHow.ProcessEquals);
+            triggers.BlockedMenuRules.Add(blocked);
 
             MacroPackage.Save(path, [macro], triggers, [], "test");
+            string triggerJson;
             using (var archive = ZipFile.OpenRead(path))
             {
                 Assert.NotNull(archive.GetEntry("triggers.json"));
+                using var reader = new StreamReader(
+                    archive.GetEntry("triggers.json")!.Open());
+                triggerJson = reader.ReadToEnd();
             }
+            Assert.DoesNotContain("\"label\"", triggerJson, StringComparison.Ordinal);
+            Assert.Contains("\"blockedRules\"", triggerJson, StringComparison.Ordinal);
 
             var loaded = MacroPackage.Load(path);
 
@@ -141,10 +149,10 @@ public class MacroPackageFormatTests
             Assert.Equal("\n", loaded.Triggers.Entries
                 .Single(entry => entry.Kind == TriggerKind.Hotstring).HotstringEndChars);
             Assert.Equal("Ctrl+Alt+M", loaded.Triggers.MenuLauncher);
+            Assert.Equal(blocked, Assert.Single(loaded.Triggers.BlockedMenuRules));
             Assert.Single(loaded.Triggers.CommonMenuPages());
             Assert.Equal(2, loaded.Triggers.ContextMenuPages().Count);
             var menu = loaded.Triggers.Entries.Single(entry => entry.Kind == TriggerKind.Menu);
-            Assert.Equal("Run", menu.MenuLabel);
             Assert.Equal((1, 2), (menu.MenuRow, menu.MenuColumn));
         }
         finally

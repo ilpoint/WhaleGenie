@@ -22,8 +22,8 @@ public class SettingsMenuTests
         Assert.Equal("Mouse 4", project.Triggers.MenuLauncher);
         Assert.False(viewModel.CaptureMenuLauncher("Wheel Down"));
         Assert.Equal("Mouse 4", project.Triggers.MenuLauncher);
-        Assert.False(viewModel.CaptureMenuLauncher("Mouse Middle"));
-        Assert.Equal("Mouse 4", project.Triggers.MenuLauncher);
+        Assert.True(viewModel.CaptureMenuLauncher("Mouse Middle"));
+        Assert.Equal("Mouse Middle", project.Triggers.MenuLauncher);
     }
 
     [Fact]
@@ -41,6 +41,27 @@ public class SettingsMenuTests
         Assert.True(viewModel.MenuRules[0].IsDefault);
         Assert.Equal(2, viewModel.MenuRules[1].PageCount);
         Assert.Empty(viewModel.MenuRuleProblem);
+    }
+
+    [Fact]
+    public void A_blocked_program_is_listed_and_can_be_unblocked_from_window_rules()
+    {
+        var project = new MainViewModel();
+        var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
+            project: project);
+        var rule = new WindowRule(Process: "game", How: WindowHow.ProcessEquals);
+        project.Triggers.BlockedMenuRules.Add(rule);
+        viewModel.RefreshMenuRules();
+
+        var blocked = Assert.Single(viewModel.MenuRules, row => row.IsBlocked);
+        Assert.Equal(Strings.Get("Settings.MenuRuleBlocked"), blocked.PageCountLabel);
+
+        viewModel.AddMenuPage(blocked);
+        Assert.Empty(project.Triggers.ContextMenuPages());
+
+        viewModel.RemoveMenuRule(blocked);
+        Assert.Empty(project.Triggers.BlockedMenuRules);
+        Assert.DoesNotContain(viewModel.MenuRules, row => row.IsBlocked);
     }
 
     [Fact]

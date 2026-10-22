@@ -601,7 +601,8 @@ public sealed class MacroTriggerService : IDisposable
                 _hotstrings.Reset();
             }
 
-            if (e.Button is HookMouseButton.Back or HookMouseButton.Forward
+            if ((e.Button is HookMouseButton.Middle
+                    or HookMouseButton.Back or HookMouseButton.Forward)
                 && TryMenuLauncher(button, pressed: true))
             {
                 e.Suppress = true;

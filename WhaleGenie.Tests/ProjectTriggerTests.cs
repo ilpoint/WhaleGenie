@@ -89,11 +89,10 @@ public class ProjectTriggerTests
         {
             Kind = TriggerKind.Menu,
             MacroName = "macro",
-            MenuLabel = "Open",
             MenuPageId = page.Id,
             MenuRow = 1,
             MenuColumn = 2,
-            MenuIcon = new MenuIconReference(MenuIconKind.Builtin, "play"),
+            MenuIcon = new MenuIconReference(MenuIconKind.Builtin, "Play"),
         });
 
         var restored = ProjectTriggers.FromJson(JsonNode.Parse(triggers.ToJson().ToJsonString())
@@ -108,9 +107,64 @@ public class ProjectTriggerTests
         Assert.Single(restored.CommonMenuPages());
         Assert.Single(restored.ContextMenuPages());
         var menu = restored.Entries.Single(entry => entry.Kind == TriggerKind.Menu);
-        Assert.Equal("Open", menu.MenuLabel);
         Assert.Equal((1, 2), (menu.MenuRow, menu.MenuColumn));
-        Assert.Equal(new MenuIconReference(MenuIconKind.Builtin, "play"), menu.MenuIcon);
+        Assert.Equal(new MenuIconReference(MenuIconKind.Builtin, "Play"), menu.MenuIcon);
+    }
+
+    [Fact]
+    public void A_process_rule_matches_every_window_owned_by_that_program()
+    {
+        var windows = new WindowsForChecks()
+            .Add(1, "Notes - first", "notepad", "Notepad")
+            .Add(2, "Notes - second", "notepad", "Notepad")
+            .Add(3, "Browser", "chrome", "Chrome_WidgetWin_1");
+        var rule = new WindowRule(Process: "notepad", How: WindowHow.ProcessEquals);
+        var triggers = new ProjectTriggers();
+        triggers.BlockedMenuRules.Add(rule);
+
+        Assert.True(triggers.IsMenuBlocked(windows.Open[0], windows));
+        Assert.True(triggers.IsMenuBlocked(windows.Open[1], windows));
+        Assert.False(triggers.IsMenuBlocked(windows.Open[2], windows));
+    }
+
+    [Fact]
+    public void Blocked_program_rules_survive_project_json()
+    {
+        var triggers = new ProjectTriggers();
+        var rule = new WindowRule(Process: "game", How: WindowHow.ProcessEquals);
+        triggers.BlockedMenuRules.Add(rule);
+
+        var restored = ProjectTriggers.FromJson(JsonNode.Parse(triggers.ToJson().ToJsonString())
+            as JsonObject);
+
+        Assert.Equal(rule, Assert.Single(restored.BlockedMenuRules));
+    }
+
+    [Fact]
+    public void A_quick_process_rule_is_reused_instead_of_duplicated()
+    {
+        var windows = new WindowsForChecks().Add(1, "Notes", "notepad", "Notepad");
+        var triggers = new ProjectTriggers();
+
+        var first = triggers.EnsureProcessMenuRule(windows.Open[0], "notepad", "Notepad");
+        var second = triggers.EnsureProcessMenuRule(windows.Open[0], "Notepad", "Notepad");
+
+        Assert.Same(first, second);
+        var group = Assert.Single(triggers.ContextRuleGroups());
+        Assert.Equal(WindowHow.ProcessEquals, group.Rule.How);
+        Assert.Equal("notepad", group.Rule.Process);
+    }
+
+    [Fact]
+    public void Blocking_the_same_program_twice_keeps_one_rule()
+    {
+        var windows = new WindowsForChecks().Add(1, "Notes", "notepad", "Notepad");
+        var triggers = new ProjectTriggers();
+
+        Assert.True(triggers.BlockMenuForProcess(windows.Open[0], "notepad", "Notepad"));
+        Assert.False(triggers.BlockMenuForProcess(windows.Open[0], "Notepad", "Notepad"));
+
+        Assert.Single(triggers.BlockedMenuRules);
     }
 
     [Fact]

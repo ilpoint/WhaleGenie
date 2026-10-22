@@ -74,16 +74,17 @@ public class AppIconTests
     }
 
     [Fact]
-    public void The_menu_icon_picker_offers_a_broad_set_of_named_lucide_icons()
+    public void The_menu_icon_picker_offers_every_named_lucide_icon()
     {
-        Assert.True(MenuIconCatalog.Options.Count >= 70);
+        Assert.Equal(Enum.GetValues<LucideIconKind>().Length, MenuIconCatalog.Options.Count);
         Assert.Equal(MenuIconCatalog.Options.Count,
             MenuIconCatalog.Options.Select(option => option.Key).Distinct(StringComparer.Ordinal).Count());
         Assert.All(MenuIconCatalog.Options, option =>
         {
-            Assert.True(Enum.IsDefined(option.Icon));
+            Assert.True(Enum.IsDefined(option.Kind));
             Assert.NotEmpty(option.Key);
-            Assert.NotEmpty(option.Label);
+            Assert.Equal(option.Key, option.Label);
+            Assert.Same(option, MenuIconCatalog.Find(option.Key));
         });
     }
 }

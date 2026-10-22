@@ -54,9 +54,12 @@ public sealed record MenuRuleRow(
     string Summary,
     WhaleGenie.Core.Devices.WindowRule Rule,
     bool IsDefault,
-    int PageCount)
+    int PageCount,
+    bool IsBlocked = false)
 {
-    public string PageCountLabel => Strings.Format("Settings.MenuRulePageCount", PageCount);
+    public string PageCountLabel => IsBlocked
+        ? Strings.Get("Settings.MenuRuleBlocked")
+        : Strings.Format("Settings.MenuRulePageCount", PageCount);
 }
 
 /// <summary>Backs the settings window. Changing the language applies immediately.</summary>
@@ -227,9 +230,13 @@ public partial class SettingsViewModel : ViewModelBase
                 return string.Empty;
             }
 
-            return Project.Triggers.ContextMenuPages()
-                .Any(page => !page.Window.HasTarget)
-                ? Strings.Get("Menu.Problem.RuleEmpty")
+            if (Project.Triggers.ContextMenuPages()
+                .Any(page => !page.Window.HasTarget))
+            {
+                return Strings.Get("Menu.Problem.RuleEmpty");
+            }
+            return Project.Triggers.BlockedMenuRules.Any(rule => !rule.HasTarget)
+                ? Strings.Get("Menu.Problem.BlockedRuleEmpty")
                 : string.Empty;
         }
     }
@@ -306,6 +313,16 @@ public partial class SettingsViewModel : ViewModelBase
                 $"{group.Rule.MatchValue} · {Strings.Get($"WindowRule.Short.{group.Rule.How}", group.Rule.How)}",
                 group.Rule, false, group.Pages.Count));
         }
+        foreach (var rule in Project.Triggers.BlockedMenuRules)
+        {
+            MenuRules.Add(new MenuRuleRow(
+                ProjectTriggers.GroupKey(rule),
+                $"{rule.MatchValue} · {Strings.Get($"WindowRule.Short.{rule.How}", rule.How)}",
+                rule,
+                false,
+                0,
+                true));
+        }
         OnPropertyChanged(nameof(MenuRuleProblem));
         OnPropertyChanged(nameof(MenuLauncherStatus));
     }
@@ -326,6 +343,21 @@ public partial class SettingsViewModel : ViewModelBase
     {
         if (Project is null || row.IsDefault || !rule.HasTarget)
         {
+            return;
+        }
+
+        if (row.IsBlocked)
+        {
+            var blocked = Project.Triggers.BlockedMenuRules
+                .Select((candidate, index) => (candidate, index))
+                .FirstOrDefault(item => ProjectTriggers.GroupKey(item.candidate) == row.GroupKey);
+            if (blocked.candidate is null)
+            {
+                return;
+            }
+            Project.Triggers.BlockedMenuRules[blocked.index] = rule;
+            Project.MarkMenuChanged();
+            RefreshMenuRules();
             return;
         }
 
@@ -351,14 +383,26 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        Project.Triggers.RemoveContextRule(row.GroupKey);
+        if (row.IsBlocked)
+        {
+            var blocked = Project.Triggers.BlockedMenuRules.FirstOrDefault(rule =>
+                ProjectTriggers.GroupKey(rule) == row.GroupKey);
+            if (blocked is not null)
+            {
+                Project.Triggers.BlockedMenuRules.Remove(blocked);
+            }
+        }
+        else
+        {
+            Project.Triggers.RemoveContextRule(row.GroupKey);
+        }
         Project.MarkMenuChanged();
         RefreshMenuRules();
     }
 
     public void AddMenuPage(MenuRuleRow row)
     {
-        if (Project is null)
+        if (Project is null || row.IsBlocked)
         {
             return;
         }
@@ -382,7 +426,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void MoveMenuRule(MenuRuleRow row, int step)
     {
-        if (Project is null || row.IsDefault)
+        if (Project is null || row.IsDefault || row.IsBlocked)
         {
             return;
         }
@@ -402,6 +446,7 @@ public partial class SettingsViewModel : ViewModelBase
     public void MoveMenuRuleTo(MenuRuleRow row, MenuRuleRow target)
     {
         if (Project is null || row.IsDefault || target.IsDefault
+            || row.IsBlocked || target.IsBlocked
             || row.GroupKey == target.GroupKey)
         {
             return;

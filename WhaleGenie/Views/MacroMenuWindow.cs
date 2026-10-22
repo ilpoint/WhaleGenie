@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
@@ -21,15 +22,6 @@ using WhaleGenie.Models;
 
 namespace WhaleGenie.Views;
 
-public enum MenuEditCommand
-{
-    Replace,
-    EditLabel,
-    ChooseIcon,
-    ClearIcon,
-    ClearCell,
-}
-
 /// <summary>One editable or runnable position on a common or context page.</summary>
 public sealed record MenuSlotRef(
     string PageId,
@@ -41,15 +33,18 @@ public sealed record MenuSlotRef(
 }
 
 public sealed record MenuWindowActions(
-    Action<MacroItem> Run,
+    Action<MacroItem> OpenMacroEditor,
+    Action<MacroItem> DebugMacro,
     Action OpenSettings,
     Action RestoreForeground,
+    Func<Task<MenuRuntimeLayout?>> AddCurrentWindowRule,
+    Func<Task<bool>> BlockCurrentWindow,
     Func<Task<MenuRuntimeLayout?>> AddCommonPage,
     Func<string, Task<MenuRuntimeLayout?>> RemoveCommonPage,
     Func<string, Task<MenuRuntimeLayout?>> AddContextPage,
     Func<string, Task<MenuRuntimeLayout?>> RemoveContextPage,
     Func<MenuSlotRef, Task<MenuRuntimeLayout?>> ChooseMacro,
-    Func<MenuSlotRef, MenuEditCommand, Task<MenuRuntimeLayout?>> Edit,
+    Func<MenuSlotRef, Task<MenuRuntimeLayout?>> ChooseIcon,
     Func<MenuSlotRef, MenuSlotRef, Task<MenuRuntimeLayout?>> Move);
 
 /// <summary>
@@ -63,13 +58,24 @@ public sealed class MacroMenuWindow : Window
     private const double Columns = ProjectTriggers.MenuColumns;
     private const double RegionRows = ProjectTriggers.MenuRegionRows;
     private const double OuterPadding = 8;
-    private const double TitleHeight = 32;
+    private const double OuterTopPadding = 3;
+    private const double FrameInset = 2;
+    private const double TitleHeight = 40;
     private const double SearchHeight = 34;
     private const double SearchGap = 6;
     private const double DividerHeight = 44;
+    private const double FooterHeight = 28;
+    private const double FooterGap = 6;
+    private const double RegionsHeight = RegionRows * CellSize * 2
+        + (RegionRows - 1) * CellGap * 2;
+    private const double BaseHeight = TitleHeight + RegionsHeight + DividerHeight
+        + FooterGap + FooterHeight + OuterTopPadding + OuterPadding + 2;
     private const int GwlExStyle = -20;
     private const long WsExNoActivate = 0x08000000L;
     private const long WsExToolWindow = 0x00000080L;
+    private const int LongPressMilliseconds = 400;
+    private static readonly Cursor TitleCursor = new(StandardCursorType.SizeAll);
+    private static readonly Cursor ButtonCursor = new(StandardCursorType.Hand);
 
     private readonly MenuWindowActions _actions;
     private readonly Grid _commonGrid;
@@ -77,9 +83,13 @@ public sealed class MacroMenuWindow : Window
     private readonly StackPanel _commonDots;
     private readonly StackPanel _contextDots;
     private readonly TextBlock _contextTitle;
+    private readonly Border _searchHost;
     private readonly TextBox _search;
-    private readonly Button _editButton;
-    private DispatcherTimer? _menuMoveTimer;
+    private readonly Button _searchButton;
+    private readonly Button _pinButton;
+    private readonly Button _addRuleButton;
+    private readonly DispatcherTimer? _menuMoveTimer;
+    private readonly DispatcherTimer _longPressTimer;
     private readonly TaskCompletionSource<MacroItem?> _answer =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private MenuRuntimeLayout _layout;
@@ -87,20 +97,29 @@ public sealed class MacroMenuWindow : Window
     private int _contextPage;
     private MenuSlotRef? _selected;
     private MenuSlotRef? _dragSource;
-    private Point _dragOrigin;
+    private Button? _dragButton;
+    private IPointer? _dragPointer;
     private bool _dragging;
     private bool _suppressClick;
     private bool _done;
-    private bool _editing;
     private bool _closing;
+    private bool _searchOpen;
     private int _searchFocused;
+    private bool _pinned;
     private bool _menuDragging;
     private bool _restoreAfterMenuDrag;
+    private int _openPopupCount;
+    private PixelPoint _anchor;
+    private readonly bool _canUseForeground;
+    private readonly string _foregroundProcess;
 
-    public MacroMenuWindow(MenuRuntimeLayout layout, MenuWindowActions actions)
+    public MacroMenuWindow(MenuRuntimeLayout layout, MenuWindowActions actions,
+        string foregroundProcess = "")
     {
         _layout = layout;
         _actions = actions;
+        _foregroundProcess = foregroundProcess.Trim();
+        _canUseForeground = _foregroundProcess.Length > 0;
 
         ShowActivated = false;
         ShowInTaskbar = false;
@@ -110,8 +129,7 @@ public sealed class MacroMenuWindow : Window
         WindowDecorations = Avalonia.Controls.WindowDecorations.None;
         Background = Brushes.Transparent;
         Width = Columns * CellSize + (Columns - 1) * CellGap + OuterPadding * 2 + 2;
-        Height = TitleHeight + SearchHeight + SearchGap + RegionRows * CellSize * 2
-                 + (RegionRows - 1) * CellGap * 2 + DividerHeight + OuterPadding * 2 + 2;
+        Height = BaseHeight;
 
         _commonGrid = GridFor();
         _contextGrid = GridFor();
@@ -141,7 +159,6 @@ public sealed class MacroMenuWindow : Window
         {
             Height = SearchHeight,
             FontSize = 12,
-            Margin = new Thickness(0, 0, 0, SearchGap),
             PlaceholderText = Strings.Get("Menu.Search"),
         };
         _search.TextChanged += (_, _) => OnSearchChanged();
@@ -149,25 +166,36 @@ public sealed class MacroMenuWindow : Window
         _search.LostFocus += (_, _) => EndSearchFocus();
         _search.KeyDown += OnSearchKeyDown;
         _search.PointerPressed += (_, _) => BeginSearchFocus();
+        _searchHost = new Border
+        {
+            IsVisible = false,
+            Margin = new Thickness(0, 0, 0, SearchGap),
+            Child = _search,
+        };
+
         var title = new Grid
         {
+            Name = "MenuTitleBar",
             Height = TitleHeight,
-            ColumnDefinitions = new ColumnDefinitions("28,*"),
-            Margin = new Thickness(0, 0, 0, 0),
-            Cursor = new Cursor(StandardCursorType.SizeAll),
+            ColumnDefinitions = new ColumnDefinitions("28,Auto,*,Auto,Auto,Auto"),
+            Margin = new Thickness(0),
+            Cursor = TitleCursor,
             Background = Brush("AppChrome", Color.FromArgb(120, 20, 20, 20)),
         };
         ToolTip.SetTip(title, Strings.Get("Menu.Drag"));
         title.PointerPressed += (_, e) =>
         {
-            if (e.GetCurrentPoint(title).Properties.IsLeftButtonPressed)
+            if (IsInsideButton(e.Source)
+                || !e.GetCurrentPoint(title).Properties.IsLeftButtonPressed)
             {
-                _menuDragging = true;
-                _restoreAfterMenuDrag = IsSearchFocused;
-                BeginMoveDrag(e);
-                _menuMoveTimer?.Stop();
-                _menuMoveTimer?.Start();
+                return;
             }
+
+            _menuDragging = true;
+            _restoreAfterMenuDrag = IsSearchFocused;
+            BeginMoveDrag(e);
+            _menuMoveTimer?.Stop();
+            _menuMoveTimer?.Start();
         };
         title.PointerReleased += (_, _) => _menuMoveTimer?.Start();
         title.Children.Add(new Image
@@ -179,26 +207,58 @@ public sealed class MacroMenuWindow : Window
                 new Uri("avares://WhaleGenie/Assets/WhaleGenie.png"))),
             VerticalAlignment = VerticalAlignment.Center,
         });
-        var appName = new TextBlock
+
+        var titleArea = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 2,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        titleArea.Children.Add(new TextBlock
         {
             Text = Strings.Get("Main.Title"),
             FontSize = 13,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brush("AppText", Colors.White),
             VerticalAlignment = VerticalAlignment.Center,
-        };
-        Grid.SetColumn(appName, 1);
-        title.Children.Add(appName);
-        _editButton = DividerButton(AppIcons.Pencil, Strings.Get("Menu.Edit"));
-        _editButton.Click += (_, _) => SetEditing(!_editing);
+        });
         var settings = DividerButton(AppIcons.Settings, Strings.Get("Menu.Settings"));
+        settings.Name = "MenuSettingsButton";
         settings.Click += (_, _) =>
         {
-            _closing = true;
-            Finish(null);
-            Close();
+            CloseForAction();
             _actions.OpenSettings();
         };
+        titleArea.Children.Add(settings);
+        Grid.SetColumn(titleArea, 1);
+        title.Children.Add(titleArea);
+
+        _searchButton = DividerButton(AppIcons.Search, Strings.Get("Menu.SearchOpen"));
+        _searchButton.Name = "MenuSearchButton";
+        _searchButton.Click += (_, _) => SetSearchOpen(!_searchOpen);
+        Grid.SetColumn(_searchButton, 3);
+        title.Children.Add(_searchButton);
+
+        _pinButton = DividerButton(AppIcons.Pin, Strings.Get("Menu.Pin"));
+        _pinButton.Name = "MenuPinButton";
+        _pinButton.Content = new IconView
+        {
+            Name = "MenuPinIcon",
+            Width = 11,
+            Height = 11,
+            Data = AppIcons.Pin,
+            Stroke = Brush("AppMuted", Colors.LightGray),
+            StrokeThickness = 1.4,
+        };
+        _pinButton.Click += (_, _) => SetPinned(!_pinned);
+        Grid.SetColumn(_pinButton, 4);
+        title.Children.Add(_pinButton);
+
+        var close = DividerButton(AppIcons.X, Strings.Get("Menu.Close"));
+        close.Name = "MenuCloseButton";
+        close.Click += (_, _) => CloseFromLauncher();
+        Grid.SetColumn(close, 5);
+        title.Children.Add(close);
 
         var divider = new Grid
         {
@@ -216,20 +276,41 @@ public sealed class MacroMenuWindow : Window
         dotRows.Children.Add(_contextDots);
         Grid.SetColumn(dotRows, 1);
         divider.Children.Add(dotRows);
-        var buttons = new StackPanel
+
+        _addRuleButton = FooterButton(AppIcons.SelectionPlus, CurrentRuleTip());
+        _addRuleButton.Name = "MenuAddWindowRule";
+        _addRuleButton.IsEnabled = _canUseForeground;
+        _addRuleButton.Click += async (_, _) =>
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 2,
+            if (await _actions.AddCurrentWindowRule() is { } updated)
+            {
+                SetLayout(updated);
+            }
         };
-        buttons.Children.Add(_editButton);
-        buttons.Children.Add(settings);
-        Grid.SetColumn(buttons, 2);
-        divider.Children.Add(buttons);
+        var blockButton = FooterButton(AppIcons.Ban, BlockTip());
+        blockButton.Name = "MenuBlockWindow";
+        blockButton.IsEnabled = _canUseForeground;
+        blockButton.Click += async (_, _) =>
+        {
+            if (await _actions.BlockCurrentWindow())
+            {
+                CloseFromLauncher();
+            }
+        };
+        var footer = new Grid
+        {
+            Height = FooterHeight,
+            Margin = new Thickness(0, FooterGap, 0, 0),
+            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+        };
+        footer.Children.Add(_addRuleButton);
+        Grid.SetColumn(blockButton, 2);
+        footer.Children.Add(blockButton);
 
         Content = new Border
         {
             Margin = new Thickness(1),
-            Padding = new Thickness(OuterPadding),
+            Padding = new Thickness(OuterPadding, OuterTopPadding, OuterPadding, OuterPadding),
             CornerRadius = new CornerRadius(7),
             Background = Brush("AppDock", Color.FromArgb(246, 34, 34, 34)),
             BorderBrush = Brush("AppBorder", Color.FromArgb(180, 255, 255, 255)),
@@ -240,10 +321,11 @@ public sealed class MacroMenuWindow : Window
                 Children =
                 {
                     title,
-                    _search,
+                    _searchHost,
                     _commonGrid,
                     divider,
                     _contextGrid,
+                    footer,
                 },
             },
         };
@@ -251,6 +333,8 @@ public sealed class MacroMenuWindow : Window
         RenderLayout();
         _menuMoveTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(120),
             DispatcherPriority.Background, (_, _) => CompleteMenuMove());
+        _longPressTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(LongPressMilliseconds),
+            DispatcherPriority.Input, (_, _) => BeginCellDrag());
         PositionChanged += (_, _) =>
         {
             if (_menuDragging)
@@ -259,14 +343,17 @@ public sealed class MacroMenuWindow : Window
                 _menuMoveTimer?.Start();
             }
         };
+        PointerReleased += OnCellPointerReleased;
         Opened += (_, _) =>
         {
             ApplyNoActivate();
-            Position = NearCursor();
+            _anchor = SystemCursor();
+            Position = NearCursor(_anchor);
         };
         Closed += (_, _) =>
         {
             _menuMoveTimer?.Stop();
+            _longPressTimer.Stop();
             _closing = true;
             Volatile.Write(ref _searchFocused, 0);
             Finish(null);
@@ -277,7 +364,7 @@ public sealed class MacroMenuWindow : Window
 
     public event Action<bool>? SearchFocusChanged;
 
-    public bool IsEditing => _editing;
+    public event Action<bool>? PopupOpenChanged;
 
     public int CommonPage => _commonPage;
 
@@ -288,6 +375,21 @@ public sealed class MacroMenuWindow : Window
     public int ContextPageCount => _layout.ContextPages.Count;
 
     public bool IsSearchFocused => Volatile.Read(ref _searchFocused) == 1;
+
+    public bool IsSearchOpen => _searchOpen;
+
+    public bool IsPinned => _pinned;
+
+    internal bool HasOpenPopup => _openPopupCount > 0;
+
+    internal static Cursor TitleCursorForCheck => TitleCursor;
+
+    internal static Cursor ButtonCursorForCheck => ButtonCursor;
+
+    internal double DividerCenterOffset => FrameInset + OuterTopPadding + TitleHeight
+        + (_searchOpen ? SearchHeight + SearchGap : 0)
+        + RegionRows * CellSize + (RegionRows - 1) * CellGap
+        + DividerHeight / 2;
 
     public MenuRuntimeCell? SelectedCell => _selected?.Cell;
 
@@ -302,44 +404,71 @@ public sealed class MacroMenuWindow : Window
         RenderLayout();
     }
 
-    public void SetEditing(bool editing)
+    public void SetSearchOpen(bool open)
     {
-        _editing = editing;
-        _selected = null;
-        _editButton.Classes.Set("On", editing);
-        ToolTip.SetTip(_editButton, Strings.Get(editing ? "Menu.EditDone" : "Menu.Edit"));
-        if (editing)
+        if (_closing || _searchOpen == open)
         {
-            ShowActivated = true;
-            SetNoActivate(false);
-            Activate();
+            return;
+        }
+
+        _searchOpen = open;
+        _searchHost.IsVisible = open;
+        Height = BaseHeight + (open ? SearchHeight + SearchGap : 0);
+        _searchButton.Classes.Set("On", open);
+        _searchButton.Background = open
+            ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
+            : Brushes.Transparent;
+        ToolTip.SetTip(_searchButton, Strings.Get(open ? "Menu.SearchClose" : "Menu.SearchOpen"));
+        Position = NearCursor(_anchor);
+
+        if (open)
+        {
+            BeginSearchFocus();
+            Dispatcher.UIThread.Post(() => _search.Focus(), DispatcherPriority.Input);
         }
         else
         {
-            ShowActivated = false;
-            ApplyNoActivate();
-            _actions.RestoreForeground();
+            _search.Text = string.Empty;
+            EndSearchFocus();
+        }
+    }
+
+    public void SetPinned(bool pinned)
+    {
+        if (_closing || _pinned == pinned)
+        {
+            return;
         }
 
-        RenderLayout();
+        _pinned = pinned;
+        _pinButton.Classes.Set("On", pinned);
+        _pinButton.Background = pinned
+            ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
+            : Brushes.Transparent;
+        ToolTip.SetTip(_pinButton, Strings.Get(pinned ? "Menu.Unpin" : "Menu.Pin"));
+        if (_pinButton.Content is IconView icon)
+        {
+            icon.Data = pinned ? AppIcons.PinOff : AppIcons.Pin;
+        }
     }
 
     public void CloseFromLauncher()
     {
-        if (_editing || IsSearchFocused)
+        if (IsSearchFocused)
         {
             _actions.RestoreForeground();
         }
-        _closing = true;
-        Finish(null);
-        Close();
+        CloseMenu();
     }
 
     public void CloseFromOutside()
     {
-        _closing = true;
-        Finish(null);
-        Close();
+        if (_pinned)
+        {
+            return;
+        }
+
+        CloseMenu();
     }
 
     public void HandleKey(string key)
@@ -347,19 +476,24 @@ public sealed class MacroMenuWindow : Window
         switch (key)
         {
             case "Esc" or "Escape":
-                if (_editing)
+                if (IsSearchFocused)
                 {
-                    SetEditing(false);
-                }
-                else
-                {
-                    if (IsSearchFocused)
+                    if (_search.Text?.Length > 0)
                     {
-                        _actions.RestoreForeground();
+                        _search.Text = string.Empty;
                     }
-                    _closing = true;
-                    Finish(null);
-                    Close();
+                    else if (_searchOpen)
+                    {
+                        SetSearchOpen(false);
+                    }
+                    else
+                    {
+                        CloseMenu();
+                    }
+                }
+                else if (!_pinned)
+                {
+                    CloseMenu();
                 }
                 break;
             case "Left" or "左":
@@ -382,6 +516,20 @@ public sealed class MacroMenuWindow : Window
                 break;
         }
     }
+
+    internal static bool FillsCell(PixelSize size)
+        => size.Width > 0 && size.Width == size.Height;
+
+    internal static TimeSpan CellDragDelay => TimeSpan.FromMilliseconds(LongPressMilliseconds);
+
+    internal void BeginCellDragForCheck(MenuSlotRef slot, Button button)
+    {
+        _dragSource = slot;
+        _dragButton = button;
+        BeginCellDrag();
+    }
+
+    internal Task DropCellForCheckAsync(Point point) => DropCellAsync(point);
 
     private static Grid GridFor()
     {
@@ -442,8 +590,8 @@ public sealed class MacroMenuWindow : Window
     {
         var wanted = _search.Text?.Trim() ?? string.Empty;
         return wanted.Length == 0
-               || cell.Label.Contains(wanted, StringComparison.OrdinalIgnoreCase)
-               || cell.Macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase);
+               || cell.Macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+               || cell.Macro.Description.Contains(wanted, StringComparison.OrdinalIgnoreCase);
     }
 
     private void BeginSearchFocus()
@@ -458,7 +606,6 @@ public sealed class MacroMenuWindow : Window
         ShowActivated = true;
         SetNoActivate(false);
         Activate();
-        Avalonia.Threading.Dispatcher.UIThread.Post(() => _search.Focus());
     }
 
     private void EndSearchFocus()
@@ -472,9 +619,9 @@ public sealed class MacroMenuWindow : Window
         ShowActivated = false;
         ApplyNoActivate();
         SearchFocusChanged?.Invoke(false);
-        if (restore && !_menuDragging)
+        if (restore && !_menuDragging && !_pinned)
         {
-            Avalonia.Threading.Dispatcher.UIThread.Post(_actions.RestoreForeground);
+            Dispatcher.UIThread.Post(_actions.RestoreForeground);
         }
     }
 
@@ -502,16 +649,7 @@ public sealed class MacroMenuWindow : Window
                 e.Handled = true;
                 break;
             case Key.Escape:
-                if (_search.Text?.Length > 0)
-                {
-                    _search.Text = string.Empty;
-                }
-                else
-                {
-                    _closing = true;
-                    Finish(null);
-                    Close();
-                }
+                HandleKey("Esc");
                 e.Handled = true;
                 break;
         }
@@ -549,7 +687,8 @@ public sealed class MacroMenuWindow : Window
                 var child = cell is null ? EmptyCell(slot) : CellButton(slot, cell);
                 var matches = cell is null || MatchesSearch(cell);
                 child.Opacity = matches ? 1 : 0.25;
-                child.IsHitTestVisible = matches && (_editing || cell is not null);
+                child.IsHitTestVisible = matches
+                    && (cell is not null || string.IsNullOrWhiteSpace(_search.Text));
                 if (_selected?.Key == slot.Key)
                 {
                     child.BorderBrush = Brush("AppAccent", Color.FromRgb(78, 164, 232));
@@ -566,13 +705,6 @@ public sealed class MacroMenuWindow : Window
     {
         var button = BaseCellButton();
         button.Tag = slot;
-        button.IsHitTestVisible = _editing;
-        if (!_editing)
-        {
-            button.BorderBrush = Brush("AppBorder", Color.FromArgb(45, 255, 255, 255));
-            return button;
-        }
-
         button.Content = new IconView
         {
             Width = 24,
@@ -584,6 +716,7 @@ public sealed class MacroMenuWindow : Window
         ToolTip.SetTip(button, Strings.Get("Menu.AddCell"));
         button.Click += async (_, _) => await ChooseSlotAsync(slot);
         WireDrag(button, slot);
+        AttachHover(button, slot);
         return button;
     }
 
@@ -592,8 +725,11 @@ public sealed class MacroMenuWindow : Window
         var button = BaseCellButton();
         button.Tag = slot;
         button.Content = CellContent(cell);
-        ToolTip.SetTip(button, $"{cell.Label}\n{cell.Macro.Name}");
-        button.ContextMenu = CellMenu(slot);
+        var description = cell.Macro.Description.Trim();
+        ToolTip.SetTip(button, description.Length == 0
+            ? cell.Macro.Name
+            : $"{cell.Macro.Name}\n{description}");
+        AttachContextMenu(button, CellMenu(slot));
         button.Click += async (_, _) =>
         {
             if (_suppressClick)
@@ -605,10 +741,11 @@ public sealed class MacroMenuWindow : Window
             await ActivateSlotAsync(slot);
         };
         WireDrag(button, slot);
+        AttachHover(button, slot);
         return button;
     }
 
-    private Control CellContent(MenuRuntimeCell cell)
+    private static Control CellContent(MenuRuntimeCell cell)
     {
         if (cell.Icon is { IsEmpty: false } icon && TryIcon(icon, out var iconView))
         {
@@ -617,7 +754,7 @@ public sealed class MacroMenuWindow : Window
 
         return new TextBlock
         {
-            Text = cell.Label,
+            Text = cell.Macro.Name,
             FontSize = 10.5,
             Foreground = Brush("AppText", Colors.White),
             TextWrapping = TextWrapping.Wrap,
@@ -636,7 +773,7 @@ public sealed class MacroMenuWindow : Window
             {
                 Width = 44,
                 Height = 44,
-                Data = option.Icon,
+                Data = option.Kind,
                 Stroke = Brush("AppText", Colors.White),
                 StrokeThickness = 1.5,
             };
@@ -647,18 +784,27 @@ public sealed class MacroMenuWindow : Window
         {
             try
             {
-                control = new Image
+                var bitmap = new Bitmap(icon.Value);
+                var fill = FillsCell(bitmap.PixelSize);
+                control = new Border
                 {
-                    Width = 48,
-                    Height = 48,
-                    Stretch = Stretch.Uniform,
-                    Source = new Bitmap(icon.Value),
+                    Width = fill ? 74 : 48,
+                    Height = fill ? 74 : 48,
+                    CornerRadius = new CornerRadius(3),
+                    ClipToBounds = true,
+                    Child = new Image
+                    {
+                        Width = fill ? 74 : 48,
+                        Height = fill ? 74 : 48,
+                        Stretch = fill ? Stretch.UniformToFill : Stretch.Uniform,
+                        Source = bitmap,
+                    },
                 };
                 return true;
             }
             catch
             {
-                // A moved or unreadable image falls back to the label.
+                // A moved or unreadable image falls back to the macro name.
             }
         }
 
@@ -680,6 +826,7 @@ public sealed class MacroMenuWindow : Window
             BorderThickness = new Thickness(1),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
+            Cursor = ButtonCursor,
         };
         button.Classes.Add("MenuCell");
         return button;
@@ -688,59 +835,93 @@ public sealed class MacroMenuWindow : Window
     private ContextMenu CellMenu(MenuSlotRef slot)
     {
         var menu = new ContextMenu();
-        menu.Items.Add(EditItem("Menu.Replace", MenuEditCommand.Replace, slot));
-        menu.Items.Add(EditItem("Menu.EditLabel", MenuEditCommand.EditLabel, slot));
-        menu.Items.Add(EditItem("Menu.ChooseIcon", MenuEditCommand.ChooseIcon, slot));
-        menu.Items.Add(EditItem("Menu.ClearIcon", MenuEditCommand.ClearIcon, slot));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(EditItem("Menu.ClearCell", MenuEditCommand.ClearCell, slot));
-        menu.Opening += (_, e) =>
+        menu.Items.Add(Item("Menu.EditMacro", () =>
         {
-            if (!_editing)
+            CloseForAction();
+            _actions.OpenMacroEditor(slot.Cell!.Macro);
+        }));
+        menu.Items.Add(Item("Menu.Replace", async () =>
+        {
+            if (await _actions.ChooseMacro(slot) is { } updated)
             {
-                e.Cancel = true;
+                SetLayout(updated);
             }
-        };
+        }));
+        menu.Items.Add(Item("Menu.ChooseIcon", async () =>
+        {
+            if (await _actions.ChooseIcon(slot) is { } updated)
+            {
+                SetLayout(updated);
+            }
+        }));
+        menu.Items.Add(Item("Menu.Debug", () =>
+        {
+            CloseForAction();
+            _actions.DebugMacro(slot.Cell!.Macro);
+        }));
         return menu;
     }
 
-    private MenuItem EditItem(string key, MenuEditCommand command, MenuSlotRef slot)
+    private void AttachContextMenu(Control control, ContextMenu menu)
     {
-        var item = new MenuItem { Header = Strings.Get(key) };
-        item.Click += async (_, _) =>
+        control.ContextMenu = menu;
+        menu.Opened += (_, _) =>
         {
-            if (await _actions.Edit(slot, command) is { } layout)
+            if (Interlocked.Increment(ref _openPopupCount) == 1)
             {
-                SetLayout(layout);
+                PopupOpenChanged?.Invoke(true);
             }
         };
+        menu.Closed += (_, _) =>
+        {
+            if (Interlocked.Decrement(ref _openPopupCount) <= 0)
+            {
+                Interlocked.Exchange(ref _openPopupCount, 0);
+                PopupOpenChanged?.Invoke(false);
+            }
+        };
+        control.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(control).Properties.IsRightButtonPressed || menu.IsOpen)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            menu.Open(control);
+        };
+    }
+
+    private static MenuItem Item(string key, Action action)
+    {
+        var item = new MenuItem { Header = Strings.Get(key) };
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    private static MenuItem Item(string key, Func<Task> action)
+    {
+        var item = new MenuItem { Header = Strings.Get(key) };
+        item.Click += async (_, _) => await action();
         return item;
     }
 
     private async Task ActivateSlotAsync(MenuSlotRef slot)
     {
         _selected = slot;
-        if (_editing)
+        if (slot.Cell is null)
         {
-            if (slot.Cell is null)
-            {
-                await ChooseSlotAsync(slot);
-            }
+            await ChooseSlotAsync(slot);
             RenderLayout();
             return;
         }
 
-        if (slot.Cell is not { } cell)
-        {
-            return;
-        }
-
-        if (_editing || IsSearchFocused)
+        if (IsSearchFocused)
         {
             _actions.RestoreForeground();
         }
         _closing = true;
-        Finish(cell.Macro);
+        Finish(slot.Cell.Macro);
         Close();
     }
 
@@ -756,45 +937,76 @@ public sealed class MacroMenuWindow : Window
     {
         button.PointerPressed += (_, e) =>
         {
-            if (!_editing || !e.GetCurrentPoint(button).Properties.IsLeftButtonPressed)
+            if (!e.GetCurrentPoint(button).Properties.IsLeftButtonPressed)
             {
                 return;
             }
 
             _dragSource = slot;
-            _dragOrigin = e.GetPosition(this);
+            _dragButton = button;
+            _dragPointer = e.Pointer;
             _dragging = false;
+            _longPressTimer.Stop();
+            _longPressTimer.Start();
         };
-        button.PointerMoved += (_, e) =>
-        {
-            if (_dragSource is not null
-                && e.GetCurrentPoint(button).Properties.IsLeftButtonPressed
-                && Distance(e.GetPosition(this), _dragOrigin) > 5)
-            {
-                _dragging = true;
-                button.Opacity = 0.55;
-            }
-        };
-        button.PointerReleased += async (_, e) =>
-        {
-            var source = _dragSource;
-            var dragged = _dragging;
-            _dragSource = null;
-            _dragging = false;
-            button.Opacity = 1;
-            if (!dragged || source is null)
-            {
-                return;
-            }
+        button.PointerReleased += (_, _) => _longPressTimer.Stop();
+    }
 
-            _suppressClick = true;
-            if (SlotAtPoint(e.GetPosition(this)) is { } target
-                && target.Key != source.Key
-                && await _actions.Move(source, target) is { } layout)
-            {
-                SetLayout(layout);
-            }
-        };
+    private void BeginCellDrag()
+    {
+        _longPressTimer.Stop();
+        if (_dragSource is null || _dragButton is null)
+        {
+            return;
+        }
+
+        _dragging = true;
+        _suppressClick = true;
+        _dragPointer?.Capture(this);
+        _dragButton.Opacity = 0.65;
+        _dragButton.BorderBrush = Brush("AppAccent", Color.FromRgb(78, 164, 232));
+        _dragButton.BorderThickness = new Thickness(2);
+    }
+
+    private void FinishDrag()
+    {
+        _longPressTimer.Stop();
+        if (_dragButton is not null)
+        {
+            _dragButton.Opacity = 1;
+        }
+        _dragSource = null;
+        _dragButton = null;
+        _dragPointer = null;
+        _dragging = false;
+    }
+
+    private async void OnCellPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        await DropCellAsync(e.GetPosition(this));
+    }
+
+    private async Task DropCellAsync(Point point)
+    {
+        if (!_dragging || _dragSource is not { } source)
+        {
+            return;
+        }
+
+        _longPressTimer.Stop();
+        _suppressClick = true;
+        _dragPointer?.Capture(null);
+        _dragSource = null;
+        _dragButton = null;
+        _dragPointer = null;
+        _dragging = false;
+        if (SlotAtPoint(point) is { } target
+            && target.Key != source.Key
+            && await _actions.Move(source, target) is { } layout)
+        {
+            SetLayout(layout);
+        }
+        Dispatcher.UIThread.Post(() => _suppressClick = false);
     }
 
     private MenuSlotRef? SlotAtPoint(Point point)
@@ -825,13 +1037,6 @@ public sealed class MacroMenuWindow : Window
         return new MenuSlotRef(page.PageId, row, column, cell);
     }
 
-    private static double Distance(Point one, Point other)
-    {
-        var dx = one.X - other.X;
-        var dy = one.Y - other.Y;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
-
     private void MoveSelection(int rowStep, int columnStep)
     {
         var common = _layout.CommonPages[_commonPage];
@@ -856,8 +1061,7 @@ public sealed class MacroMenuWindow : Window
             return;
         }
 
-        var current = _selected?.Cell is { } selected
-                      && cells.Contains(selected)
+        var current = _selected.Cell is { } selected && cells.Contains(selected)
             ? selected
             : cells[0];
         var row = current.Row + rowStep;
@@ -890,11 +1094,13 @@ public sealed class MacroMenuWindow : Window
         {
             var button = new Button
             {
+                Name = $"{(common ? "Common" : "Context")}PageButton{index + 1}",
                 Width = 12,
                 Height = 16,
                 Padding = new Thickness(0),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
+                Cursor = ButtonCursor,
                 Content = new Ellipse
                 {
                     Width = index == current ? 6 : 4,
@@ -918,7 +1124,7 @@ public sealed class MacroMenuWindow : Window
                 _selected = null;
                 RenderLayout();
             };
-            if (_editing && count > 1)
+            if (index > 0 && count > 1)
             {
                 var remove = new MenuItem { Header = Strings.Get("Menu.RemovePage") };
                 remove.Click += async (_, _) =>
@@ -934,14 +1140,15 @@ public sealed class MacroMenuWindow : Window
                         SetLayout(updated);
                     }
                 };
-                button.ContextMenu = new ContextMenu { Items = { remove } };
+                AttachContextMenu(button, new ContextMenu { Items = { remove } });
             }
             target.Children.Add(button);
         }
 
-        if (_editing && count < ProjectTriggers.MaxCommonMenuPages)
+        if (count < ProjectTriggers.MaxCommonMenuPages)
         {
             var add = DividerButton(AppIcons.Plus, Strings.Get("Menu.AddPage"));
+            add.Name = common ? "AddCommonPageButton" : "AddContextPageButton";
             add.Click += async (_, _) =>
             {
                 var added = common
@@ -963,6 +1170,44 @@ public sealed class MacroMenuWindow : Window
             };
             target.Children.Add(add);
         }
+    }
+
+    private void AttachHover(Button button, MenuSlotRef slot)
+    {
+        var scale = new ScaleTransform();
+        button.RenderTransform = scale;
+        button.RenderTransformOrigin = RelativePoint.Center;
+        button.Transitions =
+        [
+            new DoubleTransition
+            {
+                Property = ScaleTransform.ScaleXProperty,
+                Duration = TimeSpan.FromMilliseconds(90),
+            },
+            new DoubleTransition
+            {
+                Property = ScaleTransform.ScaleYProperty,
+                Duration = TimeSpan.FromMilliseconds(90),
+            },
+        ];
+        button.PointerEntered += (_, _) =>
+        {
+            scale.ScaleX = 1.04;
+            scale.ScaleY = 1.04;
+            button.Background = Brush("AppHover", Color.FromRgb(64, 64, 64));
+            button.BorderBrush = Brush("AppAccent", Color.FromRgb(78, 164, 232));
+            button.BorderThickness = new Thickness(2);
+        };
+        button.PointerExited += (_, _) =>
+        {
+            scale.ScaleX = 1;
+            scale.ScaleY = 1;
+            button.Background = Brush("AppField", Color.FromRgb(48, 48, 48));
+            var selected = _selected?.Key == slot.Key;
+            button.BorderBrush = Brush(selected ? "AppAccent" : "AppBorder",
+                selected ? Color.FromRgb(78, 164, 232) : Color.FromRgb(80, 80, 80));
+            button.BorderThickness = new Thickness(selected ? 2 : 1);
+        };
     }
 
     private void CompleteMenuMove()
@@ -998,6 +1243,7 @@ public sealed class MacroMenuWindow : Window
             Padding = new Thickness(0),
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
+            Cursor = ButtonCursor,
             Content = new IconView
             {
                 Width = 11,
@@ -1010,6 +1256,40 @@ public sealed class MacroMenuWindow : Window
         ToolTip.SetTip(button, tip);
         return button;
     }
+
+    private static Button FooterButton(LucideIconKind icon, string tip)
+    {
+        var button = new Button
+        {
+            Height = FooterHeight,
+            Padding = new Thickness(8, 0),
+            Background = Brush("AppField", Color.FromArgb(150, 48, 48, 48)),
+            BorderBrush = Brush("AppBorder", Color.FromArgb(70, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Cursor = ButtonCursor,
+            Content = new IconView
+            {
+                Width = 14,
+                Height = 14,
+                Data = icon,
+                Stroke = Brush("AppText", Colors.White),
+                StrokeThickness = 1.5,
+            },
+        };
+        ToolTip.SetTip(button, tip);
+        return button;
+    }
+
+    private string CurrentRuleTip()
+        => _canUseForeground
+            ? Strings.Format("Menu.AddWindowRule", _foregroundProcess)
+            : Strings.Get("Menu.NoForeground");
+
+    private string BlockTip()
+        => _canUseForeground
+            ? Strings.Format("Menu.BlockWindow", _foregroundProcess)
+            : Strings.Get("Menu.NoForeground");
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
@@ -1082,6 +1362,22 @@ public sealed class MacroMenuWindow : Window
         SetWindowLongPtr(handle, GwlExStyle, new IntPtr(next));
     }
 
+    private void CloseForAction()
+    {
+        if (IsSearchFocused)
+        {
+            _actions.RestoreForeground();
+        }
+        CloseMenu();
+    }
+
+    private void CloseMenu()
+    {
+        _closing = true;
+        Finish(null);
+        Close();
+    }
+
     private void Finish(MacroItem? macro)
     {
         if (_done)
@@ -1121,15 +1417,11 @@ public sealed class MacroMenuWindow : Window
         var width = Math.Max(1, (int)Math.Ceiling(Width * scale));
         var height = Math.Max(1, (int)Math.Ceiling(Height * scale));
         var x = cursor.X + 12;
-        var y = cursor.Y + 12;
         if (x + width > workArea.Right)
         {
             x = cursor.X - width - 12;
         }
-        if (y + height > workArea.Bottom)
-        {
-            y = cursor.Y - height - 12;
-        }
+        var y = cursor.Y - (int)Math.Round(DividerCenterOffset * scale);
 
         x = Math.Clamp(x, workArea.X, Math.Max(workArea.X, workArea.Right - width));
         y = Math.Clamp(y, workArea.Y, Math.Max(workArea.Y, workArea.Bottom - height));
@@ -1151,6 +1443,18 @@ public sealed class MacroMenuWindow : Window
         => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
             ? brush
             : new SolidColorBrush(fallback);
+
+    private static bool IsInsideButton(object? source)
+    {
+        for (var control = source as Control; control is not null; control = control.Parent as Control)
+        {
+            if (control is Button)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);

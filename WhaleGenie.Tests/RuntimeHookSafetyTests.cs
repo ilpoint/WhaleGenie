@@ -120,6 +120,21 @@ public class RuntimeHookSafetyTests
         Assert.True(requested);
     }
 
+    [Fact]
+    public void The_middle_mouse_button_requests_the_menu()
+    {
+        var triggers = new ProjectTriggers { MenuLauncher = "Mouse Middle" };
+        var store = new TriggerRuntimeSnapshotStore();
+        store.Publish(triggers, []);
+        using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
+            new NoWindowEvents());
+        var requested = false;
+        service.MenuRequested += () => requested = true;
+
+        Assert.True(service.RequestMenuForCheck("Mouse Middle"));
+        Assert.True(requested);
+    }
+
     [Theory]
     [InlineData(HookMouseButton.Left, true)]
     [InlineData(HookMouseButton.Right, true)]

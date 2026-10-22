@@ -87,6 +87,10 @@ public partial class SettingsWindow : Window
             _viewModel.SetPage(SettingsRootPage.Appearance, SettingsSubPage.Theme);
 
         var ruleList = this.FindControl<ListBox>("MenuRuleList")!;
+        var addPage = this.FindControl<Button>("AddMenuRulePageButton")!;
+        addPage.IsEnabled = false;
+        ruleList.SelectionChanged += (_, _) =>
+            addPage.IsEnabled = ruleList.SelectedItem is MenuRuleRow { IsBlocked: false };
         ruleList.AddHandler(PointerPressedEvent, OnRulePointerPressed,
             RoutingStrategies.Tunnel);
         ruleList.AddHandler(PointerMovedEvent, OnRulePointerMoved,

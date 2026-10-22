@@ -35,7 +35,7 @@ public static class MacroPackage
     /// </summary>
     public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
-    public const int FormatVersion = 17;
+    public const int FormatVersion = 18;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";
@@ -268,7 +268,7 @@ public static class MacroPackage
         text.AppendLine("| --- | --- |");
         text.AppendLine("| `manifest.json` | Format version and the list of everything in the package. |");
         text.AppendLine("| `README.md` | This file. |");
-        text.AppendLine("| `triggers.json` | Trigger entries, floating-group positions, menu pages and the menu launcher. |");
+        text.AppendLine("| `triggers.json` | Trigger entries, floating-group positions, menu pages, blocked programs and the menu launcher. |");
         text.AppendLine("| `nodes/` | One JSON document per macro, holding its steps. |");
         text.AppendLine("| `assets/` | Images the macros use, referenced as `assets/<file>`. |");
         text.AppendLine();

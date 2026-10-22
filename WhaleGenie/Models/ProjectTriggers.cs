@@ -27,11 +27,6 @@ public partial class TriggerEntry : ObservableObject
     [NotifyPropertyChangedFor(nameof(Summary))]
     public partial string MacroName { get; set; } = string.Empty;
 
-    /// <summary>Menu-only label shown in the grid; an empty label falls back to the macro name.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Summary))]
-    public partial string MenuLabel { get; set; } = string.Empty;
-
     /// <summary>Stable identifier of the common or context page this menu entry belongs to.</summary>
     [ObservableProperty]
     public partial string MenuPageId { get; set; } = string.Empty;
@@ -172,7 +167,7 @@ public partial class TriggerEntry : ObservableObject
             : Strings.Format("Trigger.HotstringPreview", Abbreviation, RequireEndChar
                 ? Strings.Get("Trigger.HotstringEndRequired")
                 : Strings.Get("Trigger.HotstringEndNotRequired")),
-        TriggerKind.Menu => MenuLabel.Length > 0 ? MenuLabel : Strings.Get("Trigger.MenuMember"),
+        TriggerKind.Menu => Strings.Get("Trigger.MenuMember"),
         TriggerKind.Timer => MacroSchedule.Describe(this),
         TriggerKind.File => WatchPath.Length == 0 ? Strings.Get("Common.None") : WatchPath,
         TriggerKind.Process => ProcessName.Length == 0 ? Strings.Get("Common.None") : ProcessName,
@@ -230,7 +225,6 @@ public partial class TriggerEntry : ObservableObject
     {
         Kind = Kind,
         MacroName = MacroName,
-        MenuLabel = MenuLabel,
         MenuPageId = MenuPageId,
         MenuRow = MenuRow,
         MenuColumn = MenuColumn,
@@ -342,7 +336,6 @@ public partial class TriggerEntry : ObservableObject
                 break;
             case TriggerKind.Menu:
                 node["page"] = MenuPageId;
-                node["label"] = MenuLabel;
                 node["row"] = MenuRow;
                 node["column"] = MenuColumn;
                 if (MenuIcon is { IsEmpty: false } icon)
@@ -399,7 +392,6 @@ public partial class TriggerEntry : ObservableObject
         {
             Kind = Enum.TryParse<TriggerKind>(kindText, true, out var kind) ? kind : TriggerKind.Key,
             MacroName = Text(node, "macro"),
-            MenuLabel = Text(node, "label"),
             MenuPageId = Text(node, "page"),
             MenuRow = Number(node, "row", -1),
             MenuColumn = Number(node, "column", -1),
@@ -579,6 +571,7 @@ public sealed class ProjectTriggers
         Entries.CollectionChanged += OnCollectionChanged;
         InterfaceLayouts.CollectionChanged += OnSurfaceCollectionChanged;
         MenuPages.CollectionChanged += OnSurfaceCollectionChanged;
+        BlockedMenuRules.CollectionChanged += OnSurfaceCollectionChanged;
         EnsureMenuPages();
     }
 
@@ -587,6 +580,9 @@ public sealed class ProjectTriggers
     public ObservableCollection<InterfaceLayout> InterfaceLayouts { get; } = [];
 
     public ObservableCollection<MenuPage> MenuPages { get; } = [];
+
+    /// <summary>Programs whose foreground windows do not open the macro menu.</summary>
+    public ObservableCollection<WindowRule> BlockedMenuRules { get; } = [];
 
     public event EventHandler? Changed;
 
@@ -663,6 +659,45 @@ public sealed class ProjectTriggers
                 return new MenuRuleGroupView(group.Key, pages[0].Window, [.. pages]);
             })];
 
+    /// <summary>
+    /// Finds the ordinary menu rule for one program, creating an empty one first when needed. The
+    /// returned page is the one the runtime menu should select for the foreground window.
+    /// </summary>
+    public MenuPage EnsureProcessMenuRule(WindowInfo foreground, string process, string className)
+    {
+        var key = process.Trim();
+        var existing = ContextRuleGroups().FirstOrDefault(group =>
+            group.Rule.How == WindowHow.ProcessEquals
+            && string.Equals(group.Rule.Process, key, StringComparison.OrdinalIgnoreCase));
+        return existing?.Pages[0]
+               ?? AddContextMenuPage(new WindowRule(
+                   foreground.Title,
+                   key,
+                   className,
+                   foreground.Handle,
+                   WindowHow.ProcessEquals), first: true);
+    }
+
+    /// <summary>Adds one program-wide launcher block, answering false when it already exists.</summary>
+    public bool BlockMenuForProcess(WindowInfo foreground, string process, string className)
+    {
+        var key = process.Trim();
+        if (BlockedMenuRules.Any(rule =>
+                rule.How == WindowHow.ProcessEquals
+                && string.Equals(rule.Process, key, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        BlockedMenuRules.Add(new WindowRule(
+            foreground.Title,
+            key,
+            className,
+            foreground.Handle,
+            WindowHow.ProcessEquals));
+        return true;
+    }
+
     public MenuPage DefaultContextMenuPage()
         => MenuPages.FirstOrDefault(page =>
                page.Region == MenuPageRegion.Context && page.IsDefault)
@@ -681,9 +716,19 @@ public sealed class ProjectTriggers
         return page;
     }
 
-    public MenuPage AddContextMenuPage(WindowRule rule)
+    public MenuPage AddContextMenuPage(WindowRule rule, bool first = false)
     {
         var page = new MenuPage(NewMenuPageId(), MenuPageRegion.Context, rule);
+        if (first)
+        {
+            var at = MenuPages
+                .Select((candidate, index) => (candidate, index))
+                .FirstOrDefault(item => item.candidate.Region == MenuPageRegion.Context
+                    && !item.candidate.IsDefault);
+            MenuPages.Insert(at.candidate is null ? MenuPages.Count : at.index, page);
+            return page;
+        }
+
         var last = MenuPages
             .Select((candidate, index) => (candidate, index))
             .LastOrDefault(item => item.candidate.Region == MenuPageRegion.Context
@@ -729,6 +774,26 @@ public sealed class ProjectTriggers
         MenuPages.Remove(page);
     }
 
+    /// <summary>
+    /// Whether a page may be removed from the menu. Each paging region keeps its first page so the
+    /// runtime view always has a stable starting position.
+    /// </summary>
+    public bool CanRemoveMenuPage(string pageId)
+    {
+        var page = MenuPages.FirstOrDefault(candidate => candidate.Id == pageId);
+        if (page is null)
+        {
+            return false;
+        }
+
+        var siblings = page.Region == MenuPageRegion.Common
+            ? CommonMenuPages()
+            : page.IsDefault
+                ? DefaultContextMenuPages()
+                : ContextPagesFor(page.Window);
+        return siblings.Count > 1 && siblings[0].Id != pageId;
+    }
+
     public void RemoveContextRule(string ruleKey)
     {
         var pages = ContextMenuPages()
@@ -743,6 +808,34 @@ public sealed class ProjectTriggers
         foreach (var page in pages)
         {
             MenuPages.Remove(page);
+        }
+    }
+
+    /// <summary>
+    /// Whether the foreground window belongs to a program that must not open the menu. The rule is
+    /// checked against the foreground's own process or class instead of the first window the
+    /// listing happens to return for that program.
+    /// </summary>
+    public bool IsMenuBlocked(WindowInfo foreground, IWindowDevice windows)
+        => BlockedMenuRules.Any(rule => WindowRuleMatches(rule, foreground, windows));
+
+    public static bool WindowRuleMatches(WindowRule rule, WindowInfo foreground,
+        IWindowDevice windows)
+    {
+        try
+        {
+            var reading = rule.Reading;
+            var text = reading.Match switch
+            {
+                WindowMatch.Process => windows.ProcessOf(foreground.Handle),
+                WindowMatch.ClassName => windows.ClassOf(foreground.Handle),
+                _ => foreground.Title,
+            };
+            return WindowHow.Matches(text, rule.MatchValue, reading.Compare, rule.Options);
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -785,6 +878,7 @@ public sealed class ProjectTriggers
     public void ResetMenu()
     {
         MenuLauncher = string.Empty;
+        BlockedMenuRules.Clear();
         MenuPages.Clear();
         EnsureMenuPages();
     }
@@ -946,6 +1040,11 @@ public sealed class ProjectTriggers
         {
             MenuPages.Add(page with { });
         }
+        BlockedMenuRules.Clear();
+        foreach (var rule in other.BlockedMenuRules)
+        {
+            BlockedMenuRules.Add(rule with { });
+        }
         EnsureMenuPages();
         MenuLauncher = other.MenuLauncher;
     }
@@ -998,6 +1097,14 @@ public sealed class ProjectTriggers
             MenuLauncher = imported.MenuLauncher;
         }
 
+        foreach (var rule in imported.BlockedMenuRules)
+        {
+            if (!BlockedMenuRules.Any(existing => GroupKey(existing) == GroupKey(rule)))
+            {
+                BlockedMenuRules.Add(rule with { });
+            }
+        }
+
         EnsureMenuPages();
     }
 
@@ -1026,9 +1133,6 @@ public sealed class ProjectTriggers
                     return new Execution.MenuRuntimeCell(
                         item.Entry.MenuRow,
                         item.Entry.MenuColumn,
-                        item.Entry.MenuLabel.Length > 0
-                            ? item.Entry.MenuLabel
-                            : item.Macro!.Name,
                         item.Entry.MenuIcon,
                         item.Entry,
                         item.Macro!);
@@ -1057,9 +1161,7 @@ public sealed class ProjectTriggers
                 try
                 {
                     var rule = candidate.Pages[0].Window;
-                    if (windows.Find(rule.MatchValue, rule.Reading.Match,
-                            rule.Reading.Compare, rule.Options)?.Handle
-                        == foreground.Handle)
+                    if (WindowRuleMatches(rule, foreground, windows))
                     {
                         selectedContext = candidate.Pages;
                         break;
@@ -1098,6 +1200,10 @@ public sealed class ProjectTriggers
         if (ContextMenuPages().Any(page => !page.Window.HasTarget))
         {
             problems.Add(Strings.Get("Menu.Problem.RuleEmpty"));
+        }
+        if (BlockedMenuRules.Any(rule => !rule.HasTarget))
+        {
+            problems.Add(Strings.Get("Menu.Problem.BlockedRuleEmpty"));
         }
 
         var names = macros.Select(macro => macro.Name)
@@ -1148,13 +1254,13 @@ public sealed class ProjectTriggers
         if (text.Length == 0
             || text.Contains("Wheel ", StringComparison.OrdinalIgnoreCase)
             || text.Equals("Mouse Left", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Mouse Right", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Mouse Middle", StringComparison.OrdinalIgnoreCase))
+            || text.Equals("Mouse Right", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (text.Equals("Mouse 4", StringComparison.OrdinalIgnoreCase)
+        if (text.Equals("Mouse Middle", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("Mouse 4", StringComparison.OrdinalIgnoreCase)
             || text.Equals("Mouse 5", StringComparison.OrdinalIgnoreCase))
         {
             return true;
@@ -1187,6 +1293,10 @@ public sealed class ProjectTriggers
         {
             copy.MenuPages.Add(page with { });
         }
+        foreach (var rule in BlockedMenuRules)
+        {
+            copy.BlockedMenuRules.Add(rule with { });
+        }
         copy.MenuLauncher = MenuLauncher;
 
         return copy;
@@ -1214,6 +1324,8 @@ public sealed class ProjectTriggers
             {
                 ["launcher"] = MenuLauncher,
                 ["pages"] = new JsonArray([.. MenuPages.Select(page => page.ToJson())]),
+                ["blockedRules"] = new JsonArray(
+                    [.. BlockedMenuRules.Select(rule => (JsonNode)rule.ToJson())]),
             },
         };
     }
@@ -1248,6 +1360,13 @@ public sealed class ProjectTriggers
                 }
             }
             triggers.MenuLauncher = menu["launcher"]?.GetValue<string>() ?? string.Empty;
+            foreach (var item in menu["blockedRules"] as JsonArray ?? [])
+            {
+                if (item is JsonObject rule)
+                {
+                    triggers.BlockedMenuRules.Add(WindowRule.FromJson(rule));
+                }
+            }
         }
 
         triggers.EnsureMenuPages();

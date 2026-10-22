@@ -7,10 +7,12 @@ namespace WhaleGenie.Execution;
 public sealed record MenuRuntimeCell(
     int Row,
     int Column,
-    string Label,
     MenuIconReference? Icon,
     TriggerEntry Entry,
-    MacroItem Macro);
+    MacroItem Macro)
+{
+    public string Name => Macro.Name;
+}
 
 /// <summary>One four-column by three-row common or context page.</summary>
 public sealed record MenuRuntimePage(
