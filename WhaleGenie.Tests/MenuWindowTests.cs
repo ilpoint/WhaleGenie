@@ -24,7 +24,7 @@ public class MenuWindowTests
             window.Show();
 
             Assert.Equal(350, window.Width);
-            Assert.Equal(627, window.Height);
+            Assert.Equal(667, window.Height);
             Assert.False(window.ShowActivated);
             Assert.False(window.IsSearchOpen);
             Assert.False(window.IsPinned);
@@ -95,6 +95,59 @@ public class MenuWindowTests
             Assert.True(window.IsSearchFocused);
             Assert.True(window.ShowActivated);
             Assert.Equal(667, window.Height);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Clicking_elsewhere_in_the_menu_hides_search_after_the_click_finishes()
+    {
+        Ui.Run(() =>
+        {
+            var added = 0;
+            var window = new MacroMenuWindow(Layout(),
+                Actions(addRule: () =>
+                {
+                    added++;
+                    return Task.FromResult<MenuRuntimeLayout?>(null);
+                }), "notepad");
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            window.SetSearchOpen(true);
+            Dispatcher.UIThread.RunJobs();
+            var search = Assert.Single(window.GetVisualDescendants().OfType<TextBox>());
+            search.Text = "one";
+            var addRule = FindButton(window, "MenuAddWindowRule");
+            var point = Waypoint(window, addRule);
+
+            window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(point, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(1, added);
+            Assert.False(window.IsSearchOpen);
+            Assert.Equal(string.Empty, search.Text);
+            Assert.True(window.IsVisible);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void The_search_button_still_collapses_an_open_search()
+    {
+        Ui.Run(() =>
+        {
+            var window = new MacroMenuWindow(Layout(), Actions(), "notepad");
+            window.Show();
+            window.SetSearchOpen(true);
+            Dispatcher.UIThread.RunJobs();
+
+            FindButton(window, "MenuSearchButton")
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(window.IsSearchOpen);
+            Assert.True(window.IsVisible);
             window.Close();
         });
     }
@@ -526,10 +579,10 @@ public class MenuWindowTests
         {
             var window = new MacroMenuWindow(Layout(), Actions(), "notepad");
 
-            Assert.Equal(new PixelPoint(512, 85),
+            Assert.Equal(new PixelPoint(512, 45),
                 window.PlaceNear(new PixelPoint(500, 400),
                     new PixelRect(0, 0, 1000, 1200), 1));
-            Assert.Equal(new PixelPoint(618, 173),
+            Assert.Equal(new PixelPoint(618, 133),
                 window.PlaceNear(new PixelPoint(980, 700),
                     new PixelRect(0, 0, 1000, 800), 1));
             Assert.Equal(new PixelPoint(-1888, 0),
@@ -548,13 +601,15 @@ public class MenuWindowTests
             var cursor = new PixelPoint(500, 400);
             var area = new PixelRect(0, 0, 1000, 1200);
 
-            Assert.Equal(315, window.DividerCenterOffset);
+            Assert.Equal(667, window.Height);
+            Assert.Equal(355, window.DividerCenterOffset);
             Assert.Equal(cursor.Y,
                 window.PlaceNear(cursor, area, 1).Y + window.DividerCenterOffset);
 
             window.SetSearchOpen(true);
             Dispatcher.UIThread.RunJobs();
 
+            Assert.Equal(667, window.Height);
             Assert.Equal(355, window.DividerCenterOffset);
             Assert.Equal(cursor.Y,
                 window.PlaceNear(cursor, area, 1).Y + window.DividerCenterOffset);

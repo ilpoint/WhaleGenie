@@ -10,6 +10,7 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -68,7 +69,8 @@ public sealed class MacroMenuWindow : Window
     private const double FooterGap = 6;
     private const double RegionsHeight = RegionRows * CellSize * 2
         + (RegionRows - 1) * CellGap * 2;
-    private const double BaseHeight = TitleHeight + RegionsHeight + DividerHeight
+    private const double BaseHeight = TitleHeight + SearchHeight + SearchGap
+        + RegionsHeight + DividerHeight
         + FooterGap + FooterHeight + OuterTopPadding + OuterPadding + 2;
     private const int GwlExStyle = -20;
     private const long WsExNoActivate = 0x08000000L;
@@ -160,6 +162,8 @@ public sealed class MacroMenuWindow : Window
             Height = SearchHeight,
             FontSize = 12,
             PlaceholderText = Strings.Get("Menu.Search"),
+            Focusable = false,
+            IsTabStop = false,
         };
         _search.TextChanged += (_, _) => OnSearchChanged();
         _search.GotFocus += (_, _) => BeginSearchFocus();
@@ -168,7 +172,9 @@ public sealed class MacroMenuWindow : Window
         _search.PointerPressed += (_, _) => BeginSearchFocus();
         _searchHost = new Border
         {
-            IsVisible = false,
+            IsVisible = true,
+            Opacity = 0,
+            IsHitTestVisible = false,
             Margin = new Thickness(0, 0, 0, SearchGap),
             Child = _search,
         };
@@ -344,6 +350,14 @@ public sealed class MacroMenuWindow : Window
             }
         };
         PointerReleased += OnCellPointerReleased;
+        AddHandler(PointerPressedEvent, OnMenuPointerPressed, RoutingStrategies.Tunnel);
+        Deactivated += (_, _) =>
+        {
+            if (_searchOpen)
+            {
+                SetSearchOpen(false);
+            }
+        };
         Opened += (_, _) =>
         {
             ApplyNoActivate();
@@ -387,7 +401,7 @@ public sealed class MacroMenuWindow : Window
     internal static Cursor ButtonCursorForCheck => ButtonCursor;
 
     internal double DividerCenterOffset => FrameInset + OuterTopPadding + TitleHeight
-        + (_searchOpen ? SearchHeight + SearchGap : 0)
+        + SearchHeight + SearchGap
         + RegionRows * CellSize + (RegionRows - 1) * CellGap
         + DividerHeight / 2;
 
@@ -412,14 +426,15 @@ public sealed class MacroMenuWindow : Window
         }
 
         _searchOpen = open;
-        _searchHost.IsVisible = open;
-        Height = BaseHeight + (open ? SearchHeight + SearchGap : 0);
+        _searchHost.Opacity = open ? 1 : 0;
+        _searchHost.IsHitTestVisible = open;
+        _search.Focusable = open;
+        _search.IsTabStop = open;
         _searchButton.Classes.Set("On", open);
         _searchButton.Background = open
             ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
             : Brushes.Transparent;
         ToolTip.SetTip(_searchButton, Strings.Get(open ? "Menu.SearchClose" : "Menu.SearchOpen"));
-        Position = NearCursor(_anchor);
 
         if (open)
         {
@@ -830,6 +845,38 @@ public sealed class MacroMenuWindow : Window
         };
         button.Classes.Add("MenuCell");
         return button;
+    }
+
+    private void OnMenuPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!_searchOpen
+            || !(e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+                || e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+            || IsInsideSearchControl(e.Source))
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_searchOpen)
+            {
+                SetSearchOpen(false);
+            }
+        }, DispatcherPriority.Background);
+    }
+
+    private bool IsInsideSearchControl(object? source)
+    {
+        for (var control = source as Control; control is not null; control = control.Parent as Control)
+        {
+            if (ReferenceEquals(control, _searchHost)
+                || ReferenceEquals(control, _searchButton))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private ContextMenu CellMenu(MenuSlotRef slot)
