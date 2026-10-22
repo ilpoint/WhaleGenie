@@ -19,13 +19,13 @@ public class LanguageRefreshTests
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             editor = new MacroEditorViewModel();
-            english = editor.TriggerOptions[0];
+            english = editor.TriggerKindChoices[0].Label;
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             editor!.RefreshLanguage();
-            Assert.NotEqual(english, editor.TriggerOptions[0]);
+            Assert.NotEqual(english, editor.TriggerKindChoices[0].Label);
         }));
     }
 

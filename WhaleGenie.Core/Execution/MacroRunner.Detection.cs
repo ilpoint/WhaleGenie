@@ -83,6 +83,7 @@ public sealed partial class MacroRunner
     {
         var found = Sightings(step);
         var match = Chosen(found, step);
+        Give(step, "found", Value.FromBool(match is not null));
 
         if (match is null)
         {

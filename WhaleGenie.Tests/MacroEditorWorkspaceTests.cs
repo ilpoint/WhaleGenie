@@ -1,11 +1,15 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Execution;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -164,7 +168,7 @@ public class MacroEditorWorkspaceTests
     }
 
     [Fact]
-    public void Dropping_an_action_opens_the_modal_and_cancel_leaves_the_list_alone()
+    public void Dropping_an_action_opens_the_editor_and_cancel_leaves_the_list_alone()
     {
         Ui.Run(() =>
         {
@@ -222,6 +226,223 @@ public class MacroEditorWorkspaceTests
         });
     }
 
+    [Fact]
+    public void Saving_keeps_the_editor_open_and_updates_the_project_once()
+    {
+        Ui.Run(() =>
+        {
+            var mainModel = new MainViewModel();
+            var main = new MainWindow
+            {
+                DataContext = mainModel,
+                AskToSaveProject = () => Task.FromResult(ConfirmChoice.Secondary),
+            };
+            main.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = main.OpenEditor(null, null, draft: false)!;
+            Dispatcher.UIThread.RunJobs();
+            var model = (MacroEditorViewModel)editor.DataContext!;
+            model.Name = "saved macro";
+            model.AddStep(Step("control.log"));
+            Dispatcher.UIThread.RunJobs();
+
+            model.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(editor.IsVisible);
+            var saved = Assert.Single(mainModel.Macros);
+            Assert.Equal("saved macro", saved.Name);
+            Assert.Equal("control.log", Assert.Single(saved.Steps).Type);
+            Assert.True(editor.FindControl<TextBlock>("SavedNotice")!.IsVisible);
+
+            model.AddStep(Step("control.delay"));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(editor.FindControl<TextBlock>("SavedNotice")!.IsVisible);
+
+            model.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Single(mainModel.Macros);
+            Assert.Equal(2, mainModel.Macros[0].Steps.Count);
+
+            editor.Close();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Single(mainModel.Macros);
+
+            main.Close();
+            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs();
+        });
+    }
+
+    [Fact]
+    public void Setting_a_variable_can_create_a_missing_global_as_text()
+    {
+        Ui.Run(() =>
+        {
+            var name = "createdByStep";
+            var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+                Guid.NewGuid().ToString("N"));
+            using var persistence = PersistentVariables.UsePathForTests(
+                Path.Combine(folder, "persistent-variables.json"));
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var root = (MacroEditorViewModel)window.DataContext!;
+            var list = window.FindControl<ListBox>("StepList")!;
+            Drag(list, DragDrop.DropEvent,
+                new ActionDragPayload(ActionPaletteCardKind.Action,
+                    "control.setVariable").Transfer());
+            Dispatcher.UIThread.RunJobs();
+
+            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
+            var form = (AddActionViewModel)action.DataContext!;
+            Assert.False(form.ShowsGlobalPersistence);
+            form.Parameters.Single(parameter => parameter.Definition.Name == "name").Text = name;
+            var scope = form.Parameters.Single(parameter => parameter.Definition.Name == "scope");
+            scope.Option = scope.Choices.Single(option => option.Value == "global");
+            form.Parameters.Single(parameter => parameter.Definition.Name == "value").Text = "one";
+            Assert.True(form.ShowsGlobalPersistence);
+            form.PersistGlobalValue = true;
+            Assert.True(form.CanSave, form.ValidationMessage);
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs();
+
+            var savedStep = Assert.Single(root.Steps);
+            Assert.Equal(name, savedStep.Text("name"));
+            Assert.Equal("global", savedStep.Text("scope"));
+            var created = Assert.Single(VariableCatalog.Globals, variable =>
+                variable.Name == name);
+            Assert.Equal("text", created.Type);
+            Assert.Equal(string.Empty, created.DefaultValue);
+            Assert.True(created.PersistValue);
+            Assert.Contains(root.VariableCenter.Wall.Shown,
+                choice => choice.Name == name);
+
+            created.PersistValue = false;
+            PersistentVariables.Flush();
+            VariableCatalog.Globals.Remove(created);
+            SharedVariables.Current.Remove(name);
+            window.Close(null);
+        });
+    }
+
+    [Fact]
+    public void The_drop_band_says_where_the_action_will_land()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var marker = window.FindControl<Border>("DropMarker")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(40, 40));
+            Assert.True(marker.IsVisible);
+            Assert.True(marker.Height >= 64);
+            Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), hint.Text);
+
+            DragAt(list, DragDrop.DragLeaveEvent, transfer, new Point(40, 40));
+            Assert.False(marker.IsVisible);
+
+            var loop = Step("control.repeat",
+                new StepParameter
+                {
+                    Name = "times",
+                    Kind = ActionParameterKind.Number,
+                    Value = "2",
+                },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.log")],
+                });
+            var model = (MacroEditorViewModel)window.DataContext!;
+            model.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .First(item => item.DataContext is StepRow { IsStep: true, CanFold: true });
+            var center = block.TranslatePoint(
+                new Point(block.Bounds.Width / 2, block.Bounds.Height / 2), list);
+            Assert.NotNull(center);
+            DragAt(list, DragDrop.DragOverEvent, transfer, center!.Value);
+
+            Assert.True(marker.IsVisible);
+            Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
+            Assert.True(Canvas.GetLeft(marker) > 0);
+
+            window.Close(null);
+        });
+    }
+
+    [Fact]
+    public void A_drop_below_an_expanded_block_appends_to_the_top_level()
+    {
+        Ui.Run(() =>
+        {
+            var child = Step("control.log");
+            var loop = Step("control.repeat",
+                new StepParameter
+                {
+                    Name = "times",
+                    Kind = ActionParameterKind.Number,
+                    Value = "2",
+                },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [child],
+                });
+            loop.IsExpanded = true;
+            var macro = new MacroItem { Name = "probe" };
+            macro.Steps.Add(loop);
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var list = window.FindControl<ListBox>("StepList")!;
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow
+                {
+                    IsFoot: true,
+                    Step: var step,
+                } && ReferenceEquals(step, loop));
+            var top = foot.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var point = new Point(80, top + foot.Bounds.Height - 2);
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.delay").Transfer();
+
+            DragAt(list, DragDrop.DropEvent, transfer, point);
+            Dispatcher.UIThread.RunJobs();
+            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
+            var form = (AddActionViewModel)action.DataContext!;
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(["control.repeat", "control.delay"],
+                editor.Steps.Select(step => step.Type));
+            Assert.Equal("control.log",
+                Assert.Single(loop.StepLists.Single().Steps).Type);
+
+            window.Close(null);
+        });
+    }
+
     private static MacroStep Step(string type, params StepParameter[] parameters)
         => new() { Type = type, Parameters = [.. parameters] };
 
@@ -235,8 +456,12 @@ public class MacroEditorWorkspaceTests
 
     private static DragEventArgs Drag(Control target, RoutedEvent<DragEventArgs> what,
         DataTransfer transfer)
+        => DragAt(target, what, transfer, new Point(8, 8));
+
+    private static DragEventArgs DragAt(Control target, RoutedEvent<DragEventArgs> what,
+        DataTransfer transfer, Point point)
     {
-        var args = new DragEventArgs(what, transfer, target, new Point(8, 8),
+        var args = new DragEventArgs(what, transfer, target, point,
             KeyModifiers.None);
         target.RaiseEvent(args);
         return args;

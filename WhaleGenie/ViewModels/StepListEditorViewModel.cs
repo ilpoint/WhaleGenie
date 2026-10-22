@@ -9,27 +9,19 @@ using WhaleGenie.Models;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// Edits the condition of a step: the one an if, a while or a wait tests, or the conditions a
-/// logic group combines. This is the one thing a step needs that is not a step itself, which is
-/// why it is picked in the dialog rather than written in the editor's step list.
+/// Edits a list of child steps inside an action form.
 /// </summary>
 public partial class StepListEditorViewModel : ViewModelBase
 {
-    /// <summary>Creates an editor for a step list, or for a single condition.</summary>
-    public StepListEditorViewModel(string addLabel, bool isCondition,
-        IReadOnlyList<ActionDefinition>? catalog = null, bool acceptsConditions = false)
+    /// <summary>Creates an editor for a step list.</summary>
+    public StepListEditorViewModel(string addLabel, IReadOnlyList<ActionDefinition>? catalog = null)
     {
         AddLabel = addLabel;
-        IsCondition = isCondition;
-        AcceptsConditions = acceptsConditions || isCondition;
         Catalog = catalog;
 
         OnPropertyChanged(nameof(HasSteps));
         OnPropertyChanged(nameof(HasNoSteps));
     }
-
-    /// <summary>Raised when the dialog should open the picker to add a step.</summary>
-    public event Action<StepListEditorViewModel>? AddRequested;
 
     /// <summary>Raised when the dialog should open the picker to edit a step.</summary>
     public event Action<MacroStep>? EditRequested;
@@ -41,12 +33,6 @@ public partial class StepListEditorViewModel : ViewModelBase
 
     /// <summary>Label of the button that opens the picker.</summary>
     public string AddLabel { get; }
-
-    /// <summary>True when this editor holds one condition rather than a list of steps.</summary>
-    public bool IsCondition { get; }
-
-    /// <summary>True for a single condition or a group that contains several conditions.</summary>
-    public bool AcceptsConditions { get; }
 
     public bool HasSteps => Steps.Count > 0;
 
@@ -62,12 +48,8 @@ public partial class StepListEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Add()
     {
-        // Step lists are edited in the macro's main list once the block exists. Conditions are
-        // not steps, so they are still chosen inside the action window.
-        if (AcceptsConditions)
-        {
-            AddRequested?.Invoke(this);
-        }
+        // Child steps are inserted in the macro's main list at the chosen drop slot. The action
+        // form only reports where the block is; it is not a second editor for its children.
     }
 
     [RelayCommand]
@@ -82,12 +64,6 @@ public partial class StepListEditorViewModel : ViewModelBase
     /// <summary>Adds a step chosen in the picker.</summary>
     public void AddStep(MacroStep step)
     {
-        if (IsCondition)
-        {
-            // A condition is a single expression, so picking a new one replaces the old.
-            Steps.Clear();
-        }
-
         Steps.Add(step);
         SelectedStep = step;
         Refresh();

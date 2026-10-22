@@ -993,7 +993,8 @@ public class MacroEditorTests
             Assert.Equal(280d, grid.ColumnDefinitions[0].MinWidth);
             Assert.Equal(280d, grid.ColumnDefinitions[0].Width.Value);
             Assert.Equal(480d, grid.ColumnDefinitions[2].MinWidth);
-            Assert.Equal(280d, grid.ColumnDefinitions[4].MinWidth);
+            Assert.Equal(360d, grid.ColumnDefinitions[4].MinWidth);
+            Assert.Equal(360d, grid.ColumnDefinitions[4].Width.Value);
 
             var splitters = grid.Children.OfType<GridSplitter>().ToList();
             Assert.Equal(2, splitters.Count);

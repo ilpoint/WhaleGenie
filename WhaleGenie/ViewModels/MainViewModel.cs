@@ -302,6 +302,7 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
+        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
 
         CurrentPath = path;
         IsDirty = false;
@@ -329,6 +330,7 @@ public partial class MainViewModel : ViewModelBase
                 VariableCatalog.Globals.Add(global);
             }
         }
+        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
     }
 
     /// <summary>
@@ -351,6 +353,7 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
+        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
 
         CurrentPath = contents.PackagePath;
         MarkDirty();
@@ -413,6 +416,7 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
+        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
 
         MarkDirty();
     }

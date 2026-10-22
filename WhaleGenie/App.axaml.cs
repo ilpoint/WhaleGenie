@@ -27,6 +27,7 @@ public partial class App : Application
         Strings.Current.LanguageChanged += LanguageRefresh.Refresh;
 
         ThemeController.Apply(ThemeController.Load());
+        PersistentVariables.Initialize();
         // Whether the virtual keyboard and mouse are to be put on the machine at startup was chosen
         // in the settings window and written beside the program; the engine does not read that file,
         // so it is told here, before anything can ask for driver-level input.
@@ -75,6 +76,7 @@ public partial class App : Application
 
             desktop.Exit += (_, _) =>
             {
+                PersistentVariables.Flush();
                 window.Tray?.Dispose();
 
                 // The MCP server owns a Kestrel socket; it has to be gone before the process is.

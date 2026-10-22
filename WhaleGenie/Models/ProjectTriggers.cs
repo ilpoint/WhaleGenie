@@ -20,6 +20,7 @@ public partial class TriggerEntry : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(KindLabel))]
     [NotifyPropertyChangedFor(nameof(Summary))]
+    [NotifyPropertyChangedFor(nameof(IsRemovable))]
     public partial TriggerKind Kind { get; set; }
 
     [ObservableProperty]
@@ -157,6 +158,9 @@ public partial class TriggerEntry : ObservableObject
         TriggerKind.Window => "Trigger.Window",
         _ => "Trigger.Idle",
     });
+
+    /// <summary>Menu entries are managed on the project's menu pages rather than removed here.</summary>
+    public bool IsRemovable => Kind != TriggerKind.Menu;
 
     public string Summary => Kind switch
     {

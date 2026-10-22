@@ -38,9 +38,9 @@ public class ReturnsPageTests
 
             // Only the results that were ticked: the hit the step starts with, and the whole list
             // that was asked for.
-            Assert.Equal(["match", "every"], returns.Rows.Select(row => row.Text("key")).ToList());
-            var hit = returns.Rows[0].Text("name");
-            var all = returns.Rows[1].Text("name");
+            Assert.Equal(["found", "match", "every"], returns.Rows.Select(row => row.Text("key")).ToList());
+            var hit = returns.Rows.First(row => row.Text("key") == "match").Text("name");
+            var all = returns.Rows.First(row => row.Text("key") == "every").Text("name");
             Assert.Contains("登录", hit, StringComparison.Ordinal);
             Assert.Contains("登录", all, StringComparison.Ordinal);
 
@@ -112,13 +112,13 @@ public class ReturnsPageTests
             var written = viewModel.BuildStep().Parameters
                 .First(parameter => parameter.Name == "returns").Rows
                 .Select(row => row.Text("key")).ToList();
-            Assert.Equal(["match"], written);
+            Assert.Equal(["found", "match"], written);
 
             every.Ticked = true;
             written = viewModel.BuildStep().Parameters
                 .First(parameter => parameter.Name == "returns").Rows
                 .Select(row => row.Text("key")).ToList();
-            Assert.Equal(["match", "every"], written);
+            Assert.Equal(["found", "match", "every"], written);
         });
     }
 

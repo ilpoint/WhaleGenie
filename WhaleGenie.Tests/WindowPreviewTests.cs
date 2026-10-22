@@ -647,7 +647,7 @@ public class WindowPreviewTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("condition.windowExists");
+            var viewModel = Open("window.exists");
             viewModel.Windows = Desk()
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Calculator", "calc", "CalcFrame");
@@ -655,8 +655,7 @@ public class WindowPreviewTests
             var text = Parameter(viewModel, "window");
             Assert.True(text.ShowsWindowPreview);
 
-            // A condition is asked about rather than done, so there is nothing for the run button.
-            Assert.False(viewModel.ShowsRun);
+            Assert.True(viewModel.ShowsRun);
 
             PutWindowRule(viewModel, "calc", "process");
             Dispatcher.UIThread.RunJobs();

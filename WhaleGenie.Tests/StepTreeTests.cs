@@ -111,8 +111,8 @@ public class StepTreeTests
                 new StepParameter
                 {
                     Name = "condition",
-                    Kind = ActionParameterKind.Condition,
-                    Condition = Step("condition.colorsMatch"),
+                    Kind = ActionParameterKind.Expression,
+                    Value = "false",
                 });
             editor.AddStep(conditional);
 

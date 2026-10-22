@@ -163,6 +163,39 @@ public class VariableWallTests
         Assert.Equal(Strings.Get("VarWall.Empty"), wall.Details);
     }
 
+    [Fact]
+    public void A_variable_bubble_shows_its_content_and_record_fields()
+    {
+        var choice = new VariableChoice
+        {
+            Name = "hit",
+            Scope = VariableScope.Global,
+            Type = "record",
+            ContentReader = () => "{ x: 12, y: 8 }",
+            Fields =
+            [
+                new ActionReturnField { Name = "x", Type = ActionReturnType.Number },
+                new ActionReturnField { Name = "name", Type = ActionReturnType.Text },
+            ],
+        };
+
+        Assert.Contains(Strings.Format("VarWall.ContentLine", "{ x: 12, y: 8 }"),
+            choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains("x", choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains("name", choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains(Strings.Get("Variable.Type.number"), choice.HoverText,
+            StringComparison.Ordinal);
+
+        var local = new VariableChoice
+        {
+            Name = "answer",
+            Scope = VariableScope.Local,
+            Type = "text",
+        };
+        Assert.Contains(Strings.Get("VarWall.NoRuntimeValue"), local.HoverText,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// The two kinds of variable a macro's author owns are named the way the run window's variable
     /// page names them — one word for one idea rather than a second set that has to be mapped onto

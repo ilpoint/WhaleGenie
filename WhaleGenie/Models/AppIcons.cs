@@ -41,8 +41,11 @@ public static class AppIcons
     public static LucideIconKind Pause => LucideIconKind.Pause;
     public static LucideIconKind GridFour => LucideIconKind.Grid2x2;
     public static LucideIconKind Minus => LucideIconKind.Minus;
+    public static LucideIconKind Maximize => LucideIconKind.Maximize;
+    public static LucideIconKind Restore => LucideIconKind.Copy;
     public static LucideIconKind Sun => LucideIconKind.Sun;
     public static LucideIconKind Pin => LucideIconKind.Pin;
+    public static LucideIconKind PinOff => LucideIconKind.PinOff;
     public static LucideIconKind Moon => LucideIconKind.Moon;
     public static LucideIconKind Folder => LucideIconKind.Folder;
     public static LucideIconKind FolderOpen => LucideIconKind.FolderOpen;

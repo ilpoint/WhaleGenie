@@ -17,7 +17,7 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class VariableWallViewModel : ViewModelBase
 {
-    private readonly IReadOnlyList<VariableChoice> _all;
+    private IReadOnlyList<VariableChoice> _all;
 
     public VariableWallViewModel(IReadOnlyList<VariableChoice>? variables = null)
     {
@@ -71,6 +71,10 @@ public partial class VariableWallViewModel : ViewModelBase
     [ObservableProperty]
     public partial VariableFilter? SelectedFilter { get; set; }
 
+    /// <summary>The list height in a picker, or room to grow when the wall fills the inspector.</summary>
+    [ObservableProperty]
+    public partial double ListMaxHeight { get; set; } = 196;
+
     /// <summary>The group whose variables are on show.</summary>
     public VariableGroup Filter => SelectedFilter?.Group ?? VariableGroup.All;
 
@@ -93,6 +97,23 @@ public partial class VariableWallViewModel : ViewModelBase
     public bool HasUses => Uses.Count > 0;
 
     partial void OnSelectedFilterChanged(VariableFilter? value) => Rebuild();
+
+    /// <summary>Replaces the variables on the wall, keeping the chosen group when it still applies.</summary>
+    public void SetVariables(IReadOnlyList<VariableChoice> variables)
+    {
+        _all = variables;
+        if (_all.Count > 0
+            && Filter is VariableGroup.Local or VariableGroup.StepResult
+            && !_all.Any(choice => choice.Group == Filter))
+        {
+            SelectedFilter = Filters[0];
+            return;
+        }
+
+        Rebuild();
+    }
+
+    public void UseAvailableHeight() => ListMaxHeight = 1000;
 
     partial void OnLookingChanged(VariableChoice? value)
     {

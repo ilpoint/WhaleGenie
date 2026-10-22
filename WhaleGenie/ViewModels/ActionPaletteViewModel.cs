@@ -29,6 +29,11 @@ public enum ActionPaletteCardKind
 
 public sealed record ActionPaletteTab(ActionPaletteDock Dock, string Label, LucideIconKind Icon);
 
+public sealed record ActionPaletteSection(string Title, IReadOnlyList<ActionPaletteCardViewModel> Cards)
+{
+    public bool HasTitle => Title.Length > 0;
+}
+
 public sealed class ActionPaletteCardViewModel
 {
     public required ActionPaletteCardKind Kind { get; init; }
@@ -98,6 +103,8 @@ public partial class ActionPaletteViewModel : ViewModelBase
 
     public ObservableCollection<ActionPaletteCardViewModel> Cards { get; } = [];
 
+    public ObservableCollection<ActionPaletteSection> Sections { get; } = [];
+
     public bool HasNoCards => Cards.Count == 0;
 
     public string EmptyText => Search.Trim().Length > 0
@@ -144,6 +151,7 @@ public partial class ActionPaletteViewModel : ViewModelBase
     {
         var search = Search.Trim();
         Cards.Clear();
+        Sections.Clear();
         var wanted = SelectedCategory?.Value;
 
         IEnumerable<ActionPaletteCardViewModel> source = SelectedTab.Dock switch
@@ -178,6 +186,21 @@ public partial class ActionPaletteViewModel : ViewModelBase
             Cards.Add(card);
         }
 
+        if (SelectedTab.Dock == ActionPaletteDock.Flow)
+        {
+            foreach (var group in Cards
+                         .GroupBy(card => FlowGroup(card.Key))
+                         .OrderBy(group => FlowGroupRank(group.Key)))
+            {
+                Sections.Add(new ActionPaletteSection(
+                    Strings.Get($"Palette.Flow.{group.Key}"), [.. group]));
+            }
+        }
+        else if (Cards.Count > 0)
+        {
+            Sections.Add(new ActionPaletteSection(string.Empty, [.. Cards]));
+        }
+
         OnPropertyChanged(nameof(HasNoCards));
         OnPropertyChanged(nameof(EmptyText));
     }
@@ -196,6 +219,35 @@ public partial class ActionPaletteViewModel : ViewModelBase
             Icon = ActionCategoryPresentation.Icon(category),
         };
     }
+
+    private static string FlowGroup(string key) => key switch
+    {
+        "control.sequence" or "control.repeat" or "control.while" or "control.for"
+            or "control.forEach" or "control.if" or "control.switch" or "control.try" => "Branch",
+        "control.break" or "control.continue" or "control.return" or "control.rethrow"
+            or "control.stop" or "control.fail" => "Jump",
+        "control.delay" or "control.delayRandom" or "control.waitUntil"
+            or "control.holdInput" or "control.holdBrowser"
+            or "control.runMacro" or "control.startMacro" or "control.waitMacro"
+            or "control.waitAll" or "control.waitAny" or "control.runStatus"
+            or "control.cancelMacro" => "Waiting",
+        "control.setVariable" or "control.calculate" or "control.incrementGlobal"
+            or "control.listCreate" or "control.listAdd" or "control.listInsert"
+            or "control.listRemoveAt" or "control.listSet" or "control.listClear"
+            or "control.ask" or "control.input" => "Data",
+        "control.note" or "control.log" => "Notes",
+        _ => "Other",
+    };
+
+    private static int FlowGroupRank(string key) => key switch
+    {
+        "Branch" => 0,
+        "Jump" => 1,
+        "Waiting" => 2,
+        "Data" => 3,
+        "Notes" => 4,
+        _ => 5,
+    };
 
     private static ActionPaletteCardViewModel SubMacroCard(MacroItem macro) => new()
     {

@@ -44,7 +44,7 @@ public partial class HotstringKeyboardWindow : Window
         var close = this.FindControl<Button>("CloseButton");
         if (close is not null)
         {
-            close.Click += (_, _) => Close();
+            close.Click += (_, _) => Close(null);
         }
 
         var backspace = this.FindControl<Button>("BackspaceButton");
@@ -61,12 +61,16 @@ public partial class HotstringKeyboardWindow : Window
             _controlButtons.Add(clear);
         }
 
+        var confirm = this.FindControl<Button>("ConfirmButton");
+        if (confirm is not null)
+        {
+            confirm.Click += (_, _) => Close(_text);
+        }
+
         BuildRows();
         Refresh();
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
-
-    public event Action<string>? TextChanged;
 
     public string Text => _text;
 
@@ -76,7 +80,6 @@ public partial class HotstringKeyboardWindow : Window
             ? text[..HotstringCharacters.MaximumLength]
             : text;
         Refresh();
-        TextChanged?.Invoke(_text);
     }
 
     private void BuildRows()
@@ -228,7 +231,7 @@ public partial class HotstringKeyboardWindow : Window
         }
 
         e.Handled = true;
-        Close();
+        Close(null);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

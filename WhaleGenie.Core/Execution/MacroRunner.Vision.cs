@@ -470,6 +470,7 @@ public sealed partial class MacroRunner
 
         var hits = pass.Enough(least) ? pass.Hits : [];
         var match = Chosen(hits, step);
+        Give(step, "found", Value.FromBool(match is not null));
         if (match is null)
         {
             GiveNothing(step);
@@ -562,6 +563,7 @@ public sealed partial class MacroRunner
     {
         var hits = PatternHits(step);
         var match = Chosen(hits, step);
+        Give(step, "found", Value.FromBool(match is not null));
         if (match is null)
         {
             GiveNothing(step);
@@ -751,6 +753,7 @@ public sealed partial class MacroRunner
     {
         var hits = Hits(step);
         var match = Chosen(hits, step);
+        Give(step, "found", Value.FromBool(match is not null));
 
         if (match is null)
         {
@@ -810,6 +813,20 @@ public sealed partial class MacroRunner
     /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
     private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
 
+    /// <summary>Reads one pixel once and reports whether it matches the colour the step names.</summary>
+    private void PixelMatches(ExecutableStep step, int depth)
+    {
+        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
+        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var (point, window) = Spot(step);
+        var colour = PixelAt(step, point, window);
+        var matched = colour.Matches(target, tolerance);
+        Give(step, "matched", Value.FromBool(matched));
+        SawPixel(step, point, colour.ToHex(), window);
+        Log(LogLevel.Info, depth, step.Type,
+            matched ? LogKeys.SawColor : LogKeys.ImageMissing, colour.ToHex());
+    }
+
 
     /// <summary>
     /// The vision actions, each answered by the method written for it. Step types of
@@ -831,6 +848,10 @@ public sealed partial class MacroRunner
             case "vision.getPixel":
                 await Gate(step, token);
                 Watching(() => GetPixel(step, depth));
+                return Signal.Normal;
+            case "vision.pixelMatches":
+                await Gate(step, token);
+                Watching(() => PixelMatches(step, depth));
                 return Signal.Normal;
             case "vision.waitColor":
                 await Gate(step, token);

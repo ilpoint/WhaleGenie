@@ -830,59 +830,6 @@
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
 
-                <!-- The condition of the step, or the conditions a logic group combines. It stays
-                     in the dialog because a condition is what the step needs rather than a step
-                     of the macro; the steps inside a block are edited in the editor's own list,
-                     where the block's shape can be seen. -->
-                <Border Classes="NestedBox" IsVisible="{Binding IsConditionList}">
-                    <StackPanel Spacing="7">
-                        <ListBox Classes="NestedList"
-                                 MaxHeight="180"
-                                 IsVisible="{Binding List.HasSteps}"
-                                 ItemsSource="{Binding List.Steps}"
-                                 SelectedItem="{Binding List.SelectedStep}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:MacroStep">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource AppTextStrong}" />
-                                        <TextBlock Text="{Binding Detail}"
-                                                   FontSize="11" Foreground="{DynamicResource AppMuted}"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <Border IsVisible="{Binding List.HasNoSteps}"
-                                Padding="10,8" CornerRadius="4"
-                                BorderBrush="{DynamicResource AppBorder}"
-                                BorderThickness="1">
-                            <TextBlock Classes="Muted"
-                                       Text="{Binding [Add.NoCondition], Source={x:Static loc:Strings.Current}}" />
-                        </Border>
-
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Classes="AddButton" Height="34"
-                                    Command="{Binding List.AddCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <views:IconView Width="14" Height="14"
-                                                    Stroke="#FFFFFF" StrokeThickness="1.6"
-                                                    FitToBounds="True"
-                                                    Data="{x:Static models:AppIcons.Plus}" />
-                                    <TextBlock Text="{Binding List.AddLabel}"
-                                               VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding [Add.NestedEdit], Source={x:Static loc:Strings.Current}}"
-                                    IsEnabled="{Binding List.CanEdit}"
-                                    Command="{Binding List.EditCommand}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
                 <!-- A block keeps its steps in the editor's list, where the shape they make can
                      be seen, so this dialog does not show them — but it still adds one, because
                      "this block needs another step in it" is a thing to want while its settings
@@ -1409,6 +1356,13 @@
 
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
+
+                            <CheckBox IsVisible="{Binding ShowsGlobalPersistence}"
+                                      IsChecked="{Binding PersistGlobalValue}"
+                                      Foreground="{DynamicResource AppMuted}" FontSize="12"
+                                      Margin="2,4,0,8"
+                                      Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
+                                      ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
 
                             <TextBlock Classes="Muted" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />

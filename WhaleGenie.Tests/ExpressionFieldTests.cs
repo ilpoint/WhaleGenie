@@ -72,13 +72,6 @@ public class ExpressionFieldTests
         ["browser.switchTab"] = ["tabMatch"],
         ["browser.waitForUrl"] = ["urlMatch"],
         ["browser.dialog"] = ["dialogText"],
-        ["condition.textExists"] = ["queryText"],
-        ["condition.textNotExists"] = ["queryText"],
-        ["condition.compare"] = ["compareValue"],
-        ["condition.listContains"] = ["list", "wantedValue"],
-        ["condition.processRunning"] = ["processName"],
-        ["condition.valueInRange"] = ["testValue", "min", "max"],
-        ["condition.dateCompare"] = ["left", "right"],
     };
 
     [Fact]

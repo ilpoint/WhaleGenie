@@ -475,11 +475,6 @@ public sealed partial class MacroRunner
                     return inside;
                 }
 
-                if (parameter.Condition is { } condition
-                    && string.Equals(condition.Id, id, StringComparison.OrdinalIgnoreCase))
-                {
-                    return condition;
-                }
             }
         }
 

@@ -243,7 +243,6 @@ public partial class ActionEditorView : UserControl
         viewModel.PropertyChanged += OnFormChanged;
         WatchPreview();
         viewModel.CloseRequested += OnFormFinished;
-        viewModel.NestedAddRequested += OnNestedAddRequested;
         viewModel.NestedEditRequested += OnNestedEditRequested;
 
         // Tunnelling so Escape cancels before any focused editor consumes it.
@@ -846,6 +845,19 @@ public partial class ActionEditorView : UserControl
         }
 
         await BuildExpression(parameter);
+    }
+
+    private static int? CaretAt(object? source)
+    {
+        for (var at = source as Visual; at is not null; at = at.GetVisualParent())
+        {
+            if (at is TextBox box)
+            {
+                return box.CaretIndex;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

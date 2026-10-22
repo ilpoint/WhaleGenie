@@ -18,6 +18,8 @@ using WindowRuleModel = WhaleGenie.Core.Devices.WindowRule;
 
 namespace WhaleGenie.ViewModels;
 
+public sealed record TriggerKindChoice(TriggerKind Kind, string Label);
+
 public partial class MacroEditorViewModel : ViewModelBase
 {
     /// <summary>Raised when the editor should close, with the macro to save or <c>null</c> when cancelled.</summary>
@@ -138,7 +140,10 @@ public partial class MacroEditorViewModel : ViewModelBase
         LoadTriggerFields(first);
         RebuildHotstringEndKeys();
         RefreshPaletteState();
+        RefreshVariableCenter();
     }
+
+    public VariableCenterViewModel VariableCenter { get; } = new();
 
     public ObservableCollection<TriggerEntry> TriggerEntries { get; } = [];
 
@@ -302,11 +307,19 @@ public partial class MacroEditorViewModel : ViewModelBase
             LoadTriggerFields(value);
             UpdateInterfaceGroupFields();
             OnPropertyChanged();
-            OnPropertyChanged(nameof(HasSelectedTrigger));
+            NotifyTriggerSelectionChanged();
         }
     }
 
     public bool HasSelectedTrigger => SelectedTrigger is not null;
+
+    public bool ShowsTriggerSettings => HasSelectedTrigger && TriggerMode != TriggerKind.Menu;
+
+    public bool ShowsLoopMode => HasSelectedTrigger && TriggerMode == TriggerKind.Key;
+
+    public bool ShowsTriggerOnce => HasSelectedTrigger && TriggerMode
+        is TriggerKind.Key or TriggerKind.Color or TriggerKind.Timer or TriggerKind.File
+        or TriggerKind.Process or TriggerKind.Window or TriggerKind.Idle;
 
     public string TriggerProblemSummary
     {
@@ -406,17 +419,19 @@ public partial class MacroEditorViewModel : ViewModelBase
         })),
     ];
 
-    [ObservableProperty]
-    public partial int NewTriggerKindIndex { get; set; }
+    public IReadOnlyList<TriggerKindChoice> TriggerKindChoices =>
+    [
+        .. EditableTriggerKinds.Select((kind, index) =>
+            new TriggerKindChoice(kind, TriggerKindOptions[index])),
+    ];
 
     [RelayCommand]
-    private void AddTrigger()
+    private void AddTrigger(TriggerKind? kind)
     {
         CommitTriggerFields();
-        var index = Math.Clamp(NewTriggerKindIndex, 0, TriggerKindOptions.Count - 1);
         var entry = new TriggerEntry
         {
-            Kind = EditableTriggerKinds[index],
+            Kind = kind ?? TriggerKind.Key,
             MacroName = Name.Trim(),
         };
         WatchTriggerEntry(entry);
@@ -435,19 +450,19 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void RemoveSelectedTrigger()
+    private void RemoveTrigger(TriggerEntry? removing)
     {
-        if (SelectedTrigger is not { } removing)
-        {
-            return;
-        }
-
-        if (removing.Kind == TriggerKind.Menu)
+        if (removing is null || !removing.IsRemovable)
         {
             return;
         }
 
         var index = TriggerEntries.IndexOf(removing);
+        if (index < 0)
+        {
+            return;
+        }
+
         removing.PropertyChanged -= OnTriggerEntryChanged;
         TriggerEntries.Remove(removing);
         _selectedTrigger = TriggerEntries.Count == 0
@@ -455,8 +470,16 @@ public partial class MacroEditorViewModel : ViewModelBase
             : TriggerEntries[Math.Clamp(index, 0, TriggerEntries.Count - 1)];
         LoadTriggerFields(_selectedTrigger);
         OnPropertyChanged(nameof(SelectedTrigger));
-        OnPropertyChanged(nameof(HasSelectedTrigger));
+        NotifyTriggerSelectionChanged();
         MarkDirty();
+    }
+
+    private void NotifyTriggerSelectionChanged()
+    {
+        OnPropertyChanged(nameof(HasSelectedTrigger));
+        OnPropertyChanged(nameof(ShowsTriggerSettings));
+        OnPropertyChanged(nameof(ShowsLoopMode));
+        OnPropertyChanged(nameof(ShowsTriggerOnce));
     }
 
     private void WatchTriggerEntry(TriggerEntry entry)
@@ -568,6 +591,9 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// definition has no trigger of its own, so trigger-only validation must not block it.
     /// </summary>
     public bool IsSubMacro { get; internal set; }
+
+    /// <summary>The live reader the variable wall uses for WhaleGenie's own values.</summary>
+    internal SystemVariableReader? SystemReader { get; set; }
 
     /// <summary>The public macro this definition was copied from, if any.</summary>
     [ObservableProperty]
@@ -743,7 +769,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     public partial string Description { get; set; } = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TriggerIndex))]
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
     [NotifyPropertyChangedFor(nameof(IsKeyTrigger))]
     [NotifyPropertyChangedFor(nameof(IsInterfaceTrigger))]
@@ -761,9 +786,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(LoopIndex))]
     public partial MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
 
-    public IReadOnlyList<string> TriggerOptions =>
-        TriggerKindOptions;
-
     public IReadOnlyList<string> LoopOptions =>
     [
         Strings.Get("Loop.Toggle"),
@@ -771,18 +793,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Loop.Press"),
         Strings.Get("Loop.Release"),
     ];
-
-    public int TriggerIndex
-    {
-        get => Array.IndexOf(EditableTriggerKinds, TriggerMode);
-        set
-        {
-            if (value >= 0 && value < EditableTriggerKinds.Length)
-            {
-                TriggerMode = EditableTriggerKinds[value];
-            }
-        }
-    }
 
     /// <summary>True when the macro is started by a key or a mouse button.</summary>
     public bool IsKeyTrigger => TriggerMode == TriggerKind.Key;
@@ -884,14 +894,10 @@ public partial class MacroEditorViewModel : ViewModelBase
         : Strings.Get("Editor.HotstringChoose");
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HotstringEndKeySummary))]
     [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
     [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
     [NotifyPropertyChangedFor(nameof(CanSave))]
     public partial string HotstringEndChars { get; set; } = HotstringCharacters.DefaultEndChars;
-
-    public string HotstringEndKeySummary
-        => HotstringCharacters.DescribeEndChars(HotstringEndChars);
 
     public int HotstringMaximumLength => HotstringCharacters.MaximumLength;
 
@@ -1380,6 +1386,9 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsWindowTrigger));
         OnPropertyChanged(nameof(IsWindowRuleTrigger));
         OnPropertyChanged(nameof(IsIdleTrigger));
+        OnPropertyChanged(nameof(ShowsTriggerSettings));
+        OnPropertyChanged(nameof(ShowsLoopMode));
+        OnPropertyChanged(nameof(ShowsTriggerOnce));
         UpdateInterfaceGroupFields();
     }
 
@@ -1637,8 +1646,8 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>
     /// What the "Add Action" dialog may offer for the step being built: a switch's branch list
-    /// only takes branches, a condition list only takes conditions, everything else takes
-    /// anything. Read by the window when it opens the dialog.
+    /// only takes branches, everything else takes anything. Read by the window when it opens the
+    /// dialog.
     /// </summary>
     public IReadOnlyList<ActionDefinition>? InsertChoices => _insertAt is
     { Owner: { } owner, Parameter: { } parameter }
@@ -1647,11 +1656,6 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private static IReadOnlyList<ActionDefinition>? ChoicesFor(MacroStep owner, StepParameter parameter)
     {
-        if (parameter.Kind is ActionParameterKind.Condition)
-        {
-            return ActionCatalog.Conditions;
-        }
-
         var definition = owner.Definition?.Parameters
             .FirstOrDefault(candidate => candidate.Name == parameter.Name);
 
@@ -2336,7 +2340,35 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// behind — each with what a person choosing one needs to know about it.
     /// </summary>
     public IReadOnlyList<VariableChoice> CollectVariables()
-        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults);
+        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults, ReadVariableContent);
+
+    private string? ReadVariableContent(string name, VariableScope scope)
+    {
+        if (scope is VariableScope.Global)
+        {
+            if (SharedVariables.Current.TryGet(name, out var value))
+            {
+                return value.AsText();
+            }
+
+            if (PersistentVariables.TryGet(name, out var saved))
+            {
+                return saved;
+            }
+
+            var definition = VariableCatalog.FindGlobal(name);
+            return definition is null
+                ? null
+                : VariableDefinition.Preview(definition.Type, definition.DefaultValue);
+        }
+
+        if (scope is VariableScope.System)
+        {
+            return SystemReader?.Read(name);
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// A name for a step that is not in the list yet. The name is handed to the dialog while the
@@ -2370,18 +2402,13 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Collect(child);
                 }
 
-                if (parameter.Condition is not null)
-                {
-                    Collect(parameter.Condition);
-                }
             }
         }
     }
 
     /// <summary>
     /// The steps of the macro being written, which is what a step that has to point at another one
-    /// picks from. Conditions are left out: they are asked by the step they belong to rather than
-    /// run, so they never have an ending of their own to ask about.
+    /// picks from.
     /// </summary>
     public IReadOnlyList<ActionParameterOption> StepChoices()
     {
@@ -2395,7 +2422,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         static void Collect(List<ActionParameterOption> choices, MacroStep step)
         {
-            if (!step.IsCondition && step.Id.Length > 0)
+            if (step.Id.Length > 0)
             {
                 choices.Add(new ActionParameterOption(step.Id, step.PickerLabel));
             }
@@ -2407,10 +2434,6 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Collect(choices, child);
                 }
 
-                if (parameter.Condition is not null)
-                {
-                    Collect(choices, parameter.Condition);
-                }
             }
         }
     }
@@ -2425,7 +2448,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     };
 
     /// <summary>
-    /// Copies a parameter together with the steps or condition nested inside it,
+    /// Copies a parameter together with the steps nested inside it,
     /// so duplicating a loop or an if keeps its body.
     /// </summary>
     private static StepParameter Clone(StepParameter parameter) => new()
@@ -2436,7 +2459,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         Jitter = parameter.Jitter,
         Steps = parameter.Steps.Select(Clone).ToList(),
         Rows = parameter.Rows.Select(row => row.Copy()).ToList(),
-        Condition = parameter.Condition is null ? null : Clone(parameter.Condition),
     };
 
     /// <summary>
@@ -2782,6 +2804,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();
+        RefreshVariableCenter();
         SelectionRefreshRequested?.Invoke();
     }
 
@@ -3048,7 +3071,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         StopRecording();
-        IsDirty = false;
         CloseRequested?.Invoke(BuildMacro());
     }
 
@@ -3063,8 +3085,8 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
                 or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
                 or nameof(SelectedTrigger) or nameof(HasSelectedTrigger)
-                or nameof(NewTriggerKindIndex) or nameof(TriggerEntries)
-                or nameof(TriggerKindOptions)
+                or nameof(ShowsTriggerSettings) or nameof(ShowsLoopMode) or nameof(ShowsTriggerOnce)
+                or nameof(TriggerEntries) or nameof(TriggerKindOptions) or nameof(TriggerKindChoices)
                 or nameof(TriggerProblemSummary) or nameof(HasTriggerProblem)
                 or nameof(HotstringEndKeys) or nameof(IsCapturingHotstringEnd)
                 or nameof(HotstringEndCaptureStatus) or nameof(HotstringEndCaptureButton)
@@ -3105,8 +3127,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void MarkDirty()
     {
         IsDirty = true;
+        RefreshVariableCenter();
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    private void RefreshVariableCenter()
+        => VariableCenter.Refresh(CollectVariables());
 
     /// <summary>
     /// Renaming a macro changes which calls point at it, so the check has to be run again —

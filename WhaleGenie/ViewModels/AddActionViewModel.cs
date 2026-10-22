@@ -68,9 +68,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
 
-    /// <summary>Raised when a nested editor wants the picker opened to add a step.</summary>
-    public event Action<StepListEditorViewModel>? NestedAddRequested;
-
     /// <summary>Raised when a nested editor wants the picker opened to edit a step.</summary>
     public event Action<MacroStep>? NestedEditRequested;
 
@@ -285,7 +282,6 @@ public partial class AddActionViewModel : ViewModelBase
         ActionCategory.Input,
         ActionCategory.Vision,
         ActionCategory.Uia,
-        ActionCategory.Condition,
         ActionCategory.Browser,
         ActionCategory.Script,
         ActionCategory.Process,
@@ -454,6 +450,15 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowsRun))]
     [NotifyPropertyChangedFor(nameof(CanRun))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
+
+    /// <summary>Shown only on a Set Variable step that writes a global.</summary>
+    public bool ShowsGlobalPersistence =>
+        SelectedDefinition?.Key == "control.setVariable"
+        && string.Equals(Parameter("scope")?.CurrentText, "global", StringComparison.Ordinal);
+
+    /// <summary>Whether the global's value should be kept on this computer.</summary>
+    [ObservableProperty]
+    public partial bool PersistGlobalValue { get; set; }
 
     /// <summary>
     /// True when the step being edited holds steps of its own. The settings every step carries
@@ -689,16 +694,11 @@ public partial class AddActionViewModel : ViewModelBase
         && ScopeError() is null
         && MissingParameters().Count == 0;
 
-    /// <summary>
-    /// True when this step can be run on its own from the dialog. A condition is not a step of the
-    /// macro, so there is nothing to run; a step that is still missing something is not the step the
-    /// user means yet.
-    /// </summary>
+    /// <summary>True when this step can be run on its own from the dialog.</summary>
     public bool CanRun => ShowsRun && CanSave;
 
     /// <summary>True when what is being edited is something a run can do at all.</summary>
-    public bool ShowsRun => SelectedDefinition is not null
-        && SelectedDefinition.Category is not ActionCategory.Condition;
+    public bool ShowsRun => SelectedDefinition is not null;
 
     /// <summary>
     /// True while the step is out on the machine. The button says so and stops taking clicks: a
@@ -788,6 +788,7 @@ public partial class AddActionViewModel : ViewModelBase
         // step itself says.
         MetaTimeout.Load(value?.StepTimeoutMs ?? 0);
         BuildParameters(value);
+        SyncGlobalPersistence();
         MarkChosen();
         // Choosing an action is what turns "pick one first" into a real answer, so whether the line
         // is a problem changes here as well as when a parameter is filled in.
@@ -1079,12 +1080,10 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// True for an action that holds steps of its own: it is a block in the macro rather than
-    /// something the run just does. The logic group is not one of these — it holds conditions,
-    /// which are what a block asks about, not steps the run walks through.
+    /// something the run just does.
     /// </summary>
     private static bool HoldsSteps(ActionDefinition action)
-        => action.Parameters.Any(parameter =>
-            parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly);
+        => action.Parameters.Any(parameter => parameter.Kind is ActionParameterKind.Steps);
 
     /// <summary>
     /// Where a block sits in <see cref="BlockOrder"/>. A block that is not on the list — the
@@ -1198,7 +1197,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Adds one step and everything written inside it to the list being built.</summary>
     private static void Gather(List<ActionParameterOption> choices, MacroStep step)
     {
-        if (!step.IsCondition && step.Id.Length > 0)
+        if (step.Id.Length > 0)
         {
             choices.Add(new ActionParameterOption(step.Id, step.PickerLabel));
         }
@@ -1208,12 +1207,6 @@ public partial class AddActionViewModel : ViewModelBase
             Gather(choices, child);
         }
 
-        foreach (var condition in step.Parameters
-                     .Where(parameter => parameter.Condition is not null)
-                     .Select(parameter => parameter.Condition!))
-        {
-            Gather(choices, condition);
-        }
     }
 
     /// <summary>Fills the dialog from an existing step so it can be edited.</summary>
@@ -1274,7 +1267,6 @@ public partial class AddActionViewModel : ViewModelBase
             if (parameter.List is not null)
             {
                 parameter.List.PropertyChanged -= OnParameterChanged;
-                parameter.List.AddRequested -= OnNestedAddRequested;
                 parameter.List.EditRequested -= OnNestedEditRequested;
             }
         }
@@ -1354,7 +1346,6 @@ public partial class AddActionViewModel : ViewModelBase
         if (editor.List is not null)
         {
             editor.List.PropertyChanged += OnParameterChanged;
-            editor.List.AddRequested += OnNestedAddRequested;
             editor.List.EditRequested += OnNestedEditRequested;
         }
 
@@ -2127,8 +2118,6 @@ public partial class AddActionViewModel : ViewModelBase
         }
     }
 
-    private void OnNestedAddRequested(StepListEditorViewModel list) => NestedAddRequested?.Invoke(list);
-
     private void OnNestedEditRequested(MacroStep step) => NestedEditRequested?.Invoke(step);
 
     /// <summary>
@@ -2193,6 +2182,11 @@ public partial class AddActionViewModel : ViewModelBase
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
         KeepPlaceAndNumbersApart(sender, e);
+        if (sender is StepParameterViewModel changed
+            && changed.Definition.Name is "name" or "scope")
+        {
+            SyncGlobalPersistence();
+        }
 
         // A call's fields are the called macro's declarations, so the form is rebuilt the moment
         // the macro it names changes. The rebuild says everything a change says and the fields this
@@ -2272,8 +2266,7 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Rules that span several parameters. A macro may only change global variables the
-    /// Variable Center already created, and the variables WhaleGenie provides stay read-only.
+    /// Rules that span several parameters. The variables WhaleGenie provides stay read-only.
     /// </summary>
     private string? ScopeError()
     {
@@ -2298,10 +2291,8 @@ public partial class AddActionViewModel : ViewModelBase
             }
         }
 
-        // A shared name has to exist before a step may write to it, and the Variable Center is
-        // where shared variables are created. The actions that say where a value is stored are the
-        // ones that have both fields; reading it off the parameters means a new one gets the same
-        // answer without being remembered here.
+        // Most actions that write a shared value require its declaration. Setting a variable is
+        // the one exception: saving that step creates a missing global as text.
         if (SelectedDefinition.Parameters.All(parameter => parameter.Name != "name")
             || SelectedDefinition.Parameters.All(parameter => parameter.Name != "scope"))
         {
@@ -2314,7 +2305,8 @@ public partial class AddActionViewModel : ViewModelBase
         var scope = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "scope")
             ?.CurrentText;
 
-        return name.Length > 0 && scope == "global" && !VariableCatalog.IsGlobal(name)
+        return SelectedDefinition.Key != "control.setVariable"
+            && name.Length > 0 && scope == "global" && !VariableCatalog.IsGlobal(name)
             ? Strings.Format("Add.GlobalMustExist", name)
             : null;
     }
@@ -2349,7 +2341,26 @@ public partial class AddActionViewModel : ViewModelBase
             },
         };
         step.EnsureDeclaredLists();
+        if (step.Type == "control.setVariable"
+            && string.Equals(step.Text("scope").Trim(), "global",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            step.PersistGlobalAfterSave = PersistGlobalValue;
+        }
         return step;
+    }
+
+    private void SyncGlobalPersistence()
+    {
+        OnPropertyChanged(nameof(ShowsGlobalPersistence));
+        if (!ShowsGlobalPersistence)
+        {
+            PersistGlobalValue = false;
+            return;
+        }
+
+        var name = Parameter("name")?.CurrentText.Trim() ?? string.Empty;
+        PersistGlobalValue = VariableCatalog.FindGlobal(name)?.PersistValue ?? false;
     }
 
     /// <summary>Reads a whole-number box that may be left empty, counting an empty one as zero.</summary>

@@ -388,7 +388,7 @@ public class ActionPageTests
     /// </summary>
     [Theory]
     [InlineData("vision.waitColor")]
-    [InlineData("condition.colorEquals")]
+    [InlineData("vision.pixelMatches")]
     public void The_colour_of_a_pixel_is_asked_for_above_the_pixel(string action)
     {
         Ui.Run(() =>
@@ -450,7 +450,7 @@ public class ActionPageTests
     [InlineData("ocr.clickText", "")]
     [InlineData("vision.findImage", "0")]
     [InlineData("vision.findColor", "0")]
-    [InlineData("condition.imageExists", "0")]
+    [InlineData("vision.findColors", "0")]
     public void A_step_that_looks_at_the_screen_keeps_the_rhythm_it_had(string action, string intervalMs)
     {
         var field = Ui.Run(() => ActionCatalog.Definitions

@@ -290,21 +290,6 @@ public class ActionDialogTests
             Assert.True(Shown(viewModel, "caseSensitive"));
             Assert.False(Shown(viewModel, "trim"));
             Assert.True(Shown(viewModel, "multiline"));
-
-            // A condition compares text too, so the same three answers are asked for there.
-            var condition = Open("condition.compare");
-            var folded = condition.AdvancedRows.SelectMany(Names).ToList();
-            Assert.Contains("caseSensitive", folded);
-            Assert.Contains("trim", folded);
-            Assert.Contains("multiline", folded);
-            Assert.True(Shown(condition, "trim"));
-            Assert.False(Shown(condition, "multiline"));
-
-            Choose(condition, "compareOperator", "regex");
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.False(Shown(condition, "trim"));
-            Assert.True(Shown(condition, "multiline"));
         });
     }
 
@@ -623,8 +608,8 @@ public class ActionDialogTests
     [InlineData("vision.clickImage")]
     [InlineData("vision.findColor")]
     [InlineData("ocr.recognize")]
-    [InlineData("condition.colorEquals")]
-    [InlineData("condition.colorsMatch")]
+    [InlineData("vision.pixelMatches")]
+    [InlineData("vision.findColors")]
     public void An_action_that_names_a_position_offers_something_to_measure_it_from(string key)
     {
         Ui.Run(() =>
@@ -659,7 +644,7 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["match", "every", "coverage", "window", "method", "screenPoint",
+            Assert.Equal(["found", "match", "every", "coverage", "window", "method", "screenPoint",
                 "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
@@ -693,7 +678,7 @@ public class ActionDialogTests
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal(["match", "every", "window", "method", "screenPoint", "windowPoint"],
+            Assert.Equal(["found", "match", "every", "window", "method", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
@@ -800,24 +785,24 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_condition_can_be_written_as_an_expression()
+    public void A_block_condition_is_an_expression_field()
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("condition.expression");
+            var viewModel = Open("control.if");
             var expression = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "expression");
+                .First(parameter => parameter.Definition.Name == "condition");
 
             // The field is the one with live checking and suggestions, not a plain text box.
             Assert.True(expression.IsExpression);
-            Assert.Contains("$count", expression.Placeholder);
+            Assert.Contains("$found", expression.Placeholder);
             Assert.Contains("$spot", expression.ExpressionSuggestions);
             Assert.Contains("contains(", expression.ExpressionSuggestions);
         });
     }
 
     [Fact]
-    public void Conditions_are_offered_inside_a_step_and_not_as_one()
+    public void Condition_actions_are_not_offered_in_the_step_picker()
     {
         Ui.Run(() =>
         {
@@ -830,17 +815,8 @@ public class ActionDialogTests
             // A condition says what has to be true rather than doing something, and the engine
             // only ever asks one inside an if, a while or a wait, so it is not on the step list.
             Assert.DoesNotContain(viewModel.AvailableActions,
-                action => action.Category == ActionCategory.Condition);
+                action => action.Key.StartsWith("condition.", StringComparison.Ordinal));
             Assert.Contains(viewModel.AvailableActions, action => action.Key == "input.mouseClick");
-
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.imageNotExists");
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.textNotExists");
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.uiaNotExists");
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.expression");
         });
     }
 
@@ -871,7 +847,6 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "otherwise");
 
             Assert.True(cases.IsStepList);
-            Assert.False(cases.IsConditionList);
             // A list that names itself says so on the button that adds to it, the way the editor's
             // own list does: the branches of a switch are branches, not steps.
             Assert.Equal(Strings.Get("Add.Case"), cases.List!.AddLabel);
@@ -975,20 +950,18 @@ public class ActionDialogTests
             // The dialog says where the steps of a block went instead of showing a second list
             // of the same steps, which is what used to make the same structure editable twice.
             Assert.True(body.IsStepList);
-            Assert.False(body.IsConditionList);
             Assert.NotEmpty(body.StepsNote);
 
             // Adding one is still here: it is the one thing about the inside of a block you may
             // well want while its settings are open.
             Assert.Equal(Strings.Get("Add.AddStepToBlock"), body.List!.AddLabel);
 
-            // A condition is the one thing a step needs that is not a step, so it stays here.
+            // A condition is a Boolean expression inside its block, not another action list.
             var test = Open("control.if");
             var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
 
-            Assert.True(condition.IsConditionList);
+            Assert.True(condition.IsExpression);
             Assert.False(condition.IsStepList);
-            Assert.Same(ActionCatalog.Conditions, condition.List!.Catalog);
         });
     }
 
@@ -1050,54 +1023,6 @@ public class ActionDialogTests
 
             Assert.Equal("control.repeat", saved!.Type);
             Assert.Equal(0, saved.ChildCount);
-        });
-    }
-
-    [Fact]
-    public void A_multi_point_colour_condition_asks_for_points_and_how_they_are_met()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("condition.colorsMatch");
-
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "points").IsMultiline);
-
-            var mode = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "colorMatchMode");
-            Assert.True(mode.IsChoice);
-            Assert.Equal(["all", "any"], mode.Choices.Select(choice => choice.Value));
-            Assert.Equal("all", mode.CurrentText);
-        });
-    }
-
-    /// <summary>
-    /// A colour share is asked for the way a colour search is — a colour, a place, and how much of
-    /// the place has to show it — and what is filled in is what the step is handed back with. The
-    /// share sits on the basic page beside the colour: a number somebody has to go looking for
-    /// under "advanced" is a number they will not find.
-    /// </summary>
-    [Fact]
-    public void A_colour_share_condition_asks_for_the_colour_the_place_and_how_much()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("condition.colorCoverage");
-
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "color").IsColor);
-            Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Contains("minCoverage", viewModel.Rows.Select(row => row.First.Definition.Name));
-
-            viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "minCoverage").NumberValue = 50;
-
-            MacroStep? saved = null;
-            viewModel.CloseRequested += result => saved = result;
-            viewModel.SaveCommand.Execute(null);
-
-            Assert.Equal("50", saved!.Parameters
-                .First(parameter => parameter.Name == "minCoverage").Value);
         });
     }
 
@@ -1398,7 +1323,6 @@ public class ActionDialogTests
     [Theory]
     [InlineData("ocr.findText", "region")]
     [InlineData("vision.findImage", "region")]
-    [InlineData("condition.imageExists", "region")]
     [InlineData("vision.capture", "x")]
     [InlineData("ocr.recognize", "x")]
     [InlineData("input.mouseDrag", "startX")]
@@ -1763,7 +1687,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_wait_until_is_edited_with_the_condition_editor()
+    public void A_wait_until_uses_the_expression_condition_editor()
     {
         Ui.Run(() =>
         {
@@ -1771,12 +1695,7 @@ public class ActionDialogTests
             var condition = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "condition");
 
-            // The wait borrows the same nested condition editor an if or a while uses, and it
-            // offers nothing but conditions, so a stray action cannot be dropped in as one.
-            Assert.True(condition.IsNested);
-            Assert.NotNull(condition.List);
-            Assert.True(condition.List!.IsCondition);
-            Assert.Same(ActionCatalog.Conditions, condition.List.Catalog);
+            Assert.True(condition.IsExpression);
 
             // How long the wait may last is not the action's business: the step's own timeout
             // says it, and this action names one of 10 seconds so a fresh step is not endless.
@@ -2611,7 +2530,7 @@ public class ActionDialogTests
                 card => Assert.Equal(PickerCategory(card.Definition.Category), group.Key)));
             Assert.All(groups.SelectMany(group => group.Actions), action => Assert.DoesNotContain(
                 action.Definition.Parameters,
-                parameter => parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly));
+                parameter => parameter.Kind is ActionParameterKind.Steps));
 
             // Over a hundred actions read as a dozen shut headings until one of them is opened or
             // a search says which one matters. ("Recently used" is the exception: it is open,

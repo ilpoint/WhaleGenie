@@ -127,24 +127,7 @@ public class ActionEditorWindowTests
     }
 
     [Fact]
-    public void A_condition_group_can_add_more_than_one_condition()
-    {
-        var form = new AddActionViewModel(ActionCatalog.Conditions, [], []);
-        form.SelectAction("condition.group");
-        var editor = form.Parameters.Single(parameter => parameter.IsConditionList);
-        var asked = 0;
-        form.NestedAddRequested += _ => asked++;
-
-        Assert.False(editor.List!.IsCondition);
-        Assert.True(editor.List.AcceptsConditions);
-        Assert.True(editor.List.HasNoSteps);
-        editor.List.AddCommand.Execute(null);
-
-        Assert.Equal(1, asked);
-    }
-
-    [Fact]
-    public void An_empty_condition_shows_a_large_add_condition_button()
+    public void A_block_condition_is_edited_as_one_expression()
     {
         Ui.Run(() =>
         {
@@ -153,16 +136,11 @@ public class ActionEditorWindowTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible
-                    && text.Text == Strings.Get("Add.NoCondition"));
-            var add = window.GetVisualDescendants().OfType<Button>().Single(button =>
-                button.IsEffectivelyVisible
-                && button.Classes.Contains("AddButton")
-                && button.DataContext is StepParameterViewModel { IsConditionList: true });
-            Assert.Equal(34, add.Height);
-            Assert.Contains(add.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.Text == Strings.Get("Add.NestedCondition"));
+            var form = (AddActionViewModel)window.DataContext!;
+            var condition = form.Parameters.Single(parameter =>
+                parameter.Definition.Name == "condition");
+            Assert.True(condition.IsExpression);
+            Assert.False(condition.IsNested);
             window.Close();
         });
     }

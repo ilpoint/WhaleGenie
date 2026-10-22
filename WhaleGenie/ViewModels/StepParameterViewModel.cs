@@ -145,14 +145,8 @@ public partial class StepParameterViewModel : ViewModelBase
             UseFormula = true;
         }
 
-        if (definition.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition)
+        if (definition.Kind is ActionParameterKind.Steps)
         {
-            var isCondition = definition.Kind is ActionParameterKind.Condition;
-            // Conditions are what this dialog is for. The steps of a block are put in order in the
-            // editor's own list, where the block's shape can be seen, so this dialog does not show
-            // them — but it does add one, because "this block needs another step in it" is a thing
-            // to want while its settings are open.
-            var conditions = isCondition || definition.ConditionsOnly;
             var addLabel = definition.AddLabelKey.Length > 0
                 ? Strings.Get(definition.AddLabelKey)
                 : Strings.Get("Add.AddStepToBlock");
@@ -160,19 +154,13 @@ public partial class StepParameterViewModel : ViewModelBase
             // A list that only takes one kind of step says so wherever a step is added to it, and
             // that includes the button in this dialog: a switch's branches are branches even when
             // they are added from here, not whatever action happened to be picked.
-            var catalog = conditions
-                ? ActionCatalog.Conditions
-                : definition.ChildKeys.Count > 0
-                    ? ActionCatalog.ForKeys(definition.ChildKeys)
-                    : null;
+            var catalog = definition.ChildKeys.Count > 0
+                ? ActionCatalog.ForKeys(definition.ChildKeys)
+                : null;
 
             List = new StepListEditorViewModel(
-                conditions
-                    ? Strings.Get(isCondition ? "Add.NestedCondition" : "Add.NestedAddCondition")
-                    : addLabel,
-                isCondition,
-                catalog,
-                conditions);
+                addLabel,
+                catalog);
 
             // The line under the list says how many steps are in it, so it has to follow the list.
             List.PropertyChanged += (_, _) => OnPropertyChanged(nameof(StepsNote));
@@ -1175,19 +1163,8 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is edited with the nested step editor.</summary>
     public bool IsNested => List is not null;
 
-    /// <summary>
-    /// True when what the nested editor holds is a condition: either the condition of an if, a
-    /// while or a wait, or the conditions a logic group combines. Conditions are picked here,
-    /// because a condition is "what this step needs" rather than a step of the macro.
-    /// </summary>
-    public bool IsConditionList => List is not null
-        && (Definition.Kind is ActionParameterKind.Condition || Definition.ConditionsOnly);
-
-    /// <summary>
-    /// True when this parameter holds the steps of a block. Those are edited in the editor's
-    /// list, so the dialog only says so.
-    /// </summary>
-    public bool IsStepList => List is not null && !IsConditionList;
+    /// <summary>True when this parameter holds the steps of a block.</summary>
+    public bool IsStepList => List is not null;
 
     /// <summary>Where the steps of a block went, which is what the dialog shows in their place.</summary>
     public string StepsNote => IsStepList
@@ -1239,7 +1216,7 @@ public partial class StepParameterViewModel : ViewModelBase
             StringComparison.OrdinalIgnoreCase),
         ActionParameterKind.Choice => string.Equals(Option?.Value ?? string.Empty,
             Definition.DefaultValue, StringComparison.Ordinal),
-        ActionParameterKind.Steps or ActionParameterKind.Condition => List?.Steps.Count is null or 0,
+        ActionParameterKind.Steps => List?.Steps.Count is null or 0,
         // A list of them is at its default when it is empty: what such a field holds is not in its
         // text, so reading the text alone would call a filled-in list of pictures untouched.
         ActionParameterKind.Region => Regions.Count == 0,
@@ -1379,7 +1356,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsMissing => IsEnabled && IsApplicable && Definition.Required && Definition.Kind switch
     {
         ActionParameterKind.Bool => false,
-        ActionParameterKind.Steps or ActionParameterKind.Condition => !HasNestedSteps,
+        ActionParameterKind.Steps => !HasNestedSteps,
         // A list of pictures is filled in when it holds a picture: a row that is there but says
         // nothing is not a picture, and a step that looks for one of those would look for nothing.
         ActionParameterKind.Images => !Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
@@ -1402,7 +1379,7 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Bool => Definition.Required
             || Flag != string.Equals(Definition.DefaultValue, "true",
                 StringComparison.OrdinalIgnoreCase),
-        ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
+        ActionParameterKind.Steps => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
         ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
@@ -1521,6 +1498,33 @@ public partial class StepParameterViewModel : ViewModelBase
         NumberValue = value;
     }
 
+    /// <summary>Writes a variable the way this field reads a value, optionally at the text caret.</summary>
+    public void ApplyVariableDrop(string value, int? caret = null)
+    {
+        if (Definition.ReadMode is ActionReadMode.Text)
+        {
+            var current = Text ?? string.Empty;
+            var at = Math.Clamp(caret ?? current.Length, 0, current.Length);
+            Text = current[..at] + value + current[at..];
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.WindowRule)
+        {
+            UseWindowVariable(value);
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.Number or ActionParameterKind.Expression
+            or ActionParameterKind.Record or ActionParameterKind.Point
+            or ActionParameterKind.Rect)
+        {
+            UseFormula = true;
+        }
+
+        Text = value;
+    }
+
     /// <summary>
     /// Empties the field whichever way it was written, so that the other way of answering the same
     /// question — a record here, the numbers beside it, or the other way round — can take over
@@ -1615,9 +1619,6 @@ public partial class StepParameterViewModel : ViewModelBase
                 .Select(row => row!)],
             _ => [],
         },
-        Condition = Definition.Kind is ActionParameterKind.Condition
-            ? List?.Steps.FirstOrDefault()
-            : null,
     };
 
     /// <summary>Loads a value that was stored on an existing step.</summary>
@@ -1691,16 +1692,6 @@ public partial class StepParameterViewModel : ViewModelBase
             }
 
             OnPropertyChanged(nameof(HandsOverAnything));
-            return;
-        }
-
-        if (Definition.Kind is ActionParameterKind.Condition)
-        {
-            if (stored.Condition is not null)
-            {
-                List?.Load([stored.Condition]);
-            }
-
             return;
         }
 

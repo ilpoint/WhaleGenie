@@ -380,7 +380,7 @@ public sealed partial class MacroRunner
         try
         {
             return new ConditionOutcome(new MacroRunner(variables, devices: devices, macros: macros)
-                .Check(condition, 0, CancellationToken.None));
+                .Check(condition, "condition", CancellationToken.None));
         }
         catch (ExpressionException failure)
         {

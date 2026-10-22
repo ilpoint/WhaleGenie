@@ -98,6 +98,11 @@ internal static class ArgumentLibrary
                 "True to compare capitals and small letters as different; false, the default, ignores case."),
             ["trim"] = ("Trim ends",
                 "True to drop the spaces at both ends before comparing; leave it out to trim only for equals."),
+            ["comparison"] = ("Comparison",
+                "Contains, startsWith, endsWith, equals or regex, or a number comparison: >, >=, <, <=, = or !=."),
+            ["needle"] = ("Wanted", "The text or number to compare against."),
+            ["multiline"] = ("Regex by line",
+                "True to let ^ and $ stand for the start and end of every line."),
             ["record"] = ("Record", "The record to read a field from."),
         };
 
@@ -165,6 +170,8 @@ internal static class FunctionLibrary
             args => Value.FromText(string.Join(S(args, 1), L(args, 0).Select(item => item.AsText())))),
         Fn(TextGroup, "contains", "contains(value, needle)", "True when the text, or a list item, holds the needle.", 2, 2,
             args => Value.FromBool(Contains(V(args, 0), S(args, 1)))),
+        Fn(TextGroup, "compare", "compare(value, comparison, needle [, caseSensitive, trim, multiline])",
+            "Compare one value with the shared text and number ways.", 3, 6, args => Compare(args)),
         Fn(TextGroup, "startsWith", "startsWith(text, prefix)", "True when the text begins with the prefix.", 2, 2,
             args => Value.FromBool(S(args, 0).StartsWith(S(args, 1), StringComparison.OrdinalIgnoreCase))),
         Fn(TextGroup, "endsWith", "endsWith(text, suffix)", "True when the text ends with the suffix.", 2, 2,
@@ -470,6 +477,38 @@ internal static class FunctionLibrary
     private static bool Contains(Value value, string needle) => value.IsList
         ? value.Items.Any(item => item.AsText().Contains(needle, StringComparison.OrdinalIgnoreCase))
         : value.AsText().Contains(needle, StringComparison.OrdinalIgnoreCase);
+
+    private static Value Compare(IReadOnlyList<Func<Value>> args)
+    {
+        var comparison = S(args, 1).Trim();
+        var wanted = V(args, 2);
+        var caseSensitive = args.Count > 3 && V(args, 3).AsBool();
+        var trim = args.Count > 4 ? V(args, 4).AsBool() : (bool?)null;
+        var multiline = args.Count > 5 && V(args, 5).AsBool();
+
+        if (IsNumberWay(comparison))
+        {
+            if (!TryNumber(V(args, 0), out var value) || !TryNumber(wanted, out var number))
+            {
+                throw ExpressionException.TypeMismatch(
+                    $"\"{comparison}\" compares numbers");
+            }
+
+            return Value.FromBool(NumberMatches(value, number, comparison));
+        }
+
+        var way = TextWay(comparison);
+        var options = new TextCompareOptions(caseSensitive, trim, multiline);
+        try
+        {
+            return Value.FromBool(TextCompare.Matches(V(args, 0).AsText(), wanted.AsText(), way,
+                options));
+        }
+        catch (ArgumentException failure)
+        {
+            throw ExpressionException.TypeMismatch(failure.Message);
+        }
+    }
 
     private static double IndexOf(Value value, string needle)
     {

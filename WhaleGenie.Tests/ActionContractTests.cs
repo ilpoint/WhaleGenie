@@ -46,11 +46,6 @@ public class ActionContractTests
                 Assert.Equal("inputMode", action.Parameters[0].Name);
             }
 
-            if (action.IsCondition)
-            {
-                Assert.DoesNotContain(action.Returns, result =>
-                    result.Key.Contains("Point", StringComparison.Ordinal));
-            }
         }
     }
 
@@ -73,7 +68,6 @@ public class ActionContractTests
                 SameValue(problems, display.Key, "category", display.Category, engine.Category);
                 SameValue(problems, display.Key, "hidden", display.Hidden, engine.Hidden);
                 SameValue(problems, display.Key, "input", display.SendsInput, engine.SendsInput);
-                SameValue(problems, display.Key, "condition", display.IsCondition, engine.IsCondition);
                 SameValue(problems, display.Key, "screen", display.LooksAtScreen, engine.LooksAtScreen);
                 SameValue(problems, display.Key, "waits", display.Waits, engine.Waits);
                 SameValue(problems, display.Key, "timeout source", display.TimeoutSource,
@@ -105,8 +99,6 @@ public class ActionContractTests
                     SameValue(problems, field, "default", parameter.DefaultValue, facts.DefaultValue);
                     SameValue(problems, field, "variables", parameter.AcceptsVariables,
                         facts.AcceptsVariables);
-                    SameValue(problems, field, "conditions only", parameter.ConditionsOnly,
-                        facts.ConditionsOnly);
                     Same(problems, field, "options", parameter.Options, facts.Options);
                     Same(problems, field, "child keys", parameter.ChildKeys, facts.ChildKeys);
 
@@ -283,7 +275,7 @@ public class ActionContractTests
         [
             "AcceptsFormula", "Category", "DefaultValue", "Hidden", "NamesVariable", "Options", "Picker",
             "ReadMode", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
-            "ConditionsOnly", "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
+            "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
             "Unit", "EmptyMeans", "Minimum", "Maximum", "EmptiesToEdge", "IsDuration",
         ];
 
@@ -312,11 +304,6 @@ public class ActionContractTests
 
         foreach (var action in ActionSemanticsCatalog.All)
         {
-            if (action.Category == ActionCategory.Condition && !action.IsCondition)
-            {
-                problems.Add($"{action.Key}: a condition is not marked as one");
-            }
-
             if (action.Waits && action.TimeoutSource == ActionTimeoutSource.None)
             {
                 problems.Add($"{action.Key}: waits without saying where its timeout comes from");
@@ -655,28 +642,21 @@ public class ActionContractTests
     }
 
     [Fact]
-    public void The_runner_dispatches_every_executable_action_and_asks_every_condition()
+    public void The_runner_dispatches_every_executable_action()
     {
         var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
         var sources = Directory.EnumerateFiles(folder, "MacroRunner*.cs")
             .Select(File.ReadAllText)
             .ToList();
         var dispatch = sources.SelectMany(FamilyDispatches).ToList();
-        var conditions = Cases(Method(File.ReadAllText(Path.Combine(folder, "MacroRunner.cs")),
-            "Check"));
 
         var executable = ActionSemanticsCatalog.All
-            .Where(action => !action.IsCondition && action.Key != "control.case")
-            .Select(action => action.Key)
-            .Order(StringComparer.Ordinal)
-            .ToList();
-        var declared = ActionSemanticsCatalog.Conditions
+            .Where(action => action.Key != "control.case")
             .Select(action => action.Key)
             .Order(StringComparer.Ordinal)
             .ToList();
 
         Assert.Equal(executable, dispatch.Order(StringComparer.Ordinal));
-        Assert.Equal(declared, conditions.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -688,7 +668,7 @@ public class ActionContractTests
                 .Select(File.ReadAllText));
 
         var missing = ActionSemanticsCatalog.All
-            .Where(action => !action.IsCondition && action.Key != "control.case")
+            .Where(action => action.Key != "control.case")
             .Where(action => !tests.Contains($"\"{action.Key}\"", StringComparison.Ordinal))
             .Select(action => action.Key)
             .ToList();
@@ -790,7 +770,6 @@ public class ActionContractTests
         ActionParameterKind.Bool => ActionValueShape.Flag,
         ActionParameterKind.Choice => ActionValueShape.Choice,
         ActionParameterKind.Steps => ActionValueShape.Steps,
-        ActionParameterKind.Condition => ActionValueShape.Condition,
         ActionParameterKind.Region or ActionParameterKind.KeySequence
             or ActionParameterKind.Images or ActionParameterKind.Returns
             or ActionParameterKind.Narrow => ActionValueShape.Rows,

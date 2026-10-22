@@ -31,17 +31,21 @@
         <Style Selector="Button.VarButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
+        <Style Selector="ScrollViewer.VariableList /template/ ScrollBar#PART_VerticalScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+        </Style>
     </UserControl.Styles>
 
-    <StackPanel Spacing="8">
+    <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="8">
         <!-- Which group of variables is on show: painted like a switch rather than a menu, because
              the list under it changes as soon as one is pressed. -->
-        <ListBox Classes="Dock" ItemsSource="{Binding Filters}"
+        <ListBox Grid.Row="0" Classes="Dock" ItemsSource="{Binding Filters}"
                  SelectedItem="{Binding SelectedFilter}" SelectionMode="Single"
                  Background="Transparent" BorderThickness="0" Padding="0">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
+                    <WrapPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
@@ -54,7 +58,10 @@
 
         <!-- The variables themselves: one button each, so the wall is something to point at rather
              than a name to type. Hovering one puts everything about it on the line below. -->
-        <ScrollViewer MaxHeight="196" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" Name="VariableList" Classes="VariableList"
+                      MaxHeight="{Binding ListMaxHeight}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Shown}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -65,10 +72,21 @@
                     <DataTemplate x:DataType="models:VariableChoice">
                         <Button Classes="VarButton" Margin="0,0,6,6" Content="{Binding Display}"
                                 Click="OnChoose"
+                                PointerPressed="OnPressed"
+                                PointerMoved="OnMoved"
+                                PointerReleased="OnReleased"
+                                PointerCaptureLost="OnCaptureLost"
                                 PointerEntered="OnLooking" PointerExited="OnUnlooked">
                             <ToolTip.Tip>
-                                <TextBlock Text="{Binding Details}" TextWrapping="Wrap"
-                                           MaxWidth="340" FontSize="12" />
+                                <Border MaxWidth="380" MaxHeight="260"
+                                        Background="{DynamicResource AppSurface}"
+                                        BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <SelectableTextBlock Text="{Binding HoverText}"
+                                                             TextWrapping="Wrap" FontSize="12" />
+                                    </ScrollViewer>
+                                </Border>
                             </ToolTip.Tip>
                         </Button>
                     </DataTemplate>
@@ -76,13 +94,13 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
+        <TextBlock Grid.Row="2" Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
                    Foreground="{DynamicResource AppMuted}" MinHeight="32" MaxHeight="60" />
 
         <!-- Which steps read the one under the pointer. A name on a button says nothing about who
              wants it, and this is the line that answers it; pressing one asks the place the wall
              stands in to show that step. -->
-        <StackPanel Spacing="4" IsVisible="{Binding HasUses}">
+        <StackPanel Grid.Row="3" Spacing="4" IsVisible="{Binding HasUses}">
             <TextBlock FontSize="11.5" Foreground="#8A8A8A"
                        Text="{Binding [VarWall.UsedBy], Source={x:Static loc:Strings.Current}}" />
             <ItemsControl ItemsSource="{Binding Uses}">
@@ -102,5 +120,5 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </StackPanel>
-    </StackPanel>
+    </Grid>
 </UserControl>

@@ -310,7 +310,8 @@ public partial class RunWindow : Window
                 break;
             case "condition":
                 var dialog = new ActionEditorWindow(
-                    viewModel.BreakpointCondition(row.Id), ActionCatalog.Conditions, viewModel.Choices,
+                    viewModel.BreakpointCondition(row.Id),
+                    ActionCatalog.ForKeys(["control.if"]), viewModel.Choices,
                     null, null, ImageAssets.FolderFor(null))
                 {
                     // The condition is tried out on the devices the run is on: a picture taken for

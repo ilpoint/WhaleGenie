@@ -129,9 +129,6 @@ public partial class DelayScaleViewModel : ViewModelBase
                         }
 
                         break;
-                    case ActionParameterKind.Condition when parameter.Condition is not null:
-                        Walk(parameter.Condition);
-                        break;
                 }
             }
 

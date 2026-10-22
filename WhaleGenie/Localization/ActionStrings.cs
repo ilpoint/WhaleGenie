@@ -405,9 +405,8 @@ internal static class ActionStrings
         ["control.waitUntil.name"] = "等待直到",
         ["control.waitUntil.desc"] = "反复判断一个条件，成立之后再继续往下走。",
         ["control.waitUntil.condition.label"] = "条件",
-        ["control.waitUntil.condition.hint"] = "会一遍遍判断这个条件，成立之后才继续往下走。颜色、图片、文字、"
-            + "界面元素、变量比较都可以用来等；等多久由这一步设置里的「超时」说（默认 10 秒），到点"
-            + "取消这一步并判为失败。",
+        ["control.waitUntil.condition.hint"] = "布尔表达式，例如 $found 或 $count > 3；每一轮都重新计算。"
+            + "等多久由这一步设置里的「超时」说（默认 10 秒），到点取消这一步并判为失败。",
         ["control.waitUntil.intervalMs.label"] = "检查间隔",
         ["control.waitUntil.intervalMs.hint"] = "两次判断之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
 
@@ -456,7 +455,7 @@ internal static class ActionStrings
         ["control.while.name"] = "当…时循环",
         ["control.while.desc"] = "条件成立期间反复执行子步骤。要等某个状态变了才停时用它。",
         ["control.while.condition.label"] = "条件",
-        ["control.while.condition.hint"] = "每轮开始前判断一次，成立才执行这一轮。",
+        ["control.while.condition.hint"] = "每轮开始前计算一次布尔表达式，成立才执行这一轮。",
         ["control.while.maxIterations.label"] = "最大轮数",
         ["control.while.maxIterations.hint"] = "轮数上限，从 1 起，默认 1000；到这个数就结束这个循环（不算"
             + "失败），用于条件一直成立时兜底，同时在运行日志里写一行警告。",
@@ -499,8 +498,8 @@ internal static class ActionStrings
         ["control.if.name"] = "条件分支",
         ["control.if.desc"] = "根据条件在两个子步骤块中选择一个执行。",
         ["control.if.condition.label"] = "条件",
-        ["control.if.condition.hint"] = "执行到这一步时判断一次：成立就走「满足时步骤」，不成立就走「不满足时"
-            + "步骤」。",
+        ["control.if.condition.hint"] = "执行到这一步时计算一次布尔表达式：成立就走「满足时步骤」，不成立就走"
+            + "「不满足时步骤」。",
         ["control.if.then.label"] = "满足时步骤",
         ["control.if.then.hint"] = "条件成立时执行的子步骤。",
         ["control.if.else.label"] = "不满足时步骤",
@@ -543,9 +542,9 @@ internal static class ActionStrings
         ["control.try.desc"] = "先执行尝试的步骤，失败时改走捕获的步骤，最后无论如何都执行收尾的步骤。",
         ["control.try.body.label"] = "尝试步骤",
         ["control.try.body.hint"] = "先尝试执行的子步骤。",
-        ["control.try.catchWhen.label"] = "只在满足条件时捕获",
-        ["control.try.catchWhen.hint"] = "尝试失败时问这一次；变量格写 caught.key，表达式里写 $caught.key，详情是 $caught.detail。"
-            + "留空即接住所有失败；条件不成立时不接，原来的失败键与详情交给上层，收尾步骤照常执行。",
+        ["control.try.catchWhen.label"] = "何时捕获",
+        ["control.try.catchWhen.hint"] = "可选布尔表达式，在 $caught.key 与 $caught.detail 可见时计算一次。"
+            + "留空即接住所有失败；表达式不成立时把原来的失败交给上层，收尾步骤照常执行。",
         ["control.try.catch.label"] = "捕获步骤",
         ["control.try.catch.hint"] = "尝试失败时执行的子步骤。",
         ["control.try.finally.label"] = "收尾步骤",
@@ -571,13 +570,13 @@ internal static class ActionStrings
         ["control.setVariable.name"] = "设置变量",
         ["control.setVariable.desc"] = "保存一个值，供后面的步骤使用。",
         ["control.setVariable.name.label"] = "变量名",
-        ["control.setVariable.name.hint"] = "局部变量在这里命名即可；全局变量必须先在变量中心创建。",
+        ["control.setVariable.name.hint"] = "局部变量在这里命名；全局变量不存在时会自动创建为文本变量。",
         ["control.setVariable.value.label"] = "值",
         ["control.setVariable.value.hint"] = "要保存的值：数字、文本、$变量，或公式，例如 $count + 1、"
             + "upper($name)。",
         ["control.setVariable.scope.label"] = "作用范围",
         ["control.setVariable.scope.hint"] = "这个值放在哪一层，默认局部变量。局部变量只属于本宏；全局变量由"
-            + "所有宏共享，必须先在变量中心创建。",
+            + "所有宏共享，不存在时会自动创建为文本变量。",
         ["control.setVariable.scope.option.local"] = "局部变量（仅本宏）",
         ["control.setVariable.scope.option.global"] = "全局变量（所有宏共享）",
 
@@ -1902,23 +1901,6 @@ internal static class ActionStrings
         ["ocr.findText.anchorMode.option.screen"] = "屏幕",
         ["ocr.findText.anchorMode.option.window"] = "窗口",
 
-        ["condition.imageExists.anchorMode.label"] = "识别方式",
-        ["condition.imageExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.imageExists.anchorMode.option.screen"] = "屏幕",
-        ["condition.imageExists.anchorMode.option.window"] = "窗口",
-
-        ["condition.textExists.anchorMode.label"] = "识别方式",
-        ["condition.textExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.textExists.anchorMode.option.screen"] = "屏幕",
-        ["condition.textExists.anchorMode.option.window"] = "窗口",
-
-        ["condition.colorEquals.anchorMode.label"] = "识别方式",
-        ["condition.colorEquals.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorEquals.anchorMode.option.screen"] = "屏幕",
-        ["condition.colorEquals.anchorMode.option.window"] = "窗口",
-
-        // ------------------------------------- 找图 / 找色做厚：多命中、多区域、多点比色
-        // 识别算法：找图那三个动作共用一组文案。
         ["vision.findImage.detectAlgorithm.label"] = "识别算法",
         ["vision.findImage.detectAlgorithm.hint"] = MatchAlgorithmHint,
         ["vision.findImage.detectAlgorithm.option.normed"] = "归一化相关",
@@ -1939,6 +1921,8 @@ internal static class ActionStrings
         ["vision.findImage.matchIndex.hint"] = MatchIndexHint,
         ["vision.findImage.return.match.label"] = HitRecordLabel,
         ["vision.findImage.return.match.hint"] = HitRecordHintImage,
+        ["vision.findImage.return.found.label"] = "是否找到",
+        ["vision.findImage.return.found.hint"] = "找到时真，没找到时为假；没找到不让这一步失败。",
         ["vision.findImage.return.every.label"] = EveryHitLabel,
         ["vision.findImage.return.every.hint"] = EveryHitHint,
         ["vision.findImage.imageSet.label"] = "认哪一张",
@@ -2028,6 +2012,8 @@ internal static class ActionStrings
         ["vision.findColor.orderBy.option.random"] = "随机",
         ["vision.findColor.return.match.label"] = HitRecordLabel,
         ["vision.findColor.return.match.hint"] = HitRecordHintColour,
+        ["vision.findColor.return.found.label"] = "是否找到",
+        ["vision.findColor.return.found.hint"] = "找到时真，没找到时为假；占比不到下限也算没找到。",
         ["vision.findColor.return.every.label"] = EveryHitLabel,
         ["vision.findColor.return.every.hint"] = EveryHitHint,
         ["vision.findColor.region.label"] = "搜索区域",
@@ -2062,6 +2048,8 @@ internal static class ActionStrings
         ["vision.findColors.matchIndex.hint"] = MatchIndexHint,
         ["vision.findColors.return.match.label"] = HitRecordLabel,
         ["vision.findColors.return.match.hint"] = HitRecordHintColour,
+        ["vision.findColors.return.found.label"] = "是否找到",
+        ["vision.findColors.return.found.hint"] = "找到时真，没找到时为假；没找到不让这一步失败。",
         ["vision.findColors.return.every.label"] = EveryHitLabel,
         ["vision.findColors.return.every.hint"] = EveryHitHint,
         ["vision.findColors.anchorMode.label"] = "识别方式",
@@ -2110,6 +2098,8 @@ internal static class ActionStrings
         ["vision.detect.intervalMs.hint"] = LookGapHint,
         ["vision.detect.return.match.label"] = HitRecordLabel,
         ["vision.detect.return.match.hint"] = HitRecordHintDetect,
+        ["vision.detect.return.found.label"] = "是否找到",
+        ["vision.detect.return.found.hint"] = "找到时真，没找到时为假；没找到不让这一步失败。",
         ["vision.detect.return.every.label"] = EveryHitLabel,
         ["vision.detect.return.every.hint"] = EveryHitHint,
         ["vision.detect.returns.label"] = "要留下的结果",
@@ -2238,68 +2228,6 @@ internal static class ActionStrings
         ["vision.waitStable.anchorMode.option.screen"] = "屏幕",
         ["vision.waitStable.anchorMode.option.window"] = "窗口",
 
-        ["condition.colorsMatch.name"] = "多点比色",
-        ["condition.colorsMatch.desc"] = "当若干个点都显示指定的颜色时为真。",
-        ["condition.colorsMatch.points.label"] = "比色点",
-        ["condition.colorsMatch.points.hint"] =
-            "每个点写成 x,y,#RRGGBB，用分号或换行分开。",
-        ["condition.colorsMatch.tolerance.label"] = "容差 %",
-        ["condition.colorsMatch.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
-        ["condition.colorsMatch.colorMatchMode.label"] = "满足方式",
-        ["condition.colorsMatch.colorMatchMode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。默认「每个点都要匹配」。",
-        ["condition.colorsMatch.colorMatchMode.option.all"] = "全部匹配",
-        ["condition.colorsMatch.colorMatchMode.option.any"] = "任意一个匹配",
-        ["condition.colorsMatch.anchorMode.label"] = "识别方式",
-        ["condition.colorsMatch.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorsMatch.anchorMode.option.screen"] = "屏幕",
-        ["condition.colorsMatch.anchorMode.option.window"] = "窗口",
-
-        ["condition.colorsExist.name"] = "颜色组合存在",
-        ["condition.colorsExist.desc"] = "当某个颜色在屏幕上、且它周围指定的位置上也各有指定的颜色时为真。",
-        ["condition.colorsExist.color.label"] = "基准色",
-        ["condition.colorsExist.color.hint"] =
-            "图案中间的那个颜色，默认 #000000。其他颜色都从它这里数。",
-        ["condition.colorsExist.points.label"] = "周围要对的颜色",
-        ["condition.colorsExist.points.hint"] =
-            "一行一个，写成相对基准色的偏移与颜色，例如 12,-4,#FF0000，偏移可以是负数。"
-            + "每一个都要在写的位置上，整个图案还必须落在搜索区域里面。",
-        ["condition.colorsExist.tolerance.label"] = "容差 %",
-        ["condition.colorsExist.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
-        ["condition.colorsExist.region.label"] = "搜索区域",
-        ["condition.colorsExist.region.hint"] = RegionHintText,
-        ["condition.colorsExist.intervalMs.label"] = LookIntervalLabel,
-        ["condition.colorsExist.intervalMs.hint"] = LookGapHint,
-        ["condition.colorsExist.anchorMode.label"] = "识别方式",
-        ["condition.colorsExist.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorsExist.anchorMode.option.screen"] = "屏幕",
-        ["condition.colorsExist.anchorMode.option.window"] = "窗口",
-        ["condition.colorsExist.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.colorsExist.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-
-        ["condition.colorCoverage.name"] = "颜色占比达到",
-        ["condition.colorCoverage.desc"] = "当屏幕的一块区域里，某个颜色的占比达到指定比例时为真。",
-        ["condition.colorCoverage.color.label"] = "颜色",
-        ["condition.colorCoverage.color.hint"] = "要数的颜色，默认 #000000。",
-        ["condition.colorCoverage.minCoverage.label"] = "至少占比 %",
-        ["condition.colorCoverage.minCoverage.hint"] =
-            "搜索区域里至少要有多少比例是这个颜色才算成立，0–100（百分比），默认 0，即只要区域里出现"
-            + "这个颜色就算成立。血条涨到一半、按钮亮起来、仪表过了刻度这类判断给它一个数：占比按整个"
-            + "搜索区域算，多行区域合起来算一个。算占比要把整块区域走一遍，所以它是拿来等的"
-            + "（放进等待直到、当条件为真期间重复里），不是塞进紧凑循环里反复问的。",
-        ["condition.colorCoverage.tolerance.label"] = "容差 %",
-        ["condition.colorCoverage.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
-        ["condition.colorCoverage.region.label"] = "搜索区域",
-        ["condition.colorCoverage.region.hint"] = RegionHintText,
-        ["condition.colorCoverage.intervalMs.label"] = LookIntervalLabel,
-        ["condition.colorCoverage.intervalMs.hint"] = LookGapHint,
-        ["condition.colorCoverage.anchorMode.label"] = "识别方式",
-        ["condition.colorCoverage.anchorMode.hint"] = AnchorModeHint,
-        ["condition.colorCoverage.anchorMode.option.screen"] = "屏幕",
-        ["condition.colorCoverage.anchorMode.option.window"] = "窗口",
-        ["condition.colorCoverage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.colorCoverage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-
-        // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
         ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里；四个数都不填就是整块屏幕。",
         ["vision.capture.x.label"] = "左上角 X",
@@ -2380,6 +2308,32 @@ internal static class ActionStrings
         ["vision.getPixel.asHex.label"] = "存为十六进制",
         ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。默认勾选。",
 
+        ["vision.pixelMatches.name"] = "像素是否符合",
+        ["vision.pixelMatches.desc"] = "只读取一次像素，并判断它是否在容差内符合指定颜色。",
+        ["vision.pixelMatches.anchorMode.label"] = "识别方式",
+        ["vision.pixelMatches.anchorMode.hint"] = AnchorModeHint,
+        ["vision.pixelMatches.anchorMode.option.screen"] = "屏幕",
+        ["vision.pixelMatches.anchorMode.option.window"] = "窗口",
+        ["vision.pixelMatches.window.label"] = WindowMatchTextLabel,
+        ["vision.pixelMatches.window.hint"] =
+            "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.pixelMatches.color.label"] = "颜色",
+        ["vision.pixelMatches.color.hint"] = "要比对的颜色，写成 #RRGGBB。",
+        ["vision.pixelMatches.x.label"] = "X",
+        ["vision.pixelMatches.x.hint"] = "取样点的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
+        ["vision.pixelMatches.y.label"] = "Y",
+        ["vision.pixelMatches.y.hint"] = "取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
+        ["vision.pixelMatches.frameMaxAgeMs.label"] = "接受多旧的画面",
+        ["vision.pixelMatches.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.pixelMatches.intervalMs.label"] = "查看间隔",
+        ["vision.pixelMatches.intervalMs.hint"] = LookGapHint,
+        ["vision.pixelMatches.tolerance.label"] = "颜色容差",
+        ["vision.pixelMatches.tolerance.hint"] = ColourToleranceHint,
+        ["vision.pixelMatches.return.matched.label"] = "是否符合",
+        ["vision.pixelMatches.return.matched.hint"] = "像素在容差内符合指定颜色时为真。",
+        ["vision.pixelMatches.returns.label"] = "要留下的结果",
+        ["vision.pixelMatches.returns.hint"] = ReturnsHintText,
+
         ["vision.waitColor.name"] = "等待颜色",
         ["vision.waitColor.desc"] =
             "等待某个像素变成指定颜色，最多等到步骤设置里的「超时」；到点这一步算失败。",
@@ -2444,6 +2398,8 @@ internal static class ActionStrings
         ["ocr.findText.expected.hint"] = ExpectedHint,
         ["ocr.findText.return.match.label"] = HitRecordLabel,
         ["ocr.findText.return.match.hint"] = HitRecordHintText,
+        ["ocr.findText.return.found.label"] = "是否找到",
+        ["ocr.findText.return.found.hint"] = "找到时真，没找到时为假；没找到不让这一步失败。",
         ["ocr.findText.return.every.label"] = EveryHitLabel,
         ["ocr.findText.return.every.hint"] = EveryHitHint,
         ["ocr.findText.minScore.label"] = "最低识别分",
@@ -2539,6 +2495,8 @@ internal static class ActionStrings
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
         ["uia.find.return.match.label"] = HitRecordLabel,
         ["uia.find.return.match.hint"] = HitRecordHintElement,
+        ["uia.find.return.found.label"] = "是否找到",
+        ["uia.find.return.found.hint"] = "找到时真，没找到时为假；没找到不让这一步失败。",
         ["uia.find.return.every.label"] = EveryHitLabel,
         ["uia.find.return.every.hint"] = EveryHitHint,
 
@@ -2883,6 +2841,25 @@ internal static class ActionStrings
         ["browser.waitFor.narrow.hint"] = "要等到的那个元素" + NarrowHint,
         ["browser.waitFor.matchIndex.hint"] = PageMatchIndexHint("要等的"),
 
+        ["browser.exists.name"] = "元素是否存在",
+        ["browser.exists.desc"] = "只查看一次页面元素是否处于指定状态。",
+        ["browser.exists.pageSelector.label"] = "选择器",
+        ["browser.exists.pageSelector.hint"] = PageTargetHint + "要查看哪个元素，写法与「点击元素」相同。",
+        ["browser.exists.elementState.label"] = "查看状态",
+        ["browser.exists.elementState.hint"] = "要判断元素处于哪一种状态：可见、不可见、在页面上或不在页面上。",
+        ["browser.exists.elementState.option.visible"] = "可见",
+        ["browser.exists.elementState.option.hidden"] = "不可见",
+        ["browser.exists.elementState.option.attached"] = "在页面上",
+        ["browser.exists.elementState.option.detached"] = "不在页面上",
+        ["browser.exists.matchIndex.label"] = "第几个命中",
+        ["browser.exists.matchIndex.hint"] = PageMatchIndexHint("要查看的"),
+        ["browser.exists.narrow.label"] = "限定",
+        ["browser.exists.narrow.hint"] = "要查看的那个元素" + NarrowHint,
+        ["browser.exists.return.found.label"] = "状态是否符合",
+        ["browser.exists.return.found.hint"] = "页面元素处于指定状态时为真。",
+        ["browser.exists.returns.label"] = "要留下的结果",
+        ["browser.exists.returns.hint"] = ReturnsHintText,
+
         ["browser.waitForUrl.name"] = "等待网址",
         ["browser.waitForUrl.desc"] = "等到浏览器当前页面转到某个网址。",
         ["browser.waitForUrl.urlMatch.label"] = "网址里含有",
@@ -3153,243 +3130,6 @@ internal static class ActionStrings
             + "连带它们依赖的包，每个 C# 脚本都按这个目录里的东西编译。",
 
         // ---------------------------------------------------------------- condition
-        ["condition.imageExists.name"] = "图片存在",
-        ["condition.imageExists.desc"] = "当参考图片出现在屏幕上时为真。",
-        ["condition.imageExists.images.label"] = "图片文件",
-        ["condition.imageExists.images.hint"] = "要找的图片，一行一张，按列出的顺序试；只要有一张出现在画面上，这个条件就成立。",
-        ["condition.imageExists.confidence.label"] = "置信度（%）",
-        ["condition.imageExists.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；把参考图"
-            + "的写法放宽一点就调低。",
-        ["condition.imageExists.region.label"] = "搜索区域",
-        ["condition.imageExists.region.hint"] = RegionHintText,
-        ["condition.imageExists.imageSet.label"] = "认哪一张",
-        ["condition.imageExists.imageSet.hint"] = ImageSetHint,
-        ["condition.imageExists.imageSet.option.first"] = "认出的第一张",
-        ["condition.imageExists.imageSet.option.best"] = "最像的那一张",
-        ["condition.imageExists.imageSet.option.every"] = "每一张都要",
-
-        ["condition.textExists.name"] = "文字存在",
-        ["condition.textExists.desc"] = "当屏幕上出现指定文字时为真。",
-        ["condition.textExists.queryText.label"] = "文字",
-        ["condition.textExists.queryText.hint"] = "要在屏幕上找的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上出现这段文字时条件成立。",
-        ["condition.textExists.region.label"] = "搜索区域",
-        ["condition.textExists.region.hint"] = RegionHintText,
-        ["condition.textExists.matchMode.label"] = "匹配方式",
-        ["condition.textExists.matchMode.hint"] = TextMatchHint,
-
-        ["condition.uiaExists.name"] = "UI 元素存在",
-        ["condition.uiaExists.desc"] = "当 UI Automation 元素存在时为真。",
-        ["condition.uiaExists.window.label"] = WindowMatchTextLabel,
-        ["condition.uiaExists.window.hint"] = "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。",
-        ["condition.uiaExists.uiSelector.label"] = "选择器",
-        ["condition.uiaExists.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕"
-            + "上拾取控件；每次判断都会重新找一遍，元素挪了位置也找得到。",
-
-        ["condition.colorEquals.name"] = "颜色相同",
-        ["condition.colorEquals.desc"] = "当某个像素的颜色匹配时为真。",
-        ["condition.colorEquals.x.label"] = "X",
-        ["condition.colorEquals.x.hint"] = "要比较的像素的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
-        ["condition.colorEquals.y.label"] = "Y",
-        ["condition.colorEquals.y.hint"] = "要比较的像素的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
-        ["condition.colorEquals.color.label"] = "颜色",
-        ["condition.colorEquals.color.hint"] = "拿来和这个像素比较的颜色，写成 #RRGGBB，默认黑色。用放大镜取色时，取到的那一点同时写进 X、Y。",
-        ["condition.colorEquals.tolerance.label"] = "容差 %",
-        ["condition.colorEquals.tolerance.hint"] = "允许的颜色偏差，写成 0 到 100 的百分数，默认 5；画面有压缩"
-            + "痕迹或做过缩放时调大。",
-
-        // ------------------------------------------ 否定条件与布尔表达式（条件也能自己写公式）
-        ["condition.imageNotExists.name"] = "图片不存在",
-        ["condition.imageNotExists.desc"] = "当参考图片不在屏幕上时为真。",
-        ["condition.imageNotExists.images.label"] = "图片文件",
-        ["condition.imageNotExists.images.hint"] = "要找的图片，一行一张，按列出的顺序试；一张都没出现，这个条件才成立。",
-        ["condition.imageNotExists.confidence.label"] = "置信度（%）",
-        ["condition.imageNotExists.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；把"
-            + "参考图的写法放宽一点就调低。",
-        ["condition.imageNotExists.region.label"] = "搜索区域",
-        ["condition.imageNotExists.region.hint"] = RegionHintText,
-        ["condition.imageNotExists.imageSet.label"] = "认哪一张",
-        ["condition.imageNotExists.imageSet.hint"] = ImageSetHint,
-        ["condition.imageNotExists.imageSet.option.first"] = "认出的第一张",
-        ["condition.imageNotExists.imageSet.option.best"] = "最像的那一张",
-        ["condition.imageNotExists.imageSet.option.every"] = "每一张都要",
-        ["condition.imageNotExists.anchorMode.label"] = "识别方式",
-        ["condition.imageNotExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.imageNotExists.anchorMode.option.screen"] = "屏幕",
-        ["condition.imageNotExists.anchorMode.option.window"] = "窗口",
-
-        ["condition.textNotExists.name"] = "文字不存在",
-        ["condition.textNotExists.desc"] = "当屏幕上没有指定文字时为真。",
-        ["condition.textNotExists.queryText.label"] = "文字",
-        ["condition.textNotExists.queryText.hint"] = "要在屏幕上确认没有的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上没有它时条件成立。",
-        ["condition.textNotExists.region.label"] = "搜索区域",
-        ["condition.textNotExists.region.hint"] = RegionHintText,
-        ["condition.textNotExists.matchMode.label"] = "匹配方式",
-        ["condition.textNotExists.matchMode.hint"] = TextMatchHint,
-        ["condition.textNotExists.matchMode.option.contains"] = "包含",
-        ["condition.textNotExists.matchMode.option.startsWith"] = "以…开头",
-        ["condition.textNotExists.matchMode.option.endsWith"] = "以…结尾",
-        ["condition.textNotExists.matchMode.option.equals"] = "等于",
-        ["condition.textNotExists.matchMode.option.regex"] = "正则匹配",
-        ["condition.textNotExists.anchorMode.label"] = "识别方式",
-        ["condition.textNotExists.anchorMode.hint"] = AnchorModeHint,
-        ["condition.textNotExists.anchorMode.option.screen"] = "屏幕",
-        ["condition.textNotExists.anchorMode.option.window"] = "窗口",
-
-        ["condition.uiaNotExists.name"] = "UI 元素不存在",
-        ["condition.uiaNotExists.desc"] = "当某个 UI Automation 元素不存在时为真。",
-        ["condition.uiaNotExists.window.label"] = WindowMatchTextLabel,
-        ["condition.uiaNotExists.window.hint"] = "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。",
-        ["condition.uiaNotExists.uiSelector.label"] = "选择器",
-        ["condition.uiaNotExists.uiSelector.hint"] =
-            "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件；每次判断都会重新找"
-            + "一遍，元素挪了位置也找得到。",
-
-        ["condition.browserExists.name"] = "页面元素存在",
-        ["condition.browserExists.desc"] = "当页面上的某个元素处在指定的状态时为真。",
-        ["condition.browserExists.pageSelector.label"] = "选择器",
-        ["condition.browserExists.pageSelector.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与「点击元素」"
-            + "相同；问的是页面现在有没有这样的元素，所以它不会等。",
-        ["condition.browserExists.elementState.label"] = "看它是不是",
-        ["condition.browserExists.elementState.hint"] = "问的是元素的哪一种状态。「看得见」是默认，接下来要操作这个"
-            + "元素时问的就是它；「看不见」是元素在那里但不占地方；「在页面上」是无论看得见看不见都在；"
-            + "「不在页面上」是已经被拿掉。这是一眼的结果，不等待；要等用「等待元素」或包一层等待块。",
-        ["condition.browserExists.elementState.option.visible"] = "看得见",
-        ["condition.browserExists.elementState.option.hidden"] = "看不见",
-        ["condition.browserExists.elementState.option.attached"] = "在页面上",
-        ["condition.browserExists.elementState.option.detached"] = "不在页面上",
-        ["condition.browserExists.matchIndex.label"] = "第几个命中",
-        ["condition.browserExists.narrow.label"] = "限定",
-        ["condition.browserExists.narrow.hint"] = "要判断的那个元素" + NarrowHint,
-        ["condition.browserExists.matchIndex.hint"] = PageMatchIndexHint("要判断的"),
-
-        ["condition.browserNotExists.name"] = "页面元素不存在",
-        ["condition.browserNotExists.desc"] = "当页面上的某个元素不在指定的状态时为真。",
-        ["condition.browserNotExists.pageSelector.label"] = "选择器",
-        ["condition.browserNotExists.pageSelector.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与"
-            + "「点击元素」相同；问的是页面现在有没有这样的元素，所以它不会等。",
-        ["condition.browserNotExists.elementState.label"] = "看它是不是",
-        ["condition.browserNotExists.elementState.hint"] = "问的是元素的哪一种状态，与「页面元素存在」那一格相同。"
-            + "要等一个转圈的提示消失，用它加上「看不见」再包一层等待块。",
-        ["condition.browserNotExists.elementState.option.visible"] = "看得见",
-        ["condition.browserNotExists.elementState.option.hidden"] = "看不见",
-        ["condition.browserNotExists.elementState.option.attached"] = "在页面上",
-        ["condition.browserNotExists.elementState.option.detached"] = "不在页面上",
-        ["condition.browserNotExists.matchIndex.label"] = "第几个命中",
-        ["condition.browserNotExists.narrow.label"] = "限定",
-        ["condition.browserNotExists.narrow.hint"] = "要判断的那个元素" + NarrowHint,
-        ["condition.browserNotExists.matchIndex.hint"] = PageMatchIndexHint("要判断的"),
-
-        ["condition.expression.name"] = "布尔表达式",
-        ["condition.expression.desc"] = "自己写一段表达式，结果为真时条件成立。",
-        ["condition.expression.expression.label"] = "表达式",
-        ["condition.expression.expression.hint"] =
-            "用 $变量、运算符和内置函数拼出一个真 / 假结果，例如 $count > 3 and contains($name, \"ok\")。"
-            + "每次判断都会重新求值，所以在等待里它跟着变量一起变。",
-
-        ["condition.compare.name"] = "条件判断",
-        ["condition.compare.desc"] = "把一个变量与另一个值或变量进行比较。",
-        ["condition.compare.variable.label"] = "变量",
-        ["condition.compare.variable.hint"] = "要判断的变量，下拉里的候选项来自前面步骤创建过的变量。",
-        ["condition.compare.compareOperator.label"] = "判断方式",
-        ["condition.compare.compareOperator.hint"] = "变量与比较值怎么比，默认等于。",
-        ["condition.compare.compareValue.label"] = "变量或值",
-        ["condition.compare.compareValue.hint"] = "拿来做比较的另一个值：从下拉里选已有变量，或直接输入数字或文本；"
-            + "判断方式选“变量存在”时可以留空，选“正则匹配”时这里填的就是正则表达式。",
-        ["condition.compare.compareOperator.option.equals"] = "等于",
-        ["condition.compare.compareOperator.option.notEquals"] = "不等于",
-        ["condition.compare.compareOperator.option.greaterThan"] = "大于",
-        ["condition.compare.compareOperator.option.greaterOrEqual"] = "大于等于",
-        ["condition.compare.compareOperator.option.lessThan"] = "小于",
-        ["condition.compare.compareOperator.option.lessOrEqual"] = "小于等于",
-        ["condition.compare.compareOperator.option.contains"] = "包含",
-        ["condition.compare.compareOperator.option.notContains"] = "不包含",
-        ["condition.compare.compareOperator.option.exists"] = "变量存在",
-        ["condition.compare.compareOperator.option.regex"] = "正则匹配",
-
-        ["condition.stepResult.name"] = "步骤结果",
-        ["condition.stepResult.desc"] = "判断本宏里某一步跑完的结果。",
-        ["condition.stepResult.stepId.label"] = "步骤",
-        ["condition.stepResult.stepId.hint"] =
-            "要问的那一步；候选项是本宏里的每一步，按备注、动作和步骤名称列出。还没轮到的那一步"
-            + "答的是“没跑到”，不是“否”。",
-        ["condition.stepResult.expectedOutcome.label"] = "结果应当是",
-        ["condition.stepResult.expectedOutcome.hint"] = "这一步跑完应当是什么结果，默认「成功」：做成了、失败了，还是"
-            + "根本没轮到。",
-        ["condition.stepResult.expectedOutcome.option.ok"] = "成功",
-        ["condition.stepResult.expectedOutcome.option.failed"] = "失败",
-        ["condition.stepResult.expectedOutcome.option.skipped"] = "没跑到",
-
-        ["condition.listContains.name"] = "列表包含",
-        ["condition.listContains.desc"] = "列表里有某个值时成立。",
-        ["condition.listContains.list.label"] = "列表",
-        ["condition.listContains.list.hint"] =
-            "要查找的列表：直接写成 a;b;c，或者用 $items 指定一个装着列表的变量。",
-        ["condition.listContains.wantedValue.label"] = "要找的值",
-        ["condition.listContains.wantedValue.hint"] =
-            "必须出现在列表里的值。数字按数字比，1 能找到 1.0；文本比较不分大小写。",
-
-        ["condition.pathExists.name"] = "文件或文件夹存在",
-        ["condition.pathExists.desc"] = "路径上有文件或文件夹时成立。",
-        ["condition.pathExists.path.label"] = "路径",
-        ["condition.pathExists.path.hint"] =
-            "必须存在的文件或文件夹。这里只看那个位置上有没有东西，不看它是什么。",
-
-        ["condition.processRunning.name"] = "进程正在运行",
-        ["condition.processRunning.desc"] = "某个程序正在运行时成立。",
-        ["condition.processRunning.processName.label"] = "程序",
-        ["condition.processRunning.processName.hint"] =
-            "程序名，按任务管理器里的写法且不带 .exe：notepad、chrome、excel。",
-
-        ["condition.windowExists.name"] = "窗口存在",
-        ["condition.windowExists.desc"] = "某个窗口打开着时成立。",
-        ["condition.windowExists.window.label"] = WindowMatchTextLabel,
-        ["condition.windowExists.window.hint"] =
-            "获取一次窗口，运行时按这条规则重新找；留空表示只要有一个窗口开着就成立。",
-
-        ["condition.valueInRange.name"] = "值在区间内",
-        ["condition.valueInRange.desc"] = "一个值落在另外两个值之间时成立。",
-        ["condition.valueInRange.testValue.label"] = "值",
-        ["condition.valueInRange.testValue.hint"] = "要放到数轴上的值，可以填变量或算式。",
-        ["condition.valueInRange.min.label"] = "下限",
-        ["condition.valueInRange.min.hint"] = "区间的一端，例如 1。两端谁先写都可以。",
-        ["condition.valueInRange.max.label"] = "上限",
-        ["condition.valueInRange.max.hint"] = "区间的另一端，例如 10。两端都算在内，所以 1 到 10 里包含 1 和 10。",
-
-        ["condition.dateCompare.name"] = "日期比较",
-        ["condition.dateCompare.desc"] = "比较两个日期、时间或两者。",
-        ["condition.dateCompare.left.label"] = "日期",
-        ["condition.dateCompare.left.hint"] =
-            "要摆在前面的日期或时间：填变量名如 $sys.dateTime，直接写 2026-01-31 或 09:30，"
-            + "也可以用 today() 现算一个。写出来的日期按字面理解，不会当成减法。",
-        ["condition.dateCompare.dateOperator.label"] = "比较方式",
-        ["condition.dateCompare.dateOperator.hint"] =
-            "第一个日期相对第二个日期的位置，默认「晚于」。选“同一天”时不看具体时刻，用来问某件事今天做过"
-            + "没有。",
-        ["condition.dateCompare.dateOperator.option.before"] = "早于",
-        ["condition.dateCompare.dateOperator.option.after"] = "晚于",
-        ["condition.dateCompare.dateOperator.option.same"] = "正好等于",
-        ["condition.dateCompare.dateOperator.option.sameDay"] = "是同一天",
-        ["condition.dateCompare.right.label"] = "比较对象",
-        ["condition.dateCompare.right.hint"] = "拿来做比较的日期，写法与上面一样，例如 2026-01-01。",
-
-        ["condition.group.name"] = "条件组",
-        ["condition.group.desc"] = "用“与 / 或 / 非”把多个条件组合在一起：与＝全部满足，或＝任一满足，非＝全部不满足。",
-        ["condition.group.op.label"] = "逻辑",
-        ["condition.group.op.hint"] = "子条件怎么组合，默认「与」；有两个以上子条件时才会生效。",
-        ["condition.group.op.option.and"] = "与（全部满足）",
-        ["condition.group.op.option.or"] = "或（任一满足）",
-        ["condition.group.op.option.none"] = "非（全部不满足）",
-        ["condition.group.conditions.label"] = "子条件",
-        ["condition.group.conditions.hint"] = "加两个以上条件后，可用上面的逻辑组合它们；条件组可以继续嵌套。",
-
-        ["condition.randomChance.name"] = "随机概率",
-        ["condition.randomChance.desc"] = "按固定概率随机为真。",
-        ["condition.randomChance.chancePercent.label"] = "概率 %",
-        ["condition.randomChance.chancePercent.hint"] = "条件为真的概率，0–100（百分比），默认 50。",
-
-        // --------------------------------------------------- 抓屏方式（看屏幕的步骤都有这一个字段）
-
-        // --------------------------------------------------- 画面复用（看屏幕的步骤也都有这一个字段）
         ["vision.capture.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.capture.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.captureWindow.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
@@ -3414,20 +3154,6 @@ internal static class ActionStrings
         ["ocr.findText.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["ocr.clickText.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["ocr.clickText.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["condition.imageExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.imageExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["condition.imageNotExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.imageNotExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["condition.textExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.textExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["condition.textNotExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.textNotExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["condition.colorEquals.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.colorEquals.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["condition.colorsMatch.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["condition.colorsMatch.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-
-        // ------------------------------------------- 查看间隔（等待类拿它当轮询，其余的当下限）
         ["vision.capture.intervalMs.label"] = LookIntervalLabel,
         ["vision.capture.intervalMs.hint"] = LookGapHint,
         ["vision.captureWindow.intervalMs.label"] = LookIntervalLabel,
@@ -3452,21 +3178,6 @@ internal static class ActionStrings
         ["ocr.findText.intervalMs.hint"] = LookGapHint,
         ["ocr.clickText.intervalMs.label"] = LookIntervalLabel,
         ["ocr.clickText.intervalMs.hint"] = LookPollHint,
-        ["condition.imageExists.intervalMs.label"] = LookIntervalLabel,
-        ["condition.imageExists.intervalMs.hint"] = LookGapHint,
-        ["condition.imageNotExists.intervalMs.label"] = LookIntervalLabel,
-        ["condition.imageNotExists.intervalMs.hint"] = LookGapHint,
-        ["condition.textExists.intervalMs.label"] = LookIntervalLabel,
-        ["condition.textExists.intervalMs.hint"] = LookGapHint,
-        ["condition.textNotExists.intervalMs.label"] = LookIntervalLabel,
-        ["condition.textNotExists.intervalMs.hint"] = LookGapHint,
-        ["condition.colorEquals.intervalMs.label"] = LookIntervalLabel,
-        ["condition.colorEquals.intervalMs.hint"] = LookGapHint,
-        ["condition.colorsMatch.intervalMs.label"] = LookIntervalLabel,
-        ["condition.colorsMatch.intervalMs.hint"] = LookGapHint,
-
-        // ------------------------------------------------- 下拉选项（每个动作各一份键）
-        // 鼠标按键在八个动作里出现，措辞必须一致，否则同一个下拉框换个动作就变样。
         ["input.mouseClick.button.option.left"] = "左键",
         ["input.mouseClick.button.option.right"] = "右键",
         ["input.mouseClick.button.option.middle"] = "中键",
@@ -3557,12 +3268,6 @@ internal static class ActionStrings
         ["ocr.clickText.matchMode.option.endsWith"] = "以…结尾",
         ["ocr.clickText.matchMode.option.equals"] = "等于",
         ["ocr.clickText.matchMode.option.regex"] = "正则匹配",
-        ["condition.textExists.matchMode.option.contains"] = "包含",
-        ["condition.textExists.matchMode.option.startsWith"] = "以…开头",
-        ["condition.textExists.matchMode.option.endsWith"] = "以…结尾",
-        ["condition.textExists.matchMode.option.equals"] = "等于",
-        ["condition.textExists.matchMode.option.regex"] = "正则匹配",
-
         ["control.log.level.option.info"] = "信息",
         ["control.log.level.option.warn"] = "警告",
         ["control.log.level.option.error"] = "错误",
@@ -4274,22 +3979,6 @@ internal static class ActionStrings
         ["uia.expand.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
         ["uia.scrollIntoView.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
         ["uia.readTable.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.imageExists.window.label"] = "窗口",
-        ["condition.imageExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.imageNotExists.window.label"] = "窗口",
-        ["condition.imageNotExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.textExists.window.label"] = "窗口",
-        ["condition.textExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.textNotExists.window.label"] = "窗口",
-        ["condition.textNotExists.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.colorEquals.window.label"] = "窗口",
-        ["condition.colorEquals.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.colorsMatch.window.label"] = "窗口",
-        ["condition.colorsMatch.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.colorsExist.window.label"] = "窗口",
-        ["condition.colorsExist.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["condition.colorCoverage.window.label"] = "窗口",
-        ["condition.colorCoverage.window.hint"] = "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
         ["input.mouseMove.returns.label"] = "要留下的结果",
         ["input.mouseMove.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
         ["input.mouseMoveRelative.returns.label"] = "要留下的结果",
@@ -4368,11 +4057,8 @@ internal static class ActionStrings
     [
         "vision.capture", "vision.findImage", "vision.waitImage", "vision.clickImage",
         "vision.getPixel", "vision.waitColor", "vision.findColor", "vision.findColors",
-        "vision.detect", "vision.waitDetect", "vision.clickDetect",
+        "vision.detect", "vision.waitDetect", "vision.clickDetect", "vision.pixelMatches",
         "vision.waitStable", "ocr.recognize", "ocr.findText", "ocr.clickText",
-        "condition.imageExists", "condition.imageNotExists", "condition.textExists",
-        "condition.textNotExists", "condition.colorEquals", "condition.colorsMatch",
-        "condition.colorsExist", "condition.colorCoverage",
         "input.mouseMove", "input.mouseClick", "input.mouseDoubleClick", "input.mouseDown",
         "input.mouseUp", "input.mouseScroll", "input.mouseDrag",
     ];
@@ -4386,7 +4072,7 @@ internal static class ActionStrings
     [
         "uia.exists", "uia.find", "uia.waitElement", "uia.click", "uia.invoke", "uia.setText",
         "uia.read", "uia.select", "uia.check", "uia.expand", "uia.scrollIntoView",
-        "uia.readTable", "condition.uiaExists", "condition.uiaNotExists",
+        "uia.readTable",
     ];
 
     /// <summary>The actions that post their input at a window of their own.</summary>

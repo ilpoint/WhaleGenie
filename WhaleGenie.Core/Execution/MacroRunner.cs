@@ -769,10 +769,6 @@ public sealed partial class MacroRunner
     /// name typed wrong.
     /// </summary>
     /// <remarks>
-    /// Conditions are left out on purpose, and so are the steps inside them: a condition is not a
-    /// step of the macro, it belongs to the step it is written on, so it has no ending of its own
-    /// and a name for it could only ever answer "not carried out".
-    ///
     /// A called macro is prepared too, on the values it was given: its steps are not in the
     /// caller's list, and its names have no business in the caller's scope.
     /// </remarks>
@@ -780,11 +776,6 @@ public sealed partial class MacroRunner
     {
         foreach (var step in steps)
         {
-            if (IsCondition(step))
-            {
-                continue;
-            }
-
             WriteOutcome(step, OutcomeSkipped);
             foreach (var parameter in step.Parameters)
             {
@@ -792,10 +783,6 @@ public sealed partial class MacroRunner
             }
         }
     }
-
-    /// <summary>A condition rather than a step: it is worked out by the step it is written on.</summary>
-    private static bool IsCondition(ExecutableStep step)
-        => ActionSemanticsCatalog.Find(step.Type)?.IsCondition ?? false;
 
     /// <summary>
     /// Writes down how one step ended and, when it did not work, why — for the conditions written
@@ -1907,7 +1894,7 @@ public sealed partial class MacroRunner
     /// has nothing to name, and is left with the length of time.
     /// </summary>
     private static string WaitingFor(ExecutableStep step, string patience)
-        => step.Condition("condition")?.Type is { Length: > 0 } asked ? asked : patience;
+        => step.Text("condition").Trim() is { Length: > 0 } asked ? asked : patience;
 
     /// <summary>
     /// The step is over and it did not work: writes that down and hands back what its failure rule
@@ -2286,8 +2273,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunWaitUntil(ExecutableStep step, int depth, CancellationToken token)
     {
-        var condition = step.Condition("condition")
-                        ?? throw new StepFailure(RunKeys.MissingCondition);
+        RequireCondition(step, "condition");
         var poll = Number(step, "intervalMs");
         if (poll <= 0)
         {
@@ -2297,7 +2283,7 @@ public sealed partial class MacroRunner
         var started = Stopwatch.GetTimestamp();
         try
         {
-            await WaitForFlagAsync(() => Check(condition, depth, token), poll, token);
+            await WaitForFlagAsync(() => Check(step, "condition", token), poll, token);
         }
         catch (OperationCanceledException)
         {
@@ -2311,7 +2297,7 @@ public sealed partial class MacroRunner
 
         var waited = Elapsed(started);
         Give(step, "elapsed", Value.FromNumber(waited));
-        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedFor, waited, condition.Type);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedFor, waited, step.Text("condition"));
         return Signal.Normal;
     }
 
@@ -2350,8 +2336,7 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> RunWhile(ExecutableStep step, int depth, CancellationToken token)
     {
-        var condition = step.Condition("condition")
-                        ?? throw new StepFailure(RunKeys.MissingCondition);
+        RequireCondition(step, "condition");
         var limit = Math.Max(1, Number(step, "maxIterations"));
         using var scope = EnterLoop(VariableStore.LoopIndexName);
 
@@ -2359,7 +2344,7 @@ public sealed partial class MacroRunner
         {
             token.ThrowIfCancellationRequested();
             Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
-            if (!Check(condition, depth, token))
+            if (!Check(step, "condition", token))
             {
                 Give(step, "ended", Value.FromText("condition"));
                 return Signal.Normal;
@@ -2652,9 +2637,8 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> RunIf(ExecutableStep step, int depth, CancellationToken token)
     {
-        var condition = step.Condition("condition")
-                        ?? throw new StepFailure(RunKeys.MissingCondition);
-        var matched = Check(condition, depth, token);
+        RequireCondition(step, "condition");
+        var matched = Check(step, "condition", token);
         return await RunSteps(step.Children(matched ? "then" : "else"), depth + 1, token);
     }
 
@@ -2687,7 +2671,8 @@ public sealed partial class MacroRunner
                     // The reason is asked under the names the catch block itself reads, so a macro
                     // that takes only one kind of failure says exactly which one and can compare the
                     // same key the step below will see.
-                    if (step.Condition("catchWhen") is not { } wanted || Check(wanted, depth, token))
+                    if (string.IsNullOrWhiteSpace(step.Text("catchWhen"))
+                        || Check(step, "catchWhen", token))
                     {
                         Remember(step, failure);
                         Log(LogLevel.Warn, depth, step.Type, LogKeys.Caught);
@@ -2869,89 +2854,20 @@ public sealed partial class MacroRunner
             }
         }
     }
-    private bool Check(ExecutableStep condition, int depth, CancellationToken token)
+    private static void RequireCondition(ExecutableStep step, string name)
     {
-        ValidateAnswers(condition);
+        if (string.IsNullOrWhiteSpace(step.Text(name)))
+        {
+            throw new StepFailure(RunKeys.MissingCondition);
+        }
+    }
+
+    private bool Check(ExecutableStep step, string name, CancellationToken token)
+    {
+        RequireCondition(step, name);
+        ValidateAnswers(step);
         token.ThrowIfCancellationRequested();
-        if (LooksAtScreen(condition.Type))
-        {
-            // A condition about the screen is asked again on every pass of whatever block holds it,
-            // so it is the same reading of the screen as a step's and leaves the same gap.
-            GateNow(condition, token);
-        }
-
-        switch (condition.Type)
-        {
-            case "condition.compare":
-                return Compare(condition);
-            case "condition.group":
-                return Group(condition, depth, token);
-            case "condition.randomChance":
-                return System.Random.Shared.NextDouble() * 100 < Number(condition, "chancePercent");
-            case "condition.imageExists":
-                return ImageThere(condition);
-            case "condition.imageNotExists":
-                return !ImageThere(condition);
-            case "condition.textExists":
-                return TextThere(condition);
-            case "condition.textNotExists":
-                return !TextThere(condition);
-
-            case "condition.uiaExists":
-                return _devices.Ui.Exists(Query(condition), 0);
-
-            case "condition.uiaNotExists":
-                return !_devices.Ui.Exists(Query(condition), 0);
-
-            case "condition.browserExists":
-                return _devices.Browser.Exists(Element(condition), ElementStateOf(condition));
-
-            case "condition.browserNotExists":
-                return !_devices.Browser.Exists(Element(condition), ElementStateOf(condition));
-
-            case "condition.expression":
-                return ReadValue(condition, "expression").AsBool();
-
-            case "condition.stepResult":
-                return StepResult(condition);
-
-            case "condition.listContains":
-                return ListHolds(condition);
-
-            case "condition.pathExists":
-                return _devices.Files.Exists(ReadValue(condition, "path").AsText());
-
-            case "condition.processRunning":
-                return _devices.Processes.Find(ReadValue(condition, "processName").AsText()).Count > 0;
-
-            case "condition.windowExists":
-                return WindowThere(condition);
-
-            case "condition.valueInRange":
-                return InRange(condition);
-
-            case "condition.dateCompare":
-                return DatesCompared(condition);
-
-            case "condition.colorEquals":
-                {
-                    var target = PixelColor.Parse(ReadValue(condition, "color").AsText());
-                    return PixelAt(condition).Matches(target, ReadValue(condition, "tolerance").AsNumber());
-                }
-
-            case "condition.colorsMatch":
-                return ColoursMatch(condition);
-
-            case "condition.colorsExist":
-                return PatternHits(condition).Count > 0;
-
-            case "condition.colorCoverage":
-                return ColourShare(condition);
-
-            default:
-                Log(LogLevel.Warn, depth, condition.Type, LogKeys.UnknownCondition, condition.Type);
-                return false;
-        }
+        return ReadValue(step, name).AsBool();
     }
 
     /// <summary>
@@ -3197,28 +3113,6 @@ public sealed partial class MacroRunner
         {
             throw new StepFailure(RunKeys.BadPattern, right.AsText());
         }
-    }
-
-    private bool Group(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var children = step.Children("conditions");
-        if (children.Count == 0)
-        {
-            return true;
-        }
-
-        var results = new List<bool>(children.Count);
-        foreach (var child in children)
-        {
-            results.Add(Check(child, depth, token));
-        }
-
-        return ReadText(step, "op") switch
-        {
-            "or" => results.Any(result => result),
-            "none" => results.All(result => !result),
-            _ => results.All(result => result),
-        };
     }
 
     private void SetVariable(ExecutableStep step, int depth)

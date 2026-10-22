@@ -9,7 +9,7 @@ namespace WhaleGenie.Mcp;
 
 /// <summary>A compact action entry for the MCP list.</summary>
 public sealed record McpActionSummary(
-    string Key, string Name, string Category, string Description, bool Condition);
+    string Key, string Name, string Category, string Description);
 
 /// <summary>
 /// One parameter of an action, in the shape an external author needs to fill in. Record fields
@@ -54,8 +54,7 @@ public static class ActionKnowledge
                     definition.Key,
                     definition.LocalName,
                     definition.Category.ToString(),
-                    definition.LocalDescription,
-                    definition.IsCondition)),
+                    definition.LocalDescription)),
         ];
     }
 

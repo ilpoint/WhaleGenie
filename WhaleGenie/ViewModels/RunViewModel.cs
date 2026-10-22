@@ -1492,17 +1492,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
                 Depth = depth,
-                CanBreak = ActionSemanticsCatalog.Find(step.Type)?.IsCondition != true,
+                CanBreak = true,
             });
-
-            // The condition reads first, so an "if"/"while" shows its test above the bodies.
-            foreach (var parameter in step.Parameters)
-            {
-                if (parameter.Condition is { } condition)
-                {
-                    Build([condition], depth + 1);
-                }
-            }
 
             Build(step.Children("steps"), depth + 1);
             Build(step.Children("then"), depth + 1);
@@ -1615,13 +1606,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                     foreach (var child in parameter.Steps)
                     {
                         CollectUses(child, defined, names);
-                    }
-
-                    break;
-                case ActionParameterKind.Condition:
-                    if (parameter.Condition is { } condition)
-                    {
-                        CollectUses(condition, defined, names);
                     }
 
                     break;
@@ -1751,6 +1735,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     [ObservableProperty]
     public partial string NewDescription { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool NewPersistValue { get; set; }
 
     /// <summary>Explains why a new shared variable cannot be added yet.</summary>
     public string ValidationMessage
@@ -1947,13 +1934,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                         }
 
                         break;
-                    case ActionParameterKind.Condition:
-                        if (parameter.Condition is not null)
-                        {
-                            Collect(parameter.Condition);
-                        }
-
-                        break;
                     default:
                         // A list parameter keeps its values in rows: whichever of them names a
                         // variable is one the macro reads, the same as any plain field that starts
@@ -2084,14 +2064,18 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             Type = NewType.Value,
             DefaultValue = NewDefault.Trim(),
             Description = NewDescription.Trim(),
+            PersistValue = NewPersistValue,
         };
 
         VariableCatalog.Globals.Add(created);
         Globals.Add(created);
+        PersistentVariables.ApplyTo([created]);
+        VariableCatalog.NotifyGlobalsChanged();
 
         NewName = string.Empty;
         NewDefault = string.Empty;
         NewDescription = string.Empty;
+        NewPersistValue = false;
     }
 
     [RelayCommand]
@@ -2101,6 +2085,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         {
             VariableCatalog.Globals.Remove(variable);
             Globals.Remove(variable);
+            VariableCatalog.NotifyGlobalsChanged();
         }
     }
 

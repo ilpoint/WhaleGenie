@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -32,6 +33,7 @@ public partial class MacroEditorWindow : Window
     private IReadOnlyList<PublicMacroEntry> _publicMacros = [];
     private string? _publicMacroLoadError;
     private bool _switchingDocuments;
+    private MacroDocumentPageViewModel? _pageBeforeTabClose;
     private PendingSubMacro? _pendingSubMacro;
     private readonly List<MacroItem> _project;
 
@@ -142,6 +144,8 @@ public partial class MacroEditorWindow : Window
     /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
     private Canvas? _dropLayer;
     private Border? _dropMarker;
+    private TextBlock? _dropHint;
+    private string _dropHintKey = "Editor.DropAtPosition";
 
     /// <summary>Where the pointer went down, so a click can be told apart from a drag.</summary>
     private Point _dragOrigin;
@@ -183,6 +187,7 @@ public partial class MacroEditorWindow : Window
         _assetFolder = ImageAssets.FolderFor(packagePath);
         _devices = devices;
         _rootViewModel = new MacroEditorViewModel();
+        _rootViewModel.SystemReader = new SystemVariableReader(Layer);
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;
         _rootViewModel.Documents = _documents;
@@ -268,11 +273,11 @@ public partial class MacroEditorWindow : Window
         ActionPalette.ManagePublicMacrosRequested += ManagePublicMacros;
         RefreshPalette();
         EnsureInterface();
-        // Saving or cancelling takes the editor away, so the recording that ends with it has
-        // nothing to report.
+        // Save keeps the editor open and hands the same snapshot to the project list immediately.
+        // Closing is a separate action and never has to be inferred from a save.
         _viewModel.CloseRequested += _ =>
         {
-            SaveAllAndClose();
+            SaveAll(closeAfterSave: false);
         };
         _viewModel.AddStepRequested += OnAddStepRequested;
         _viewModel.EditStepRequested += OnEditStepRequested;
@@ -291,12 +296,6 @@ public partial class MacroEditorWindow : Window
         // it changes. This window is the only place it can be kept: it is not in the list yet.
         _viewModel.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(MacroEditorViewModel.HotstringText)
-                && _hotstringKeyboard is { } keyboard)
-            {
-                keyboard.SetText(_viewModel.HotstringText);
-            }
-
             if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey))
             {
                 if (_viewModel.IsCapturingKey)
@@ -320,6 +319,7 @@ public partial class MacroEditorWindow : Window
         // before that change.
         _viewModel.Changed += (_, _) =>
         {
+            SavedNotice.IsVisible = false;
             RefreshDocuments();
             KeepRecovery();
         };
@@ -348,10 +348,31 @@ public partial class MacroEditorWindow : Window
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
 
+        var pinButton = this.FindControl<Button>("PinButton");
+        if (pinButton is not null)
+        {
+            pinButton.Click += (_, _) =>
+            {
+                Topmost = !Topmost;
+                UpdateTitleBarButtons();
+            };
+        }
+
         var minimizeButton = this.FindControl<Button>("MinimizeButton");
         if (minimizeButton is not null)
         {
             minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
+        }
+
+        var maximizeButton = this.FindControl<Button>("MaximizeButton");
+        if (maximizeButton is not null)
+        {
+            maximizeButton.Click += (_, _) =>
+            {
+                WindowState = WindowState == WindowState.Maximized
+                    ? WindowState.Normal
+                    : WindowState.Maximized;
+            };
         }
 
         var closeButton = this.FindControl<Button>("CloseButton");
@@ -365,6 +386,9 @@ public partial class MacroEditorWindow : Window
                 Close(null);
             };
         }
+        UpdateTitleBarButtons();
+        Strings.Current.LanguageChanged += UpdateTitleBarButtons;
+        Closed += (_, _) => Strings.Current.LanguageChanged -= UpdateTitleBarButtons;
 
         var stepList = this.FindControl<ListBox>("StepList");
         if (stepList is not null)
@@ -448,6 +472,7 @@ public partial class MacroEditorWindow : Window
 
         _dropLayer = this.FindControl<Canvas>("DropLayer");
         _dropMarker = this.FindControl<Border>("DropMarker");
+        _dropHint = this.FindControl<TextBlock>("DropHintText");
 
         // Tunnelling so the key reaches us before the focused control consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -608,8 +633,9 @@ public partial class MacroEditorWindow : Window
 
     private void WatchChildEditor(MacroEditorViewModel editor)
     {
+        editor.SystemReader = new SystemVariableReader(Layer);
         _lastEditorNames[editor] = editor.Name;
-        editor.CloseRequested += _ => SaveAllAndClose();
+        editor.CloseRequested += _ => SaveAll(closeAfterSave: false);
         editor.AddStepRequested += OnAddStepRequested;
         editor.EditStepRequested += OnEditStepRequested;
         editor.ClearRequested += OnClearRequested;
@@ -653,6 +679,7 @@ public partial class MacroEditorWindow : Window
         };
         editor.Changed += (_, _) =>
         {
+            SavedNotice.IsVisible = false;
             _rootViewModel.IsDirty = true;
             RefreshDocuments();
             KeepRecovery();
@@ -783,6 +810,11 @@ public partial class MacroEditorWindow : Window
                     StringComparison.OrdinalIgnoreCase)));
         if (page is not null)
         {
+            if (!_documents.Contains(page))
+            {
+                _documents.Add(page);
+            }
+
             SelectDocument(page);
         }
     }
@@ -796,6 +828,29 @@ public partial class MacroEditorWindow : Window
         }
 
         SelectDocument(page);
+    }
+
+    private void OnDocumentTabClosePressed(object? sender, PointerPressedEventArgs e)
+    {
+        _pageBeforeTabClose = _documentPages.FirstOrDefault(candidate =>
+            ReferenceEquals(candidate.Editor, _viewModel));
+    }
+
+    private void OnCloseDocumentTab(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: MacroDocumentPageViewModel page } || page.IsCurrent)
+        {
+            return;
+        }
+
+        var active = _pageBeforeTabClose
+            ?? _documentPages.FirstOrDefault(candidate => ReferenceEquals(candidate.Editor, _viewModel));
+        _pageBeforeTabClose = null;
+        var closingActive = ReferenceEquals(active, page);
+
+        _documents.Remove(page);
+        SelectDocument(closingActive ? _documentPages[0] : active ?? _documentPages[0]);
+        RefreshDocuments();
     }
 
     private async void ManagePublicMacros()
@@ -889,7 +944,7 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    private void SaveAllAndClose()
+    private bool SaveAll(bool closeAfterSave)
     {
         RefreshProjectCallables();
         var bad = _documentPages.FirstOrDefault(page => !page.Editor.CanSave);
@@ -897,22 +952,33 @@ public partial class MacroEditorWindow : Window
         {
             SelectDocument(bad);
             OnSaveBlocked();
-            return;
+            return false;
         }
 
-        _rootViewModel.SubMacros.Clear();
-        foreach (var page in _documentPages.Where(page => !page.IsCurrent))
-        {
-            _rootViewModel.SubMacros.Add(page.Editor.BuildMacro());
-        }
-
-        _closing = true;
-        var result = _rootViewModel.BuildMacro();
+        var result = BuildRootSnapshot();
         Result = result;
-        Close(result);
+        foreach (var page in _documentPages)
+        {
+            page.Editor.IsDirty = false;
+        }
+
+        _rootViewModel.IsDirty = false;
+        _mustStayUnsaved = false;
+        StopRecovery();
+        Saved?.Invoke(result);
+        SavedNotice.IsVisible = true;
+
+        if (closeAfterSave)
+        {
+            _closing = true;
+            _allowClose = true;
+            Close(result);
+        }
+
+        return true;
     }
 
-    private void OnOpenHotstringKeyboard(object? sender, RoutedEventArgs e)
+    private async void OnOpenHotstringKeyboard(object? sender, RoutedEventArgs e)
     {
         if (_hotstringKeyboard is { } open)
         {
@@ -921,16 +987,21 @@ public partial class MacroEditorWindow : Window
         }
 
         var keyboard = new HotstringKeyboardWindow(_viewModel.HotstringText);
-        keyboard.TextChanged += text => _viewModel.HotstringText = text;
-        keyboard.Closed += (_, _) =>
+        _hotstringKeyboard = keyboard;
+        try
+        {
+            if (await keyboard.ShowDialogOver<string?>(this) is { } text)
+            {
+                _viewModel.HotstringText = text;
+            }
+        }
+        finally
         {
             if (ReferenceEquals(_hotstringKeyboard, keyboard))
             {
                 _hotstringKeyboard = null;
             }
-        };
-        _hotstringKeyboard = keyboard;
-        keyboard.ShowOver(this);
+        }
     }
 
     private void OnCaptureHotstringEnd(object? sender, RoutedEventArgs e)
@@ -945,6 +1016,15 @@ public partial class MacroEditorWindow : Window
             }, combination: true, keyboardOnly: true))
         {
             _viewModel.IsCapturingInterfaceHotkey = true;
+        }
+    }
+
+    private void OnAddTriggerMenu(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MacroEditorViewModel viewModel
+            && sender is MenuItem { Tag: TriggerKind kind })
+        {
+            viewModel.AddTriggerCommand.Execute(kind);
         }
     }
 
@@ -1648,6 +1728,7 @@ public partial class MacroEditorWindow : Window
         }
 
         var step = await dialog.ShowDialogOver<MacroStep?>(this);
+
         _viewModel = editingPage;
         DataContext = editingPage;
         if (step is null)
@@ -1655,6 +1736,12 @@ public partial class MacroEditorWindow : Window
             _pendingSubMacro = null;
             _viewModel.ClearPendingInsertion();
             return null;
+        }
+
+        if (EnsureSetVariableGlobals(step))
+        {
+            _rootViewModel.IsDirty = true;
+            KeepRecovery();
         }
 
         if (editing is not null)
@@ -1691,6 +1778,54 @@ public partial class MacroEditorWindow : Window
         }
 
         return step;
+    }
+
+    /// <summary>
+    /// Setting a variable is allowed to declare a missing global. Nested steps are included, so a
+    /// step saved inside a block creates the declaration before the form closes.
+    /// </summary>
+    private static bool EnsureSetVariableGlobals(MacroStep step)
+    {
+        var created = false;
+        foreach (var parameter in step.StepLists)
+        {
+            foreach (var nested in parameter.Steps)
+            {
+                created |= EnsureSetVariableGlobals(nested);
+            }
+        }
+
+        if (step.Type != "control.setVariable"
+            || !string.Equals(step.Text("scope").Trim(), "global",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return created;
+        }
+
+        var name = step.Text("name").Trim();
+        if (!VariableText.IsName(name) || VariableCatalog.IsSystem(name))
+        {
+            return created;
+        }
+
+        if (VariableCatalog.FindGlobal(name) is { } existing)
+        {
+            existing.PersistValue = step.PersistGlobalAfterSave;
+            return created;
+        }
+
+        var definition = new VariableDefinition
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+            Type = "text",
+            DefaultValue = string.Empty,
+            PersistValue = step.PersistGlobalAfterSave,
+        };
+        VariableCatalog.Globals.Add(definition);
+        PersistentVariables.ApplyTo([definition]);
+        VariableCatalog.NotifyGlobalsChanged();
+        return true;
     }
 
     /// <summary>Puts the form's capture buttons back to their resting labels.</summary>
@@ -1923,6 +2058,12 @@ public partial class MacroEditorWindow : Window
     internal MacroItem? Result { get; private set; }
 
     /// <summary>
+    /// The macro and all of its child pages as they stood when Save succeeded. The main window
+    /// commits this snapshot while the editor remains open; closing later must not repeat it.
+    /// </summary>
+    internal event Action<MacroItem>? Saved;
+
+    /// <summary>
     /// Macros this session made out of stretches of the one being edited, minus the ones the macro
     /// no longer calls — a lift that was undone or whose call was written over. What is left is part
     /// of what the session produced, so the project takes it along with the edited macro.
@@ -2034,9 +2175,39 @@ public partial class MacroEditorWindow : Window
         _triggerFrames.Show(AppWindows.Outside(places));
     }
 
+    private void UpdateTitleBarButtons()
+    {
+        if (this.FindControl<Button>("PinButton") is { } pin)
+        {
+            pin.Classes.Set("pinned", Topmost);
+            ToolTip.SetTip(pin, Strings.Get(Topmost ? "Common.Unpin" : "Common.Pin"));
+        }
+
+        if (this.FindControl<IconView>("PinIcon") is { } pinIcon)
+        {
+            pinIcon.Data = Topmost ? AppIcons.PinOff : AppIcons.Pin;
+        }
+
+        var maximized = WindowState == WindowState.Maximized;
+        if (this.FindControl<Button>("MaximizeButton") is { } maximize)
+        {
+            ToolTip.SetTip(maximize, Strings.Get(maximized ? "Common.Restore" : "Common.Maximize"));
+        }
+
+        if (this.FindControl<IconView>("MaximizeIcon") is { } maximizeIcon)
+        {
+            maximizeIcon.Data = maximized ? AppIcons.Restore : AppIcons.Maximize;
+        }
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty)
+        {
+            UpdateTitleBarButtons();
+        }
 
         if (change.Property == WindowStateProperty || change.Property == IsVisibleProperty)
         {
@@ -2047,7 +2218,7 @@ public partial class MacroEditorWindow : Window
     /// <summary>Prompts for unsaved work before the editor is dismissed.</summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        if (_allowClose || !_viewModel.IsDirty)
+        if (_allowClose || !IsAnyDirty)
         {
             _closing = true;
         }
@@ -2083,7 +2254,7 @@ public partial class MacroEditorWindow : Window
             switch (choice)
             {
                 case ConfirmChoice.Primary:
-                    _viewModel.SaveCommand.Execute(null);
+                    SaveAll(closeAfterSave: true);
                     break;
                 case ConfirmChoice.Secondary:
                     _allowClose = true;
@@ -2452,18 +2623,41 @@ public partial class MacroEditorWindow : Window
         var slot = _viewModel.Rows.Count;
         var markerY = _stepList.Bounds.Height;
         var indent = 0d;
+        var hintKey = _viewModel.Rows.Count == 0
+            ? "Editor.DropIntoEmptyList"
+            : "Editor.DropAtPosition";
         _dropInto = null;
 
-        foreach (var item in _stepList.GetVisualDescendants().OfType<ListBoxItem>())
-        {
-            if (item.DataContext is not StepRow { RowIndex: >= 0 } row)
-            {
-                continue;
-            }
+        var visible = _stepList.GetVisualDescendants()
+            .OfType<ListBoxItem>()
+            .Select(item => (Item: item, Row: item.DataContext as StepRow))
+            .Where(candidate => candidate.Row is { RowIndex: >= 0 })
+            .Select(candidate => (
+                Row: candidate.Row!,
+                Top: candidate.Item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? 0,
+                Height: candidate.Item.Bounds.Height))
+            .OrderBy(candidate => candidate.Row.RowIndex)
+            .ToList();
 
-            var top = item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? 0;
-            var bottom = top + item.Bounds.Height;
+        if (visible.Count > 0)
+        {
+            var last = visible[^1];
+            if (point.Y >= last.Top + last.Height)
+            {
+                _dropSlot = _viewModel.Rows.Count;
+                _dropMarkerY = last.Top + last.Height;
+                _dropMarkerIndent = 0;
+                _dropHintKey = "Editor.DropAtPosition";
+                ShowDropMarker();
+                return;
+            }
+        }
+
+        foreach (var (row, top, itemHeight) in visible)
+        {
+            var bottom = top + itemHeight;
             var height = bottom - top;
+            var inside = point.Y >= top && point.Y < bottom;
 
             // The middle of a block that runs one list of steps means "put it inside this block".
             // A block with several lists — an if, a try, a switch — leaves it to the row of the
@@ -2473,13 +2667,14 @@ public partial class MacroEditorWindow : Window
             {
                 _dropInto = row.Step;
                 slot = -1;
+                hintKey = "Editor.DropAtBlockEnd";
                 (markerY, indent) = EndOfBlock(row, bottom);
                 break;
             }
 
             // A section title and its closing line stand for one whole list. Dropping anywhere
             // on either one means the top or end of that list, not the section before or after it.
-            if (!_draggingSteps && row.IsHead)
+            if (inside && !_draggingSteps && row.IsHead)
             {
                 slot = row.RowIndex;
                 markerY = top;
@@ -2487,7 +2682,8 @@ public partial class MacroEditorWindow : Window
                 break;
             }
 
-            if (!_draggingSteps && row.IsFoot)
+            if (inside && !_draggingSteps && row.IsFoot
+                && point.Y < top + (height / 2))
             {
                 slot = row.RowIndex;
                 markerY = top;
@@ -2510,6 +2706,7 @@ public partial class MacroEditorWindow : Window
         _dropSlot = slot;
         _dropMarkerY = markerY;
         _dropMarkerIndent = indent;
+        _dropHintKey = hintKey;
         ShowDropMarker();
     }
 
@@ -2666,10 +2863,22 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        var highest = Math.Max(0, _dropLayer.Bounds.Height - 2);
+        var empty = _viewModel.Rows.Count == 0;
+        var height = empty
+            ? Math.Max(64, _dropLayer.Bounds.Height)
+            : Math.Max(30, _dropMarker.MinHeight);
+        var highest = Math.Max(0, _dropLayer.Bounds.Height - height);
+        _dropMarker.Height = height;
         Canvas.SetLeft(_dropMarker, _dropMarkerIndent);
         _dropMarker.Width = Math.Max(0, _dropLayer.Bounds.Width - _dropMarkerIndent);
-        Canvas.SetTop(_dropMarker, Math.Clamp(_dropMarkerY, 0, highest));
+        Canvas.SetTop(_dropMarker, empty
+            ? 0
+            : Math.Clamp(_dropMarkerY - (height / 2), 0, highest));
+        if (_dropHint is not null)
+        {
+            _dropHint.Text = Strings.Get(_dropHintKey);
+        }
+
         _dropMarker.IsVisible = true;
     }
 

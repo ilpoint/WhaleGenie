@@ -75,7 +75,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
-拾取器、是否发输入、是否条件、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
+拾取器、是否发输入、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
 提示与页面归属（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
 这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
 `IconView` 包装 `Lucide.Avalonia` 的 `LucideIcon`，把旧属性名映射到 `Kind`、`Foreground` 与
@@ -229,13 +229,14 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 16。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 17。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
 触发器入口从宏文档移进项目级的 `triggers.json` 时升到 11；字串入口增加 `endChars` 时升到 12；
 菜单增加标题、行列格子与每项标签，界面组增加显示/隐藏快捷键时升到 13；菜单改为固定 4×6
 通用/窗口规则页、图标和单一呼出键，字串结束键改为实际字符时升到 14；菜单移除自定义标题并把每条窗口
-规则升级为多页时升到 15；父宏开始携带 `subMacros`、说明和公共宏来源记录时升到 16。
+规则升级为多页时升到 15；父宏开始携带 `subMacros`、说明和公共宏来源记录时升到 16；条件动作收口为整值布尔
+表达式、`try.catchWhen` 改成表达式时升到 17。
 触发入口按名称引用宏，宏改名时同一份
 `ProjectTriggers` 改写所有引用，保存、恢复和 MCP 草稿都不允许悬空引用。
 
@@ -338,8 +339,12 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 手动项在提交信息里按环境（Windows 版本、DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
 三项记录；只写“已手动过”不算结论。环境不同就重跑受影响的那一项，不要把一次通过当成所有机器都通过。
 
-拖放编排还按一项真实桌面用例验收：从四个 Dock 各拖一次到空列表、行前、行后和单列表块内；确认插入线、
-拒绝落点、模态窗口拖动与缩放、取消不插入、保存后落点正确；再把同一公共宏同版本拖两次、改出一版后拖一次，
+变量持久化保存在当前用户的 `%LOCALAPPDATA%\WhaleGenie\persistent-variables.json`，只保存勾选后的全局变量名和值；
+宏包仍只保存变量声明。`VariableBag.Changed` 通知界面层合并写入，退出前必须刷新。
+
+拖放编排还按一项真实桌面用例验收：从四个 Dock 各拖一次到空列表、行前、行后和单列表块内；确认高亮插入带
+写明落点、拒绝落点、动作窗口拖动与缩放、取消不插入、保存后落点正确；再验证保存按钮不关闭编辑器、
+连续保存不重复添加宏；最后把同一公共宏同版本拖两次、改出一版后拖一次，
 确认复用与新建副本的页签和来源版本；重启程序后确认公共宏库仍可列出。无头测试只验事件与结果，不替代这一项。
 
 每加一个动作至少有一条引擎用例走到它；用户可见文案由 `LocalizationTests` 卡住两边齐全。

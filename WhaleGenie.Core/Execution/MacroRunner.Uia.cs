@@ -61,6 +61,7 @@ public sealed partial class MacroRunner
         // only has to reach as far as the hit the step named.
         var hits = _devices.Ui.FindAll(Query(step), every ? MatchLimit : index);
         var match = index <= hits.Count ? hits[index - 1] : null;
+        Give(step, "found", Value.FromBool(match is not null));
 
         if (match is null)
         {

@@ -29,7 +29,7 @@ public class MacroRunnerTests
         => new() { Name = name, Steps = steps };
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Condition = step };
+        => new() { Name = name, Text = TestConditions.Expression(step) };
 
     private static ExecutableStep Set(string name, string value)
         => Step("control.setVariable", Param("name", name), Param("scope", "local"), Param("value", value));
@@ -797,13 +797,9 @@ public class MacroRunnerTests
     public async Task A_logic_group_combines_its_conditions()
     {
         var store = Store(("a", 1), ("b", 2));
-        var group = Step("condition.group",
-            Param("op", "or"),
-            Body("conditions",
-                Step("condition.compare", Param("variable", "a"), Param("compareOperator", "greaterThan"), Param("compareValue", "5")),
-                Step("condition.compare", Param("variable", "b"), Param("compareOperator", "equals"), Param("compareValue", "2"))));
-
-        var branch = Step("control.if", When("condition", group), Body("then", Set("hit", "yes")));
+        var branch = Step("control.if",
+            Param("condition", "($a > 5) or ($b == 2)"),
+            Body("then", Set("hit", "yes")));
         var (_, _) = await RunAsync([branch], variables: store);
 
         Assert.Equal("yes", store.Local.Values["hit"].AsText());
@@ -815,15 +811,12 @@ public class MacroRunnerTests
         var store = Store();
         store.Local.SetText("name", "Ada");
 
-        var contains = Step("condition.compare",
-            Param("variable", "name"), Param("compareOperator", "contains"), Param("compareValue", "ad"));
-        var regex = Step("condition.compare",
-            Param("variable", "name"), Param("compareOperator", "regex"), Param("compareValue", "^A.*a$"));
-
         var (_, _) = await RunAsync(
             [
-                Step("control.if", When("condition", contains), Body("then", Set("c", "1"))),
-                Step("control.if", When("condition", regex), Body("then", Set("r", "1"))),
+                Step("control.if", Param("condition", "contains($name, \"ad\")"),
+                    Body("then", Set("c", "1"))),
+                Step("control.if", Param("condition", "match($name, \"^A.*a$\")"),
+                    Body("then", Set("r", "1"))),
             ],
             variables: store);
 
@@ -842,24 +835,17 @@ public class MacroRunnerTests
         store.Local.SetText("padded", "a ");
         store.Local.SetText("mixed", "Save");
 
-        ExecutableStep Compare(string name, string variable, string value, params ExecutableParameter[] more)
-            => Step("control.if", When("condition", Step("condition.compare",
-                [Param("variable", variable), Param("compareOperator", "equals"),
-                 Param("compareValue", value), .. more])),
+        ExecutableStep Compare(string name, string expression)
+            => Step("control.if", Param("condition", expression),
                 Body("then", Set(name, "1")));
 
         var (result, _) = await RunAsync(
             [
-                Compare("strict", "padded", "a",
-                    Param("caseSensitive", "true"), Param("trim", "false")),
-                Compare("trimmed", "padded", "a",
-                    Param("caseSensitive", "true"), Param("trim", "true")),
-                Step("control.if", When("condition", Step("condition.compare",
-                    Param("variable", "mixed"), Param("compareOperator", "contains"),
-                    Param("compareValue", "save"))), Body("then", Set("folded", "1"))),
-                Step("control.if", When("condition", Step("condition.compare",
-                    Param("variable", "mixed"), Param("compareOperator", "contains"),
-                    Param("compareValue", "save"), Param("caseSensitive", "true"))),
+                Compare("strict", "compare($padded, \"equals\", \"a\", true, false)"),
+                Compare("trimmed", "compare($padded, \"equals\", \"a\", true, true)"),
+                Step("control.if", Param("condition", "compare($mixed, \"contains\", \"save\")"),
+                    Body("then", Set("folded", "1"))),
+                Step("control.if", Param("condition", "compare($mixed, \"contains\", \"save\", true)"),
                     Body("then", Set("exactCase", "1"))),
             ],
             variables: store);
@@ -888,9 +874,7 @@ public class MacroRunnerTests
             Type = "control.if",
             Parameters =
             [
-                When("condition", Step("condition.compare",
-                    Param("variable", "long"), Param("compareOperator", "regex"),
-                    Param("compareValue", "(a+)+$"))),
+                Param("condition", "compare($long, \"regex\", \"(a+)+$\")"),
                 Body("then", Set("never", "1")),
             ],
             Meta = new StepMeta { OnError = StepErrorAction.Continue },
@@ -1832,37 +1816,6 @@ public class MacroRunnerTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal(RunKeys.BadExpression, result.Key);
-    }
-
-    [Fact]
-    public async Task A_condition_that_needs_a_missing_device_fails_the_step()
-    {
-        var branch = Step("control.if",
-            When("condition", Step("condition.uiaExists", Param("uiSelector", "Button[name='Save']"))),
-            Body("then", Set("hit", "1")));
-
-        var store = Store();
-        var (result, host) = await RunAsync([branch], variables: store);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal("Run.NoDevice", result.Key);
-        Assert.False(store.TryGet("hit", out _));
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.NoDevice");
-    }
-
-    [Fact]
-    public async Task A_condition_the_engine_does_not_know_is_reported_and_false()
-    {
-        var branch = Step("control.if",
-            When("condition", Step("condition.fromTheFuture")),
-            Body("then", Set("hit", "1")));
-
-        var store = Store();
-        var (result, host) = await RunAsync([branch], variables: store);
-
-        Assert.True(result.Succeeded);
-        Assert.False(store.TryGet("hit", out _));
-        Assert.Contains(host.Entries, entry => entry.Key == "Log.UnknownCondition");
     }
 
     [Fact]

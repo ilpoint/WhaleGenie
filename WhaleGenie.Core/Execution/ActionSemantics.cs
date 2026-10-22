@@ -23,7 +23,6 @@ public enum ActionCategory
     Uia,
     Browser,
     Script,
-    Condition,
 }
 
 /// <summary>What an action's result holds, which is what the variable pickers call it.</summary>
@@ -48,7 +47,6 @@ public enum ActionValueShape
     Flag,
     Choice,
     Steps,
-    Condition,
     Rows,
     Image,
 
@@ -230,9 +228,6 @@ public sealed class ActionParameterSemantics
     /// </summary>
     public bool AcceptsVariables { get; init; }
 
-    /// <summary>True when a step list accepts conditions rather than ordinary steps.</summary>
-    public bool ConditionsOnly { get; init; }
-
     /// <summary>
     /// The columns a row of this field may hold. A list written by hand that names a column the
     /// action never reads would otherwise be skipped without a word, which looks like the step
@@ -284,7 +279,7 @@ public sealed class ActionParameterSemantics
            && DefaultValue.Length == 0
            && EmptyMeans is null
            && Shape is not (ActionValueShape.Steps or ActionValueShape.Rows
-               or ActionValueShape.Condition or ActionValueShape.Flag);
+               or ActionValueShape.Flag);
 }
 
 /// <summary>What a column of a row list is for.</summary>
@@ -359,9 +354,6 @@ public sealed class ActionSemantics
     /// <summary>True when carrying out this action puts keys, clicks or controller input into the machine.</summary>
     public bool SendsInput { get; init; }
 
-    /// <summary>True for actions asked inside an if, a loop or a wait rather than run as a step.</summary>
-    public bool IsCondition { get; init; }
-
     /// <summary>True when the action reads pixels from the screen.</summary>
     public bool LooksAtScreen { get; init; }
 
@@ -412,12 +404,6 @@ public static class ActionSemanticsCatalog
             if (string.IsNullOrWhiteSpace(action.Key))
             {
                 throw new InvalidOperationException("An action has no key.");
-            }
-
-            if (action.IsCondition != (action.Category == ActionCategory.Condition))
-            {
-                throw new InvalidOperationException(
-                    $"{action.Key}: IsCondition does not match its category.");
             }
 
             if (action.TimeoutSource == ActionTimeoutSource.Step && action.StepTimeoutMs <= 0)
@@ -490,15 +476,11 @@ public static class ActionSemanticsCatalog
 
         ByKey = actions.ToDictionary(action => action.Key, StringComparer.Ordinal);
         All = actions;
-        Conditions = [.. actions.Where(action => action.IsCondition)];
-        Runnable = [.. actions.Where(action => !action.IsCondition && !action.Hidden)];
+        Runnable = [.. actions.Where(action => !action.Hidden)];
     }
 
     /// <summary>Every action and condition, in the order the picker lists them.</summary>
     public static IReadOnlyList<ActionSemantics> All { get; private set; } = [];
-
-    /// <summary>The conditions offered inside if, while and wait.</summary>
-    public static IReadOnlyList<ActionSemantics> Conditions { get; private set; } = [];
 
     /// <summary>Everything that can be a step of its own.</summary>
     public static IReadOnlyList<ActionSemantics> Runnable { get; private set; } = [];

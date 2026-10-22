@@ -60,8 +60,7 @@ public class VariableFieldTests
             foreach (var key in new[]
                      {
                          "vision.findImage", "vision.waitImage", "vision.clickImage", "vision.findColor",
-                         "ocr.findText", "condition.imageExists", "condition.imageNotExists",
-                         "condition.textExists", "condition.textNotExists",
+                         "ocr.findText",
                      })
             {
                 var region = Parameter(Open(key), "region");
@@ -174,12 +173,10 @@ public class VariableFieldTests
             naming.InsertVariable("$count", 0);
             Assert.Equal("count", naming.Text);
 
-            // Reading one: a value compared against a number takes the reader's own form, which is
-            // what the wall hands back.
-            var reading = Parameter(Open("condition.valueInRange"), "testValue");
-            reading.InsertVariable("$count", 0);
+            var reading = Parameter(Open("control.if"), "condition");
+            reading.ApplyVariableDrop("$count");
             Assert.Equal("$count", reading.Text);
-            Assert.Equal(["$count", "$name"], reading.NameChoices.Order(StringComparer.Ordinal));
+            Assert.Contains("$count", reading.ExpressionSuggestions);
         });
     }
 

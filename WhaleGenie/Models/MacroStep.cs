@@ -58,9 +58,6 @@ public class StepParameter
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
 
-    /// <summary>Chosen condition, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Condition"/>.</summary>
-    public MacroStep? Condition { get; init; }
-
     /// <summary>Writes the value as the JSON type the runtime expects.</summary>
     /// <remarks>
     /// A number is written as the number it is, and anything else is written as what it says. A
@@ -77,7 +74,6 @@ public class StepParameter
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
             or ActionParameterKind.Returns or ActionParameterKind.Narrow => RowsJson(),
-        ActionParameterKind.Condition => Condition?.ToJson(),
         ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
             => JsonNode.Parse(Value),
         _ => JsonValue.Create(Value),
@@ -138,8 +134,6 @@ public class StepParameter
         decimal jitter = 0m)
     {
         var definition = owner?.Parameters.FirstOrDefault(candidate => candidate.Name == name);
-        var expectsCondition = definition?.Kind is ActionParameterKind.Condition;
-
         return node switch
         {
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
@@ -153,14 +147,8 @@ public class StepParameter
             JsonArray array => new StepParameter
             {
                 Name = name,
-                Kind = expectsCondition ? ActionParameterKind.Condition : ActionParameterKind.Steps,
+                Kind = ActionParameterKind.Steps,
                 Steps = [.. array.OfType<JsonObject>().Select(MacroStep.FromJson)],
-            },
-            JsonObject child when child.ContainsKey("type") => new StepParameter
-            {
-                Name = name,
-                Kind = ActionParameterKind.Condition,
-                Condition = MacroStep.FromJson(child),
             },
             JsonObject record when definition?.Kind is ActionParameterKind.WindowRule => new StepParameter
             {
@@ -247,6 +235,12 @@ public class StepParameterRow
 /// <summary>A single step of a macro, saved as one node of the macro's JSON tree.</summary>
 public class MacroStep : INotifyPropertyChanged
 {
+    /// <summary>
+    /// Design-time choice carried from the action form to the editor. It is deliberately not part
+    /// of the macro file: persistence belongs to the user's local variable settings.
+    /// </summary>
+    internal bool PersistGlobalAfterSave { get; set; }
+
     /// <summary>Fully qualified action key, for example <c>input.keyPress</c>.</summary>
     public required string Type { get; init; }
 
@@ -294,10 +288,7 @@ public class MacroStep : INotifyPropertyChanged
             }
         }
 
-        foreach (var child in Parameters.SelectMany(parameter => parameter.Steps)
-                     .Concat(Parameters
-                         .Where(parameter => parameter.Condition is not null)
-                         .Select(parameter => parameter.Condition!)))
+        foreach (var child in Parameters.SelectMany(parameter => parameter.Steps))
         {
             child.EnsureDeclaredLists();
         }
@@ -394,13 +385,6 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>True when the macro skips this step.</summary>
     public bool IsSkipped => !Meta.IsEnabled;
 
-    /// <summary>
-    /// True when this is a condition rather than a step of the macro. A condition says what has to
-    /// be true and is asked by the step it belongs to, so it never runs on its own and has no
-    /// ending of its own for anything to ask about.
-    /// </summary>
-    public bool IsCondition => Definition?.IsCondition ?? false;
-
     /// <summary>Marker drawn on a step the macro will skip.</summary>
     public string SkipLabel => Strings.Get("Editor.StepDisabled");
 
@@ -476,9 +460,6 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Steps when parameter.Steps.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Common.StepCount", parameter.Steps.Count)}");
                         break;
-                    case ActionParameterKind.Condition when parameter.Condition is not null:
-                        parts.Add($"{label} = {parameter.Condition.DisplayName}");
-                        break;
                     case ActionParameterKind.Region when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.RegionCount", parameter.Rows.Count)}");
                         break;
@@ -494,8 +475,8 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Narrow when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.NarrowCount", parameter.Rows.Count)}");
                         break;
-                    case ActionParameterKind.Steps or ActionParameterKind.Condition
-                        or ActionParameterKind.Region or ActionParameterKind.KeySequence
+                    case ActionParameterKind.Steps or ActionParameterKind.Region
+                        or ActionParameterKind.KeySequence
                         or ActionParameterKind.Images or ActionParameterKind.Returns
                         or ActionParameterKind.Narrow:
                         break;
@@ -567,9 +548,6 @@ public class MacroStep : INotifyPropertyChanged
                     {
                         child.CollectVariables(names);
                     }
-                    break;
-                case ActionParameterKind.Condition:
-                    parameter.Condition?.CollectVariables(names);
                     break;
                 // The results a step hands over are named one by one on the returns page, so what
                 // this step creates is read from those rows rather than from a single value.

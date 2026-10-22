@@ -109,12 +109,7 @@ public class ValueReadTests
         var result = await new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer())
             .RunAsync([
                 Step("control.if",
-                    new ExecutableParameter
-                    {
-                        Name = "condition",
-                        Condition = Step("condition.compare", Param("variable", "total"),
-                            Param("compareOperator", "equals"), Param("compareValue", "7")),
-                    },
+                    Param("condition", "$total == 7"),
                     new ExecutableParameter
                     {
                         Name = "then",

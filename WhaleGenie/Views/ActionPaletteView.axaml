@@ -25,10 +25,10 @@
             <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="ListBox.PaletteDocks ListBoxItem">
-            <Setter Property="Padding" Value="8,6" />
-            <Setter Property="Margin" Value="0,0,2,0" />
+            <Setter Property="Padding" Value="3,4" />
+            <Setter Property="Margin" Value="1,0" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
         <Style Selector="ListBox.PaletteDocks ListBoxItem:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
@@ -70,28 +70,28 @@
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppSurface}">
-        <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Disabled">
-            <ListBox Name="SourceDock" Classes="PaletteDocks" ItemsSource="{Binding Tabs}"
-                     SelectedItem="{Binding SelectedTab}" SelectionMode="Single"
-                     Margin="4,4,4,2">
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ActionPaletteTab">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <views:IconView Width="14" Height="14" Data="{Binding Icon}"
-                                            Stroke="{DynamicResource AppText}" StrokeThickness="1.4" />
-                            <TextBlock Text="{Binding Label}" FontSize="12"
-                                       Foreground="{DynamicResource AppText}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </ScrollViewer>
+        <ListBox Grid.Row="0" Name="SourceDock" Classes="PaletteDocks"
+                 ItemsSource="{Binding Tabs}"
+                 SelectedItem="{Binding SelectedTab}" SelectionMode="Single"
+                 Margin="4,4,4,2">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" Columns="4" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ActionPaletteTab">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <views:IconView Width="13" Height="13" Data="{Binding Icon}"
+                                        HorizontalAlignment="Center"
+                                        Stroke="{DynamicResource AppText}" StrokeThickness="1.4" />
+                        <TextBlock Text="{Binding Label}" FontSize="10.5" TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   Foreground="{DynamicResource AppText}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
         <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
             <Border Grid.Column="0" Name="BasicCategoryDock" Width="66"
@@ -125,13 +125,26 @@
 
                 <Grid Grid.Row="1">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding Cards}"
-                                      ItemTemplate="{StaticResource PaletteCardButton}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                        <ItemsControl ItemsSource="{Binding Sections}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ActionPaletteSection">
+                                    <StackPanel Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding Title}" FontSize="11.5"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AppMuted}"
+                                                   Margin="2,2,0,6"
+                                                   IsVisible="{Binding HasTitle}" />
+                                        <ItemsControl ItemsSource="{Binding Cards}"
+                                                      ItemTemplate="{StaticResource PaletteCardButton}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
 

@@ -51,7 +51,6 @@ public static class ActionCategoryPresentation
             ActionCategory.Uia => "#FFB86C",
             ActionCategory.Browser => "#61AFEF",
             ActionCategory.Script => "#E5C07B",
-            ActionCategory.Condition => "#EF6F6C",
             _ => "#B9B3A8",
         }));
 

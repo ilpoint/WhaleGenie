@@ -67,11 +67,11 @@ public class VariableWarningTests
             // Reading one is not: that is what those values are for.
             var reading = new AddActionViewModel(ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("count"), []);
-            reading.SelectAction("condition.dateCompare");
-            reading.Parameters.First(parameter => parameter.Definition.Name == "left").Text =
+            reading.SelectAction("control.setVariable");
+            reading.Parameters.First(parameter => parameter.Definition.Name == "name").Text =
+                "copy";
+            reading.Parameters.First(parameter => parameter.Definition.Name == "value").Text =
                 "$sys.dateTime";
-            reading.Parameters.First(parameter => parameter.Definition.Name == "right").Text =
-                "2026-01-01";
 
             Assert.True(reading.CanSave, reading.ValidationMessage);
         });

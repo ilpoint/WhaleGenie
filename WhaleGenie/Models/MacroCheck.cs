@@ -549,16 +549,10 @@ public static class MacroCheck
                     || step.Type is "browser.dialog" or "control.holdBrowser";
                 foreach (var parameter in step.Parameters)
                 {
-                    switch (parameter.Kind)
+                    if (parameter.Kind is ActionParameterKind.Steps)
                     {
-                        case ActionParameterKind.Steps:
-                            Visit(parameter.Steps, insideLoops, insideSwitches, insideNames,
-                                insideBounded, insideGuard, insideHeld);
-                            break;
-                        case ActionParameterKind.Condition when parameter.Condition is { } condition:
-                            Visit([condition], insideLoops, insideSwitches, insideNames,
-                                insideBounded, insideGuard, browserHeld);
-                            break;
+                        Visit(parameter.Steps, insideLoops, insideSwitches, insideNames,
+                            insideBounded, insideGuard, insideHeld);
                     }
                 }
             }
@@ -571,10 +565,7 @@ public static class MacroCheck
                 return;
             }
 
-            var chosen = step.Parameters
-                .FirstOrDefault(parameter => parameter.Name == "condition")
-                ?.Condition;
-            if (chosen is null || chosen.Type.Trim().Length == 0)
+            if (string.IsNullOrWhiteSpace(step.Text("condition")))
             {
                 Add(step, Strings.Get("Editor.Problem.MissingCondition"));
             }
@@ -681,7 +672,8 @@ public static class MacroCheck
                 // A run handle already has its own check; saying it twice would teach the user to
                 // ignore one of the two.
                 if (parameter.Semantics.MissingValue(step.Text(parameter.Name))
-                    && parameter.Semantics.MissingKey != RunKeys.MissingHandle)
+                    && parameter.Semantics.MissingKey is not (RunKeys.MissingHandle
+                        or RunKeys.MissingCondition))
                 {
                     Add(step, Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
                 }
@@ -903,7 +895,7 @@ public static class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
-                if (parameter.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition
+                if (parameter.Kind is ActionParameterKind.Steps
                     || step.ParameterDefinition(parameter) is { ForeignText: true })
                 {
                     continue;
@@ -1005,9 +997,9 @@ public static class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
-                // Steps and conditions hold other steps rather than a value of their own, and text
-                // written in another language spells its own variables with a $.
-                if (parameter.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition
+                // Step lists hold other steps rather than a value of their own, and text written
+                // in another language spells its own variables with a $.
+                if (parameter.Kind is ActionParameterKind.Steps
                     || step.ParameterDefinition(parameter) is { ForeignText: true })
                 {
                     continue;
@@ -1452,7 +1444,7 @@ public static class MacroCheck
 
         // Every step that can run leaves an ending and a failure key behind under its own id,
         // whether or not the editor asked for a named result.
-        foreach (var step in Every(steps).Where(step => !step.IsCondition && step.Id.Length > 0))
+        foreach (var step in Every(steps).Where(step => step.Id.Length > 0))
         {
             defined.Add(MacroRunner.OutcomeName(step.Id));
             defined.Add(MacroRunner.ErrorName(step.Id));
@@ -1623,13 +1615,6 @@ public static class MacroCheck
                     yield return nested;
                 }
 
-                if (parameter.Condition is { } condition)
-                {
-                    foreach (var nested in Every([condition]))
-                    {
-                        yield return nested;
-                    }
-                }
             }
         }
     }

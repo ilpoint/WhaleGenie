@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Variables;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -50,6 +51,10 @@ public partial class VariableDefinition : ObservableObject
 
     /// <summary>Macro that owns a local variable; empty for system and global variables.</summary>
     public string Owner { get; set; } = string.Empty;
+
+    /// <summary>Whether this global's current value is kept for this user between program runs.</summary>
+    [ObservableProperty]
+    public partial bool PersistValue { get; set; }
 
     /// <summary>
     /// Value shown in the Variable Center. System variables are read live; local ones are
@@ -139,4 +144,7 @@ public partial class VariableDefinition : ObservableObject
     }
 
     public override string ToString() => Name;
+
+    partial void OnPersistValueChanged(bool value)
+        => PersistentVariables.PersistChanged(this, value);
 }

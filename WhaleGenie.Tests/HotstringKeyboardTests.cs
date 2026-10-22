@@ -1,5 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -21,8 +25,6 @@ public class HotstringKeyboardTests
         {
             var window = new HotstringKeyboardWindow("a");
             window.Show();
-            var changed = string.Empty;
-            window.TextChanged += text => changed = text;
 
             Click(window, "b");
             Click(window, Strings.Get("HotstringKeyboard.Space"));
@@ -30,7 +32,6 @@ public class HotstringKeyboardTests
             Click(window, Strings.Get("HotstringKeyboard.Enter"));
 
             Assert.Equal("ab \t\n", window.Text);
-            Assert.Equal(window.Text, changed);
             window.Close();
         });
     }
@@ -79,6 +80,8 @@ public class HotstringKeyboardTests
             var buttons = EndKeyButtons(window).ToList();
             Assert.Equal(HotstringCharacters.EndKeyChoices.Count, buttons.Count);
             Assert.All(buttons, button => Assert.True(button.IsChecked));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.Text is "Currently accepted:" or "当前可用结束键：");
 
             var endingLabels = HotstringCharacters.EndKeyChoices
                 .Select(choice => choice.Name)
@@ -103,6 +106,39 @@ public class HotstringKeyboardTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(selectedBackground.Color,
                 Assert.IsAssignableFrom<ISolidColorBrush>(space.Background).Color);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Hover_does_not_darken_an_end_key_before_its_state_changes()
+    {
+        Ui.Run(() =>
+        {
+            var (window, _) = OpenHotstringEditor();
+            var space = EndKeyButton(window, "Space");
+            space.BringIntoView();
+            Dispatcher.UIThread.RunJobs();
+
+            var selected = EndKeyBackground(space);
+            var centre = space.TranslatePoint(
+                new Point(space.Bounds.Width / 2, space.Bounds.Height / 2), window);
+            Assert.NotNull(centre);
+            window.MouseMove(centre!.Value, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(selected, EndKeyBackground(space));
+
+            space.IsChecked = false;
+            Dispatcher.UIThread.RunJobs();
+            var unselected = EndKeyBackground(space);
+            Assert.NotEqual(selected, unselected);
+
+            window.MouseMove(new Point(1, 1), RawInputModifiers.None);
+            window.MouseMove(centre.Value, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(unselected, EndKeyBackground(space));
+
             window.Close();
         });
     }
@@ -180,6 +216,71 @@ public class HotstringKeyboardTests
     }
 
     [Fact]
+    public void The_keyboard_result_is_applied_only_after_confirm()
+    {
+        Ui.Run(() =>
+        {
+            var (window, editor) = OpenHotstringEditor();
+            OpenKeyboard(window);
+            var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
+            var confirm = keyboard.FindControl<Button>("ConfirmButton")!;
+            var clear = keyboard.FindControl<Button>("ClearButton")!;
+
+            Click(keyboard, "x");
+
+            Assert.Equal("btwx", keyboard.Text);
+            Assert.Equal("btw", editor.HotstringText);
+            Assert.Equal(Strings.Get("Common.Ok"), confirm.Content);
+            Assert.True(confirm.IsEffectivelyVisible);
+            var clearRight = clear.TranslatePoint(new Point(clear.Bounds.Width, 0), keyboard);
+            var confirmRight = confirm.TranslatePoint(new Point(confirm.Bounds.Width, 0), keyboard);
+            Assert.NotNull(clearRight);
+            Assert.NotNull(confirmRight);
+            Assert.True(confirmRight.Value.X > clearRight.Value.X);
+
+            confirm.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(keyboard.IsVisible);
+            Assert.Equal("btwx", editor.HotstringText);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Closing_or_pressing_escape_discards_keyboard_edits()
+    {
+        Ui.Run(() =>
+        {
+            var (window, editor) = OpenHotstringEditor();
+            OpenKeyboard(window);
+            var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
+            Click(keyboard, "x");
+
+            keyboard.FindControl<Button>("CloseButton")!
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(keyboard.IsVisible);
+            Assert.Equal("btw", editor.HotstringText);
+
+            OpenKeyboard(window);
+            keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
+            Click(keyboard, "y");
+            keyboard.RaiseEvent(new KeyEventArgs
+            {
+                RoutedEvent = InputElement.KeyDownEvent,
+                Key = Key.Escape,
+            });
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(keyboard.IsVisible);
+            Assert.Equal("btw", editor.HotstringText);
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void Neither_language_mentions_AutoHotkey_escaping_in_the_ending_key_help()
     {
         Ui.Run(() =>
@@ -232,6 +333,18 @@ public class HotstringKeyboardTests
         Dispatcher.UIThread.RunJobs();
         return (window, (MacroEditorViewModel)window.DataContext!);
     }
+
+    private static void OpenKeyboard(MacroEditorWindow window)
+    {
+        var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
+            button.Classes.Contains("KeyFieldButton"));
+        field.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static Color EndKeyBackground(ToggleButton button)
+        => Assert.IsAssignableFrom<ISolidColorBrush>(
+            button.GetVisualDescendants().OfType<ContentPresenter>().First().Background).Color;
 
     private static IEnumerable<ToggleButton> EndKeyButtons(Window window)
         => window.GetVisualDescendants().OfType<ToggleButton>()

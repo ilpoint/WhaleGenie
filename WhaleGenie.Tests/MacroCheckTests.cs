@@ -19,8 +19,8 @@ public class MacroCheckTests
     private static StepParameter Steps(string name, params MacroStep[] steps)
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
-    private static StepParameter When(string name, MacroStep condition)
-        => new() { Name = name, Kind = ActionParameterKind.Condition, Condition = condition };
+    private static StepParameter When(string name, string expression)
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Value = expression };
 
     private static StepParameter Text(string name, string value)
         => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
@@ -222,13 +222,9 @@ public class MacroCheckTests
     [Fact]
     public void A_catch_condition_may_read_the_failure_it_was_given()
     {
-        var asked = Step("condition.compare",
-            Text("variable", "caught.key"),
-            Text("compareOperator", "equals"),
-            Value("compareValue", "Run.ElementNotFound"));
         var trying = Step("control.try",
             Steps("body", Pressing()),
-            When("catchWhen", asked),
+            When("catchWhen", "$caught.key == \"Run.ElementNotFound\""),
             Steps("catch"),
             Steps("finally"));
 
@@ -313,7 +309,7 @@ public class MacroCheckTests
         // An if branch and a plain block both let a break reach the loop around them, so neither
         // is a place where "no loop above it" is true.
         var ifStep = Step("control.if",
-            When("condition", Step("condition.expression", Value("expression", "true"))),
+            When("condition", "true"),
             Steps("then", Step("control.sequence", Steps("steps", Step("control.break")))));
 
         Assert.Empty(Inspect(Repeat(ifStep)));
@@ -357,7 +353,7 @@ public class MacroCheckTests
     public void A_call_to_the_macro_itself_inside_a_branch_or_loop_is_left_alone()
     {
         var branch = Step("control.if",
-            When("condition", Step("condition.expression", Value("expression", "true"))),
+            When("condition", "true"),
             Steps("then", Call("自己")));
         var switching = Step("control.switch",
             Text("switchValue", "1"), Text("switchMode", "equals"),
@@ -635,16 +631,6 @@ public class MacroCheckTests
     public void A_bare_word_in_a_whole_value_is_not_a_variable()
         => Assert.Empty(Inspect(Step("file.writeText", Text("path", "out.txt"),
             Value("fileContent", "total"))));
-
-    /// <summary>A field that holds a bare name reads that name, so the check resolves it too.</summary>
-    [Fact]
-    public void A_bare_name_field_reads_the_variable_it_names()
-    {
-        var problem = Assert.Single(Inspect(Step("condition.compare",
-            Text("variable", "total"), Text("compareOperator", "equals"),
-            Value("compareValue", "1"))));
-        Assert.Contains("total", problem.Message);
-    }
 
     [Fact]
     public void A_loop_variable_is_left_alone()

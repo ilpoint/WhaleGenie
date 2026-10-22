@@ -196,20 +196,17 @@ public class StepIdTests
             Steps = [.. steps],
         });
 
-    /// <summary>A step with a condition inside it, which is a step too and gets a name.</summary>
+    /// <summary>A block with an expression condition still gets its own name.</summary>
     private static MacroStep Guard()
         => Step("control.if", new StepParameter
         {
             Name = "condition",
-            Kind = ActionParameterKind.Condition,
-            Condition = Step("condition.expression"),
+            Kind = ActionParameterKind.Expression,
+            Value = "true",
         });
 
-    /// <summary>Everything written inside a step, lists and conditions alike.</summary>
+    /// <summary>Everything written inside a step's child lists.</summary>
     private static IEnumerable<MacroStep> All(MacroStep step)
         => step.Parameters.SelectMany(parameter => parameter.Steps)
-            .Concat(step.Parameters
-                .Where(parameter => parameter.Condition is not null)
-                .Select(parameter => parameter.Condition!))
             .SelectMany(child => new[] { child }.Concat(All(child)));
 }

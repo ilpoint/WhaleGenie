@@ -53,6 +53,17 @@ public partial class MainWindow : Window
     private MacroEditorWindow? _editor;
 
     /// <summary>
+    /// The macro an open editor currently replaces in the project. Save commits a fresh snapshot,
+    /// so this moves forward with every successful save and keeps close from applying it twice.
+    /// </summary>
+    private sealed class EditorCommitState(MacroItem? target)
+    {
+        public MacroItem? Target { get; set; } = target;
+
+        public HashSet<MacroItem> Lifted { get; } = [];
+    }
+
+    /// <summary>
     /// The run-and-debug window on screen, or null while there is none. One at a time for the same
     /// reason: it debugs one macro, and asking for another puts those steps in the window that is
     /// already open rather than laying a second one over the same list.
@@ -361,6 +372,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        VariableCatalog.GlobalsChanged += OnGlobalsChanged;
+
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
         PublishRuntimeState(viewModel);
@@ -405,10 +418,20 @@ public partial class MainWindow : Window
             viewModel.Triggers.Changed -= OnProjectTriggersChanged;
             viewModel.Changed -= OnProjectChanged;
             viewModel.Macros.CollectionChanged -= OnMacrosChanged;
+            VariableCatalog.GlobalsChanged -= OnGlobalsChanged;
             HideSurface();
             StopTriggers();
             _recovery?.Stop();
         };
+    }
+
+    private void OnGlobalsChanged()
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.MarkSharedVariablesChanged();
+            WriteUnsavedProject(viewModel);
+        }
     }
 
     private void OnProjectTriggersChanged(object? sender, EventArgs e)
@@ -1795,8 +1818,10 @@ public partial class MainWindow : Window
             editor.MarkUnsaved();
         }
 
+        var commit = new EditorCommitState(existing);
         _editor = editor;
-        editor.Closed += (_, _) => OnEditorClosed(editor, existing, viewModel);
+        editor.Saved += macro => CommitEditorSnapshot(editor, macro, commit, viewModel);
+        editor.Closed += (_, _) => OnEditorClosed(editor, commit, viewModel);
 
         // The editor stands beside the list rather than replacing it, so both stay on screen and
         // either can be minimized without taking the other down.
@@ -1808,7 +1833,8 @@ public partial class MainWindow : Window
     /// Takes what the editor ended with: the macro joins the list, or the one that was edited
     /// replaces it. Then the list comes back, unless the user is on their way out of the program.
     /// </summary>
-    private void OnEditorClosed(MacroEditorWindow editor, MacroItem? existing, MainViewModel viewModel)
+    private void OnEditorClosed(MacroEditorWindow editor, EditorCommitState commit,
+        MainViewModel viewModel)
     {
         _editor = null;
 
@@ -1822,36 +1848,46 @@ public partial class MainWindow : Window
             return;
         }
 
+        CommitEditorSnapshot(editor, macro, commit, viewModel);
+    }
+
+    private void CommitEditorSnapshot(MacroEditorWindow editor, MacroItem macro,
+        EditorCommitState commit, MainViewModel viewModel)
+    {
         // A stretch of steps lifted into a macro of its own during the session is real work: it
         // joins the project together with the macro that calls it, because the call is only in the
         // list that is arriving now.
         foreach (var lifted in editor.LiftedMacros)
         {
+            if (!commit.Lifted.Add(lifted))
+            {
+                continue;
+            }
+
             viewModel.AddMacro(lifted);
         }
 
-        if (existing is null)
+        if (commit.Target is null)
         {
             ApplyEditorTriggerSettings(viewModel, macro);
             viewModel.AddMacro(macro);
+            commit.Target = macro;
             WriteUnsavedProject(viewModel);
             return;
         }
 
-        // An editor opened on a macro and brought back saying the same thing is not a change, and
-        // must not leave the project with something to save: opening a macro to read it and closing
-        // the editor again would otherwise write a snapshot, and the next run would offer back work
-        // that was never edited — while the window is away in the notification area, with nothing
-        // on screen to say there is anything unsaved.
-        if (Same(existing, macro))
+        // Saving an unchanged macro is not a project change. This also makes the close after a
+        // successful save a no-op rather than a second insertion or replacement.
+        if (Same(commit.Target, macro))
         {
             return;
         }
 
         // The edited macro replaces the one the trigger may be running.
-        _triggers?.Stop(existing);
+        _triggers?.Stop(commit.Target);
         ApplyEditorTriggerSettings(viewModel, macro);
-        viewModel.ReplaceMacro(existing, macro);
+        viewModel.ReplaceMacro(commit.Target, macro);
+        commit.Target = macro;
         RefreshRunning(viewModel);
 
         // The editor has just let its draft go, so the list is the only copy of this macro: it
