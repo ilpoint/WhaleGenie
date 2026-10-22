@@ -18,7 +18,7 @@ public class MacroSignatureTests
 
     [Theory]
     [InlineData("有 空格")]
-    [InlineData("1count")]
+    [InlineData(".count")]
     [InlineData("a-b")]
     [InlineData("$name")]
     public void A_declared_name_has_to_be_readable_as_a_variable(string name)
@@ -35,6 +35,8 @@ public class MacroSignatureTests
         Assert.Empty(Signature(new MacroArgument("a.b", string.Empty, false)).Problems());
         Assert.Empty(Signature(new MacroArgument("次数", string.Empty, false)).Problems());
         Assert.Empty(Signature(new MacroArgument("_start", string.Empty, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("1count", string.Empty, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("123", string.Empty, false)).Problems());
     }
 
     [Fact]
@@ -111,7 +113,7 @@ public class MacroSignatureTests
     {
         var problems = Signature(
             new MacroArgument("", string.Empty, false),
-            new MacroArgument("1bad", string.Empty, false),
+            new MacroArgument(".bad", string.Empty, false),
             new MacroArgument("a b", string.Empty, false)).Problems();
 
         Assert.Equal(

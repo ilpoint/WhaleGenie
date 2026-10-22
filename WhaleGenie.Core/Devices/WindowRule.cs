@@ -6,8 +6,8 @@ namespace WhaleGenie.Core.Devices;
 
 /// <summary>
 /// A window a macro may act on: what it looked like when it was taken, and the one part of it that
-/// is compared on every run. The handle is kept for display and diagnosis only; windows are always
-/// found again by the chosen title, program or class, so a package still works after a restart.
+/// is compared on every run. A handle rule identifies only that live window instance; the other
+/// rules find a window again by title, program or class and remain usable after a restart.
 /// </summary>
 public sealed record WindowRule(
     string Title = "",
@@ -28,6 +28,7 @@ public sealed record WindowRule(
     {
         WindowMatch.Process => Process,
         WindowMatch.ClassName => ClassName,
+        WindowMatch.Handle => Handle.ToString(System.Globalization.CultureInfo.InvariantCulture),
         _ => Title,
     };
 
@@ -35,7 +36,9 @@ public sealed record WindowRule(
 
     public TextCompareOptions Options => new(CaseSensitive, Trim, Multiline);
 
-    public bool HasTarget => MatchValue.Trim().Length > 0;
+    public bool HasTarget => Reading.Match is WindowMatch.Handle
+        ? Handle != 0
+        : MatchValue.Trim().Length > 0;
 
     public JsonObject ToJson() => new()
     {

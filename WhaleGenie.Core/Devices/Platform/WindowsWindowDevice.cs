@@ -9,9 +9,10 @@ using System.Text.RegularExpressions;
 namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
-/// The windows on the desktop, through the Win32 calls. Only the top-level windows a person
-/// can actually see are listed, so a macro talks about window titles rather than handles,
-/// and never trips over the invisible helper windows programs keep to themselves.
+/// The windows on the desktop, through the Win32 calls. Only the top-level windows a person can
+/// actually see are listed, so a macro never trips over the invisible helper windows programs keep
+/// to themselves. A rule normally uses title, program or class; its handle mode uses the Win32
+/// handle only when the macro explicitly asks for one exact live instance.
 /// </summary>
 public sealed class WindowsWindowDevice : IWindowDevice
 {
@@ -88,6 +89,12 @@ public sealed class WindowsWindowDevice : IWindowDevice
     private bool Matches(WindowInfo window, string wanted, WindowMatch match, string compare,
         TextCompareOptions options)
     {
+        if (match is WindowMatch.Handle)
+        {
+            return long.TryParse(wanted, NumberStyles.Integer, CultureInfo.InvariantCulture, out var handle)
+                && window.Handle == handle;
+        }
+
         var text = match switch
         {
             WindowMatch.Process => ProcessOf(window.Handle),

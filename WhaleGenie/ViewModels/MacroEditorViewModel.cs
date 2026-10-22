@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -2342,6 +2343,49 @@ public partial class MacroEditorViewModel : ViewModelBase
     public IReadOnlyList<VariableChoice> CollectVariables()
         => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults, ReadVariableContent);
 
+    /// <summary>Renames a local name created by this macro's steps and all exact references to it.</summary>
+    public bool RenameLocalVariable(string oldName, string newName, out string problem)
+    {
+        var old = oldName.Trim();
+        var next = newName.Trim();
+        if (!VariableText.IsName(next))
+        {
+            problem = Strings.Format("Editor.Problem.InvalidVariableName", next);
+            return false;
+        }
+
+        if (string.Equals(old, next, StringComparison.Ordinal))
+        {
+            problem = string.Empty;
+            return true;
+        }
+
+        if (CollectVariables().Any(choice =>
+                string.Equals(choice.Name, next, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(choice.Name, old, StringComparison.OrdinalIgnoreCase)))
+        {
+            problem = Strings.Format("Editor.Problem.VariableNameTaken", next);
+            return false;
+        }
+
+        VariableRename.RenameSteps(Steps, old, next);
+        NotifyStepsChanged();
+        problem = string.Empty;
+        return true;
+    }
+
+    /// <summary>Applies a project-level global rename to this editor page's steps and declarations.</summary>
+    public void RenameGlobalReferences(string oldName, string newName)
+    {
+        VariableRename.RenameSteps(Steps, oldName, newName, global: true);
+        foreach (var parameter in DeclaredParameters)
+        {
+            parameter.Default = VariableText.Rename(parameter.Default, oldName, newName);
+        }
+
+        NotifyStepsChanged();
+    }
+
     private string? ReadVariableContent(string name, VariableScope scope)
     {
         if (scope is VariableScope.Global)
@@ -3131,8 +3175,15 @@ public partial class MacroEditorViewModel : ViewModelBase
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    private void RefreshVariableCenter()
+    public void RefreshVariableCenter()
         => VariableCenter.Refresh(CollectVariables());
+
+    /// <summary>Refreshes what global declaration changes mean to this macro without marking it edited.</summary>
+    public void RefreshSharedVariables()
+    {
+        RefreshVariableCenter();
+        RefreshProblems();
+    }
 
     /// <summary>
     /// Renaming a macro changes which calls point at it, so the check has to be run again —

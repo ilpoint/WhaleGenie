@@ -58,7 +58,9 @@ public class DeviceActionTests
                 : new WindowRule(Title: text);
             if (how is { Length: > 0 })
             {
-                rule = how is WindowHow.Process or WindowHow.ProcessEquals
+                rule = how == WindowHow.Handle
+                    ? rule with { How = how, Handle = long.TryParse(text, out var handle) ? handle : 0 }
+                    : how is WindowHow.Process or WindowHow.ProcessEquals
                     ? rule with { How = how, Process = text }
                     : how is WindowHow.Class or WindowHow.ClassEquals
                         ? rule with { How = how, ClassName = text }
@@ -5586,7 +5588,7 @@ public class DeviceActionTests
         // would land in whatever column happens to be second.
         var (result, _, _) = await RunAsync(
         [
-            Step("control.listCreate", Param("name", "rows"), Param("items", "[[\"A1\", 2]]")),
+            Step("control.setVariable", Param("name", "rows"), Param("value", "[[\"A1\", 2]]")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
                 Param("header", "订单号"), Param("separator", "comma"),
                 Param("writeMode", "append"), Param("align", "true")),
@@ -5722,15 +5724,15 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { PathExists = true };
         var (result, _, _) = await RunAsync(
         [
-            // A list is built by the actions that build lists, and handing it straight over is
-            // what a macro does after reading a folder.
-            Step("control.listCreate", Param("name", "chosen"),
-                Param("items", @"G:\fake\a.txt; G:\fake\b.txt")),
+            // A list is built as an expression value and handed straight over, which is what a
+            // macro does after reading a folder.
+            Step("control.setVariable", Param("name", "chosen"),
+                Param("value", "list(\"G:/fake/a.txt\", \"G:/fake/b.txt\")")),
             Step("clipboard.writeFiles", Param("files", "$chosen")),
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.ClipboardFiles);
+        Assert.Equal(["G:/fake/a.txt", "G:/fake/b.txt"], devices.ClipboardFiles);
     }
 
     [Fact]
@@ -7533,6 +7535,41 @@ public class DeviceActionTests
         Assert.True(store.Local.Values["contained"].Flag);
         Assert.False(store.Local.Values["exactly"].Flag);
         Assert.True(store.Local.Values["whole"].Flag);
+    }
+
+    [Fact]
+    public async Task A_window_handle_chooses_one_of_two_identical_windows()
+    {
+        var devices = WithAWindow();
+        devices.Windows.Add(new WindowInfo(2, "Notepad - notes.txt",
+            new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.WindowFacts[2] = ("notepad", "Notepad");
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.exists", Param("window", "1"), Param("how", WindowHow.Handle),
+                Returns("found=first")),
+            Step("window.exists", Param("window", "2"), Param("how", WindowHow.Handle),
+                Returns("found=second")),
+            Step("window.exists", Param("window", "3"), Param("how", WindowHow.Handle),
+                Returns("found=missing")),
+        ], devices);
+
+        Assert.True(store.Local.Values["first"].Flag);
+        Assert.True(store.Local.Values["second"].Flag);
+        Assert.False(store.Local.Values["missing"].Flag);
+    }
+
+    [Fact]
+    public async Task A_window_handle_rule_without_a_handle_does_not_use_the_foreground()
+    {
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.exists", Param("window", "0"), Param("how", WindowHow.Handle)),
+        ], WithAWindow());
+
+        Assert.Equal(RunKeys.BadWindowRule, result.Key);
     }
 
     /// <summary>
@@ -10009,7 +10046,7 @@ public class DeviceActionTests
         {
             Step("control.startMacro", Param("macro", "快"), Param("runHandleName", "jobA")),
             Step("control.startMacro", Param("macro", "慢"), Param("runHandleName", "jobB")),
-            Step("control.listCreate", Param("name", "jobs"), Param("items", "[]")),
+            Step("control.setVariable", Param("name", "jobs"), Param("value", "list()")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobA")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobB")),
             Step("control.waitAny", Param("runHandles", "$jobs"),
@@ -10029,7 +10066,7 @@ public class DeviceActionTests
     {
         var steps = new[]
         {
-            Step("control.listCreate", Param("name", "jobs"), Param("items", "[]")),
+            Step("control.setVariable", Param("name", "jobs"), Param("value", "list()")),
             Step("control.waitAny", Param("runHandles", "$jobs")),
         };
 
@@ -11515,6 +11552,11 @@ internal sealed class FakeDeviceLayer
     private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare,
         TextCompareOptions options)
     {
+        if (match is WindowMatch.Handle)
+        {
+            return long.TryParse(wanted, out var handle) && window.Handle == handle;
+        }
+
         var text = match switch
         {
             WindowMatch.Process => Facts(window).Process,

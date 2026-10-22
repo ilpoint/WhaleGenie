@@ -603,14 +603,21 @@
                         Background="{DynamicResource AppSurface}" CornerRadius="6"
                         Padding="12,12,12,8">
                     <Grid RowDefinitions="Auto,*">
-                        <StackPanel>
-                            <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
-                                       FontWeight="SemiBold" Foreground="{DynamicResource AppTextStrong}"
-                                       Margin="4,0,0,2" />
-                            <TextBlock Text="{Binding VariableCenter.Help}" FontSize="11.5"
-                                       TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}"
-                                       Margin="4,0,0,8" />
-                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
+                                           FontWeight="SemiBold" Foreground="{DynamicResource AppTextStrong}"
+                                           Margin="4,0,0,2" />
+                                <TextBlock Text="{Binding VariableCenter.Help}" FontSize="11.5"
+                                           TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}"
+                                           Margin="4,0,0,8" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="FlatButton"
+                                    VerticalAlignment="Top" Margin="0,0,2,0"
+                                    ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
+                                    Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnManageGlobals" />
+                        </Grid>
                         <views:VariableWall Grid.Row="1" Name="VariableCenterWall"
                                             DataContext="{Binding VariableCenter.Wall}" />
                     </Grid>

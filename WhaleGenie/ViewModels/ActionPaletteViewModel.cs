@@ -222,17 +222,17 @@ public partial class ActionPaletteViewModel : ViewModelBase
 
     private static string FlowGroup(string key) => key switch
     {
-        "control.sequence" or "control.repeat" or "control.while" or "control.for"
+        "control.repeat" or "control.while" or "control.for"
             or "control.forEach" or "control.if" or "control.switch" or "control.try" => "Branch",
         "control.break" or "control.continue" or "control.return" or "control.rethrow"
             or "control.stop" or "control.fail" => "Jump",
-        "control.delay" or "control.delayRandom" or "control.waitUntil"
+        "control.delay" or "control.waitUntil"
             or "control.holdInput" or "control.holdBrowser"
             or "control.runMacro" or "control.startMacro" or "control.waitMacro"
             or "control.waitAll" or "control.waitAny" or "control.runStatus"
             or "control.cancelMacro" => "Waiting",
-        "control.setVariable" or "control.calculate" or "control.incrementGlobal"
-            or "control.listCreate" or "control.listAdd" or "control.listInsert"
+        "control.setVariable" or "control.incrementGlobal"
+            or "control.listAdd" or "control.listInsert"
             or "control.listRemoveAt" or "control.listSet" or "control.listClear"
             or "control.ask" or "control.input" => "Data",
         "control.note" or "control.log" => "Notes",

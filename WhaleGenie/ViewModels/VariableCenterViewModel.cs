@@ -13,7 +13,13 @@ public sealed class VariableCenterViewModel : ViewModelBase
 
     public VariableWallViewModel Wall { get; } = new();
 
-    public VariableCenterViewModel() => Wall.UseAvailableHeight();
+    public VariableCenterViewModel()
+    {
+        Wall.UseAvailableHeight();
+        Wall.EditRequested += choice => EditRequested?.Invoke(choice);
+    }
+
+    public event System.Action<VariableChoice>? EditRequested;
 
     public void Refresh(IReadOnlyList<VariableChoice> variables) => Wall.SetVariables(variables);
 

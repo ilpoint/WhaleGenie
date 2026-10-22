@@ -165,6 +165,16 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_numeric_variable_name_is_written_and_read_back()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync([Set("123", "2"), AddOne("123")], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(3, N(store, "123"));
+    }
+
+    [Fact]
     public async Task Repeat_runs_the_body_the_given_number_of_times()
     {
         var store = Store(("n", 0));
@@ -916,6 +926,17 @@ public class MacroRunnerTests
         Assert.Contains(host.Entries, entry => entry.Level is LogLevel.Error);
     }
 
+    [Theory]
+    [InlineData("control.calculate")]
+    [InlineData("control.delayRandom")]
+    [InlineData("control.listCreate")]
+    public async Task A_removed_flow_action_is_reported_as_unsupported(string type)
+    {
+        var (result, _) = await RunAsync([Step(type)]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.Unsupported, result.Key);
+    }
 
     [Fact]
     public async Task A_number_outside_its_declared_range_stops_the_step()
@@ -1329,6 +1350,28 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_fail_step_can_report_a_user_key()
+    {
+        var (failed, _) = await RunAsync(
+        [
+            Step("control.fail", Param("failureKey", "User.NoScreen"), Param("reason", "the screen moved")),
+        ]);
+
+        Assert.Equal("User.NoScreen", failed.Key);
+    }
+
+    [Fact]
+    public async Task A_fail_step_refuses_a_key_outside_the_user_namespace()
+    {
+        var (failed, _) = await RunAsync(
+        [
+            Step("control.fail", Param("failureKey", "Run.NotMine")),
+        ]);
+
+        Assert.Equal(RunKeys.BadUserFailureKey, failed.Key);
+    }
+
+    [Fact]
     public async Task A_step_that_fits_inside_its_timeout_is_left_alone()
     {
         // The clock must not be so eager that an honest step fails: this one is allowed plenty.
@@ -1540,7 +1583,7 @@ public class MacroRunnerTests
     {
         var store = Store(("count", 4));
         var (result, _) = await RunAsync(
-            [Step("control.calculate",
+            [Step("control.setVariable",
                 Param("name", "total"), Param("scope", "local"),
                 Param("value", "$count + 3"))],
             variables: store);
@@ -1555,10 +1598,10 @@ public class MacroRunnerTests
         var store = Store(("n", 10), ("m", 3));
         var (result, _) = await RunAsync(
             [
-                Step("control.calculate", Param("name", "minus"), Param("value", "$n - $m")),
-                Step("control.calculate", Param("name", "times"), Param("value", "$n * $m")),
-                Step("control.calculate", Param("name", "over"), Param("value", "$n / 4")),
-                Step("control.calculate", Param("name", "rest"), Param("value", "$n % $m")),
+                Step("control.setVariable", Param("name", "minus"), Param("value", "$n - $m")),
+                Step("control.setVariable", Param("name", "times"), Param("value", "$n * $m")),
+                Step("control.setVariable", Param("name", "over"), Param("value", "$n / 4")),
+                Step("control.setVariable", Param("name", "rest"), Param("value", "$n % $m")),
             ],
             variables: store);
 
@@ -1575,7 +1618,7 @@ public class MacroRunnerTests
         var store = Store();
         store.Local.SetText("name", "Ada");
         var (result, _) = await RunAsync(
-            [Step("control.calculate",
+            [Step("control.setVariable",
                 Param("name", "greeting"), Param("value", "\"Hello \" + $name"))],
             variables: store);
 
@@ -1589,7 +1632,7 @@ public class MacroRunnerTests
         var store = Store(("count", 3));
         store.Local.SetText("name", "Ada");
         var (result, _) = await RunAsync(
-            [Step("control.calculate",
+            [Step("control.setVariable",
                 Param("name", "line"), Param("value", "concat(upper($name), $count)"))],
             variables: store);
 
@@ -1602,7 +1645,7 @@ public class MacroRunnerTests
     {
         var store = Store(("zero", 0));
         var (result, _) = await RunAsync(
-            [Step("control.calculate",
+            [Step("control.setVariable",
                 Param("name", "x"), Param("value", "$zero / 0"))],
             variables: store);
 
@@ -1670,7 +1713,8 @@ public class MacroRunnerTests
         var store = Store();
         var (result, _) = await RunAsync(
             [
-                Step("control.listCreate", Param("name", "names"), Param("scope", "local"), Param("items", "[\"a\"]")),
+            Step("control.setVariable", Param("name", "names"), Param("scope", "local"),
+                Param("value", "list(\"a\")")),
                 Step("control.listAdd", Param("name", "names"), Param("value", "b")),
                 Step("control.listInsert", Param("name", "names"), Param("listIndex", "0"), Param("value", "z")),
                 Step("control.listRemoveAt", Param("name", "names"), Param("listIndex", "-1")),
@@ -2057,7 +2101,7 @@ public class MacroRunnerTests
         using var stop = new CancellationTokenSource();
         var running = RunAsync(
         [
-            Step("control.listCreate", Param("name", "order"), Param("items", "")),
+            Step("control.setVariable", Param("name", "order"), Param("value", "list()")),
             Try(
                 Body("body",
                     Try(
@@ -2425,8 +2469,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.listCreate", Param("name", "jobs"), Param("scope", "local"),
-                Param("items", "")),
+            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
+                Param("value", "list()")),
             Step("control.startMacro", Param("macro", "一"), Param("runHandleName", "jobOne"),
                 Returns("值=first")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobOne")),
@@ -2524,8 +2568,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.listCreate", Param("name", "jobs"), Param("scope", "local"),
-                Param("items", "")),
+            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
+                Param("value", "list()")),
             Step("control.startMacro", Param("macro", "好"), Param("runHandleName", "jobGood"),
                 Returns("值=好值")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobGood")),
@@ -2557,8 +2601,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.listCreate", Param("name", "jobs"), Param("scope", "local"),
-                Param("items", "")),
+            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
+                Param("value", "list()")),
             Step("control.startMacro", Param("macro", "好"), Param("runHandleName", "jobGood"),
                 Returns("值=好值")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobGood")),
@@ -2592,8 +2636,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.listCreate", Param("name", "jobs"), Param("scope", "local"),
-                Param("items", "")),
+            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
+                Param("value", "list()")),
             Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "jobBad"),
                 Returns("值=坏值")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobBad")),
@@ -2723,6 +2767,26 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_catch_can_branch_on_a_user_failure_key()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Step("control.fail", Param("failureKey", "User.NoScreen"),
+                    Param("reason", "the screen moved"))),
+                When("catchWhen", Step("condition.compare",
+                    Param("variable", "caught.key"),
+                    Param("compareOperator", "equals"),
+                    Param("compareValue", "User.NoScreen"))),
+                Body("catch", Set("seen", "$caught.key"))),
+        ], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("User.NoScreen", store.Local.Values["seen"].AsText());
+    }
+
+    [Fact]
     public async Task A_failure_a_catch_condition_does_not_name_keeps_its_key_and_detail()
     {
         var store = Store();
@@ -2829,27 +2893,6 @@ public class MacroRunnerTests
 
         // The macro keeps its own numbers: the factor is only bent in while it runs.
         Assert.Equal("250", wait.Text("ms"));
-    }
-
-    /// <summary>
-    /// A random wait is the same idea as slack on a written wait, but the two ends are the
-    /// macro author's: it never comes back before the short one, and it is not the same wait every
-    /// time, which is the whole point of it.
-    /// </summary>
-    [Fact]
-    public async Task A_random_wait_lands_between_the_two_numbers_it_was_given()
-    {
-        var step = Step("control.delayRandom", Param("minMs", "30"), Param("maxMs", "300"));
-
-        var waits = new List<double>();
-        for (var round = 0; round < 5; round++)
-        {
-            waits.Add(await TimeAsync([step], 1));
-        }
-
-        AssertWaitsAreSpaced(waits, 25, 1000);
-        Assert.True(waits.Max() - waits.Min() > 20,
-            $"every wait came out about the same: {string.Join(", ", waits.Select(w => w.ToString("0")))}");
     }
 
     [Fact]

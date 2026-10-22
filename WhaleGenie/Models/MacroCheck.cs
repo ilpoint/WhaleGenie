@@ -505,6 +505,8 @@ public static class MacroCheck
             {
                 CheckLoopControl(step, loops, switches);
                 CheckCondition(step);
+                CheckUserFailureKey(step);
+                CheckGlobalTarget(step);
                 CheckLoopIndex(step, loops);
                 CheckCall(step, guarded);
                 TrackPendingResults(step);
@@ -568,6 +570,35 @@ public static class MacroCheck
             if (string.IsNullOrWhiteSpace(step.Text("condition")))
             {
                 Add(step, Strings.Get("Editor.Problem.MissingCondition"));
+            }
+        }
+
+        void CheckUserFailureKey(MacroStep step)
+        {
+            if (step.Type != "control.fail")
+            {
+                return;
+            }
+
+            var key = step.Text("failureKey").Trim();
+            if (key.Length > 0 && !UserFailureKeys.IsValid(key))
+            {
+                Add(step, Strings.Format("Editor.Problem.BadUserFailureKey", key));
+            }
+        }
+
+        void CheckGlobalTarget(MacroStep step)
+        {
+            string? name = step.Type switch
+            {
+                "control.setVariable" when string.Equals(step.Text("scope").Trim(), "global",
+                    StringComparison.OrdinalIgnoreCase) => step.Text("name").Trim(),
+                "control.incrementGlobal" => step.Text("name").Trim(),
+                _ => null,
+            };
+            if (name is { Length: > 0 } && !VariableCatalog.IsGlobal(name))
+            {
+                Add(step, Strings.Format("Editor.Problem.GlobalMustExist", name));
             }
         }
 
@@ -1405,9 +1436,7 @@ public static class MacroCheck
         }
 
         var name = text[1..];
-        return name.All(letter => char.IsLetterOrDigit(letter) || letter is '.' or '_' or '-')
-            ? name
-            : null;
+        return VariableText.IsName(name) ? name : null;
     }
 
     /// <summary>
@@ -1569,20 +1598,7 @@ public static class MacroCheck
         }
 
         var name = text[1..];
-        if (!char.IsLetter(name[0]) && name[0] != '_')
-        {
-            return null;
-        }
-
-        foreach (var letter in name)
-        {
-            if (!char.IsLetterOrDigit(letter) && letter != '_' && letter != '.')
-            {
-                return null;
-            }
-        }
-
-        return name;
+        return VariableText.IsName(name) ? name : null;
     }
 
     private static IEnumerable<(string Result, string Name)> Wanted(MacroStep step)

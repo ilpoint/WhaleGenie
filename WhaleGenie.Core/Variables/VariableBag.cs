@@ -101,6 +101,25 @@ public sealed class VariableBag : IVariableResolver
         return removed;
     }
 
+    /// <summary>Moves one name to another without changing its value.</summary>
+    public bool Rename(string oldName, string newName)
+    {
+        lock (_gate)
+        {
+            if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)
+                || !_values.Remove(oldName, out var value)
+                || _values.ContainsKey(newName))
+            {
+                return false;
+            }
+
+            _values[newName] = value;
+            Changed?.Invoke(newName);
+            Changed?.Invoke(oldName);
+            return true;
+        }
+    }
+
     public void Clear()
     {
         string[] names;

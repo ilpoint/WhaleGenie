@@ -61,7 +61,9 @@ internal static class SampleFiles
                 : new WindowRule(Title: text);
             if (how is { Length: > 0 })
             {
-                rule = how is WindowHow.Process or WindowHow.ProcessEquals
+                rule = how == WindowHow.Handle
+                    ? rule with { How = how, Handle = long.TryParse(text, out var handle) ? handle : 0 }
+                    : how is WindowHow.Process or WindowHow.ProcessEquals
                     ? rule with { How = how, Process = text }
                     : how is WindowHow.Class or WindowHow.ClassEquals
                         ? rule with { How = how, ClassName = text }

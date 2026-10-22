@@ -115,6 +115,7 @@ public partial class WindowPickerViewModel : ViewModelBase
     {
         WindowMatch.Process => "WindowPicker.Hint.Process",
         WindowMatch.ClassName => "WindowPicker.Hint.Class",
+        WindowMatch.Handle => "WindowPicker.Hint.Handle",
         _ => "WindowPicker.Hint.Title",
     });
 
@@ -140,6 +141,7 @@ public partial class WindowPickerViewModel : ViewModelBase
     {
         WindowMatch.Process => entry.Process,
         WindowMatch.ClassName => entry.Class,
+        WindowMatch.Handle => entry.Handle.ToString(System.Globalization.CultureInfo.InvariantCulture),
         _ => entry.Title,
     };
 

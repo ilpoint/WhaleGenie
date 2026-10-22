@@ -137,9 +137,6 @@ public partial class DelayScaleViewModel : ViewModelBase
                 case "control.delay":
                     Add(Value(step, "ms"));
                     break;
-                case "control.delayRandom":
-                    Add((Value(step, "minMs") + Value(step, "maxMs")) / 2.0);
-                    break;
                 case "control.repeat" or "control.for":
                     if (Value(step, "intervalMs") > 0)
                     {

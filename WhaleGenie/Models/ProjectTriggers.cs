@@ -825,6 +825,11 @@ public sealed class ProjectTriggers
         try
         {
             var reading = rule.Reading;
+            if (reading.Match is WindowMatch.Handle)
+            {
+                return rule.Handle != 0 && foreground.Handle == rule.Handle;
+            }
+
             var text = reading.Match switch
             {
                 WindowMatch.Process => windows.ProcessOf(foreground.Handle),

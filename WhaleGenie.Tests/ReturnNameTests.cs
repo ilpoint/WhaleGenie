@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -39,6 +40,7 @@ public class ReturnNameTests
         // Chinese is letters, so it stays.
         Assert.Equal("上个月的销量_文本", VariableNames.ForStep("上个月的销量", "文本", "k3f9"));
         Assert.Equal("a_b_Text", VariableNames.ForStep("a: b", "Text", "k3f9"));
+        Assert.True(VariableText.IsName(VariableNames.ForStep("2", "Text", "k3f9")));
 
         // A long note is cut short: the name still has to read at a glance.
         var many = new string('x', 30);

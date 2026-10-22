@@ -2191,10 +2191,6 @@ public sealed partial class MacroRunner
             case "control.delay":
                 await Pause(Pace(Number(step, "ms")), token);
                 return Signal.Normal;
-            case "control.delayRandom":
-                await Pause(Pace(System.Random.Shared.Next(
-                    Number(step, "minMs"), Number(step, "maxMs") + 1)), token);
-                return Signal.Normal;
             case "control.waitUntil":
                 return await RunWaitUntil(step, depth, token);
             case "control.repeat":
@@ -2227,21 +2223,15 @@ public sealed partial class MacroRunner
                 // The macro says this step did not work. It travels the same way a device failure
                 // does, so whatever the step's failure rule says — retry, carry on, ask — holds for
                 // a step the macro itself called failed.
-                throw new StepFailure(RunKeys.StepFailedByMacro, ReadValue(step, "reason").AsText());
+                throw new StepFailure(FailureKeyOf(step), ReadValue(step, "reason").AsText());
             case "control.note":
                 // A note is for whoever reads the macro. There is nothing to do and nothing to say.
                 return Signal.Normal;
             case "control.setVariable":
                 SetVariable(step, depth);
                 return Signal.Normal;
-            case "control.calculate":
-                Calculate(step, depth);
-                return Signal.Normal;
             case "control.incrementGlobal":
                 IncrementGlobal(step, depth);
-                return Signal.Normal;
-            case "control.listCreate":
-                CreateList(step, depth);
                 return Signal.Normal;
             case "control.listAdd":
             case "control.listInsert":
@@ -3129,6 +3119,23 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
     }
 
+    /// <summary>The key a Fail step reports, either the engine's default or the macro's own.</summary>
+    private string FailureKeyOf(ExecutableStep step)
+    {
+        var key = ReadText(step, "failureKey").Trim();
+        if (key.Length == 0)
+        {
+            return RunKeys.StepFailedByMacro;
+        }
+
+        if (!UserFailureKeys.IsValid(key))
+        {
+            throw new StepFailure(RunKeys.BadUserFailureKey, key);
+        }
+
+        return key;
+    }
+
     /// <summary>
     /// Puts the macro's own question to whoever is at the machine and keeps the answer. The
     /// question is written by the person who wrote the macro, so it travels as plain text rather
@@ -3174,24 +3181,6 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Works out one expression and stores the answer. It reads the value the same way storing a
-    /// value does, so the two steps differ only in what they are called, not in what they accept.
-    /// </summary>
-    private void Calculate(ExecutableStep step, int depth)
-    {
-        var name = ReadText(step, "name").Trim();
-        if (name.Length == 0)
-        {
-            throw new StepFailure(RunKeys.MissingVariable);
-        }
-
-        var value = ReadValue(step, "value");
-        var target = Target(step);
-        Variables.Set(name, value, target);
-        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
-    }
-
-    /// <summary>
     /// Adds to a shared number as one step. Reading the old value and writing the sum from two
     /// ordinary steps can lose one of two runs' additions; here both happen under the table's lock,
     /// so every addition that was asked for is in the answer.
@@ -3223,25 +3212,6 @@ public sealed partial class MacroRunner
         // may have changed in between.
         Give(step, "value", Value.FromNumber(sum));
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, Value.FormatNumber(sum));
-    }
-
-    private void CreateList(ExecutableStep step, int depth)
-    {
-        var name = ReadText(step, "name").Trim();
-        if (name.Length == 0)
-        {
-            throw new StepFailure(RunKeys.MissingVariable);
-        }
-
-        if (!ListText.TryParse(ReadText(step, "items"), Variables, out var items, out var error))
-        {
-            throw new StepFailure(RunKeys.BadList, error?.Detail ?? ReadText(step, "items"));
-        }
-
-        var target = Target(step);
-        var list = Value.FromList(items);
-        Variables.Set(name, list, target);
-        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, list.AsText());
     }
 
     /// <summary>

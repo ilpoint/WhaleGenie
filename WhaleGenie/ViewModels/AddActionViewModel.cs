@@ -10,6 +10,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -156,6 +158,9 @@ public partial class AddActionViewModel : ViewModelBase
         {
             result.RefreshLanguage();
         }
+
+        GlobalVariableDraft?.RefreshLanguage();
+        OnPropertyChanged(nameof(GlobalVariableProblem));
 
         MetaTimeout.RefreshLanguage();
         MetaRetryDelay.RefreshLanguage();
@@ -332,13 +337,12 @@ public partial class AddActionViewModel : ViewModelBase
     ];
 
     /// <summary>
-    /// The order the blocks are listed in: the run in order and the two doors, the four repeats, then the branch,
-    /// the many-way branch and the tidy-up. This is the order a task is built in, and it puts the
+    /// The order the blocks are listed in: the two doors, the four repeats, then the branch, the
+    /// many-way branch and the tidy-up. This is the order a task is built in, and it puts the
     /// four things that all "repeat" next to each other where they can be told apart.
     /// </summary>
     private static readonly string[] BlockOrder =
     [
-        "control.sequence",
         "control.holdInput",
         "control.holdBrowser",
         "control.repeat",
@@ -451,14 +455,67 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CanRun))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
 
-    /// <summary>Shown only on a Set Variable step that writes a global.</summary>
-    public bool ShowsGlobalPersistence =>
-        SelectedDefinition?.Key == "control.setVariable"
-        && string.Equals(Parameter("scope")?.CurrentText, "global", StringComparison.Ordinal);
+    private VariableDefinitionDraft? _globalVariableDraft;
 
-    /// <summary>Whether the global's value should be kept on this computer.</summary>
-    [ObservableProperty]
-    public partial bool PersistGlobalValue { get; set; }
+    /// <summary>The global declaration edited together with a Set Variable step.</summary>
+    public VariableDefinitionDraft? GlobalVariableDraft
+    {
+        get => _globalVariableDraft;
+        private set
+        {
+            if (ReferenceEquals(_globalVariableDraft, value))
+            {
+                return;
+            }
+
+            if (_globalVariableDraft is not null)
+            {
+                _globalVariableDraft.PropertyChanged -= OnGlobalDraftChanged;
+            }
+
+            _globalVariableDraft = value;
+            if (_globalVariableDraft is not null)
+            {
+                _globalVariableDraft.PropertyChanged += OnGlobalDraftChanged;
+            }
+
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowsGlobalPersistence));
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(CanRun));
+            OnPropertyChanged(nameof(ValidationMessage));
+        }
+    }
+
+    public bool ShowsGlobalPersistence => GlobalVariableDraft is not null;
+
+    public bool HasGlobalVariableProblem => GlobalVariableProblem.Length > 0;
+
+    public string GlobalVariableProblem
+    {
+        get
+        {
+            if (GlobalVariableDraft is not { } draft)
+            {
+                return string.Empty;
+            }
+
+            var name = draft.Name.Trim();
+            if (!VariableText.IsName(name))
+            {
+                return Strings.Format("GlobalVariables.BadName", name);
+            }
+
+            if (GlobalVariablesViewModel.Reserved(name))
+            {
+                return Strings.Format("GlobalVariables.ReservedName", name);
+            }
+
+            return draft.DefaultHasError
+                ? Strings.Format("GlobalVariables.BadDefault", name, draft.DefaultPreview)
+                : string.Empty;
+        }
+    }
 
     /// <summary>
     /// True when the step being edited holds steps of its own. The settings every step carries
@@ -677,6 +734,11 @@ public partial class AddActionViewModel : ViewModelBase
                 return error;
             }
 
+            if (GlobalVariableProblem is { Length: > 0 } globalProblem)
+            {
+                return globalProblem;
+            }
+
             return MissingParameters() is { Count: > 0 } missing
                 ? Strings.Format("Add.StillNeeded", string.Join(", ", missing))
                 : string.Empty;
@@ -692,6 +754,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
+        && GlobalVariableProblem.Length == 0
         && MissingParameters().Count == 0;
 
     /// <summary>True when this step can be run on its own from the dialog.</summary>
@@ -788,7 +851,7 @@ public partial class AddActionViewModel : ViewModelBase
         // step itself says.
         MetaTimeout.Load(value?.StepTimeoutMs ?? 0);
         BuildParameters(value);
-        SyncGlobalPersistence();
+        SyncGlobalVariable();
         MarkChosen();
         // Choosing an action is what turns "pick one first" into a real answer, so whether the line
         // is a problem changes here as well as when a parameter is filled in.
@@ -2185,7 +2248,7 @@ public partial class AddActionViewModel : ViewModelBase
         if (sender is StepParameterViewModel changed
             && changed.Definition.Name is "name" or "scope")
         {
-            SyncGlobalPersistence();
+            SyncGlobalVariable();
         }
 
         // A call's fields are the called macro's declarations, so the form is rebuilt the moment
@@ -2341,26 +2404,7 @@ public partial class AddActionViewModel : ViewModelBase
             },
         };
         step.EnsureDeclaredLists();
-        if (step.Type == "control.setVariable"
-            && string.Equals(step.Text("scope").Trim(), "global",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            step.PersistGlobalAfterSave = PersistGlobalValue;
-        }
         return step;
-    }
-
-    private void SyncGlobalPersistence()
-    {
-        OnPropertyChanged(nameof(ShowsGlobalPersistence));
-        if (!ShowsGlobalPersistence)
-        {
-            PersistGlobalValue = false;
-            return;
-        }
-
-        var name = Parameter("name")?.CurrentText.Trim() ?? string.Empty;
-        PersistGlobalValue = VariableCatalog.FindGlobal(name)?.PersistValue ?? false;
     }
 
     /// <summary>Reads a whole-number box that may be left empty, counting an empty one as zero.</summary>
@@ -2372,9 +2416,90 @@ public partial class AddActionViewModel : ViewModelBase
         // An action that made it onto a step is one the user really reached for, which is what the
         // "recently used" group is about.
         Note(SelectedDefinition!);
+        CommitGlobalVariable();
         CloseRequested?.Invoke(BuildStep());
     }
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
+
+    private void OnGlobalDraftChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasGlobalVariableProblem));
+        OnPropertyChanged(nameof(GlobalVariableProblem));
+        OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanRun));
+    }
+
+    private void SyncGlobalVariable()
+    {
+        if (SelectedDefinition?.Key != "control.setVariable"
+            || !string.Equals(Parameter("scope")?.CurrentText, "global",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            GlobalVariableDraft = null;
+            return;
+        }
+
+        var name = Parameter("name")?.CurrentText.Trim() ?? string.Empty;
+        if (GlobalVariableDraft is { } current
+            && string.Equals(current.Name, name, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var existing = VariableCatalog.FindGlobal(name);
+        GlobalVariableDraft = existing is not null
+            ? new VariableDefinitionDraft(existing)
+            : new VariableDefinitionDraft
+            {
+                Name = name,
+                Type = "text",
+            };
+        GlobalVariableDraft.Resolver = VariableValues.DesignContext();
+    }
+
+    private void CommitGlobalVariable()
+    {
+        var name = GlobalVariableDraft?.Name.Trim() ?? string.Empty;
+        if (GlobalVariableDraft is not { } draft
+            || ShowsGlobalPersistence is false
+            || !VariableText.IsName(name))
+        {
+            return;
+        }
+
+        var existing = VariableCatalog.FindGlobal(draft.OriginalName);
+        if (existing is null)
+        {
+            existing = new VariableDefinition
+            {
+                Name = name,
+                Scope = VariableScope.Global,
+                Type = draft.Type,
+                DefaultValue = draft.DefaultValue.Trim(),
+                Description = draft.Description.Trim(),
+            };
+            VariableCatalog.Globals.Add(existing);
+            SharedVariables.Current.Set(name,
+                VariableValues.Read(draft.Type, draft.DefaultValue,
+                    VariableValues.DesignContext()));
+        }
+        else
+        {
+            existing.Type = draft.Type;
+            existing.DefaultValue = draft.DefaultValue.Trim();
+            existing.Description = draft.Description.Trim();
+            if (draft.CurrentValueDirty)
+            {
+                SharedVariables.Current.Set(name,
+                    VariableValues.Read(draft.Type, draft.CurrentValue,
+                        VariableValues.DesignContext()));
+            }
+        }
+
+        existing.PersistValue = draft.PersistValue;
+        VariableCatalog.NotifyGlobalsChanged();
+    }
 }

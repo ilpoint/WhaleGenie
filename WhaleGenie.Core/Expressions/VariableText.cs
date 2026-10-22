@@ -153,6 +153,58 @@ public static class VariableText
         return written.ToString();
     }
 
+    /// <summary>Renames one variable in text interpolation, including braced expressions.</summary>
+    public static string Rename(string? text, string oldName, string newName)
+    {
+        if (string.IsNullOrEmpty(text) || oldName.Length == 0
+            || string.Equals(oldName, newName, StringComparison.Ordinal))
+        {
+            return text ?? string.Empty;
+        }
+
+        var written = new System.Text.StringBuilder(text.Length);
+        for (var index = 0; index < text.Length; index++)
+        {
+            if (text[index] != '$')
+            {
+                written.Append(text[index]);
+                continue;
+            }
+
+            if (index + 1 < text.Length && text[index + 1] == '$')
+            {
+                written.Append("$$");
+                index++;
+                continue;
+            }
+
+            if (!TryName(text, index + 1, out var name, out var end, out var braced))
+            {
+                written.Append('$');
+                continue;
+            }
+
+            var replacement = name;
+            if (braced)
+            {
+                replacement = IsName(name)
+                    ? string.Equals(name, oldName, StringComparison.Ordinal) ? newName : name
+                    : Expression.RenameVariable(name, oldName, newName);
+                written.Append("${").Append(replacement).Append('}');
+            }
+            else
+            {
+                written.Append('$').Append(string.Equals(name, oldName, StringComparison.Ordinal)
+                    ? newName
+                    : name);
+            }
+
+            index = end - 1;
+        }
+
+        return written.ToString();
+    }
+
     /// <summary>
     /// The brace that closes the one at <paramref name="start"/>, skipping braces inside a quoted
     /// string and counting nested braces. An expression may hold a literal "}" — a regex, a JSON
@@ -212,8 +264,20 @@ public static class VariableText
     /// </summary>
     public static bool IsName(string text)
         => text.Length > 0
-           && (char.IsLetter(text[0]) || text[0] == '_')
-           && text.All(character => char.IsLetterOrDigit(character) || character is '_' or '.');
+           && IsNameStart(text[0])
+           && text.All(IsNameCharacter);
+
+    /// <summary>
+    /// A name may begin with a digit because a variable is always marked by <c>$</c> in a value
+    /// and the field itself in a name-only cell. A numeric literal has no dollar sign, so the two
+    /// forms cannot be confused.
+    /// </summary>
+    internal static bool IsNameStart(char character)
+        => char.IsLetterOrDigit(character) || character == '_';
+
+    /// <summary>Characters after the first that a variable name may hold.</summary>
+    internal static bool IsNameCharacter(char character)
+        => char.IsLetterOrDigit(character) || character is '_' or '.';
 
     /// <summary>
     /// The name at <paramref name="start"/>, or false when no name starts there. A name may be
@@ -246,15 +310,13 @@ public static class VariableText
             return true;
         }
 
-        if (start >= text.Length
-            || !(char.IsLetter(text[start]) || text[start] == '_'))
+        if (start >= text.Length || !IsNameStart(text[start]))
         {
             return false;
         }
 
         end = start + 1;
-        while (end < text.Length
-               && (char.IsLetterOrDigit(text[end]) || text[end] is '_' or '.'))
+        while (end < text.Length && IsNameCharacter(text[end]))
         {
             end++;
         }

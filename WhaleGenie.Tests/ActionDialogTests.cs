@@ -904,7 +904,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("control.calculate");
+            var viewModel = Open("control.setVariable");
             var value = viewModel.Parameters.First(parameter => parameter.Definition.Name == "value");
 
             // The operand-and-operator pieces are gone: the whole value is one expression, offered
@@ -926,7 +926,7 @@ public class ActionDialogTests
             // under a name rather than to one action, so a calculation is refused the same way
             // "Set Variable" is. The clipboard is written by the clipboard action, never by
             // storing into sys.clipboard.
-            foreach (var key in new[] { "control.setVariable", "control.calculate", "control.listCreate" })
+            foreach (var key in new[] { "control.setVariable" })
             {
                 var viewModel = Open(key);
                 viewModel.Parameters.First(parameter => parameter.Definition.Name == "name").Text =
@@ -2484,14 +2484,14 @@ public class ActionDialogTests
                 .ToList();
             Assert.NotEmpty(headings);
 
-            // The blocks are lifted out of the categories and listed together, in the order a
-            // task is built in: the four things that all "repeat" only read as different from
-            // each other when they stand side by side.
+            // This test hands over every definition, including the hidden grouping container.
+            // The ordinary user-facing palette is built from RunnableActions, where it is absent.
             var blocks = viewModel.ActionGroups.First(group => group.Key == "blocks");
             Assert.Equal(
-                ["control.sequence", "control.holdInput", "control.holdBrowser",
+                ["control.holdInput", "control.holdBrowser",
                     "control.repeat", "control.while", "control.for",
                     "control.forEach", "control.if", "control.switch", "control.try",
+                    "control.sequence",
                     // The switch case is a block too, and only ever offered inside a switch, so
                     // it lands after the ones a task is built from.
                     "control.case",

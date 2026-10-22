@@ -180,8 +180,10 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 - **C#**：引擎用 Roslyn 把脚本与注入的一份 `__InjectedServices`（一个 `public static dynamic DynamicObject`）
   一起编成 dll，再让**程序自己的 exe 起第二个进程**执行（`WhaleGenie.exe --script-host <dll> 参数…`）。
   `Program.Main` 在 Avalonia 之前分支：宿进程不建窗口、不占通知区域，脚本里的 `Environment.Exit`、
-  栈溢出与死循环都伤不到主程序，超时也能直接杀进程。宿主从 `packages\nuget\references.json` 里认
-  编译时用到的那些 dll（`NuGetStore.References`），并把包里的 `runtimes\win-x64\native` 挂到 `PATH` 上。
+  栈溢出与死循环都伤不到主程序，超时也能直接杀进程。`ScriptDevice` 把本次运行的包根目录经
+  `WHALEGENIE_PACKAGES` 交给子进程；宿主从 `<包根>\nuget\references.json` 里认编译时用到的那些 dll
+  （`NuGetStore.References`），并把包里的 `runtimes\win-x64\native` 挂到 `PATH` 上，所以测试和发布可以用各自的
+  包目录而不互相污染。
 - **AutoHotkey**：AutoHotkey 的 `FileOpen` 打不开命名管道（实测会卡住），所以这一条不由脚本自己连管道，
   而是由**程序自己的 exe 再起一个进程**当桥：临时目录里写两份文件，`script.ahk` 是两行开头加用户正文
   （`#ErrorStdOut` 让语法错误写成错误输出而不是弹窗，`#Include` 把桥拉进来），`whalegenie.ahk` 是预置的
@@ -193,6 +195,10 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 `packages` 目录跟着 exe 走，写不进去时退到 `%LOCALAPPDATA%\WhaleGenie\packages`；`python` 与 `nuget`
 各占一格，脚本动作里因此不再列包。
+
+`script.nuget` 当前按常见托管包验收：下载目标框架最近的 `lib` 程序集与传递依赖，并准备 Windows x64 原生库。
+`ref`-only、分析器、MSBuild 目标、内容文件和只带其他平台运行时的包不在支持范围内，文档与失败提示不能暗示
+它们可用。确定性测试用临时包目录验证编译与子进程加载；真实联网测试由 `WHALEGENIE_REAL_NUGET=1` 开启。
 
 ## 宏文件的形状
 
@@ -220,7 +226,8 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写，形参与结果各带一个 `ActionReturnType`：
 调用处按它说明要的是什么，设计期按它标出明显不符的值。
 
-声明名是变量名：首字符字母或 `_`，其余字母、数字、`_`、`.`；空名、读不出来的名字、形参名以 `.given` 结尾、
+声明名是变量名：首字符是字母、数字或 `_`，其余是字母、数字、`_`、`.`；变量在值字段里总带 `$`，所以数字开头
+不会和数字字面量混淆，`$123` 读的是变量。空名、读不出来的名字、形参名以 `.given` 结尾、
 形参内或结果内重名、`sys.` 与 `step.<标识>.outcome` / `.error` 这类运行保留名，都在保存与写包前拦住。形参不能
 同时是必填又有默认值（`RequiredWithDefault`）。空名字的行不丢掉：`FromJson` 与恢复快照会把它带回来，编辑器
 显示声明问题，包写入则拒绝有致命声明错误的宏。被调用宏开始时先把形参写入局部表，再把尚未存在的声明结果初始化为
@@ -340,7 +347,7 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎每一步、变量与表达式；跑在替身设备层上，断言的是"引擎要求了什么"，不是"桌面上发生了什么"。后续的字段读法、是否发输入与返回形状的契约也在这里验 |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、页面归属、返回值页、触发器比对、卡片显示、文案完整性与文档对账，宏包往返，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
-| 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过） |
+| 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过）；`WHALEGENIE_REAL_NUGET=1` 时额外下载真实包并验证编译和运行 |
 | 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及驱动级输入：真机装一次 usbip-win2 驱动，勾上/不勾「启动时先把虚拟键鼠装上机器」各跑一次运行，键鼠四种动作（点击、打字、拖拽、滚轮）与手柄各来一次，退出程序后看设备管理器里虚拟设备是不是没了；三种屏幕拾取器（框选区域、取色放大镜、元素拾取）各进出一次：打开时鲸灵自己的窗口（含问话的那个对话框）都不在屏幕上，拾取器一开就拿到焦点、Esc 与回车与右键当场有效，拾完窗口按原状回来——其中一次在添加动作窗口里拾，看它自己也回来（它是编辑器的属主窗口，收起时跟着编辑器一起走）；框选器打开时屏幕是原样、指针看得见（底图定格在那一刻），一拖出框才框外压暗、框内照原样，框选之后截一张，图片里没有鲸灵自己的窗口；识别结果与偏移拾取窗口的标题栏都能拖着走（标题栏拖动是手动那一档，无头会话里只验到接没接线）；YOLO 检测的三步各跑一次（自备一份公开的 yolov8n.onnx 与类名表）：检测物体一次看框落在东西上、等待检测到物体在一段限时里等到与等到超时各一次、点击检测到的物体看落点在框中心加上偏移，并记下一次检测的耗时；脚本动作的三种窗口模式各跑一次（窗口留着/关着/不显示）、批处理、PowerShell 与 AutoHotkey 各一次，AutoHotkey 那一条还要在一台没装它的机器上看一次报错；Python 脚本与安装 PIP 包各一次（装的包能 import），C# 脚本与下载 NuGet 包各一次（装的包能编译进脚本），断网时看两个依赖动作各报什么；表达式编辑器里把变量、函数与树上已有的一支拖到位置上（拖到空位＝填入、拖到已有的一段＝换掉、拖自己的一支进自己的后代＝不理会、拖到窗口外＝取消，落点要跟着亮；1080×720 下四段分区与「翻译结果」一行排得下、滚动正常，函数卡片按分类 dock 只剩一组、颜色六个组两两不同、悬停气泡出得来，深嵌套公式的那句人话读起来顺） |
 
 界面用例走的是 Avalonia 自己的输入管线，不是系统里的鼠标与按键：真的注入按键、真的抓屏取色这类事情在
@@ -351,7 +358,16 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 三项记录；只写“已手动过”不算结论。环境不同就重跑受影响的那一项，不要把一次通过当成所有机器都通过。
 
 变量持久化保存在当前用户的 `%LOCALAPPDATA%\WhaleGenie\persistent-variables.json`，只保存勾选后的全局变量名和值；
-宏包仍只保存变量声明。`VariableBag.Changed` 通知界面层合并写入，退出前必须刷新。
+宏包仍只保存变量声明。全局声明由 `GlobalVariablesWindow` 和 `control.setVariable` 共用
+`VariableDefinitionDraft`：动作窗口保存时提交该步骤的全局定义，管理中心整窗保存时才替换
+`VariableCatalog.Globals`。默认值走 `VariableValues`，与动作整值字段使用同一表达式语法，并在
+`MacroVariables.Seed` 中按声明顺序计算；当前全局值只在用户改过时写回，避免覆盖同时运行的写入。
+管理中心按当前草稿重新生成表达式变量名单，只列系统变量和当前行之前的全局声明；编辑字段不会立即重算
+搜索筛选，避免正在编辑的行因改名或切换持久化而消失。无效保存会清空筛选、选中首个问题行并聚焦对应字段。
+关闭、Esc 与取消共用未保存确认；删除也先确认，但两者都只改变草稿，真正提交仍只由保存完成。
+`VariableRename` 用表达式/插值扫描器同步直接字段与引用，字符串、记录字段和脚本文本不猜改。运行调试页只显示值。
+`VariableBag.Changed` 与
+`VariableCatalog.GlobalsChanged` 都必须让已经打开的变量中心与运行页刷新；共享值写入仍由通知合并，退出前刷新。
 
 拖放编排还按一项真实桌面用例验收：从四个 Dock 各拖一次到空列表、行前、行后和单列表块内；确认高亮插入带
 写明落点、拒绝落点、动作窗口拖动与缩放、取消不插入、保存后落点正确；再验证保存按钮不关闭编辑器、
@@ -380,7 +396,7 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 | 结果交付 | `MacroRunnerTests` + `MacroCheckTests` | `waitAll` 失败不消耗已成功句柄；`waitAny` 失败保留失败句柄；`cancelMacro` 不结算结果，取消后读结果仍标 `ResultBeforeWait` |
 | 是否发输入 | `ActionContractTests` | 每个会调用 `Input(step)`、回退成真实鼠标点击或按快捷键的动作在目录里标真；`MacroCheck` 与 `InputGate` 查同一处，并沿宏调用图看可达步骤 |
 | 返回形状 | `ReturnsPageTests` + `ActionContractTests` | 返回值页的每一行、引擎写出的键与记录字段一致 |
-| 失败键 | `FailureKeyTests` | `RunKeys` 与手册表一致；日志键、状态键不与失败键混用 |
+| 失败键 | `FailureKeyTests` + `MacroCheckTests` + `MacroRunnerTests` | `RunKeys` 与手册表一致；用户自定义键只接受 `User.<合法变量名>`；日志键、状态键不与失败键混用 |
 | 页面归属 | `ActionPageTests` | 一个参数只属于一页，基础页为空时不显示 |
 | 文案 | `LocalizationTests` | 中英文键齐全，参数与选项都有中文 |
 | 字段名 | `FieldNameTests` | 同一字段名只有一种 `Kind`、一套选项与一套标签；记录字段也走 `FieldNames`；例外要写进白名单与理由 |

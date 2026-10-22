@@ -124,14 +124,14 @@ file static class Tokenizer
             {
                 index++;
                 var start = index;
-                while (index < source.Length && IsNameCharacter(source[index]))
-                {
-                    index++;
-                }
-
-                if (index == start)
+                if (index >= source.Length || !VariableText.IsNameStart(source[index]))
                 {
                     throw ExpressionException.Syntax("a variable name is missing after \"$\"");
+                }
+
+                while (index < source.Length && VariableText.IsNameCharacter(source[index]))
+                {
+                    index++;
                 }
 
                 tokens.Add(new Token(TokenKind.Variable, source[start..index], 0));
@@ -176,9 +176,6 @@ file static class Tokenizer
         tokens.Add(new Token(TokenKind.End, string.Empty, 0));
         return tokens;
     }
-
-    private static bool IsNameCharacter(char character)
-        => char.IsLetterOrDigit(character) || character is '_' or '.';
 
     private static int ReadText(string source, int index, char quote, List<Token> tokens)
     {

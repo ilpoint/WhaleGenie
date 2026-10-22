@@ -1,8 +1,8 @@
 [
   {
     "Key": "control.sequence",
-    "DisplayName": "Sequence",
-    "Description": "Run a list of child steps in order.",
+    "DisplayName": "Group",
+    "Description": "Keep child steps together as one foldable block; they still run in order.",
     "Parameters": [
       {
         "Name": "label",
@@ -27,7 +27,7 @@
       {
         "Name": "steps",
         "Label": "Steps",
-        "Hint": "Child steps that run in order.",
+        "Hint": "Steps kept together in this group; they run in order.",
         "Placeholder": "",
         "Kind": "Steps",
         "OptionLabels": [],
@@ -151,55 +151,7 @@
       {
         "Name": "ms",
         "Label": "Wait",
-        "Hint": "How long to wait, in milliseconds; 1000 by default.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      }
-    ],
-    "Returns": []
-  },
-  {
-    "Key": "control.delayRandom",
-    "DisplayName": "Random Delay",
-    "Description": "Wait a random amount of time so the macro looks less mechanical.",
-    "Parameters": [
-      {
-        "Name": "minMs",
-        "Label": "Shortest wait",
-        "Hint": "Shortest wait, in milliseconds; 400 by default.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "maxMs",
-        "Label": "Longest wait",
-        "Hint": "Longest wait, in milliseconds; 1200 by default, and no shorter than the shortest wait. Each run picks a number between the two and waits that long.",
+        "Hint": "How long to wait, in milliseconds; 1000 by default. A random wait can be written as random(400, 1200).",
         "Placeholder": "",
         "Kind": "Number",
         "OptionLabels": [],
@@ -1125,8 +1077,8 @@
   },
   {
     "Key": "control.break",
-    "DisplayName": "Break",
-    "Description": "Leave the innermost loop immediately.",
+    "DisplayName": "Break Out",
+    "Description": "Leave the innermost loop or switch immediately.",
     "Parameters": [],
     "Returns": []
   },
@@ -1203,6 +1155,26 @@
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
+      },
+      {
+        "Name": "failureKey",
+        "Label": "Failure key",
+        "Hint": "Optional key that catch conditions can compare with $caught.key. It must start with User.; leave it empty to report Run.StepFailedByMacro.",
+        "Placeholder": "User.InvalidScreen",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
       }
     ],
     "Returns": []
@@ -1243,7 +1215,7 @@
       {
         "Name": "name",
         "Label": "Variable name",
-        "Hint": "Local variables are named here. A missing global variable is created as a text variable.",
+        "Hint": "Local variables are named here. With the global scope, a new name creates a global variable when this step is saved.",
         "Placeholder": "count",
         "Kind": "Variable",
         "OptionLabels": [],
@@ -1263,7 +1235,7 @@
       {
         "Name": "scope",
         "Label": "Scope",
-        "Hint": "Which layer the value goes in; local by default. Local values belong to this macro; global values are shared by every macro and a missing one is created as text.",
+        "Hint": "Which layer the value goes in; local by default. Local values belong to this macro; global values are shared by every macro and can be created or edited below.",
         "Placeholder": "",
         "Kind": "Choice",
         "OptionLabels": [
@@ -1286,79 +1258,8 @@
       {
         "Name": "value",
         "Label": "Value",
-        "Hint": "The value to store: a number, text, a $variable, or a formula such as $count + 1 or upper($name).",
+        "Hint": "The value to store: a number, text, a $variable, or a formula such as $count + 1, upper($name), or list(1, 2, 3).",
         "Placeholder": "3",
-        "Kind": "Expression",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      }
-    ],
-    "Returns": []
-  },
-  {
-    "Key": "control.calculate",
-    "DisplayName": "Calculate",
-    "Description": "Work out an expression and store the answer in a variable.",
-    "Parameters": [
-      {
-        "Name": "name",
-        "Label": "Variable name",
-        "Hint": "Where the answer is stored. Local variables are created here; global variables must exist already, add them in the Variable Center, and every macro shares them.",
-        "Placeholder": "count",
-        "Kind": "Variable",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "scope",
-        "Label": "Scope",
-        "Hint": "Which layer the value goes in; local by default. Local values belong to this macro; global values are shared by every macro and must be created in the Variable Center first.",
-        "Placeholder": "",
-        "Kind": "Choice",
-        "OptionLabels": [
-          "Local (this macro)",
-          "Global (shared)"
-        ],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "value",
-        "Label": "Expression",
-        "Hint": "A formula to work out, such as $count + 1, $total * 0.85 or concat($first, \" \", $last). The expression editor writes it piece by piece.",
-        "Placeholder": "$count + 1",
         "Kind": "Expression",
         "OptionLabels": [],
         "ForeignText": false,
@@ -1452,80 +1353,9 @@
     ]
   },
   {
-    "Key": "control.listCreate",
-    "DisplayName": "Create List",
-    "Description": "Start a list variable, replacing whatever it held before.",
-    "Parameters": [
-      {
-        "Name": "name",
-        "Label": "Variable name",
-        "Hint": "Local lists belong to this macro; global lists are shared by every macro. The name is created here for a local list; a global list must exist already, added in the Variable Center. Lists hold any mixture of values.",
-        "Placeholder": "names",
-        "Kind": "Variable",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "scope",
-        "Label": "Scope",
-        "Hint": "Which layer the list goes in; local by default. Local lists belong to this macro; global lists are shared by every macro and must be created in the Variable Center first.",
-        "Placeholder": "",
-        "Kind": "Choice",
-        "OptionLabels": [
-          "Local (this macro)",
-          "Global (shared)"
-        ],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "items",
-        "Label": "Starting items",
-        "Hint": "What the list starts with, written as a list or a $variable; leaving it empty starts an empty list.",
-        "Placeholder": "[1, 2, 3]",
-        "Kind": "Expression",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      }
-    ],
-    "Returns": []
-  },
-  {
     "Key": "control.listAdd",
     "DisplayName": "Add To List",
-    "Description": "Add one or more values to the end of a list.",
+    "Description": "Add one value to the end of a list.",
     "Parameters": [
       {
         "Name": "name",
@@ -4250,8 +4080,8 @@
   },
   {
     "Key": "file.saveVariables",
-    "DisplayName": "Save Variables",
-    "Description": "Write variables to a JSON file, so the next run can pick them up.",
+    "DisplayName": "Save Variable Snapshot",
+    "Description": "Write chosen local or global variables to a JSON file; this is a snapshot, separate from a global's persistent value.",
     "Parameters": [
       {
         "Name": "path",
@@ -4298,8 +4128,8 @@
   },
   {
     "Key": "file.loadVariables",
-    "DisplayName": "Load Variables",
-    "Description": "Read variables back from a file saved by Save Variables.",
+    "DisplayName": "Restore Variable Snapshot",
+    "Description": "Read a snapshot file and restore its values; this is separate from the values kept on this computer for persistent globals.",
     "Parameters": [
       {
         "Name": "path",

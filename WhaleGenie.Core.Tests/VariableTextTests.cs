@@ -17,14 +17,32 @@ public class VariableTextTests
     }
 
     [Theory]
-    [InlineData("$100 off", "$100 off")]
-    [InlineData("price is $100", "price is $100")]
     [InlineData("$", "$")]
     [InlineData("a $ b", "a $ b")]
+    [InlineData("$% off", "$% off")]
     public void A_dollar_that_does_not_start_a_name_is_text(string written, string expected)
     {
         Assert.Equal(expected, Fill(written, ("name", "Ada")));
     }
+
+    [Theory]
+    [InlineData("123")]
+    [InlineData("2金币")]
+    [InlineData("_2")]
+    public void A_name_may_begin_with_a_digit_or_an_underscore(string name)
+    {
+        Assert.True(VariableText.IsName(name));
+        Assert.Equal("Ada", Fill($"${name}", (name, "Ada")));
+        Assert.Equal([name], VariableText.Referenced($"${name}"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(".2")]
+    [InlineData("2 name")]
+    [InlineData("2-name")]
+    public void A_name_still_needs_valid_characters(string name)
+        => Assert.False(VariableText.IsName(name));
 
     [Fact]
     public void A_known_name_is_filled_in_where_it_stands()
@@ -36,6 +54,7 @@ public class VariableTextTests
     public void A_doubled_dollar_is_one_literal_dollar()
     {
         Assert.Equal("$name and Ada", Fill("$$name and $name", ("name", "Ada")));
+        Assert.Equal("$123 and Ada", Fill("$$123 and $123", ("123", "Ada")));
         Assert.Equal(["name"], VariableText.Referenced("$name but not $$name"));
     }
 
@@ -84,6 +103,9 @@ public class VariableTextTests
         Assert.Empty(VariableText.Expressions("${name}"));
         Assert.Equal("Ada", VariableText.Replace("${name}", _ => "Ada",
             _ => throw new InvalidOperationException("a name is not an expression")));
+        Assert.Empty(VariableText.Expressions("${123}"));
+        Assert.Equal("Ada", VariableText.Replace("${123}", _ => "Ada",
+            _ => throw new InvalidOperationException("a numeric name is not an expression")));
     }
 
     [Fact]

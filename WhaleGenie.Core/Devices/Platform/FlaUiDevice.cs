@@ -790,6 +790,8 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     {
         WindowMatch.Process => ProcessOf(window),
         WindowMatch.ClassName => Read(() => window.ClassName),
+        WindowMatch.Handle => Read(() => window.Properties.NativeWindowHandle.Value.ToString(
+            System.Globalization.CultureInfo.InvariantCulture)),
         _ => Read(() => window.Name),
     };
 

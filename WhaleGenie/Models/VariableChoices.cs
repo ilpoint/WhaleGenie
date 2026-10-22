@@ -37,6 +37,12 @@ public sealed class VariableChoice
     /// <summary>True for a step's own ending, which a run leaves behind rather than a step naming it.</summary>
     public bool IsStepResult { get; init; }
 
+    /// <summary>Whether this global's current value is kept between program runs.</summary>
+    public bool IsPersistent { get; init; }
+
+    /// <summary>Where this name comes from, which decides which editor owns it.</summary>
+    public VariableOrigin Origin { get; init; }
+
     /// <summary>
     /// The steps that read this variable, in the order they run. A name on a button says nothing
     /// about who wants it, and "where is this used" is the question that follows "what is this" —
@@ -97,6 +103,14 @@ public sealed class VariableChoice
     /// </summary>
     public string Display => VariableCatalog.Display(Name, true);
 
+    /// <summary>A short mark on the card when a global value survives a restart.</summary>
+    public string PersistenceBadge => IsPersistent ? Strings.Get("VarWall.Persistent") : string.Empty;
+
+    public void RefreshLanguage() => PropertyChanged?.Invoke(this,
+        new System.ComponentModel.PropertyChangedEventArgs(string.Empty));
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
     /// <summary>Which of the picker's buttons shows it.</summary>
     public VariableGroup Group => IsStepResult
         ? VariableGroup.StepResult
@@ -135,6 +149,8 @@ public sealed class VariableChoice
         Description = Description,
         Source = Source,
         IsStepResult = IsStepResult,
+        IsPersistent = IsPersistent,
+        Origin = Origin,
         Uses = Uses,
         ContentReader = () => content(Name, Scope),
     };
@@ -159,6 +175,17 @@ public enum VariableGroup
 
     /// <summary>What a step's run came to: ok, failed or skipped.</summary>
     StepResult,
+}
+
+/// <summary>The declaration or generated source that owns a variable name.</summary>
+public enum VariableOrigin
+{
+    Local,
+    Global,
+    System,
+    Parameter,
+    Result,
+    StepOutput,
 }
 
 /// <summary>
@@ -186,6 +213,8 @@ public static class VariableChoices
                 Scope = VariableScope.Global,
                 Type = variable.Type,
                 Description = variable.Description,
+                IsPersistent = variable.PersistValue,
+                Origin = VariableOrigin.Global,
                 Uses = UsesOf(uses, variable.Name),
             }),
             .. VariableCatalog.SystemVariables.Select(variable => new VariableChoice
@@ -194,6 +223,7 @@ public static class VariableChoices
                 Scope = VariableScope.System,
                 Type = variable.Type,
                 Description = Strings.Get($"Variable.{variable.Name}.desc", variable.Description),
+                Origin = VariableOrigin.System,
                 Uses = UsesOf(uses, variable.Name),
             }),
         ];
@@ -229,6 +259,7 @@ public static class VariableChoices
                 Type = ActionReturn.TypeNameOf(parameter.Type),
                 Description = parameter.Description,
                 Source = Strings.Get("VarWall.Parameter"),
+                Origin = VariableOrigin.Parameter,
                 Uses = UsesOf(uses, name),
             });
         }
@@ -248,6 +279,7 @@ public static class VariableChoices
                 Type = ActionReturn.TypeNameOf(result.Type),
                 Description = result.Description,
                 Source = Strings.Get("VarWall.Result"),
+                Origin = VariableOrigin.Result,
                 Uses = UsesOf(uses, name),
             });
         }
@@ -359,6 +391,7 @@ public static class VariableChoices
                             Fields = result?.Fields ?? [],
                             Description = result?.LocalHint ?? string.Empty,
                             Source = step.PickerLabel,
+                            Origin = VariableOrigin.Local,
                             Uses = UsesOf(uses, name),
                         });
                     }
@@ -380,6 +413,7 @@ public static class VariableChoices
                         .FirstOrDefault(candidate => candidate.Name == parameter.Name)
                         ?.LocalHint ?? string.Empty,
                     Source = step.PickerLabel,
+                    Origin = VariableOrigin.Local,
                     Uses = UsesOf(uses, parameter.Value.Trim()),
                 });
             }
@@ -394,6 +428,7 @@ public static class VariableChoices
                     Description = Strings.Get("VarWall.Outcome"),
                     Source = step.PickerLabel,
                     IsStepResult = true,
+                    Origin = VariableOrigin.StepOutput,
                     Uses = UsesOf(uses, MacroRunner.OutcomeName(step.Id)),
                 });
 
@@ -407,6 +442,7 @@ public static class VariableChoices
                     Description = Strings.Get("VarWall.Error"),
                     Source = step.PickerLabel,
                     IsStepResult = true,
+                    Origin = VariableOrigin.StepOutput,
                     Uses = UsesOf(uses, MacroRunner.ErrorName(step.Id)),
                 });
             }

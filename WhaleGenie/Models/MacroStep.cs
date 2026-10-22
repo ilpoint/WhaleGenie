@@ -235,12 +235,6 @@ public class StepParameterRow
 /// <summary>A single step of a macro, saved as one node of the macro's JSON tree.</summary>
 public class MacroStep : INotifyPropertyChanged
 {
-    /// <summary>
-    /// Design-time choice carried from the action form to the editor. It is deliberately not part
-    /// of the macro file: persistence belongs to the user's local variable settings.
-    /// </summary>
-    internal bool PersistGlobalAfterSave { get; set; }
-
     /// <summary>Fully qualified action key, for example <c>input.keyPress</c>.</summary>
     public required string Type { get; init; }
 
@@ -558,7 +552,11 @@ public class MacroStep : INotifyPropertyChanged
                     }
                     break;
                 default:
-                    if (DefinesVariable(parameter) && !string.IsNullOrWhiteSpace(parameter.Value))
+                    if (DefinesVariable(parameter)
+                        && !(Type == "control.setVariable"
+                             && string.Equals(Text("scope").Trim(), "global",
+                                 System.StringComparison.OrdinalIgnoreCase))
+                        && !string.IsNullOrWhiteSpace(parameter.Value))
                     {
                         names.Add(parameter.Value.Trim());
                     }
@@ -600,7 +598,7 @@ public class MacroStep : INotifyPropertyChanged
     public static bool DefinesVariable(string? type, string parameterName) => parameterName switch
     {
         "itemVariable" or "indexVariable" => true,
-        "name" => type is "control.setVariable" or "control.calculate" or "control.listCreate"
+        "name" => type is "control.setVariable"
             or "control.for",
         "runHandleName" => type is "control.startMacro",
         _ => false,

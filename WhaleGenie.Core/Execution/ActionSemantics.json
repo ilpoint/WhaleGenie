@@ -2,7 +2,7 @@
   {
     "Key": "control.sequence",
     "Category": "Control",
-    "Hidden": false,
+    "Hidden": true,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": false,
@@ -127,46 +127,6 @@
         "Picker": "None",
         "Required": true,
         "DefaultValue": "1000",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      }
-    ],
-    "Returns": []
-  },
-  {
-    "Key": "control.delayRandom",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": false,
-    "TimeoutSource": "None",
-    "TimeoutField": "",
-    "StepTimeoutMs": 0,
-    "Parameters": [
-      {
-        "Name": "minMs",
-        "Shape": "Number",
-        "Unit": "Milliseconds",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "400",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "maxMs",
-        "Shape": "Number",
-        "Unit": "Milliseconds",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "1200",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
@@ -979,6 +939,17 @@
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
+      },
+      {
+        "Name": "failureKey",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       }
     ],
     "Returns": []
@@ -1010,57 +981,6 @@
   },
   {
     "Key": "control.setVariable",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": false,
-    "TimeoutSource": "None",
-    "TimeoutField": "",
-    "StepTimeoutMs": 0,
-    "Parameters": [
-      {
-        "Name": "name",
-        "Shape": "Text",
-        "ReadMode": "VariableName",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.MissingVariable"
-      },
-      {
-        "Name": "scope",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "local",
-        "Options": [
-          "local",
-          "global"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "value",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      }
-    ],
-    "Returns": []
-  },
-  {
-    "Key": "control.calculate",
     "Category": "Control",
     "Hidden": false,
     "SendsInput": false,
@@ -1177,57 +1097,6 @@
         "Primary": true
       }
     ]
-  },
-  {
-    "Key": "control.listCreate",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": false,
-    "TimeoutSource": "None",
-    "TimeoutField": "",
-    "StepTimeoutMs": 0,
-    "Parameters": [
-      {
-        "Name": "name",
-        "Shape": "Text",
-        "ReadMode": "VariableName",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.MissingVariable"
-      },
-      {
-        "Name": "scope",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "local",
-        "Options": [
-          "local",
-          "global"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "items",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      }
-    ],
-    "Returns": []
   },
   {
     "Key": "control.listAdd",

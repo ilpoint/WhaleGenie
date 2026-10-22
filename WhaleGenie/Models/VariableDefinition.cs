@@ -93,7 +93,7 @@ public partial class VariableDefinition : ObservableObject
     {
         if (type is not "list")
         {
-            return value;
+            return VariableValues.Preview(type, value, VariableValues.DesignContext());
         }
 
         if (value.Trim().Length == 0)
@@ -108,7 +108,7 @@ public partial class VariableDefinition : ObservableObject
 
     /// <summary>True when a starting value cannot be read for the given type.</summary>
     public static bool HasError(string type, string value)
-        => type is "list" && value.Trim().Length > 0 && !ListText.TryParse(value, out _, out _);
+        => VariableValues.HasError(type, value, VariableValues.DesignContext());
 
     /// <summary>Type name in the current interface language.</summary>
     public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);

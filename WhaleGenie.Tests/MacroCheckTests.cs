@@ -564,12 +564,11 @@ public class MacroCheckTests
     }
 
     [Fact]
-    public void A_dollar_that_starts_no_name_is_left_alone()
+    public void A_doubled_dollar_is_left_alone()
     {
-        // A price is not a variable, and a doubled dollar is how a literal one is written.
         var writer = Step("file.listFiles",
             Text("folder", "."),
-            Text("pattern", "costs $5 and $$未知 stays as it is"));
+            Text("pattern", "costs $$5 and $$未知 stays as it is"));
 
         Assert.Empty(Inspect(writer));
     }
@@ -610,20 +609,23 @@ public class MacroCheckTests
         => Assert.Empty(Inspect(Set("结果", "$sys.date")));
 
     /// <summary>
-    /// A text field names a variable only where <c>$</c> starts a name. A price, an escaped dollar
-    /// and a name the macro cannot resolve are three different answers, and the check must not
-    /// turn the first two into undefined references.
+    /// A text field names a variable only where <c>$</c> starts a readable name. Numeric names are
+    /// readable, so a literal amount needs the doubled-dollar escape while an unresolved name is
+    /// still reported.
     /// </summary>
     [Fact]
     public void A_text_field_leaves_prices_and_escaped_dollars_alone()
     {
         var plain = Step("file.listFiles", Text("folder", "."),
-            Text("pattern", "$100 off; price $100; $$name"));
+            Text("pattern", "$$100 off; price $$100; $$name"));
         Assert.Empty(Inspect(plain));
 
         var named = Step("file.listFiles", Text("folder", "."), Text("pattern", "$name"));
         var problem = Assert.Single(Inspect(named));
         Assert.Contains("name", problem.Message);
+
+        var numeric = Step("file.listFiles", Text("folder", "."), Text("pattern", "$123"));
+        Assert.Single(Inspect(numeric));
     }
 
     /// <summary>A whole value is a value, not a name: a bare word in it is just text.</summary>
@@ -950,6 +952,45 @@ public class MacroCheckTests
     [Fact]
     public void An_ordinary_variable_name_is_left_alone()
         => Assert.Empty(Inspect(Set("count", "1")));
+
+    [Fact]
+    public void A_fail_step_reports_only_user_keys_it_can_read_back()
+    {
+        Assert.Empty(Inspect(Step("control.fail",
+            Text("failureKey", "User.NoScreen"), Text("reason", "the screen moved"))));
+
+        var problem = Assert.Single(Inspect(Step("control.fail",
+            Text("failureKey", "Run.NotMine"))));
+        Assert.Equal(Strings.Format("Editor.Problem.BadUserFailureKey", "Run.NotMine"),
+            problem.Message);
+    }
+
+    [Fact]
+    public void Assigning_a_missing_global_is_reported_before_the_run()
+    {
+        var name = "missingGlobalForCheck";
+        var step = Step("control.setVariable", Text("name", name), Text("scope", "global"),
+            Value("value", "1"));
+
+        Assert.Contains(Inspect(step),
+            problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
+
+        var definition = new VariableDefinition
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+        };
+        VariableCatalog.Globals.Add(definition);
+        try
+        {
+            Assert.DoesNotContain(Inspect(step),
+                problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
+        }
+        finally
+        {
+            VariableCatalog.Globals.Remove(definition);
+        }
+    }
 
     [Fact]
     public void One_step_can_be_wrong_more_than_once_and_each_reason_is_said()

@@ -44,7 +44,7 @@
                                Text="{Binding [WindowRule.MatchText], Source={x:Static loc:Strings.Current}}" />
                     <TextBox Grid.Column="1" Name="MatchBox" />
                 </Grid>
-                <WrapPanel>
+                <WrapPanel Name="ComparisonSwitches">
                     <CheckBox Name="CaseBox" Margin="0,0,14,0"
                               Content="{Binding [WindowRule.CaseSensitive], Source={x:Static loc:Strings.Current}}" />
                     <CheckBox Name="TrimBox" Margin="0,0,14,0"
@@ -52,6 +52,9 @@
                     <CheckBox Name="MultilineBox"
                               Content="{Binding [WindowRule.Multiline], Source={x:Static loc:Strings.Current}}" />
                 </WrapPanel>
+                <TextBlock Name="HandleHint" IsVisible="False" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppMuted}"
+                           Text="{Binding [WindowRule.HandleHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Name="PreviewText" FontSize="11.5" TextWrapping="Wrap"
                            Foreground="{DynamicResource AppMuted}" />
             </StackPanel>

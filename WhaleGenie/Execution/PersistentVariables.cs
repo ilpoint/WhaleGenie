@@ -103,7 +103,8 @@ internal static class PersistentVariables
 
         if (!SharedVariables.Current.TryGet(definition.Name, out var value))
         {
-            value = Convert(definition.Type, definition.DefaultValue, definition.DefaultValue);
+            value = VariableValues.Read(definition.Type, definition.DefaultValue,
+                VariableValues.DesignContext());
             SharedVariables.Current.SetIfAbsent(definition.Name, value);
         }
 
@@ -122,6 +123,29 @@ internal static class PersistentVariables
             _timer?.Change(Timeout.Infinite, Timeout.Infinite);
             Save();
         }
+    }
+
+    internal static void Rename(string oldName, string newName)
+    {
+        lock (Gate)
+        {
+            if (Values.Remove(oldName, out var value))
+            {
+                Values[newName] = value;
+            }
+        }
+
+        Schedule();
+    }
+
+    internal static void Forget(string name)
+    {
+        lock (Gate)
+        {
+            Values.Remove(name);
+        }
+
+        Schedule();
     }
 
     internal static IDisposable UsePathForTests(string path)
@@ -233,13 +257,13 @@ internal static class PersistentVariables
         "number" => double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture,
             out var number)
             ? Value.FromNumber(number)
-            : Convert(type, fallback, "0"),
+            : VariableValues.Read(type, fallback, VariableValues.DesignContext()),
         "bool" => bool.TryParse(text, out var flag)
             ? Value.FromBool(flag)
-            : Convert(type, fallback, "false"),
+            : VariableValues.Read(type, fallback, VariableValues.DesignContext()),
         "list" => ListText.TryParse(text, out var items, out _)
             ? Value.FromList(items)
-            : Convert(type, fallback, "[]"),
+            : VariableValues.Read(type, fallback, VariableValues.DesignContext()),
         _ => Value.FromText(text),
     };
 

@@ -812,44 +812,39 @@
 
                         <ItemsControl ItemsSource="{Binding Globals}" Margin="0,10,0,0">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="models:VariableDefinition">
+                                <DataTemplate x:DataType="vm:RunGlobalVariable">
                                     <Border Classes="VarRow">
-                                        <StackPanel>
-                                            <Grid ColumnDefinitions="200,110,150,*,Auto,Auto" ColumnSpacing="8">
-                                                <TextBox Classes="VarInput" Text="{Binding Name}" />
-                                                <ComboBox Grid.Column="1" Classes="VarSelect"
-                                                          ItemsSource="{Binding TypeOptions}"
-                                                          SelectedItem="{Binding SelectedType}"
-                                                          HorizontalAlignment="Stretch">
-                                                    <ComboBox.ItemTemplate>
-                                                        <DataTemplate x:DataType="models:ActionParameterOption">
-                                                            <TextBlock Text="{Binding Display}"
-                                                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
-                                                        </DataTemplate>
-                                                    </ComboBox.ItemTemplate>
-                                                </ComboBox>
-                                                <TextBox Grid.Column="2" Classes="VarInput" Text="{Binding DefaultValue}"
-                                                         PlaceholderText="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}" />
-                                                <TextBox Grid.Column="3" Classes="VarInput" Text="{Binding Description}"
-                                                         PlaceholderText="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}" />
-                                                <CheckBox Grid.Column="4" VerticalAlignment="Center"
-                                                          Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                                          IsChecked="{Binding PersistValue}"
-                                                          Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
-                                                          ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
-                                                <Button Grid.Column="5" Classes="RemoveButton"
-                                                        Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).RemoveGlobalCommand}"
-                                                        CommandParameter="{Binding}">
-                                                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
-                                                </Button>
-                                            </Grid>
-                                            <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
-                                                       Foreground="#E06C75" Text="{Binding DefaultPreview}"
-                                                       IsVisible="{Binding DefaultHasError}" />
-                                            <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
-                                                       Text="{Binding DefaultPreview}"
-                                                       IsVisible="{Binding ShowDefaultSummary}" />
-                                        </StackPanel>
+                                        <Grid ColumnDefinitions="190,100,150,*,110,Auto" ColumnSpacing="8">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Display}" FontFamily="Consolas"
+                                                           Foreground="#BFE3BF" TextWrapping="Wrap" />
+                                                <TextBlock Classes="Muted" Text="{Binding Description}"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding LocalType}"
+                                                       VerticalAlignment="Top" Foreground="{DynamicResource AppMuted}" />
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Classes="ColumnHeader"
+                                                           Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
+                                                <SelectableTextBlock Text="{Binding CurrentValue}"
+                                                                     TextWrapping="Wrap"
+                                                                     Foreground="{DynamicResource AppText}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="3">
+                                                <TextBlock Classes="ColumnHeader"
+                                                           Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}" />
+                                                <SelectableTextBlock Text="{Binding DefaultValue}"
+                                                                     TextWrapping="Wrap"
+                                                                     Foreground="{DynamicResource AppMuted}" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="4" Text="{Binding PersistenceText}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource AppMuted}" />
+                                            <Button Grid.Column="5" Classes="CopyButton"
+                                                    VerticalAlignment="Top"
+                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
+                                                    Click="OnCopyValueClicked" />
+                                        </Grid>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -859,43 +854,6 @@
                                    Text="{Binding [Variable.NoGlobals], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasGlobals}" />
 
-                        <StackPanel Margin="0,10,0,0">
-                            <Grid ColumnDefinitions="200,110,150,*,Auto,Auto" ColumnSpacing="8">
-                                <TextBox Classes="VarInput" Text="{Binding NewName}"
-                                         PlaceholderText="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Grid.Column="1" Classes="VarSelect"
-                                          ItemsSource="{Binding Types}" SelectedItem="{Binding NewType}"
-                                          HorizontalAlignment="Stretch">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="models:ActionParameterOption">
-                                            <TextBlock Text="{Binding Display}"
-                                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <TextBox Grid.Column="2" Classes="VarInput" Text="{Binding NewDefault}"
-                                         PlaceholderText="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Grid.Column="3" Classes="VarInput" Text="{Binding NewDescription}"
-                                         PlaceholderText="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Grid.Column="4" VerticalAlignment="Center"
-                                          Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                          IsChecked="{Binding NewPersistValue}"
-                                          Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
-                                          ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
-                                <Button Grid.Column="5" Classes="AddButton" Height="30"
-                                        Content="{Binding [Variable.Add], Source={x:Static loc:Strings.Current}}"
-                                        Command="{Binding AddGlobalCommand}" />
-                            </Grid>
-                            <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
-                                       Foreground="#E06C75" Text="{Binding NewDefaultPreview}"
-                                       IsVisible="{Binding NewDefaultHasError}" />
-                            <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
-                                       Text="{Binding NewDefaultPreview}"
-                                       IsVisible="{Binding ShowNewDefaultSummary}" />
-                        </StackPanel>
-                        <!-- Rejecting a name is a problem to fix, so it is said in red. -->
-                        <TextBlock Margin="2,6,0,0" TextWrapping="Wrap" Foreground="#E06C75"
-                                   FontWeight="SemiBold" Text="{Binding ValidationMessage}" />
                     </StackPanel>
 
                     <!-- ===================== System variables ===================== -->

@@ -30,6 +30,9 @@ public static class ScriptHost
     /// <summary>The environment variable the child is told the pipe by.</summary>
     internal const string PipeVariable = "WHALEGENIE_PIPE";
 
+    /// <summary>The environment variable that tells the child where this run keeps script packages.</summary>
+    internal const string PackagesVariable = "WHALEGENIE_PACKAGES";
+
     /// <summary>What the program is asked with when it is being run as a script rather than as itself.</summary>
     internal const string Flag = "--script-host";
 
@@ -111,7 +114,9 @@ public static class ScriptHost
     /// </summary>
     private static void Reachable(string beside)
     {
-        var packages = NuGetStore.References(ScriptFolders.NuGetPackages);
+        var root = Environment.GetEnvironmentVariable(PackagesVariable);
+        var nuget = Path.Combine(root is { Length: > 0 } ? root : ScriptFolders.Packages, "nuget");
+        var packages = NuGetStore.References(nuget);
         var folders = new List<string> { beside };
         folders.AddRange(packages.Select(reference => Path.GetDirectoryName(reference) ?? string.Empty));
 
@@ -132,7 +137,7 @@ public static class ScriptHost
             return null;
         };
 
-        var native = NuGetStore.NativeFolders(ScriptFolders.NuGetPackages);
+        var native = NuGetStore.NativeFolders(nuget);
         if (native.Count > 0)
         {
             var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;

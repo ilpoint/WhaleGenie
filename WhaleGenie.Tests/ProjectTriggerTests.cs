@@ -10,6 +10,20 @@ namespace WhaleGenie.Tests;
 public class ProjectTriggerTests
 {
     [Fact]
+    public void A_window_trigger_can_match_one_exact_instance_by_handle()
+    {
+        var rule = new WindowRule(Title: "Game", Handle: 12, How: WindowHow.Handle);
+        var devices = new ChecksDevices();
+
+        Assert.True(ProjectTriggers.WindowRuleMatches(rule,
+            new WindowInfo(12, "Game", new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false),
+            devices.Windows));
+        Assert.False(ProjectTriggers.WindowRuleMatches(rule,
+            new WindowInfo(13, "Game", new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false),
+            devices.Windows));
+    }
+
+    [Fact]
     public void One_macro_can_appear_on_several_dock_pages()
     {
         var viewModel = new MainViewModel();

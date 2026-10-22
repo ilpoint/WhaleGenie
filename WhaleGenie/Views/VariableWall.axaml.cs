@@ -87,4 +87,14 @@ public partial class VariableWall : UserControl
         _drag.Forget();
         _variableTransfer = null;
     }
+
+    private void OnDoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    {
+        if (DataContext is VariableWallViewModel wall
+            && sender is Control { DataContext: VariableChoice choice })
+        {
+            wall.EditCommand.Execute(choice);
+            e.Handled = true;
+        }
+    }
 }

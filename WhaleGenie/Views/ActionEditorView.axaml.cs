@@ -957,6 +957,23 @@ public partial class ActionEditorView : UserControl
         }
     }
 
+    private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel { GlobalVariableDraft: { } draft })
+        {
+            return;
+        }
+
+        var variables = ((AddActionViewModel)DataContext).CollectVariables()
+            .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
+            .ToList();
+        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, draft.DefaultValue,
+                variables) is { } built)
+        {
+            draft.DefaultValue = built;
+        }
+    }
+
     /// <summary>Folds one group of the action picker open or shut.</summary>
     private void OnToggleActionGroup(object? sender, RoutedEventArgs e)
     {

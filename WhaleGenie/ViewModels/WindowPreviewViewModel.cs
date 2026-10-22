@@ -200,6 +200,13 @@ public partial class WindowPreviewViewModel : ViewModelBase
             return;
         }
 
+        if (rule.Reading.Match is WindowMatch.Handle && rule.Handle == 0)
+        {
+            Summary = Strings.Get("WindowRule.BadHandle");
+            Places = [];
+            return;
+        }
+
         IReadOnlyList<WindowInfo> found;
         try
         {
@@ -327,6 +334,9 @@ public partial class WindowPreviewViewModel : ViewModelBase
                 Strings.Get("WindowPart.Process"), windows.ProcessOf(window.Handle)),
             WindowMatch.ClassName => new WindowPreviewRow(window.Title,
                 Strings.Get("WindowPart.ClassName"), windows.ClassOf(window.Handle)),
+            WindowMatch.Handle => new WindowPreviewRow(window.Title,
+                Strings.Get("WindowPart.Handle"),
+                window.Handle.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             _ => new WindowPreviewRow(window.Title, string.Empty, string.Empty),
         };
 }

@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
 
@@ -28,7 +26,8 @@ public static class MacroVariables
         // there is one, is asked before them every time a step reads a built-in variable.
         foreach (var definition in VariableCatalog.SystemVariables)
         {
-            store.System.Set(definition.Name, Convert(definition.Type, definition.DefaultValue));
+            store.System.Set(definition.Name,
+                VariableValues.Read(definition.Type, definition.DefaultValue, store));
         }
 
         store.Live = system;
@@ -42,7 +41,7 @@ public static class MacroVariables
         {
             declared.Add(definition.Name);
             store.Global.SetIfAbsent(definition.Name,
-                Convert(definition.Type, definition.DefaultValue));
+                VariableValues.Read(definition.Type, definition.DefaultValue, store));
         }
 
         foreach (var name in store.Global.Values.Keys)
@@ -56,15 +55,4 @@ public static class MacroVariables
         return store;
     }
 
-    private static Value Convert(string type, string text) => type switch
-    {
-        "number" => double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var number)
-            ? Value.FromNumber(number)
-            : Value.FromNumber(0),
-        "bool" => Value.FromBool(string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)),
-        "list" => ListText.TryParse(text, out var items, out _)
-            ? Value.FromList(items)
-            : Value.FromList([]),
-        _ => Value.FromText(text),
-    };
 }

@@ -291,6 +291,7 @@ public partial class MacroEditorWindow : Window
         _viewModel.SaveBlocked += OnSaveBlocked;
         _viewModel.MacroLifted += OnMacroLifted;
         _viewModel.RecordingChanged += OnRecordingChanged;
+        _viewModel.VariableCenter.EditRequested += OnEditVariableRequested;
 
         // A macro that has not been saved must not be lost to a crash, so it is written out as
         // it changes. This window is the only place it can be kept: it is not in the list yet.
@@ -347,6 +348,14 @@ public partial class MacroEditorWindow : Window
         // The keys pressed while a macro is being written or a shortcut bound must not set one off.
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
+
+        VariableCatalog.GlobalsChanged += OnGlobalsChanged;
+        SharedVariables.Current.Changed += OnSharedVariableChanged;
+        Closed += (_, _) =>
+        {
+            VariableCatalog.GlobalsChanged -= OnGlobalsChanged;
+            SharedVariables.Current.Changed -= OnSharedVariableChanged;
+        };
 
         var pinButton = this.FindControl<Button>("PinButton");
         if (pinButton is not null)
@@ -487,6 +496,141 @@ public partial class MacroEditorWindow : Window
 
         // The wheel is a trigger of its own: a notch up or down can start a macro.
         AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheel, RoutingStrategies.Tunnel);
+    }
+
+    private async void OnManageGlobals(object? sender, RoutedEventArgs e)
+        => await ManageGlobalsAsync();
+
+    private async Task ManageGlobalsAsync(string? initialName = null)
+    {
+        var allMacros = ProjectMacrosForVariableEdits();
+        var expressionVariables = _viewModel.CollectVariables()
+            .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
+            .ToList();
+        var choices = _viewModel.CollectVariables();
+        var edited = await GlobalVariablesWindow.EditAsync(this, expressionVariables,
+            name => choices.FirstOrDefault(choice =>
+                string.Equals(choice.Name, name, StringComparison.OrdinalIgnoreCase))?.Uses ?? [],
+            name => VariableRename.GlobalConflict(allMacros, name),
+            name => VariableRename.ScriptUsers(allMacros, name),
+            initialName);
+        if (edited is not null)
+        {
+            ApplyGlobalVariableDrafts(edited, allMacros);
+        }
+    }
+
+    private async void OnEditVariableRequested(VariableChoice choice)
+    {
+        switch (choice.Origin)
+        {
+            case VariableOrigin.Global:
+                await ManageGlobalsAsync(choice.Name);
+                break;
+            case VariableOrigin.Local:
+                var answer = await TextPromptDialog.ShowAsync(this,
+                    Strings.Get("Editor.RenameVariable"),
+                    new AskQuestion(AskKind.Text,
+                        Strings.Format("Editor.RenameVariableMessage", choice.Name), choice.Name));
+                if (answer.Confirmed && answer.Text is { Length: > 0 } next
+                    && !_viewModel.RenameLocalVariable(choice.Name, next, out var problem))
+                {
+                    await ConfirmDialog.ShowAsync(this, Strings.Get("Editor.RenameVariable"),
+                        problem, Strings.Get("Common.Ok"), showCancel: false);
+                }
+
+                break;
+            case VariableOrigin.Parameter:
+            case VariableOrigin.Result:
+                EnsureInterface();
+                this.FindControl<ContentControl>("MacroInterfaceHost")?.BringIntoView();
+                break;
+        }
+    }
+
+    private IReadOnlyList<MacroItem> ProjectMacrosForVariableEdits()
+        => [.. _project,
+            .. _documentPages.Select(page => page.Editor.BuildMacro())];
+
+    private void ApplyGlobalVariableDrafts(IReadOnlyList<VariableDefinitionDraft> drafts,
+        IReadOnlyList<MacroItem> macros)
+    {
+        var renamed = drafts.Where(draft => !draft.IsNew
+                && !string.Equals(draft.OriginalName, draft.Name.Trim(),
+                    StringComparison.Ordinal))
+            .ToList();
+        foreach (var draft in renamed)
+        {
+            var next = draft.Name.Trim();
+            VariableRename.RenameGlobal(macros, draft.OriginalName, next);
+            foreach (var page in _documentPages.Select(page => page.Editor).Append(_rootViewModel)
+                         .Distinct())
+            {
+                page.RenameGlobalReferences(draft.OriginalName, next);
+            }
+
+            PersistentVariables.Rename(draft.OriginalName, next);
+            SharedVariables.Current.Rename(draft.OriginalName, next);
+        }
+
+        var kept = drafts.Select(draft => draft.Name.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var removed in VariableCatalog.Globals
+                     .Where(variable => !kept.Contains(variable.Name))
+                     .Select(variable => variable.Name)
+                     .ToList())
+        {
+            PersistentVariables.Forget(removed);
+            SharedVariables.Current.Remove(removed);
+        }
+
+        VariableCatalog.Globals.Clear();
+        foreach (var draft in drafts)
+        {
+            var name = draft.Name.Trim();
+            var definition = new VariableDefinition
+            {
+                Name = name,
+                Scope = VariableScope.Global,
+                Type = draft.Type,
+                DefaultValue = draft.DefaultValue.Trim(),
+                Description = draft.Description.Trim(),
+            };
+            VariableCatalog.Globals.Add(definition);
+
+            if (draft.IsNew || draft.CurrentValueDirty)
+            {
+                var source = draft.IsNew && !draft.CurrentValueDirty
+                    ? draft.DefaultValue
+                    : draft.CurrentValue;
+                SharedVariables.Current.Set(name,
+                    VariableValues.Read(draft.Type, source, VariableValues.DesignContext()));
+                draft.AcceptCurrent();
+            }
+
+            definition.PersistValue = draft.PersistValue;
+        }
+
+        VariableCatalog.NotifyGlobalsChanged();
+        RefreshSharedVariables();
+    }
+
+    private void OnGlobalsChanged() =>
+        Dispatcher.UIThread.Post(RefreshSharedVariables);
+
+    private void OnSharedVariableChanged(string _) =>
+        Dispatcher.UIThread.Post(RefreshSharedVariables);
+
+    private void RefreshSharedVariables()
+    {
+        var editors = _documentPages.Select(page => page.Editor)
+            .Append(_rootViewModel)
+            .Distinct()
+            .ToList();
+        foreach (var editor in editors)
+        {
+            editor.RefreshSharedVariables();
+        }
     }
 
     private sealed record PendingSubMacro(MacroEditorViewModel Editor,
@@ -648,6 +792,7 @@ public partial class MacroEditorWindow : Window
         editor.SaveBlocked += OnSaveBlocked;
         editor.MacroLifted += OnMacroLifted;
         editor.RecordingChanged += OnRecordingChanged;
+        editor.VariableCenter.EditRequested += OnEditVariableRequested;
         editor.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty)
@@ -1738,12 +1883,6 @@ public partial class MacroEditorWindow : Window
             return null;
         }
 
-        if (EnsureSetVariableGlobals(step))
-        {
-            _rootViewModel.IsDirty = true;
-            KeepRecovery();
-        }
-
         if (editing is not null)
         {
             _viewModel.ReplaceStep(editing, step);
@@ -1778,54 +1917,6 @@ public partial class MacroEditorWindow : Window
         }
 
         return step;
-    }
-
-    /// <summary>
-    /// Setting a variable is allowed to declare a missing global. Nested steps are included, so a
-    /// step saved inside a block creates the declaration before the form closes.
-    /// </summary>
-    private static bool EnsureSetVariableGlobals(MacroStep step)
-    {
-        var created = false;
-        foreach (var parameter in step.StepLists)
-        {
-            foreach (var nested in parameter.Steps)
-            {
-                created |= EnsureSetVariableGlobals(nested);
-            }
-        }
-
-        if (step.Type != "control.setVariable"
-            || !string.Equals(step.Text("scope").Trim(), "global",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return created;
-        }
-
-        var name = step.Text("name").Trim();
-        if (!VariableText.IsName(name) || VariableCatalog.IsSystem(name))
-        {
-            return created;
-        }
-
-        if (VariableCatalog.FindGlobal(name) is { } existing)
-        {
-            existing.PersistValue = step.PersistGlobalAfterSave;
-            return created;
-        }
-
-        var definition = new VariableDefinition
-        {
-            Name = name,
-            Scope = VariableScope.Global,
-            Type = "text",
-            DefaultValue = string.Empty,
-            PersistValue = step.PersistGlobalAfterSave,
-        };
-        VariableCatalog.Globals.Add(definition);
-        PersistentVariables.ApplyTo([definition]);
-        VariableCatalog.NotifyGlobalsChanged();
-        return true;
     }
 
     /// <summary>Puts the form's capture buttons back to their resting labels.</summary>

@@ -410,12 +410,12 @@ internal static class ActionStrings
         ["control.waitUntil.intervalMs.label"] = "检查间隔",
         ["control.waitUntil.intervalMs.hint"] = "两次判断之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
 
-        ["control.sequence.name"] = "顺序执行",
-        ["control.sequence.desc"] = "按顺序依次执行子步骤。",
+        ["control.sequence.name"] = "分组",
+        ["control.sequence.desc"] = "把子步骤收成一个可折叠的块，块内仍按顺序执行。",
         ["control.sequence.label.label"] = "名称",
         ["control.sequence.label.hint"] = "可选，步骤列表里显示的名称；留空就显示这个动作的名字。",
         ["control.sequence.steps.label"] = "子步骤",
-        ["control.sequence.steps.hint"] = "按顺序执行的子步骤。",
+        ["control.sequence.steps.hint"] = "收在这个分组里的子步骤，块内按顺序执行。",
         ["control.holdInput.name"] = "按住输入门",
         ["control.holdInput.desc"] = "这一段里的键鼠连着发完，别的勾了互斥的宏不会插进来。",
         ["control.holdInput.label.label"] = "名称",
@@ -433,15 +433,7 @@ internal static class ActionStrings
         ["control.delay.name"] = "延迟",
         ["control.delay.desc"] = "执行下一步之前等待固定时长。",
         ["control.delay.ms.label"] = "等待时长",
-        ["control.delay.ms.hint"] = "等待多久，单位是毫秒，默认 1000。",
-
-        ["control.delayRandom.name"] = "随机延迟",
-        ["control.delayRandom.desc"] = "等待一个随机时长，让宏看起来不像机械执行。",
-        ["control.delayRandom.minMs.label"] = "最短等待",
-        ["control.delayRandom.minMs.hint"] = "最短等待时长，单位是毫秒，默认 400。",
-        ["control.delayRandom.maxMs.label"] = "最长等待",
-        ["control.delayRandom.maxMs.hint"] = "最长等待时长，单位是毫秒，默认 1200；写得不小于「最短等待」。"
-            + "每次运行在这两个数之间随机取一个数等下去。",
+        ["control.delay.ms.hint"] = "等待多久，单位是毫秒，默认 1000。随机等待写成 random(400, 1200)。",
 
         ["control.repeat.name"] = "重复",
         ["control.repeat.desc"] = "把子步骤重复执行固定次数。已经知道要跑几遍时用它。",
@@ -550,8 +542,8 @@ internal static class ActionStrings
         ["control.try.finally.label"] = "收尾步骤",
         ["control.try.finally.hint"] = "无论成功、失败还是被跳过都会执行的子步骤。",
 
-        ["control.break.name"] = "跳出循环",
-        ["control.break.desc"] = "立即跳出最内层循环。",
+        ["control.break.name"] = "跳出",
+        ["control.break.desc"] = "立即跳出最内层循环或多分支。",
 
         ["control.return.name"] = "结束当前宏",
         ["control.return.desc"] = "当前宏到此结束，调用它的宏接着往下走；已经赋过、声明要交回的结果照常交回。",
@@ -570,29 +562,15 @@ internal static class ActionStrings
         ["control.setVariable.name"] = "设置变量",
         ["control.setVariable.desc"] = "保存一个值，供后面的步骤使用。",
         ["control.setVariable.name.label"] = "变量名",
-        ["control.setVariable.name.hint"] = "局部变量在这里命名；全局变量不存在时会自动创建为文本变量。",
+        ["control.setVariable.name.hint"] = "局部变量在这里命名；选全局范围时，写一个新名字会在保存这一步时创建全局变量。",
         ["control.setVariable.value.label"] = "值",
         ["control.setVariable.value.hint"] = "要保存的值：数字、文本、$变量，或公式，例如 $count + 1、"
-            + "upper($name)。",
+            + "upper($name) 或 list(1, 2, 3)。",
         ["control.setVariable.scope.label"] = "作用范围",
         ["control.setVariable.scope.hint"] = "这个值放在哪一层，默认局部变量。局部变量只属于本宏；全局变量由"
-            + "所有宏共享，不存在时会自动创建为文本变量。",
+            + "所有宏共享，可在下面直接新建或编辑。",
         ["control.setVariable.scope.option.local"] = "局部变量（仅本宏）",
         ["control.setVariable.scope.option.global"] = "全局变量（所有宏共享）",
-
-        ["control.calculate.name"] = "变量运算",
-        ["control.calculate.desc"] = "算出一个公式的结果，存进变量里。",
-        ["control.calculate.name.label"] = "结果变量名",
-        ["control.calculate.name.hint"] = "算出来的值存在这里。局部变量在这里命名即可；"
-            + "全局变量必须先在变量中心创建，由所有宏共享。",
-        ["control.calculate.scope.label"] = "作用范围",
-        ["control.calculate.scope.hint"] = "结果放在哪一层，默认局部变量。局部变量只属于本宏；全局变量由所有宏"
-            + "共享，必须先在变量中心创建。",
-        ["control.calculate.scope.option.local"] = "局部变量（仅本宏）",
-        ["control.calculate.scope.option.global"] = "全局变量（所有宏共享）",
-        ["control.calculate.value.label"] = "表达式",
-        ["control.calculate.value.hint"] = "要算的公式，比如 $count + 1、$total * 0.85，"
-            + "或者 concat($first, \" \", $last)。字段旁的「表达式」按钮能把它一块块拼出来。",
 
         ["control.incrementGlobal.name"] = "增加全局变量",
         ["control.incrementGlobal.desc"] = "给一个全局变量加上一个数，读取和写回是同一步；"
@@ -607,21 +585,8 @@ internal static class ActionStrings
         ["control.incrementGlobal.return.value.label"] = "新计数",
         ["control.incrementGlobal.return.value.hint"] = "这一步加完之后的数：后续条件与步骤可以直接用它，不必再读一次全局。",
 
-        ["control.listCreate.name"] = "创建列表",
-        ["control.listCreate.desc"] = "建立一个列表变量，覆盖它原来的内容。",
-        ["control.listCreate.name.label"] = "变量名",
-        ["control.listCreate.name.hint"] = "列表的名字，在这里命名即可建立局部列表；全局列表必须先在变量中心"
-            + "创建。列表里可以放任意类型的值，包括别的列表。",
-        ["control.listCreate.scope.label"] = "作用范围",
-        ["control.listCreate.scope.hint"] = "列表放在哪一层，默认局部列表。局部列表只属于本宏；全局列表由所有"
-            + "宏共享，必须先在变量中心创建。",
-        ["control.listCreate.scope.option.local"] = "局部列表（仅本宏）",
-        ["control.listCreate.scope.option.global"] = "全局列表（所有宏共享）",
-        ["control.listCreate.items.label"] = "初始项",
-        ["control.listCreate.items.hint"] = "列表一开始包含哪些值，写成列表或 $变量；留空则建立空列表。",
-
         ["control.listAdd.name"] = "列表追加",
-        ["control.listAdd.desc"] = "在一个列表的末尾加入一个或多个值。",
+        ["control.listAdd.desc"] = "在一个列表的末尾加入一个值。",
         ["control.listAdd.name.label"] = "列表变量",
         ["control.listAdd.name.hint"] = "要追加的列表，下拉里列出宏当前看得见的列表。",
         ["control.listAdd.value.label"] = "追加的值",
@@ -671,8 +636,9 @@ internal static class ActionStrings
         ["control.fail.name"] = "判为失败",
         ["control.fail.desc"] = "把这一步记成失败，交给这一步的失败策略处理。",
         ["control.fail.reason.label"] = "失败原因",
-        ["control.fail.reason.hint"] = "哪里不对，写进日志，也写进步骤自己的错误值，后面的步骤读得到。"
-            + "可以不填。",
+        ["control.fail.reason.hint"] = "哪里不对，写进日志，也写进步骤自己的错误值，后面的步骤读得到。",
+        ["control.fail.failureKey.label"] = "失败键",
+        ["control.fail.failureKey.hint"] = "可选，供捕获条件用 $caught.key 比较；必须以 User. 开头。留空时报 Run.StepFailedByMacro。",
 
         ["control.note.name"] = "说明",
         ["control.note.desc"] = "在宏中间写一行说明，运行时不做事。",
@@ -1085,15 +1051,15 @@ internal static class ActionStrings
         ["file.writeCsv.encoding.option.gbk"] = EncodingGbk,
         ["file.writeCsv.encoding.option.utf16"] = EncodingUtf16,
 
-        ["file.saveVariables.name"] = "保存变量",
-        ["file.saveVariables.desc"] = "把变量写入 JSON 文件，方便下次运行读取。",
+        ["file.saveVariables.name"] = "保存变量快照",
+        ["file.saveVariables.desc"] = "把选中的局部或全局变量写入 JSON 文件；这是显式快照，不等同于全局变量的持久化值。",
         ["file.saveVariables.path.label"] = "文件",
         ["file.saveVariables.path.hint"] = "要写入的文件。只写文件名时会相对宏文件夹解析。",
         ["file.saveVariables.names.label"] = "哪些变量",
         ["file.saveVariables.names.hint"] = "要保存的名称，用逗号分隔。默认留空，表示所有局部变量和共享变量。",
 
-        ["file.loadVariables.name"] = "读取变量",
-        ["file.loadVariables.desc"] = "读取由“保存变量”写出的文件，恢复变量。",
+        ["file.loadVariables.name"] = "恢复变量快照",
+        ["file.loadVariables.desc"] = "读取由“保存变量快照”写出的文件并恢复变量；这与全局变量的持久化值相互独立。",
         ["file.loadVariables.path.label"] = "文件",
         ["file.loadVariables.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
 

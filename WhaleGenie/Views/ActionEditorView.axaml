@@ -1357,12 +1357,53 @@
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
 
-                            <CheckBox IsVisible="{Binding ShowsGlobalPersistence}"
-                                      IsChecked="{Binding PersistGlobalValue}"
-                                      Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                      Margin="2,4,0,8"
-                                      Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
-                                      ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
+                            <Border IsVisible="{Binding ShowsGlobalPersistence}"
+                                    Background="{DynamicResource AppGroup}" CornerRadius="5"
+                                    Padding="10" Margin="2,4,0,8">
+                                <StackPanel Spacing="7">
+                                    <TextBlock Text="{Binding [GlobalVariables.Definition], Source={x:Static loc:Strings.Current}}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AppTextStrong}" />
+                                    <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <ComboBox Grid.Column="1"
+                                                  ItemsSource="{Binding GlobalVariableDraft.TypeOptions}"
+                                                  SelectedItem="{Binding GlobalVariableDraft.SelectedType}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="models:ActionParameterOption">
+                                                    <TextBlock Text="{Binding Display}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="130,*,Auto" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding GlobalVariableDraft.DefaultValue}" />
+                                        <Button Grid.Column="2" Classes="FlatButton"
+                                                Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnBuildGlobalDefaultExpression" />
+                                    </Grid>
+                                    <TextBlock Margin="138,0,0,0"
+                                               Text="{Binding GlobalVariableDraft.DefaultPreview}"
+                                               TextWrapping="Wrap" FontSize="11.5"
+                                               Foreground="{DynamicResource AppMuted}" />
+                                    <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding GlobalVariableDraft.Description}" />
+                                    </Grid>
+                                    <CheckBox IsChecked="{Binding GlobalVariableDraft.PersistValue}"
+                                              Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
+                                              ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Text="{Binding GlobalVariableProblem}" TextWrapping="Wrap"
+                                               Foreground="#E06C75"
+                                               IsVisible="{Binding HasGlobalVariableProblem}" />
+                                </StackPanel>
+                            </Border>
 
                             <TextBlock Classes="Muted" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />

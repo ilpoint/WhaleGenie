@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
@@ -210,6 +213,84 @@ public class ScriptHostRunTests : IDisposable
         Assert.Equal(3, outcome.ExitCode);
     }
 
+    [Fact]
+    public void A_script_runs_with_a_package_from_the_devices_folder()
+    {
+        var library = PutPackageAssembly();
+        var outcome = Device().RunCSharp(
+            new CSharpScript(
+                """
+                using System;
+                class Program
+                {
+                    static void Main()
+                    {
+                        Console.WriteLine(PackageProbe.Value.Text());
+                    }
+                }
+                """,
+                TimeoutMs: 120000),
+            new ReachingMacro(), _ => { }, _ => { }, default);
+
+        Assert.Equal(0, outcome.ExitCode);
+        Assert.Equal("package reached", outcome.Output);
+        Assert.True(File.Exists(library));
+    }
+
+    [RealNuGetFact]
+    public void A_downloaded_nuget_package_compiles_and_runs_in_the_script_host()
+    {
+        var device = Device();
+        var installed = device.InstallNuGet(
+            new NuGetRequest(["Newtonsoft.Json 13.0.3"], 120000),
+            _ => { }, _ => { }, default);
+        Assert.Equal(0, installed.ExitCode);
+        Assert.Equal(string.Empty, installed.FailureKey);
+
+        var outcome = device.RunCSharp(
+            new CSharpScript(
+                """
+                using System;
+                using Newtonsoft.Json.Linq;
+                class Program
+                {
+                    static void Main()
+                    {
+                        var parsed = JObject.Parse("{\"name\":\"WhaleGenie\",\"value\":7}");
+                        Console.WriteLine(parsed["name"] + ":" + parsed["value"]);
+                    }
+                }
+                """,
+                TimeoutMs: 120000),
+            new ReachingMacro(), _ => { }, _ => { }, default);
+
+        Assert.Equal(0, outcome.ExitCode);
+        Assert.Equal("WhaleGenie:7", outcome.Output);
+    }
+
+    private string PutPackageAssembly()
+    {
+        var path = Path.Combine(_packages, "nuget", "PackageProbe", "1.0.0", "lib",
+            "net10.0", "PackageProbe.dll");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var source = CSharpSyntaxTree.ParseText(
+            "namespace PackageProbe { public static class Value { public static string Text() => \"package reached\"; } }");
+        var trusted = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Where(File.Exists)
+            .Select(file => (MetadataReference)MetadataReference.CreateFromFile(file));
+        var compilation = CSharpCompilation.Create("PackageProbe", [source], trusted,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        using var stream = File.Create(path);
+        var emitted = compilation.Emit(stream);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine,
+            emitted.Diagnostics.Select(diagnostic => diagnostic.ToString())));
+
+        File.WriteAllText(Path.Combine(_packages, "nuget", "references.json"),
+            """["PackageProbe/1.0.0/lib/net10.0/PackageProbe.dll"]""");
+        return path;
+    }
+
     /// <summary>
     /// The program's own file, which is the process a script is run by. It sits beside the tests
     /// because this project's tests run the program that was just built.
@@ -221,6 +302,19 @@ public class ScriptHostRunTests : IDisposable
         var program = Program();
         Assert.True(File.Exists(program), $"the program itself is not beside the tests: {program}");
         return new ScriptDevice(new WindowsProcessDevice(), _packages, program);
+    }
+}
+
+/// <summary>Runs the real feed check only when someone explicitly asks for it.</summary>
+public sealed class RealNuGetFactAttribute : FactAttribute
+{
+    public RealNuGetFactAttribute()
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("WHALEGENIE_REAL_NUGET"),
+                "1", StringComparison.Ordinal))
+        {
+            Skip = "Set WHALEGENIE_REAL_NUGET=1 to download a package and run it through the script host.";
+        }
     }
 }
 

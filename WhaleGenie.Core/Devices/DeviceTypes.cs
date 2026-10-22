@@ -625,6 +625,9 @@ public enum WindowMatch
 
     /// <summary>The window class the owning program registered, such as "Notepad".</summary>
     ClassName,
+
+    /// <summary>The handle of one exact window instance, valid only while that window exists.</summary>
+    Handle,
 }
 
 /// <summary>
