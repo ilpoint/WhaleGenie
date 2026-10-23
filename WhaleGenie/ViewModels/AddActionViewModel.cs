@@ -33,15 +33,11 @@ public partial class AddActionViewModel : ViewModelBase
     private string _assetFolder = string.Empty;
 
     /// <summary>
-    /// The action whose fields depend on which macro it calls. What a call asks for is that
-    /// macro's own declarations, so the form is built from the answer to "which macro" rather than
-    /// from the catalogue alone.
+    /// True when the form's arguments and results are declarations of the macro this step names.
+    /// The catalogue says that, so another action with the same shape needs no branch here.
     /// </summary>
-    private const string RunMacroKey = "control.runMacro";
-    private const string StartMacroKey = "control.startMacro";
-
-    /// <summary>The two steps that call another macro: what they ask for is declared there.</summary>
-    private static bool CallsMacro(string? key) => key is RunMacroKey or StartMacroKey;
+    private static bool CallsMacro(ActionDefinition? definition)
+        => definition?.SignatureSource is ActionSignatureSource.CalledMacro;
 
     /// <summary>
     /// The action that lists windows rather than acting on one of them. Nothing written in its match
@@ -1281,7 +1277,7 @@ public partial class AddActionViewModel : ViewModelBase
 
         // A call's arguments and results are the called macro's own declarations, so the name goes
         // into the form first: the fields the file is about to fill in only exist because of it.
-        if (CallsMacro(SelectedDefinition?.Key) && Parameter("macro") is { } called)
+        if (CallsMacro(SelectedDefinition) && Parameter("macro") is { } called)
         {
             called.WriteValue(step.Text("macro"));
         }
@@ -1340,7 +1336,7 @@ public partial class AddActionViewModel : ViewModelBase
 
             // A call's form is built for whichever macro it names, so the name is put back into the
             // box it was read from before the fields that only exist because of it.
-            var calling = CallsMacro(definition.Key);
+            var calling = CallsMacro(definition);
             _buildingCallFields = calling;
             try
             {
@@ -1516,7 +1512,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private IReadOnlyList<ActionReturn> CalledResults(ActionDefinition definition)
     {
-        if (!CallsMacro(definition.Key) || CalledMacro() is not { } call)
+        if (!CallsMacro(definition) || CalledMacro() is not { } call)
         {
             return definition.Returns;
         }
@@ -2255,7 +2251,7 @@ public partial class AddActionViewModel : ViewModelBase
         // the macro it names changes. The rebuild says everything a change says and the fields this
         // event came from are gone with it, so nothing else is done here.
         if (!_buildingCallFields
-            && CallsMacro(SelectedDefinition?.Key)
+            && CallsMacro(SelectedDefinition)
             && !string.Equals(Parameter("macro")?.CurrentText.Trim() ?? string.Empty, _callMacro,
                 StringComparison.Ordinal))
         {

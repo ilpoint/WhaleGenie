@@ -18,6 +18,28 @@ namespace WhaleGenie.Tests;
 public class ActionContractTests
 {
     [Fact]
+    public void Only_macro_calls_take_their_signature_from_the_called_macro()
+    {
+        var fromCall = ActionSemanticsCatalog.All
+            .Where(action => action.SignatureSource is ActionSignatureSource.CalledMacro)
+            .Select(action => action.Key)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(["control.runMacro", "control.startMacro"], fromCall);
+        Assert.All(ActionSemanticsCatalog.All.Where(action =>
+                action.SignatureSource is ActionSignatureSource.CalledMacro),
+            action =>
+            {
+                Assert.NotNull(action.Parameter("macro"));
+                Assert.Equal(ActionValueShape.Rows, action.Parameter("returns")?.Shape);
+            });
+        Assert.All(ActionSemanticsCatalog.All.Where(action =>
+                action.SignatureSource is ActionSignatureSource.Own),
+            action => Assert.DoesNotContain(action.Key, fromCall, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void Coordinates_and_window_rules_have_one_shape()
     {
         foreach (var action in ActionSemanticsCatalog.All)
@@ -70,6 +92,8 @@ public class ActionContractTests
                 SameValue(problems, display.Key, "input", display.SendsInput, engine.SendsInput);
                 SameValue(problems, display.Key, "screen", display.LooksAtScreen, engine.LooksAtScreen);
                 SameValue(problems, display.Key, "waits", display.Waits, engine.Waits);
+                SameValue(problems, display.Key, "signature source", display.SignatureSource,
+                    engine.SignatureSource);
                 SameValue(problems, display.Key, "timeout source", display.TimeoutSource,
                     engine.TimeoutSource);
                 SameValue(problems, display.Key, "timeout field", display.TimeoutField,
@@ -277,6 +301,7 @@ public class ActionContractTests
             "ReadMode", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
             "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
             "Unit", "EmptyMeans", "Minimum", "Maximum", "EmptiesToEdge", "IsDuration",
+            "SignatureSource",
         ];
 
         using var document = JsonDocument.Parse(display);
@@ -295,6 +320,66 @@ public class ActionContractTests
         Assert.DoesNotContain("SendsInput =", source, StringComparison.Ordinal);
         Assert.DoesNotContain("StepTimeoutMs =", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ActionParameterSemantics", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_action_that_hands_something_over_says_where_its_returns_are_written()
+    {
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            if (action.Returns.Count == 0)
+            {
+                continue;
+            }
+
+            var returns = action.Parameter("returns");
+            Assert.NotNull(returns);
+            Assert.Equal(ActionValueShape.Rows, returns.Shape);
+            Assert.Equal(["key", "name"], returns.Columns.Select(column => column.Name));
+        }
+    }
+
+    /// <summary>
+    /// A choice that starts on a word it does not offer is a value the engine will refuse before
+    /// the user changes anything, and the form shows a starting answer that is not one of the
+    /// answers. It is the same kind of mistake as a missing option label, and just as invisible.
+    /// </summary>
+    [Fact]
+    public void Every_choice_starts_on_one_of_its_own_options()
+    {
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var parameter in action.Parameters.Where(parameter =>
+                         parameter.Shape == ActionValueShape.Choice
+                         && parameter.DefaultValue.Length > 0))
+            {
+                Assert.Contains(parameter.DefaultValue, parameter.Options);
+            }
+        }
+    }
+
+    [Fact]
+    public void Starting_a_program_hands_over_the_fields_later_steps_use()
+    {
+        var started = ActionSemanticsCatalog.Find("process.start")!
+            .Returns.Single(result => result.Key == "program");
+
+        Assert.Equal(ActionReturnType.Record, started.Type);
+        Assert.Equal(["id", "process", "title", "handle"],
+            started.Fields.Select(field => field.Name));
+        Assert.DoesNotContain(started.Fields, field => field.Name == "memoryMb");
+        Assert.DoesNotContain(started.Fields, field => field.Name == "cpuSeconds");
+    }
+
+    [Theory]
+    [InlineData("process.start", "hidden", "false")]
+    [InlineData("file.writeCsv", "writeMode", "overwrite")]
+    public void A_default_that_means_the_useful_case_is_the_one_the_action_starts_with(
+        string actionKey, string parameterName, string expected)
+    {
+        var parameter = ActionSemanticsCatalog.Find(actionKey)!.Parameter(parameterName);
+        Assert.NotNull(parameter);
+        Assert.Equal(expected, parameter.DefaultValue);
     }
 
     [Fact]

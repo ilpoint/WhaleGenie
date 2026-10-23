@@ -222,10 +222,13 @@ public sealed partial class MacroRunner
         {
             case "get":
                 answer = Value.FromText(_devices.System.InputMethod());
+                Give(step, "layouts", Value.FromList([]));
                 break;
 
             case "list":
-                answer = Value.FromText(string.Join(';', _devices.System.InputMethods()));
+                var installed = _devices.System.InputMethods();
+                answer = Value.FromText(string.Join(';', installed));
+                Give(step, "layouts", Value.FromList(installed.Select(Value.FromText)));
                 break;
 
             case "switch":
@@ -242,6 +245,7 @@ public sealed partial class MacroRunner
                 }
 
                 answer = Value.FromText(switched);
+                Give(step, "layouts", Value.FromList([]));
                 break;
 
             default:

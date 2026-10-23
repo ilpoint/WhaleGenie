@@ -16,6 +16,27 @@ namespace WhaleGenie.Tests;
 public class MenuWindowTests
 {
     [Fact]
+    public void The_macro_picker_shows_each_macro_by_name()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "整理报表" };
+            var window = new MenuMacroPickerWindow([macro], enabledOnly: false);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var texts = window.GetVisualDescendants().OfType<TextBlock>()
+                .Select(text => text.Text)
+                .ToList();
+            Assert.Contains("整理报表", texts);
+            Assert.DoesNotContain(texts, text =>
+                text is not null && text.Contains("WhaleGenie.Models.MacroItem", StringComparison.Ordinal));
+
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void The_menu_is_a_compact_four_by_six_grid_with_closed_search()
     {
         Ui.Run(() =>

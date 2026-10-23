@@ -161,10 +161,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Tray.Tooltip"] = "WhaleGenie",
         ["Tray.Show"] = "Show WhaleGenie",
         ["Tray.Exit"] = "Exit",
-        ["Tray.HiddenTitle"] = "WhaleGenie is still running",
-        ["Tray.HiddenText"] =
-            "It stays in the notification area and keeps its macros ready. Right-click the icon "
-            + "there to exit.",
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "Macro Editor",
@@ -1672,6 +1668,8 @@ public sealed class Strings : INotifyPropertyChanged
             + "will not duplicate either.",
         ["Run.BadRegion"] = "The record this step takes its rectangle from has no left, top, width "
             + "and height in it (a hit, a window and a picture taken earlier all do): {0}",
+        ["Run.BadResult"] = "The step's return request is invalid: \"{0}\" is not a declared result, "
+            + "or its result key or destination name is repeated or unreadable.",
         ["Run.BadResultType"] = "The value the run hands back for \"{0}\" is not the kind its declaration promised.",
         ["Run.BadRowColumn"] = "A row of \"{0}\" names a column this list does not have, or leaves out one it needs.",
         ["Run.BadUserFailureKey"] = "A user failure key must start with User. and then be a readable variable name: {0}",
@@ -1959,6 +1957,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UnknownParameter"] = "\"{0}\" is not a field of this action any more: delete this entry.",
         ["Editor.Problem.PlaceAndNumbers"] = "\"{0}\" and the numbers beside it are both filled in: keep one way of saying where, the other is ignored.",
         ["Editor.Problem.DuplicateResultName"] = "Two results go by the same name \"{0}\": the later one overwrites the earlier.",
+        ["Editor.Problem.DuplicateResultKey"] = "The result \"{0}\" is requested more than once in this step: keep one row for it.",
+        ["Editor.Problem.BadResultName"] = "\"{0}\" is not a variable name, so this result cannot be handed over under it.",
+        ["Editor.Problem.UndeclaredActionResult"] = "\"{1}\" does not declare the result \"{0}\", so this step cannot hand it over.",
         ["Editor.Problem.BadExpression"] = "This value cannot be read as an expression: {0}",
         ["Editor.Problem.BadDeclaration"] = "\"{0}\" declares \"{1}\" twice, or under a name the run keeps: its calls cannot use it.",
         ["Editor.Problem.InvalidDeclarationName"] = "\"{0}\" declares \"{1}\", which cannot be read as a variable name: use letters, digits, underscores and dots, starting with a letter, digit or underscore.",
@@ -2130,8 +2131,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Tray.Tooltip"] = "鲸灵",
         ["Tray.Show"] = "显示鲸灵",
         ["Tray.Exit"] = "退出",
-        ["Tray.HiddenTitle"] = "鲸灵还在运行",
-        ["Tray.HiddenText"] = "它留在通知区域里，宏照常待命。要退出就右键那个图标。",
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "宏编辑器",
@@ -3814,6 +3813,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "与 Direct3D 11 设备；显卡不肯交出的显示器它也读不到。",
         ["Run.BadRegion"] = "交给它的那条记录里没有 left、top、width、height（命中、窗口、之前截下"
             + "的画面都会带着这四个数）：{0}",
+        ["Run.BadResult"] = "这一步的返回值设置无效：「{0}」不是它声明的结果，或者结果键、目标变量名重复、读不出来。",
         ["Run.BadResultType"] = "这次运行交回的「{0}」与它声明的类型不符。",
         ["Run.BadRowColumn"] = "「{0}」的某一行写了这个列表没有的列，或者缺了它要的列。",
         ["Run.BadUserFailureKey"] = "用户失败键必须从 User. 开始，后面是能读回来的变量名：{0}",
@@ -4079,6 +4079,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UnknownParameter"] = "「{0}」不是这个动作的字段（可能已经改名或删除）：删掉这一项。",
         ["Editor.Problem.PlaceAndNumbers"] = "「{0}」和旁边的数字都填了：只留一种写法，另一种会被忽略。",
         ["Editor.Problem.DuplicateResultName"] = "有两个结果用了同一个名字「{0}」：后一个会盖掉前一个。",
+        ["Editor.Problem.DuplicateResultKey"] = "同一步里请求了两次结果「{0}」：只保留一行。",
+        ["Editor.Problem.BadResultName"] = "「{0}」不能当变量名读，这个结果无法写在它下面。",
+        ["Editor.Problem.UndeclaredActionResult"] = "「{1}」没有声明结果「{0}」，这一步交不出它。",
         ["Editor.Problem.BadExpression"] = "这里不是有效的表达式：{0}",
         ["Editor.Problem.BadDeclaration"] = "「{0}」的声明「{1}」重名，或者用了运行保留的名字：调用它的步骤用不了。",
         ["Editor.Problem.InvalidDeclarationName"] = "「{0}」的声明「{1}」不能当变量名读：只能用字母、数字、下划线和点，并且以字母、数字或下划线开头。",

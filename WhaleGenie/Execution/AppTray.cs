@@ -5,7 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Localization;
 
 namespace WhaleGenie.Execution;
 
@@ -32,9 +31,6 @@ public sealed class AppTray : IDisposable
     private readonly INotificationArea _area;
 
     private readonly Action _exit;
-
-    /// <summary>Whether the user has been told where the window went; once is enough in a session.</summary>
-    private bool _told;
 
     private bool _exiting;
 
@@ -235,18 +231,11 @@ public sealed class AppTray : IDisposable
     private void Hide()
     {
         // Cleared before hiding, so bringing it back shows an ordinary window rather than a
-        // minimized one that only appears as a sliver in the taskbar.
+        // minimized one that only appears as a sliver in the taskbar. The icon is the whole
+        // explanation: no balloon is shown, because minimizing is a routine action rather than
+        // something that needs an interruption.
         _window.WindowState = WindowState.Normal;
         _window.Hide();
-
-        if (_told)
-        {
-            return;
-        }
-
-        _told = true;
-        _area.Balloon(
-            Strings.Get("Tray.HiddenTitle"), Strings.Get("Tray.HiddenText"), NotificationKind.Information);
     }
 
     /// <summary>

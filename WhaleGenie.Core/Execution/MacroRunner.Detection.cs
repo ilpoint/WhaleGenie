@@ -126,7 +126,7 @@ public sealed partial class MacroRunner
         // A step that asked to look again waits a moment and confirms the thing is still there: a
         // thing that flashed past, or a screen that has already moved on, is not clicked. The second
         // look is a single look rather than another wait, the same as a step that clicks a picture.
-        var again = Pace(Number(step, "recheckMs"));
+        var again = Pace(Number(step, "confirmMs"));
         if (again > 0)
         {
             await Pause(again, token);

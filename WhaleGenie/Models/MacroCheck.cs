@@ -23,6 +23,9 @@ public sealed record MacroProblem(MacroStep Step, string Message);
 /// </summary>
 public static class MacroCheck
 {
+    private static bool CallsMacro(MacroStep step)
+        => step.Definition?.Semantics.SignatureSource is ActionSignatureSource.CalledMacro;
+
     /// <summary>The steps that give a break or a continue something to act on.</summary>
     private static readonly HashSet<string> LoopKeys = new(StringComparer.Ordinal)
     {
@@ -242,7 +245,7 @@ public static class MacroCheck
 
             foreach (var step in Every(macro.OwnSteps))
             {
-                if (step.Type is not ("control.runMacro" or "control.startMacro")
+                if (!CallsMacro(step)
                     || !string.Equals(step.Text("macro").Trim(), ownName,
                         StringComparison.OrdinalIgnoreCase)
                     || !CallMismatch(step, own))
@@ -414,7 +417,7 @@ public static class MacroCheck
                 }
             }
 
-            if (step.Type is not ("control.runMacro" or "control.startMacro"))
+            if (!CallsMacro(step))
             {
                 return false;
             }
@@ -527,6 +530,7 @@ public static class MacroCheck
                 CheckMissingFields(step);
                 CheckOptions(step);
                 CheckRowColumns(step);
+                CheckActionResultRequests(step);
                 CheckDuplicateResults(step);
                 CheckExpressions(step);
 
@@ -698,7 +702,7 @@ public static class MacroCheck
                 return;
             }
 
-            var calling = step.Type is "control.runMacro" or "control.startMacro";
+            var calling = CallsMacro(step);
             foreach (var parameter in step.Parameters)
             {
                 if (calling && parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix,
@@ -848,6 +852,46 @@ public static class MacroCheck
         }
 
         /// <summary>
+        /// A step may only ask for results its action declares, and each result key and destination
+        /// name may appear once. Calls are checked against the called macro's signature elsewhere;
+        /// this check covers the action catalogue's own returns and the destination names both kinds
+        /// of step write.
+        /// </summary>
+        void CheckActionResultRequests(MacroStep step)
+        {
+            if (step.Definition is not { } definition)
+            {
+                return;
+            }
+
+            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var parameter in step.Parameters.Where(parameter =>
+                         parameter.Kind is ActionParameterKind.Returns))
+            {
+                foreach (var (key, name) in step.ReturnedResults(parameter))
+                {
+                    if (!VariableText.IsName(name))
+                    {
+                        Add(step, Strings.Format("Editor.Problem.BadResultName", name));
+                    }
+
+                    if (key.Length > 0 && !keys.Add(key))
+                    {
+                        Add(step, Strings.Format("Editor.Problem.DuplicateResultKey", key));
+                    }
+
+                    if (key.Length > 0
+                        && definition.Semantics.SignatureSource is ActionSignatureSource.Own
+                        && definition.Semantics.Return(key) is null)
+                    {
+                        Add(step, Strings.Format("Editor.Problem.UndeclaredActionResult", key,
+                            definition.LocalName));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// A whole-cell value that starts with a dollar sign is read as an expression, so one that
         /// the language cannot parse would stop the run. Plain text and the escaped dollar are left
         /// alone: those are values, not formulae.
@@ -990,7 +1034,7 @@ public static class MacroCheck
 
         void CheckCall(MacroStep step, bool guarded)
         {
-            if (step.Type is not ("control.runMacro" or "control.startMacro"))
+            if (!CallsMacro(step))
             {
                 return;
             }
@@ -1234,7 +1278,7 @@ public static class MacroCheck
         /// </summary>
         void CheckCallArguments(MacroStep step)
         {
-            if (step.Type is not ("control.runMacro" or "control.startMacro")
+            if (!CallsMacro(step)
                 || reachable.GetValueOrDefault(step.Text("macro").Trim()) is not { } called)
             {
                 return;
@@ -1574,7 +1618,7 @@ public static class MacroCheck
                 }
             }
 
-            if (step.Type is "control.runMacro" or "control.startMacro"
+            if (CallsMacro(step)
                 && reachable.GetValueOrDefault(step.Text("macro").Trim()) is { } called)
             {
                 foreach (var (result, name) in Wanted(step))

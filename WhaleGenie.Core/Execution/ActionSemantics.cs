@@ -164,6 +164,19 @@ public enum ActionTimeoutSource
     Parameter,
 }
 
+/// <summary>
+/// Where the fields and results of a step come from. Most actions use their own catalogue entry;
+/// a call to another macro takes both from the declaration of the macro it names.
+/// </summary>
+public enum ActionSignatureSource
+{
+    /// <summary>The action's own parameters and declared returns.</summary>
+    Own,
+
+    /// <summary>The arguments and results declared by the macro named in this step.</summary>
+    CalledMacro,
+}
+
 /// <summary>One parameter's semantic facts, without anything about how the editor draws it.</summary>
 public sealed class ActionParameterSemantics
 {
@@ -368,6 +381,13 @@ public sealed class ActionSemantics
     /// <summary>The step timeout a newly written step starts with, in milliseconds; 0 for none.</summary>
     public int StepTimeoutMs { get; init; }
 
+    /// <summary>
+    /// Whether this action's form and result page use its own catalogue entry or the declaration
+    /// of another macro. The editor and engine both read this fact instead of recognising action
+    /// keys themselves.
+    /// </summary>
+    public ActionSignatureSource SignatureSource { get; init; }
+
     public IReadOnlyList<ActionParameterSemantics> Parameters { get; init; } = [];
 
     public IReadOnlyList<ActionReturnSemantics> Returns { get; init; } = [];
@@ -375,6 +395,11 @@ public sealed class ActionSemantics
     /// <summary>The parameter with that name, or null when the action has none.</summary>
     public ActionParameterSemantics? Parameter(string name)
         => Parameters.FirstOrDefault(parameter => parameter.Name == name);
+
+    /// <summary>The result with that key, or null when this action does not declare it.</summary>
+    public ActionReturnSemantics? Return(string key)
+        => Returns.FirstOrDefault(result =>
+            string.Equals(result.Key, key, StringComparison.OrdinalIgnoreCase));
 }
 
 /// <summary>
@@ -416,6 +441,14 @@ public static class ActionSemanticsCatalog
             {
                 throw new InvalidOperationException(
                     $"{action.Key}: timeout field {action.TimeoutField} is not a parameter.");
+            }
+
+            if (action.SignatureSource == ActionSignatureSource.CalledMacro
+                && (action.Parameter("macro") is null
+                    || action.Parameter("returns")?.Shape != ActionValueShape.Rows))
+            {
+                throw new InvalidOperationException(
+                    $"{action.Key}: a called-macro signature needs a macro field and a returns list.");
             }
 
             if (action.Parameters.Select(parameter => parameter.Name)

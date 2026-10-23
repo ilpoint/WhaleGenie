@@ -47,6 +47,17 @@ public class BrowserActionTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    [Fact]
+    public void A_visible_browser_follows_its_window_size()
+    {
+        Assert.Null(PlaywrightBrowserDevice.ViewportFor(headless: true));
+
+        var visible = PlaywrightBrowserDevice.ViewportFor(headless: false);
+        Assert.NotNull(visible);
+        Assert.Equal(-1, visible.Width);
+        Assert.Equal(-1, visible.Height);
+    }
+
     [RealBrowserFact]
     public void A_dropdown_a_box_a_menu_a_key_and_a_file_all_reach_the_page()
     {

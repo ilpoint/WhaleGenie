@@ -286,6 +286,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                     {
                         Channel = channel.Length == 0 ? null : channel,
                         Headless = headless,
+                        ViewportSize = ViewportFor(headless),
                         AcceptDownloads = true,
                     });
             }
@@ -298,6 +299,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 });
                 _context = await _browser.NewContextAsync(new BrowserNewContextOptions
                 {
+                    ViewportSize = ViewportFor(headless),
                     AcceptDownloads = true,
                 });
             }
@@ -333,6 +335,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             }
         });
     }
+
+    /// <summary>
+    /// A visible browser follows the size of its own window, so maximizing the window really makes
+    /// the page larger. A headless browser keeps Playwright's fixed viewport because there is no
+    /// window for the page to follow.
+    /// </summary>
+    internal static ViewportSize? ViewportFor(bool headless)
+        => headless ? null : ViewportSize.NoViewport;
 
     /// <summary>
     /// Where a profile is kept: beside the program, the way the packages a script asks for are, so

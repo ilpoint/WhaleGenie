@@ -90,7 +90,7 @@ public class ActionPageTests
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
-        "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "caseSensitive",
+        "maxRows", "headless", "limit", "skipBlankLines", "trim", "caseSensitive",
         "multiline", "shape",
         "afterMs", "hidden", "runAsAdmin", "details", "inputSize", "iou",
     ];
@@ -334,8 +334,8 @@ public class ActionPageTests
     [InlineData("input.mouseScroll", "repeat", "intervalMs")]
     [InlineData("input.mouseDrag", "settleMs")]
     [InlineData("gamepad.button", "holdMs", "repeat", "intervalMs")]
-    [InlineData("vision.clickImage", "variance", "recheckMs")]
-    [InlineData("ocr.clickText", "variance", "recheckMs")]
+    [InlineData("vision.clickImage", "variance", "confirmMs")]
+    [InlineData("ocr.clickText", "variance", "confirmMs")]
     public void How_a_step_lands_and_how_it_beats_are_read_as_one_run(string action,
         params string[] run)
     {

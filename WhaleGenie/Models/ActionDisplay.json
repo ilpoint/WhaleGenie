@@ -2235,32 +2235,9 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "storeAs",
-        "Label": "Store as",
-        "Hint": "Keep the file as one piece of text, or hand each line over as an item of a list, which is what walking through a file of names or paths wants. One piece of text is the default.",
-        "Placeholder": "",
-        "Kind": "Choice",
-        "OptionLabels": [
-          "One piece of text",
-          "One item per line"
-        ],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
         "Name": "limit",
         "Label": "Only the first",
-        "Hint": "Read only the first this many lines, from 0 to 1000000 and 0 by default. Zero reads the whole file, which a file of lines to pick a few out of does not want.",
+        "Hint": "How many lines the lines result keeps, 0 by default; 0 keeps them all. The text result is not cut.",
         "Placeholder": "",
         "Kind": "Number",
         "OptionLabels": [],
@@ -2280,7 +2257,7 @@
       {
         "Name": "skipBlankLines",
         "Label": "Leave out blank lines",
-        "Hint": "Drop the lines that hold nothing, so a blank line in the middle of a list of names does not become an item. Off by default.",
+        "Hint": "Drop blank lines from the lines result. The text result keeps them.",
         "Placeholder": "",
         "Kind": "Bool",
         "OptionLabels": [],
@@ -2300,7 +2277,7 @@
       {
         "Name": "trimLines",
         "Label": "Trim each line",
-        "Hint": "Take the spaces off both ends of every line. Off by default.",
+        "Hint": "Trim spaces from both ends of each line in the lines result. Off by default.",
         "Placeholder": "",
         "Kind": "Bool",
         "OptionLabels": [],
@@ -2347,7 +2324,12 @@
       {
         "Key": "text",
         "Label": "Text",
-        "Hint": "What the file held. With “one item per line” it is a list of lines."
+        "Hint": "The whole file as one piece of text. Tick Lines instead to read it line by line."
+      },
+      {
+        "Key": "lines",
+        "Label": "Lines",
+        "Hint": "The file as a list of lines. The limit and blank-line options below apply to it."
       }
     ]
   },
@@ -2709,9 +2691,35 @@
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "path",
+        "Label": "Where it landed",
+        "Hint": "Where the file is after this step."
+      }
+    ]
   },
   {
     "Key": "file.move",
@@ -2781,9 +2789,35 @@
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "path",
+        "Label": "Where it landed",
+        "Hint": "Where the file is after this step."
+      }
+    ]
   },
   {
     "Key": "file.createFolder",
@@ -2857,8 +2891,15 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "operation",
+        "AppliesWhenValues": [
+          "combine",
+          "folder",
+          "name",
+          "baseName",
+          "extension",
+          "full"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
@@ -2877,8 +2918,10 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "operation",
+        "AppliesWhenValues": [
+          "combine"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -3221,8 +3264,10 @@
         "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "recurse",
+        "AppliesWhenValues": [
+          "true"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -4354,7 +4399,7 @@
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
-        "PathFilter": "*.pdf",
+        "PathFilter": "",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -4481,6 +4526,16 @@
         "Key": "image",
         "Label": "Picture",
         "Hint": "The picture, ready for a find-image step to look for on screen. A picture on the clipboard has no place on screen, so there is no position."
+      },
+      {
+        "Key": "width",
+        "Label": "Width",
+        "Hint": "The picture's width in pixels; empty when the clipboard held no picture."
+      },
+      {
+        "Key": "height",
+        "Label": "Height",
+        "Hint": "The picture's height in pixels; empty when the clipboard held no picture."
       }
     ]
   },
@@ -4565,7 +4620,7 @@
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
+        "PathIntent": 4,
         "PathFilter": "",
         "Increment": 1,
         "Tall": false,
@@ -4625,7 +4680,7 @@
         "Label": "Shortcut",
         "Hint": "Keys joined with + that copy the selection; Ctrl+C by default.",
         "Placeholder": "Ctrl+C",
-        "Kind": "Text",
+        "Kind": "Keys",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -4699,7 +4754,7 @@
         "Label": "Shortcut",
         "Hint": "Keys joined with + that paste; Ctrl+V by default.",
         "Placeholder": "Ctrl+V",
-        "Kind": "Text",
+        "Kind": "Keys",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": true,
@@ -4725,7 +4780,7 @@
       {
         "Name": "programFile",
         "Label": "Program",
-        "Hint": "The program to start, such as notepad.exe or a full path to it.",
+        "Hint": "The program, script, or shortcut to start. A full path or a .lnk/.url shortcut works.",
         "Placeholder": "notepad.exe",
         "Kind": "Text",
         "OptionLabels": [],
@@ -4737,15 +4792,16 @@
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
-        "PathFilter": "*.exe;*.com;*.bat;*.cmd",
+        "PathFilter": "*.exe;*.com;*.bat;*.cmd;*.vbs;*.vbe;*.js;*.jse;*.wsf;*.wsh;*.lnk;*.url;*.msi;*.msc;*.cpl;*.appref-ms;*.application;*.jar;*.hta",
         "Increment": 1,
         "Tall": false,
-        "AddLabelKey": ""
+        "AddLabelKey": "",
+        "PathFilterLabel": "Programs and shortcuts"
       },
       {
         "Name": "commandArguments",
         "Label": "Arguments",
-        "Hint": "What to pass to the program, read as one value. Empty, which is the default, passes nothing.",
+        "Hint": "Arguments passed to the program, read as one value. Empty passes nothing.",
         "Placeholder": "",
         "Kind": "Text",
         "OptionLabels": [],
@@ -4765,7 +4821,7 @@
       {
         "Name": "workingDirectory",
         "Label": "Working folder",
-        "Hint": "Folder to start the program in. Empty, which is the default, leaves it in the folder WhaleGenie itself was started in.",
+        "Hint": "The program's working folder. Empty uses WhaleGenie's own folder.",
         "Placeholder": "",
         "Kind": "Text",
         "OptionLabels": [],
@@ -4785,7 +4841,7 @@
       {
         "Name": "hidden",
         "Label": "Hidden window",
-        "Hint": "Start the program without showing its window; on by default. An installer that has to be clicked through wants this off.",
+        "Hint": "Start without showing the window. Off by default.",
         "Placeholder": "",
         "Kind": "Bool",
         "OptionLabels": [],
@@ -4805,7 +4861,7 @@
       {
         "Name": "runAsAdmin",
         "Label": "Run as administrator",
-        "Hint": "Ask Windows to start the program with administrator rights; off by default. Windows shows its own approval prompt, and refusing it fails the step. A program started elevated cannot be kept off the screen.",
+        "Hint": "Start with administrator rights. Windows shows its own prompt, and refusing it fails the step. An elevated program cannot hide its window.",
         "Placeholder": "",
         "Kind": "Bool",
         "OptionLabels": [],
@@ -4825,7 +4881,7 @@
       {
         "Name": "environment",
         "Label": "Environment variables",
-        "Hint": "One NAME=value per line for the program to start with. Empty, which is the default, starts it with WhaleGenie's own environment. Lines starting with # are skipped. Giving a program its own environment means naming the program itself, not a document or a shortcut.",
+        "Hint": "NAME=value lines for the program's environment. Empty uses WhaleGenie's environment. With its own environment the program must be named directly, not through a document or shortcut.",
         "Placeholder": "LANG=zh_CN.UTF-8",
         "Kind": "MultilineText",
         "OptionLabels": [],
@@ -4865,9 +4921,9 @@
     ],
     "Returns": [
       {
-        "Key": "processId",
-        "Label": "Process id",
-        "Hint": "The id of the program that was started, which the wait and stop steps take."
+        "Key": "program",
+        "Label": "Program",
+        "Hint": "The started program: id, process name, and the main window title and handle. Title is empty and handle is 0 until the window is up."
       }
     ]
   },
@@ -4933,8 +4989,8 @@
       {
         "Name": "id",
         "Label": "Process id",
-        "Hint": "The process to watch, usually the one Start Program gave back. Read as one value, so a variable or an expression may stand for it.",
-        "Placeholder": "$processId",
+        "Hint": "The process to wait for, usually field($program, \"id\") from a start step. Read as one value, so a variable or expression may stand for it.",
+        "Placeholder": "field($program, \"id\")",
         "Kind": "Text",
         "OptionLabels": [],
         "ForeignText": false,
@@ -5592,8 +5648,11 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "powerAction",
+        "AppliesWhenValues": [
+          "restart",
+          "shutDown"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -5850,15 +5909,17 @@
       {
         "Name": "layout",
         "Label": "Layout",
-        "Hint": "Which layout to switch to, used by \"Switch to another layout\". Part of the name is enough; \"List the installed layouts\" writes out the names to choose from. The step waits for the window to really change over, so the step after it can rely on typing in that language.",
+        "Hint": "Layout to switch to; shown only for Switch. Part of the name is enough.",
         "Placeholder": "英语(美国)",
         "Kind": "Text",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "imeAction",
+        "AppliesWhenValues": [
+          "switch"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -5893,6 +5954,11 @@
         "Key": "ime",
         "Label": "Input method",
         "Hint": "Which layout is in use, or the list of layouts that could be switched to."
+      },
+      {
+        "Key": "layouts",
+        "Label": "Installed layouts",
+        "Hint": "Installed layouts, one item each, when the answer is List; empty otherwise."
       }
     ]
   },
@@ -6105,6 +6171,11 @@
         "Key": "title",
         "Label": "Title",
         "Hint": "What the window's title bar says."
+      },
+      {
+        "Key": "window",
+        "Label": "Window",
+        "Hint": "The window that was waited for, with the same fields as window.info. Hand it to a later window field as it is."
       }
     ]
   },
@@ -9724,6 +9795,11 @@
         "Key": "windowPoint",
         "Label": "Window point",
         "Hint": "The same place counted from the target window's client-area corner. Its basis field says window."
+      },
+      {
+        "Key": "path",
+        "Label": "Saved file",
+        "Hint": "The file the picture was saved to; empty when Save to was left empty."
       }
     ]
   },
@@ -9863,6 +9939,11 @@
         "Key": "windowPoint",
         "Label": "Window point",
         "Hint": "The same middle counted from the target window's client-area corner. Its basis field says window."
+      },
+      {
+        "Key": "path",
+        "Label": "Saved file",
+        "Hint": "The file the picture was saved to; empty when Save to was left empty."
       }
     ]
   },
@@ -10942,8 +11023,8 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "recheckMs",
-        "Label": "Look again after",
+        "Name": "confirmMs",
+        "Label": "Confirm after",
         "Hint": "How long to wait before looking a second time, in milliseconds; the default is 0, which acts as soon as the picture turns up. Given a number, the step waits that long, looks again and acts only if the picture is still there, so something that flashed past, or a screen that has already moved on, is not acted on by mistake. A second look that finds nothing counts as finding nothing at all: it is one look rather than another wait, so something that has gone is not waited for.",
         "Placeholder": "",
         "Kind": "Number",
@@ -11184,33 +11265,13 @@
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
-      },
-      {
-        "Name": "asHex",
-        "Label": "Store as hex",
-        "Hint": "Store #RRGGBB instead of raw colour channels. On by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
       }
     ],
     "Returns": [
       {
         "Key": "color",
         "Label": "Colour",
-        "Hint": "The colour of the pixel, as hex or as raw channels, whichever the step was asked for."
+        "Hint": "The colour of the pixel as #RRGGBB text. The number result is the same colour as a whole number."
       },
       {
         "Key": "screenPoint",
@@ -11221,6 +11282,11 @@
         "Key": "windowPoint",
         "Label": "Window point",
         "Hint": "The same place counted from the target window's client-area corner. Its basis field says window."
+      },
+      {
+        "Key": "number",
+        "Label": "Colour as a number",
+        "Hint": "The same colour as a whole number, with blue in the highest byte. Tick it together with Colour if needed."
       }
     ]
   },
@@ -13222,8 +13288,8 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "recheckMs",
-        "Label": "Look again after",
+        "Name": "confirmMs",
+        "Label": "Confirm after",
         "Hint": "How long to wait before looking a second time, in milliseconds; the default is 0, which acts as soon as the box turns up. Given a number, the step waits that long, looks again and acts only if the box is still there, so something that flashed past, or a screen that has already moved on, is not acted on by mistake. A second look that finds nothing counts as finding nothing at all: it is one look rather than another wait, so something that has gone is not waited for.",
         "Placeholder": "",
         "Kind": "Number",
@@ -13503,66 +13569,6 @@
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "caseSensitive",
-        "Label": "Case sensitive",
-        "Hint": "Compare letter case exactly; off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "trim",
-        "Label": "Ignore spaces at the ends",
-        "Hint": "Drop the spaces at both ends before comparing. It changes \"exactly\" only; on by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "multiline",
-        "Label": "Regex by line",
-        "Hint": "Let ^ and $ stand for the start and end of each line. It changes the regex comparison only; off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -14561,8 +14567,8 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "recheckMs",
-        "Label": "Look again after",
+        "Name": "confirmMs",
+        "Label": "Confirm after",
         "Hint": "How long to wait before looking a second time, in milliseconds; the default is 0, which acts as soon as the text turns up. Given a number, the step waits that long, looks again and acts only if the text is still there, so something that flashed past, or a screen that has already moved on, is not acted on by mistake. A second look that finds nothing counts as finding nothing at all: it is one look rather than another wait, so something that has gone is not waited for.",
         "Placeholder": "",
         "Kind": "Number",
@@ -14978,12 +14984,7 @@
       {
         "Key": "window",
         "Label": "Source window",
-        "Hint": "The window the picture was taken from, or empty when it was read straight off the screen. It answers whether a step that found nothing was looking at the right window at all."
-      },
-      {
-        "Key": "method",
-        "Label": "How the picture was taken",
-        "Hint": "The way this step took the picture, such as graphicsCapture, gdi or printWindow; empty when it read no picture."
+        "Hint": "The window the element was found in; the foreground window when the step names none."
       }
     ]
   },
@@ -16342,8 +16343,10 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -16408,8 +16411,10 @@
         "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17062,8 +17067,10 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17102,8 +17109,10 @@
         "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17329,8 +17338,10 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17374,10 +17385,14 @@
         "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
+        "AppliesWhen": "scrollHow",
+        "AppliesWhenValues": [
+          "element"
+        ],
+        "AppliesWhenAlso": "pageSelector",
+        "AppliesWhenAlsoValues": [
+          "*"
+        ],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -17422,8 +17437,10 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17462,8 +17479,10 @@
         "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "pageSelector",
+        "AppliesWhenValues": [
+          "*"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17716,7 +17735,7 @@
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
+        "PathIntent": 4,
         "PathFilter": "",
         "Increment": 1,
         "Tall": false,
@@ -17981,7 +18000,7 @@
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
-        "PathFilter": "",
+        "PathFilter": "*.ps1;*.bat;*.cmd;*.ahk",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18190,8 +18209,8 @@
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
+        "PathIntent": 1,
+        "PathFilter": "*.exe",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18294,8 +18313,8 @@
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
+        "PathIntent": 1,
+        "PathFilter": "*.exe",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18542,8 +18561,8 @@
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
+        "PathIntent": 1,
+        "PathFilter": "*.exe",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""

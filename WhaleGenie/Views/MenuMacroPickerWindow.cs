@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -18,7 +19,7 @@ public sealed class MenuMacroPickerWindow : Window
     private readonly TextBox _search;
     private readonly IReadOnlyList<MacroItem> _macros;
 
-    private MenuMacroPickerWindow(IReadOnlyList<MacroItem> macros, string? title = null,
+    internal MenuMacroPickerWindow(IReadOnlyList<MacroItem> macros, string? title = null,
         string? placeholder = null, bool enabledOnly = true)
     {
         _macros = [.. (enabledOnly ? macros.Where(macro => macro.IsEnabled) : macros)];
@@ -44,6 +45,30 @@ public sealed class MenuMacroPickerWindow : Window
         {
             Margin = new Thickness(12, 0, 12, 8),
             ItemsSource = _macros,
+            ItemTemplate = new FuncDataTemplate<MacroItem>((macro, _) =>
+            {
+                // The list is handed macro objects rather than strings; without this template the
+                // row falls back to ToString() and shows the model's type name instead of its name.
+                var name = new TextBlock
+                {
+                    Text = macro.Name,
+                    FontSize = 13,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                };
+                var preview = new TextBlock
+                {
+                    Text = macro.TriggerPreview,
+                    FontSize = 11.5,
+                    Opacity = 0.62,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                };
+                return new StackPanel
+                {
+                    Spacing = 2,
+                    Margin = new Thickness(2, 4),
+                    Children = { name, preview },
+                };
+            }),
         };
         _list.DoubleTapped += (_, _) => Choose();
         _list.KeyDown += (_, e) =>

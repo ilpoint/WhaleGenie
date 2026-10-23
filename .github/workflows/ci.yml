@@ -16,6 +16,9 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-dotnet@v5
+        # act runs on this Windows host rather than a clean runner. The host already has the
+        # SDK selected by global.json; the action would otherwise try to write Program Files.
+        if: env.ACT != 'true'
         with:
           global-json-file: global.json
 

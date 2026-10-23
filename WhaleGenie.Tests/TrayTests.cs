@@ -37,9 +37,9 @@ public class TrayTests
             Assert.False(window.IsVisible);
             Assert.Equal(0, exits);
 
-            // Once per session is enough: the user is told where it went the first time and does
-            // not need the same sentence on every minimize.
-            Assert.Single(area.Balloons);
+            // Minimizing is routine: the notification icon is the whole explanation, so it does
+            // not interrupt the user with a balloon.
+            Assert.Empty(area.Balloons);
 
             tray.Dispose();
             window.Close();
@@ -95,7 +95,7 @@ public class TrayTests
 
             Assert.Equal(0, exits);
             Assert.False(window.IsVisible);
-            Assert.Single(area.Balloons);
+            Assert.Empty(area.Balloons);
 
             // With the icon gone the window is an ordinary window again, which is what lets the
             // test put it away.
@@ -150,7 +150,7 @@ public class TrayTests
     }
 
     [Fact]
-    public void The_balloon_says_where_the_window_went()
+    public void Hiding_the_window_does_not_show_a_balloon()
     {
         Ui.Run(() =>
         {
@@ -162,9 +162,7 @@ public class TrayTests
 
             window.WindowState = WindowState.Minimized;
 
-            Assert.Equal(
-                [$"{NotificationKind.Information}|{Strings.Get("Tray.HiddenTitle")}|{Strings.Get("Tray.HiddenText")}"],
-                area.Balloons);
+            Assert.Empty(area.Balloons);
 
             tray.Dispose();
             window.Close();
@@ -174,7 +172,7 @@ public class TrayTests
     [Fact]
     public void What_the_icon_says_is_written_in_both_languages()
     {
-        string[] keys = ["Tray.Tooltip", "Tray.Show", "Tray.Exit", "Tray.HiddenTitle", "Tray.HiddenText"];
+        string[] keys = ["Tray.Tooltip", "Tray.Show", "Tray.Exit"];
 
         Assert.All(keys, key =>
         {

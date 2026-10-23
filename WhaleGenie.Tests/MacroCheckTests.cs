@@ -49,18 +49,22 @@ public class MacroCheckTests
 
     /// <summary>The results a step hands over, one row each, named the way the file writes them.</summary>
     private static StepParameter Results(params string[] names)
+        => Returned([.. names.Select(name => (name, name))]);
+
+    /// <summary>Results whose engine key and destination variable are written independently.</summary>
+    private static StepParameter Returned(params (string Key, string Name)[] results)
         => new()
         {
             Name = "returns",
             Kind = ActionParameterKind.Returns,
             Rows =
             [
-                .. names.Select(name => new StepParameterRow
+                .. results.Select(result => new StepParameterRow
                 {
                     Columns = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
                     {
-                        ["key"] = name,
-                        ["name"] = name,
+                        ["key"] = result.Key,
+                        ["name"] = result.Name,
                     },
                 }),
             ],
@@ -1078,11 +1082,47 @@ public class MacroCheckTests
     [Fact]
     public void Two_results_with_one_name_are_marked()
     {
-        var step = Step("file.path", Text("path", "a.txt"), Results("part", "part"));
+        var step = Step("file.readText", Text("path", "a.txt"),
+            Returned(("text", "part"), ("lines", "part")));
 
         var problem = Assert.Single(Inspect(step));
 
         Assert.Equal(Strings.Format("Editor.Problem.DuplicateResultName", "part"), problem.Message);
+    }
+
+    [Fact]
+    public void A_result_the_action_does_not_declare_is_marked()
+    {
+        var step = Step("file.path", Text("path", "a.txt"), Results("missing"));
+
+        var problem = Assert.Single(Inspect(step));
+        var action = ActionCatalog.Find("file.path")!.LocalName;
+
+        Assert.Equal(Strings.Format("Editor.Problem.UndeclaredActionResult", "missing", action),
+            problem.Message);
+    }
+
+    [Fact]
+    public void One_result_key_asked_for_twice_is_marked()
+    {
+        var step = Step("file.readText", Text("path", "a.txt"),
+            Returned(("text", "first"), ("text", "second")));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.DuplicateResultKey", "text"), problem.Message);
+    }
+
+    [Fact]
+    public void A_result_name_the_macro_language_cannot_read_is_marked()
+    {
+        var step = Step("file.path", Text("path", "a.txt"),
+            Returned(("path", "two words")));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.BadResultName", "two words"),
+            problem.Message);
     }
 
     [Theory]

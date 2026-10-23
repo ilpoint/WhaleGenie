@@ -1197,6 +1197,13 @@ public sealed partial class MacroRunner
     private async Task<Signal> WaitAllMacros(ExecutableStep step, int depth, CancellationToken token)
     {
         var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
+        if (children.Count == 0)
+        {
+            // Waiting for every run in an empty list is not "all of them are done"; it is a macro
+            // that named no runs, which the sibling waitAny reports the same way.
+            throw new StepFailure(RunKeys.NoRunsToWait);
+        }
+
         var results = await Task.WhenAll(children.Select(child => child.Task.WaitAsync(token)));
 
         // Every ending is looked at before any result is written: a list that failed partway
@@ -2114,7 +2121,8 @@ public sealed partial class MacroRunner
             }
         }
 
-        if (step.Type is not ("control.runMacro" or "control.startMacro"))
+        if (ActionSemanticsCatalog.Find(step.Type)?.SignatureSource
+            is not ActionSignatureSource.CalledMacro)
         {
             return false;
         }
@@ -2843,6 +2851,87 @@ public sealed partial class MacroRunner
                 throw new StepFailure(facts.OptionKey, written);
             }
         }
+
+        ValidateReturnRequests(step, definition);
+    }
+
+    /// <summary>
+    /// A return request is part of the step, so a hand-written key, destination name or repeated
+    /// answer that the editor would not produce is refused before the step can do any work. Calls
+    /// to another macro check their keys against that macro's signature when the call is resolved.
+    /// </summary>
+    private static void ValidateReturnRequests(ExecutableStep step, ActionSemantics definition)
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in step.Rows("returns"))
+        {
+            var key = row.GetValueOrDefault(FieldNames.Key)?.Trim() ?? string.Empty;
+            var name = row.GetValueOrDefault(FieldNames.Name)?.Trim() ?? string.Empty;
+            if (key.Length == 0 || name.Length == 0)
+            {
+                continue;
+            }
+
+            if (!VariableText.IsName(name) || !keys.Add(key) || !names.Add(name))
+            {
+                throw new StepFailure(RunKeys.BadResult, name);
+            }
+
+            if (definition.SignatureSource is not ActionSignatureSource.CalledMacro
+                && definition.Return(key) is null)
+            {
+                throw new StepFailure(RunKeys.BadResult, key);
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when a value has the shape the catalogue promised for one result. Empty means this
+    /// attempt did not work the result out and is valid for every kind. A declared record field
+    /// table is exact: a missing, extra or wrongly typed field is a different shape even when the
+    /// value still happens to be a record.
+    /// </summary>
+    internal static bool ReturnFits(ActionReturnSemantics declared, Value value)
+    {
+        if (!MacroValues.Fits(declared.Type, value))
+        {
+            return false;
+        }
+
+        // An empty answer is how a record or list is handed over when this attempt found nothing.
+        // It means "not supplied", not a record with every field missing.
+        if (value.IsNull || value.Kind is ValueKind.Text && value.Text.Length == 0)
+        {
+            return true;
+        }
+
+        if (declared.Fields.Count == 0)
+        {
+            return true;
+        }
+
+        var items = declared.Type is ActionReturnType.List ? value.Items : [value];
+        return items.All(item => item.IsNull || RecordFits(declared.Fields, item));
+    }
+
+    private static bool RecordFits(IReadOnlyList<ActionReturnField> declared, Value value)
+    {
+        if (!value.IsRecord || value.Fields.Count != declared.Count)
+        {
+            return false;
+        }
+
+        foreach (var field in declared)
+        {
+            var found = value.Field(field.Name);
+            if (found is null || !MacroValues.Fits(field.Type, found))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
     private static void RequireCondition(ExecutableStep step, string name)
     {

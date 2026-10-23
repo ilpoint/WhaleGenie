@@ -23,20 +23,66 @@ public sealed partial class MacroRunner
 {
     // -------------------------------------------------------------------- process
 
-    /// <summary>Starts another program and keeps its process id.</summary>
+    /// <summary>Starts another program and keeps what later steps need to reach it.</summary>
     private void StartProcess(ExecutableStep step, int depth)
     {
         var program = ReadValue(step, "programFile").AsText();
         var arguments = ReadValue(step, "commandArguments").AsText();
         var folder = ReadValue(step, "workingDirectory").AsText();
-        var hidden = Flag(step, "hidden", true);
+        var hidden = Flag(step, "hidden", false);
         var runAsAdmin = Flag(step, "runAsAdmin", false);
 
         var id = _devices.Processes.Start(
             new StartRequest(program, arguments, folder, hidden, runAsAdmin, EnvironmentOf(step)));
-        Give(step, "processId", Value.FromNumber(id));
+
+        if (Wants(step, "program"))
+        {
+            // A program that has already gone by the time this is asked still gets its id and the
+            // name it was started from; the window title and handle stay empty because there is no
+            // window to ask. A window that is still coming up is the ordinary case, and a later
+            // window step is what waits for it.
+            var details = _devices.Processes.Details(id.ToString(CultureInfo.InvariantCulture));
+            Give(step, "program", StartedProgramRecord(id, program, details));
+        }
+
         Log(LogLevel.Info, depth, step.Type, LogKeys.StartedProgram, program, id);
     }
+
+    /// <summary>
+    /// The program a start step just launched, in the words later steps use: its id, its process
+    /// name, and the title and handle of its main window. The window parts are empty until the
+    /// program has one.
+    /// </summary>
+    private static Value StartedProgramRecord(int id, string path, ProcessDetails? details)
+    {
+        var name = details?.Name;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = Path.GetFileNameWithoutExtension(path);
+        }
+
+        return Value.FromRecord(
+        [
+            (FieldNames.Id, Value.FromNumber(id)),
+            (FieldNames.Process, Value.FromText(name)),
+            (FieldNames.Title, Value.FromText(details?.MainWindowTitle ?? string.Empty)),
+            (FieldNames.Handle, Value.FromNumber(details?.MainWindowHandle ?? 0)),
+        ]);
+    }
+
+    /// <summary>
+    /// One program as the detailed record <c>process.info</c> hands over: the file it was started
+    /// from, its id, its name, and what it is costing.
+    /// </summary>
+    private static Value ProgramDetailsRecord(ProcessDetails details)
+        => Value.FromRecord(
+        [
+            (FieldNames.Info, Value.FromText(details.Path)),
+            (FieldNames.Id, Value.FromNumber(details.Id)),
+            (FieldNames.Name, Value.FromText(details.Name)),
+            (FieldNames.MemoryMb, Value.FromNumber(details.MemoryMb)),
+            (FieldNames.CpuSeconds, Value.FromNumber(details.CpuSeconds)),
+        ]);
 
     /// <summary>
     /// The environment variables a step hands a program, written one <c>NAME=value</c> per line.
@@ -158,14 +204,7 @@ public sealed partial class MacroRunner
 
         // One program is one record, the way one window is: what it is called, what it is, and what
         // it is costing are answers to the same question and travel together.
-        Give(step, "program", Value.FromRecord(
-        [
-            (FieldNames.Info, Value.FromText(details.Path)),
-            (FieldNames.Id, Value.FromNumber(details.Id)),
-            (FieldNames.Name, Value.FromText(details.Name)),
-            (FieldNames.MemoryMb, Value.FromNumber(details.MemoryMb)),
-            (FieldNames.CpuSeconds, Value.FromNumber(details.CpuSeconds)),
-        ]));
+        Give(step, "program", ProgramDetailsRecord(details));
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.ProgramDetails, details.Name, details.Id);
     }

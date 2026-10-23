@@ -2587,6 +2587,24 @@ public class MacroRunnerTests
     }
 
     /// <summary>
+    /// 空列表不是“全部等完了”，而是这一步没有指名任何运行；与 waitAny 一样报没有可等的运行。
+    /// </summary>
+    [Fact]
+    public async Task Waiting_for_all_of_an_empty_list_is_a_mistake()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
+                Param("value", "list()")),
+            Step("control.waitAll", Param("runHandles", "$jobs")),
+        ], variables: store);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(RunKeys.NoRunsToWait, result.Key);
+    }
+
+    /// <summary>
     /// 一次全量等待失败时，已经成功的那次运行仍留在句柄表里；调用处可以逐个等待，而不是连句柄
     /// 都找不到。结果仍然一项都不写，失败的那一步只把整列等待判为失败。
     /// </summary>
@@ -3549,9 +3567,132 @@ public class MacroRunnerTests
         Assert.Equal("returns.name", result.Detail);
     }
 
+    [Fact]
+    public async Task A_return_key_the_action_does_not_declare_stops_the_step_before_it_runs()
+    {
+        var returns = new ExecutableParameter
+        {
+            Name = "returns",
+            Rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [FieldNames.Key] = "missing",
+                    [FieldNames.Name] = "取回",
+                },
+            ],
+        };
+
+        var (result, _) = await RunAsync(
+        [
+            Step("file.path", Param("operation", "name"), Param("path", "a.txt"), returns),
+        ]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadResult, result.Key);
+        Assert.Equal("missing", result.Detail);
+    }
+
+    [Fact]
+    public async Task Two_results_cannot_be_written_to_the_same_name()
+    {
+        var returns = new ExecutableParameter
+        {
+            Name = "returns",
+            Rows =
+            [
+                ReturnsRow("text", "取回"),
+                ReturnsRow("lines", "取回"),
+            ],
+        };
+
+        var (result, _) = await RunAsync([Step("file.readText", Param("path", "a.txt"),
+            returns)]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadResult, result.Key);
+        Assert.Equal("取回", result.Detail);
+    }
+
+    [Fact]
+    public async Task A_return_name_the_macro_language_cannot_read_stops_the_step()
+    {
+        var returns = new ExecutableParameter
+        {
+            Name = "returns",
+            Rows = [ReturnsRow("text", "two words")],
+        };
+
+        var (result, _) = await RunAsync([Step("file.readText", Param("path", "a.txt"),
+            returns)]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadResult, result.Key);
+        Assert.Equal("two words", result.Detail);
+    }
+
+    [Fact]
+    public void A_declared_record_shape_is_checked_field_by_field()
+    {
+        var program = ActionSemanticsCatalog.Find("process.start")!.Return("program")!;
+        var exact = Value.FromRecord(
+        [
+            (FieldNames.Id, Value.FromNumber(12)),
+            (FieldNames.Process, Value.FromText("notepad")),
+            (FieldNames.Title, Value.FromText("Untitled")),
+            (FieldNames.Handle, Value.FromNumber(0)),
+        ]);
+
+        Assert.True(MacroRunner.ReturnFits(program, exact));
+        Assert.False(MacroRunner.ReturnFits(program, Value.FromRecord(
+        [
+            (FieldNames.Id, Value.FromNumber(12)),
+            (FieldNames.Process, Value.FromText("notepad")),
+            (FieldNames.Title, Value.FromText("Untitled")),
+        ])));
+        Assert.False(MacroRunner.ReturnFits(program, Value.FromRecord(
+        [
+            (FieldNames.Id, Value.FromText("十二")),
+            (FieldNames.Process, Value.FromText("notepad")),
+            (FieldNames.Title, Value.FromText("Untitled")),
+            (FieldNames.Handle, Value.FromNumber(0)),
+        ])));
+    }
+
+    [Fact]
+    public void Every_item_of_a_declared_record_list_has_the_same_shape()
+    {
+        var every = ActionSemanticsCatalog.Find("vision.findImage")!.Return("every")!;
+        var first = RecordOf(every.Fields);
+        var second = RecordOf(every.Fields);
+
+        Assert.True(MacroRunner.ReturnFits(every, Value.FromList([first, second])));
+        Assert.False(MacroRunner.ReturnFits(every,
+            Value.FromList([first, Value.FromText("not a record")])));
+    }
+
     /// <summary>A call to another macro of the stand-in project.</summary>
     private static ExecutableStep Call(string macro, params ExecutableParameter[] more)
         => Step("control.runMacro", [Param("macro", macro), .. more]);
+
+    private static Dictionary<string, string> ReturnsRow(string key, string name) => new(
+        StringComparer.OrdinalIgnoreCase)
+    {
+        [FieldNames.Key] = key,
+        [FieldNames.Name] = name,
+    };
+
+    private static Value RecordOf(IReadOnlyList<ActionReturnField> fields)
+        => Value.FromRecord(fields.Select(field => (field.Name, SampleValue(field.Type))));
+
+    private static Value SampleValue(ActionReturnType type) => type switch
+    {
+        ActionReturnType.Number => Value.FromNumber(1),
+        ActionReturnType.Flag => Value.FromBool(true),
+        ActionReturnType.List => Value.FromList([]),
+        ActionReturnType.Record => Value.FromRecord([]),
+        _ => Value.FromText(string.Empty),
+    };
 
     /// <summary>
     /// A macro that declares what a call has to fill in and may ask for. Every argument is

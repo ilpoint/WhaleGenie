@@ -191,23 +191,15 @@ internal static class SampleFiles
         => every ? Returns($"{key}={name}", $"every={name}.every") : Returns($"{key}={name}");
 
     /// <summary>
-    /// The results of a step that hands a value over along with the other results it can hand over —
-    /// <c>name.place</c> beside a picture, <c>name.every</c> beside a hit, <c>name.program</c> and
-    /// <c>name.window</c> for one program or one window, <c>name.table</c> for the rows read,
-    /// <c>name.method</c> for the way a picture was taken, and <c>name.width</c> with
-    /// <c>name.height</c> for how big a picture read off the clipboard is. A key an action does not
-    /// hand over is simply never written, so one list serves them all.
+    /// The result a step hands over under a name, plus only the extra results the test reads. The
+    /// action catalogue now rejects a result key the action does not declare, so a shared list of
+    /// every possible part would make the test request results its action cannot hand back.
     /// </summary>
-    public static ExecutableParameter Parts(string key, string name) => Returns(
+    public static ExecutableParameter Parts(string key, string name, params string[] extra) => Returns(
     [
         $"{key}={name}",
-        .. PartNames.Select(part => $"{part}={name}.{part}"),
+        .. extra.Select(part => $"{part}={name}.{part}"),
     ]);
-
-    private static readonly string[] PartNames =
-    [
-        "every", "place", "program", "table", "window", "method", "width", "height",
-    ];
 
     private static IReadOnlyDictionary<string, string> Result(string written)
     {

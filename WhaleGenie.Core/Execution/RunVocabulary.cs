@@ -52,6 +52,7 @@ public static class RunKeys
     public const string BadPosition = "Run.BadPosition";
     public const string BadProcessId = "Run.BadProcessId";
     public const string BadRegion = "Run.BadRegion";
+    public const string BadResult = "Run.BadResult";
     public const string BadResultType = "Run.BadResultType";
     public const string BadRowColumn = "Run.BadRowColumn";
     public const string BadUserFailureKey = "Run.BadUserFailureKey";

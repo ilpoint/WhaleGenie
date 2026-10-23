@@ -1477,6 +1477,7 @@
     "TimeoutSource": "Step",
     "TimeoutField": "",
     "StepTimeoutMs": 60000,
+    "SignatureSource": "CalledMacro",
     "Parameters": [
       {
         "Name": "macro",
@@ -1525,6 +1526,7 @@
     "TimeoutSource": "None",
     "TimeoutField": "",
     "StepTimeoutMs": 0,
+    "SignatureSource": "CalledMacro",
     "Parameters": [
       {
         "Name": "macro",
@@ -1929,20 +1931,6 @@
         ]
       },
       {
-        "Name": "storeAs",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "text",
-        "Options": [
-          "text",
-          "lines"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "limit",
         "Shape": "Number",
         "Unit": "Count",
@@ -1999,6 +1987,11 @@
         "Key": "text",
         "Type": "Text",
         "Primary": true
+      },
+      {
+        "Key": "lines",
+        "Type": "List",
+        "Primary": false
       }
     ]
   },
@@ -2273,9 +2266,38 @@
         ],
         "AcceptsVariables": false,
         "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "path",
+        "Type": "Text",
+        "Primary": false
+      }
+    ]
   },
   {
     "Key": "file.move",
@@ -2326,9 +2348,38 @@
         ],
         "AcceptsVariables": false,
         "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "path",
+        "Type": "Text",
+        "Primary": false
+      }
+    ]
   },
   {
     "Key": "file.createFolder",
@@ -3147,7 +3198,7 @@
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
-        "DefaultValue": "replace",
+        "DefaultValue": "overwrite",
         "Options": [
           "overwrite",
           "append"
@@ -3628,6 +3679,16 @@
         "Key": "image",
         "Type": "Image",
         "Primary": true
+      },
+      {
+        "Key": "width",
+        "Type": "Number",
+        "Primary": false
+      },
+      {
+        "Key": "height",
+        "Type": "Number",
+        "Primary": false
       }
     ]
   },
@@ -3923,7 +3984,7 @@
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
-        "DefaultValue": "true",
+        "DefaultValue": "false",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
@@ -3976,9 +4037,27 @@
     ],
     "Returns": [
       {
-        "Key": "processId",
-        "Type": "Number",
-        "Primary": true
+        "Key": "program",
+        "Type": "Record",
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "id",
+            "Type": "Number"
+          },
+          {
+            "Name": "process",
+            "Type": "Text"
+          },
+          {
+            "Name": "title",
+            "Type": "Text"
+          },
+          {
+            "Name": "handle",
+            "Type": "Number"
+          }
+        ]
       }
     ]
   },
@@ -4936,11 +5015,13 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": false,
+        "Required": true,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Conditional": true,
+        "MissingKey": "Run.MissingName"
       },
       {
         "Name": "returns",
@@ -4971,6 +5052,11 @@
         "Key": "ime",
         "Type": "Text",
         "Primary": true
+      },
+      {
+        "Key": "layouts",
+        "Type": "List",
+        "Primary": false
       }
     ]
   },
@@ -5166,6 +5252,85 @@
         "Key": "title",
         "Type": "Text",
         "Primary": true
+      },
+      {
+        "Key": "window",
+        "Type": "Record",
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "title",
+            "Type": "Text"
+          },
+          {
+            "Name": "process",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Text"
+          },
+          {
+            "Name": "handle",
+            "Type": "Number"
+          },
+          {
+            "Name": "minimized",
+            "Type": "Flag"
+          },
+          {
+            "Name": "maximized",
+            "Type": "Flag"
+          },
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "clientBox",
+            "Type": "Text"
+          },
+          {
+            "Name": "how",
+            "Type": "Text"
+          },
+          {
+            "Name": "caseSensitive",
+            "Type": "Flag"
+          },
+          {
+            "Name": "trim",
+            "Type": "Flag"
+          },
+          {
+            "Name": "multiline",
+            "Type": "Flag"
+          }
+        ]
       }
     ]
   },
@@ -8309,6 +8474,11 @@
             "Type": "Text"
           }
         ]
+      },
+      {
+        "Key": "path",
+        "Type": "Text",
+        "Primary": false
       }
     ]
   },
@@ -8485,6 +8655,11 @@
             "Type": "Text"
           }
         ]
+      },
+      {
+        "Key": "path",
+        "Type": "Text",
+        "Primary": false
       }
     ]
   },
@@ -9568,7 +9743,7 @@
         "ChildKeys": []
       },
       {
-        "Name": "recheckMs",
+        "Name": "confirmMs",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -9880,17 +10055,6 @@
             "Required": true
           }
         ]
-      },
-      {
-        "Name": "asHex",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "true",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
       }
     ],
     "Returns": [
@@ -9936,6 +10100,11 @@
             "Type": "Text"
           }
         ]
+      },
+      {
+        "Key": "number",
+        "Type": "Number",
+        "Primary": false
       }
     ]
   },
@@ -12084,7 +12253,7 @@
         "ChildKeys": []
       },
       {
-        "Name": "recheckMs",
+        "Name": "confirmMs",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -12409,39 +12578,6 @@
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "caseSensitive",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "trim",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "true",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "multiline",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
         "DefaultValue": "false",
         "Options": [],
         "AcceptsVariables": false,
@@ -13320,7 +13456,7 @@
         "ChildKeys": []
       },
       {
-        "Name": "recheckMs",
+        "Name": "confirmMs",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -13866,11 +14002,6 @@
       },
       {
         "Key": "window",
-        "Type": "Text",
-        "Primary": false
-      },
-      {
-        "Key": "method",
         "Type": "Text",
         "Primary": false
       }
@@ -16928,7 +17059,7 @@
         "Name": "pageSelector",
         "Shape": "Text",
         "ReadMode": "Text",
-        "Picker": "None",
+        "Picker": "Browser",
         "Required": true,
         "DefaultValue": "",
         "Options": [],

@@ -2474,7 +2474,7 @@ public class ActionDialogTests
 
             var text = Open("file.readText");
             Assert.Equal(["path"], text.Rows.SelectMany(Names).ToList());
-            Assert.Equal(["text"], text.ReturnsRows.Select(row => row.Key).ToList());
+            Assert.Equal(["text", "lines"], text.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
 
