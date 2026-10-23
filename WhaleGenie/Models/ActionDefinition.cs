@@ -460,6 +460,9 @@ public class ActionDefinition
     /// <summary>True while the action waits for something outside the macro.</summary>
     public bool Waits => Semantics.Waits;
 
+    /// <summary>Where this action's arguments and results come from.</summary>
+    public ActionSignatureSource SignatureSource => Semantics.SignatureSource;
+
     public ActionTimeoutSource TimeoutSource => Semantics.TimeoutSource;
 
     public string TimeoutField => Semantics.TimeoutField;

@@ -1477,6 +1477,7 @@
     "TimeoutSource": "Step",
     "TimeoutField": "",
     "StepTimeoutMs": 60000,
+    "SignatureSource": "CalledMacro",
     "Parameters": [
       {
         "Name": "macro",
@@ -1525,6 +1526,7 @@
     "TimeoutSource": "None",
     "TimeoutField": "",
     "StepTimeoutMs": 0,
+    "SignatureSource": "CalledMacro",
     "Parameters": [
       {
         "Name": "macro",

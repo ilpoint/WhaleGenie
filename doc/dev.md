@@ -237,7 +237,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 20。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 19。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
 触发器入口从宏文档移进项目级的 `triggers.json` 时升到 11；字串入口增加 `endChars` 时升到 12；
@@ -246,7 +246,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 规则升级为多页时升到 15；父宏开始携带 `subMacros`、说明和公共宏来源记录时升到 16；条件动作收口为整值布尔
 表达式、`try.catchWhen` 改成表达式时升到 17；菜单移除逐格标题、图标键改成完整 Lucide 枚举名并增加禁止
 呼出规则时升到 18；删掉 `file.readText.storeAs`、`vision.getPixel.asHex`、识别文字的三个比较开关与
-`recheckMs` 时升到 19；启动程序改交 `program` 记录时升到 20。
+`recheckMs`，并把启动程序改交 `program` 记录时升到 19。
 触发入口按名称引用宏，宏改名时同一份
 `ProjectTriggers` 改写所有引用，保存、恢复和 MCP 草稿都不允许悬空引用。
 
@@ -322,8 +322,10 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 1. **先查旧名字与旧形状**。在目录、`MacroRunner`、`MacroCheck`、手册与测试里搜字段名、动作键、记录字段和
    同义概念；已有一个名字能表达，就不要再造一个近义词。
 2. **改语义目录**。动作键、分类、参数名、值形状、单位、空值含义、读法、拾取器、默认值、必填与它的失败键、选项与它的回退、是否发键鼠、等待与
-   超时来源、返回形状与记录字段都写进 `ActionSemantics.json`；界面展示用的标签、提示、编辑器种类、页面归属
-   与图标不参与引擎判断。
+   超时来源、形参与结果的来源（`SignatureSource`）、返回形状与记录字段都写进 `ActionSemantics.json`；
+   界面展示用的标签、提示、编辑器种类、页面归属与图标不参与引擎判断。调用另一个宏时，形参与结果来自
+   被调用宏的声明；这份来源是目录事实，界面与引擎不得再按 `control.runMacro` / `control.startMacro`
+   动作键自行判断。
 3. **改引擎分派**。`MacroRunner` 只按目录取参数与事实；不按 `type` 前缀推断读法或是否发输入；数字的范围也由目录声明，读值入口按同一个范围报 `Run.OutOfRange`。位置/矩形按
    `Point` / `Rect` 收记录，两种写法只用目录里的字段说；记录字段一律走 `FieldNames`。一个动作的分派与
    实现都写进它家族的那个 `MacroRunner.<Family>.cs`。
@@ -397,7 +399,7 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 | 直接运行 | `MacroRunnerTests` + `RunDebugTests` | `StartSignature` / `StartArguments` 与调用共用 `ReadArgument`；可选默认值生效、必填缺失在第一步前报 `Run.MissingArgument`、显式空值合法、声明结果初始为空；调试窗口的必填行拦住运行按钮；触发器直接运行使用默认值 |
 | 结果交付 | `MacroRunnerTests` + `MacroCheckTests` | `waitAll` 失败不消耗已成功句柄；`waitAny` 失败保留失败句柄；`cancelMacro` 不结算结果，取消后读结果仍标 `ResultBeforeWait` |
 | 是否发输入 | `ActionContractTests` | 每个会调用 `Input(step)`、回退成真实鼠标点击或按快捷键的动作在目录里标真；`MacroCheck` 与 `InputGate` 查同一处，并沿宏调用图看可达步骤 |
-| 返回形状 | `ReturnsPageTests` + `ActionContractTests` | 返回值页的每一行、引擎写出的键与记录字段一致 |
+| 返回形状 | `ReturnsPageTests` + `ActionContractTests` + `MacroRunnerTests` | 返回值页的每一行、引擎写出的键与记录字段一致；未知结果键与重复写入名在运行前报 `Run.BadResult`，值形状不符报 `Run.BadResultType`，空值表示这次没有交出 |
 | 失败键 | `FailureKeyTests` + `MacroCheckTests` + `MacroRunnerTests` | `RunKeys` 与手册表一致；用户自定义键只接受 `User.<合法变量名>`；日志键、状态键不与失败键混用 |
 | 页面归属 | `ActionPageTests` | 一个参数只属于一页，基础页为空时不显示 |
 | 文案 | `LocalizationTests` | 中英文键齐全，参数与选项都有中文 |

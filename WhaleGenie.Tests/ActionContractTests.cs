@@ -18,6 +18,28 @@ namespace WhaleGenie.Tests;
 public class ActionContractTests
 {
     [Fact]
+    public void Only_macro_calls_take_their_signature_from_the_called_macro()
+    {
+        var fromCall = ActionSemanticsCatalog.All
+            .Where(action => action.SignatureSource is ActionSignatureSource.CalledMacro)
+            .Select(action => action.Key)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(["control.runMacro", "control.startMacro"], fromCall);
+        Assert.All(ActionSemanticsCatalog.All.Where(action =>
+                action.SignatureSource is ActionSignatureSource.CalledMacro),
+            action =>
+            {
+                Assert.NotNull(action.Parameter("macro"));
+                Assert.Equal(ActionValueShape.Rows, action.Parameter("returns")?.Shape);
+            });
+        Assert.All(ActionSemanticsCatalog.All.Where(action =>
+                action.SignatureSource is ActionSignatureSource.Own),
+            action => Assert.DoesNotContain(action.Key, fromCall, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void Coordinates_and_window_rules_have_one_shape()
     {
         foreach (var action in ActionSemanticsCatalog.All)
@@ -70,6 +92,8 @@ public class ActionContractTests
                 SameValue(problems, display.Key, "input", display.SendsInput, engine.SendsInput);
                 SameValue(problems, display.Key, "screen", display.LooksAtScreen, engine.LooksAtScreen);
                 SameValue(problems, display.Key, "waits", display.Waits, engine.Waits);
+                SameValue(problems, display.Key, "signature source", display.SignatureSource,
+                    engine.SignatureSource);
                 SameValue(problems, display.Key, "timeout source", display.TimeoutSource,
                     engine.TimeoutSource);
                 SameValue(problems, display.Key, "timeout field", display.TimeoutField,
@@ -277,6 +301,7 @@ public class ActionContractTests
             "ReadMode", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
             "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
             "Unit", "EmptyMeans", "Minimum", "Maximum", "EmptiesToEdge", "IsDuration",
+            "SignatureSource",
         ];
 
         using var document = JsonDocument.Parse(display);

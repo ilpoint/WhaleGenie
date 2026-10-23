@@ -335,7 +335,7 @@ public class RunLookTests
 
         var result = await Run(Find(), devices, looks);
 
-        Assert.Equal(RunStatus.Completed, result.Status);
+        Assert.True(result.Succeeded, result.Key);
         var look = Assert.Single(looks.Seen);
         Assert.Equal(0, look.ChosenIndex);
         Assert.Equal(LookRole.Area, Assert.Single(look.Boxes).Role);

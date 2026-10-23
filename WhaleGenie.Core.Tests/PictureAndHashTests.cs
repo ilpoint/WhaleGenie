@@ -29,7 +29,8 @@ public class PictureAndHashTests
         => SampleFiles.Returns(results);
 
     /// <summary>The results a step that reads a picture hands over, picture and place together.</summary>
-    private static ExecutableParameter Parts(string key, string name) => SampleFiles.Parts(key, name);
+    private static ExecutableParameter Parts(string key, string name, params string[] extra)
+        => SampleFiles.Parts(key, name, extra);
 
     private static async Task<(RunResult Result, FakeDeviceLayer Devices, VariableStore Store)> RunAsync(
         ExecutableStep[] steps, FakeDeviceLayer? devices = null)

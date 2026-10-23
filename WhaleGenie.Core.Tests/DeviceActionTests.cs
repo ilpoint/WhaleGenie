@@ -90,8 +90,8 @@ public class DeviceActionTests
         => SampleFiles.Hit(key, name, every);
 
     /// <summary>See <see cref="SampleFiles.Parts"/>: a measured value beside every part of it.</summary>
-    private static ExecutableParameter Parts(string key, string name)
-        => SampleFiles.Parts(key, name);
+    private static ExecutableParameter Parts(string key, string name, params string[] extra)
+        => SampleFiles.Parts(key, name, extra);
 
     /// <summary>One field of a record a step handed over, read the way an expression reads it.</summary>
     private static Value Field(VariableStore store, string name, string field)
@@ -1817,7 +1817,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.findImage", Pictures("ok.png"), Returns("score=sure")),
+            Step("vision.findImage", Pictures("ok.png")),
             Step("control.log", Param("message", "$match + 1")),
         ], devices);
 
@@ -2783,8 +2783,8 @@ public class DeviceActionTests
         await RunAsync(
         [
             Capture(1, 1, 2, 2, Param("anchorMode", "window"), Param("window", "Game"),
-                Parts("image", "window")),
-            Capture(1, 1, 2, 2, Parts("image", "screen")),
+                Parts("image", "window", "method")),
+            Capture(1, 1, 2, 2, Parts("image", "screen", "method")),
         ], devices);
 
         Assert.Equal(CaptureWay.PrintWindow, devices.Captures[0].Method);
@@ -2805,8 +2805,8 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Capture(7, 9, 10, 10, Param("anchorMode", "window"),
-                Param("window", "Game"), Parts("image", "fromWindow")),
-            Capture(7, 9, 10, 10, Parts("image", "fromScreen")),
+                Param("window", "Game"), Parts("image", "fromWindow", "method")),
+            Capture(7, 9, 10, 10, Parts("image", "fromScreen", "method")),
         ], devices);
 
         Assert.Equal((115, 90, 10, 10),
@@ -3047,7 +3047,8 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Parts("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"),
+                Parts("image", "shot", "place")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
                 Hit("match", "match")),
@@ -5702,7 +5703,7 @@ public class DeviceActionTests
             ClipboardCopy = new ImageFrame(4, 3, new byte[4 * 3 * 4]),
         };
         var (result, _, store) = await RunAsync(
-            [Step("clipboard.readImage", Parts("image", "shot"))], devices);
+            [Step("clipboard.readImage", Parts("image", "shot", "width", "height"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("<image 4x3>", store.Local.Values["shot"].AsText());
@@ -5715,7 +5716,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("clipboard.readImage", Parts("image", "shot"))], devices);
+            [Step("clipboard.readImage", Parts("image", "shot", "width", "height"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(string.Empty, store.Local.Values["shot"].AsText());
@@ -5729,7 +5730,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("clipboard.writeImage", Param("imageSource", "ok.png")),
-            Step("clipboard.readImage", Parts("image", "back")),
+            Step("clipboard.readImage", Parts("image", "back", "width", "height")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -7949,7 +7950,8 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("vision.captureWindow", Param("window", "Notepad"), Parts("image", "shot"))], devices);
+            [Step("vision.captureWindow", Param("window", "Notepad"),
+                Parts("image", "shot", "place"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("capture 1000 500 800 600", devices.Calls);
