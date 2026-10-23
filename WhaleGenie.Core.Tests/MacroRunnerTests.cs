@@ -2587,6 +2587,24 @@ public class MacroRunnerTests
     }
 
     /// <summary>
+    /// 空列表不是“全部等完了”，而是这一步没有指名任何运行；与 waitAny 一样报没有可等的运行。
+    /// </summary>
+    [Fact]
+    public async Task Waiting_for_all_of_an_empty_list_is_a_mistake()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
+                Param("value", "list()")),
+            Step("control.waitAll", Param("runHandles", "$jobs")),
+        ], variables: store);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(RunKeys.NoRunsToWait, result.Key);
+    }
+
+    /// <summary>
     /// 一次全量等待失败时，已经成功的那次运行仍留在句柄表里；调用处可以逐个等待，而不是连句柄
     /// 都找不到。结果仍然一项都不写，失败的那一步只把整列等待判为失败。
     /// </summary>

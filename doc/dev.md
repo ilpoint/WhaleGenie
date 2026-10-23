@@ -237,7 +237,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 18。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 20。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
 触发器入口从宏文档移进项目级的 `triggers.json` 时升到 11；字串入口增加 `endChars` 时升到 12；
@@ -245,7 +245,8 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 通用/窗口规则页、图标和单一呼出键，字串结束键改为实际字符时升到 14；菜单移除自定义标题并把每条窗口
 规则升级为多页时升到 15；父宏开始携带 `subMacros`、说明和公共宏来源记录时升到 16；条件动作收口为整值布尔
 表达式、`try.catchWhen` 改成表达式时升到 17；菜单移除逐格标题、图标键改成完整 Lucide 枚举名并增加禁止
-呼出规则时升到 18。
+呼出规则时升到 18；删掉 `file.readText.storeAs`、`vision.getPixel.asHex`、识别文字的三个比较开关与
+`recheckMs` 时升到 19；启动程序改交 `program` 记录时升到 20。
 触发入口按名称引用宏，宏改名时同一份
 `ProjectTriggers` 改写所有引用，保存、恢复和 MCP 草稿都不允许悬空引用。
 

@@ -142,7 +142,7 @@ public sealed partial class MacroRunner
         {
             // The conditions still stand: which table is meant is the default answer, and the step
             // may have said which of the page's tables it wants without writing a selector at all.
-            target = PageTarget.Of("table", 1, target.Conditions);
+            target = PageTarget.Of("table", Index(step, "matchIndex", 1), target.Conditions);
         }
 
         var table = _devices.Browser.ReadTable(target, limit, step.Meta.TimeoutMs);

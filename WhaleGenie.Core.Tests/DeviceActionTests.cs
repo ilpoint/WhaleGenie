@@ -2008,16 +2008,17 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Reading_a_pixel_stores_its_colour()
+    public async Task Reading_a_pixel_stores_its_colour_both_ways()
     {
         var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xAB, 0xCD, 0xEF) };
         var (_, _, store) = await RunAsync(
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
-                Returns("color=tone"), Param("asHex", "true")),
+                Returns("color=tone", "number=value")),
         ], devices);
 
         Assert.Equal("#ABCDEF", store.Local.Values["tone"].AsText());
+        Assert.Equal(0xEFCDAB, store.Local.Values["value"].Number);
     }
 
     /// <summary>A picture from rows of #RRGGBB colours, one string per row.</summary>
@@ -3319,7 +3320,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"),
-                Param("recheckMs", "10")),
+                Param("confirmMs", "10")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -3343,7 +3344,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"),
-                Param("recheckMs", "10")),
+                Param("confirmMs", "10")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -4382,16 +4383,16 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Finding_an_element_records_where_it_sits()
+    public async Task Finding_an_element_records_where_it_sits_and_which_window_it_is_in()
     {
-        var devices = new FakeDeviceLayer();
+        var devices = WithAWindow();
         devices.Elements.Add(new UiElementInfo("Save", "saveButton", "Button", "ButtonClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
 
         var (_, _, store) = await RunAsync(
         [
             Step("uia.find", Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']"),
-                Hit("match", "save")),
+                Returns("match=save", "window=source")),
         ], devices);
 
         // The centre is what a click aims at, and the parts are what a later step measures from.
@@ -4401,6 +4402,7 @@ public class DeviceActionTests
         Assert.Equal("80", Field(store, "save", "width").AsText());
         Assert.Equal("24", Field(store, "save", "height").AsText());
         Assert.Equal("Save", Field(store, "save", "text").AsText());
+        Assert.Equal("Notepad - notes.txt", store.Local.Values["source"].AsText());
     }
 
     [Fact]
@@ -4732,8 +4734,7 @@ public class DeviceActionTests
         devices.Files["names.txt"] = "alpha\r\nbeta\ngamma\r";
         var (_, _, store) = await RunAsync(
         [
-            Step("file.readText", Param("path", "names.txt"), Param("storeAs", "lines"),
-                Returns("text=names")),
+            Step("file.readText", Param("path", "names.txt"), Returns("lines=names")),
         ], devices);
 
         var names = store.Local.Values["names"];
@@ -4748,9 +4749,9 @@ public class DeviceActionTests
         devices.Files["names.txt"] = "alpha\n\n  beta  \n";
         var (_, _, store) = await RunAsync(
         [
-            Step("file.readText", Param("path", "names.txt"), Param("storeAs", "lines"),
+            Step("file.readText", Param("path", "names.txt"),
                 Param("skipBlankLines", "true"), Param("trimLines", "true"),
-                Returns("text=names")),
+                Returns("lines=names")),
         ], devices);
 
         Assert.Equal(["alpha", "beta"],
@@ -4758,20 +4759,48 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task A_text_file_can_be_read_up_to_a_line()
+    public async Task Capturing_to_a_file_hands_over_where_it_was_saved()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "2"),
+                Param("height", "2"), Param("path", "shot.png"), Returns("path=saved")),
+        ], devices);
+
+        Assert.EndsWith("shot.png", store.Local.Values["saved"].AsText(), StringComparison.Ordinal);
+        Assert.Contains("shot.png", devices.Blobs.Keys);
+    }
+
+    [Fact]
+    public async Task A_line_result_can_be_read_up_to_a_line()
     {
         var devices = new FakeDeviceLayer();
         devices.Files["names.txt"] = "alpha\nbeta\ngamma\n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("limit", "2"),
-                Returns("text=head")),
+                Returns("lines=head")),
         ], devices);
 
-        // Two lines of a text, kept as text: this is how a macro peeks at the top of a file it has
-        // no intention of reading whole.
-        Assert.Equal("alpha" + Environment.NewLine + "beta",
-            store.Local.Values["head"].AsText());
+        // The limit belongs to the line result; the text result stays the whole file.
+        Assert.Equal(["alpha", "beta"],
+            store.Local.Values["head"].Items.Select(item => item.AsText()));
+    }
+
+    [Fact]
+    public async Task The_text_result_is_the_whole_file_even_when_the_line_options_are_set()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["names.txt"] = "alpha\n\n  beta  \n";
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readText", Param("path", "names.txt"), Param("limit", "1"),
+                Param("skipBlankLines", "true"), Param("trimLines", "true"),
+                Returns("text=whole")),
+        ], devices);
+
+        Assert.Equal("alpha\n\n  beta  \n", store.Local.Values["whole"].AsText());
     }
 
     [Fact]
@@ -4954,14 +4983,15 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Files["a.txt"] = "data";
-        await RunAsync(
+        var (_, _, store) = await RunAsync(
         [
             Step("file.copy", Param("from", "a.txt"), Param("to", "b.txt"),
-                Param("ifExists", "overwrite")),
+                Param("ifExists", "overwrite"), Returns("path=landed")),
         ], devices);
 
         Assert.Equal("data", devices.Files["b.txt"]);
         Assert.Contains("copyFile a.txt b.txt", devices.Calls);
+        Assert.EndsWith("b.txt", store.Local.Values["landed"].AsText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -4988,10 +5018,10 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Files["report.csv"] = "rows";
         devices.Files["taken.csv"] = "keep me";
-        var (result, _, _) = await RunAsync(
+        var (result, _, store) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", "taken.csv"),
-                Param("ifExists", "skip")),
+                Param("ifExists", "skip"), Returns("path=landed")),
         ], devices);
 
         // Nothing was moved and nothing was overwritten: the file that was there is still there,
@@ -5000,6 +5030,7 @@ public class DeviceActionTests
         Assert.Equal("keep me", devices.Files["taken.csv"]);
         Assert.Equal("rows", devices.Files["report.csv"]);
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("moveFile", StringComparison.Ordinal));
+        Assert.EndsWith("taken.csv", store.Local.Values["landed"].AsText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -5009,15 +5040,17 @@ public class DeviceActionTests
         devices.Files["report.csv"] = "new";
         devices.Files[@"backup\report.csv"] = "old";
         devices.Files[@"backup\report (2).csv"] = "older";
-        await RunAsync(
+        var (_, _, store) = await RunAsync(
         [
             Step("file.copy", Param("from", "report.csv"), Param("to", @"backup\report.csv"),
-                Param("ifExists", "unique")),
+                Param("ifExists", "unique"), Returns("path=landed")),
         ], devices);
 
         Assert.Equal("old", devices.Files[@"backup\report.csv"]);
         Assert.Equal("older", devices.Files[@"backup\report (2).csv"]);
         Assert.Equal("new", devices.Files[@"backup\report (3).csv"]);
+        Assert.EndsWith(@"report (3).csv", store.Local.Values["landed"].AsText(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -5719,6 +5752,17 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Files_written_one_to_a_line_are_each_put_on_the_clipboard()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        var (result, _, _) = await RunAsync(
+            [Step("clipboard.writeFiles", Param("files", "a.txt\nb.txt"))], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.ClipboardFiles);
+    }
+
+    [Fact]
     public async Task Files_can_be_put_on_the_clipboard()
     {
         var devices = new FakeDeviceLayer { PathExists = true };
@@ -5862,18 +5906,21 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Starting_a_program_hands_back_its_id()
+    public async Task Starting_a_program_hands_back_its_record()
     {
         var devices = new FakeDeviceLayer { NextProcessId = 4321 };
         var (result, _, store) = await RunAsync(
         [
             Step("process.start", Param("programFile", "notepad.exe"), Param("commandArguments", "/a"),
                 Param("workingDirectory", @"C:\temp"), Param("hidden", "false"),
-                Returns("processId=pid")),
+                Returns("program=program")),
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(4321d, store.Local.Values["pid"].Number);
+        Assert.Equal(4321d, Field(store, "program", "id").AsNumber());
+        Assert.Equal("notepad", Field(store, "program", "process").AsText());
+        Assert.Equal(string.Empty, Field(store, "program", "title").AsText());
+        Assert.Equal(0d, Field(store, "program", "handle").AsNumber());
         Assert.Contains(@"start notepad.exe|/a|C:\temp|False", devices.Calls);
     }
 
@@ -5910,6 +5957,9 @@ public class DeviceActionTests
         await RunAsync([Step("process.start", Param("programFile", "calc.exe"))], devices);
 
         Assert.DoesNotContain(devices.Calls, call => call.EndsWith("|admin"));
+        // A new step shows the program: "hidden" is the exception, not the starting answer.
+        Assert.Contains(devices.Calls, call => call.StartsWith("start calc.exe|", StringComparison.Ordinal)
+                                              && call.EndsWith("|False", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -7313,13 +7363,15 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("system.ime", Param("imeAction", "get"), Returns("ime=which")),
-            Step("system.ime", Param("imeAction", "list"), Returns("ime=all")),
+            Step("system.ime", Param("imeAction", "list"), Returns("ime=all", "layouts=names")),
         ], devices);
 
         Assert.Equal("中文(简体) - 微软拼音", store.Local.Values["which"].AsText());
 
         // The list is what the layout field can be filled in from, so it is the same wording.
         Assert.Equal("中文(简体) - 微软拼音;英语(美国)", store.Local.Values["all"].AsText());
+        Assert.Equal(["中文(简体) - 微软拼音", "英语(美国)"],
+            store.Local.Values["names"].Items.Select(item => item.AsText()));
     }
 
     [Fact]
@@ -7432,11 +7484,13 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("window.waitFor", Param("window", "notepad"),
-                Returns("title=win"))),
+                Returns("title=win", "window=found"))),
         ], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("Untitled - Notepad", store.Local.Values["win"].AsText());
+        Assert.Equal("Untitled - Notepad", Field(store, "found", "title").AsText());
+        Assert.True(Field(store, "found", "handle").AsNumber() > 0);
     }
 
     [Fact]
@@ -9038,14 +9092,15 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { BrowserTable = new([], [["Ann", "31"]]) };
         var (result, _, store) = await RunAsync(
         [
-            Step("browser.readTable", Returns("table=表")),
+            Step("browser.readTable", Param("matchIndex", "2"), Returns("table=表")),
         ], devices);
 
         Assert.True(result.Succeeded);
 
-        // A step that names no table reads the page's own table element, and the most rows it reads
-        // is the default every list reader in the program uses.
-        Assert.Contains("browserReadTable table #1 100 0", devices.Calls);
+        // A step that names no table reads the page's own table element, and the match number picks
+        // which of those tables it means. The most rows it reads is the default every list reader
+        // in the program uses.
+        Assert.Contains("browserReadTable table #2 100 0", devices.Calls);
         Assert.Equal(["A", "B"], store.Local.Values["表"].Items[0].Fields.Select(field => field.Name));
     }
 

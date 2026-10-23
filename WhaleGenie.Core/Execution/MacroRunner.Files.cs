@@ -43,27 +43,26 @@ public sealed partial class MacroRunner
     {
         var path = PathOf(step);
         var text = _devices.Files.ReadText(path, EncodingOf(step));
-        var limit = Number(step, "limit");
-        var lines = string.Equals(ReadText(step, "storeAs").Trim(), "lines",
-            StringComparison.OrdinalIgnoreCase);
 
-        if (!lines && limit <= 0)
+        // The whole file is one answer and its lines are another, so they are two results rather
+        // than one result whose shape changes with a switch. The line results carry the filtering
+        // options; the text result is the file exactly as it was read.
+        Give(step, "text", Value.FromText(text));
+
+        if (!Wants(step, "lines"))
         {
-            // What a step that says nothing does, unchanged: the file's text, whole and as it is.
-            Store(step, "text", Value.FromText(text), depth);
             Log(LogLevel.Info, depth, step.Type, LogKeys.ReadFile, path, text.Length);
             return;
         }
 
         var wanted = Lines(text, Flag(step, "skipBlankLines", false), Flag(step, "trimLines", false));
+        var limit = Number(step, "limit");
         if (limit > 0 && wanted.Count > limit)
         {
             wanted = [.. wanted.Take(limit)];
         }
 
-        Store(step, "text", lines
-            ? Value.FromList(wanted.Select(Value.FromText))
-            : Value.FromText(string.Join(Environment.NewLine, wanted)), depth);
+        Give(step, "lines", Value.FromList(wanted.Select(Value.FromText)));
         Log(LogLevel.Info, depth, step.Type, LogKeys.ReadFileLines, path, wanted.Count);
     }
 
@@ -163,11 +162,13 @@ public sealed partial class MacroRunner
         var (to, go) = Landing(step, PathOf(step, "to"));
         if (!go)
         {
+            Give(step, "path", Value.FromText(_devices.Files.Resolve(to)));
             Log(LogLevel.Info, depth, step.Type, LogKeys.FileLeftAlone, to);
             return;
         }
 
         _devices.Files.Copy(from, to);
+        Give(step, "path", Value.FromText(_devices.Files.Resolve(to)));
         Log(LogLevel.Info, depth, step.Type, LogKeys.CopiedFile, from, to);
     }
 
@@ -177,11 +178,13 @@ public sealed partial class MacroRunner
         var (to, go) = Landing(step, PathOf(step, "to"));
         if (!go)
         {
+            Give(step, "path", Value.FromText(_devices.Files.Resolve(to)));
             Log(LogLevel.Info, depth, step.Type, LogKeys.FileLeftAlone, to);
             return;
         }
 
         _devices.Files.Move(from, to);
+        Give(step, "path", Value.FromText(_devices.Files.Resolve(to)));
         Log(LogLevel.Info, depth, step.Type, LogKeys.MovedFile, from, to);
     }
 

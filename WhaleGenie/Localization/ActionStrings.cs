@@ -752,17 +752,12 @@ internal static class ActionStrings
         ["file.readText.desc"] = "把文本文件读入变量。",
         ["file.readText.path.label"] = "文件",
         ["file.readText.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
-        ["file.readText.storeAs.label"] = "读成什么",
-        ["file.readText.storeAs.hint"] = "整个文件读成一段文本，还是一行一项读成列表，默认「一段文本」。逐条处理一份名单或路径时选"
-            + "「一行一项的列表」。",
-        ["file.readText.storeAs.option.text"] = "一段文本",
-        ["file.readText.storeAs.option.lines"] = "一行一项的列表",
         ["file.readText.limit.label"] = "只读前几行",
-        ["file.readText.limit.hint"] = "只读文件的前多少行，范围为 0 到 1000000，默认 0；0 表示整份都读，大文件只要前面几行时用它。",
+        ["file.readText.limit.hint"] = "「行」结果最多保留多少行，默认 0（全部）；不影响「文本」结果。",
         ["file.readText.skipBlankLines.label"] = "去掉空行",
-        ["file.readText.skipBlankLines.hint"] = "丢弃没有内容的行，这样名单中间夹着的空行不会进入列表。默认不勾选。",
+        ["file.readText.skipBlankLines.hint"] = "从「行」结果去掉空行；「文本」结果保留。",
         ["file.readText.trimLines.label"] = "去掉每行两端的空格",
-        ["file.readText.trimLines.hint"] = "去掉每一行两端的空格。默认不勾选。",
+        ["file.readText.trimLines.hint"] = "去掉「行」结果每行两端的空格；默认关闭。",
         ["file.readText.encoding.label"] = "编码",
         ["file.readText.encoding.hint"] = EncodingHintText,
         ["file.readText.encoding.option.utf8"] = EncodingUtf8,
@@ -1138,21 +1133,21 @@ internal static class ActionStrings
 
         // ------------------------------------------------------------------ process
         ["process.start.name"] = "启动程序",
-        ["process.start.desc"] = "启动另一个程序，可以选择不显示窗口。",
+        ["process.start.desc"] = "启动另一个程序，可选择不显示窗口。",
         ["process.start.programFile.label"] = "程序",
-        ["process.start.programFile.hint"] = "要启动的程序，例如 notepad.exe，也可以写完整路径。",
+        ["process.start.programFile.pathFilter"] = "程序与快捷方式",
+        ["process.start.programFile.hint"] = "要启动的程序、脚本或快捷方式。可写完整路径，也可选 .lnk、.url 快捷方式。",
         ["process.start.commandArguments.label"] = "参数",
-        ["process.start.commandArguments.hint"] = "传给程序的参数。按一个值读取，变量或表达式都可以写成它；默认留空，表示不传参数。",
+        ["process.start.commandArguments.hint"] = "传给程序的参数。按一个值读取，空表示不传。",
         ["process.start.workingDirectory.label"] = "工作目录",
-        ["process.start.workingDirectory.hint"] = "程序在哪个目录下启动。默认留空，表示沿用鲸灵自己的工作目录。",
+        ["process.start.workingDirectory.hint"] = "程序的工作目录。空表示沿用鲸灵的工作目录。",
         ["process.start.hidden.label"] = "隐藏窗口",
-        ["process.start.hidden.hint"] = "启动时不显示程序窗口。默认勾选；需要点完窗口才装得下去的安装程序要取消勾选。",
+        ["process.start.hidden.hint"] = "启动时不显示程序窗口。默认关闭。",
         ["process.start.runAsAdmin.label"] = "以管理员身份运行",
-        ["process.start.runAsAdmin.hint"] = "请 Windows 用管理员权限启动这个程序。默认不勾选；系统会弹出自己的确认框，拒绝就让这一步失败。"
-            + "以管理员身份启动的程序无法隐藏窗口。",
+        ["process.start.runAsAdmin.hint"] = "以管理员权限启动。Windows 会弹出自己的确认框，拒绝则这一步失败；提权后的程序不能隐藏窗口。",
         ["process.start.environment.label"] = "环境变量",
-        ["process.start.environment.hint"] = "这个程序启动时使用的环境变量，一行一个 NAME=value。默认留空，表示沿用鲸灵自身的环境变量；"
-            + "以 # 开头的行会被忽略。自带环境变量启动时，这里要写程序本身，不能写文档或快捷方式。",
+        ["process.start.environment.hint"] = "程序的环境变量，一行一个 NAME=value，空表示沿用鲸灵的环境；"
+            + "以 # 开头的行会被忽略。自带环境变量时只能写程序本身，不能写文档或快捷方式。",
 
         ["process.waitFor.name"] = "等待程序",
         ["process.waitFor.desc"] = "等待某个程序开始运行。",
@@ -1163,7 +1158,7 @@ internal static class ActionStrings
         ["process.waitExit.name"] = "等待程序结束",
         ["process.waitExit.desc"] = "等待本宏启动的某个程序结束。",
         ["process.waitExit.id.label"] = "进程 id",
-        ["process.waitExit.id.hint"] = "要等待的进程 id，通常是「启动程序」交回的 processId。按一个值读取，变量或表达式都可以写成它。",
+        ["process.waitExit.id.hint"] = "要等待的进程 id，通常取「启动程序」交回的 program 记录里的 id：field($program, \"id\")。按一个值读取。",
 
         ["process.exists.name"] = "程序是否在运行",
         ["process.exists.desc"] = "检查某个程序是否正在运行。",
@@ -1322,9 +1317,7 @@ internal static class ActionStrings
         ["system.ime.imeAction.option.list"] = "列出已安装的布局",
         ["system.ime.imeAction.option.switch"] = "切换到另一种布局",
         ["system.ime.layout.label"] = "布局",
-        ["system.ime.layout.hint"] = "要切换到的键盘布局，供「切换到另一种布局」使用。写名称的一部分即可匹配；"
-            + "可选名称可以用「列出已安装的布局」查询。这一步会等到窗口真正切换完成后才结束，"
-            + "因此下一步即可按该布局输入。",
+        ["system.ime.layout.hint"] = "要切换到的键盘布局，只在「切换到另一种布局」时出现；写名称的一部分即可，可选名用「列出已安装的布局」查询。",
         ["system.brightness.name"] = "屏幕亮度",
         ["system.brightness.desc"] = "读取或调整屏幕的亮度。",
         ["system.brightness.brightnessAction.label"] = "执行",
@@ -2163,8 +2156,8 @@ internal static class ActionStrings
         ["vision.clickDetect.variance.hint"] =
             "落点与框中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
             + "随机取一点。数字要小到整个范围仍落在被点的东西里面。",
-        ["vision.clickDetect.recheckMs.label"] = "落手前再确认",
-        ["vision.clickDetect.recheckMs.hint"] =
+        ["vision.clickDetect.confirmMs.label"] = "落手前再确认",
+        ["vision.clickDetect.confirmMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
             + "看一眼，这次仍认得才点；这次认不得按没找到处理。第二次查看只查一次、不再等，"
             + "所以画面已经变过就直接算没找到。",
@@ -2255,8 +2248,8 @@ internal static class ActionStrings
             "落点与匹配中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
             + "随机取一点，连着点两次不会落在同一个像素上。宽按钮上用它避免看起来像机器点的；"
             + "数字要小到整个范围仍落在被点的东西里面。",
-        ["vision.clickImage.recheckMs.label"] = "落手前再确认",
-        ["vision.clickImage.recheckMs.hint"] =
+        ["vision.clickImage.confirmMs.label"] = "落手前再确认",
+        ["vision.clickImage.confirmMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
             + "看一眼，这次仍认得才点；这次认不得按没找到处理。用于按钮一闪而过、或者画面其实"
             + "已经翻过去的情况。第二次查看只查一次、不再等，所以画面已经变过就直接算没找到。",
@@ -2271,8 +2264,6 @@ internal static class ActionStrings
         ["vision.getPixel.y.hint"] = "取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.getPixel.place.label"] = "位置",
         ["vision.getPixel.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
-        ["vision.getPixel.asHex.label"] = "存为十六进制",
-        ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。默认勾选。",
 
         ["vision.pixelMatches.name"] = "像素是否符合",
         ["vision.pixelMatches.desc"] = "只读取一次像素，并判断它是否在容差内符合指定颜色。",
@@ -2414,8 +2405,8 @@ internal static class ActionStrings
         ["ocr.clickText.variance.hint"] =
             "落点与读到的文字中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在"
             + "这个范围内随机取一点，连着点两次不会落在同一个像素上。",
-        ["ocr.clickText.recheckMs.label"] = "落手前再确认",
-        ["ocr.clickText.recheckMs.hint"] =
+        ["ocr.clickText.confirmMs.label"] = "落手前再确认",
+        ["ocr.clickText.confirmMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
             + "看一眼，这次仍读得到才点；这次读不到按没找到处理。用于那一行文字已经被替掉的情"
             + "况。第二次查看只查一次、不再等，所以文字已经没了就直接算没找到。",
@@ -3286,7 +3277,7 @@ internal static class ActionStrings
 
         // file.readText
         ["file.readText.return.text.label"] = "文本",
-        ["file.readText.return.text.hint"] = "文件里的内容；按“每行一项”读出来时是一个列表。",
+        ["file.readText.return.text.hint"] = "整份文件作为一段文本。要逐行读就勾「行」结果。",
         ["file.readText.returns.label"] = "要留下的结果",
         ["file.readText.returns.hint"] = ReturnsHintText,
 
@@ -3369,8 +3360,8 @@ internal static class ActionStrings
         ["clipboard.copy.returns.hint"] = ReturnsHintText,
 
         // process.start
-        ["process.start.return.processId.label"] = "进程号",
-        ["process.start.return.processId.hint"] = "程序的编号。",
+        ["process.start.return.program.label"] = "程序",
+        ["process.start.return.program.hint"] = "启动后的程序：id、process（程序名）、title（主窗口标题）、handle（主窗口句柄）；窗口未出现时 title 为空、handle 为 0。",
         ["process.start.returns.label"] = "要留下的结果",
         ["process.start.returns.hint"] = ReturnsHintText,
 
@@ -3542,7 +3533,7 @@ internal static class ActionStrings
 
         // vision.getPixel
         ["vision.getPixel.return.color.label"] = "颜色",
-        ["vision.getPixel.return.color.hint"] = "这个像素的颜色。",
+        ["vision.getPixel.return.color.hint"] = "这个像素的颜色，写成 #RRGGBB 的文本；同一颜色的数字写法在「颜色数值」里。",
         ["vision.getPixel.returns.label"] = "要留下的结果",
         ["vision.getPixel.returns.hint"] = ReturnsHintText,
 
@@ -3768,9 +3759,7 @@ internal static class ActionStrings
         ["ocr.clickText.return.method.label"] = "取画面方式",
         ["ocr.clickText.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
         ["uia.find.return.window.label"] = "来源窗口",
-        ["uia.find.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
-        ["uia.find.return.method.label"] = "取画面方式",
-        ["uia.find.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["uia.find.return.window.hint"] = "元素找到时所在的窗口；没写窗口规则时是最前面的窗口。",
         ["vision.capture.return.window.label"] = "来源窗口",
         ["vision.capture.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
         ["vision.capture.return.method.label"] = "取画面方式",
@@ -3965,6 +3954,31 @@ internal static class ActionStrings
         ["vision.waitColor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
         ["vision.waitStable.returns.label"] = "要留下的结果",
         ["vision.waitStable.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，名字可以逐行修改；不勾就不留下结果。",
+        ["file.readText.return.lines.label"] = "行",
+        ["file.readText.return.lines.hint"] = "文件按行切开的列表；行数、空行与去空格只作用于它。",
+        ["vision.getPixel.return.number.label"] = "颜色数值",
+        ["vision.getPixel.return.number.hint"] = "同一颜色的整数写法，蓝色在最高字节；可以和「颜色」一起勾。",
+        ["clipboard.readImage.return.width.label"] = "宽度",
+        ["clipboard.readImage.return.width.hint"] = "图片宽度（像素）；没有图片时为空。",
+        ["clipboard.readImage.return.height.label"] = "高度",
+        ["clipboard.readImage.return.height.hint"] = "图片高度（像素）；没有图片时为空。",
+        ["file.copy.returns.label"] = "要留下的结果",
+        ["file.copy.returns.hint"] = ReturnsHintText,
+        ["file.copy.return.path.label"] = "落在哪里",
+        ["file.copy.return.path.hint"] = "这一步结束后文件实际所在的位置。",
+        ["file.move.returns.label"] = "要留下的结果",
+        ["file.move.returns.hint"] = ReturnsHintText,
+        ["file.move.return.path.label"] = "落在哪里",
+        ["file.move.return.path.hint"] = "这一步结束后文件实际所在的位置。",
+        ["vision.capture.return.path.label"] = "存到的文件",
+        ["vision.capture.return.path.hint"] = "图片保存到的文件；「存到文件」留空时为空。",
+        ["vision.captureWindow.return.path.label"] = "存到的文件",
+        ["vision.captureWindow.return.path.hint"] = "图片保存到的文件；「存到文件」留空时为空。",
+        ["window.waitFor.return.window.label"] = "窗口",
+        ["window.waitFor.return.window.hint"] = "等到的窗口，字段与 window.info 相同，可直接交给下一步的窗口字段。",
+        ["system.ime.return.layouts.label"] = "已安装的布局",
+        ["system.ime.return.layouts.hint"] = "「列出已安装的布局」时的布局名，一项一条；读取或切换时为空。",
+
     };
 
     /// <summary>

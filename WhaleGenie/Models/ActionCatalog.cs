@@ -53,6 +53,7 @@ public static class ActionCatalog
                     OptionLabels = field.OptionLabels,
                     PathIntent = (PathIntent)field.PathIntent,
                     PathFilter = field.PathFilter,
+                    PathFilterLabel = field.PathFilterLabel,
                     EnabledBySibling = field.EnabledBySibling,
                     AppliesWhen = field.AppliesWhen,
                     AppliesWhenValues = field.AppliesWhenValues,
@@ -200,6 +201,8 @@ public static class ActionCatalog
         public IReadOnlyList<string> OptionLabels { get; init; } = [];
 
         public string PathFilter { get; init; } = string.Empty;
+
+        public string PathFilterLabel { get; init; } = string.Empty;
 
         public int PathIntent { get; init; }
 

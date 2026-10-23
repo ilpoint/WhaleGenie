@@ -427,13 +427,17 @@ public interface IProcessDevice
 /// <summary>
 /// One running program as the macro can see it. <paramref name="Path"/> is empty when Windows
 /// will not say — a program running as another user or at a higher level keeps its file to itself.
+/// The main window handle and title are zero and empty while the program has no main window yet,
+/// which is ordinary for a console program and for a window that is still starting up.
 /// </summary>
 public sealed record ProcessDetails(
     int Id,
     string Name,
     string Path,
     double MemoryMb,
-    double CpuSeconds);
+    double CpuSeconds,
+    long MainWindowHandle = 0,
+    string MainWindowTitle = "");
 
 /// <summary>Facts about this machine that are not a file or a device.</summary>
 public interface ISystemDevice

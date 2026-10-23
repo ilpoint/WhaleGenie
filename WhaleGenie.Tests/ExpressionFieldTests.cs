@@ -141,10 +141,14 @@ public class ExpressionFieldTests
         {
             foreach (var parameter in action.Parameters)
             {
-                // A path is picked from a dialog; a selector is taken off the screen; a picture is
-                // browsed for or grabbed; a key is pressed on the on-screen keyboard; a rectangle
-                // is dragged out and its four numbers are dialled in one page over.
-                var isPath = parameter.PathIntent is not PathIntent.None;
+                // A single path is picked from a dialog; a selector is taken off the screen; a
+                // picture is browsed for or grabbed; a key is pressed on the on-screen keyboard;
+                // a rectangle is dragged out and its four numbers are dialled in one page over.
+                // A list of files is not one path: it is a whole value that may be a list of paths
+                // or a variable holding one, so the expression editor stays available beside the
+                // multi-file picker.
+                var isPath = parameter.PathIntent
+                    is PathIntent.Read or PathIntent.Write or PathIntent.Folder;
                 var isForeign = parameter.ForeignText;
                 var isName = parameter.NamesVariable;
                 var isKey = parameter.Kind

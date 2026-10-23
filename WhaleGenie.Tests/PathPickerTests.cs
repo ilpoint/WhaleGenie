@@ -82,7 +82,38 @@ public class PathPickerTests
 
             Assert.Equal(Strings.Get("Add.BrowseOpen"), program.PathButton);
             Assert.Contains("*.exe", program.Definition.PathFilter, StringComparison.Ordinal);
+            Assert.Contains("*.lnk", program.Definition.PathFilter, StringComparison.Ordinal);
+            Assert.Contains("*.url", program.Definition.PathFilter, StringComparison.Ordinal);
+            Assert.Contains("*.vbs", program.Definition.PathFilter, StringComparison.Ordinal);
+            Assert.Contains("*.hta", program.Definition.PathFilter, StringComparison.Ordinal);
+            Assert.Equal("Programs and shortcuts", program.Definition.PathFilterLabel);
             Assert.Equal(Strings.Get("Add.BrowseFolder"), folder.PathButton);
+
+            // Both fields accept variables, which used to put them on the editor that has no path
+            // button; the button has to be there as well as on a plain text field.
+            var buttons = window.GetVisualDescendants().OfType<Button>()
+                .Select(button => button.Content as string)
+                .ToList();
+            Assert.Contains(program.PathButton, buttons);
+            Assert.Contains(folder.PathButton, buttons);
+
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void A_list_of_files_is_picked_with_the_multi_file_dialog()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("browser.upload", out var window);
+            var files = viewModel.Parameters.First(p => p.Definition.Name == "uploadFiles");
+
+            Assert.Equal(PathIntent.Files, files.Definition.PathIntent);
+            Assert.Equal(Strings.Get("Add.BrowseOpen"), files.PathButton);
+            Assert.Contains(Strings.Get("Add.BrowseOpen"), window.GetVisualDescendants()
+                .OfType<Button>()
+                .Select(button => button.Content as string));
 
             window.Close();
         });

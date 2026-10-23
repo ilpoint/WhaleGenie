@@ -1314,22 +1314,28 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        var filters = Filter(parameter.Definition.PathFilter);
+        var filters = Filter(parameter.Definition.PathFilter,
+            parameter.Definition.LocalPathFilterLabel);
         var picked = parameter.Definition.PathIntent switch
         {
             PathIntent.Write => await PickToWrite(parameter, filters),
             PathIntent.Folder => await PickFolder(),
+            PathIntent.Files => await PickFiles(parameter),
             _ => await PickToRead(parameter, filters),
         };
 
         if (picked is { Length: > 0 })
         {
-            parameter.Text = MacroPaths.ForMacro(picked, Devices.Files.BaseFolder);
+            // A list of files already holds one stored path to a line; a single pick still has to
+            // be made relative to the macros folder the way every other path field stores it.
+            parameter.Text = parameter.Definition.PathIntent is PathIntent.Files
+                ? picked
+                : MacroPaths.ForMacro(picked, Devices.Files.BaseFolder);
         }
     }
 
     /// <summary>The kinds of file a field is about, as dialog filters, or none for any file.</summary>
-    private static IReadOnlyList<FilePickerFileType> Filter(string patterns)
+    private static IReadOnlyList<FilePickerFileType> Filter(string patterns, string label)
     {
         if (patterns.Length == 0)
         {
@@ -1339,7 +1345,10 @@ public partial class ActionEditorView : UserControl
         var wanted = patterns.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return
         [
-            new FilePickerFileType(string.Join(" / ", wanted)) { Patterns = wanted },
+            new FilePickerFileType(label.Length > 0 ? label : string.Join(" / ", wanted))
+            {
+                Patterns = wanted,
+            },
             new FilePickerFileType(Strings.Get("Add.AllFiles")) { Patterns = ["*.*"] },
         ];
     }
@@ -1368,6 +1377,28 @@ public partial class ActionEditorView : UserControl
         });
 
         return file?.TryGetLocalPath() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Picks several files at once and writes them one to a line. A field that holds a list of
+    /// files otherwise makes the author repeat the picker — or spell out full paths, which is the
+    /// thing the picker exists to avoid.
+    /// </summary>
+    private async Task<string> PickFiles(StepParameterViewModel parameter)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Format("Add.BrowseOpenTitle", parameter.Definition.LocalLabel),
+            AllowMultiple = true,
+            FileTypeFilter = Filter(parameter.Definition.PathFilter,
+                parameter.Definition.LocalPathFilterLabel),
+        });
+
+        return string.Join(Environment.NewLine, files
+            .Select(file => file.TryGetLocalPath())
+            .OfType<string>()
+            .Where(path => path.Length > 0)
+            .Select(path => MacroPaths.ForMacro(path, Devices.Files.BaseFolder)));
     }
 
     private async Task<string> PickFolder()

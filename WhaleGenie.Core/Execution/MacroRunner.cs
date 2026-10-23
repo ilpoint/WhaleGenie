@@ -1197,6 +1197,13 @@ public sealed partial class MacroRunner
     private async Task<Signal> WaitAllMacros(ExecutableStep step, int depth, CancellationToken token)
     {
         var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
+        if (children.Count == 0)
+        {
+            // Waiting for every run in an empty list is not "all of them are done"; it is a macro
+            // that named no runs, which the sibling waitAny reports the same way.
+            throw new StepFailure(RunKeys.NoRunsToWait);
+        }
+
         var results = await Task.WhenAll(children.Select(child => child.Task.WaitAsync(token)));
 
         // Every ending is looked at before any result is written: a list that failed partway

@@ -107,7 +107,10 @@ public sealed partial class MacroRunner
     {
         var value = ReadValue(step, "files");
         var paths = new List<string>();
-        foreach (var item in value.IsList ? value.Items : [value])
+        IReadOnlyList<Value> items = value.IsList
+            ? value.Items
+            : [.. Lines(value.AsText()).Select(Value.FromText)];
+        foreach (var item in items)
         {
             var written = item.AsText().Trim();
             if (written.Length == 0)

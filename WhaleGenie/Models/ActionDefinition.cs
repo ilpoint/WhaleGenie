@@ -191,6 +191,13 @@ public enum PathIntent
 
     /// <summary>A folder, chosen with the folder dialog.</summary>
     Folder,
+
+    /// <summary>
+    /// Several files at once, chosen with the open dialog and written one path to a line. Used by
+    /// the steps that hand a list of files to something else, where a single-file dialog would
+    /// make the author repeat the step for every file.
+    /// </summary>
+    Files,
 }
 
 /// <summary>Describes one parameter of a catalogued action.</summary>
@@ -229,6 +236,17 @@ public class ActionParameter
     /// gets.
     /// </summary>
     public string PathFilter { get; init; } = string.Empty;
+
+    /// <summary>
+    /// What the dialog calls the list of patterns above. A list of a dozen file kinds written out
+    /// is not a name a person reads; empty falls back to the patterns themselves.
+    /// </summary>
+    public string PathFilterLabel { get; init; } = string.Empty;
+
+    /// <summary>The file-dialog filter name in the current interface language.</summary>
+    public string LocalPathFilterLabel => PathFilterLabel.Length == 0
+        ? string.Empty
+        : Strings.Get($"{OwnerKey}.{Name}.pathFilter", PathFilterLabel);
 
     /// <summary>Fully qualified key of the action this parameter belongs to.</summary>
     internal string OwnerKey { get; set; } = string.Empty;

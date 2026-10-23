@@ -387,6 +387,7 @@ public sealed partial class MacroRunner
         }
 
         KeepFile(step, depth, frame);
+        Give(step, "path", Value.FromText(SavedPath(step)));
     }
 
     /// <summary>
@@ -404,8 +405,20 @@ public sealed partial class MacroRunner
         }
 
         _devices.Files.WriteBytes(path, PngWriter.Encode(frame));
-        Log(LogLevel.Info, depth, step.Type, LogKeys.SavedPicture, path,
+        Log(LogLevel.Info, depth, step.Type, LogKeys.SavedPicture, SavedPath(step),
             $"{frame.Width}x{frame.Height}");
+    }
+
+    /// <summary>
+    /// The file a capture wrote, in the form a later step can open: the macros folder is where a
+    /// relative path is measured from, and the result should say the same place that was written.
+    /// </summary>
+    private string SavedPath(ExecutableStep step)
+    {
+        var path = PathOf(step);
+        return path.Trim().Length == 0
+            ? string.Empty
+            : _devices.Files.Resolve(path);
     }
 
     private void GetPixel(ExecutableStep step, int depth)
@@ -413,16 +426,15 @@ public sealed partial class MacroRunner
         var (point, window) = Spot(step);
         var colour = PixelAt(step, point, window);
         GivePointAt(step, point, window);
-        var asHex = !string.Equals(ReadText(step, "asHex").Trim(), "false", StringComparison.OrdinalIgnoreCase);
-        var name = Give(step, "color", asHex
-            ? Value.FromText(colour.ToHex())
-            : Value.FromNumber((colour.R) | (colour.G << 8) | (colour.B << 16)));
+
+        // The same colour is handed over in both readings the action has always had: the text a
+        // person reads off a colour picker and the whole number a macro can compare. Neither is a
+        // switch any more, so a step that ticks one does not have to know how the other is spelled.
+        Give(step, "color", Value.FromText(colour.ToHex()));
+        Give(step, "number", Value.FromNumber((colour.R) | (colour.G << 8) | (colour.B << 16)));
 
         SawPixel(step, point, colour.ToHex(), window);
-        if (name.Length > 0)
-        {
-            Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, colour.ToHex());
-        }
+        Log(LogLevel.Info, depth, step.Type, LogKeys.SawColor, colour.ToHex());
     }
 
     private async Task WaitColor(ExecutableStep step, int depth, CancellationToken token)
@@ -787,7 +799,7 @@ public sealed partial class MacroRunner
         // button that flashed past, or a screen that has already moved on, is not clicked. The
         // second look is a single look rather than another wait: what is being asked is whether the
         // picture is still there, not whether it turns up again.
-        var again = Pace(Number(step, "recheckMs"));
+        var again = Pace(Number(step, "confirmMs"));
         if (again > 0)
         {
             await Pause(again, token);

@@ -216,6 +216,20 @@ public sealed partial class MacroRunner
         }
 
         Give(step, "title", Value.FromText(window.Title));
+
+        if (Wants(step, "window"))
+        {
+            // The whole record costs a look at the program, the class and the client area; a step
+            // that only wants the title should not pay for them.
+            var client = _devices.Windows.ClientOrigin(window.Handle);
+            var inner = _devices.Windows.ClientSize(window.Handle);
+            Give(step, "window", WindowRecord(window,
+                _devices.Windows.ProcessOf(window.Handle),
+                _devices.Windows.ClassOf(window.Handle),
+                $"{client.X},{client.Y},{inner.Width},{inner.Height}",
+                WindowRuleOf(step)));
+        }
+
         Log(LogLevel.Info, depth, step.Type, LogKeys.WindowAppeared, window.Title);
     }
 

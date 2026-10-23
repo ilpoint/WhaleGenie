@@ -219,6 +219,13 @@ public class LocalizationTests
                     known.Add($"{definition.Key}.{parameter.Name}.label");
                     known.Add($"{definition.Key}.{parameter.Name}.hint");
 
+                    // A path field with a long list of patterns gives the dialog a short name of
+                    // its own, which is user-visible text and so has a Chinese line as well.
+                    if (parameter.PathFilterLabel.Length > 0)
+                    {
+                        known.Add($"{definition.Key}.{parameter.Name}.pathFilter");
+                    }
+
                     // A field whose starting text is prose of its own — the example a script step
                     // is written from — says it in both languages the way a label does.
                     if (parameter.DefaultValue.Length > 0
@@ -328,6 +335,15 @@ public class LocalizationTests
                     if (!ActionStrings.Chinese.ContainsKey(key))
                     {
                         missing.Add(key);
+                    }
+
+                    if (parameter.PathFilterLabel.Length > 0)
+                    {
+                        var filter = $"{definition.Key}.{parameter.Name}.pathFilter";
+                        if (!ActionStrings.Chinese.ContainsKey(filter))
+                        {
+                            missing.Add(filter);
+                        }
                     }
                 }
             }

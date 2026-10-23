@@ -170,7 +170,7 @@
                      and a whole value may be built with the expression editor. A window is written
                      here like anything else, with the picker beside it that fills in one of the
                      windows that are open right now. -->
-                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto,Auto"
+                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                       ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
                                      ItemsSource="{Binding ExpressionSuggestions}"
@@ -179,16 +179,21 @@
                                      MinimumPrefixLength="1"
                                      FilterMode="Contains" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding IsPath}"
+                            Content="{Binding PathButton}"
+                            ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnBrowsePath" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
                             IsVisible="{Binding IsWindow}"
                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickWindow" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
                             IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
-                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="4" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickVariable" />
@@ -262,12 +267,18 @@
                      what it makes there is what the step hands over. A box holding a script is
                      taller than one holding a sentence, because a program of a dozen lines is not
                      read through a window four lines high. -->
-                <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              Height="{Binding MultilineHeight}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            VerticalAlignment="Top"
+                            IsVisible="{Binding IsPath}"
+                            Content="{Binding PathButton}"
+                            ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnBrowsePath" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
                             VerticalAlignment="Top"
                             IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"

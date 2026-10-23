@@ -57,6 +57,10 @@ public sealed partial class MacroRunner
         var every = Wants(step, "every");
         var index = Index(step, "matchIndex", 1);
 
+        // UIA reads no picture, so the source report is the window the element was looked for in
+        // rather than whatever the last vision step happened to look at.
+        var source = Lookup(step);
+
         // Asking for the whole list is what makes the list worth collecting; otherwise the search
         // only has to reach as far as the hit the step named.
         var hits = _devices.Ui.FindAll(Query(step), every ? MatchLimit : index);
@@ -70,6 +74,7 @@ public sealed partial class MacroRunner
         else
         {
             GiveMatch(step, match.Location, match.Size, 1, match.Name);
+            Give(step, "window", Value.FromText(source?.Title ?? string.Empty));
         }
 
         GiveEvery(step, hits.Select(element => Hit(element.Location, element.Size, 1, element.Name)));

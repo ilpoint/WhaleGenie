@@ -185,7 +185,9 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
                 process.ProcessName,
                 Ask(() => process.MainModule?.FileName) ?? string.Empty,
                 Math.Round(process.WorkingSet64 / 1024d / 1024d, 1),
-                Math.Round(Ask(() => process.TotalProcessorTime.TotalSeconds), 1));
+                Math.Round(Ask(() => process.TotalProcessorTime.TotalSeconds), 1),
+                AskHandle(() => process.MainWindowHandle),
+                Ask(() => process.MainWindowTitle) ?? string.Empty);
         }
         catch (Exception error) when (Recoverable(error) || error is ArgumentException)
         {
@@ -219,6 +221,22 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         catch (Exception error) when (Recoverable(error) || error is ArgumentException)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// The main window's handle, or zero when Windows will not say. A program at another level
+    /// keeps its windows to itself, and a console program has none.
+    /// </summary>
+    private static long AskHandle(Func<IntPtr> reading)
+    {
+        try
+        {
+            return reading().ToInt64();
+        }
+        catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+        {
+            return 0;
         }
     }
 
