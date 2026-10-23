@@ -387,7 +387,8 @@ public static class MacroCheck
         // is allowed to read.
         var namesAreOpen = WritesAnyName(tree);
 
-        Visit(tree, 0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
+        Visit(tree, null, 0, 0,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
             guarded: false, browserHeld: false);
         CheckSharedInput();
         CheckSharedBrowser();
@@ -498,11 +499,13 @@ public static class MacroCheck
             }
         }
 
-        void Visit(IReadOnlyList<MacroStep> list, int loops, int switches,
+        void Visit(IReadOnlyList<MacroStep> list, ActionParameter? destination,
+            int loops, int switches,
             IReadOnlySet<string> loopNames, bool bounded, bool guarded, bool browserHeld)
         {
             foreach (var step in list)
             {
+                CheckStepPlacement(step, destination);
                 CheckLoopControl(step, loops, switches);
                 CheckCondition(step);
                 CheckUserFailureKey(step);
@@ -553,10 +556,35 @@ public static class MacroCheck
                 {
                     if (parameter.Kind is ActionParameterKind.Steps)
                     {
-                        Visit(parameter.Steps, insideLoops, insideSwitches, insideNames,
+                        Visit(parameter.Steps, step.ParameterDefinition(parameter),
+                            insideLoops, insideSwitches, insideNames,
                             insideBounded, insideGuard, insideHeld);
                     }
                 }
+            }
+        }
+
+        void CheckStepPlacement(MacroStep step, ActionParameter? destination)
+        {
+            if (StepPlacement.DirectIssue(destination, step) is not { } issue)
+            {
+                return;
+            }
+
+            var message = issue.Problem switch
+            {
+                StepPlacementProblem.WrongKind when issue.Destination is { } restricted =>
+                    Strings.Format("Editor.Problem.WrongStepKind",
+                        StepPlacement.AllowedSummary(restricted)),
+                StepPlacementProblem.HiddenStep when step.Type == "control.case" =>
+                    Strings.Get("Editor.Problem.CaseOutsideSwitch"),
+                StepPlacementProblem.HiddenStep =>
+                    Strings.Format("Editor.Problem.HiddenStep", step.DisplayName),
+                _ => string.Empty,
+            };
+            if (message.Length > 0)
+            {
+                Add(step, message);
             }
         }
 

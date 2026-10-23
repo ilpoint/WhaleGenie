@@ -221,6 +221,14 @@
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="2,0,0,8" />
         </Style>
+        <Style Selector="Border.DropTarget">
+            <Setter Property="Background" Value="#33FF6A35" />
+            <Setter Property="BorderBrush" Value="#FF6A35" />
+        </Style>
+        <Style Selector="Border.DropTarget.Rejected">
+            <Setter Property="Background" Value="#33E06C75" />
+            <Setter Property="BorderBrush" Value="#E06C75" />
+        </Style>
 
         <!-- The two ends of a block: the line its steps start under, and the line that closes it.
              They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
@@ -1269,6 +1277,8 @@
                                   Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
                        <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasCallImpact}"
                                   Text="{Binding CallImpactSummary}" TextWrapping="Wrap" />
+                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasPlacementNotice}"
+                                  Text="{Binding PlacementNotice}" TextWrapping="Wrap" />
                    </StackPanel>
 
                    <!-- Empty state -->
@@ -1425,8 +1435,7 @@
                    <!-- The band a dragged action drops on. Sits in the same cell as the list and
                         is not hit-testable, so it never swallows the drag that draws it. -->
                    <Canvas Grid.Row="4" Name="DropLayer" IsHitTestVisible="False">
-                       <Border Name="DropMarker" MinHeight="30" CornerRadius="4"
-                               Background="#33FF6A35" BorderBrush="#FF6A35"
+                       <Border Name="DropMarker" Classes="DropTarget" MinHeight="30" CornerRadius="4"
                                BorderThickness="3,0,0,0" IsVisible="False">
                            <TextBlock Name="DropHintText" Margin="10,0"
                                       VerticalAlignment="Center"

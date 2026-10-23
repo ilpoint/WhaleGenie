@@ -60,6 +60,30 @@ public class StepTreeTests
     }
 
     [Fact]
+    public void A_block_row_does_not_repeat_the_counts_its_section_heads_show()
+    {
+        Ui.Run(() =>
+        {
+            var branch = Step("control.case", Text("values", "a"),
+                Body("body", Step("control.log")));
+            var choice = Step("control.switch",
+                new StepParameter
+                {
+                    Name = "cases",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [branch],
+                });
+            var editor = new MacroEditorViewModel();
+            editor.AddStep(choice);
+
+            var block = editor.Rows.Single(row => row.IsStep && ReferenceEquals(row.Step, choice));
+            var cases = editor.Rows.Single(row => row.IsHead && row.List?.Name == "cases");
+            Assert.DoesNotContain(Strings.Format("Common.StepCount", 1), block.Detail);
+            Assert.Equal(Strings.Format("Common.StepCount", 1), cases.HeadCount);
+        });
+    }
+
+    [Fact]
     public void Folding_a_block_hides_what_is_inside_it()
     {
         Ui.Run(() =>
@@ -303,6 +327,7 @@ public class StepTreeTests
             // A loop holding itself could never finish, so the drop is simply not taken.
             Assert.Same(loop, Assert.Single(editor.Steps));
             Assert.Single(Inside(loop));
+            Assert.Equal(Strings.Get("Editor.PlaceIntoItself"), editor.PlacementNotice);
         });
     }
 

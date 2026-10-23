@@ -560,6 +560,63 @@ public class MacroEditorWorkspaceTests
         });
     }
 
+    [Fact]
+    public void Dragging_an_ordinary_action_over_cases_is_refused_before_the_form_opens()
+    {
+        Ui.Run(() =>
+        {
+            var switchStep = Step("control.switch",
+                new StepParameter
+                {
+                    Name = "cases",
+                    Kind = ActionParameterKind.Steps,
+                },
+                new StepParameter
+                {
+                    Name = "otherwise",
+                    Kind = ActionParameterKind.Steps,
+                });
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(switchStep);
+            Dispatcher.UIThread.RunJobs();
+            var list = window.FindControl<ListBox>("StepList")!;
+            var marker = window.FindControl<Border>("DropMarker")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var casesHead = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow
+                {
+                    IsHead: true,
+                    List: { Name: "cases" },
+                });
+            var point = casesHead.TranslatePoint(
+                new Point(casesHead.Bounds.Width / 2, casesHead.Bounds.Height / 2), list)!.Value;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            var over = DragAt(list, DragDrop.DragOverEvent, transfer, point);
+            Assert.Equal(DragDropEffects.None, over.DragEffects);
+            Assert.True(marker.IsVisible);
+            Assert.Contains("Rejected", marker.Classes);
+            Assert.Equal(Strings.Format("Editor.PlaceTakesOnly",
+                ActionCatalog.Find("control.case")!.LocalName), hint.Text);
+
+            DragAt(list, DragDrop.DropEvent, transfer, point);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
+            Assert.Empty(switchStep.StepLists.Single(parameter => parameter.Name == "cases").Steps);
+            Assert.True(editor.HasPlacementNotice);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == editor.PlacementNotice);
+            window.Close(null);
+        });
+    }
+
     private static MacroStep Step(string type, params StepParameter[] parameters)
         => new() { Type = type, Parameters = [.. parameters] };
 

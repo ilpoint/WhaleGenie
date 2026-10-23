@@ -451,9 +451,6 @@ public class MacroStep : INotifyPropertyChanged
                 var label = ParameterLabel(parameter);
                 switch (parameter.Kind)
                 {
-                    case ActionParameterKind.Steps when parameter.Steps.Count > 0:
-                        parts.Add($"{label} = {Strings.Format("Common.StepCount", parameter.Steps.Count)}");
-                        break;
                     case ActionParameterKind.Region when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.RegionCount", parameter.Rows.Count)}");
                         break;

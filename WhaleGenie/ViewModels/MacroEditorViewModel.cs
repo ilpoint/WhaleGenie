@@ -501,6 +501,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
+        PlacementNotice = string.Empty;
         foreach (var action in ActionPalette)
         {
             action.RefreshLanguage();
@@ -706,6 +707,17 @@ public partial class MacroEditorViewModel : ViewModelBase
     public string CallImpactSummary { get; private set; } = string.Empty;
 
     public bool HasCallImpact => CallImpactSummary.Length > 0;
+
+    /// <summary>
+    /// Why the last drag, paste or structural edit was refused. It stays above the step list until
+    /// another edit succeeds or the selection moves, so a refused drop does not look like a silent
+    /// failure.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPlacementNotice))]
+    public partial string PlacementNotice { get; set; } = string.Empty;
+
+    public bool HasPlacementNotice => PlacementNotice.Length > 0;
 
     /// <summary>One line above the list saying how much the editor has to say about the steps.</summary>
     public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
@@ -1663,6 +1675,26 @@ public partial class MacroEditorViewModel : ViewModelBase
         return definition is { ChildKeys.Count: > 0 } ? ActionCatalog.ForKeys(definition.ChildKeys) : null;
     }
 
+    /// <summary>
+    /// Checks a proposed insertion without moving the editor's pending target. Drag feedback uses
+    /// this before the pointer is released, so an illegal seam never promises a drop it will refuse.
+    /// </summary>
+    public string? PlacementRefusalAt(int slot, MacroStep? into, IEnumerable<MacroStep> steps)
+        => PlacementRefusal(TargetAt(slot, into), steps);
+
+    /// <summary>Checks the current selection at a proposed drop seam.</summary>
+    public string? MoveSelectionRefusalAt(int slot, MacroStep? into)
+    {
+        var target = TargetAt(slot, into);
+        var moving = Ordered(_selection);
+        return target is not null && moving.Any(step => IsInside(target.List, step))
+            ? Strings.Get("Editor.PlaceIntoItself")
+            : PlacementRefusal(target, moving);
+    }
+
+    /// <summary>Shows the reason a placement was refused without changing the macro.</summary>
+    public void ReportPlacementRefusal(string reason) => PlacementNotice = reason;
+
     /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
     [RelayCommand]
     private void ToggleFold(StepRow? row)
@@ -1802,8 +1834,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         // no one place to be wrapped into, so the block the first of them is in is the one that
         // gets the group.
         var grouped = selected.Where(step => ReferenceEquals(ListOf(step), list)).ToList();
-        PushUndo();
-
         var index = list.IndexOf(grouped[0]);
         var group = new MacroStep
         {
@@ -1820,6 +1850,13 @@ public partial class MacroEditorViewModel : ViewModelBase
             ],
         };
 
+        if (PlacementRefusal(TargetForList(list, index), [group]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
+        PushUndo();
         foreach (var step in grouped)
         {
             list.Remove(step);
@@ -1856,6 +1893,11 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         var lifted = LiftedMacro(stretch);
         var call = CallTo(lifted);
+        if (PlacementRefusal(TargetForList(list, list.IndexOf(stretch[0])), [call]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
 
         PushUndo();
         var index = list.IndexOf(stretch[0]);
@@ -2052,26 +2094,49 @@ public partial class MacroEditorViewModel : ViewModelBase
         // selection moves: moving it is the user saying "somewhere else".
         _insertAt ??= InsertionPoint();
 
-        if (InsertChoices is { } allowed && !allowed.Any(definition => definition.Key == step.Type))
+        if (PlacementRefusalForPending(step) is { } refusal)
         {
-            return Strings.Format("Editor.PlaceTakesOnly", KindsAllowed(allowed));
+            ReportPlacementRefusal(refusal);
+            return refusal;
         }
 
         AddStep(step);
         return null;
     }
 
-    /// <summary>
-    /// What a place that takes only certain kinds of step accepts, named the way the picker names
-    /// it: a handful of kinds are worth listing, a whole family is better said by its name.
-    /// </summary>
-    private static string KindsAllowed(IReadOnlyList<ActionDefinition> allowed)
-    {
-        var names = allowed.Select(definition => definition.LocalName).Distinct().ToList();
+    /// <summary>Checks the step a form is about to add at the target the editor locked for it.</summary>
+    internal string? PlacementRefusalForPending(MacroStep step)
+        => PlacementRefusal(
+            _insertAt ?? InsertionPoint() ?? TargetForList(Steps, Steps.Count),
+            [step]);
 
-        return names.Count <= 3
-            ? string.Join(" / ", names)
-            : Strings.Get($"Add.Category.{allowed[0].Category}");
+    /// <summary>Checks an edited step against the list its original occupies.</summary>
+    internal string? PlacementRefusalForReplacement(MacroStep original, MacroStep replacement)
+        => ListOf(original) is { } list
+            ? PlacementRefusal(TargetForList(list, list.IndexOf(original)), [replacement])
+            : null;
+
+    /// <summary>Returns the one explanation every insertion and move uses for a rejected step.</summary>
+    private static string? PlacementRefusal(
+        StepInsertionTarget? target, IEnumerable<MacroStep> steps)
+    {
+        var destination = target is { Owner: { } owner, Parameter: { } parameter }
+            ? owner.ParameterDefinition(parameter)
+            : null;
+        if (StepPlacement.FirstIssue(destination, steps) is not { } issue)
+        {
+            return null;
+        }
+
+        if (issue.Destination is { ChildKeys.Count: > 0 } restricted)
+        {
+            return Strings.Format("Editor.PlaceTakesOnly",
+                StepPlacement.AllowedSummary(restricted));
+        }
+
+        return issue.Step.Type == "control.case"
+            ? Strings.Get("Editor.PlaceCaseOnly")
+            : Strings.Format("Editor.PlaceUnavailable", issue.Step.DisplayName);
     }
 
     /// <summary>
@@ -2080,16 +2145,21 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     public void AddStep(MacroStep step)
     {
-        PushUndo();
         step.EnsureDeclaredLists();
+        var target = _insertAt ?? TargetForList(Steps, Steps.Count);
+        if (PlacementRefusal(target, [step]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
+        PushUndo();
         if (step.StepLists.Any())
         {
             step.IsExpanded = true;
         }
 
-        var (list, index) = _insertAt is { } at
-            ? (at.List, at.Index)
-            : ((IList<MacroStep>)Steps, Steps.Count);
+        var (list, index) = (target.List, target.Index);
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
 
@@ -2107,6 +2177,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (steps.Count == 0)
         {
+            return;
+        }
+
+        if (PlacementRefusal(TargetForList(Steps, Steps.Count), steps) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -2136,6 +2212,12 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
+        if (PlacementRefusal(TargetForList(list, index), [replacement]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
         PushUndo();
 
         // A block the user had folded open stays folded open while it is being edited.
@@ -2156,13 +2238,22 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
-        PushUndo();
-
         var anchor = Ordered(_selection).LastOrDefault();
         var list = anchor is null ? Steps : ListOf(anchor) ?? Steps;
         var index = anchor is null ? list.Count : list.IndexOf(anchor) + 1;
         var copies = steps.Select(Clone).ToList();
+        foreach (var copy in copies)
+        {
+            copy.EnsureDeclaredLists();
+        }
 
+        if (PlacementRefusal(TargetForList(list, index), copies) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
+        PushUndo();
         for (var offset = 0; offset < copies.Count; offset++)
         {
             list.Insert(Math.Clamp(index + offset, 0, list.Count), copies[offset]);
@@ -2231,6 +2322,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         // A step asked for before this one is no longer the step being pointed at.
         _insertAt = null;
+        PlacementNotice = string.Empty;
         _selection.Clear();
         _selection.AddRange(steps);
 
@@ -2634,32 +2726,54 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     public void PrepareInsertionAt(int slot, MacroStep? into)
     {
-        if (into is not null)
+        if (TargetAt(slot, into) is not { } target)
         {
-            if (into.StepLists.FirstOrDefault() is not { } parameter)
-            {
-                return;
-            }
-
-            into.IsExpanded = true;
-            _insertAt = new StepInsertionTarget(parameter.Steps,
-                parameter.Steps.Count, into, parameter);
             return;
         }
 
+        if (into is not null)
+        {
+            into.IsExpanded = true;
+        }
+
+        _insertAt = target;
+    }
+
+    /// <summary>The exact insertion target at a visible seam, or at the end of a single-list block.</summary>
+    private StepInsertionTarget? TargetAt(int slot, MacroStep? into)
+    {
+        if (into is not null)
+        {
+            return into.StepLists.FirstOrDefault() is { } parameter
+                ? new StepInsertionTarget(parameter.Steps, parameter.Steps.Count, into, parameter)
+                : null;
+        }
+
         var (list, index) = DropTarget(slot);
-        var owner = DocumentOrder().FirstOrDefault(candidate =>
-            candidate.StepLists.Any(parameter => ReferenceEquals(parameter.Steps, list)));
-        if (owner is not null
-            && owner.StepLists.First(parameter => ReferenceEquals(parameter.Steps, list))
-                is { } ownerParameter)
+        return TargetForList(list, index);
+    }
+
+    /// <summary>The target for a known list, including the owner's declaration that restricts it.</summary>
+    private StepInsertionTarget TargetForList(IList<MacroStep> list, int index)
+        => OwnerOfList(list) is { } owner
+            ? new StepInsertionTarget(list, index, owner.Owner, owner.Parameter)
+            : new StepInsertionTarget(list, index, null, null);
+
+    /// <summary>The block and parameter that own a child list, or null for the macro's root list.</summary>
+    private (MacroStep Owner, StepParameter Parameter)? OwnerOfList(IList<MacroStep> list)
+    {
+        foreach (var owner in DocumentOrder())
         {
-            _insertAt = new StepInsertionTarget(list, index, owner, ownerParameter);
+            foreach (var parameter in owner.StepLists)
+            {
+                if (ReferenceEquals(parameter.Steps, list))
+                {
+                    return (owner, parameter);
+                }
+            }
         }
-        else
-        {
-            _insertAt = new StepInsertionTarget(list, index, null, null);
-        }
+
+        return null;
     }
 
     /// <summary>True when the place currently accepting a drop allows this action.</summary>
@@ -2709,6 +2823,20 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (block.StepLists.FirstOrDefault() is not { } parameter || _selection.Count == 0)
         {
+            return;
+        }
+
+        if (Ordered(_selection).Any(step => IsInside(parameter.Steps, step)))
+        {
+            ReportPlacementRefusal(Strings.Get("Editor.PlaceIntoItself"));
+            return;
+        }
+
+        if (PlacementRefusal(
+                new StepInsertionTarget(parameter.Steps, parameter.Steps.Count, block, parameter),
+                Ordered(_selection)) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -2780,6 +2908,13 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         if (selected.Any(step => IsInside(target, step)))
         {
+            ReportPlacementRefusal(Strings.Get("Editor.PlaceIntoItself"));
+            return;
+        }
+
+        if (PlacementRefusal(TargetForList(target, index), selected) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -2845,6 +2980,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     internal void NotifyStepsChanged()
     {
+        PlacementNotice = string.Empty;
         RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();

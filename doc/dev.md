@@ -141,9 +141,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   增加；草稿 `apply` 前对不上就拒绝，避免覆盖人在界面里的修改。
 - `McpDraftStore` 只改内存草稿；`apply` 才替换 `MainViewModel` 的宏与全局变量，`save_project` 才
   调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。
-- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。参数还带
+- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。动作带
+  `Hidden`，参数带 `ChildKeys`，所以外部作者能看出隐藏动作与每个子步骤列表接受的键。参数还带
   `Fields`（记录内部字段名）、`Unit`、`EmptyMeans`、`Minimum` 与 `Maximum`，窗口规则字段直接取自
-  `WindowRule.ToJson`，MCP 客户端不必猜记录结构或数字范围。
+  `WindowRule.ToJson`，MCP 客户端不必猜记录结构、数字范围或嵌套位置。
 - `McpServerViewModel.EnsureSaved` 是启动前的保存回调：`App` 把它接到
   `MainWindow.EnsureProjectSavedForMcpAsync`，后者在没有 `CurrentPath` 时弹「选择保存位置 / 先打开」，
   选择位置走现有 `SaveAsAsync`。没有窗口的测试不设回调，仍可直接启动。
@@ -161,8 +162,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
 - 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组。没有
   `run_macro` / `debug_macro` 工具。
-- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision
-  与保存；`RunLogTests` 验日志；无外网。
+- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision、
+  保存和非法落点；`McpActionKnowledgeTests` 验 `Hidden` / `ChildKeys` 对账；`RunLogTests` 验日志；无外网。
 
 ## 脚本怎么跑
 
@@ -400,6 +401,7 @@ UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotke
 | 页面归属 | `ActionPageTests` | 一个参数只属于一页，基础页为空时不显示 |
 | 文案 | `LocalizationTests` | 中英文键齐全，参数与选项都有中文 |
 | 字段名 | `FieldNameTests` | 同一字段名只有一种 `Kind`、一套选项与一套标签；记录字段也走 `FieldNames`；例外要写进白名单与理由 |
+| 步骤落点 | `StepPlacementTests` + `MacroCheckTests` + `MacroEditorWorkspaceTests` | 新增、拖动、粘贴、组合、提取共用目录里的 `ChildKeys` 与 `Hidden`；`cases` 只收 Case，Case 不能离开多分支；拒绝不产生部分改动或撤销项，非法载入树在步骤行报错 |
 | 循环与结果 | `MacroRunnerTests` | 嵌套循环的 item/index/counter 恢复外层；四种循环的 `ended`；失败/重试后结果为空 |
 | 等按键 | `DeviceActionTests` | `input.waitKey` 只认钩子送来的匹配的键；`event` 选按下/松开；`swallow` 只拦结束等待的那个键；键名留空等任何键；超时按步骤超时 |
 | 互斥与调用图 | `MacroRunnerTests` + `DeviceActionTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时启动浏览器后台运行被拒；`control.holdInput` / `control.holdBrowser` 的块内步骤不再取门，嵌套只记层数；`control.runStatus` 不等待取状态并刷新句柄；同一宏的后台运行有上限 |

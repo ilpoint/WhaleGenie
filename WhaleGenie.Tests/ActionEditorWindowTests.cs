@@ -105,10 +105,50 @@ public class ActionEditorWindowTests
 
             var list = form.Parameters.Single(parameter =>
                 parameter.Definition.Kind == ActionParameterKind.Steps).List!;
-            list.AddCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
 
             Assert.Empty(window.OwnedWindows);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ItemsControl>(),
+                control => ReferenceEquals(control.ItemsSource, list.Steps));
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void The_action_window_does_not_repeat_the_technical_action_key()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [],
+                "control.repeat");
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == "control.repeat");
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void A_refused_placement_keeps_the_form_open_with_its_reason()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [],
+                "control.break")
+            {
+                PlaceStep = (_, _) => "This list does not take that step.",
+            };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var form = (AddActionViewModel)window.DataContext!;
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(window.IsVisible);
+            Assert.True(form.ShowsWarning);
+            Assert.Equal("This list does not take that step.", form.Notice);
             window.Close();
         });
     }

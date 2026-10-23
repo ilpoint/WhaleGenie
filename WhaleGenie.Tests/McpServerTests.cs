@@ -54,12 +54,14 @@ public class McpServerTests
             var instructions = Assert.IsType<TextContentBlock>(message.Content).Text;
             Assert.Contains("whalegenie_open_project", instructions, StringComparison.Ordinal);
             Assert.Contains("whalegenie_put_macro", instructions, StringComparison.Ordinal);
+            Assert.Contains("childKeys", instructions, StringComparison.Ordinal);
 
             var debug = await client.GetPromptAsync("whalegenie_debug_macro",
                 new Dictionary<string, object?>());
             var debugInstructions = Assert.IsType<TextContentBlock>(
                 Assert.Single(debug.Messages).Content).Text;
             Assert.Contains("whalegenie_get_run_log", debugInstructions, StringComparison.Ordinal);
+            Assert.Contains("childKeys", debugInstructions, StringComparison.Ordinal);
 
             var status = await client.CallToolAsync("whalegenie_project_status",
                 new Dictionary<string, object?>());
@@ -103,6 +105,18 @@ public class McpServerTests
             Assert.Equal("Keep", x.GetProperty("emptyMeans").GetString());
             Assert.Equal(-100_000m, x.GetProperty("minimum").GetDecimal());
             Assert.Equal(100_000m, x.GetProperty("maximum").GetDecimal());
+
+            var choice = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "control.switch" }));
+            Assert.False(choice.RootElement.GetProperty("hidden").GetBoolean());
+            var cases = Assert.Single(choice.RootElement.GetProperty("parameters").EnumerateArray(),
+                parameter => parameter.GetProperty("name").GetString() == "cases");
+            Assert.Equal(["control.case"], cases.GetProperty("childKeys").EnumerateArray()
+                .Select(key => key.GetString()!));
+
+            var branch = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "control.case" }));
+            Assert.True(branch.RootElement.GetProperty("hidden").GetBoolean());
 
             await host.StopAsync();
             return true;

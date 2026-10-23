@@ -70,9 +70,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
 
-    /// <summary>Raised when a nested editor wants the picker opened to edit a step.</summary>
-    public event Action<MacroStep>? NestedEditRequested;
-
     public AddActionViewModel()
         : this(null, null, null)
     {
@@ -1330,7 +1327,6 @@ public partial class AddActionViewModel : ViewModelBase
             if (parameter.List is not null)
             {
                 parameter.List.PropertyChanged -= OnParameterChanged;
-                parameter.List.EditRequested -= OnNestedEditRequested;
             }
         }
 
@@ -1409,7 +1405,6 @@ public partial class AddActionViewModel : ViewModelBase
         if (editor.List is not null)
         {
             editor.List.PropertyChanged += OnParameterChanged;
-            editor.List.EditRequested += OnNestedEditRequested;
         }
 
         Parameters.Add(editor);
@@ -1633,6 +1628,13 @@ public partial class AddActionViewModel : ViewModelBase
             // The results are a page of their own rather than a line among the fields: what the
             // step hands over is a list of names to choose from, not one more setting.
             if (parameter.IsReturns)
+            {
+                continue;
+            }
+
+            // A block's children live in the main editor list, where their nesting can be seen
+            // and edited. Keeping their parameter out of the form leaves one structural editor.
+            if (parameter.Definition.Kind is ActionParameterKind.Steps)
             {
                 continue;
             }
@@ -2180,8 +2182,6 @@ public partial class AddActionViewModel : ViewModelBase
             RefreshPages();
         }
     }
-
-    private void OnNestedEditRequested(MacroStep step) => NestedEditRequested?.Invoke(step);
 
     /// <summary>
     /// The ways of answering "where" or "which rectangle": the record in the first field, or the

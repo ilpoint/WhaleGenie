@@ -133,6 +133,36 @@ public class ActionPaletteCategoryTests
     }
 
     [Fact]
+    public void The_flow_dock_lists_every_visible_control_action_once()
+    {
+        var palette = new ActionPaletteViewModel();
+        palette.SelectDock(ActionPaletteDock.Flow);
+
+        var expected = ActionCatalog.RunnableActions
+            .Where(action => action.Category == ActionCategory.Control)
+            .Select(action => action.Key)
+            .Order()
+            .ToList();
+        var shown = palette.Sections.SelectMany(section => section.Cards)
+            .Select(card => card.Key)
+            .Order()
+            .ToList();
+
+        Assert.Equal(expected, shown);
+        Assert.Equal(
+            [
+                Strings.Get("Palette.Flow.Branch"),
+                Strings.Get("Palette.Flow.Jump"),
+                Strings.Get("Palette.Flow.Waiting"),
+                Strings.Get("Palette.Flow.Data"),
+                Strings.Get("Palette.Flow.Notes"),
+            ],
+            palette.Sections.Select(section => section.Title));
+        Assert.DoesNotContain("control.case", shown);
+        Assert.DoesNotContain("control.sequence", shown);
+    }
+
+    [Fact]
     public void Actions_are_the_original_compact_wrapping_buttons()
     {
         Ui.Run(() =>

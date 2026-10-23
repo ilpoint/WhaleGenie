@@ -840,22 +840,20 @@ public class ActionDialogTests
             var cases = viewModel.Parameters.First(parameter => parameter.Definition.Name == "cases");
 
             // The branches of a switch are steps of a block, so they are edited in the editor's
-            // own list, where the switch can be seen whole, and the dialog only says so. What a
-            // list may take is asked of the place the step is going (the editor's `InsertChoices`),
-            // not of this dialog.
+            // own list, where the switch can be seen whole. The form keeps their data for a round
+            // trip, but it never shows a second editor for them.
             var otherwise = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "otherwise");
 
-            Assert.True(cases.IsStepList);
-            // A list that names itself says so on the button that adds to it, the way the editor's
-            // own list does: the branches of a switch are branches, not steps.
-            Assert.Equal(Strings.Get("Add.Case"), cases.List!.AddLabel);
-            Assert.True(otherwise.IsStepList);
+            Assert.NotNull(cases.List);
+            Assert.NotNull(otherwise.List);
+            Assert.DoesNotContain(viewModel.Rows,
+                row => Names(row).Any(name => name is "cases" or "otherwise"));
         });
     }
 
     [Fact]
-    public void The_add_button_in_a_block_offers_only_what_that_list_takes()
+    public void A_restricted_list_is_named_by_the_same_rule_every_entry_uses()
     {
         Ui.Run(() =>
         {
@@ -864,11 +862,12 @@ public class ActionDialogTests
             var otherwise = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "otherwise");
 
-            // A switch's branches are branches wherever they are added from, so the button in the
-            // dialog is narrowed the same way the editor's own list is. An ordinary block takes
-            // anything and says so by offering nothing in particular.
-            Assert.Equal(["control.case"], cases.List!.Catalog!.Select(action => action.Key));
-            Assert.Null(otherwise.List!.Catalog);
+            Assert.Equal(["control.case"],
+                StepPlacement.Allowed(cases.Definition).Select(action => action.Key));
+            Assert.Contains(StepPlacement.Allowed(otherwise.Definition),
+                action => action.Key == "control.log");
+            Assert.DoesNotContain(StepPlacement.Allowed(otherwise.Definition),
+                action => action.Key == "control.case");
         });
     }
 
@@ -947,21 +946,17 @@ public class ActionDialogTests
             var viewModel = Open("control.repeat");
             var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
 
-            // The dialog says where the steps of a block went instead of showing a second list
-            // of the same steps, which is what used to make the same structure editable twice.
-            Assert.True(body.IsStepList);
-            Assert.NotEmpty(body.StepsNote);
-
-            // Adding one is still here: it is the one thing about the inside of a block you may
-            // well want while its settings are open.
-            Assert.Equal(Strings.Get("Add.AddStepToBlock"), body.List!.AddLabel);
+            // The child list remains in the model so the form can round-trip it, but no line or
+            // add control for it reaches the form.
+            Assert.NotNull(body.List);
+            Assert.DoesNotContain(viewModel.Rows.SelectMany(Names), name => name == "body");
 
             // A condition is a Boolean expression inside its block, not another action list.
             var test = Open("control.if");
             var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
 
             Assert.True(condition.IsExpression);
-            Assert.False(condition.IsStepList);
+            Assert.Null(condition.List);
         });
     }
 
@@ -978,10 +973,22 @@ public class ActionDialogTests
             var viewModel = (AddActionViewModel)window.DataContext!;
 
             // Retries, timeouts and "when it fails" mean something bigger on a block: a failure
-            // inside it that no step answered is the block failing, so the dialog says so.
+            // inside it that no step answered is the block failing. Its explanation belongs with
+            // those controls, not among the fields that say what the block examines.
             Assert.True(viewModel.IsBlock);
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible && text.Text == Strings.Get("Add.BlockSettings"));
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockStepsInList"));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockSettings"));
+
+            viewModel.Select(viewModel.Pages.Single(page => page.Key == AddActionViewModel.OtherPage));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockSettings"));
 
             // A step that does one thing is not a block, and the line is not about it.
             Assert.False(Open("control.delay").IsBlock);
@@ -989,40 +996,47 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_block_adds_children_in_the_editor_step_list_not_a_second_dialog()
+    public void A_block_form_keeps_children_without_showing_a_second_editor()
     {
         Ui.Run(() =>
         {
+            var child = Open("control.delay").BuildStep();
             var window = new ActionEditorWindow(
-                new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
+                new MacroStep
+                {
+                    Type = "control.repeat",
+                    Parameters =
+                    [
+                        new StepParameter
+                        {
+                            Name = "body",
+                            Kind = ActionParameterKind.Steps,
+                            Steps = [child],
+                        },
+                    ],
+                },
+                ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = (AddActionViewModel)window.DataContext!;
             var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
-            var before = body.StepsNote;
 
-            // The block's settings say where its steps are edited. They do not offer a second
-            // child-action window; the child is dropped into the macro list once the block exists.
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible && text.Text == body.StepsNote);
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(),
-                candidate => candidate.IsEffectivelyVisible
-                    && Equals(candidate.Content, body.List!.AddLabel));
-
-            body.List!.AddCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Empty(body.List.Steps);
+            // One explanation replaces one repeated note per child list, and no child editor is
+            // present. Saving still returns the child unchanged.
+            Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockStepsInList"));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ItemsControl>(),
+                control => ReferenceEquals(control.ItemsSource, body.List!.Steps));
             Assert.Empty(window.OwnedWindows);
-            Assert.Equal(before, body.StepsNote);
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
             Assert.Equal("control.repeat", saved!.Type);
-            Assert.Equal(0, saved.ChildCount);
+            Assert.Equal("control.delay", Assert.Single(saved.StepLists.Single().Steps).Type);
         });
     }
 

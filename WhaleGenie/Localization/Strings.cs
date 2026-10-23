@@ -650,7 +650,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Record"] = "Record",
         ["Editor.StopRecording"] = "Stop Recording",
         ["Editor.RecordIdle"] = "Press Ctrl + F10 or click Record to start",
-        ["Editor.PlaceTakesOnly"] = "The step was not added. This place only takes {0}.",
+        ["Editor.PlaceTakesOnly"] = "The step was not placed. This list only takes {0}.",
+        ["Editor.PlaceCaseOnly"] = "A case can only be placed in a switch's branch list.",
+        ["Editor.PlaceUnavailable"] = "This action cannot be placed here: {0}.",
+        ["Editor.PlaceIntoItself"] = "A block cannot be moved inside itself.",
         ["Editor.RecordActive"] = "Recording: {0} captured, Escape is recorded like any other "
                                   + "key. Press Ctrl + F10 to stop",
         ["Editor.RecordFailed"] = "Recording could not start. Another program may be holding the "
@@ -685,7 +688,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PublicOrigin"] = "Copied from public macro {0}, version {1}.",
         ["Editor.DescriptionPlaceholder"] =
             "What this callable macro does; this is shown when it is picked.",
-        ["Editor.PlaceRefusedTitle"] = "Action was not added",
         ["Editor.EmptyStepList"] = "Drag a sub-step into this area.",
         ["Editor.EmptyBranchList"] = "Drag a branch into this area.",
         ["Editor.JsonTree"] = "JSON Tree",
@@ -810,6 +812,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.NotARecord"] = "\"{0}\" takes a record, and \"{1}\" is not one: a hit, a window or a picture taken earlier carries one.",
         ["Editor.Problem.RecordInText"] = "\"{1}\" takes text and names the record \"{0}\": the whole record would be written as JSON text. Read one field with field(record, \"name\").",
         ["Editor.Problem.EmptySwitch"] = "This switch has no case and no otherwise branch, so it does nothing.",
+        ["Editor.Problem.WrongStepKind"] = "This list only takes {0}, so this step would not run here.",
+        ["Editor.Problem.CaseOutsideSwitch"] = "A case can only run in a switch's branch list.",
+        ["Editor.Problem.HiddenStep"] = "This action is only available inside the container that declares it: {0}.",
         ["Editor.Problem.ReservedVariable"] = "\"{0}\" is a name WhaleGenie keeps for itself, "
             + "so a variable of this macro cannot use it.",
         ["Editor.Problem.UnguardedRecursion"] = "This call to the macro itself is not inside an if, "
@@ -1063,10 +1068,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NoCondition"] = "No condition has been added yet.",
         ["Add.Case"] = "Drop in branch",
         ["Add.NestedEdit"] = "Edit",
-        ["Add.StepsInList"] = "The steps inside a block are put in order in the editor's list: {0}",
+        ["Add.BlockStepsInList"] = "Sub-steps are added and ordered in the editor's step list. "
+            + "This window edits the block's own settings.",
         ["Add.AddStepToBlock"] = "Drop in sub-step",
-        ["Add.AddStepToBlockHint"] = "Drag an action into the end of this block. Clicking only "
-            + "filters the actions that can be placed here in the library on the left.",
         ["Add.ExpressionValid"] = "Expression is valid",
         ["Add.ExpressionWhenRun"] = "This reads as an expression; what it works out to is known "
             + "when the macro runs.",
@@ -2537,7 +2541,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Record"] = "开始录制",
         ["Editor.StopRecording"] = "停止录制",
         ["Editor.RecordIdle"] = "按 Ctrl + F10 或点“开始录制”",
-        ["Editor.PlaceTakesOnly"] = "这一步没有加进去：这个位置只收{0}。",
+        ["Editor.PlaceTakesOnly"] = "这一步没有放进去：这个列表只收{0}。",
+        ["Editor.PlaceCaseOnly"] = "Case 只能放进多分支的分支列表。",
+        ["Editor.PlaceUnavailable"] = "这个动作不能放进当前位置：{0}。",
+        ["Editor.PlaceIntoItself"] = "不能把块放进它自己的内部。",
         ["Editor.RecordActive"] = "录制中：已捕获 {0} 个事件（Esc 会被正常录下来），"
                                   + "按 Ctrl + F10 停止",
         ["Editor.RecordFailed"] = "无法开始录制。可能有其他程序占用了键盘或鼠标钩子。",
@@ -2569,7 +2576,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PublicOrigin"] = "复制自公共宏“{0}”版本 {1}。",
         ["Editor.DescriptionPlaceholder"] =
             "说明这个可调用宏做什么；从列表中选用时会显示。",
-        ["Editor.PlaceRefusedTitle"] = "动作没有加入",
         ["Editor.EmptyStepList"] = "将子步骤拖入此区域。",
         ["Editor.EmptyBranchList"] = "将分支拖入此区域。",
         ["Editor.JsonTree"] = "JSON 树",
@@ -2678,6 +2684,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.NotARecord"] = "「{0}」要一条记录，而「{1}」不是：上一步的命中、窗口或截图都带着一条记录。",
         ["Editor.Problem.RecordInText"] = "「{1}」只收文本，却引用了记录「{0}」：整条记录会被写成 JSON 文字；取其中一项用 field(记录, \"字段名\")。",
         ["Editor.Problem.EmptySwitch"] = "这个多分支没有 case，也没有 otherwise，运行时什么也不做。",
+        ["Editor.Problem.WrongStepKind"] = "这个列表只收{0}，这一步放在这里不会运行。",
+        ["Editor.Problem.CaseOutsideSwitch"] = "Case 只能放在多分支的分支列表里运行。",
+        ["Editor.Problem.HiddenStep"] = "这个动作只能放在声明它的容器里：{0}。",
         ["Editor.Problem.ReservedVariable"] = "“{0}”是鲸灵自己保留的名字，本宏的变量不能用它。",
         ["Editor.Problem.UnguardedRecursion"] = "这一步调用了宏自己，但不在 if、多分支或循环里，"
             + "没有停止递归的出口。",
@@ -2927,9 +2936,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NoCondition"] = "还没有添加条件。",
         ["Add.Case"] = "拖入分支",
         ["Add.NestedEdit"] = "编辑",
-        ["Add.StepsInList"] = "这一块里的步骤在编辑器列表里调整：{0}",
+        ["Add.BlockStepsInList"] = "子步骤在编辑器的步骤列表里拖入和排序；此窗口只编辑这一块自己的设置。",
         ["Add.AddStepToBlock"] = "拖入子步骤",
-        ["Add.AddStepToBlockHint"] = "将动作拖入此块末尾；点击后在左侧筛选可放入的动作。",
         ["Add.ExpressionValid"] = "表达式有效",
         ["Add.ExpressionWhenRun"] = "这一段读得通；算出来是什么，要等跑起来才知道。",
         ["Add.ExpressionResult"] = "= {0}",

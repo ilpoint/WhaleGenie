@@ -147,30 +147,14 @@ public partial class StepParameterViewModel : ViewModelBase
 
         if (definition.Kind is ActionParameterKind.Steps)
         {
-            var addLabel = definition.AddLabelKey.Length > 0
-                ? Strings.Get(definition.AddLabelKey)
-                : Strings.Get("Add.AddStepToBlock");
-
-            // A list that only takes one kind of step says so wherever a step is added to it, and
-            // that includes the button in this dialog: a switch's branches are branches even when
-            // they are added from here, not whatever action happened to be picked.
-            var catalog = definition.ChildKeys.Count > 0
-                ? ActionCatalog.ForKeys(definition.ChildKeys)
-                : null;
-
-            List = new StepListEditorViewModel(
-                addLabel,
-                catalog);
-
-            // The line under the list says how many steps are in it, so it has to follow the list.
-            List.PropertyChanged += (_, _) => OnPropertyChanged(nameof(StepsNote));
+            List = new StepListValue();
         }
     }
 
     public ActionParameter Definition { get; }
 
     /// <summary>Nested editor, set when this parameter holds steps or a condition.</summary>
-    public StepListEditorViewModel? List { get; }
+    public StepListValue? List { get; }
 
     /// <summary>
     /// The places this step looks at, when it is one that searches: one row per rectangle, which
@@ -1162,14 +1146,6 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when this parameter is edited with the nested step editor.</summary>
     public bool IsNested => List is not null;
-
-    /// <summary>True when this parameter holds the steps of a block.</summary>
-    public bool IsStepList => List is not null;
-
-    /// <summary>Where the steps of a block went, which is what the dialog shows in their place.</summary>
-    public string StepsNote => IsStepList
-        ? Strings.Format("Add.StepsInList", Strings.Format("Common.StepCount", List?.Steps.Count ?? 0))
-        : string.Empty;
 
     /// <summary>True when this parameter is edited as an expression.</summary>
     public bool IsExpression => Definition.Kind is ActionParameterKind.Expression;

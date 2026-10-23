@@ -40,6 +40,9 @@ public class MacroCheckTests
     private static MacroStep Repeat(params MacroStep[] body)
         => Step("control.repeat", Text("times", "3"), Steps("body", body));
 
+    private static MacroStep Case(string values, params MacroStep[] body)
+        => Step("control.case", Text("values", values), Steps("body", body));
+
     /// <summary>A call to another macro, asking for whatever of its results are named.</summary>
     private static MacroStep Call(string macro, params string[] wants)
         => Step("control.runMacro", Text("macro", macro), Results(wants));
@@ -117,6 +120,46 @@ public class MacroCheckTests
         var reading = Step("vision.capture");
 
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], null, [], inputShared: true)));
+    }
+
+    [Fact]
+    public void A_case_outside_a_switch_is_marked_on_the_case()
+    {
+        var misplaced = Case("a");
+
+        var problem = Assert.Single(Inspect(misplaced));
+
+        Assert.Same(misplaced, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.CaseOutsideSwitch"), problem.Message);
+    }
+
+    [Fact]
+    public void An_ordinary_step_inside_a_case_list_is_marked_where_it_sits()
+    {
+        var misplaced = Step("control.log", Text("message", "x"), Text("level", "info"));
+        var choice = Step("control.switch",
+            Text("switchValue", "a"),
+            Text("switchMode", "equals"),
+            Steps("cases", Case("a"), misplaced),
+            Steps("otherwise", Step("control.log", Text("message", "y"), Text("level", "info"))));
+
+        var problem = Assert.Single(Inspect(choice));
+
+        Assert.Same(misplaced, problem.Step);
+        Assert.Equal(Strings.Format("Editor.Problem.WrongStepKind",
+            ActionCatalog.Find("control.case")!.LocalName), problem.Message);
+    }
+
+    [Fact]
+    public void A_case_in_the_list_that_declares_it_is_not_marked()
+    {
+        var choice = Step("control.switch",
+            Text("switchValue", "a"),
+            Text("switchMode", "equals"),
+            Steps("cases", Case("a")),
+            Steps("otherwise"));
+
+        Assert.Empty(Inspect(choice));
     }
 
     /// <summary>

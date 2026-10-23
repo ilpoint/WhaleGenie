@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using ModelContextProtocol;
+using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -87,6 +88,46 @@ public class McpDraftTests
         {
             var live = new McpLiveProject(new MainViewModel());
             await Assert.ThrowsAsync<McpException>(() => live.SaveAsync());
+            return true;
+        });
+    }
+
+    [Fact]
+    public void MCP_validation_reports_a_case_outside_a_switch()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var project = new MainViewModel();
+            project.AddMacro(new MacroItem { Name = "原宏" });
+            var live = new McpLiveProject(project);
+            var draft = new McpDraftStore().Create(await live.SnapshotAsync());
+            var bad = new MacroItem { Name = "非法分支" };
+            bad.Steps.Add(new MacroStep
+            {
+                Type = "control.case",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "values",
+                        Kind = ActionParameterKind.Text,
+                        Value = "a",
+                    },
+                    new StepParameter
+                    {
+                        Name = "body",
+                        Kind = ActionParameterKind.Steps,
+                    },
+                ],
+            });
+            draft.Put(bad.ToJson());
+
+            var validation = McpDraftStore.Validate(draft);
+
+            Assert.True(validation.HasErrors);
+            Assert.Contains(validation.Messages, message =>
+                message.Contains(Strings.Get("Editor.Problem.CaseOutsideSwitch"),
+                    StringComparison.Ordinal));
             return true;
         });
     }

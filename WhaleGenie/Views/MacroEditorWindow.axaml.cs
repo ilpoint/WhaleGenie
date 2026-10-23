@@ -166,6 +166,12 @@ public partial class MacroEditorWindow : Window
     /// <summary>How far the drop line is indented, which is what says "inside this block".</summary>
     private double _dropMarkerIndent;
 
+    /// <summary>Whether the seam under the pointer accepts what is being dragged.</summary>
+    private bool _dropAllowed = true;
+
+    /// <summary>Why that seam refuses it, empty while the drop is allowed.</summary>
+    private string _dropRefusal = string.Empty;
+
     public MacroEditorWindow()
         : this(null, null, null)
     {
@@ -1866,6 +1872,9 @@ public partial class MacroEditorWindow : Window
             Devices = Layer,
             Macros = BuildLibrary(),
             ShowPicker = false,
+            PlaceStep = (existing, step) => existing is null
+                ? _viewModel.PlacementRefusalForPending(step)
+                : _viewModel.PlacementRefusalForReplacement(existing, step),
         };
         if (macroName is not null)
         {
@@ -1911,9 +1920,7 @@ public partial class MacroEditorWindow : Window
         KeepRecovery();
         if (refusal is not null)
         {
-            await ConfirmDialog.ShowAsync(this,
-                Strings.Get("Editor.PlaceRefusedTitle"), refusal,
-                Strings.Get("Common.Ok"), showCancel: false);
+            _viewModel.ReportPlacementRefusal(refusal);
         }
 
         return step;
@@ -2671,8 +2678,16 @@ public partial class MacroEditorWindow : Window
         // capture asks for the drag to end and would wipe the drop row out from under us.
         var slot = _dropSlot;
         var into = _dropInto;
+        var allowed = _dropAllowed;
+        var refusal = _dropRefusal;
         EndStepDrag();
         e.Pointer.Capture(null);
+
+        if (!allowed)
+        {
+            _viewModel.ReportPlacementRefusal(refusal);
+            return;
+        }
 
         if (into is not null)
         {
@@ -2693,6 +2708,8 @@ public partial class MacroEditorWindow : Window
         _draggingSteps = false;
         _dropSlot = -1;
         _dropInto = null;
+        _dropAllowed = true;
+        _dropRefusal = string.Empty;
 
         if (_dropMarker is not null)
         {
@@ -2702,15 +2719,17 @@ public partial class MacroEditorWindow : Window
 
     /// <summary>Works out which row the block would land at, and moves the marker onto that seam.</summary>
     private void UpdateDropSlot(PointerEventArgs e)
-        => UpdateDropSlot(e.GetPosition(_stepList));
+        => UpdateDropSlot(e.GetPosition(_stepList), actionKey: null);
 
-    private void UpdateDropSlot(Point point)
+    private void UpdateDropSlot(Point point, string? actionKey = null)
     {
         if (_stepList is null)
         {
             return;
         }
 
+        _dropAllowed = true;
+        _dropRefusal = string.Empty;
         var slot = _viewModel.Rows.Count;
         var markerY = _stepList.Bounds.Height;
         var indent = 0d;
@@ -2739,6 +2758,7 @@ public partial class MacroEditorWindow : Window
                 _dropMarkerY = last.Top + last.Height;
                 _dropMarkerIndent = 0;
                 _dropHintKey = "Editor.DropAtPosition";
+                EvaluateDrop(_dropSlot, _dropInto, actionKey);
                 ShowDropMarker();
                 return;
             }
@@ -2798,16 +2818,25 @@ public partial class MacroEditorWindow : Window
         _dropMarkerY = markerY;
         _dropMarkerIndent = indent;
         _dropHintKey = hintKey;
+        EvaluateDrop(_dropSlot, _dropInto, actionKey);
         ShowDropMarker();
+    }
+
+    /// <summary>Asks the editor whether the seam under the pointer accepts the proposed step(s).</summary>
+    private void EvaluateDrop(int slot, MacroStep? into, string? actionKey)
+    {
+        var refusal = actionKey is null
+            ? _viewModel.MoveSelectionRefusalAt(slot, into)
+            : _viewModel.PlacementRefusalAt(slot, into,
+                [new MacroStep { Type = actionKey }]);
+        _dropAllowed = refusal is null;
+        _dropRefusal = refusal ?? string.Empty;
     }
 
     private void OnActionDragOver(object? sender, DragEventArgs e)
     {
         if (_stepList is null
-            || ActionDragPayload.Read(e.DataTransfer) is not { } payload
-            || !_viewModel.CanPlace(payload.Kind == ActionPaletteCardKind.Action
-                ? payload.Key
-                : "control.runMacro"))
+            || ActionDragPayload.Read(e.DataTransfer) is not { } payload)
         {
             e.DragEffects = DragDropEffects.None;
             if (_dropMarker is not null)
@@ -2818,8 +2847,11 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        UpdateDropSlot(e.GetPosition(_stepList));
-        e.DragEffects = DragDropEffects.Copy;
+        var actionKey = payload.Kind == ActionPaletteCardKind.Action
+            ? payload.Key
+            : "control.runMacro";
+        UpdateDropSlot(e.GetPosition(_stepList), actionKey);
+        e.DragEffects = _dropAllowed ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
     private void OnActionDragLeave(object? sender, DragEventArgs e)
@@ -2839,19 +2871,29 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        UpdateDropSlot(e.GetPosition(_stepList!));
-        var slot = _dropSlot;
-        var into = _dropInto;
-        var editingPage = _viewModel;
-        _viewModel.PrepareInsertionAt(slot, into);
-        EndStepDrag();
-
         var actionKey = payload.Kind == ActionPaletteCardKind.Action
             ? payload.Key
             : "control.runMacro";
+        UpdateDropSlot(e.GetPosition(_stepList!), actionKey);
+        var slot = _dropSlot;
+        var into = _dropInto;
+        var allowed = _dropAllowed;
+        var refusal = _dropRefusal;
+        var editingPage = _viewModel;
+        EndStepDrag();
+
+        if (!allowed)
+        {
+            _viewModel.ReportPlacementRefusal(refusal);
+            return;
+        }
+
+        _viewModel.PrepareInsertionAt(slot, into);
         if (!_viewModel.CanPlace(actionKey))
         {
             _viewModel.ClearPendingInsertion();
+            _viewModel.ReportPlacementRefusal(
+                Strings.Format("Editor.PlaceUnavailable", actionKey));
             return;
         }
 
@@ -2965,9 +3007,12 @@ public partial class MacroEditorWindow : Window
         Canvas.SetTop(_dropMarker, empty
             ? 0
             : Math.Clamp(_dropMarkerY - (height / 2), 0, highest));
+        _dropMarker.Classes.Set("Rejected", !_dropAllowed);
         if (_dropHint is not null)
         {
-            _dropHint.Text = Strings.Get(_dropHintKey);
+            _dropHint.Text = _dropRefusal.Length > 0
+                ? _dropRefusal
+                : Strings.Get(_dropHintKey);
         }
 
         _dropMarker.IsVisible = true;

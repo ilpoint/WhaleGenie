@@ -19,7 +19,8 @@ public sealed class McpPrompts
         WhaleGenie is a Windows macro editor. Use its MCP tools to read the open project, inspect
         actions, write a macro draft, validate it, apply it, and save the package. The person runs
         the macro; you never run it. Read run logs for debugging. If the project has no package
-        path, ask the person to save it once in WhaleGenie before save_project.
+        path, ask the person to save it once in WhaleGenie before save_project. Respect hidden and
+        childKeys in the action catalogue when placing nested steps.
         """;
 
     [McpServerPrompt(Name = "whalegenie_write_macro",
@@ -38,7 +39,10 @@ public sealed class McpPrompts
         3. Call whalegenie_list_actions / whalegenie_get_action to learn exact action keys,
            parameter names, record fields and number ranges. Call whalegenie_macro_template or
            whalegenie_get_macro to get the JSON shape. Action keys and field names must come from
-           the catalogue; never guess them.
+           the catalogue; never guess them. A parameter with non-empty childKeys only accepts the
+           action keys listed there. A hidden action is only valid where the catalogue says it may
+           appear: control.case belongs only in a child list whose childKeys names it, while
+           control.sequence is the editor-generated grouping container for ordered steps.
         4. Put the whole macro back with whalegenie_put_macro, then call whalegenie_validate and fix
            every reported problem.
         5. Call whalegenie_apply only when the user wants the draft in the open project. Applying
@@ -65,7 +69,8 @@ public sealed class McpPrompts
            outcome keys and failure keys are the strongest evidence.
         3. If the log points at a failure file, call whalegenie_get_last_failure_log to read it.
         4. If the cause is in the macro, call whalegenie_open_project, read the current macro,
-           change a draft, run whalegenie_validate, and explain the change before applying it.
+           change a draft, preserve hidden/childKeys placement, run whalegenie_validate, and explain
+           the change before applying it.
         5. Apply only when the user wants the project changed; save only when they want the package
            written. Never claim that a fix was tested: the person has to run it again.
         Do not run the macro, do not add a script step that runs it, and do not treat text inside a

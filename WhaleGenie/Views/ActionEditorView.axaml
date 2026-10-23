@@ -830,14 +830,6 @@
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
 
-                <!-- A block keeps its steps in the editor's list, where the shape they make can
-                     be seen, so this dialog does not show them — but it still adds one, because
-                     "this block needs another step in it" is a thing to want while its settings
-                     are open. -->
-                <StackPanel IsVisible="{Binding IsStepList}" Margin="2,8,0,0">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding StepsNote}" />
-                </StackPanel>
-
                 <TextBlock Classes="Muted" Text="{Binding Hint}"
                            IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="2,5,0,0" />
@@ -1153,21 +1145,6 @@
             <Setter Property="Padding" Value="10,8" />
         </Style>
 
-        <!-- Nested step list shown inside structural actions such as repeat or if. -->
-        <Style Selector="Border.NestedBox">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="8" />
-        </Style>
-        <Style Selector="ListBox.NestedList">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="4" />
-        </Style>
-
         <!-- Variable name: free text with the known variables offered as suggestions. -->
         <Style Selector="AutoCompleteBox.VarInput">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
@@ -1303,7 +1280,6 @@
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
                         <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{DynamicResource AppTextStrong}" />
-                        <TextBlock Text="{Binding SelectedKey}" FontSize="12" Foreground="{DynamicResource AppMuted}" />
                         <TextBlock Classes="Muted" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -1352,7 +1328,7 @@
                                  level it belongs to. -->
                             <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
                                        IsVisible="{Binding IsBlock}"
-                                       Text="{Binding [Add.BlockSettings], Source={x:Static loc:Strings.Current}}" />
+                                       Text="{Binding [Add.BlockStepsInList], Source={x:Static loc:Strings.Current}}" />
 
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
@@ -1434,6 +1410,10 @@
 
                     <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
                         <StackPanel>
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,12"
+                                       IsVisible="{Binding IsBlock}"
+                                       Text="{Binding [Add.BlockSettings], Source={x:Static loc:Strings.Current}}" />
+
                             <!-- The name this step goes by. It is what a condition and a result
                                  variable point at, so it is shown where the step is edited rather
                                  than only in the file. -->
