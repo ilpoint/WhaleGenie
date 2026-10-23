@@ -25,6 +25,12 @@
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>
 
+    <!--
+      本地构建和文档截图也应显示这次发布的版本。Release 工作流仍用标签传入的
+      -p:Version 覆盖这里，标签继续是正式版本号的唯一来源。
+    -->
+    <Version>0.1.0</Version>
+
     <!-- A warning is a defect that has not been fixed yet, so the build stops on one. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>

@@ -15,18 +15,39 @@ Windows 通用宏与自动化工具。将键盘、鼠标、手柄、屏幕与窗
 滚轮、像素颜色、窗口或进程出现触发；同一宏还可以拥有窗口悬浮按钮、键盘字串和
 Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离。
 
+> [!WARNING]
+> 0.1.0 是破坏性更新：宏包格式从 10 升到 18，0.0.9 及更早版本创建的 `.wgmacro`
+> 不能直接打开，也不会自动迁移。升级前请保留旧包备份，并在 0.1.0 中重新建立项目。
+
 ## 界面
 
-<table>
-  <tr>
-    <td align="center"><img src="doc/images/main-window.png" alt="主界面" width="280"></td>
-    <td align="center"><img src="doc/images/macro-editor.png" alt="宏编辑器" width="700"></td>
-  </tr>
-  <tr>
-    <td align="center">主界面</td>
-    <td align="center">宏编辑器</td>
-  </tr>
-</table>
+### 主界面
+
+宏按用途分布在「按键宏」「界面宏」「字串宏」「菜单宏」和「其他宏」页签。搜索会过滤当前页；
+每张卡片可以直接启停、编辑或删除。顶部提供本机 MCP、运行调试和全局设置入口。
+
+<p align="center">
+  <img src="doc/images/main-window.png" alt="鲸灵主界面" width="360">
+</p>
+
+### 宏编辑器
+
+编辑器分三列：左侧从基础动作、流程控制、子宏和公共宏中取动作；中间按实际执行顺序显示可折叠
+步骤树；右侧管理当前宏的变量与设置。循环、多分支和尝试/收尾会展开成有明确块首与块尾的嵌套
+结构，子步骤直接在主列表里拖动和组织。
+
+<p align="center">
+  <img src="doc/images/macro-editor.png" alt="鲸灵宏编辑器" width="1200">
+</p>
+
+### 动作编辑
+
+动作窗口只编辑已经选中的动作，不再重复动作选择器。基础设置、返回值和其它设置分页显示；块的
+子步骤回到主列表编辑，窗口只保留这一块自己的参数、条件和策略。
+
+<p align="center">
+  <img src="doc/images/action-editor.png" alt="鲸灵动作编辑窗口" width="760">
+</p>
 
 ## 能做什么
 
