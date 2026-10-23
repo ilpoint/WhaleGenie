@@ -82,6 +82,7 @@ public static class ActionCatalog
                     Label = result.Label,
                     Hint = result.Hint,
                     Type = facts.Type,
+                    Fields = facts.Fields,
                     Primary = facts.Primary,
                     OwnerKey = semantics.Key,
                 });
@@ -105,18 +106,13 @@ public static class ActionCatalog
 
         Definitions = definitions;
         ByKey = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
-        Conditions = [.. definitions.Where(definition => definition.IsCondition)];
-        RunnableActions = [.. definitions.Where(definition =>
-            !definition.IsCondition && !definition.Hidden)];
+        RunnableActions = [.. definitions.Where(definition => !definition.Hidden)];
     }
 
     /// <summary>Every action and condition, in the order the picker lists them.</summary>
     public static IReadOnlyList<ActionDefinition> Definitions { get; private set; } = [];
 
     private static readonly Dictionary<string, ActionDefinition> ByKey;
-
-    /// <summary>Catalogue subset used by the condition pickers.</summary>
-    public static IReadOnlyList<ActionDefinition> Conditions { get; private set; } = [];
 
     /// <summary>Everything that can be a step of its own, hidden actions excluded.</summary>
     public static IReadOnlyList<ActionDefinition> RunnableActions { get; private set; } = [];
@@ -133,7 +129,7 @@ public static class ActionCatalog
         => [.. keys.Select(Find).OfType<ActionDefinition>()];
 
     /// <summary>Line-art icon shared by every action of a category.</summary>
-    public static Geometry? IconFor(ActionCategory category) => category switch
+    public static Lucide.Avalonia.LucideIconKind? IconFor(ActionCategory category) => category switch
     {
         ActionCategory.Control => AppIcons.Workflow,
         ActionCategory.File => AppIcons.File,
@@ -148,7 +144,6 @@ public static class ActionCatalog
         ActionCategory.Uia => AppIcons.CursorClick,
         ActionCategory.Browser => AppIcons.Browser,
         ActionCategory.Script => AppIcons.Code,
-        ActionCategory.Condition => AppIcons.Split,
         _ => null,
     };
 

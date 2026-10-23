@@ -8,6 +8,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -158,6 +159,22 @@ public class LocalSettingsTests
 
             window.Close();
         }));
+    }
+
+    [Fact]
+    public void Trigger_shortcuts_and_the_selected_dock_page_are_remembered()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.Equal("Home", LocalSettings.LoadSystemHotkey());
+            Assert.Equal(DockPage.Keys, LocalSettings.LoadDockPage());
+
+            LocalSettings.StoreSystemHotkey("Ctrl+Alt+Home");
+            LocalSettings.StoreDockPage(DockPage.Menu);
+
+            Assert.Equal("Ctrl+Alt+Home", LocalSettings.LoadSystemHotkey());
+            Assert.Equal(DockPage.Menu, LocalSettings.LoadDockPage());
+        });
     }
 
     [Fact]

@@ -1,5 +1,30 @@
 namespace WhaleGenie.Models;
 
+/// <summary>One kind of entry that can start a macro or place it on a trigger surface.</summary>
+public enum TriggerKind
+{
+    Key,
+    Color,
+    Interface,
+    Hotstring,
+    Menu,
+    Timer,
+    File,
+    Process,
+    Window,
+    Idle,
+}
+
+/// <summary>The five pages of the macro list's trigger dock.</summary>
+public enum DockPage
+{
+    Keys,
+    Interface,
+    Hotstring,
+    Menu,
+    Other,
+}
+
 /// <summary>What makes a macro start running.</summary>
 public enum MacroTrigger
 {

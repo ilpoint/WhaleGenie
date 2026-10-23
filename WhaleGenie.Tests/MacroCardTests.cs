@@ -99,4 +99,25 @@ public class MacroCardTests
         Assert.Contains(nameof(MacroItem.IsGamepadTrigger), refreshed);
         Assert.Contains(nameof(MacroItem.IsKeyboardTrigger), refreshed);
     }
+
+    [Fact]
+    public void Only_key_and_colour_entries_show_loop_wording()
+    {
+        var key = new MacroItem { Name = "key" };
+        key.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Key, LoopMode = MacroLoop.Toggle });
+        var colour = new MacroItem { Name = "colour" };
+        colour.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Color, LoopMode = MacroLoop.Press });
+        var ui = new MacroItem { Name = "ui" };
+        ui.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Interface });
+        var typed = new MacroItem { Name = "typed" };
+        typed.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Hotstring });
+        var menu = new MacroItem { Name = "menu" };
+        menu.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Menu });
+
+        Assert.Equal(Strings.Get("Loop.Toggle"), key.Action);
+        Assert.Equal(Strings.Get("Loop.Press"), colour.Action);
+        Assert.Empty(ui.Action);
+        Assert.Empty(typed.Action);
+        Assert.Empty(menu.Action);
+    }
 }

@@ -20,10 +20,8 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// Runs a macro and shows what it does, one step at a time if asked. It is also where the variables
-/// are managed: a macro that reads the wrong variable is usually the reason a run went wrong, and
-/// being able to look at — or fix — the shared ones without leaving the run is the point of putting
-/// the two together.
+/// Runs a macro and shows what it does, one step at a time if asked. Its variable page is the
+/// runtime view: definitions are edited in the macro editor's variable center.
 /// </summary>
 public partial class RunWindow : Window
 {
@@ -68,6 +66,8 @@ public partial class RunWindow : Window
         var viewModel = new RunViewModel(steps, devices ?? SharedDevices.Current, delayScale, macros,
             _listed, triggers, macroName, callable);
         DataContext = viewModel;
+        VariableCatalog.GlobalsChanged += OnVariablesChanged;
+        SharedVariables.Current.Changed += OnVariableChanged;
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
 
@@ -90,6 +90,8 @@ public partial class RunWindow : Window
         Closing += (_, _) => viewModel.StopCommand.Execute(null);
         Closed += (_, _) =>
         {
+            VariableCatalog.GlobalsChanged -= OnVariablesChanged;
+            SharedVariables.Current.Changed -= OnVariableChanged;
             viewModel.ReleaseLooks();
             _frames.Dispose();
         };
@@ -156,6 +158,12 @@ public partial class RunWindow : Window
     /// <summary>The form this window is driving.</summary>
     private RunViewModel? Form => DataContext as RunViewModel;
 
+    private void OnVariablesChanged() =>
+        Dispatcher.UIThread.Post(() => Form?.Rebuild());
+
+    private void OnVariableChanged(string _) =>
+        Dispatcher.UIThread.Post(() => Form?.Rebuild());
+
     /// <summary>
     /// Takes one row's value away. What lands on the clipboard is the value beside the button that
     /// was pressed rather than whichever row happens to be selected: a run is read back row by row,
@@ -169,6 +177,7 @@ public partial class RunWindow : Window
             // value the run has left behind, and the definition the page describes a variable with.
             Button { DataContext: WatchedVariable watched } => watched.Value,
             Button { DataContext: VariableDefinition variable } => variable.CurrentValue,
+            Button { DataContext: RunGlobalVariable variable } => variable.CurrentValue,
             _ => null,
         };
 
@@ -309,8 +318,9 @@ public partial class RunWindow : Window
                 viewModel.ToggleBreakpointCommand.Execute(row);
                 break;
             case "condition":
-                var dialog = new AddActionWindow(
-                    viewModel.BreakpointCondition(row.Id), ActionCatalog.Conditions, viewModel.Choices,
+                var dialog = new ActionEditorWindow(
+                    viewModel.BreakpointCondition(row.Id),
+                    ActionCatalog.ForKeys(["control.if"]), viewModel.Choices,
                     null, null, ImageAssets.FolderFor(null))
                 {
                     // The condition is tried out on the devices the run is on: a picture taken for

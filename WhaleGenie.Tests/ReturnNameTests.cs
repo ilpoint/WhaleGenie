@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -13,10 +14,10 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ReturnNameTests
 {
-    private static AddActionViewModel Open(string key, string stepId, out AddActionWindow window,
+    private static AddActionViewModel Open(string key, string stepId, out ActionEditorWindow window,
         IReadOnlyList<VariableChoice>? variables = null)
     {
-        window = new AddActionWindow(null, ActionCatalog.Definitions, variables ?? [], [],
+        window = new ActionEditorWindow(null, ActionCatalog.Definitions, variables ?? [], [],
             null, null, null, stepId);
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -39,6 +40,7 @@ public class ReturnNameTests
         // Chinese is letters, so it stays.
         Assert.Equal("上个月的销量_文本", VariableNames.ForStep("上个月的销量", "文本", "k3f9"));
         Assert.Equal("a_b_Text", VariableNames.ForStep("a: b", "Text", "k3f9"));
+        Assert.True(VariableText.IsName(VariableNames.ForStep("2", "Text", "k3f9")));
 
         // A long note is cut short: the name still has to read at a glance.
         var many = new string('x', 30);
@@ -205,7 +207,7 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
+            var window = new ActionEditorWindow(
                 new MacroStep
                 {
                     Type = "file.readText",

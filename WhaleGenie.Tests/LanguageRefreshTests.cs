@@ -19,13 +19,13 @@ public class LanguageRefreshTests
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             editor = new MacroEditorViewModel();
-            english = editor.TriggerOptions[0];
+            english = editor.TriggerKindChoices[0].Label;
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             editor!.RefreshLanguage();
-            Assert.NotEqual(english, editor.TriggerOptions[0]);
+            Assert.NotEqual(english, editor.TriggerKindChoices[0].Label);
         }));
     }
 
@@ -86,6 +86,39 @@ public class LanguageRefreshTests
         {
             model!.RefreshLanguage();
             Assert.NotEqual(english, model.Types[0].Label);
+        }));
+    }
+
+    [Fact]
+    public void The_global_variable_manager_relabels_its_buttons_filters_and_types()
+    {
+        GlobalVariablesViewModel? model = null;
+        string? button = null;
+        string? filter = null;
+        string? type = null;
+
+        Ui.Run(() => InterfaceLanguage.InEnglish(() =>
+        {
+            model = new GlobalVariablesViewModel(
+            [
+                new VariableDefinition
+                {
+                    Name = "total",
+                    Scope = VariableScope.Global,
+                    Type = "number",
+                },
+            ]);
+            button = model.NewLabel;
+            filter = model.Filters[1].Label;
+            type = model.Selected!.TypeOptions[0].Display;
+        }));
+
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            model!.RefreshLanguage();
+            Assert.NotEqual(button, model.NewLabel);
+            Assert.NotEqual(filter, model.Filters[1].Label);
+            Assert.NotEqual(type, model.Selected!.TypeOptions[0].Display);
         }));
     }
 }

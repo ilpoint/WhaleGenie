@@ -10,12 +10,16 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 using WindowRuleModel = WhaleGenie.Core.Devices.WindowRule;
 
 namespace WhaleGenie.ViewModels;
+
+public sealed record TriggerKindChoice(TriggerKind Kind, string Label);
 
 public partial class MacroEditorViewModel : ViewModelBase
 {
@@ -86,12 +90,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     private readonly List<MacroStep> _selection = [];
 
     /// <summary>
-    /// Where the next step the dialog builds is to land, remembered between the press that asked
-    /// for it and the dialog coming back with an answer. The step that owns the list comes along
-    /// because a list may only take certain kinds of step — a switch's branches, or a condition.
-    /// Null means the end of the macro.
+    /// The exact list and index an action chosen from the library will occupy. The owner and
+    /// parameter travel with it because a section can limit which action kinds it accepts.
     /// </summary>
-    private (MacroStep Owner, StepParameter Parameter, int Index)? _insertAt;
+    private StepInsertionTarget? _insertAt;
+
+    private sealed record StepInsertionTarget(IList<MacroStep> List, int Index,
+        MacroStep? Owner, StepParameter? Parameter);
 
     private bool _loading;
 
@@ -101,6 +106,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     private bool _captureKeyboardOnly;
     private bool _captureSingleKey;
     private bool _captureContinues;
+    private TriggerEntry? _selectedTrigger;
+    private bool _updatingHotstringEndKeys;
+    private readonly Dictionary<string, InterfaceLayout> _interfaceLayouts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<InterfaceGroupMember>> _interfaceMembers =
+        new(StringComparer.Ordinal);
+    private string _projectMenuLauncher = string.Empty;
 
     /// <summary>How many step-list changes can be undone.</summary>
     private const int HistoryLimit = 60;
@@ -118,13 +129,379 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public MacroEditorViewModel()
     {
+        TriggerEntries.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(TriggerProblemSummary));
+            OnPropertyChanged(nameof(HasTriggerProblem));
+        };
+        var first = new TriggerEntry { Kind = TriggerKind.Key };
+        WatchTriggerEntry(first);
+        TriggerEntries.Add(first);
+        _selectedTrigger = first;
+        LoadTriggerFields(first);
+        RebuildHotstringEndKeys();
         RefreshPaletteState();
+        RefreshVariableCenter();
+    }
+
+    public VariableCenterViewModel VariableCenter { get; } = new();
+
+    public ObservableCollection<TriggerEntry> TriggerEntries { get; } = [];
+
+    public ObservableCollection<HotstringEndKeyOption> HotstringEndKeys { get; } = [];
+
+    public ObservableCollection<string> InterfaceGroupMembers { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InterfaceHotkeyButton))]
+    public partial bool IsCapturingInterfaceHotkey { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InterfaceHotkeyButton))]
+    [NotifyPropertyChangedFor(nameof(InterfaceToggleHotkeyDisplay))]
+    public partial string InterfaceToggleHotkey { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string InterfaceHotkeyProblem { get; set; } = string.Empty;
+
+    public string InterfaceHotkeyButton => Strings.Get(IsCapturingInterfaceHotkey
+        ? "Editor.HotstringEndCaptureWaiting"
+        : "Settings.HotkeySet");
+
+    public string InterfaceToggleHotkeyDisplay => InterfaceToggleHotkey.Length > 0
+        ? InterfaceToggleHotkey
+        : Strings.Get("Common.None");
+
+    public void LoadProjectTriggerSettings(ProjectTriggers triggers,
+        IReadOnlyList<MacroItem> macros)
+    {
+        _projectMenuLauncher = triggers.MenuLauncher;
+        _interfaceLayouts.Clear();
+        foreach (var layout in triggers.InterfaceLayouts)
+        {
+            _interfaceLayouts[layout.GroupKey] = layout with { };
+        }
+
+        _interfaceMembers.Clear();
+        foreach (var group in triggers.InterfaceGroups())
+        {
+            _interfaceMembers[group.Key] = InterfaceMemberResolver.Resolve(group, macros);
+        }
+
+        UpdateInterfaceGroupFields();
+    }
+
+    public void LoadDraftProjectSettings(MacroItem macro)
+    {
+        var loading = _loading;
+        _loading = true;
+        try
+        {
+            _interfaceLayouts.Clear();
+            foreach (var layout in macro.InterfaceLayouts)
+            {
+                _interfaceLayouts[layout.GroupKey] = layout with { };
+            }
+        }
+        finally
+        {
+            _loading = loading;
+        }
+        UpdateInterfaceGroupFields();
+    }
+
+    public bool SetInterfaceToggleHotkey(string binding)
+    {
+        var text = binding.Trim();
+        if (text.Length > 0 && !HotkeyBinding.IsSupported(text))
+        {
+            IsCapturingInterfaceHotkey = false;
+            InterfaceHotkeyProblem = Strings.Get("Editor.InterfaceHotkeyUnsupported");
+            return false;
+        }
+
+        IsCapturingInterfaceHotkey = false;
+        InterfaceHotkeyProblem = string.Empty;
+        InterfaceToggleHotkey = text;
+        RememberInterfaceHotkey();
+        return true;
+    }
+
+    public void ClearInterfaceToggleHotkey()
+    {
+        IsCapturingInterfaceHotkey = false;
+        InterfaceHotkeyProblem = string.Empty;
+        InterfaceToggleHotkey = string.Empty;
+        RememberInterfaceHotkey();
+    }
+
+    [RelayCommand]
+    private void ClearInterfaceHotkey()
+    {
+        ClearInterfaceToggleHotkey();
+        MarkDirty();
+    }
+
+    private void RememberInterfaceHotkey()
+    {
+        if (!WindowTarget.HasTarget)
+        {
+            return;
+        }
+
+        var key = ProjectTriggers.GroupKey(WindowTarget);
+        var current = _interfaceLayouts.TryGetValue(key, out var layout)
+            ? layout
+            : new InterfaceLayout(WindowTarget, 16, 64);
+        _interfaceLayouts[key] = current with { ToggleHotkey = InterfaceToggleHotkey.Trim() };
+    }
+
+    private void UpdateInterfaceGroupFields()
+    {
+        InterfaceGroupMembers.Clear();
+        var previousLoading = _loading;
+        _loading = true;
+        try
+        {
+            if (!WindowTarget.HasTarget || SelectedTrigger?.Kind != TriggerKind.Interface)
+            {
+                InterfaceToggleHotkey = string.Empty;
+                return;
+            }
+
+            var key = ProjectTriggers.GroupKey(WindowTarget);
+            InterfaceToggleHotkey = _interfaceLayouts.TryGetValue(key, out var layout)
+                ? layout.ToggleHotkey
+                : string.Empty;
+            if (_interfaceMembers.TryGetValue(key, out var members))
+            {
+                foreach (var member in members)
+                {
+                    InterfaceGroupMembers.Add(member.Display);
+                }
+            }
+
+            if (Name.Length > 0
+                && !InterfaceGroupMembers.Contains(Name, StringComparer.OrdinalIgnoreCase))
+            {
+                InterfaceGroupMembers.Add(Name);
+            }
+        }
+        finally
+        {
+            _loading = previousLoading;
+        }
+    }
+
+    public TriggerEntry? SelectedTrigger
+    {
+        get => _selectedTrigger;
+        set
+        {
+            if (ReferenceEquals(_selectedTrigger, value))
+            {
+                return;
+            }
+
+            CommitTriggerFields();
+            _selectedTrigger = value;
+            LoadTriggerFields(value);
+            UpdateInterfaceGroupFields();
+            OnPropertyChanged();
+            NotifyTriggerSelectionChanged();
+        }
+    }
+
+    public bool HasSelectedTrigger => SelectedTrigger is not null;
+
+    public bool ShowsTriggerSettings => HasSelectedTrigger && TriggerMode != TriggerKind.Menu;
+
+    public bool ShowsLoopMode => HasSelectedTrigger && TriggerMode == TriggerKind.Key;
+
+    public bool ShowsTriggerOnce => HasSelectedTrigger && TriggerMode
+        is TriggerKind.Key or TriggerKind.Color or TriggerKind.Timer or TriggerKind.File
+        or TriggerKind.Process or TriggerKind.Window or TriggerKind.Idle;
+
+    public string TriggerProblemSummary
+    {
+        get
+        {
+            var problems = new List<string>();
+            foreach (var entry in TriggerEntries.Where(entry => entry.Kind == TriggerKind.Hotstring))
+            {
+                if (entry.Abbreviation.Length == 0)
+                {
+                    problems.Add(Strings.Get("Editor.Problem.EmptyHotstring"));
+                }
+                else if (entry.Abbreviation.Length > HotstringRecognizer.MaximumAbbreviationLength)
+                {
+                    problems.Add(Strings.Format("Editor.Problem.LongHotstring",
+                        HotstringRecognizer.MaximumAbbreviationLength));
+                }
+
+                if (!HotstringCharacters.IsAllowed(entry.Abbreviation))
+                {
+                    problems.Add(Strings.Get("Editor.Problem.HotstringCharacters"));
+                }
+
+                if (entry.RequireEndChar
+                    && HotstringCharacters.ParseEndChars(entry.HotstringEndChars).Count == 0)
+                {
+                    problems.Add(Strings.Get("Editor.Problem.EmptyHotstringEndChars"));
+                }
+
+                if (HotstringCharacters.ParseEndChars(entry.HotstringEndChars)
+                    .Any(value => value.Length != 1 || !HotstringCharacters.IsAllowed(value[0])))
+                {
+                    problems.Add(Strings.Get("Editor.Problem.HotstringEndCharacters"));
+                }
+            }
+
+            var bindings = TriggerEntries
+                .Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Key
+                    && entry.BindKey.Trim().Length > 0)
+                .Select(entry => entry.BindKey.Trim())
+                .Concat(InterfaceHotkeysForChecks())
+                .Append(_projectMenuLauncher)
+                .Append(LocalSettings.LoadSystemHotkey())
+                .Where(binding => binding.Length > 0)
+                .GroupBy(binding => binding, StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key);
+            foreach (var binding in bindings.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                problems.Add(Strings.Format("Editor.Problem.TriggerConflict", binding));
+            }
+
+            return string.Join("\n", problems);
+        }
+    }
+
+    private IEnumerable<string> InterfaceHotkeysForChecks()
+    {
+        var currentKey = WindowTarget.HasTarget
+            ? ProjectTriggers.GroupKey(WindowTarget)
+            : string.Empty;
+        return _interfaceLayouts.Values
+            .Where(layout => layout.ToggleHotkey.Trim().Length > 0
+                && (layout.GroupKey == currentKey
+                    || _interfaceMembers.ContainsKey(layout.GroupKey)))
+            .Select(layout => layout.ToggleHotkey.Trim());
+    }
+
+    public bool HasTriggerProblem => TriggerProblemSummary.Length > 0;
+
+    private static readonly TriggerKind[] EditableTriggerKinds =
+    [
+        TriggerKind.Key,
+        TriggerKind.Color,
+        TriggerKind.Interface,
+        TriggerKind.Hotstring,
+        TriggerKind.Timer,
+        TriggerKind.File,
+        TriggerKind.Process,
+        TriggerKind.Window,
+        TriggerKind.Idle,
+    ];
+
+    public IReadOnlyList<string> TriggerKindOptions =>
+    [
+        .. EditableTriggerKinds.Select(kind => Strings.Get(kind switch
+        {
+            TriggerKind.Key => "Trigger.Keys",
+            TriggerKind.Color => "Trigger.Color",
+            TriggerKind.Interface => "Trigger.Interface",
+            TriggerKind.Hotstring => "Trigger.Hotstring",
+            TriggerKind.Timer => "Trigger.Timer",
+            TriggerKind.File => "Trigger.File",
+            TriggerKind.Process => "Trigger.Process",
+            TriggerKind.Window => "Trigger.Window",
+            _ => "Trigger.Idle",
+        })),
+    ];
+
+    public IReadOnlyList<TriggerKindChoice> TriggerKindChoices =>
+    [
+        .. EditableTriggerKinds.Select((kind, index) =>
+            new TriggerKindChoice(kind, TriggerKindOptions[index])),
+    ];
+
+    [RelayCommand]
+    private void AddTrigger(TriggerKind? kind)
+    {
+        CommitTriggerFields();
+        var entry = new TriggerEntry
+        {
+            Kind = kind ?? TriggerKind.Key,
+            MacroName = Name.Trim(),
+        };
+        WatchTriggerEntry(entry);
+        TriggerEntries.Add(entry);
+        SelectedTrigger = entry;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void SelectTrigger(TriggerEntry? entry)
+    {
+        if (entry is not null)
+        {
+            SelectedTrigger = entry;
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveTrigger(TriggerEntry? removing)
+    {
+        if (removing is null || !removing.IsRemovable)
+        {
+            return;
+        }
+
+        var index = TriggerEntries.IndexOf(removing);
+        if (index < 0)
+        {
+            return;
+        }
+
+        removing.PropertyChanged -= OnTriggerEntryChanged;
+        TriggerEntries.Remove(removing);
+        _selectedTrigger = TriggerEntries.Count == 0
+            ? null
+            : TriggerEntries[Math.Clamp(index, 0, TriggerEntries.Count - 1)];
+        LoadTriggerFields(_selectedTrigger);
+        OnPropertyChanged(nameof(SelectedTrigger));
+        NotifyTriggerSelectionChanged();
+        MarkDirty();
+    }
+
+    private void NotifyTriggerSelectionChanged()
+    {
+        OnPropertyChanged(nameof(HasSelectedTrigger));
+        OnPropertyChanged(nameof(ShowsTriggerSettings));
+        OnPropertyChanged(nameof(ShowsLoopMode));
+        OnPropertyChanged(nameof(ShowsTriggerOnce));
+    }
+
+    private void WatchTriggerEntry(TriggerEntry entry)
+        => entry.PropertyChanged += OnTriggerEntryChanged;
+
+    private void OnTriggerEntryChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!_loading)
+        {
+            MarkDirty();
+            OnPropertyChanged(nameof(TriggerProblemSummary));
+            OnPropertyChanged(nameof(HasTriggerProblem));
+            OnPropertyChanged(nameof(CanSave));
+        }
     }
 
     /// <summary>Re-reads the labels this editor computes, the palette's tips and the step rows.</summary>
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
+        PlacementNotice = string.Empty;
         foreach (var action in ActionPalette)
         {
             action.RefreshLanguage();
@@ -137,6 +514,9 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         WindowPreview.RefreshLanguage();
     }
+
+    /// <summary>Clears changes made only by controls taking their initial bound values.</summary>
+    internal void AcceptInitialBindings() => IsDirty = false;
 
     /// <summary>Raised when the editor should open the "Add Action" dialog.</summary>
     public event Action? AddStepRequested;
@@ -202,6 +582,33 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public bool HasSteps => Steps.Count > 0;
 
+    /// <summary>The document tabs shared by the parent and every child editor in one window.</summary>
+    public ObservableCollection<MacroDocumentPageViewModel> Documents { get; internal set; } = [];
+
+    /// <summary>Child definitions carried by this document when it is read back or saved.</summary>
+    public List<MacroItem> SubMacros { get; } = [];
+
+    /// <summary>
+    /// True when this editor is showing a callable definition owned by another macro. Such a
+    /// definition has no trigger of its own, so trigger-only validation must not block it.
+    /// </summary>
+    public bool IsSubMacro { get; internal set; }
+
+    /// <summary>The live reader the variable wall uses for WhaleGenie's own values.</summary>
+    internal SystemVariableReader? SystemReader { get; set; }
+
+    /// <summary>The public macro this definition was copied from, if any.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OriginLabel))]
+    [NotifyPropertyChangedFor(nameof(HasOrigin))]
+    public partial MacroOrigin? Origin { get; set; }
+
+    public bool HasOrigin => Origin is not null;
+
+    public string OriginLabel => Origin is { } origin
+        ? Strings.Format("Editor.PublicOrigin", origin.Name, origin.Version)
+        : string.Empty;
+
     /// <summary>
     /// Names of the other macros in the project. A step that calls a macro is checked against
     /// these, so a call left pointing at a name that has gone is called out here rather than
@@ -261,7 +668,36 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool HasBlockingDeclarationProblems => OwnCallable.Problems().Count > 0;
 
     /// <summary>The save button's answer: the macro name and the declarations both have to be usable.</summary>
-    public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems;
+    public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems
+        && (IsSubMacro || !HasBlockingHotstringProblem);
+
+    private bool HasBlockingHotstringProblem
+        => (SelectedTrigger?.Kind == TriggerKind.Hotstring
+            && IsBlockingHotstring(HotstringText, HotstringRequireEnd, HotstringEndChars))
+            || TriggerEntries.Any(entry => entry.Kind == TriggerKind.Hotstring
+                && !ReferenceEquals(entry, SelectedTrigger)
+                && IsBlockingHotstring(
+                    entry.Abbreviation, entry.RequireEndChar, entry.HotstringEndChars));
+
+    private static bool IsBlockingHotstring(
+        string abbreviation, bool requireEndChar, string endChars)
+    {
+        if (abbreviation.Length is 0 or > HotstringCharacters.MaximumLength
+            || !HotstringCharacters.IsAllowed(abbreviation))
+        {
+            return true;
+        }
+
+        if (!requireEndChar)
+        {
+            return false;
+        }
+
+        var characters = HotstringCharacters.ParseEndChars(endChars);
+        return characters.Count == 0
+            || characters.Any(value =>
+                value.Length != 1 || !HotstringCharacters.IsAllowed(value[0]));
+    }
 
     /// <summary>
     /// One line saying how many calls in the project no longer match these declarations. The
@@ -271,6 +707,17 @@ public partial class MacroEditorViewModel : ViewModelBase
     public string CallImpactSummary { get; private set; } = string.Empty;
 
     public bool HasCallImpact => CallImpactSummary.Length > 0;
+
+    /// <summary>
+    /// Why the last drag, paste or structural edit was refused. It stays above the step list until
+    /// another edit succeeds or the selection moves, so a refused drop does not look like a silent
+    /// failure.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPlacementNotice))]
+    public partial string PlacementNotice { get; set; } = string.Empty;
+
+    public bool HasPlacementNotice => PlacementNotice.Length > 0;
 
     /// <summary>One line above the list saying how much the editor has to say about the steps.</summary>
     public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
@@ -330,31 +777,27 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CanSave))]
     public partial string Name { get; set; } = string.Empty;
 
+    /// <summary>A sentence shown with a callable macro in pickers and libraries.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TriggerIndex))]
+    public partial string Description { get; set; } = string.Empty;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
     [NotifyPropertyChangedFor(nameof(IsKeyTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsInterfaceTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsHotstringTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsMenuTrigger))]
     [NotifyPropertyChangedFor(nameof(IsTimerTrigger))]
     [NotifyPropertyChangedFor(nameof(IsFileTrigger))]
     [NotifyPropertyChangedFor(nameof(IsProcessTrigger))]
     [NotifyPropertyChangedFor(nameof(IsWindowTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsWindowRuleTrigger))]
     [NotifyPropertyChangedFor(nameof(IsIdleTrigger))]
-    public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
+    public partial TriggerKind TriggerMode { get; set; } = TriggerKind.Key;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LoopIndex))]
     public partial MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
-
-    public IReadOnlyList<string> TriggerOptions =>
-    [
-        Strings.Get("Trigger.Keys"),
-        Strings.Get("Trigger.Color"),
-        Strings.Get("Trigger.Timer"),
-        Strings.Get("Trigger.File"),
-        Strings.Get("Trigger.Process"),
-        Strings.Get("Trigger.Window"),
-        Strings.Get("Trigger.Idle"),
-    ];
 
     public IReadOnlyList<string> LoopOptions =>
     [
@@ -364,38 +807,34 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Loop.Release"),
     ];
 
-    public int TriggerIndex
-    {
-        get => (int)TriggerMode;
-        set
-        {
-            if (value >= 0 && value < TriggerOptions.Count)
-            {
-                TriggerMode = (MacroTrigger)value;
-            }
-        }
-    }
-
     /// <summary>True when the macro is started by a key or a mouse button.</summary>
-    public bool IsKeyTrigger => TriggerMode == MacroTrigger.KeystrokesButtonInputs;
+    public bool IsKeyTrigger => TriggerMode == TriggerKind.Key;
 
     /// <summary>True when the macro is started by a colour / pixel change rather than by input.</summary>
-    public bool IsColorTrigger => TriggerMode == MacroTrigger.ColorPixelChanges;
+    public bool IsColorTrigger => TriggerMode == TriggerKind.Color;
+
+    public bool IsInterfaceTrigger => TriggerMode == TriggerKind.Interface;
+
+    public bool IsHotstringTrigger => TriggerMode == TriggerKind.Hotstring;
+
+    public bool IsMenuTrigger => TriggerMode == TriggerKind.Menu;
 
     /// <summary>True when the macro is started by the clock.</summary>
-    public bool IsTimerTrigger => TriggerMode == MacroTrigger.Timer;
+    public bool IsTimerTrigger => TriggerMode == TriggerKind.Timer;
 
     /// <summary>True when the macro is started by a file or a folder changing.</summary>
-    public bool IsFileTrigger => TriggerMode == MacroTrigger.FileChanges;
+    public bool IsFileTrigger => TriggerMode == TriggerKind.File;
 
     /// <summary>True when the macro is started by a program starting or finishing.</summary>
-    public bool IsProcessTrigger => TriggerMode == MacroTrigger.Process;
+    public bool IsProcessTrigger => TriggerMode == TriggerKind.Process;
 
     /// <summary>True when the macro is started by a window appearing or going away.</summary>
-    public bool IsWindowTrigger => TriggerMode == MacroTrigger.Window;
+    public bool IsWindowTrigger => TriggerMode == TriggerKind.Window;
+
+    public bool IsWindowRuleTrigger => TriggerMode is TriggerKind.Window or TriggerKind.Interface;
 
     /// <summary>True when the macro is started by the machine going untouched.</summary>
-    public bool IsIdleTrigger => TriggerMode == MacroTrigger.Idle;
+    public bool IsIdleTrigger => TriggerMode == TriggerKind.Idle;
 
     /// <summary>How long the machine has to be left alone before an idle trigger runs the macro.</summary>
     [ObservableProperty]
@@ -442,6 +881,195 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(WindowRuleNow));
         OnPropertyChanged(nameof(WindowTargetSummary));
     }
+
+    partial void OnWindowTargetChanged(WindowRuleModel value)
+        => UpdateInterfaceGroupFields();
+
+    partial void OnInterfaceToggleHotkeyChanged(string value)
+    {
+        if (!_loading)
+        {
+            RememberInterfaceHotkey();
+            MarkDirty();
+        }
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotstringTextDisplay))]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    public partial string HotstringText { get; set; } = string.Empty;
+
+    /// <summary>The literal abbreviation shown on the typed-string keyboard button.</summary>
+    public string HotstringTextDisplay => HotstringText.Length > 0
+        ? HotstringCharacters.Display(HotstringText)
+        : Strings.Get("Editor.HotstringChoose");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    public partial string HotstringEndChars { get; set; } = HotstringCharacters.DefaultEndChars;
+
+    public int HotstringMaximumLength => HotstringCharacters.MaximumLength;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotstringEndCaptureButton))]
+    public partial bool IsCapturingHotstringEnd { get; set; }
+
+    [ObservableProperty]
+    public partial string HotstringEndCaptureStatus { get; set; } = string.Empty;
+
+    public string HotstringEndCaptureButton => Strings.Get(IsCapturingHotstringEnd
+        ? "Editor.HotstringEndCaptureWaiting"
+        : "Editor.HotstringEndCapture");
+
+    partial void OnHotstringEndCharsChanged(string value)
+    {
+        if (!_updatingHotstringEndKeys)
+        {
+            RebuildHotstringEndKeys();
+        }
+    }
+
+    [RelayCommand]
+    private void ResetHotstringEndChars()
+    {
+        HotstringEndChars = HotstringCharacters.DefaultEndChars;
+        MarkDirty();
+    }
+
+    public void BeginHotstringEndCapture()
+    {
+        StopCapturingKey();
+        HotstringEndCaptureStatus = string.Empty;
+        IsCapturingHotstringEnd = true;
+    }
+
+    public void StopHotstringEndCapture()
+    {
+        IsCapturingHotstringEnd = false;
+        HotstringEndCaptureStatus = string.Empty;
+    }
+
+    public void CaptureHotstringEnd(string? character)
+    {
+        if (!IsCapturingHotstringEnd)
+        {
+            return;
+        }
+
+        if (character is not { Length: 1 } || !HotstringCharacters.IsAllowed(character[0]))
+        {
+            HotstringEndCaptureStatus = Strings.Get("Editor.HotstringEndCaptureInvalid");
+            return;
+        }
+
+        var existing = HotstringEndKeys.FirstOrDefault(option => option.Value == character);
+        if (existing is not null)
+        {
+            existing.IsChecked = true;
+        }
+        else
+        {
+            AddHotstringEndKey(character);
+        }
+
+        IsCapturingHotstringEnd = false;
+        HotstringEndCaptureStatus = string.Empty;
+    }
+
+    private void AddHotstringEndKey(string value)
+    {
+        var values = HotstringCharacters.ParseEndChars(HotstringEndChars)
+            .Append(value)
+            .Distinct(StringComparer.Ordinal);
+        _updatingHotstringEndKeys = true;
+        try
+        {
+            HotstringEndChars = HotstringCharacters.WriteEndChars(values);
+        }
+        finally
+        {
+            _updatingHotstringEndKeys = false;
+        }
+        RebuildHotstringEndKeys();
+    }
+
+    private void RebuildHotstringEndKeys()
+    {
+        foreach (var option in HotstringEndKeys)
+        {
+            option.PropertyChanged -= OnHotstringEndKeyChanged;
+        }
+        HotstringEndKeys.Clear();
+
+        var selected = HotstringCharacters.ParseEndChars(HotstringEndChars);
+        foreach (var (name, value) in HotstringCharacters.EndKeyChoices)
+        {
+            AddHotstringEndOption(new HotstringEndKeyOption(value, name, isCustom: false)
+            {
+                IsChecked = selected.Contains(value),
+            });
+        }
+
+        var standard = HotstringCharacters.EndKeyChoices
+            .Select(choice => choice.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var value in selected.Where(value => !standard.Contains(value))
+                     .Order(StringComparer.Ordinal))
+        {
+            AddHotstringEndOption(new HotstringEndKeyOption(
+                value, HotstringCharacters.Display(value), isCustom: true)
+            {
+                IsChecked = true,
+            });
+        }
+    }
+
+    private void AddHotstringEndOption(HotstringEndKeyOption option)
+    {
+        option.PropertyChanged += OnHotstringEndKeyChanged;
+        HotstringEndKeys.Add(option);
+    }
+
+    private void OnHotstringEndKeyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_updatingHotstringEndKeys || e.PropertyName != nameof(HotstringEndKeyOption.IsChecked))
+        {
+            return;
+        }
+
+        _updatingHotstringEndKeys = true;
+        try
+        {
+            HotstringEndChars = HotstringCharacters.WriteEndChars(
+                HotstringEndKeys.Where(option => option.IsChecked).Select(option => option.Value));
+        }
+        finally
+        {
+            _updatingHotstringEndKeys = false;
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool HotstringCaseSensitive { get; set; }
+
+    [ObservableProperty]
+    public partial bool HotstringInsideWord { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    [NotifyPropertyChangedFor(nameof(HasTriggerProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
+    public partial bool HotstringRequireEnd { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool HotstringEraseTyped { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool HotstringKeepEnd { get; set; } = true;
 
     public IReadOnlyList<string> WindowChangeOptions =>
     [
@@ -753,6 +1381,114 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public string SetKeyLabel => IsCapturingKey ? Strings.Get("Editor.PressKey") : Strings.Get("Editor.SetKey");
 
+    partial void OnTriggerModeChanged(TriggerKind value)
+    {
+        if (!_loading && SelectedTrigger is { } selected)
+        {
+            selected.Kind = value;
+        }
+
+        OnPropertyChanged(nameof(IsKeyTrigger));
+        OnPropertyChanged(nameof(IsColorTrigger));
+        OnPropertyChanged(nameof(IsInterfaceTrigger));
+        OnPropertyChanged(nameof(IsHotstringTrigger));
+        OnPropertyChanged(nameof(IsMenuTrigger));
+        OnPropertyChanged(nameof(IsTimerTrigger));
+        OnPropertyChanged(nameof(IsFileTrigger));
+        OnPropertyChanged(nameof(IsProcessTrigger));
+        OnPropertyChanged(nameof(IsWindowTrigger));
+        OnPropertyChanged(nameof(IsWindowRuleTrigger));
+        OnPropertyChanged(nameof(IsIdleTrigger));
+        OnPropertyChanged(nameof(ShowsTriggerSettings));
+        OnPropertyChanged(nameof(ShowsLoopMode));
+        OnPropertyChanged(nameof(ShowsTriggerOnce));
+        UpdateInterfaceGroupFields();
+    }
+
+    /// <summary>Copies the fields of the form into the selected trigger entry.</summary>
+    private void CommitTriggerFields()
+    {
+        if (SelectedTrigger is not { } entry)
+        {
+            return;
+        }
+
+        entry.Kind = TriggerMode;
+        entry.MacroName = Name.Trim();
+        entry.BindKey = BindKey.Trim();
+        entry.LoopMode = LoopMode;
+        entry.TriggerOnce = TriggerOnce;
+        entry.ScheduleMode = ScheduleMode;
+        entry.ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5);
+        entry.ScheduleUnit = ScheduleUnit;
+        entry.ScheduleTime = ScheduleTime.Trim();
+        entry.WatchPath = WatchPath.Trim();
+        entry.WatchChange = WatchChange;
+        entry.WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim();
+        entry.WatchSubfolders = WatchSubfolders;
+        entry.ProcessName = ProcessName.Trim();
+        entry.ProcessChange = ProcessChange;
+        entry.WindowTarget = WindowTarget;
+        entry.WindowChange = WindowChange;
+        entry.IdleSeconds = Math.Max(1, IdleSeconds ?? 60);
+        entry.ColorMatch = ColorMatch;
+        entry.ColorPositionX = ParseCoordinate(ColorPositionX);
+        entry.ColorPositionY = ParseCoordinate(ColorPositionY);
+        entry.UseCursorPosition = UseCursorPosition;
+        entry.HexColor = HexColor;
+        entry.ColorTolerance = ParseCoordinate(ColorTolerance);
+        entry.Abbreviation = HotstringText;
+        entry.HotstringEndChars = HotstringEndChars;
+        entry.CaseSensitive = HotstringCaseSensitive;
+        entry.MatchInsideWord = HotstringInsideWord;
+        entry.RequireEndChar = HotstringRequireEnd;
+        entry.EraseTyped = HotstringEraseTyped;
+        entry.KeepEndChar = HotstringKeepEnd;
+    }
+
+    /// <summary>Brings the trigger form onto the entry selected in the list.</summary>
+    private void LoadTriggerFields(TriggerEntry? entry)
+    {
+        _loading = true;
+        try
+        {
+            TriggerMode = entry?.Kind ?? TriggerKind.Key;
+            BindKey = entry?.BindKey ?? string.Empty;
+            LoopMode = entry?.LoopMode ?? MacroLoop.Toggle;
+            TriggerOnce = entry?.TriggerOnce ?? false;
+            ScheduleMode = entry?.ScheduleMode ?? ScheduleMode.Interval;
+            ScheduleInterval = entry?.ScheduleInterval ?? 5;
+            ScheduleUnit = entry?.ScheduleUnit ?? ScheduleUnit.Seconds;
+            ScheduleTime = entry?.ScheduleTime ?? "08:00";
+            WatchPath = entry?.WatchPath ?? string.Empty;
+            WatchChange = entry?.WatchChange ?? FileChangeKind.Any;
+            WatchFilter = entry?.WatchFilter ?? "*";
+            WatchSubfolders = entry?.WatchSubfolders ?? false;
+            ProcessName = entry?.ProcessName ?? string.Empty;
+            ProcessChange = entry?.ProcessChange ?? ProcessChangeKind.Started;
+            WindowTarget = entry?.WindowTarget ?? WindowRule.Empty;
+            WindowChange = entry?.WindowChange ?? WindowChangeKind.Appeared;
+            IdleSeconds = entry?.IdleSeconds ?? 60;
+            ColorMatch = entry?.ColorMatch ?? ColorMatchCondition.ColorMatches;
+            ColorPositionX = (entry?.ColorPositionX ?? 0).ToString(CultureInfo.InvariantCulture);
+            ColorPositionY = (entry?.ColorPositionY ?? 0).ToString(CultureInfo.InvariantCulture);
+            UseCursorPosition = entry?.UseCursorPosition ?? false;
+            HexColor = entry?.HexColor ?? "#000000";
+            ColorTolerance = (entry?.ColorTolerance ?? 5).ToString(CultureInfo.InvariantCulture);
+            HotstringText = entry?.Abbreviation ?? string.Empty;
+            HotstringEndChars = entry?.HotstringEndChars ?? HotstringCharacters.DefaultEndChars;
+            HotstringCaseSensitive = entry?.CaseSensitive ?? false;
+            HotstringInsideWord = entry?.MatchInsideWord ?? false;
+            HotstringRequireEnd = entry?.RequireEndChar ?? true;
+            HotstringEraseTyped = entry?.EraseTyped ?? true;
+            HotstringKeepEnd = entry?.KeepEndChar ?? true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
     public string RecordLabel => IsRecording ? Strings.Get("Editor.StopRecording") : Strings.Get("Editor.Record");
 
     /// <summary>Hint under the record button, so the stop shortcuts stay discoverable.</summary>
@@ -774,7 +1510,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// instead of the trigger, and only the keyboard is listened to: a key field cannot hold a
     /// mouse button. A combination takes the modifiers with the key, the way a trigger does.
     /// </summary>
-    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false)
+    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false,
+        bool keyboardOnly = true)
     {
         if (IsRecording)
         {
@@ -782,7 +1519,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         _keyCaptureTarget = deliver;
-        _captureKeyboardOnly = true;
+        _captureKeyboardOnly = keyboardOnly;
         _captureSingleKey = !combination;
         _captureContinues = continuous;
         IsCapturingKey = true;
@@ -823,6 +1560,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void StopCapturingKey()
     {
         IsCapturingKey = false;
+        IsCapturingInterfaceHotkey = false;
         _keyCaptureTarget = null;
         _captureKeyboardOnly = false;
         _captureSingleKey = false;
@@ -914,31 +1652,48 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
-        _insertAt = (row.Step, parameter, parameter.Steps.Count);
+        _insertAt = new StepInsertionTarget(parameter.Steps, parameter.Steps.Count,
+            row.Step, parameter);
         AddStepRequested?.Invoke();
     }
 
     /// <summary>
     /// What the "Add Action" dialog may offer for the step being built: a switch's branch list
-    /// only takes branches, a condition list only takes conditions, everything else takes
-    /// anything. Read by the window when it opens the dialog.
+    /// only takes branches, everything else takes anything. Read by the window when it opens the
+    /// dialog.
     /// </summary>
-    public IReadOnlyList<ActionDefinition>? InsertChoices => _insertAt is { } at
-        ? ChoicesFor(at.Owner, at.Parameter)
+    public IReadOnlyList<ActionDefinition>? InsertChoices => _insertAt is
+    { Owner: { } owner, Parameter: { } parameter }
+        ? ChoicesFor(owner, parameter)
         : null;
 
     private static IReadOnlyList<ActionDefinition>? ChoicesFor(MacroStep owner, StepParameter parameter)
     {
-        if (parameter.Kind is ActionParameterKind.Condition)
-        {
-            return ActionCatalog.Conditions;
-        }
-
         var definition = owner.Definition?.Parameters
             .FirstOrDefault(candidate => candidate.Name == parameter.Name);
 
         return definition is { ChildKeys.Count: > 0 } ? ActionCatalog.ForKeys(definition.ChildKeys) : null;
     }
+
+    /// <summary>
+    /// Checks a proposed insertion without moving the editor's pending target. Drag feedback uses
+    /// this before the pointer is released, so an illegal seam never promises a drop it will refuse.
+    /// </summary>
+    public string? PlacementRefusalAt(int slot, MacroStep? into, IEnumerable<MacroStep> steps)
+        => PlacementRefusal(TargetAt(slot, into), steps);
+
+    /// <summary>Checks the current selection at a proposed drop seam.</summary>
+    public string? MoveSelectionRefusalAt(int slot, MacroStep? into)
+    {
+        var target = TargetAt(slot, into);
+        var moving = Ordered(_selection);
+        return target is not null && moving.Any(step => IsInside(target.List, step))
+            ? Strings.Get("Editor.PlaceIntoItself")
+            : PlacementRefusal(target, moving);
+    }
+
+    /// <summary>Shows the reason a placement was refused without changing the macro.</summary>
+    public void ReportPlacementRefusal(string reason) => PlacementNotice = reason;
 
     /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
     [RelayCommand]
@@ -1079,8 +1834,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         // no one place to be wrapped into, so the block the first of them is in is the one that
         // gets the group.
         var grouped = selected.Where(step => ReferenceEquals(ListOf(step), list)).ToList();
-        PushUndo();
-
         var index = list.IndexOf(grouped[0]);
         var group = new MacroStep
         {
@@ -1097,6 +1850,13 @@ public partial class MacroEditorViewModel : ViewModelBase
             ],
         };
 
+        if (PlacementRefusal(TargetForList(list, index), [group]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
+        PushUndo();
         foreach (var step in grouped)
         {
             list.Remove(step);
@@ -1133,6 +1893,11 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         var lifted = LiftedMacro(stretch);
         var call = CallTo(lifted);
+        if (PlacementRefusal(TargetForList(list, list.IndexOf(stretch[0])), [call]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
 
         PushUndo();
         var index = list.IndexOf(stretch[0]);
@@ -1329,26 +2094,49 @@ public partial class MacroEditorViewModel : ViewModelBase
         // selection moves: moving it is the user saying "somewhere else".
         _insertAt ??= InsertionPoint();
 
-        if (InsertChoices is { } allowed && !allowed.Any(definition => definition.Key == step.Type))
+        if (PlacementRefusalForPending(step) is { } refusal)
         {
-            return Strings.Format("Editor.PlaceTakesOnly", KindsAllowed(allowed));
+            ReportPlacementRefusal(refusal);
+            return refusal;
         }
 
         AddStep(step);
         return null;
     }
 
-    /// <summary>
-    /// What a place that takes only certain kinds of step accepts, named the way the picker names
-    /// it: a handful of kinds are worth listing, a whole family is better said by its name.
-    /// </summary>
-    private static string KindsAllowed(IReadOnlyList<ActionDefinition> allowed)
-    {
-        var names = allowed.Select(definition => definition.LocalName).Distinct().ToList();
+    /// <summary>Checks the step a form is about to add at the target the editor locked for it.</summary>
+    internal string? PlacementRefusalForPending(MacroStep step)
+        => PlacementRefusal(
+            _insertAt ?? InsertionPoint() ?? TargetForList(Steps, Steps.Count),
+            [step]);
 
-        return names.Count <= 3
-            ? string.Join(" / ", names)
-            : Strings.Get($"Add.Category.{allowed[0].Category}");
+    /// <summary>Checks an edited step against the list its original occupies.</summary>
+    internal string? PlacementRefusalForReplacement(MacroStep original, MacroStep replacement)
+        => ListOf(original) is { } list
+            ? PlacementRefusal(TargetForList(list, list.IndexOf(original)), [replacement])
+            : null;
+
+    /// <summary>Returns the one explanation every insertion and move uses for a rejected step.</summary>
+    private static string? PlacementRefusal(
+        StepInsertionTarget? target, IEnumerable<MacroStep> steps)
+    {
+        var destination = target is { Owner: { } owner, Parameter: { } parameter }
+            ? owner.ParameterDefinition(parameter)
+            : null;
+        if (StepPlacement.FirstIssue(destination, steps) is not { } issue)
+        {
+            return null;
+        }
+
+        if (issue.Destination is { ChildKeys.Count: > 0 } restricted)
+        {
+            return Strings.Format("Editor.PlaceTakesOnly",
+                StepPlacement.AllowedSummary(restricted));
+        }
+
+        return issue.Step.Type == "control.case"
+            ? Strings.Get("Editor.PlaceCaseOnly")
+            : Strings.Format("Editor.PlaceUnavailable", issue.Step.DisplayName);
     }
 
     /// <summary>
@@ -1357,11 +2145,21 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     public void AddStep(MacroStep step)
     {
-        PushUndo();
+        step.EnsureDeclaredLists();
+        var target = _insertAt ?? TargetForList(Steps, Steps.Count);
+        if (PlacementRefusal(target, [step]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
 
-        var (list, index) = _insertAt is { } at
-            ? ((IList<MacroStep>)at.Parameter.Steps, at.Index)
-            : ((IList<MacroStep>)Steps, Steps.Count);
+        PushUndo();
+        if (step.StepLists.Any())
+        {
+            step.IsExpanded = true;
+        }
+
+        var (list, index) = (target.List, target.Index);
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
 
@@ -1382,6 +2180,12 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
+        if (PlacementRefusal(TargetForList(Steps, Steps.Count), steps) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
         PushUndo();
         foreach (var step in steps)
         {
@@ -1396,6 +2200,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Swaps a step for the edited version returned by the dialog.</summary>
     public void ReplaceStep(MacroStep original, MacroStep replacement)
     {
+        replacement.EnsureDeclaredLists();
         if (ListOf(original) is not { } list)
         {
             return;
@@ -1404,6 +2209,12 @@ public partial class MacroEditorViewModel : ViewModelBase
         var index = list.IndexOf(original);
         if (index < 0)
         {
+            return;
+        }
+
+        if (PlacementRefusal(TargetForList(list, index), [replacement]) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -1427,13 +2238,22 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
-        PushUndo();
-
         var anchor = Ordered(_selection).LastOrDefault();
         var list = anchor is null ? Steps : ListOf(anchor) ?? Steps;
         var index = anchor is null ? list.Count : list.IndexOf(anchor) + 1;
         var copies = steps.Select(Clone).ToList();
+        foreach (var copy in copies)
+        {
+            copy.EnsureDeclaredLists();
+        }
 
+        if (PlacementRefusal(TargetForList(list, index), copies) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
+            return;
+        }
+
+        PushUndo();
         for (var offset = 0; offset < copies.Count; offset++)
         {
             list.Insert(Math.Clamp(index + offset, 0, list.Count), copies[offset]);
@@ -1502,6 +2322,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         // A step asked for before this one is no longer the step being pointed at.
         _insertAt = null;
+        PlacementNotice = string.Empty;
         _selection.Clear();
         _selection.AddRange(steps);
 
@@ -1524,31 +2345,31 @@ public partial class MacroEditorViewModel : ViewModelBase
         try
         {
             Name = macro.Name;
-            TriggerMode = macro.TriggerMode;
-            LoopMode = macro.LoopMode;
-            BindKey = macro.BindKey;
-            ScheduleMode = macro.ScheduleMode;
-            ScheduleInterval = macro.ScheduleInterval;
-            ScheduleUnit = macro.ScheduleUnit;
-            ScheduleTime = macro.ScheduleTime;
-            WatchPath = macro.WatchPath;
-            WatchChange = macro.WatchChange;
-            WatchFilter = macro.WatchFilter;
-            WatchSubfolders = macro.WatchSubfolders;
-            ProcessName = macro.ProcessName;
-            ProcessChange = macro.ProcessChange;
-            WindowTarget = macro.WindowTarget;
-            WindowChange = macro.WindowChange;
-            IdleSeconds = macro.IdleSeconds;
+            Description = macro.Description;
+            Origin = macro.Origin;
+            TriggerEntries.Clear();
+            if (macro.Triggers.Count == 0)
+            {
+                var initial = TriggerEntry.FromMacro(macro);
+                WatchTriggerEntry(initial);
+                TriggerEntries.Add(initial);
+            }
+            else
+            {
+                foreach (var entry in macro.Triggers)
+                {
+                    var copy = entry.Copy();
+                    WatchTriggerEntry(copy);
+                    TriggerEntries.Add(copy);
+                }
+            }
+
+            _selectedTrigger = TriggerEntries[0];
+            OnPropertyChanged(nameof(SelectedTrigger));
+            OnPropertyChanged(nameof(HasSelectedTrigger));
+            LoadTriggerFields(_selectedTrigger);
             PositionCapture = macro.PositionCapture;
-            ColorMatch = macro.ColorMatch;
-            ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
-            ColorPositionY = macro.ColorPositionY.ToString(CultureInfo.InvariantCulture);
-            UseCursorPosition = macro.UseCursorPosition;
-            TriggerOnce = macro.TriggerOnce;
             ExclusiveInput = macro.ExclusiveInput;
-            HexColor = macro.HexColor;
-            ColorTolerance = macro.ColorTolerance.ToString(CultureInfo.InvariantCulture);
             RecordMouseMovement = macro.RecordMouseMovement;
             RecordMouseButtons = macro.RecordMouseButtons;
             RecordKeyboardKeys = macro.RecordKeyboardKeys;
@@ -1568,6 +2389,9 @@ public partial class MacroEditorViewModel : ViewModelBase
             {
                 Steps.Add(step);
             }
+
+            SubMacros.Clear();
+            SubMacros.AddRange(macro.SubMacros);
 
             // A macro written before steps had names, or one edited by hand outside the program,
             // arrives with none or with the same one twice; both are settled here, once, rather
@@ -1609,7 +2433,78 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// behind — each with what a person choosing one needs to know about it.
     /// </summary>
     public IReadOnlyList<VariableChoice> CollectVariables()
-        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults);
+        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults, ReadVariableContent);
+
+    /// <summary>Renames a local name created by this macro's steps and all exact references to it.</summary>
+    public bool RenameLocalVariable(string oldName, string newName, out string problem)
+    {
+        var old = oldName.Trim();
+        var next = newName.Trim();
+        if (!VariableText.IsName(next))
+        {
+            problem = Strings.Format("Editor.Problem.InvalidVariableName", next);
+            return false;
+        }
+
+        if (string.Equals(old, next, StringComparison.Ordinal))
+        {
+            problem = string.Empty;
+            return true;
+        }
+
+        if (CollectVariables().Any(choice =>
+                string.Equals(choice.Name, next, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(choice.Name, old, StringComparison.OrdinalIgnoreCase)))
+        {
+            problem = Strings.Format("Editor.Problem.VariableNameTaken", next);
+            return false;
+        }
+
+        VariableRename.RenameSteps(Steps, old, next);
+        NotifyStepsChanged();
+        problem = string.Empty;
+        return true;
+    }
+
+    /// <summary>Applies a project-level global rename to this editor page's steps and declarations.</summary>
+    public void RenameGlobalReferences(string oldName, string newName)
+    {
+        VariableRename.RenameSteps(Steps, oldName, newName, global: true);
+        foreach (var parameter in DeclaredParameters)
+        {
+            parameter.Default = VariableText.Rename(parameter.Default, oldName, newName);
+        }
+
+        NotifyStepsChanged();
+    }
+
+    private string? ReadVariableContent(string name, VariableScope scope)
+    {
+        if (scope is VariableScope.Global)
+        {
+            if (SharedVariables.Current.TryGet(name, out var value))
+            {
+                return value.AsText();
+            }
+
+            if (PersistentVariables.TryGet(name, out var saved))
+            {
+                return saved;
+            }
+
+            var definition = VariableCatalog.FindGlobal(name);
+            return definition is null
+                ? null
+                : VariableDefinition.Preview(definition.Type, definition.DefaultValue);
+        }
+
+        if (scope is VariableScope.System)
+        {
+            return SystemReader?.Read(name);
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// A name for a step that is not in the list yet. The name is handed to the dialog while the
@@ -1643,18 +2538,13 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Collect(child);
                 }
 
-                if (parameter.Condition is not null)
-                {
-                    Collect(parameter.Condition);
-                }
             }
         }
     }
 
     /// <summary>
     /// The steps of the macro being written, which is what a step that has to point at another one
-    /// picks from. Conditions are left out: they are asked by the step they belong to rather than
-    /// run, so they never have an ending of their own to ask about.
+    /// picks from.
     /// </summary>
     public IReadOnlyList<ActionParameterOption> StepChoices()
     {
@@ -1668,7 +2558,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         static void Collect(List<ActionParameterOption> choices, MacroStep step)
         {
-            if (!step.IsCondition && step.Id.Length > 0)
+            if (step.Id.Length > 0)
             {
                 choices.Add(new ActionParameterOption(step.Id, step.PickerLabel));
             }
@@ -1680,10 +2570,6 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Collect(choices, child);
                 }
 
-                if (parameter.Condition is not null)
-                {
-                    Collect(choices, parameter.Condition);
-                }
             }
         }
     }
@@ -1698,7 +2584,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     };
 
     /// <summary>
-    /// Copies a parameter together with the steps or condition nested inside it,
+    /// Copies a parameter together with the steps nested inside it,
     /// so duplicating a loop or an if keeps its body.
     /// </summary>
     private static StepParameter Clone(StepParameter parameter) => new()
@@ -1709,7 +2595,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         Jitter = parameter.Jitter,
         Steps = parameter.Steps.Select(Clone).ToList(),
         Rows = parameter.Rows.Select(row => row.Copy()).ToList(),
-        Condition = parameter.Condition is null ? null : Clone(parameter.Condition),
     };
 
     /// <summary>
@@ -1835,15 +2720,80 @@ public partial class MacroEditorViewModel : ViewModelBase
         return (row.List?.Steps ?? (IList<MacroStep>)Steps, Math.Max(0, row.Index));
     }
 
+    /// <summary>
+    /// Locks the place a dropped action will occupy. The form opens after this, so the list cannot
+    /// move the target under it while the person fills the fields.
+    /// </summary>
+    public void PrepareInsertionAt(int slot, MacroStep? into)
+    {
+        if (TargetAt(slot, into) is not { } target)
+        {
+            return;
+        }
+
+        if (into is not null)
+        {
+            into.IsExpanded = true;
+        }
+
+        _insertAt = target;
+    }
+
+    /// <summary>The exact insertion target at a visible seam, or at the end of a single-list block.</summary>
+    private StepInsertionTarget? TargetAt(int slot, MacroStep? into)
+    {
+        if (into is not null)
+        {
+            return into.StepLists.FirstOrDefault() is { } parameter
+                ? new StepInsertionTarget(parameter.Steps, parameter.Steps.Count, into, parameter)
+                : null;
+        }
+
+        var (list, index) = DropTarget(slot);
+        return TargetForList(list, index);
+    }
+
+    /// <summary>The target for a known list, including the owner's declaration that restricts it.</summary>
+    private StepInsertionTarget TargetForList(IList<MacroStep> list, int index)
+        => OwnerOfList(list) is { } owner
+            ? new StepInsertionTarget(list, index, owner.Owner, owner.Parameter)
+            : new StepInsertionTarget(list, index, null, null);
+
+    /// <summary>The block and parameter that own a child list, or null for the macro's root list.</summary>
+    private (MacroStep Owner, StepParameter Parameter)? OwnerOfList(IList<MacroStep> list)
+    {
+        foreach (var owner in DocumentOrder())
+        {
+            foreach (var parameter in owner.StepLists)
+            {
+                if (ReferenceEquals(parameter.Steps, list))
+                {
+                    return (owner, parameter);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>True when the place currently accepting a drop allows this action.</summary>
+    public bool CanPlace(string actionKey)
+        => InsertChoices is not { } allowed
+           || allowed.Any(definition => definition.Key == actionKey);
+
+    public void ClearPendingInsertion()
+        => _insertAt = null;
+
     /// <summary>Where a step asked for now should go: below the picked one, in its own block.</summary>
-    private (MacroStep Owner, StepParameter Parameter, int Index)? InsertionPoint()
+    private StepInsertionTarget? InsertionPoint()
     {
         if (Ordered(_selection).LastOrDefault() is not { } anchor || OwnerOf(anchor) is not { } at)
         {
             return null;
         }
 
-        return (at.Owner, at.Parameter, at.Parameter.Steps.IndexOf(anchor) + 1);
+        return new StepInsertionTarget(at.Parameter.Steps,
+            at.Parameter.Steps.IndexOf(anchor) + 1, at.Owner, at.Parameter);
     }
 
     /// <summary>
@@ -1873,6 +2823,20 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (block.StepLists.FirstOrDefault() is not { } parameter || _selection.Count == 0)
         {
+            return;
+        }
+
+        if (Ordered(_selection).Any(step => IsInside(parameter.Steps, step)))
+        {
+            ReportPlacementRefusal(Strings.Get("Editor.PlaceIntoItself"));
+            return;
+        }
+
+        if (PlacementRefusal(
+                new StepInsertionTarget(parameter.Steps, parameter.Steps.Count, block, parameter),
+                Ordered(_selection)) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -1944,6 +2908,13 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         if (selected.Any(step => IsInside(target, step)))
         {
+            ReportPlacementRefusal(Strings.Get("Editor.PlaceIntoItself"));
+            return;
+        }
+
+        if (PlacementRefusal(TargetForList(target, index), selected) is { } refusal)
+        {
+            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -2007,11 +2978,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// Rebuilds the rows the list shows and puts the selection back on them, in that order: the
     /// view can only highlight a row that is there.
     /// </summary>
-    private void NotifyStepsChanged()
+    internal void NotifyStepsChanged()
     {
+        PlacementNotice = string.Empty;
         RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();
+        RefreshVariableCenter();
         SelectionRefreshRequested?.Invoke();
     }
 
@@ -2076,6 +3049,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         for (var index = 0; index < steps.Count; index++)
         {
             var step = steps[index];
+            step.EnsureDeclaredLists();
             Rows.Add(new StepRow
             {
                 Kind = StepRowKind.Step,
@@ -2277,7 +3251,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         StopRecording();
-        IsDirty = false;
         CloseRequested?.Invoke(BuildMacro());
     }
 
@@ -2291,6 +3264,15 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
                 or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
                 or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
+                or nameof(SelectedTrigger) or nameof(HasSelectedTrigger)
+                or nameof(ShowsTriggerSettings) or nameof(ShowsLoopMode) or nameof(ShowsTriggerOnce)
+                or nameof(TriggerEntries) or nameof(TriggerKindOptions) or nameof(TriggerKindChoices)
+                or nameof(TriggerProblemSummary) or nameof(HasTriggerProblem)
+                or nameof(HotstringEndKeys) or nameof(IsCapturingHotstringEnd)
+                or nameof(HotstringEndCaptureStatus) or nameof(HotstringEndCaptureButton)
+                or nameof(IsCapturingInterfaceHotkey) or nameof(InterfaceToggleHotkey)
+                or nameof(InterfaceHotkeyProblem)
+                or nameof(InterfaceHotkeyButton) or nameof(InterfaceToggleHotkeyDisplay)
                 or nameof(HasBlockingDeclarationProblems) or nameof(CanSave)
                 or nameof(CallImpactSummary) or nameof(HasCallImpact)
                 or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)
@@ -2305,7 +3287,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         // macro does something it does not.
         if (e.PropertyName is nameof(WindowTarget) or nameof(TriggerMode))
         {
-            var asking = IsWindowTrigger;
+            var asking = IsWindowRuleTrigger;
             WindowPreview.Show(asking);
             if (asking)
             {
@@ -2325,7 +3307,18 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void MarkDirty()
     {
         IsDirty = true;
+        RefreshVariableCenter();
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RefreshVariableCenter()
+        => VariableCenter.Refresh(CollectVariables());
+
+    /// <summary>Refreshes what global declaration changes mean to this macro without marking it edited.</summary>
+    public void RefreshSharedVariables()
+    {
+        RefreshVariableCenter();
+        RefreshProblems();
     }
 
     /// <summary>
@@ -2334,6 +3327,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     partial void OnNameChanged(string value)
     {
+        UpdateInterfaceGroupFields();
         if (!_loading)
         {
             NotifyStepsChanged();
@@ -2346,34 +3340,14 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     internal MacroItem BuildMacro()
     {
+        CommitTriggerFields();
         var macro = new MacroItem
         {
             Name = Name.Trim(),
-            TriggerMode = TriggerMode,
-            LoopMode = LoopMode,
-            BindKey = BindKey,
-            ScheduleMode = ScheduleMode,
-            ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5),
-            ScheduleUnit = ScheduleUnit,
-            ScheduleTime = ScheduleTime.Trim(),
-            WatchPath = WatchPath.Trim(),
-            WatchChange = WatchChange,
-            WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim(),
-            WatchSubfolders = WatchSubfolders,
-            ProcessName = ProcessName.Trim(),
-            ProcessChange = ProcessChange,
-            WindowTarget = WindowTarget,
-            WindowChange = WindowChange,
-            IdleSeconds = Math.Max(1, IdleSeconds ?? 60),
+            Description = Description.Trim(),
+            Origin = Origin,
             PositionCapture = PositionCapture,
-            ColorMatch = ColorMatch,
-            ColorPositionX = ParseCoordinate(ColorPositionX),
-            ColorPositionY = ParseCoordinate(ColorPositionY),
-            UseCursorPosition = UseCursorPosition,
-            TriggerOnce = TriggerOnce,
             ExclusiveInput = ExclusiveInput,
-            HexColor = HexColor,
-            ColorTolerance = ParseCoordinate(ColorTolerance),
             RecordMouseMovement = RecordMouseMovement,
             RecordMouseButtons = RecordMouseButtons,
             RecordKeyboardKeys = RecordKeyboardKeys,
@@ -2383,6 +3357,52 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordIgnoreInjected = RecordIgnoreInjected,
             DelayScale = DelayScale,
         };
+        RememberInterfaceHotkey();
+        macro.InterfaceLayouts.AddRange(_interfaceLayouts.Values.Select(layout => layout with { }));
+
+        if (SelectedTrigger is { } current)
+        {
+            // Keep the legacy projections in step for the macro card and old entry guards while
+            // the project-wide trigger collection is becoming the only saved source.
+            macro.TriggerMode = current.Kind switch
+            {
+                TriggerKind.Color => MacroTrigger.ColorPixelChanges,
+                TriggerKind.Timer => MacroTrigger.Timer,
+                TriggerKind.File => MacroTrigger.FileChanges,
+                TriggerKind.Process => MacroTrigger.Process,
+                TriggerKind.Window or TriggerKind.Interface => MacroTrigger.Window,
+                TriggerKind.Idle => MacroTrigger.Idle,
+                _ => MacroTrigger.KeystrokesButtonInputs,
+            };
+            macro.LoopMode = current.LoopMode;
+            macro.BindKey = current.BindKey;
+            macro.ScheduleMode = current.ScheduleMode;
+            macro.ScheduleInterval = current.ScheduleInterval;
+            macro.ScheduleUnit = current.ScheduleUnit;
+            macro.ScheduleTime = current.ScheduleTime;
+            macro.WatchPath = current.WatchPath;
+            macro.WatchChange = current.WatchChange;
+            macro.WatchFilter = current.WatchFilter;
+            macro.WatchSubfolders = current.WatchSubfolders;
+            macro.ProcessName = current.ProcessName;
+            macro.ProcessChange = current.ProcessChange;
+            macro.WindowTarget = current.WindowTarget;
+            macro.WindowChange = current.WindowChange;
+            macro.IdleSeconds = current.IdleSeconds;
+            macro.ColorMatch = current.ColorMatch;
+            macro.ColorPositionX = current.ColorPositionX;
+            macro.ColorPositionY = current.ColorPositionY;
+            macro.UseCursorPosition = current.UseCursorPosition;
+            macro.TriggerOnce = current.TriggerOnce;
+            macro.HexColor = current.HexColor;
+            macro.ColorTolerance = current.ColorTolerance;
+        }
+
+        foreach (var entry in TriggerEntries)
+        {
+            entry.MacroName = macro.Name;
+            macro.Triggers.Add(entry.Copy());
+        }
 
         foreach (var step in Steps)
         {
@@ -2391,6 +3411,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         macro.Parameters.AddRange(DeclaredParameters);
         macro.Results.AddRange(DeclaredResults);
+        macro.SubMacros.AddRange(SubMacros);
 
         return macro;
     }

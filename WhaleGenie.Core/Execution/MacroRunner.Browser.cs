@@ -245,6 +245,18 @@ public sealed partial class MacroRunner
             waited ?? string.Join(" / ", target.Selectors));
     }
 
+    /// <summary>Looks once for a page element in the state the step names.</summary>
+    private void BrowserExists(ExecutableStep step, int depth)
+    {
+        var target = Element(step);
+        var state = ElementStateOf(step);
+        var found = _devices.Browser.Exists(target, state);
+        Give(step, "found", Value.FromBool(found));
+        Log(LogLevel.Info, depth, step.Type,
+            found ? LogKeys.BrowserWaited : LogKeys.ElementMissing,
+            string.Join(" / ", target.Selectors));
+    }
+
     /// <summary>
     /// Clicks an element of the page. Which button is used, how many times it is pressed and whether
     /// it is made even through what stands in the way are the step's own answers: a page's own menu
@@ -536,6 +548,9 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             case "browser.waitFor":
                 BrowserWaitFor(step, depth);
+                return Signal.Normal;
+            case "browser.exists":
+                BrowserExists(step, depth);
                 return Signal.Normal;
             case "browser.waitForUrl":
                 BrowserWaitForUrl(step, depth);

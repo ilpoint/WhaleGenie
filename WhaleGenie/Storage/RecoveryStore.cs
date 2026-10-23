@@ -30,6 +30,8 @@ public sealed class RecoveryContents
 
     public required IReadOnlyList<VariableDefinition> Globals { get; init; }
 
+    public ProjectTriggers Triggers { get; init; } = new();
+
     /// <summary>Package the macro list came from, or null when it had never been saved.</summary>
     public string? PackagePath { get; init; }
 
@@ -113,6 +115,10 @@ public static class RecoveryStore
     /// <summary>Records the macro list, its shared variables and the package it came from.</summary>
     public static void SaveProject(IReadOnlyList<MacroItem> macros,
         IReadOnlyList<VariableDefinition> globals, string? packagePath)
+        => SaveProject(macros, ProjectTriggers.FromMacros(macros), globals, packagePath);
+
+    public static void SaveProject(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition> globals, string? packagePath)
     {
         var entries = new JsonArray();
         foreach (var macro in macros)
@@ -139,6 +145,7 @@ public static class RecoveryStore
         var project = new JsonObject
         {
             ["macros"] = entries,
+            ["triggers"] = triggers.ToJson(),
             ["variables"] = variables,
         };
 
@@ -156,7 +163,7 @@ public static class RecoveryStore
     /// <summary>Records the macro the editor is holding, and what it stands for.</summary>
     public static void SaveEditor(MacroItem macro, string replaces)
     {
-        var editor = new JsonObject { ["macro"] = macro.ToJson() };
+        var editor = new JsonObject { ["macro"] = macro.ToJson(includeTriggers: true) };
         if (!string.IsNullOrEmpty(replaces))
         {
             editor["replaces"] = replaces;
@@ -207,6 +214,11 @@ public static class RecoveryStore
             return null;
         }
 
+        if (root["formatVersion"]?.GetValue<int>() != MacroPackage.FormatVersion)
+        {
+            throw new InvalidDataException("The recovery snapshot uses an older project format.");
+        }
+
         var project = root["project"] as JsonObject;
         var macros = new List<MacroItem>();
         foreach (var item in project?["macros"] as JsonArray ?? [])
@@ -240,6 +252,8 @@ public static class RecoveryStore
             });
         }
 
+        var triggers = ResumeTriggers(project, macros);
+
         RecoveryEditor? editor = null;
         if (root["editor"] is JsonObject editorEntry && editorEntry["macro"] is JsonObject macroNode)
         {
@@ -253,6 +267,7 @@ public static class RecoveryStore
         var contents = new RecoveryContents
         {
             Macros = macros,
+            Triggers = triggers,
             Globals = globals,
             PackagePath = project?["package"]?.GetValue<string>(),
             Editor = editor,
@@ -263,6 +278,18 @@ public static class RecoveryStore
         };
 
         return contents.IsEmpty ? null : contents;
+    }
+
+    private static ProjectTriggers ResumeTriggers(JsonObject? project, IReadOnlyList<MacroItem> macros)
+    {
+        if (project?["triggers"] is JsonObject stored)
+        {
+            var triggers = ProjectTriggers.FromJson(stored);
+            triggers.Attach(macros);
+            return triggers;
+        }
+
+        return ProjectTriggers.FromMacros(macros);
     }
 
     /// <summary>
@@ -308,6 +335,7 @@ public static class RecoveryStore
                 }
 
                 root["appVersion"] = AppVersion.Text;
+                root["formatVersion"] = MacroPackage.FormatVersion;
                 root["savedUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
                 Write(root);
                 _written = content;

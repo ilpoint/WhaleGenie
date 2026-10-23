@@ -14,6 +14,8 @@ namespace WhaleGenie.Views;
 /// </summary>
 public partial class VariableWall : UserControl
 {
+    private readonly DragStart _drag = new();
+
     public VariableWall()
     {
         InitializeComponent();
@@ -43,6 +45,56 @@ public partial class VariableWall : UserControl
         if (DataContext is VariableWallViewModel wall)
         {
             wall.Looking = null;
+        }
+    }
+
+    /// <summary>Remembers a variable card whose press may become a drag instead of a click.</summary>
+    private void OnPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: VariableChoice choice }
+            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            _drag.Remember(this, e, VariableDragPayload.From(choice).Token);
+            var transfer = VariableDragPayload.From(choice).Transfer();
+            _variableTransfer = transfer;
+            e.Pointer.Capture(sender as Control);
+            return;
+        }
+
+        _drag.Forget();
+        _variableTransfer = null;
+    }
+
+    private DataTransfer? _variableTransfer;
+
+    private async void OnMoved(object? sender, PointerEventArgs e)
+    {
+        if (_variableTransfer is { } transfer && _drag.IsPending)
+        {
+            await _drag.Moved(e, transfer);
+        }
+    }
+
+    private void OnReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _drag.Forget();
+        _variableTransfer = null;
+        e.Pointer.Capture(null);
+    }
+
+    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        _drag.Forget();
+        _variableTransfer = null;
+    }
+
+    private void OnDoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    {
+        if (DataContext is VariableWallViewModel wall
+            && sender is Control { DataContext: VariableChoice choice })
+        {
+            wall.EditCommand.Execute(choice);
+            e.Handled = true;
         }
     }
 }

@@ -19,7 +19,7 @@ public class StepDefaultsTests
 {
     private static AddActionViewModel Open(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named(), []);
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -184,7 +184,7 @@ public class StepDefaultsTests
             editor.GroupSelectedCommand.Execute(null);
 
             var group = Assert.Single(editor.Steps);
-            var dialog = new AddActionWindow(group, ActionCatalog.Definitions,
+            var dialog = new ActionEditorWindow(group, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("wanted"), []);
             Dispatcher.UIThread.RunJobs();
 

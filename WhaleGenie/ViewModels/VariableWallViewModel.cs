@@ -17,7 +17,8 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class VariableWallViewModel : ViewModelBase
 {
-    private readonly IReadOnlyList<VariableChoice> _all;
+    private IReadOnlyList<VariableChoice> _all;
+    private bool _receivedVariables;
 
     public VariableWallViewModel(IReadOnlyList<VariableChoice>? variables = null)
     {
@@ -55,7 +56,10 @@ public partial class VariableWallViewModel : ViewModelBase
     /// <summary>Raised with a step somebody asked to be shown, so the place they came from can look.</summary>
     public event Action<MacroStep>? Jumped;
 
-    public IReadOnlyList<VariableFilter> Filters { get; }
+    /// <summary>Raised when somebody asks to inspect or edit one variable definition.</summary>
+    public event Action<VariableChoice>? EditRequested;
+
+    public IReadOnlyList<VariableFilter> Filters { get; private set; }
 
     /// <summary>The variables on show, which is what the filter leaves of everything known.</summary>
     public ObservableCollection<VariableChoice> Shown { get; } = [];
@@ -70,6 +74,14 @@ public partial class VariableWallViewModel : ViewModelBase
     /// <summary>Which button is pressed: one of them always is, so the wall is never without a meaning.</summary>
     [ObservableProperty]
     public partial VariableFilter? SelectedFilter { get; set; }
+
+    /// <summary>Narrows the current group by name, type, description or source.</summary>
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = string.Empty;
+
+    /// <summary>The list height in a picker, or room to grow when the wall fills the inspector.</summary>
+    [ObservableProperty]
+    public partial double ListMaxHeight { get; set; } = 196;
 
     /// <summary>The group whose variables are on show.</summary>
     public VariableGroup Filter => SelectedFilter?.Group ?? VariableGroup.All;
@@ -93,6 +105,54 @@ public partial class VariableWallViewModel : ViewModelBase
     public bool HasUses => Uses.Count > 0;
 
     partial void OnSelectedFilterChanged(VariableFilter? value) => Rebuild();
+
+    partial void OnSearchTextChanged(string value) => Rebuild();
+
+    /// <summary>Replaces the variables on the wall, keeping the chosen group when it still applies.</summary>
+    public void SetVariables(IReadOnlyList<VariableChoice> variables)
+    {
+        var looking = Looking is { } current ? Key(current) : string.Empty;
+        _all = variables;
+        var firstLoad = !_receivedVariables;
+        _receivedVariables = true;
+        if (firstLoad
+            && _all.Count > 0
+            && Filter is VariableGroup.Local or VariableGroup.StepResult
+            && !_all.Any(choice => choice.Group == Filter))
+        {
+            SelectedFilter = Filters[0];
+            return;
+        }
+
+        Rebuild();
+        Looking = looking.Length == 0
+            ? null
+            : Shown.FirstOrDefault(choice => string.Equals(Key(choice), looking,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void UseAvailableHeight() => ListMaxHeight = 1000;
+
+    public override void RefreshLanguage()
+    {
+        var group = SelectedFilter?.Group ?? VariableGroup.All;
+        Filters =
+        [
+            new VariableFilter(VariableGroup.All, "VarWall.All", "VarWall.AllHint"),
+            new VariableFilter(VariableGroup.Local, "Variable.Tab.Local", "VarWall.LocalHint"),
+            new VariableFilter(VariableGroup.Global, "Variable.Tab.Global", "VarWall.GlobalHint"),
+            new VariableFilter(VariableGroup.System, "VarWall.System", "VarWall.SystemHint"),
+            new VariableFilter(VariableGroup.StepResult, "VarWall.StepResult", "VarWall.StepResultHint"),
+        ];
+        OnPropertyChanged(nameof(Filters));
+        SelectedFilter = Filters.First(filter => filter.Group == group);
+        foreach (var row in _all)
+        {
+            row.RefreshLanguage();
+        }
+
+        base.RefreshLanguage();
+    }
 
     partial void OnLookingChanged(VariableChoice? value)
     {
@@ -129,20 +189,89 @@ public partial class VariableWallViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    private void Edit(VariableChoice? choice)
+    {
+        if (choice is not null)
+        {
+            EditRequested?.Invoke(choice);
+        }
+    }
+
     private void Rebuild()
     {
-        Shown.Clear();
-        foreach (var choice in _all.Where(choice =>
-            Filter == VariableGroup.All || choice.Group == Filter))
+        var wanted = _all.Where(choice =>
+                (Filter == VariableGroup.All || choice.Group == Filter)
+                && MatchesSearch(choice))
+            .ToList();
+        var wantedKeys = wanted.Select(Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        for (var at = Shown.Count - 1; at >= 0; at--)
         {
-            Shown.Add(choice);
+            if (!wantedKeys.Contains(Key(Shown[at])))
+            {
+                Shown.RemoveAt(at);
+            }
         }
 
-        Looking = null;
+        for (var at = 0; at < wanted.Count; at++)
+        {
+            var choice = wanted[at];
+            var found = -1;
+            for (var scan = at; scan < Shown.Count; scan++)
+            {
+                if (string.Equals(Key(Shown[scan]), Key(choice), StringComparison.OrdinalIgnoreCase))
+                {
+                    found = scan;
+                    break;
+                }
+            }
+
+            if (found < 0)
+            {
+                Shown.Insert(at, choice);
+            }
+            else
+            {
+                if (found != at)
+                {
+                    Shown.Move(found, at);
+                }
+
+                if (!ReferenceEquals(Shown[at], choice))
+                {
+                    Shown[at] = choice;
+                }
+            }
+        }
+
+        while (Shown.Count > wanted.Count)
+        {
+            Shown.RemoveAt(Shown.Count - 1);
+        }
+
+        if (Looking is { } looking && !wantedKeys.Contains(Key(looking)))
+        {
+            Looking = null;
+        }
+
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasUses));
         OnPropertyChanged(nameof(Details));
     }
+
+    private bool MatchesSearch(VariableChoice choice)
+    {
+        var search = SearchText.Trim();
+        return search.Length == 0
+            || choice.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || choice.Display.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || choice.Type.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || choice.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || choice.Source.Contains(search, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string Key(VariableChoice choice) => $"{choice.Group}\u0000{choice.Name}";
 }
 
 /// <summary>One of the wall's filter buttons: the group it shows and how it is written.</summary>

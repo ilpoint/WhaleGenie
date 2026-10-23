@@ -59,6 +59,9 @@ internal sealed class DragStart
     private string? _payload;
     private Point _origin;
 
+    /// <summary>True while a remembered press has not yet become a drag or a plain click.</summary>
+    public bool IsPending => _owner is not null && _press is not null && _payload is not null;
+
     /// <summary>Remembers a press that may become a drag, and what it would carry.</summary>
     public void Remember(Visual owner, PointerPressedEventArgs press, string payload)
     {
@@ -72,7 +75,7 @@ internal sealed class DragStart
     /// Carries on with a pointer that is moving: past a few pixels the press becomes a drag, which
     /// is what the platform hands to whatever is underneath.
     /// </summary>
-    public async Task Moved(PointerEventArgs e)
+    public async Task Moved(PointerEventArgs e, DataTransfer? transfer = null)
     {
         if (_owner is null || _press is not { } press || _payload is not { } payload)
         {
@@ -98,7 +101,8 @@ internal sealed class DragStart
         // and it is a better answer to a gesture than a dialog that stops working.
         try
         {
-            await ExpressionDrag.Start(press, payload);
+            await DragDrop.DoDragDropAsync(press, transfer ?? ExpressionDrag.Transfer(payload),
+                DragDropEffects.Copy);
         }
         catch (Exception)
         {

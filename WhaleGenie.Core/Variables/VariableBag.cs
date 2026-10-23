@@ -15,6 +15,9 @@ public sealed class VariableBag : IVariableResolver
     private readonly Dictionary<string, Value> _values = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
+    /// <summary>Raised after a value is written or removed, with the name that moved.</summary>
+    public event Action<string>? Changed;
+
     /// <summary>
     /// The values in this scope, for the debugger and for tests. This is a copy: a caller that
     /// walks it while another run writes must not see the dictionary change under it.
@@ -52,6 +55,8 @@ public sealed class VariableBag : IVariableResolver
         {
             _values[name] = value;
         }
+
+        Changed?.Invoke(name);
     }
 
     /// <summary>
@@ -60,10 +65,18 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool SetIfAbsent(string name, Value value)
     {
+        bool added;
         lock (_gate)
         {
-            return _values.TryAdd(name, value);
+            added = _values.TryAdd(name, value);
         }
+
+        if (added)
+        {
+            Changed?.Invoke(name);
+        }
+
+        return added;
     }
 
     public void SetText(string name, string? text) => Set(name, Value.FromText(text));
@@ -74,17 +87,51 @@ public sealed class VariableBag : IVariableResolver
 
     public bool Remove(string name)
     {
+        bool removed;
         lock (_gate)
         {
-            return _values.Remove(name);
+            removed = _values.Remove(name);
+        }
+
+        if (removed)
+        {
+            Changed?.Invoke(name);
+        }
+
+        return removed;
+    }
+
+    /// <summary>Moves one name to another without changing its value.</summary>
+    public bool Rename(string oldName, string newName)
+    {
+        lock (_gate)
+        {
+            if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)
+                || !_values.Remove(oldName, out var value)
+                || _values.ContainsKey(newName))
+            {
+                return false;
+            }
+
+            _values[newName] = value;
+            Changed?.Invoke(newName);
+            Changed?.Invoke(oldName);
+            return true;
         }
     }
 
     public void Clear()
     {
+        string[] names;
         lock (_gate)
         {
+            names = [.. _values.Keys];
             _values.Clear();
+        }
+
+        foreach (var name in names)
+        {
+            Changed?.Invoke(name);
         }
     }
 
@@ -105,8 +152,10 @@ public sealed class VariableBag : IVariableResolver
 
             sum = value.AsNumber() + amount;
             _values[name] = Value.FromNumber(sum);
-            return true;
         }
+
+        Changed?.Invoke(name);
+        return true;
     }
 
     /// <summary>
@@ -118,6 +167,7 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool TryUpdate(string name, Func<Value, Value> change, out Value updated)
     {
+        bool found;
         lock (_gate)
         {
             if (!_values.TryGetValue(name, out var current))
@@ -128,7 +178,14 @@ public sealed class VariableBag : IVariableResolver
 
             updated = change(current);
             _values[name] = updated;
-            return true;
+            found = true;
         }
+
+        if (found)
+        {
+            Changed?.Invoke(name);
+        }
+
+        return found;
     }
 }

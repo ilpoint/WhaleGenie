@@ -62,6 +62,22 @@ public static class StepIds
         }
     }
 
+    /// <summary>
+    /// Settles several callable documents against one set of names. A parent and its submacros run
+    /// under the same parent identity, so steps in different documents still need distinct ids.
+    /// </summary>
+    public static void SettleAcross(IEnumerable<IEnumerable<MacroStep>> documents)
+    {
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var steps in documents)
+        {
+            foreach (var step in steps)
+            {
+                Settle(step, taken);
+            }
+        }
+    }
+
     private static void Settle(MacroStep step, ISet<string> taken)
     {
         if (step.Id.Length == 0 || !taken.Add(step.Id))
@@ -82,12 +98,9 @@ public static class StepIds
     /// </summary>
     private static void Set(MacroStep step, string id) => step.Id = id;
 
-    /// <summary>Everything written inside a step, lists and conditions alike.</summary>
+    /// <summary>Everything written inside a step's child lists.</summary>
     private static IEnumerable<MacroStep> Children(MacroStep step)
-        => step.Parameters.SelectMany(parameter => parameter.Steps)
-            .Concat(step.Parameters
-                .Where(parameter => parameter.Condition is not null)
-                .Select(parameter => parameter.Condition!));
+        => step.Parameters.SelectMany(parameter => parameter.Steps);
 
     /// <summary>The same id written out of a number, for the exhausted case above.</summary>
     private static string Written(int value)

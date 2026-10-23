@@ -100,53 +100,41 @@
                             Click="OnBrowsePath" />
                 </Grid>
 
-                <!-- A key: the names are offered from a list so one does not have to be
-                     remembered, and the box stays editable so any of them can still be typed.
-                     Beside it the key can be captured by pressing it, or pointed at on a
-                     keyboard laid out on screen — a key is found by where it sits, not by
-                     what it is called. -->
-                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                    <AutoCompleteBox Classes="VarInput"
-                                     ItemsSource="{Binding KeyChoices}"
-                                     Text="{Binding Text}"
-                                     PlaceholderText="{Binding Placeholder}"
-                                     MinimumPrefixLength="0"
-                                     FilterMode="Contains" />
+                <!-- A key is chosen as a character button: the field itself opens the keyboard
+                     laid out on screen, while capture sets it from the physical keyboard. -->
+                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <Button Classes="KeyFieldButton"
+                            Content="{Binding KeyFieldDisplay}"
+                            ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenKeyPad" />
                     <!-- The editor's own key capture, when the form stands in its middle pane:
                          press the key instead of finding it on the keyboard drawn on screen. -->
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="9,0"
+                    <Button Grid.Column="1" Classes="FlatButton" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
                             IsVisible="{Binding CanCaptureKey, RelativeSource={RelativeSource AncestorType={x:Type views:ActionEditorView}}}"
                             Click="OnCaptureKey" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
-                            Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnOpenKeyPad" />
                     <!-- The same question the element picker answers with its test: is this the
                          thing I meant? For a key that is answered by pressing it once. -->
-                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="2" Classes="FlatButton" Height="34" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestStep" />
                 </Grid>
 
-                <!-- A combination of keys is written in a plain box: the keyboard behind the button
-                     hands one key back at a time, while the capture takes the whole chord at once;
-                     either way what is already there stays. -->
-                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
-                             PlaceholderText="{Binding Placeholder}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="9,0"
+                <!-- A combination is built from the same keyboard field one key button at a time;
+                     capture can replace the whole chord from the physical keyboard. -->
+                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <Button Classes="KeyFieldButton"
+                            Content="{Binding KeyFieldDisplay}"
+                            ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenKeyPad" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
                             IsVisible="{Binding CanCaptureKey, RelativeSource={RelativeSource AncestorType={x:Type views:ActionEditorView}}}"
                             Click="OnCaptureKey" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
-                            Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnOpenKeyPad" />
-                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="2" Classes="FlatButton" Height="34" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestStep" />
@@ -620,19 +608,16 @@
                                      button that takes it out sit under it, so a long chord never
                                      pushes the numbers off the side. -->
                                 <StackPanel Margin="0,0,0,8" Spacing="6">
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                        <TextBox Classes="ParamInput" Text="{Binding Keys}"
-                                                 PlaceholderText="Ctrl+A"
-                                                 ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                        <Button Classes="KeyFieldButton"
+                                                Content="{Binding KeysDisplay}"
+                                                ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnPickKeyRow" />
                                         <Button Grid.Column="1" Classes="FlatButton CaptureToggle"
-                                                Height="33" Padding="9,0"
+                                                Height="34" Padding="9,0"
                                                 Content="{Binding CaptureLabel}"
                                                 ToolTip.Tip="{Binding [Add.CaptureKeyRunHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnCaptureKeyRow" />
-                                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
-                                                Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
-                                                ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
-                                                Click="OnPickKeyRow" />
                                     </Grid>
 
                                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -843,54 +828,6 @@
                                Foreground="#7FC97F"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionSuccess}" />
-                </StackPanel>
-
-                <!-- The condition of the step, or the conditions a logic group combines. It stays
-                     in the dialog because a condition is what the step needs rather than a step
-                     of the macro; the steps inside a block are edited in the editor's own list,
-                     where the block's shape can be seen. -->
-                <Border Classes="NestedBox" IsVisible="{Binding IsConditionList}">
-                    <StackPanel>
-                        <ListBox Classes="NestedList" Height="128"
-                                 ItemsSource="{Binding List.Steps}"
-                                 SelectedItem="{Binding List.SelectedStep}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:MacroStep">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource AppTextStrong}" />
-                                        <TextBlock Text="{Binding Detail}"
-                                                   FontSize="11" Foreground="{DynamicResource AppMuted}"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,7,0,0">
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding List.AddLabel}"
-                                    Command="{Binding List.AddCommand}" />
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding [Add.NestedEdit], Source={x:Static loc:Strings.Current}}"
-                                    IsEnabled="{Binding List.CanEdit}"
-                                    Command="{Binding List.EditCommand}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- A block keeps its steps in the editor's list, where the shape they make can
-                     be seen, so this dialog does not show them — but it still adds one, because
-                     "this block needs another step in it" is a thing to want while its settings
-                     are open. -->
-                <StackPanel IsVisible="{Binding IsStepList}" Margin="2,8,0,0">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding StepsNote}" />
-                    <Button Classes="FlatButton" Height="30" Padding="10,0" Margin="0,7,0,0"
-                            HorizontalAlignment="Left"
-                            Content="{Binding List.AddLabel}"
-                            ToolTip.Tip="{Binding [Add.AddStepToBlockHint], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding List.AddCommand}" />
                 </StackPanel>
 
                 <TextBlock Classes="Muted" Text="{Binding Hint}"
@@ -1181,6 +1118,22 @@
             <Setter Property="Padding" Value="9,7" />
         </Style>
 
+        <Style Selector="Button.KeyFieldButton">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="9,0" />
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.KeyFieldButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
+
         <Style Selector="TextBox.JsonPreview">
             <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -1190,21 +1143,6 @@
             <Setter Property="FontFamily" Value="Consolas" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="10,8" />
-        </Style>
-
-        <!-- Nested step list shown inside structural actions such as repeat or if. -->
-        <Style Selector="Border.NestedBox">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="8" />
-        </Style>
-        <Style Selector="ListBox.NestedList">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="4" />
         </Style>
 
         <!-- Variable name: free text with the known variables offered as suggestions. -->
@@ -1342,7 +1280,6 @@
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
                         <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{DynamicResource AppTextStrong}" />
-                        <TextBlock Text="{Binding SelectedKey}" FontSize="12" Foreground="{DynamicResource AppMuted}" />
                         <TextBlock Classes="Muted" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -1391,10 +1328,58 @@
                                  level it belongs to. -->
                             <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
                                        IsVisible="{Binding IsBlock}"
-                                       Text="{Binding [Add.BlockSettings], Source={x:Static loc:Strings.Current}}" />
+                                       Text="{Binding [Add.BlockStepsInList], Source={x:Static loc:Strings.Current}}" />
 
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
+
+                            <Border IsVisible="{Binding ShowsGlobalPersistence}"
+                                    Background="{DynamicResource AppGroup}" CornerRadius="5"
+                                    Padding="10" Margin="2,4,0,8">
+                                <StackPanel Spacing="7">
+                                    <TextBlock Text="{Binding [GlobalVariables.Definition], Source={x:Static loc:Strings.Current}}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AppTextStrong}" />
+                                    <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <ComboBox Grid.Column="1"
+                                                  ItemsSource="{Binding GlobalVariableDraft.TypeOptions}"
+                                                  SelectedItem="{Binding GlobalVariableDraft.SelectedType}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="models:ActionParameterOption">
+                                                    <TextBlock Text="{Binding Display}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="130,*,Auto" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding GlobalVariableDraft.DefaultValue}" />
+                                        <Button Grid.Column="2" Classes="FlatButton"
+                                                Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnBuildGlobalDefaultExpression" />
+                                    </Grid>
+                                    <TextBlock Margin="138,0,0,0"
+                                               Text="{Binding GlobalVariableDraft.DefaultPreview}"
+                                               TextWrapping="Wrap" FontSize="11.5"
+                                               Foreground="{DynamicResource AppMuted}" />
+                                    <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding GlobalVariableDraft.Description}" />
+                                    </Grid>
+                                    <CheckBox IsChecked="{Binding GlobalVariableDraft.PersistValue}"
+                                              Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
+                                              ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Text="{Binding GlobalVariableProblem}" TextWrapping="Wrap"
+                                               Foreground="#E06C75"
+                                               IsVisible="{Binding HasGlobalVariableProblem}" />
+                                </StackPanel>
+                            </Border>
 
                             <TextBlock Classes="Muted" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />
@@ -1425,6 +1410,10 @@
 
                     <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
                         <StackPanel>
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,12"
+                                       IsVisible="{Binding IsBlock}"
+                                       Text="{Binding [Add.BlockSettings], Source={x:Static loc:Strings.Current}}" />
+
                             <!-- The name this step goes by. It is what a condition and a result
                                  variable point at, so it is shown where the step is edited rather
                                  than only in the file. -->

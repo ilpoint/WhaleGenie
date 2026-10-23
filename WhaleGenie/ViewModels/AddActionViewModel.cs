@@ -10,6 +10,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -19,7 +21,8 @@ namespace WhaleGenie.ViewModels;
 /// Drives the "Add Action" dialog: pick an action from the catalogue, fill in the
 /// parameters it asks for, then save the result as one step.
 /// </summary>
-public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short, Geometry Icon, IBrush Accent);
+public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short,
+    Lucide.Avalonia.LucideIconKind Icon, IBrush Accent);
 
 public partial class AddActionViewModel : ViewModelBase
 {
@@ -66,12 +69,6 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
-
-    /// <summary>Raised when a nested editor wants the picker opened to add a step.</summary>
-    public event Action<StepListEditorViewModel>? NestedAddRequested;
-
-    /// <summary>Raised when a nested editor wants the picker opened to edit a step.</summary>
-    public event Action<MacroStep>? NestedEditRequested;
 
     public AddActionViewModel()
         : this(null, null, null)
@@ -158,6 +155,9 @@ public partial class AddActionViewModel : ViewModelBase
         {
             result.RefreshLanguage();
         }
+
+        GlobalVariableDraft?.RefreshLanguage();
+        OnPropertyChanged(nameof(GlobalVariableProblem));
 
         MetaTimeout.RefreshLanguage();
         MetaRetryDelay.RefreshLanguage();
@@ -270,36 +270,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// group, so the picker joins those pairs back together.
     /// </summary>
     private static ActionCategory PickerCategory(ActionCategory category)
-        => category switch
-        {
-            ActionCategory.Ocr => ActionCategory.Vision,
-            ActionCategory.Window => ActionCategory.Process,
-            _ => category,
-        };
+        => ActionCategoryPresentation.PickerCategory(category);
     /// <summary>The colour that marks a category in the dock and on every card of that group.</summary>
     private static IBrush CategoryAccent(ActionCategory? category)
-        => new SolidColorBrush(Color.Parse(category switch
-        {
-            null => "#B9B3A8",
-            ActionCategory.Control => "#E07A3F",
-            ActionCategory.File => "#5B9BD5",
-            ActionCategory.Data => "#70AD47",
-            ActionCategory.Clipboard => "#A97FD1",
-            ActionCategory.Process => "#C586C0",
-            ActionCategory.System => "#D7BA7D",
-            ActionCategory.Input => "#4FC1E9",
-            ActionCategory.Vision => "#4EC9B0",
-            ActionCategory.Uia => "#FFB86C",
-            ActionCategory.Browser => "#61AFEF",
-            ActionCategory.Script => "#E5C07B",
-            ActionCategory.Condition => "#EF6F6C",
-            _ => "#B9B3A8",
-        }));
+        => ActionCategoryPresentation.Accent(category);
     /// <summary>The line icon the dock shows over a category's short name.</summary>
-    private static Geometry CategoryIcon(ActionCategory? category)
-        => category is { } value
-            ? ActionCatalog.IconFor(value) ?? AppIcons.GridFour
-            : AppIcons.GridFour;
+    private static Lucide.Avalonia.LucideIconKind CategoryIcon(ActionCategory? category)
+        => ActionCategoryPresentation.Icon(category);
     /// <summary>The dock order: the categories a macro reaches for first, then the rest.</summary>
     private static readonly ActionCategory[] DockOrder =
     [
@@ -307,7 +284,6 @@ public partial class AddActionViewModel : ViewModelBase
         ActionCategory.Input,
         ActionCategory.Vision,
         ActionCategory.Uia,
-        ActionCategory.Condition,
         ActionCategory.Browser,
         ActionCategory.Script,
         ActionCategory.Process,
@@ -358,13 +334,12 @@ public partial class AddActionViewModel : ViewModelBase
     ];
 
     /// <summary>
-    /// The order the blocks are listed in: the run in order and the two doors, the four repeats, then the branch,
-    /// the many-way branch and the tidy-up. This is the order a task is built in, and it puts the
+    /// The order the blocks are listed in: the two doors, the four repeats, then the branch, the
+    /// many-way branch and the tidy-up. This is the order a task is built in, and it puts the
     /// four things that all "repeat" next to each other where they can be told apart.
     /// </summary>
     private static readonly string[] BlockOrder =
     [
-        "control.sequence",
         "control.holdInput",
         "control.holdBrowser",
         "control.repeat",
@@ -476,6 +451,68 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowsRun))]
     [NotifyPropertyChangedFor(nameof(CanRun))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
+
+    private VariableDefinitionDraft? _globalVariableDraft;
+
+    /// <summary>The global declaration edited together with a Set Variable step.</summary>
+    public VariableDefinitionDraft? GlobalVariableDraft
+    {
+        get => _globalVariableDraft;
+        private set
+        {
+            if (ReferenceEquals(_globalVariableDraft, value))
+            {
+                return;
+            }
+
+            if (_globalVariableDraft is not null)
+            {
+                _globalVariableDraft.PropertyChanged -= OnGlobalDraftChanged;
+            }
+
+            _globalVariableDraft = value;
+            if (_globalVariableDraft is not null)
+            {
+                _globalVariableDraft.PropertyChanged += OnGlobalDraftChanged;
+            }
+
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowsGlobalPersistence));
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(CanRun));
+            OnPropertyChanged(nameof(ValidationMessage));
+        }
+    }
+
+    public bool ShowsGlobalPersistence => GlobalVariableDraft is not null;
+
+    public bool HasGlobalVariableProblem => GlobalVariableProblem.Length > 0;
+
+    public string GlobalVariableProblem
+    {
+        get
+        {
+            if (GlobalVariableDraft is not { } draft)
+            {
+                return string.Empty;
+            }
+
+            var name = draft.Name.Trim();
+            if (!VariableText.IsName(name))
+            {
+                return Strings.Format("GlobalVariables.BadName", name);
+            }
+
+            if (GlobalVariablesViewModel.Reserved(name))
+            {
+                return Strings.Format("GlobalVariables.ReservedName", name);
+            }
+
+            return draft.DefaultHasError
+                ? Strings.Format("GlobalVariables.BadDefault", name, draft.DefaultPreview)
+                : string.Empty;
+        }
+    }
 
     /// <summary>
     /// True when the step being edited holds steps of its own. The settings every step carries
@@ -694,6 +731,11 @@ public partial class AddActionViewModel : ViewModelBase
                 return error;
             }
 
+            if (GlobalVariableProblem is { Length: > 0 } globalProblem)
+            {
+                return globalProblem;
+            }
+
             return MissingParameters() is { Count: > 0 } missing
                 ? Strings.Format("Add.StillNeeded", string.Join(", ", missing))
                 : string.Empty;
@@ -709,18 +751,14 @@ public partial class AddActionViewModel : ViewModelBase
 
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
+        && GlobalVariableProblem.Length == 0
         && MissingParameters().Count == 0;
 
-    /// <summary>
-    /// True when this step can be run on its own from the dialog. A condition is not a step of the
-    /// macro, so there is nothing to run; a step that is still missing something is not the step the
-    /// user means yet.
-    /// </summary>
+    /// <summary>True when this step can be run on its own from the dialog.</summary>
     public bool CanRun => ShowsRun && CanSave;
 
     /// <summary>True when what is being edited is something a run can do at all.</summary>
-    public bool ShowsRun => SelectedDefinition is not null
-        && SelectedDefinition.Category is not ActionCategory.Condition;
+    public bool ShowsRun => SelectedDefinition is not null;
 
     /// <summary>
     /// True while the step is out on the machine. The button says so and stops taking clicks: a
@@ -810,6 +848,7 @@ public partial class AddActionViewModel : ViewModelBase
         // step itself says.
         MetaTimeout.Load(value?.StepTimeoutMs ?? 0);
         BuildParameters(value);
+        SyncGlobalVariable();
         MarkChosen();
         // Choosing an action is what turns "pick one first" into a real answer, so whether the line
         // is a problem changes here as well as when a parameter is filled in.
@@ -1101,12 +1140,10 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// True for an action that holds steps of its own: it is a block in the macro rather than
-    /// something the run just does. The logic group is not one of these — it holds conditions,
-    /// which are what a block asks about, not steps the run walks through.
+    /// something the run just does.
     /// </summary>
     private static bool HoldsSteps(ActionDefinition action)
-        => action.Parameters.Any(parameter =>
-            parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly);
+        => action.Parameters.Any(parameter => parameter.Kind is ActionParameterKind.Steps);
 
     /// <summary>
     /// Where a block sits in <see cref="BlockOrder"/>. A block that is not on the list — the
@@ -1115,7 +1152,7 @@ public partial class AddActionViewModel : ViewModelBase
     private static int BlockRank(ActionDefinition action)
         => Array.IndexOf(BlockOrder, action.Key) is var at && at >= 0 ? at : BlockOrder.Length;
 
-    private void Group(string key, string title, Geometry? icon,
+    private void Group(string key, string title, Lucide.Avalonia.LucideIconKind? icon,
         IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
         => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, Cards(actions), open, note));
 
@@ -1220,7 +1257,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Adds one step and everything written inside it to the list being built.</summary>
     private static void Gather(List<ActionParameterOption> choices, MacroStep step)
     {
-        if (!step.IsCondition && step.Id.Length > 0)
+        if (step.Id.Length > 0)
         {
             choices.Add(new ActionParameterOption(step.Id, step.PickerLabel));
         }
@@ -1230,12 +1267,6 @@ public partial class AddActionViewModel : ViewModelBase
             Gather(choices, child);
         }
 
-        foreach (var condition in step.Parameters
-                     .Where(parameter => parameter.Condition is not null)
-                     .Select(parameter => parameter.Condition!))
-        {
-            Gather(choices, condition);
-        }
     }
 
     /// <summary>Fills the dialog from an existing step so it can be edited.</summary>
@@ -1296,8 +1327,6 @@ public partial class AddActionViewModel : ViewModelBase
             if (parameter.List is not null)
             {
                 parameter.List.PropertyChanged -= OnParameterChanged;
-                parameter.List.AddRequested -= OnNestedAddRequested;
-                parameter.List.EditRequested -= OnNestedEditRequested;
             }
         }
 
@@ -1376,8 +1405,6 @@ public partial class AddActionViewModel : ViewModelBase
         if (editor.List is not null)
         {
             editor.List.PropertyChanged += OnParameterChanged;
-            editor.List.AddRequested += OnNestedAddRequested;
-            editor.List.EditRequested += OnNestedEditRequested;
         }
 
         Parameters.Add(editor);
@@ -1601,6 +1628,13 @@ public partial class AddActionViewModel : ViewModelBase
             // The results are a page of their own rather than a line among the fields: what the
             // step hands over is a list of names to choose from, not one more setting.
             if (parameter.IsReturns)
+            {
+                continue;
+            }
+
+            // A block's children live in the main editor list, where their nesting can be seen
+            // and edited. Keeping their parameter out of the form leaves one structural editor.
+            if (parameter.Definition.Kind is ActionParameterKind.Steps)
             {
                 continue;
             }
@@ -2149,10 +2183,6 @@ public partial class AddActionViewModel : ViewModelBase
         }
     }
 
-    private void OnNestedAddRequested(StepListEditorViewModel list) => NestedAddRequested?.Invoke(list);
-
-    private void OnNestedEditRequested(MacroStep step) => NestedEditRequested?.Invoke(step);
-
     /// <summary>
     /// The ways of answering "where" or "which rectangle": the record in the first field, or the
     /// numbers in the rest.
@@ -2215,6 +2245,11 @@ public partial class AddActionViewModel : ViewModelBase
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
         KeepPlaceAndNumbersApart(sender, e);
+        if (sender is StepParameterViewModel changed
+            && changed.Definition.Name is "name" or "scope")
+        {
+            SyncGlobalVariable();
+        }
 
         // A call's fields are the called macro's declarations, so the form is rebuilt the moment
         // the macro it names changes. The rebuild says everything a change says and the fields this
@@ -2294,8 +2329,7 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Rules that span several parameters. A macro may only change global variables the
-    /// Variable Center already created, and the variables WhaleGenie provides stay read-only.
+    /// Rules that span several parameters. The variables WhaleGenie provides stay read-only.
     /// </summary>
     private string? ScopeError()
     {
@@ -2320,10 +2354,8 @@ public partial class AddActionViewModel : ViewModelBase
             }
         }
 
-        // A shared name has to exist before a step may write to it, and the Variable Center is
-        // where shared variables are created. The actions that say where a value is stored are the
-        // ones that have both fields; reading it off the parameters means a new one gets the same
-        // answer without being remembered here.
+        // Most actions that write a shared value require its declaration. Setting a variable is
+        // the one exception: saving that step creates a missing global as text.
         if (SelectedDefinition.Parameters.All(parameter => parameter.Name != "name")
             || SelectedDefinition.Parameters.All(parameter => parameter.Name != "scope"))
         {
@@ -2336,7 +2368,8 @@ public partial class AddActionViewModel : ViewModelBase
         var scope = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "scope")
             ?.CurrentText;
 
-        return name.Length > 0 && scope == "global" && !VariableCatalog.IsGlobal(name)
+        return SelectedDefinition.Key != "control.setVariable"
+            && name.Length > 0 && scope == "global" && !VariableCatalog.IsGlobal(name)
             ? Strings.Format("Add.GlobalMustExist", name)
             : null;
     }
@@ -2346,27 +2379,33 @@ public partial class AddActionViewModel : ViewModelBase
     /// tried has to be what the step says, settings and all, rather than the fields read again
     /// somewhere else.
     /// </summary>
-    internal MacroStep BuildStep() => new()
+    internal MacroStep BuildStep()
     {
-        Type = SelectedDefinition!.Key,
-        Id = _editingId,
-        Parameters = Parameters
-            .Where(parameter => parameter.IsIncluded)
-            .Select(parameter => parameter.ToStepParameter())
-            .ToList(),
-        Meta = new StepMeta
+        var step = new MacroStep
         {
-            Comment = MetaComment.Trim(),
-            IsEnabled = MetaEnabled,
-            TimeoutMs = MetaTimeout.Milliseconds,
-            RetryCount = Whole(MetaRetryCount),
-            RetryDelayMs = MetaRetryDelay.Milliseconds,
-            RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
-            DelayBeforeMs = MetaDelayBefore.Milliseconds,
-            DelayAfterMs = MetaDelayAfter.Milliseconds,
-            OnError = StepMeta.Action(MetaOnError.Value),
-        },
-    };
+            Type = SelectedDefinition!.Key,
+            Id = _editingId,
+            Parameters = Parameters
+                .Where(parameter => parameter.IsIncluded
+                    || parameter.Definition.Kind == ActionParameterKind.Steps)
+                .Select(parameter => parameter.ToStepParameter())
+                .ToList(),
+            Meta = new StepMeta
+            {
+                Comment = MetaComment.Trim(),
+                IsEnabled = MetaEnabled,
+                TimeoutMs = MetaTimeout.Milliseconds,
+                RetryCount = Whole(MetaRetryCount),
+                RetryDelayMs = MetaRetryDelay.Milliseconds,
+                RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
+                DelayBeforeMs = MetaDelayBefore.Milliseconds,
+                DelayAfterMs = MetaDelayAfter.Milliseconds,
+                OnError = StepMeta.Action(MetaOnError.Value),
+            },
+        };
+        step.EnsureDeclaredLists();
+        return step;
+    }
 
     /// <summary>Reads a whole-number box that may be left empty, counting an empty one as zero.</summary>
     private static int Whole(decimal? value) => value is null ? 0 : Math.Max(0, (int)value.Value);
@@ -2377,9 +2416,90 @@ public partial class AddActionViewModel : ViewModelBase
         // An action that made it onto a step is one the user really reached for, which is what the
         // "recently used" group is about.
         Note(SelectedDefinition!);
+        CommitGlobalVariable();
         CloseRequested?.Invoke(BuildStep());
     }
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
+
+    private void OnGlobalDraftChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasGlobalVariableProblem));
+        OnPropertyChanged(nameof(GlobalVariableProblem));
+        OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanRun));
+    }
+
+    private void SyncGlobalVariable()
+    {
+        if (SelectedDefinition?.Key != "control.setVariable"
+            || !string.Equals(Parameter("scope")?.CurrentText, "global",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            GlobalVariableDraft = null;
+            return;
+        }
+
+        var name = Parameter("name")?.CurrentText.Trim() ?? string.Empty;
+        if (GlobalVariableDraft is { } current
+            && string.Equals(current.Name, name, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var existing = VariableCatalog.FindGlobal(name);
+        GlobalVariableDraft = existing is not null
+            ? new VariableDefinitionDraft(existing)
+            : new VariableDefinitionDraft
+            {
+                Name = name,
+                Type = "text",
+            };
+        GlobalVariableDraft.Resolver = VariableValues.DesignContext();
+    }
+
+    private void CommitGlobalVariable()
+    {
+        var name = GlobalVariableDraft?.Name.Trim() ?? string.Empty;
+        if (GlobalVariableDraft is not { } draft
+            || ShowsGlobalPersistence is false
+            || !VariableText.IsName(name))
+        {
+            return;
+        }
+
+        var existing = VariableCatalog.FindGlobal(draft.OriginalName);
+        if (existing is null)
+        {
+            existing = new VariableDefinition
+            {
+                Name = name,
+                Scope = VariableScope.Global,
+                Type = draft.Type,
+                DefaultValue = draft.DefaultValue.Trim(),
+                Description = draft.Description.Trim(),
+            };
+            VariableCatalog.Globals.Add(existing);
+            SharedVariables.Current.Set(name,
+                VariableValues.Read(draft.Type, draft.DefaultValue,
+                    VariableValues.DesignContext()));
+        }
+        else
+        {
+            existing.Type = draft.Type;
+            existing.DefaultValue = draft.DefaultValue.Trim();
+            existing.Description = draft.Description.Trim();
+            if (draft.CurrentValueDirty)
+            {
+                SharedVariables.Current.Set(name,
+                    VariableValues.Read(draft.Type, draft.CurrentValue,
+                        VariableValues.DesignContext()));
+            }
+        }
+
+        existing.PersistValue = draft.PersistValue;
+        VariableCatalog.NotifyGlobalsChanged();
+    }
 }

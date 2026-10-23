@@ -32,20 +32,16 @@ public class RunBreakpointTests
 
             Click(window, row, "condition");
 
-            // The form is the one the editor writes conditions in, held to the conditions: what a
-            // breakpoint waits for and what an if waits for are the same question.
-            var dialog = window.OwnedWindows.OfType<AddActionWindow>().Single();
+            // The form is the editor's ordinary if form: its condition field is the one expression
+            // a breakpoint asks before the step it belongs to runs.
+            var dialog = window.OwnedWindows.OfType<ActionEditorWindow>().Single();
             var form = (AddActionViewModel)dialog.DataContext!;
             Assert.All(form.AvailableActions,
-                action => Assert.StartsWith("condition.", action.Key, System.StringComparison.Ordinal));
+                action => Assert.Equal("control.if", action.Key));
 
-            form.SelectAction("condition.compare");
+            form.SelectAction("control.if");
             Dispatcher.UIThread.RunJobs();
-            form.Parameters.First(parameter => parameter.Definition.Name == "variable").Text = "$n";
-            form.Parameters.First(parameter => parameter.Definition.Name == "compareOperator").Option =
-                form.Parameters.First(parameter => parameter.Definition.Name == "compareOperator")
-                    .Choices.First(choice => choice.Value == "greaterThan");
-            form.Parameters.First(parameter => parameter.Definition.Name == "compareValue").Text = "3";
+            form.Parameters.First(parameter => parameter.Definition.Name == "condition").Text = "$n > 3";
             Assert.True(form.CanSave, form.ValidationMessage);
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -53,20 +49,20 @@ public class RunBreakpointTests
 
             // The dialog is gone and the step's dot is on: setting a condition on a step that had
             // no breakpoint means "stop here when this holds".
-            Assert.Empty(window.OwnedWindows.OfType<AddActionWindow>());
+            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
             Assert.True(row.HasBreakpoint);
-            Assert.Equal("condition.compare", viewModel.BreakpointCondition(row.Id)!.Type);
+            Assert.Equal("control.if", viewModel.BreakpointCondition(row.Id)!.Type);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
-            Assert.Contains("greaterThan", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("$n > 3", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.True(row.HasCondition);
 
             // Opening it again shows what was written rather than a blank form.
             Click(window, row, "condition");
-            var again = (AddActionViewModel)window.OwnedWindows.OfType<AddActionWindow>().Single().DataContext!;
-            Assert.Equal("condition.compare", again.SelectedDefinition!.Key);
-            Assert.Equal("$n", again.Parameters
-                .First(parameter => parameter.Definition.Name == "variable").Text);
+            var again = (AddActionViewModel)window.OwnedWindows.OfType<ActionEditorWindow>().Single().DataContext!;
+            Assert.Equal("control.if", again.SelectedDefinition!.Key);
+            Assert.Equal("$n > 3", again.Parameters
+                .First(parameter => parameter.Definition.Name == "condition").Text);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
@@ -81,14 +77,9 @@ public class RunBreakpointTests
         });
     }
 
-    /// <summary>
-    /// A condition is asked by the step it belongs to rather than run on its own, so no run stops
-    /// in front of one. Its row therefore has no dot: a breakpoint that can never fire is worse than
-    /// none at all, and stopping before the question is asked is what the dot on the step itself
-    /// does.
-    /// </summary>
+    /// <summary>A condition expression belongs to its block and does not become a run step.</summary>
     [Fact]
-    public void A_condition_row_has_no_breakpoint_dot()
+    public void A_condition_expression_does_not_add_a_row()
     {
         Ui.Run(() =>
         {
@@ -100,32 +91,8 @@ public class RunBreakpointTests
                     new StepParameter
                     {
                         Name = "condition",
-                        Kind = ActionParameterKind.Condition,
-                        Condition = new MacroStep
-                        {
-                            Type = "condition.compare",
-                            Parameters =
-                            [
-                                new StepParameter
-                                {
-                                    Name = "variable",
-                                    Kind = ActionParameterKind.Text,
-                                    Value = "$n",
-                                },
-                                new StepParameter
-                                {
-                                    Name = "compareOperator",
-                                    Kind = ActionParameterKind.Choice,
-                                    Value = "equals",
-                                },
-                                new StepParameter
-                                {
-                                    Name = "compareValue",
-                                    Kind = ActionParameterKind.Text,
-                                    Value = "1",
-                                },
-                            ],
-                        },
+                        Kind = ActionParameterKind.Expression,
+                        Value = "$n == 1",
                     },
                     new StepParameter
                     {
@@ -136,20 +103,15 @@ public class RunBreakpointTests
                 ],
             });
 
-            // The step, the question it asks, one under the other, and the step the answer runs.
-            Assert.Equal(3, viewModel.Steps.Count);
+            Assert.Equal(2, viewModel.Steps.Count);
             Assert.True(step.CanBreak);
-            Assert.False(viewModel.Steps[1].CanBreak);
-            Assert.True(viewModel.Steps[2].CanBreak);
-
-            // And only the steps carry a dot on the window, not the question.
+            Assert.True(viewModel.Steps[1].CanBreak);
             var dots = window.GetVisualDescendants().OfType<Button>()
                 .Where(button => button.Classes.Contains("Breakpoint") && button.IsEffectivelyVisible)
                 .ToList();
 
             Assert.Equal(2, dots.Count);
             Assert.Contains(dots, dot => ReferenceEquals(dot.DataContext, step));
-            Assert.DoesNotContain(dots, dot => ReferenceEquals(dot.DataContext, viewModel.Steps[1]));
 
             window.Close();
         });

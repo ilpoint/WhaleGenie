@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Linq;
 using Avalonia;
 using Avalonia.Media;
 using WhaleGenie.Localization;
@@ -83,11 +84,18 @@ public sealed class StepRow : ILanguageAware
     /// <summary>What hovering the name says: what it is for, and how to use it.</summary>
     public string IdHint => HasId && IsStep ? Strings.Format("Editor.StepIdHint", Step.Id) : string.Empty;
 
-    /// <summary>True on a step that holds steps of its own, so it offers a fold arrow.</summary>
-    public bool CanFold => IsStep && Step.HasChildren;
+    /// <summary>
+    /// True on a block that declares at least one child-step list, even while that list is empty.
+    /// The first child is dragged into the opened block itself, so the arrow cannot wait for a
+    /// child to exist already.
+    /// </summary>
+    public bool CanFold => IsStep
+        && Step.Definition?.Parameters.Any(parameter =>
+            parameter.Kind == ActionParameterKind.Steps) == true;
 
     /// <summary>Arrow on the fold button, pointing down while the block is open.</summary>
-    public Geometry FoldIcon => Step.IsExpanded ? AppIcons.ChevronDown : AppIcons.ChevronRight;
+    public Lucide.Avalonia.LucideIconKind FoldIcon =>
+        Step.IsExpanded ? AppIcons.ChevronDown : AppIcons.ChevronRight;
 
     /// <summary>What the fold button says it will do.</summary>
     public string FoldHint => Strings.Get(Step.IsExpanded ? "Editor.Fold" : "Editor.Unfold");
@@ -112,9 +120,24 @@ public sealed class StepRow : ILanguageAware
             ? Strings.Get(definition.AddLabelKey)
             : Strings.Get("Editor.AddInside");
 
+    /// <summary>The short words on the add button at the start of one child-step list.</summary>
+    public string AddLabel => List is not null
+        && Step.ParameterDefinition(List) is { AddLabelKey.Length: > 0 } definition
+            ? Strings.Get(definition.AddLabelKey)
+            : Strings.Get("Add.AddStepToBlock");
+
+    /// <summary>True on the title of a list that does not hold its first step yet.</summary>
+    public bool IsEmptyList => IsHead && List?.Steps.Count == 0;
+
+    /// <summary>What an empty section says about its first action.</summary>
+    public string EmptyListHint => List is not null
+        && Step.ParameterDefinition(List) is { ChildKeys.Count: > 0 }
+            ? Strings.Get("Editor.EmptyBranchList")
+            : Strings.Get("Editor.EmptyStepList");
+
     // The step's own look, passed through so one row template binds one kind of thing.
 
-    public Geometry? Icon => Step.Icon;
+    public Lucide.Avalonia.LucideIconKind? Icon => Step.Icon;
 
     public string DisplayName => Step.DisplayName;
 

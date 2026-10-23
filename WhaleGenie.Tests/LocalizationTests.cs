@@ -120,7 +120,7 @@ public class LocalizationTests
     {
         string[] textMatchFields =
         [
-            "ocr.findText", "ocr.clickText", "condition.textExists", "condition.textNotExists",
+            "ocr.findText", "ocr.clickText",
         ];
 
         Ui.Run(() =>

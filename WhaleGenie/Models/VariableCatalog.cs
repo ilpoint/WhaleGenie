@@ -12,6 +12,9 @@ namespace WhaleGenie.Models;
 /// </summary>
 public static class VariableCatalog
 {
+    /// <summary>Raised after a person adds or removes a project-level global variable.</summary>
+    public static event Action? GlobalsChanged;
+
     /// <summary>Built-in variables, read-only inside a macro.</summary>
     public static IReadOnlyList<VariableDefinition> SystemVariables { get; } =
     [
@@ -57,6 +60,12 @@ public static class VariableCatalog
         SystemVariable("sys.machineName", "text", "Name of this computer.", string.Empty),
         SystemVariable("sys.userName", "text", "Name of the logged-in user.", string.Empty),
         SystemVariable("sys.clipboard", "text", "Current clipboard text.", string.Empty),
+
+        SystemVariable("caught.key", "text",
+            "The failure key being filtered inside a try step. Empty outside that check.", string.Empty),
+        SystemVariable("caught.detail", "text",
+            "The detail of the failure being filtered inside a try step. Empty outside that check.",
+            string.Empty),
     ];
 
     private static readonly Dictionary<string, VariableDefinition> SystemByName =
@@ -106,6 +115,8 @@ public static class VariableCatalog
     public static VariableDefinition? FindGlobal(string name)
         => Globals.FirstOrDefault(variable =>
             string.Equals(variable.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    public static void NotifyGlobalsChanged() => GlobalsChanged?.Invoke();
 
     /// <summary>
     /// Names a picker should offer: system and global variables first, then the ones

@@ -13,7 +13,30 @@ namespace WhaleGenie.Models;
 public partial class MacroItem : ObservableObject, ILanguageAware
 {
     /// <summary>Re-reads the words this macro is shown with, without rebuilding the card.</summary>
-    public void RefreshLanguage() => OnPropertyChanged(string.Empty);
+    public void RefreshLanguage()
+    {
+        RefreshTriggerDisplay();
+        OnPropertyChanged(string.Empty);
+    }
+
+    /// <summary>
+    /// Trigger entries attached to this macro while the project, editor or recovery snapshot is
+    /// being read. The package's trigger collection remains the project-wide source of truth.
+    /// </summary>
+    public List<TriggerEntry> Triggers { get; } = [];
+
+    /// <summary>Interface layouts held with an editor draft; positions are merged at the window.</summary>
+    public List<InterfaceLayout> InterfaceLayouts { get; } = [];
+
+    public void RefreshTriggers()
+    {
+        RefreshTriggerDisplay();
+        OnPropertyChanged(nameof(TriggerSummaries));
+    }
+
+    public string TriggerSummaries => Triggers.Count == 0
+        ? Strings.Get("Trigger.Unset")
+        : string.Join(" · ", Triggers.Select(entry => entry.Summary));
 
     /// <summary>Whether the macro is armed; the macro list shows this as a coloured dot.</summary>
     [ObservableProperty]
@@ -28,6 +51,12 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     public partial bool IsRunning { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// A sentence for the macro library or for a call made to this macro. It does not describe a
+    /// particular trigger, so it belongs to the callable part shared by projects and submacros.
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
@@ -46,16 +75,26 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         _ => Strings.Get("Trigger.Keys"),
     };
 
-    /// <summary>How a key trigger loops, or empty when a clock does the starting.</summary>
-    public string Action => TriggerMode == MacroTrigger.Timer
-        ? string.Empty
-        : LoopMode switch
+    /// <summary>Loop wording for key/colour entries; one-shot entries contribute no action text.</summary>
+    public string Action
+    {
+        get
         {
-            MacroLoop.Hold => Strings.Get("Loop.Hold"),
-            MacroLoop.Press => Strings.Get("Loop.Press"),
-            MacroLoop.Release => Strings.Get("Loop.Release"),
-            _ => Strings.Get("Loop.Toggle"),
-        };
+            IEnumerable<MacroLoop> loops = Triggers.Count > 0
+                ? Triggers.Where(entry => entry.Kind is TriggerKind.Key or TriggerKind.Color)
+                    .Select(entry => entry.LoopMode)
+                : TriggerMode == MacroTrigger.Timer
+                    ? []
+                    : [LoopMode];
+            return string.Join(" · ", loops.Distinct().Select(loop => loop switch
+            {
+                MacroLoop.Hold => Strings.Get("Loop.Hold"),
+                MacroLoop.Press => Strings.Get("Loop.Press"),
+                MacroLoop.Release => Strings.Get("Loop.Release"),
+                _ => Strings.Get("Loop.Toggle"),
+            }));
+        }
+    }
 
     /// <summary>Key bound to the macro, or empty when no key has been selected.</summary>
     [ObservableProperty]
@@ -268,6 +307,15 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     public List<MacroStep> Steps { get; } = [];
 
     /// <summary>
+    /// Callable macros owned by this macro. They travel inside the parent document, are not listed
+    /// as project macros, and are reached by name from the parent or from one another.
+    /// </summary>
+    public List<MacroItem> SubMacros { get; } = [];
+
+    /// <summary>The public macro copy this definition came from, when it came from one.</summary>
+    public MacroOrigin? Origin { get; set; }
+
+    /// <summary>
     /// The values this macro asks whoever calls it to fill in. A call is a form of exactly these
     /// fields, so what a macro expects is written down once, where it is called from.
     /// </summary>
@@ -316,7 +364,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     }
 
     /// <summary>Serialises the macro into the JSON document the runtime consumes.</summary>
-    public JsonObject ToJson()
+    public JsonObject ToJson(bool includeTriggers = false)
     {
         var steps = new JsonArray();
         foreach (var step in Steps)
@@ -324,9 +372,10 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             steps.Add(step.ToJson());
         }
 
-        return new JsonObject
+        var node = new JsonObject
         {
             ["name"] = Name,
+            [FieldNames.Description] = Description,
             ["triggerMode"] = TriggerMode.ToString(),
             ["loopMode"] = LoopMode.ToString(),
             ["bindKey"] = BindKey,
@@ -378,7 +427,69 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             ["arguments"] = ArgumentsJson(),
             ["returns"] = ResultsJson(),
             ["steps"] = steps,
+            [FieldNames.SubMacros] = SubMacrosJson(),
         };
+
+        if (includeTriggers)
+        {
+            var triggers = new JsonArray();
+            foreach (var trigger in Triggers)
+            {
+                triggers.Add(trigger.ToJson());
+            }
+
+            node["triggers"] = triggers;
+            node["interfaceLayouts"] = new JsonArray(
+                [.. InterfaceLayouts.Select(layout => layout.ToJson())]);
+        }
+
+        return node;
+    }
+
+    /// <summary>
+    /// The shape of a child macro document. A child is only callable, so trigger, recorder and
+    /// interface fields are deliberately absent rather than written as irrelevant defaults.
+    /// </summary>
+    public JsonObject ToSubMacroJson()
+    {
+        var steps = new JsonArray();
+        foreach (var step in Steps)
+        {
+            steps.Add(step.ToJson());
+        }
+
+        var node = new JsonObject
+        {
+            ["name"] = Name.Trim(),
+            [FieldNames.Description] = Description,
+            ["exclusiveInput"] = ExclusiveInput,
+            ["arguments"] = ArgumentsJson(),
+            ["returns"] = ResultsJson(),
+            ["steps"] = steps,
+        };
+
+        if (Origin is { } origin)
+        {
+            node[FieldNames.Origin] = origin.ToJson();
+        }
+
+        if (SubMacros.Count > 0)
+        {
+            node[FieldNames.SubMacros] = SubMacrosJson();
+        }
+
+        return node;
+    }
+
+    private JsonArray SubMacrosJson()
+    {
+        var children = new JsonArray();
+        foreach (var child in SubMacros)
+        {
+            children.Add(child.ToSubMacroJson());
+        }
+
+        return children;
     }
 
     /// <summary>
@@ -437,6 +548,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         var macro = new MacroItem
         {
             Name = node["name"]?.GetValue<string>() ?? string.Empty,
+            Description = node[FieldNames.Description]?.GetValue<string>() ?? string.Empty,
             TriggerMode = ReadEnum(node, "triggerMode", MacroTrigger.KeystrokesButtonInputs),
             LoopMode = ReadEnum(node, "loopMode", MacroLoop.Toggle),
             BindKey = node["bindKey"]?.GetValue<string>() ?? string.Empty,
@@ -470,6 +582,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             IgnoreDelaysBelowMs = ReadInt(record?["ignoreDelaysBelowMs"], 50),
             RecordIgnoreInjected = ReadBool(record?["ignoreInjected"], true),
             DelayScale = ReadDouble(node["delayScale"], 1),
+            Origin = MacroOrigin.FromJson(node[FieldNames.Origin] as JsonObject),
         };
 
         if (node["arguments"] is JsonArray arguments)
@@ -508,6 +621,32 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 {
                     macro.Steps.Add(MacroStep.FromJson(child));
                 }
+            }
+        }
+
+        if (node[FieldNames.SubMacros] is JsonArray subMacros)
+        {
+            foreach (var child in subMacros.OfType<JsonObject>())
+            {
+                macro.SubMacros.Add(FromJson(child));
+            }
+        }
+
+        if (node["triggers"] is JsonArray triggers)
+        {
+            foreach (var trigger in triggers.OfType<JsonObject>())
+            {
+                var entry = TriggerEntry.FromJson(trigger);
+                entry.MacroName = macro.Name;
+                macro.Triggers.Add(entry);
+            }
+        }
+
+        if (node["interfaceLayouts"] is JsonArray layouts)
+        {
+            foreach (var layout in layouts.OfType<JsonObject>())
+            {
+                macro.InterfaceLayouts.Add(InterfaceLayout.FromJson(layout));
             }
         }
 

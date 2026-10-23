@@ -58,7 +58,9 @@ public class DeviceActionTests
                 : new WindowRule(Title: text);
             if (how is { Length: > 0 })
             {
-                rule = how is WindowHow.Process or WindowHow.ProcessEquals
+                rule = how == WindowHow.Handle
+                    ? rule with { How = how, Handle = long.TryParse(text, out var handle) ? handle : 0 }
+                    : how is WindowHow.Process or WindowHow.ProcessEquals
                     ? rule with { How = how, Process = text }
                     : how is WindowHow.Class or WindowHow.ClassEquals
                         ? rule with { How = how, ClassName = text }
@@ -194,7 +196,7 @@ public class DeviceActionTests
     }
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Condition = step };
+        => new() { Name = name, Text = TestConditions.Expression(step) };
 
     private static async Task<(RunResult Result, FakeDeviceLayer Devices, VariableStore Store)> RunAsync(
         ExecutableStep[] steps, FakeDeviceLayer? devices = null)
@@ -2147,135 +2149,6 @@ public class DeviceActionTests
         Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
     }
 
-    /// <summary>
-    /// The same pattern as a condition: what a block waits for, branches on, or loops until it is
-    /// there. Asking for it is asking the same question as the step that looks for it.
-    /// </summary>
-    [Fact]
-    public async Task A_wait_can_hold_until_a_pattern_turns_up()
-    {
-        var present = Picture("#000000,#000000,#000000",
-            "#000000,#FF0000,#00FF00",
-            "#000000,#0000FF,#000000");
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000",
-                "#000000,#000000,#000000",
-                "#000000,#000000,#000000"),
-            Next = () => present,
-        };
-
-        var (result, _, _) = await RunAsync(
-        [
-            Within(2000, Step("control.waitUntil",
-                When("condition", Step("condition.colorsExist",
-                    Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
-                    Param("tolerance", "1"), Region((0, 0, 3, 3)))),
-                Param("pollMs", "10"))),
-        ], devices);
-
-        Assert.True(result.Succeeded, result.Key);
-    }
-
-    /// <summary>A pattern the screen does not show leaves the condition false rather than failing.</summary>
-    [Fact]
-    public async Task A_pattern_that_is_not_there_leaves_the_condition_false()
-    {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000",
-                "#000000,#FF0000,#123456",
-                "#000000,#0000FF,#000000"),
-        };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorsExist",
-                    Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
-                    Param("tolerance", "1"), Region((0, 0, 3, 3)))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("no", store.Local.Values["seen"].AsText());
-    }
-
-    /// <summary>
-    /// A colour that fills enough of the region makes the condition true, and one that fills less
-    /// than the least share does not: what a bar, a gauge or a lamp is asked is how much of the
-    /// region shows the colour rather than where on it the colour is.
-    /// </summary>
-    [Theory]
-    [InlineData("50", "yes")]
-    [InlineData("60", "no")]
-    [InlineData("0", "yes")]
-    public async Task A_colour_share_is_compared_with_what_the_condition_asks_for(
-        string least, string expected)
-    {
-        // Half of the four pixels are the colour: 50 per cent of the region, and no more.
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FF0000,#FF0000,#000000,#000000"),
-        };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorCoverage",
-                    Param("color", "#FF0000"), Param("tolerance", "1"),
-                    Param("minCoverage", least), Region((0, 0, 4, 1)))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal(expected, store.Local.Values["seen"].AsText());
-    }
-
-    /// <summary>A region with none of the colour in it is short of every share, the least of them included.</summary>
-    [Fact]
-    public async Task A_colour_that_is_nowhere_in_the_region_is_not_a_share_of_it()
-    {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000,#000000,#000000,#000000") };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorCoverage",
-                    Param("color", "#FF0000"), Param("tolerance", "1"),
-                    Param("minCoverage", "0"), Region((0, 0, 4, 1)))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("no", store.Local.Values["seen"].AsText());
-    }
-
-    /// <summary>
-    /// The share is what a wait-until block holds on: a bar filling in is waited for by asking the
-    /// same question again and again, and the block goes on the moment the share is reached.
-    /// </summary>
-    [Fact]
-    public async Task A_wait_can_hold_until_a_colour_fills_enough_of_the_region()
-    {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000,#000000"),
-            Next = () => Picture("#FF0000,#FF0000,#000000,#000000"),
-        };
-
-        var (result, _, _) = await RunAsync(
-        [
-            Within(2000, Step("control.waitUntil",
-                When("condition", Step("condition.colorCoverage",
-                    Param("color", "#FF0000"), Param("tolerance", "1"),
-                    Param("minCoverage", "50"), Region((0, 0, 4, 1)))),
-                Param("pollMs", "10"))),
-        ], devices);
-
-        Assert.True(result.Succeeded, result.Key);
-    }
-
     [Fact]
     public async Task A_colour_that_is_not_there_leaves_the_result_empty()
     {
@@ -2291,6 +2164,81 @@ public class DeviceActionTests
         // Only the hits are counted when the step was told to record every one, and this step was
         // not, so there is no count to read at all.
         Assert.False(store.TryGet("spot.count", out _));
+    }
+
+    [Fact]
+    public async Task Query_actions_report_false_without_failing()
+    {
+        var imageDevices = new FakeDeviceLayer
+        {
+            Loaded = new ImageFrame(2, 2, new byte[16]),
+            Match = null,
+            Spans = [],
+            ElementExists = false,
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("a.png"), Returns("found=imageFound")),
+            Step("vision.findColor", Param("color", "#FF0000"), Returns("found=colorFound")),
+            Step("vision.findColors", Param("color", "#FF0000"),
+                Param("points", "1,0,#00FF00"), Returns("found=colorsFound")),
+            Step("vision.detect", Param("model", "model.onnx"), Returns("found=detectFound")),
+            Step("ocr.findText", Param("queryText", "Ready"), Returns("found=textFound")),
+            Step("uia.find", Param("uiSelector", "Button[name='Save']"), Returns("found=elementFound")),
+        ], imageDevices);
+
+        Assert.True(result.Succeeded, result.Key);
+        foreach (var name in new[]
+                 {
+                     "imageFound", "colorFound", "colorsFound", "detectFound", "textFound",
+                     "elementFound",
+                 })
+        {
+            Assert.False(store.Local.Values[name].AsBool(), name);
+        }
+    }
+
+    [Fact]
+    public async Task Pixel_matches_reports_the_comparison_instead_of_failing()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
+                Param("color", "#102030"), Param("tolerance", "5"),
+                Returns("matched=yes")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["yes"].AsBool());
+
+        devices.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
+        var (other, _, otherStore) = await RunAsync(
+        [
+            Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
+                Param("color", "#102030"), Param("tolerance", "5"),
+                Returns("matched=no")),
+        ], devices);
+
+        Assert.True(other.Succeeded, other.Key);
+        Assert.False(otherStore.Local.Values["no"].AsBool());
+    }
+
+    [Fact]
+    public async Task Browser_exists_asks_once_and_reports_the_state()
+    {
+        var devices = new FakeDeviceLayer { BrowserHasElement = true };
+        var (result, _, store) = await RunAsync(
+        [
+            Step("browser.exists", Param("pageSelector", "#ready"),
+                Param("elementState", "attached"), Param("matchIndex", "2"),
+                Returns("found=there")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["there"].AsBool());
+        Assert.Contains("browserExists #ready #2 Attached", devices.Calls);
     }
 
     [Fact]
@@ -2673,23 +2621,6 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("6,7", Centre(store, "where"));
         Assert.Equal(2, devices.Searches);
-    }
-
-    /// <summary>A condition about a picture asks the same question of the whole set.</summary>
-    [Fact]
-    public async Task A_condition_about_a_picture_can_ask_for_the_whole_set()
-    {
-        var devices = TwoPictures(Left, null);
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if", When("condition", Step("condition.imageExists",
-                Pictures("one.png", "two.png"), Param("imageSet", "every"))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes")))),
-            Step("control.setVariable", Param("name", "seen"), Param("value", "no")),
-        ], devices);
-
-        Assert.Equal("no", store.Local.Values["seen"].AsText());
     }
 
     /// <summary>
@@ -3260,39 +3191,6 @@ public class DeviceActionTests
         Assert.InRange(looked, 2, 40);
     }
 
-    /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>
-    [Fact]
-    public async Task The_negative_conditions_say_the_opposite_of_the_plain_ones()
-    {
-        var gone = new FakeDeviceLayer { Match = null, ElementExists = false, Spans = [] };
-        var there = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)),
-            ElementExists = true,
-            Spans = [new TextSpan("Ready", new ScreenPoint(1, 1), new ScreenSize(1, 1), 0.9)],
-        };
-
-        Assert.True(await Holds(gone, Step("condition.imageNotExists", Pictures("ok.png"))));
-        Assert.False(await Holds(there, Step("condition.imageNotExists", Pictures("ok.png"))));
-        Assert.True(await Holds(gone, Step("condition.textNotExists", Param("queryText", "Ready"))));
-        Assert.False(await Holds(there, Step("condition.textNotExists", Param("queryText", "Ready"))));
-        Assert.True(await Holds(gone, Step("condition.uiaNotExists", Param("uiSelector", "Button"))));
-        Assert.False(await Holds(there, Step("condition.uiaNotExists", Param("uiSelector", "Button"))));
-    }
-
-    /// <summary>A condition, asked the way the engine asks one inside an if.</summary>
-    private static async Task<bool> Holds(FakeDeviceLayer devices, ExecutableStep condition)
-    {
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if", When("condition", condition),
-                Body("then", Step("control.setVariable", Param("name", "held"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "held"), Param("value", "no")))),
-        ], devices);
-
-        return store.Local.Values["held"].AsText() == "yes";
-    }
-
     [Fact]
     public async Task A_condition_can_be_written_as_an_expression()
     {
@@ -3341,107 +3239,6 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BadExpression", result.Key);
-    }
-
-    [Fact]
-    public async Task Every_point_of_a_colour_comparison_has_to_match()
-    {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00", "#0000FF,#FFFFFF") };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorsMatch",
-                    Param("points", "0,0,#FF0000; 1,0,#00FF00"), Param("tolerance", "1"))),
-                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["hit"].AsText());
-    }
-
-    [Fact]
-    public async Task One_point_that_does_not_match_makes_the_comparison_false()
-    {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorsMatch",
-                    Param("points", "0,0,#FF0000; 1,0,#123456"), Param("tolerance", "1"))),
-                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("no", store.Local.Values["hit"].AsText());
-    }
-
-    [Fact]
-    public async Task A_comparison_can_settle_for_one_point_matching()
-    {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorsMatch",
-                    Param("points", "0,0,#FF0000; 1,0,#123456"),
-                    Param("tolerance", "1"), Param("colorMatchMode", "any"))),
-                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["hit"].AsText());
-    }
-
-    [Fact]
-    public async Task A_point_a_colour_comparison_cannot_read_fails_the_step()
-    {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000") };
-
-        var (result, _, _) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorsMatch", Param("points", "0,0"))),
-                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes")))),
-        ], devices);
-
-        Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task A_colour_condition_compares_the_pixel_to_the_colour()
-    {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorEquals",
-                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"), Param("tolerance", "5"))),
-                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["hit"].AsText());
-    }
-
-    [Fact]
-    public async Task A_colour_condition_is_false_for_a_different_colour()
-    {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.colorEquals",
-                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"), Param("tolerance", "5"))),
-                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("no", store.Local.Values["hit"].AsText());
     }
 
     [Fact]
@@ -3799,27 +3596,6 @@ public class DeviceActionTests
         Assert.False(shaped.Succeeded);
         Assert.Equal("Run.BadModelShape", shaped.Key);
         Assert.Equal("1x25200x85", shaped.Detail);
-    }
-
-    [Fact]
-    public async Task An_image_condition_uses_the_found_match()
-    {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.imageExists",
-                    Pictures("a.png"), Param("confidence", "90"), Param("region", ""))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["seen"].AsText());
     }
 
     [Fact]
@@ -4492,26 +4268,6 @@ public class DeviceActionTests
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("click ", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public async Task A_text_condition_is_true_when_the_words_are_on_screen()
-    {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Ready", new ScreenPoint(0, 0), new ScreenSize(10, 4), 0.9)],
-        };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.textExists", Param("queryText", "ready"),
-                    Param("region", ""), Param("matchMode", "contains"))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["seen"].AsText());
-    }
-
     // ------------------------------------------------------------------ window controls
 
     [Fact]
@@ -4939,22 +4695,6 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
-    }
-
-    [Fact]
-    public async Task An_element_condition_uses_ui_automation()
-    {
-        var devices = new FakeDeviceLayer { ElementExists = true };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.uiaExists", Param("uiSelector", "Button[name='Send']"))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["seen"].AsText());
     }
 
     [Fact]
@@ -5848,7 +5588,7 @@ public class DeviceActionTests
         // would land in whatever column happens to be second.
         var (result, _, _) = await RunAsync(
         [
-            Step("control.listCreate", Param("name", "rows"), Param("items", "[[\"A1\", 2]]")),
+            Step("control.setVariable", Param("name", "rows"), Param("value", "[[\"A1\", 2]]")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
                 Param("header", "订单号"), Param("separator", "comma"),
                 Param("writeMode", "append"), Param("align", "true")),
@@ -5984,15 +5724,15 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { PathExists = true };
         var (result, _, _) = await RunAsync(
         [
-            // A list is built by the actions that build lists, and handing it straight over is
-            // what a macro does after reading a folder.
-            Step("control.listCreate", Param("name", "chosen"),
-                Param("items", @"G:\fake\a.txt; G:\fake\b.txt")),
+            // A list is built as an expression value and handed straight over, which is what a
+            // macro does after reading a folder.
+            Step("control.setVariable", Param("name", "chosen"),
+                Param("value", "list(\"G:/fake/a.txt\", \"G:/fake/b.txt\")")),
             Step("clipboard.writeFiles", Param("files", "$chosen")),
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.ClipboardFiles);
+        Assert.Equal(["G:/fake/a.txt", "G:/fake/b.txt"], devices.ClipboardFiles);
     }
 
     [Fact]
@@ -7797,6 +7537,41 @@ public class DeviceActionTests
         Assert.True(store.Local.Values["whole"].Flag);
     }
 
+    [Fact]
+    public async Task A_window_handle_chooses_one_of_two_identical_windows()
+    {
+        var devices = WithAWindow();
+        devices.Windows.Add(new WindowInfo(2, "Notepad - notes.txt",
+            new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.WindowFacts[2] = ("notepad", "Notepad");
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.exists", Param("window", "1"), Param("how", WindowHow.Handle),
+                Returns("found=first")),
+            Step("window.exists", Param("window", "2"), Param("how", WindowHow.Handle),
+                Returns("found=second")),
+            Step("window.exists", Param("window", "3"), Param("how", WindowHow.Handle),
+                Returns("found=missing")),
+        ], devices);
+
+        Assert.True(store.Local.Values["first"].Flag);
+        Assert.True(store.Local.Values["second"].Flag);
+        Assert.False(store.Local.Values["missing"].Flag);
+    }
+
+    [Fact]
+    public async Task A_window_handle_rule_without_a_handle_does_not_use_the_foreground()
+    {
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.exists", Param("window", "0"), Param("how", WindowHow.Handle)),
+        ], WithAWindow());
+
+        Assert.Equal(RunKeys.BadWindowRule, result.Key);
+    }
+
     /// <summary>
     /// The ways of recognising a window are read the same by every step that names one: what a
     /// window action acts on, what a step that reads the screen counts its coordinates from, what a
@@ -8800,58 +8575,27 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_until_holds_on_the_first_look_and_keeps_how_long_it_waited()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
-
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("control.waitUntil",
-                When("condition", Step("condition.colorEquals",
-                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
-                    Param("tolerance", "5"))),
-                Param("pollMs", "10"), Returns("elapsed=waited"))),
-        ], devices);
+                Param("condition", "true"), Param("intervalMs", "10"),
+                Returns("elapsed=waited"))),
+        ]);
 
         Assert.True(result.Succeeded);
         Assert.True(store.Local.Values["waited"].AsNumber() >= 0);
 
-        // A wait that already holds costs nothing: the colour was looked at once, not once a poll.
-        Assert.Single(devices.Calls, call => call == "pixel 0 0");
-    }
-
-    [Fact]
-    public async Task A_wait_until_asks_the_question_again_until_it_holds()
-    {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(6, 6)),
-            MatchAfter = 3,
-        };
-
-        var (result, _, _) = await RunAsync(
-        [
-            Within(2000, Step("control.waitUntil",
-                When("condition", Step("condition.imageExists",
-                    Pictures("a.png"), Param("confidence", "90"), Param("region", ""))),
-                Param("pollMs", "10"))),
-        ], devices);
-
-        Assert.True(result.Succeeded);
-        Assert.True(devices.Searches >= 3, $"the picture should be looked for again, looked {devices.Searches} times");
     }
 
     [Fact]
     public async Task A_wait_until_that_never_holds_stops_the_macro()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
-
         var (result, _, store) = await RunAsync(
         [
             Within(300, Step("control.waitUntil",
-                When("condition", Step("condition.colorEquals",
-                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
-                    Param("tolerance", "5"))),
-                Param("pollMs", "10"), Returns("elapsed=waited"))),
-        ], devices);
+                Param("condition", "false"), Param("intervalMs", "10"),
+                Returns("elapsed=waited"))),
+        ]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.WaitTimeout", result.Key);
@@ -8871,17 +8615,14 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_until_that_runs_out_fails_the_step_and_hands_it_to_the_failure_rule()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
         var host = new SilentRunHost();
         var store = new VariableStore();
 
-        var result = await new MacroRunner(store, host, devices).RunAsync(
+        var result = await new MacroRunner(store, host).RunAsync(
         [
             Within(80, Step("control.waitUntil",
-                When("condition", Step("condition.colorEquals",
-                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
-                    Param("tolerance", "5"))),
-                Param("pollMs", "10")), StepErrorAction.Continue, id: "wait"),
+                Param("condition", "false"), Param("intervalMs", "10")),
+                StepErrorAction.Continue, id: "wait"),
             Step("control.setVariable", Param("name", "after"), Param("scope", "local"),
                 Param("value", "1")),
         ]);
@@ -8895,20 +8636,16 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_until_says_which_condition_it_waited_for()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
         var host = new SilentRunHost();
 
-        await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+        await new MacroRunner(new VariableStore(), host).RunAsync(
         [
             Within(2000, Step("control.waitUntil",
-                When("condition", Step("condition.colorEquals",
-                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
-                    Param("tolerance", "5"))),
-                Param("pollMs", "10"))),
+                Param("condition", "true"), Param("intervalMs", "10"))),
         ]);
 
         var line = Assert.Single(host.Entries, entry => entry.Key == "Log.WaitedFor");
-        Assert.Equal("condition.colorEquals", line.Arguments[1]);
+        Assert.Equal("true", line.Arguments[1]);
     }
 
     [Fact]
@@ -8930,8 +8667,8 @@ public class DeviceActionTests
         var (certain, _, certainStore) = await RunAsync(
         [
             Within(200, Step("control.waitUntil",
-                When("condition", Step("condition.randomChance", Param("chancePercent", "100"))),
-                Param("pollMs", "10"), Returns("elapsed=certainly"))),
+                Param("condition", "true"), Param("intervalMs", "10"),
+                Returns("elapsed=certainly"))),
         ]);
 
         Assert.True(certain.Succeeded);
@@ -8941,8 +8678,8 @@ public class DeviceActionTests
         var (never, _, store) = await RunAsync(
         [
             Within(300, Step("control.waitUntil",
-                When("condition", Step("condition.randomChance", Param("chancePercent", "0"))),
-                Param("pollMs", "10"), Returns("elapsed=never")), StepErrorAction.Continue),
+                Param("condition", "false"), Param("intervalMs", "10"),
+                Returns("elapsed=never")), StepErrorAction.Continue),
         ]);
 
         // A chance of none never comes up, so the whole clock is waited out; that the run carried
@@ -9549,33 +9286,6 @@ public class DeviceActionTests
     /// before acting on something is whether it is there now, and waiting is a step, a block or a
     /// state of its own.
     /// </summary>
-    [Fact]
-    public async Task A_condition_asks_the_page_whether_the_element_is_in_the_state_named()
-    {
-        var devices = new FakeDeviceLayer { BrowserHasElement = true };
-
-        var (_, _, store) = await RunAsync(
-        [
-            Step("control.if",
-                When("condition", Step("condition.browserExists",
-                    Param("pageSelector", "#results"), Param("elementState", "attached"),
-                    Param("matchIndex", "2"))),
-                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
-                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
-            Step("control.if",
-                When("condition", Step("condition.browserNotExists", Param("pageSelector", "#spinner"))),
-                Body("then", Step("control.setVariable", Param("name", "gone"), Param("value", "yes")))),
-        ], devices);
-
-        Assert.Equal("yes", store.Local.Values["seen"].AsText());
-
-        // The state the condition asks about travels with the target, the way it does for a wait,
-        // and a condition that says nothing about it asks whether the element is showing.
-        Assert.Contains("browserExists #results #2 Attached", devices.Calls);
-        Assert.Contains("browserExists #spinner #1 Visible", devices.Calls);
-        Assert.False(store.Local.Values.ContainsKey("gone"));
-    }
-
     /// <summary>
     /// Waiting for an address rather than for an element: the element a macro is after usually lives
     /// on the page a click leads to, and naming it too early finds the one being left behind.
@@ -10336,7 +10046,7 @@ public class DeviceActionTests
         {
             Step("control.startMacro", Param("macro", "快"), Param("runHandleName", "jobA")),
             Step("control.startMacro", Param("macro", "慢"), Param("runHandleName", "jobB")),
-            Step("control.listCreate", Param("name", "jobs"), Param("items", "[]")),
+            Step("control.setVariable", Param("name", "jobs"), Param("value", "list()")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobA")),
             Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobB")),
             Step("control.waitAny", Param("runHandles", "$jobs"),
@@ -10356,7 +10066,7 @@ public class DeviceActionTests
     {
         var steps = new[]
         {
-            Step("control.listCreate", Param("name", "jobs"), Param("items", "[]")),
+            Step("control.setVariable", Param("name", "jobs"), Param("value", "list()")),
             Step("control.waitAny", Param("runHandles", "$jobs")),
         };
 
@@ -11842,6 +11552,11 @@ internal sealed class FakeDeviceLayer
     private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare,
         TextCompareOptions options)
     {
+        if (match is WindowMatch.Handle)
+        {
+            return long.TryParse(wanted, out var handle) && window.Handle == handle;
+        }
+
         var text = match switch
         {
             WindowMatch.Process => Facts(window).Process,

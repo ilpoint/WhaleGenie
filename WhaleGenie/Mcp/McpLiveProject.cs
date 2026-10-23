@@ -13,7 +13,7 @@ namespace WhaleGenie.Mcp;
 /// <summary>A deep copy of the project at the moment an MCP draft was opened.</summary>
 public sealed record McpProjectSnapshot(
     string? Path, int Revision, IReadOnlyList<MacroItem> Macros,
-    IReadOnlyList<VariableDefinition> Globals);
+    IReadOnlyList<VariableDefinition> Globals, ProjectTriggers Triggers);
 
 /// <summary>What the MCP client can see about the project without opening a draft.</summary>
 public sealed record McpProjectStatus(string? Path, int Revision, bool Dirty, int MacroCount);
@@ -39,6 +39,11 @@ public sealed class McpLiveProject(MainViewModel project)
     /// </summary>
     public async Task<int> ApplyAsync(McpProjectSnapshot basis,
         IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals)
+        => await ApplyAsync(basis, macros, basis.Triggers, globals);
+
+    public async Task<int> ApplyAsync(McpProjectSnapshot basis,
+        IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition> globals)
         => await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (project.Revision != basis.Revision)
@@ -47,7 +52,7 @@ public sealed class McpLiveProject(MainViewModel project)
                     "The project changed in WhaleGenie while this draft was open. Open the project again.");
             }
 
-            project.ApplyDraft(macros, globals);
+            project.ApplyDraft(macros, triggers, globals);
             return project.Revision;
         });
 
@@ -72,11 +77,17 @@ public sealed class McpLiveProject(MainViewModel project)
         });
 
     private McpProjectSnapshot Snapshot()
-        => new(
+    {
+        var macros = project.Macros.Select(macro => MacroItem.FromJson(macro.ToJson())).ToList();
+        var triggers = project.Triggers.Copy();
+        triggers.Attach(macros);
+        return new(
             project.CurrentPath,
             project.Revision,
-            [.. project.Macros.Select(macro => MacroItem.FromJson(macro.ToJson()))],
-            [.. VariableCatalog.Globals.Select(Copy)]);
+            macros,
+            [.. VariableCatalog.Globals.Select(Copy)],
+            triggers);
+    }
 
     private static VariableDefinition Copy(VariableDefinition variable)
         => new()

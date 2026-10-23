@@ -29,7 +29,7 @@ public class StepOutcomeTests
         => new() { Name = name, Steps = steps };
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Condition = step };
+        => new() { Name = name, Text = TestConditions.Expression(step) };
 
     private static ExecutableStep Set(string id, string name, string value)
         => Step("control.setVariable", id, Param("name", name), Param("scope", "local"),

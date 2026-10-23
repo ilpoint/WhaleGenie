@@ -243,8 +243,6 @@ public partial class ActionEditorView : UserControl
         viewModel.PropertyChanged += OnFormChanged;
         WatchPreview();
         viewModel.CloseRequested += OnFormFinished;
-        viewModel.NestedAddRequested += OnNestedAddRequested;
-        viewModel.NestedEditRequested += OnNestedEditRequested;
 
         // Tunnelling so Escape cancels before any focused editor consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -402,19 +400,18 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private void OnFormFinished(MacroStep? step)
     {
-        if (!StaysOpen)
-        {
-            Finished?.Invoke(step);
-            return;
-        }
-
         if (step is not null && PlaceStep is { } place && place(_editingStep, step) is { } refusal)
         {
             // The place picked in the list does not take this kind of step, so nothing was added.
-            // The form goes back to a fresh step — offering what that place does take, which the
-            // editor has already handed over — and the line under it says why.
-            BeginStep(null);
+            // Keep the form and its values on screen with the reason: closing it would make a
+            // refused insertion look as if the step had simply vanished.
             Form?.Say(refusal, warning: true);
+            return;
+        }
+
+        if (!StaysOpen)
+        {
+            Finished?.Invoke(step);
             return;
         }
 
@@ -463,60 +460,6 @@ public partial class ActionEditorView : UserControl
     {
         _keyTarget = null;
         _keyPad?.Close();
-    }
-
-    /// <summary>Opens a picker for a nested list and appends whatever the user builds.</summary>
-    private async void OnNestedAddRequested(StepListEditorViewModel list)
-    {
-        var variables = (DataContext as AddActionViewModel)?.CollectVariables();
-        var assets = (DataContext as AddActionViewModel)?.AssetFolder;
-        var steps = (DataContext as AddActionViewModel)?.StepChoices;
-        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets, steps,
-            FreeStepId(steps));
-
-        // The trial inside the dialog that opened this one runs on the same devices, so a nested
-        // step's "run it" behaves the way the outer step's does.
-        dialog.Devices = Devices;
-        var step = await dialog.ShowDialogOver<MacroStep?>(HostWindow!);
-
-        if (step is not null)
-        {
-            list.AddStep(step);
-        }
-    }
-
-    /// <summary>
-    /// A name for a step that is being added from inside another dialog. The editor settles the
-    /// whole tree when the outer step joins the list, so a name drawn from the ones already in the
-    /// macro is one it will keep — which is what the variables this step creates are named after.
-    /// </summary>
-    private static string FreeStepId(IReadOnlyList<ActionParameterOption>? steps)
-        => StepIds.Next(new HashSet<string>(
-            (steps ?? []).Select(option => option.Value), StringComparer.OrdinalIgnoreCase));
-
-    /// <summary>Opens a picker for an existing nested step and swaps in the result.</summary>
-    private async void OnNestedEditRequested(MacroStep step)
-    {
-        var variables = (DataContext as AddActionViewModel)?.CollectVariables();
-        var assets = (DataContext as AddActionViewModel)?.AssetFolder;
-        var steps = (DataContext as AddActionViewModel)?.StepChoices;
-        var dialog = new AddActionWindow(step, null, variables, null, null, assets, steps);
-        dialog.Devices = Devices;
-        var edited = await dialog.ShowDialogOver<MacroStep?>(HostWindow!);
-
-        if (edited is null || DataContext is not AddActionViewModel viewModel)
-        {
-            return;
-        }
-
-        foreach (var parameter in viewModel.Parameters)
-        {
-            if (parameter.List is { } list && list.Steps.Contains(step))
-            {
-                list.ReplaceStep(step, edited);
-                return;
-            }
-        }
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
@@ -848,6 +791,19 @@ public partial class ActionEditorView : UserControl
         await BuildExpression(parameter);
     }
 
+    private static int? CaretAt(object? source)
+    {
+        for (var at = source as Visual; at is not null; at = at.GetVisualParent())
+        {
+            if (at is TextBox box)
+            {
+                return box.CaretIndex;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Opens the expression builder on one number of a place to look. The cell carries itself, so
     /// the button does not have to be looked up from the row it stands in, and what comes back is
@@ -942,6 +898,23 @@ public partial class ActionEditorView : UserControl
                 parameter.Variables) is { } built)
         {
             parameter.WriteValue(built);
+        }
+    }
+
+    private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel { GlobalVariableDraft: { } draft })
+        {
+            return;
+        }
+
+        var variables = ((AddActionViewModel)DataContext).CollectVariables()
+            .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
+            .ToList();
+        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, draft.DefaultValue,
+                variables) is { } built)
+        {
+            draft.DefaultValue = built;
         }
     }
 

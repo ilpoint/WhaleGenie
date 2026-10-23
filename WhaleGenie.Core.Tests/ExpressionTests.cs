@@ -204,9 +204,12 @@ public class ExpressionTests
         var bag = new VariableBag();
         bag.SetText("name", "ada");
         bag.SetNumber("count", 3);
+        bag.SetNumber("123", 4);
 
         Assert.Equal("ADA-3", Expression.Evaluate("upper($name) + \"-\" + $count", bag).AsText());
         Assert.True(Expression.Evaluate("$count >= 3 and $name == \"ADA\"", bag).AsBool());
+        Assert.Equal("5", Expression.Evaluate("$123 + 1", bag).AsText());
+        Assert.Equal("1", Expression.Evaluate("123 - 122", bag).AsText());
     }
 
     [Fact]
@@ -372,7 +375,9 @@ public class ExpressionTests
     [InlineData("$count - 1", "count")]
     [InlineData("$a and $a", "a")]
     [InlineData("nothing here", "")]
-    [InlineData("cost is $5", "")]
+    [InlineData("cost is $5", "5")]
+    [InlineData("$123 + $2金币", "123,2金币")]
+    [InlineData("$$123 + $2", "2")]
     public void Referenced_names_are_found_inside_expressions(string source, string expected)
         => Assert.Equal(expected, string.Join(",", Expression.ReferencedNames(source)));
 

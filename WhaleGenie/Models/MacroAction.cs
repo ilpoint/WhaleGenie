@@ -1,5 +1,5 @@
-using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lucide.Avalonia;
 
 namespace WhaleGenie.Models;
 
@@ -9,8 +9,8 @@ public partial class MacroAction : ObservableObject, Localization.ILanguageAware
     /// <summary>Re-reads the tooltip this entry shows, without rebuilding the palette.</summary>
     public void RefreshLanguage() => OnPropertyChanged(string.Empty);
 
-    /// <summary>Vector icon drawn for the action, or <c>null</c> when it has none.</summary>
-    public Geometry? Icon { get; set; }
+    /// <summary>Lucide icon drawn for the action, or <c>null</c> when it has none.</summary>
+    public LucideIconKind? Icon { get; set; }
 
     /// <summary>Key of the tooltip text, resolved on read so the language can change.</summary>
     public string LabelKey { get; set; } = string.Empty;

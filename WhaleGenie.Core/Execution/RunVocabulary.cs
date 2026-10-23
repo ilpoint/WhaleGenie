@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -53,6 +54,7 @@ public static class RunKeys
     public const string BadRegion = "Run.BadRegion";
     public const string BadResultType = "Run.BadResultType";
     public const string BadRowColumn = "Run.BadRowColumn";
+    public const string BadUserFailureKey = "Run.BadUserFailureKey";
     public const string BadZip = "Run.BadZip";
     public const string BreakOutsideLoop = "Run.BreakOutsideLoop";
     public const string BrightnessRefused = "Run.BrightnessRefused";
@@ -201,6 +203,23 @@ public static class RunKeys
 
     /// <summary>Every failure key, in ordinal order.</summary>
     public static IReadOnlyList<string> All { get; } = Vocabulary.Of(typeof(RunKeys));
+}
+
+/// <summary>
+/// The failure keys a macro may choose for itself. They occupy their own namespace so a project
+/// key can never be mistaken for one the engine reports.
+/// </summary>
+public static class UserFailureKeys
+{
+    public const string Prefix = "User.";
+
+    /// <summary>Whether the text is a user key and the name after the prefix can be read back.</summary>
+    public static bool IsValid(string? written)
+    {
+        var key = (written ?? string.Empty).Trim();
+        return key.StartsWith(Prefix, StringComparison.Ordinal)
+            && VariableText.IsName(key[Prefix.Length..]);
+    }
 }
 
 /// <summary>

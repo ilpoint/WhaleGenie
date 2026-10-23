@@ -530,17 +530,15 @@ public class RunDebugTests
     /// <summary>A condition step asking whether a value is above another, as the form writes it.</summary>
     private static MacroStep GreaterThan(string variable, string value) => new()
     {
-        Type = "condition.compare",
+        Type = "control.if",
         Parameters =
         [
-            new StepParameter { Name = "variable", Kind = ActionParameterKind.Text, Value = variable },
             new StepParameter
             {
-                Name = "compareOperator",
-                Kind = ActionParameterKind.Choice,
-                Value = "greaterThan",
+                Name = "condition",
+                Kind = ActionParameterKind.Expression,
+                Value = $"{variable} > {value}",
             },
-            new StepParameter { Name = "compareValue", Kind = ActionParameterKind.Text, Value = value },
         ],
     };
 

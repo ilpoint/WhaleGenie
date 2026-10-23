@@ -63,14 +63,14 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         => Encode(await project.StatusAsync());
 
     [McpServerTool(Name = "whalegenie_list_actions", ReadOnly = true),
-     Description("Lists WhaleGenie actions, optionally filtered by a word in the key, name or description.")]
+     Description("Lists WhaleGenie actions, optionally filtered by a word in the key, name or description. Hidden actions are included and marked hidden.")]
     public async Task<string> ListActions(
         [Description("Words to look for; empty lists the first actions in key order.")] string? query = null,
         [Description("How many actions to return, 1 to 50.")] int limit = 10)
         => Encode(await Ui(() => ActionKnowledge.Search(query, limit)));
 
     [McpServerTool(Name = "whalegenie_get_action", ReadOnly = true),
-     Description("Describes one action: parameters, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns.")]
+     Description("Describes one action: hidden state, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns.")]
     public async Task<string> GetAction(
         [Description("The action key, for example control.delay.")] string key)
         => await Ui(() => ActionKnowledge.Find(key) is { } action
@@ -118,7 +118,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
         => await Ui(() => Encode(drafts.Get(draftId).Find(name) is { } macro
-            ? macro.ToJson()
+            ? macro.ToJson(includeTriggers: true)
             : throw new McpException($"There is no macro named \"{name}\".")));
 
     [McpServerTool(Name = "whalegenie_put_macro", Destructive = true),
@@ -136,7 +136,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             name = macro.Name,
             steps = macro.Steps.Count,
             problems = problems.Messages,
-            macro = await Ui(() => macro.ToJson()),
+            macro = await Ui(() => macro.ToJson(includeTriggers: true)),
         });
     }
 
@@ -172,7 +172,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     }
 
     [McpServerTool(Name = "whalegenie_validate", ReadOnly = true),
-     Description("Checks every macro in a draft against the action catalogue and the interface declarations.")]
+     Description("Checks every macro in a draft against the action catalogue, including hidden actions and each child list's childKeys, and the interface declarations.")]
     public async Task<string> Validate(
         [Description("The draft id.")] string draftId)
         => Encode(await Ui(() => McpDraftStore.Validate(drafts.Get(draftId))));
@@ -189,8 +189,14 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         }
 
         var macros = draft.MacroSnapshot();
+        var triggers = draft.Triggers.Copy();
+        await Ui(() =>
+        {
+            triggers.Attach(macros);
+            return true;
+        });
         var globals = await Ui(() => draft.Globals.ToList());
-        var revision = await project.ApplyAsync(draft.Basis, macros, globals);
+        var revision = await project.ApplyAsync(draft.Basis, macros, triggers, globals);
         draft.MarkApplied();
         return Encode(new { revision, macros = macros.Count });
     }

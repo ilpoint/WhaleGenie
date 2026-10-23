@@ -19,8 +19,8 @@ public class MacroCheckTests
     private static StepParameter Steps(string name, params MacroStep[] steps)
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
-    private static StepParameter When(string name, MacroStep condition)
-        => new() { Name = name, Kind = ActionParameterKind.Condition, Condition = condition };
+    private static StepParameter When(string name, string expression)
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Value = expression };
 
     private static StepParameter Text(string name, string value)
         => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
@@ -39,6 +39,9 @@ public class MacroCheckTests
 
     private static MacroStep Repeat(params MacroStep[] body)
         => Step("control.repeat", Text("times", "3"), Steps("body", body));
+
+    private static MacroStep Case(string values, params MacroStep[] body)
+        => Step("control.case", Text("values", values), Steps("body", body));
 
     /// <summary>A call to another macro, asking for whatever of its results are named.</summary>
     private static MacroStep Call(string macro, params string[] wants)
@@ -117,6 +120,46 @@ public class MacroCheckTests
         var reading = Step("vision.capture");
 
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], null, [], inputShared: true)));
+    }
+
+    [Fact]
+    public void A_case_outside_a_switch_is_marked_on_the_case()
+    {
+        var misplaced = Case("a");
+
+        var problem = Assert.Single(Inspect(misplaced));
+
+        Assert.Same(misplaced, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.CaseOutsideSwitch"), problem.Message);
+    }
+
+    [Fact]
+    public void An_ordinary_step_inside_a_case_list_is_marked_where_it_sits()
+    {
+        var misplaced = Step("control.log", Text("message", "x"), Text("level", "info"));
+        var choice = Step("control.switch",
+            Text("switchValue", "a"),
+            Text("switchMode", "equals"),
+            Steps("cases", Case("a"), misplaced),
+            Steps("otherwise", Step("control.log", Text("message", "y"), Text("level", "info"))));
+
+        var problem = Assert.Single(Inspect(choice));
+
+        Assert.Same(misplaced, problem.Step);
+        Assert.Equal(Strings.Format("Editor.Problem.WrongStepKind",
+            ActionCatalog.Find("control.case")!.LocalName), problem.Message);
+    }
+
+    [Fact]
+    public void A_case_in_the_list_that_declares_it_is_not_marked()
+    {
+        var choice = Step("control.switch",
+            Text("switchValue", "a"),
+            Text("switchMode", "equals"),
+            Steps("cases", Case("a")),
+            Steps("otherwise"));
+
+        Assert.Empty(Inspect(choice));
     }
 
     /// <summary>
@@ -222,13 +265,9 @@ public class MacroCheckTests
     [Fact]
     public void A_catch_condition_may_read_the_failure_it_was_given()
     {
-        var asked = Step("condition.compare",
-            Text("variable", "caught.key"),
-            Text("compareOperator", "equals"),
-            Value("compareValue", "Run.ElementNotFound"));
         var trying = Step("control.try",
             Steps("body", Pressing()),
-            When("catchWhen", asked),
+            When("catchWhen", "$caught.key == \"Run.ElementNotFound\""),
             Steps("catch"),
             Steps("finally"));
 
@@ -313,7 +352,7 @@ public class MacroCheckTests
         // An if branch and a plain block both let a break reach the loop around them, so neither
         // is a place where "no loop above it" is true.
         var ifStep = Step("control.if",
-            When("condition", Step("condition.expression", Value("expression", "true"))),
+            When("condition", "true"),
             Steps("then", Step("control.sequence", Steps("steps", Step("control.break")))));
 
         Assert.Empty(Inspect(Repeat(ifStep)));
@@ -357,7 +396,7 @@ public class MacroCheckTests
     public void A_call_to_the_macro_itself_inside_a_branch_or_loop_is_left_alone()
     {
         var branch = Step("control.if",
-            When("condition", Step("condition.expression", Value("expression", "true"))),
+            When("condition", "true"),
             Steps("then", Call("自己")));
         var switching = Step("control.switch",
             Text("switchValue", "1"), Text("switchMode", "equals"),
@@ -568,12 +607,11 @@ public class MacroCheckTests
     }
 
     [Fact]
-    public void A_dollar_that_starts_no_name_is_left_alone()
+    public void A_doubled_dollar_is_left_alone()
     {
-        // A price is not a variable, and a doubled dollar is how a literal one is written.
         var writer = Step("file.listFiles",
             Text("folder", "."),
-            Text("pattern", "costs $5 and $$未知 stays as it is"));
+            Text("pattern", "costs $$5 and $$未知 stays as it is"));
 
         Assert.Empty(Inspect(writer));
     }
@@ -614,20 +652,23 @@ public class MacroCheckTests
         => Assert.Empty(Inspect(Set("结果", "$sys.date")));
 
     /// <summary>
-    /// A text field names a variable only where <c>$</c> starts a name. A price, an escaped dollar
-    /// and a name the macro cannot resolve are three different answers, and the check must not
-    /// turn the first two into undefined references.
+    /// A text field names a variable only where <c>$</c> starts a readable name. Numeric names are
+    /// readable, so a literal amount needs the doubled-dollar escape while an unresolved name is
+    /// still reported.
     /// </summary>
     [Fact]
     public void A_text_field_leaves_prices_and_escaped_dollars_alone()
     {
         var plain = Step("file.listFiles", Text("folder", "."),
-            Text("pattern", "$100 off; price $100; $$name"));
+            Text("pattern", "$$100 off; price $$100; $$name"));
         Assert.Empty(Inspect(plain));
 
         var named = Step("file.listFiles", Text("folder", "."), Text("pattern", "$name"));
         var problem = Assert.Single(Inspect(named));
         Assert.Contains("name", problem.Message);
+
+        var numeric = Step("file.listFiles", Text("folder", "."), Text("pattern", "$123"));
+        Assert.Single(Inspect(numeric));
     }
 
     /// <summary>A whole value is a value, not a name: a bare word in it is just text.</summary>
@@ -635,16 +676,6 @@ public class MacroCheckTests
     public void A_bare_word_in_a_whole_value_is_not_a_variable()
         => Assert.Empty(Inspect(Step("file.writeText", Text("path", "out.txt"),
             Value("fileContent", "total"))));
-
-    /// <summary>A field that holds a bare name reads that name, so the check resolves it too.</summary>
-    [Fact]
-    public void A_bare_name_field_reads_the_variable_it_names()
-    {
-        var problem = Assert.Single(Inspect(Step("condition.compare",
-            Text("variable", "total"), Text("compareOperator", "equals"),
-            Value("compareValue", "1"))));
-        Assert.Contains("total", problem.Message);
-    }
 
     [Fact]
     public void A_loop_variable_is_left_alone()
@@ -964,6 +995,45 @@ public class MacroCheckTests
     [Fact]
     public void An_ordinary_variable_name_is_left_alone()
         => Assert.Empty(Inspect(Set("count", "1")));
+
+    [Fact]
+    public void A_fail_step_reports_only_user_keys_it_can_read_back()
+    {
+        Assert.Empty(Inspect(Step("control.fail",
+            Text("failureKey", "User.NoScreen"), Text("reason", "the screen moved"))));
+
+        var problem = Assert.Single(Inspect(Step("control.fail",
+            Text("failureKey", "Run.NotMine"))));
+        Assert.Equal(Strings.Format("Editor.Problem.BadUserFailureKey", "Run.NotMine"),
+            problem.Message);
+    }
+
+    [Fact]
+    public void Assigning_a_missing_global_is_reported_before_the_run()
+    {
+        var name = "missingGlobalForCheck";
+        var step = Step("control.setVariable", Text("name", name), Text("scope", "global"),
+            Value("value", "1"));
+
+        Assert.Contains(Inspect(step),
+            problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
+
+        var definition = new VariableDefinition
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+        };
+        VariableCatalog.Globals.Add(definition);
+        try
+        {
+            Assert.DoesNotContain(Inspect(step),
+                problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
+        }
+        finally
+        {
+            VariableCatalog.Globals.Remove(definition);
+        }
+    }
 
     [Fact]
     public void One_step_can_be_wrong_more_than_once_and_each_reason_is_said()

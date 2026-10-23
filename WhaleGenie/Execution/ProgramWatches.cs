@@ -12,13 +12,13 @@ namespace WhaleGenie.Execution;
 /// </summary>
 internal sealed class ProgramWatches
 {
-    private readonly Dictionary<MacroItem, HashSet<int>> _running = [];
+    private readonly Dictionary<object, HashSet<int>> _running = [];
 
     /// <summary>Whether any of them is running, or null while nothing has been read yet.</summary>
-    public bool? For(MacroItem macro)
-        => _running.TryGetValue(macro, out var ids) ? ids.Count > 0 : null;
+    public bool? For(object owner)
+        => _running.TryGetValue(owner, out var ids) ? ids.Count > 0 : null;
 
-    public IReadOnlyCollection<MacroItem> Macros => _running.Keys;
+    public IReadOnlyCollection<object> Macros => _running.Keys;
 
     public int Count => _running.Count;
 
@@ -26,11 +26,11 @@ internal sealed class ProgramWatches
     /// What this reading says was not said by the last one, or null on the first reading of them
     /// all: counting starts where the watching does.
     /// </summary>
-    public (bool Started, bool Stopped)? Changed(MacroItem macro, IReadOnlyCollection<int> running)
+    public (bool Started, bool Stopped)? Changed(object owner, IReadOnlyCollection<int> running)
     {
         var now = new HashSet<int>(running);
-        var known = _running.TryGetValue(macro, out var before);
-        _running[macro] = now;
+        var known = _running.TryGetValue(owner, out var before);
+        _running[owner] = now;
 
         return known
             ? (now.Except(before!).Any(), before!.Except(now).Any())
@@ -38,7 +38,7 @@ internal sealed class ProgramWatches
     }
 
     /// <summary>Stops watching a macro, so the next reading starts from nothing again.</summary>
-    public void Forget(MacroItem macro) => _running.Remove(macro);
+    public void Forget(object owner) => _running.Remove(owner);
 
     public void Clear() => _running.Clear();
 }

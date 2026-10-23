@@ -16,7 +16,13 @@ public partial class KeyRowViewModel : ViewModelBase
 {
     /// <summary>The combination this press sends, written the way a combination always is.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KeysDisplay))]
     public partial string Keys { get; set; } = string.Empty;
+
+    /// <summary>The combination shown on the row's keyboard button.</summary>
+    public string KeysDisplay => Keys.Trim().Length > 0
+        ? Keys
+        : Strings.Get("Add.ChooseKeys");
 
     /// <summary>True while this row's button is recording keys into the row.</summary>
     [ObservableProperty]

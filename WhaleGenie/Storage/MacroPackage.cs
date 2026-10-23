@@ -18,6 +18,8 @@ public sealed class PackageContents
     public required IReadOnlyList<MacroItem> Macros { get; init; }
 
     public required IReadOnlyList<VariableDefinition> Globals { get; init; }
+
+    public required ProjectTriggers Triggers { get; init; }
 }
 
 /// <summary>
@@ -33,10 +35,11 @@ public static class MacroPackage
     /// </summary>
     public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
-    public const int FormatVersion = 10;
+    public const int FormatVersion = 18;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";
+    private const string TriggersEntry = "triggers.json";
     private const string NodesFolder = "nodes/";
     private const string AssetsFolder = "assets/";
     private const string ImageParameter = "image";
@@ -52,7 +55,14 @@ public static class MacroPackage
     /// <summary>Writes the macros and shared variables into a package file.</summary>
     public static void Save(string path, IReadOnlyList<MacroItem> macros,
         IReadOnlyList<VariableDefinition> globals, string appVersion)
+        => Save(path, macros, ProjectTriggers.FromMacros(macros), globals, appVersion);
+
+    /// <summary>Writes the macro bodies and the project-wide trigger entries into one package.</summary>
+    public static void Save(string path, IReadOnlyList<MacroItem> macros,
+        ProjectTriggers triggers, IReadOnlyList<VariableDefinition> globals, string appVersion)
     {
+        triggers.Attach(macros);
+
         // A macro with a fatal declaration problem cannot be called, so writing it into a package
         // would only carry a broken interface forward. The editor blocks the same faults; this is
         // the guard for every other way a package can be written.
@@ -66,6 +76,12 @@ public static class MacroPackage
             }
         }
 
+        var menuProblems = triggers.MenuProblems(macros);
+        if (menuProblems.Count > 0)
+        {
+            throw new InvalidDataException(menuProblems[0]);
+        }
+
         var fullPath = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? ".");
 
@@ -76,7 +92,7 @@ public static class MacroPackage
             using (var stream = File.Create(temporary))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                SaveInto(archive, fullPath, macros, globals, appVersion);
+                SaveInto(archive, fullPath, macros, triggers, globals, appVersion);
             }
 
             File.Move(temporary, fullPath, true);
@@ -143,6 +159,10 @@ public static class MacroPackage
             macros.Add(macro);
         }
 
+        var triggers = ProjectTriggers.FromJson(ReadObject(archive, TriggersEntry));
+        ExpandMenuIcons(triggers, assets.Expand);
+        triggers.Attach(macros);
+
         var globals = new List<VariableDefinition>();
         foreach (var item in manifest["variables"] as JsonArray ?? [])
         {
@@ -161,11 +181,12 @@ public static class MacroPackage
             });
         }
 
-        return new PackageContents { Macros = macros, Globals = globals };
+        return new PackageContents { Macros = macros, Globals = globals, Triggers = triggers };
     }
 
     private static void SaveInto(ZipArchive archive, string packagePath,
-        IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals, string appVersion)
+        IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition> globals, string appVersion)
     {
         var assets = new AssetCollector(archive, AssetFolderFor(packagePath));
         var manifestMacros = new JsonArray();
@@ -188,7 +209,8 @@ public static class MacroPackage
                 ["steps"] = macro.Steps.Count,
             });
 
-            files.Add((macro.Name, macro.Trigger, macro.Action, macro.Steps.Count));
+            files.Add((macro.Name, string.Join(" / ", macro.Triggers.Select(entry => entry.KindLabel)),
+                macro.Triggers.Count.ToString(CultureInfo.InvariantCulture), macro.Steps.Count));
         }
 
         var manifestVariables = new JsonArray();
@@ -203,6 +225,8 @@ public static class MacroPackage
             });
         }
 
+        var triggersNode = triggers.ToJson();
+        RewriteMenuIcons(triggersNode, assets.Import);
         var manifest = new JsonObject
         {
             ["format"] = FormatId,
@@ -216,6 +240,7 @@ public static class MacroPackage
         };
 
         WriteEntry(archive, ManifestEntry, manifest.ToJsonString(Indented));
+        WriteEntry(archive, TriggersEntry, triggersNode.ToJsonString(Indented));
         WriteEntry(archive, ReadmeEntry, BuildReadme(appVersion, files, globals, assets.Stored));
     }
 
@@ -243,6 +268,7 @@ public static class MacroPackage
         text.AppendLine("| --- | --- |");
         text.AppendLine("| `manifest.json` | Format version and the list of everything in the package. |");
         text.AppendLine("| `README.md` | This file. |");
+        text.AppendLine("| `triggers.json` | Trigger entries, floating-group positions, menu pages, blocked programs and the menu launcher. |");
         text.AppendLine("| `nodes/` | One JSON document per macro, holding its steps. |");
         text.AppendLine("| `assets/` | Images the macros use, referenced as `assets/<file>`. |");
         text.AppendLine();
@@ -346,6 +372,46 @@ public static class MacroPackage
                 }
 
                 break;
+        }
+    }
+
+    private static void RewriteMenuIcons(JsonNode? node, Func<string, string> map)
+    {
+        switch (node)
+        {
+            case JsonObject container:
+                if (container["kind"]?.GetValue<string>() is { } kind
+                    && string.Equals(kind, "image", StringComparison.OrdinalIgnoreCase)
+                    && container["value"] is JsonValue value
+                    && value.TryGetValue<string>(out var text)
+                    && text.Length > 0)
+                {
+                    container["value"] = map(text);
+                    return;
+                }
+
+                foreach (var child in container.Select(pair => pair.Value))
+                {
+                    RewriteMenuIcons(child, map);
+                }
+                break;
+            case JsonArray array:
+                foreach (var child in array)
+                {
+                    RewriteMenuIcons(child, map);
+                }
+                break;
+        }
+    }
+
+    private static void ExpandMenuIcons(ProjectTriggers triggers, Func<string, string> map)
+    {
+        foreach (var entry in triggers.Entries)
+        {
+            if (entry.MenuIcon is { Kind: MenuIconKind.Image } icon)
+            {
+                entry.MenuIcon = icon with { Value = map(icon.Value) };
+            }
         }
     }
 

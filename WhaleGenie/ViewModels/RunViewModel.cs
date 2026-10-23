@@ -384,6 +384,21 @@ public sealed class MacroVariableGroup
     public required IReadOnlyList<VariableDefinition> Variables { get; init; }
 }
 
+/// <summary>A global declaration and the value this run would read, without exposing an editor.</summary>
+public sealed class RunGlobalVariable
+{
+    public required string Name { get; init; }
+    public required string Type { get; init; }
+    public required string DefaultValue { get; init; }
+    public required string Description { get; init; }
+    public required string CurrentValue { get; init; }
+    public required bool PersistValue { get; init; }
+
+    public string Display => VariableCatalog.Display(Name, false);
+    public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);
+    public string PersistenceText => PersistValue ? Strings.Get("VarWall.Persistent") : string.Empty;
+}
+
 /// <summary>How one step of the macro went, for the list beside the variables.</summary>
 public sealed record StepOutcome(string Name, string Label, string Value)
 {
@@ -639,7 +654,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         Debugged = macroName;
         _system = new SystemVariableReader(_devices);
         _variables = MacroVariables.Seed(_system, SharedVariables.Current);
-        NewType = Types[0];
 
         // Nothing is loaded yet, so the compiler is told what every path sets before it reads them.
         _steps = [];
@@ -1492,17 +1506,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
                 Depth = depth,
-                CanBreak = ActionSemanticsCatalog.Find(step.Type)?.IsCondition != true,
+                CanBreak = true,
             });
-
-            // The condition reads first, so an "if"/"while" shows its test above the bodies.
-            foreach (var parameter in step.Parameters)
-            {
-                if (parameter.Condition is { } condition)
-                {
-                    Build([condition], depth + 1);
-                }
-            }
 
             Build(step.Children("steps"), depth + 1);
             Build(step.Children("then"), depth + 1);
@@ -1618,13 +1623,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                     }
 
                     break;
-                case ActionParameterKind.Condition:
-                    if (parameter.Condition is { } condition)
-                    {
-                        CollectUses(condition, defined, names);
-                    }
-
-                    break;
                 default:
                     // A list parameter keeps its values in rows, and a row may name the variable
                     // that says where to look — a picture an earlier Capture took, most often.
@@ -1669,14 +1667,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// <summary>Every variable the macros in the list use: global, then local, then built-in.</summary>
     public ObservableCollection<VariableDefinition> CurrentVariables { get; } = [];
 
-    /// <summary>
-    /// The shared variables, as this window lists them. A copy rather than the catalogue itself: what
-    /// the window binds is read and written on the thread that owns windows, and the catalogue is
-    /// also written to from wherever a package is opened. The fields on the lines are the catalogue's
-    /// own variables, so editing one edits the shared variable; 「刷新」 puts the list back in step
-    /// when something outside has changed it.
-    /// </summary>
-    public ObservableCollection<VariableDefinition> Globals { get; } = [];
+    /// <summary>The global declarations and their current values, shown read-only while debugging.</summary>
+    public ObservableCollection<RunGlobalVariable> Globals { get; } = [];
 
     public bool HasGlobals => Globals.Count > 0;
 
@@ -1718,79 +1710,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _ => VariableTab.Current,
     };
 
-    /// <summary>The types a shared variable can be made of, named the way the fields name them.</summary>
-    public IReadOnlyList<ActionParameterOption> Types { get; } =
-    [
-        .. VariableDefinition.TypeNames.Select(name =>
-            new ActionParameterOption(name, Strings.Get($"Variable.Type.{name}", name))),
-    ];
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ValidationMessage))]
-    [NotifyPropertyChangedFor(nameof(CanAdd))]
-    [NotifyCanExecuteChangedFor(nameof(AddGlobalCommand))]
-    public partial string NewName { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(NewTypeIsList))]
-    [NotifyPropertyChangedFor(nameof(NewDefaultPreview))]
-    [NotifyPropertyChangedFor(nameof(NewDefaultHasError))]
-    [NotifyPropertyChangedFor(nameof(ShowNewDefaultSummary))]
-    [NotifyPropertyChangedFor(nameof(CanAdd))]
-    [NotifyCanExecuteChangedFor(nameof(AddGlobalCommand))]
-    public partial ActionParameterOption NewType { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(NewDefaultPreview))]
-    [NotifyPropertyChangedFor(nameof(NewDefaultHasError))]
-    [NotifyPropertyChangedFor(nameof(ShowNewDefaultSummary))]
-    [NotifyPropertyChangedFor(nameof(ValidationMessage))]
-    [NotifyPropertyChangedFor(nameof(CanAdd))]
-    [NotifyCanExecuteChangedFor(nameof(AddGlobalCommand))]
-    public partial string NewDefault { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string NewDescription { get; set; } = string.Empty;
-
-    /// <summary>Explains why a new shared variable cannot be added yet.</summary>
-    public string ValidationMessage
-    {
-        get
-        {
-            var name = NewName.Trim();
-            if (name.Length == 0)
-            {
-                return string.Empty;
-            }
-
-            if (VariableCatalog.IsSystem(name))
-            {
-                return Strings.Format("Variable.NameIsSystem", name);
-            }
-
-            if (VariableCatalog.IsGlobal(name))
-            {
-                return Strings.Format("Variable.NameTaken", name);
-            }
-
-            return NewDefaultHasError ? Strings.Get("Variable.InvalidDefault") : string.Empty;
-        }
-    }
-
-    public bool CanAdd => NewName.Trim().Length > 0 && ValidationMessage.Length == 0;
-
-    /// <summary>True while the type chosen for a new shared variable holds a list.</summary>
-    public bool NewTypeIsList => NewType.Value is "list";
-
-    /// <summary>How the starting value of the new shared variable reads, showing what a list holds.</summary>
-    public string NewDefaultPreview => VariableDefinition.Preview(NewType.Value, NewDefault);
-
-    /// <summary>True while the starting value of the new shared variable cannot be read.</summary>
-    public bool NewDefaultHasError => VariableDefinition.HasError(NewType.Value, NewDefault);
-
-    /// <summary>True while the new variable's preview shows what a list holds.</summary>
-    public bool ShowNewDefaultSummary => NewTypeIsList && !NewDefaultHasError;
-
     /// <summary>Reads the built-in variables again and re-lists the macro variables.</summary>
     public void Rebuild()
     {
@@ -1799,7 +1718,19 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         Globals.Clear();
         foreach (var shared in VariableCatalog.Globals)
         {
-            Globals.Add(shared);
+            Globals.Add(new RunGlobalVariable
+            {
+                Name = shared.Name,
+                Type = shared.Type,
+                DefaultValue = shared.DefaultValue,
+                Description = shared.Description,
+                PersistValue = shared.PersistValue,
+                CurrentValue = _variables.TryGet(shared.Name, out var value)
+                    ? value.AsText()
+                    : String.IsNullOrWhiteSpace(shared.DefaultValue)
+                        ? Strings.Get("Variable.NotSet")
+                        : VariableDefinition.Preview(shared.Type, shared.DefaultValue),
+            });
         }
 
         foreach (var variable in VariableCatalog.SystemVariables)
@@ -1947,13 +1878,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                         }
 
                         break;
-                    case ActionParameterKind.Condition:
-                        if (parameter.Condition is not null)
-                        {
-                            Collect(parameter.Condition);
-                        }
-
-                        break;
                     default:
                         // A list parameter keeps its values in rows: whichever of them names a
                         // variable is one the macro reads, the same as any plain field that starts
@@ -2073,35 +1997,5 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     [RelayCommand]
     private void Refresh() => Rebuild();
-
-    [RelayCommand(CanExecute = nameof(CanAdd))]
-    private void AddGlobal()
-    {
-        var created = new VariableDefinition
-        {
-            Name = NewName.Trim(),
-            Scope = VariableScope.Global,
-            Type = NewType.Value,
-            DefaultValue = NewDefault.Trim(),
-            Description = NewDescription.Trim(),
-        };
-
-        VariableCatalog.Globals.Add(created);
-        Globals.Add(created);
-
-        NewName = string.Empty;
-        NewDefault = string.Empty;
-        NewDescription = string.Empty;
-    }
-
-    [RelayCommand]
-    private void RemoveGlobal(VariableDefinition? variable)
-    {
-        if (variable is not null)
-        {
-            VariableCatalog.Globals.Remove(variable);
-            Globals.Remove(variable);
-        }
-    }
 
 }

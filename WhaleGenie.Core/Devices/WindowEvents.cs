@@ -24,6 +24,12 @@ public interface IWindowEvents : IDisposable
     /// </summary>
     event Action? Changed;
 
+    /// <summary>The active top-level window changed.</summary>
+    event Action? ForegroundChanged;
+
+    /// <summary>A window moved or resized; the handle says which one.</summary>
+    event Action<long>? BoundsChanged;
+
     /// <summary>Asks to be told. Doing this twice is the same as doing it once.</summary>
     void Start();
 }
@@ -34,6 +40,18 @@ public sealed class NoWindowEvents : IWindowEvents
     public bool Available => false;
 
     public event Action? Changed
+    {
+        add { }
+        remove { }
+    }
+
+    public event Action? ForegroundChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public event Action<long>? BoundsChanged
     {
         add { }
         remove { }

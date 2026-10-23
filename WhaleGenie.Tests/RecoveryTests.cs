@@ -197,6 +197,7 @@ public class RecoveryTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(before, viewModel.Macros[0].ToJson().ToJsonString());
+            Assert.Equal(before, editor.Result!.ToJson().ToJsonString());
             Assert.False(viewModel.HasUnsavedChanges,
                 "the editor handed back a macro nobody changed, and the list calls that a change");
             Assert.False(File.Exists(path), "a snapshot was left by an editor that changed nothing");
@@ -647,6 +648,23 @@ public class RecoveryTests
         => (JsonNode.Parse(File.ReadAllText(path)) as JsonObject)?["savedUtc"]?.GetValue<string>();
 
     private static MacroItem Named(string name) => new() { Name = name, BindKey = "F5" };
+
+    /// <summary>Older recovery files may carry superseded trigger shapes and must not be read.</summary>
+    [Theory]
+    [InlineData(13)]
+    [InlineData(14)]
+    public void A_recovery_snapshot_from_an_older_format_is_not_restored(int version)
+    {
+        InOwnFile(path =>
+        {
+            File.WriteAllText(path,
+                "{\"formatVersion\":" + version
+                + ",\"project\":{\"macros\":[],\"variables\":[]}}");
+
+            Assert.Null(RecoveryStore.Load());
+            Assert.False(File.Exists(path));
+        });
+    }
 
     /// <summary>A macro with a step, so a round trip carries more than the name.</summary>
     private static MacroItem Sample()

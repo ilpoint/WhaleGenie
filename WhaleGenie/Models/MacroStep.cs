@@ -20,7 +20,7 @@ public class StepParameter
 
     public required ActionParameterKind Kind { get; init; }
 
-    public string Value { get; init; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 
     /// <summary>
     /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%
@@ -58,9 +58,6 @@ public class StepParameter
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
 
-    /// <summary>Chosen condition, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Condition"/>.</summary>
-    public MacroStep? Condition { get; init; }
-
     /// <summary>Writes the value as the JSON type the runtime expects.</summary>
     /// <remarks>
     /// A number is written as the number it is, and anything else is written as what it says. A
@@ -77,7 +74,6 @@ public class StepParameter
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
             or ActionParameterKind.Returns or ActionParameterKind.Narrow => RowsJson(),
-        ActionParameterKind.Condition => Condition?.ToJson(),
         ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
             => JsonNode.Parse(Value),
         _ => JsonValue.Create(Value),
@@ -138,8 +134,6 @@ public class StepParameter
         decimal jitter = 0m)
     {
         var definition = owner?.Parameters.FirstOrDefault(candidate => candidate.Name == name);
-        var expectsCondition = definition?.Kind is ActionParameterKind.Condition;
-
         return node switch
         {
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
@@ -153,14 +147,8 @@ public class StepParameter
             JsonArray array => new StepParameter
             {
                 Name = name,
-                Kind = expectsCondition ? ActionParameterKind.Condition : ActionParameterKind.Steps,
+                Kind = ActionParameterKind.Steps,
                 Steps = [.. array.OfType<JsonObject>().Select(MacroStep.FromJson)],
-            },
-            JsonObject child when child.ContainsKey("type") => new StepParameter
-            {
-                Name = name,
-                Kind = ActionParameterKind.Condition,
-                Condition = MacroStep.FromJson(child),
             },
             JsonObject record when definition?.Kind is ActionParameterKind.WindowRule => new StepParameter
             {
@@ -271,6 +259,35 @@ public class MacroStep : INotifyPropertyChanged
     public IEnumerable<StepParameter> StepLists
         => Parameters.Where(parameter => parameter.Kind == ActionParameterKind.Steps);
 
+    /// <summary>
+    /// Restores the empty child lists the action catalogue declares but the file or form omitted.
+    /// An empty block still has a place for its first child; that place is part of the action's
+    /// shape, not data that only exists after a child has been added.
+    /// </summary>
+    public void EnsureDeclaredLists()
+    {
+        if (Definition is { } definition)
+        {
+            foreach (var declared in definition.Parameters
+                         .Where(parameter => parameter.Kind == ActionParameterKind.Steps))
+            {
+                if (!Parameters.Any(parameter => parameter.Name == declared.Name))
+                {
+                    Parameters.Add(new StepParameter
+                    {
+                        Name = declared.Name,
+                        Kind = ActionParameterKind.Steps,
+                    });
+                }
+            }
+        }
+
+        foreach (var child in Parameters.SelectMany(parameter => parameter.Steps))
+        {
+            child.EnsureDeclaredLists();
+        }
+    }
+
     /// <summary>How many steps are written inside this one, all of its lists together.</summary>
     public int ChildCount => StepLists.Sum(list => list.Steps.Count);
 
@@ -362,13 +379,6 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>True when the macro skips this step.</summary>
     public bool IsSkipped => !Meta.IsEnabled;
 
-    /// <summary>
-    /// True when this is a condition rather than a step of the macro. A condition says what has to
-    /// be true and is asked by the step it belongs to, so it never runs on its own and has no
-    /// ending of its own for anything to ask about.
-    /// </summary>
-    public bool IsCondition => Definition?.IsCondition ?? false;
-
     /// <summary>Marker drawn on a step the macro will skip.</summary>
     public string SkipLabel => Strings.Get("Editor.StepDisabled");
 
@@ -441,12 +451,6 @@ public class MacroStep : INotifyPropertyChanged
                 var label = ParameterLabel(parameter);
                 switch (parameter.Kind)
                 {
-                    case ActionParameterKind.Steps when parameter.Steps.Count > 0:
-                        parts.Add($"{label} = {Strings.Format("Common.StepCount", parameter.Steps.Count)}");
-                        break;
-                    case ActionParameterKind.Condition when parameter.Condition is not null:
-                        parts.Add($"{label} = {parameter.Condition.DisplayName}");
-                        break;
                     case ActionParameterKind.Region when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.RegionCount", parameter.Rows.Count)}");
                         break;
@@ -462,8 +466,8 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Narrow when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.NarrowCount", parameter.Rows.Count)}");
                         break;
-                    case ActionParameterKind.Steps or ActionParameterKind.Condition
-                        or ActionParameterKind.Region or ActionParameterKind.KeySequence
+                    case ActionParameterKind.Steps or ActionParameterKind.Region
+                        or ActionParameterKind.KeySequence
                         or ActionParameterKind.Images or ActionParameterKind.Returns
                         or ActionParameterKind.Narrow:
                         break;
@@ -488,7 +492,7 @@ public class MacroStep : INotifyPropertyChanged
                 (parameter.Jitter * 100m).ToString("0.##", CultureInfo.InvariantCulture))
             : string.Empty;
 
-    public Geometry? Icon => Definition?.Icon;
+    public Lucide.Avalonia.LucideIconKind? Icon => Definition?.Icon;
 
     /// <summary>Localized label of a parameter, falling back to its raw name.</summary>
     public string ParameterLabel(StepParameter parameter)
@@ -536,9 +540,6 @@ public class MacroStep : INotifyPropertyChanged
                         child.CollectVariables(names);
                     }
                     break;
-                case ActionParameterKind.Condition:
-                    parameter.Condition?.CollectVariables(names);
-                    break;
                 // The results a step hands over are named one by one on the returns page, so what
                 // this step creates is read from those rows rather than from a single value.
                 case ActionParameterKind.Returns:
@@ -548,7 +549,11 @@ public class MacroStep : INotifyPropertyChanged
                     }
                     break;
                 default:
-                    if (DefinesVariable(parameter) && !string.IsNullOrWhiteSpace(parameter.Value))
+                    if (DefinesVariable(parameter)
+                        && !(Type == "control.setVariable"
+                             && string.Equals(Text("scope").Trim(), "global",
+                                 System.StringComparison.OrdinalIgnoreCase))
+                        && !string.IsNullOrWhiteSpace(parameter.Value))
                     {
                         names.Add(parameter.Value.Trim());
                     }
@@ -590,7 +595,7 @@ public class MacroStep : INotifyPropertyChanged
     public static bool DefinesVariable(string? type, string parameterName) => parameterName switch
     {
         "itemVariable" or "indexVariable" => true,
-        "name" => type is "control.setVariable" or "control.calculate" or "control.listCreate"
+        "name" => type is "control.setVariable"
             or "control.for",
         "runHandleName" => type is "control.startMacro",
         _ => false,
@@ -659,6 +664,8 @@ public class MacroStep : INotifyPropertyChanged
                     StepParameter.FromJson(name, value, definition, JitterOf(jitters, name)));
             }
         }
+
+        step.EnsureDeclaredLists();
 
         return step;
     }

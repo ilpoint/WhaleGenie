@@ -95,6 +95,34 @@ public class WindowRulePickerTests
     }
 
     [Fact]
+    public void A_handle_rule_shows_its_number_without_text_comparison_switches()
+    {
+        Ui.Run(() =>
+        {
+            var windows = new WindowsForChecks().Add(7, "Game", "game", "GameClass");
+            var devices = new ChecksDevices { Windows = windows, Hook = new KeyHook() };
+            var picker = new WindowRuleWindow(devices,
+                new WindowRule(Title: "Game", Process: "game", ClassName: "GameClass",
+                    Handle: 7, How: WindowHow.Handle));
+            try
+            {
+                picker.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal("7", picker.FindControl<TextBox>("MatchBox")?.Text);
+                Assert.False(picker.FindControl<WrapPanel>("ComparisonSwitches")!.IsVisible);
+                Assert.True(picker.FindControl<TextBlock>("HandleHint")!.IsVisible);
+                Assert.Contains(Strings.Format("WindowRule.Matches", 1),
+                    picker.FindControl<TextBlock>("PreviewText")?.Text);
+            }
+            finally
+            {
+                picker.Close();
+            }
+        });
+    }
+
+    [Fact]
     public void F1_takes_the_pixel_under_the_crosshair_rather_than_the_uia_element_centre()
     {
         Ui.Run(() =>
@@ -278,24 +306,21 @@ public class WindowRulePickerTests
     }
 
     [Fact]
-    public void AltX_writes_the_embedded_action_position_and_leaves_the_trigger_alone()
+    public void AltX_writes_the_action_window_position()
     {
         Ui.Run(() =>
         {
-            var macro = new MacroItem { Name = "probe" };
             var devices = new ChecksDevices { Screen = new ScreenAt(new ScreenPoint(321, 123)) };
-            var window = new MacroEditorWindow(macro, [macro], null, devices);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [])
+            {
+                Devices = devices,
+            };
             try
             {
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
-                var model = (MacroEditorViewModel)window.DataContext!;
-                model.NewStepCommand.Execute(null);
-                Dispatcher.UIThread.RunJobs();
-
-                var content = window.FindControl<ContentControl>("InspectorContent");
-                var view = Assert.IsType<ActionEditorView>(content!.Content);
+                var view = Assert.IsType<ActionEditorView>(window.Content);
                 view.SelectAction("vision.getPixel");
                 Dispatcher.UIThread.RunJobs();
 
@@ -307,8 +332,6 @@ public class WindowRulePickerTests
                     .First(parameter => parameter.Definition.Name == "x").CurrentText);
                 Assert.Equal("123", action.Parameters
                     .First(parameter => parameter.Definition.Name == "y").CurrentText);
-                Assert.Equal("0", model.ColorPositionX);
-                Assert.Equal("0", model.ColorPositionY);
             }
             finally
             {

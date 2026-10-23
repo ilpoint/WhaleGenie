@@ -220,7 +220,10 @@ public sealed class ScriptDevice : IScriptDevice
             // the way back into the macro is.
             return Serve(
                 new Serving(Quoted(_host), string.Join(' ', arguments), script.Folder, new
-                    Dictionary<string, string>(), script.TimeoutMs,
+                Dictionary<string, string>
+                {
+                    [ScriptHost.PackagesVariable] = _packages,
+                }, script.TimeoutMs,
                     Missing: RunKeys.ProgramFailed, Lost: RunKeys.ScriptBridgeLost),
                 host, onOutput, onError, token);
         }

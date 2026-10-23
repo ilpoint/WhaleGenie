@@ -82,14 +82,20 @@ public static class Expression
                 continue;
             }
 
+            if (index + 1 < source.Length && source[index + 1] == '$')
+            {
+                index++;
+                continue;
+            }
+
             var start = index + 1;
-            if (start >= source.Length || !(char.IsLetter(source[start]) || source[start] == '_'))
+            if (start >= source.Length || !VariableText.IsNameStart(source[start]))
             {
                 continue;
             }
 
             var end = start;
-            while (end < source.Length && IsNameCharacter(source[end]))
+            while (end < source.Length && VariableText.IsNameCharacter(source[end]))
             {
                 end++;
             }
@@ -107,11 +113,85 @@ public static class Expression
     }
 
     /// <summary>
-    /// Characters a variable name may hold. A hyphen is deliberately left out so that
-    /// <c>$count-1</c> reads as a subtraction rather than as a variable named "count-1".
+    /// Renames references to one variable without touching quoted text, function names or field
+    /// strings. The expression keeps its original spacing and punctuation.
     /// </summary>
-    private static bool IsNameCharacter(char character)
-        => char.IsLetterOrDigit(character) || character is '_' or '.';
+    public static string RenameVariable(string? source, string oldName, string newName)
+    {
+        if (string.IsNullOrEmpty(source) || oldName.Length == 0
+            || string.Equals(oldName, newName, StringComparison.Ordinal))
+        {
+            return source ?? string.Empty;
+        }
+
+        var written = new System.Text.StringBuilder(source.Length);
+        var quoted = '\0';
+        var escaped = false;
+        for (var at = 0; at < source.Length; at++)
+        {
+            var character = source[at];
+            if (quoted != '\0')
+            {
+                written.Append(character);
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (character == '\\')
+                {
+                    escaped = true;
+                }
+                else if (character == quoted)
+                {
+                    quoted = '\0';
+                }
+
+                continue;
+            }
+
+            if (character is '"' or '\'')
+            {
+                quoted = character;
+                written.Append(character);
+                continue;
+            }
+
+            if (character == '$' && at + 1 < source.Length && source[at + 1] == '$')
+            {
+                written.Append("$$");
+                at++;
+                continue;
+            }
+
+            if (character == '$' && at + 1 < source.Length
+                && VariableText.IsNameStart(source[at + 1]))
+            {
+                var start = at + 1;
+                var end = start;
+                while (end < source.Length && VariableText.IsNameCharacter(source[end]))
+                {
+                    end++;
+                }
+
+                var name = source[start..end];
+                if (string.Equals(name, oldName, StringComparison.Ordinal))
+                {
+                    written.Append('$').Append(newName);
+                }
+                else
+                {
+                    written.Append(source, at, end - at);
+                }
+
+                at = end - 1;
+                continue;
+            }
+
+            written.Append(character);
+        }
+
+        return written.ToString();
+    }
 
     /// <summary>Evaluates an expression, throwing when it cannot be read.</summary>
     public static Value Evaluate(string? source, IVariableResolver? variables = null)

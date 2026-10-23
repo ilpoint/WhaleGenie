@@ -1,31 +1,34 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// The window the action form used to be. The form itself is <see cref="ActionEditorView"/> now, so
-/// the editor can stand it in a pane of its own; this wrapper keeps the window-shaped way in for
-/// the places that still open one — the editor before it hosts the view, and the pickers and
-/// nested step editors that are dialogs.
+/// The one window an action is written in. The macro editor opens it after a card is dropped, the
+/// run window opens it for a breakpoint condition, and pickers reuse the same form rather than
+/// growing a second action editor.
 /// </summary>
-public class AddActionWindow : Window
+public class ActionEditorWindow : Window
 {
     private readonly ActionEditorView _view;
 
-    public AddActionWindow()
+    public ActionEditorWindow()
         : this(null, null, null, null, null, null)
     {
     }
 
-    public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
+    public ActionEditorWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
@@ -46,6 +49,17 @@ public class AddActionWindow : Window
         Content = _view;
         DataContext = _view.DataContext;
         _view.Finished += step => Close(step);
+        AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+
+        if (_view.FindControl<Button>("MinimizeButton") is { } minimize)
+        {
+            minimize.Click += (_, _) => WindowState = WindowState.Minimized;
+        }
+
+        if (_view.FindControl<Button>("CloseButton") is { } close)
+        {
+            close.Click += (_, _) => Close(null);
+        }
     }
 
     /// <summary>
@@ -100,6 +114,42 @@ public class AddActionWindow : Window
     {
         get => _view.StaysOpen;
         set => _view.StaysOpen = value;
+    }
+
+    internal bool ShowPicker
+    {
+        set => _view.ShowPicker = value;
+    }
+
+    internal void SetMacroCall(string macroName)
+    {
+        _view.SelectAction("control.runMacro");
+        if (DataContext is AddActionViewModel form
+            && form.Parameters.FirstOrDefault(parameter =>
+                parameter.Definition.Name == "macro") is { } target)
+        {
+            target.Text = macroName;
+        }
+    }
+
+    private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel form)
+        {
+            return;
+        }
+
+        if (e.Key == Key.X && e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        {
+            var cursor = _view.Devices.Screen.Cursor;
+            form.ApplyCursorPosition(cursor.X, cursor.Y);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            form.CancelCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     internal Func<MacroStep?, MacroStep, string?>? PlaceStep

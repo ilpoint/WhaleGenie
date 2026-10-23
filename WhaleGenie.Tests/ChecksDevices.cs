@@ -81,6 +81,11 @@ internal sealed class WindowsForChecks : IWindowDevice
     private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare,
         TextCompareOptions options)
     {
+        if (match is WindowMatch.Handle)
+        {
+            return long.TryParse(wanted, out var handle) && window.Handle == handle;
+        }
+
         var text = match switch
         {
             WindowMatch.Process => ProcessOf(window.Handle),

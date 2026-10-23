@@ -67,10 +67,6 @@ public class MacroNameTests
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = Assert.IsType<MacroEditorViewModel>(window.DataContext);
-            viewModel.NewStepCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(window.FindControl<Border>("InspectorHost")!.IsVisible);
-
             viewModel.Name = string.Empty;
             var blocked = 0;
             var closed = false;
@@ -82,7 +78,6 @@ public class MacroNameTests
             Assert.Equal(1, blocked);
             Assert.False(closed);
             Assert.True(window.FindControl<Border>("MacroSettingsDrawer")!.IsVisible);
-            Assert.False(window.FindControl<Border>("InspectorHost")!.IsVisible);
 
             var name = window.FindControl<TextBox>("NameInput");
             Assert.NotNull(name);

@@ -4,23 +4,51 @@
              xmlns:loc="using:WhaleGenie.Localization"
              xmlns:views="using:WhaleGenie.Views"
              x:Class="WhaleGenie.Views.ActionPaletteView"
-             x:DataType="vm:AddActionViewModel">
+             x:DataType="vm:ActionPaletteViewModel">
 
+    <UserControl.Resources>
+        <DataTemplate x:Key="PaletteCardButton" x:DataType="vm:ActionPaletteCardViewModel">
+            <Button Classes="ActionCard"
+                    BorderBrush="{Binding Accent}"
+                    ToolTip.Tip="{Binding Description}">
+                <TextBlock Text="{Binding Title}" FontSize="13"
+                           Foreground="{DynamicResource AppTextStrong}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
 
     <UserControl.Styles>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
+        <Style Selector="ListBox.PaletteDocks">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
         </Style>
-        <Style Selector="Button.GroupToggle">
+        <Style Selector="ListBox.PaletteDocks ListBoxItem">
+            <Setter Property="Padding" Value="3,4" />
+            <Setter Property="Margin" Value="1,0" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="ListBox.PaletteDocks ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
+        <Style Selector="ListBox.PaletteDocks ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+        </Style>
+        <Style Selector="Button.Category">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="6,5" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="50" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.GroupToggle:pointerover /template/ ContentPresenter">
+        <Style Selector="Button.Category:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
         </Style>
         <Style Selector="Button.ActionCard">
@@ -39,83 +67,122 @@
         <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
-        <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-        </Style>
-        <Style Selector="Button.Category">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="50" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.Category:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-        </Style>
-        <Style Selector="ListBox.CategoryDock">
-            <Setter Property="Background" Value="{DynamicResource AppChrome}" />
-            <Setter Property="Padding" Value="3,8" />
-        </Style>
-        <Style Selector="ListBox.CategoryDock ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,1" />
-            <Setter Property="CornerRadius" Value="4" />
-        </Style>
-        <Style Selector="ListBox.CategoryDock ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-        </Style>
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="66,*" Background="{DynamicResource AppSurface}">
-        <Border Grid.Column="0" Background="{DynamicResource AppChrome}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8,12,8">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ActionCategoryChoice">
-                            <Button Classes="Category" ToolTip.Tip="{Binding Label}"
-                                    Click="OnPickCategory">
-                                <StackPanel Spacing="2" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <views:IconView Data="{Binding Icon}" Width="16" Height="16"
-                                                    Stroke="{Binding Accent}"
-                                                    StrokeThickness="1.4" />
-                                    <TextBlock Text="{Binding Short}" FontSize="11"
-                                               HorizontalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
+    <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppSurface}">
+        <ListBox Grid.Row="0" Name="SourceDock" Classes="PaletteDocks"
+                 ItemsSource="{Binding Tabs}"
+                 SelectedItem="{Binding SelectedTab}" SelectionMode="Single"
+                 Margin="4,4,4,2">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" Columns="4" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ActionPaletteTab">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <views:IconView Width="13" Height="13" Data="{Binding Icon}"
+                                        HorizontalAlignment="Center"
+                                        Stroke="{DynamicResource AppText}" StrokeThickness="1.4" />
+                        <TextBlock Text="{Binding Label}" FontSize="10.5" TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   Foreground="{DynamicResource AppText}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="8,8,8,8">
-            <TextBox Grid.Row="0" Text="{Binding ActionSearch}"
-                     PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
-            <ScrollViewer Grid.Row="1" Margin="0,8,10,0" VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding VisibleActions}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ActionCardViewModel">
-                            <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
-                                    BorderBrush="{Binding Accent}" BorderThickness="1"
-                                    Click="OnPickAction"
-                                    ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="13"
-                                           Foreground="{DynamicResource AppTextStrong}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+            <Border Grid.Column="0" Name="BasicCategoryDock" Width="66"
+                    IsVisible="{Binding IsBasicDock}"
+                    Background="{DynamicResource AppChrome}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8,12,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ActionCategoryChoice">
+                                <Button Classes="Category" ToolTip.Tip="{Binding Label}"
+                                        Click="OnPickCategory">
+                                    <StackPanel Spacing="2" HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <views:IconView Width="16" Height="16"
+                                                        Data="{Binding Icon}"
+                                                        Stroke="{Binding Accent}"
+                                                        StrokeThickness="1.4" />
+                                        <TextBlock Text="{Binding Short}" FontSize="11"
+                                                   HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+            <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="8,2,8,6">
+                <TextBox Grid.Row="0" Name="PaletteSearch" Margin="0,4,0,6" Text="{Binding Search}"
+                         PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
+
+                <Grid Grid.Row="1">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Sections}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ActionPaletteSection">
+                                    <StackPanel Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding Title}" FontSize="11.5"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AppMuted}"
+                                                   Margin="2,2,0,6"
+                                                   IsVisible="{Binding HasTitle}" />
+                                        <ItemsControl ItemsSource="{Binding Cards}"
+                                                      ItemTemplate="{StaticResource PaletteCardButton}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <TextBlock IsVisible="{Binding HasNoCards}" Text="{Binding EmptyText}"
+                               Foreground="{DynamicResource AppMuted}" FontSize="12"
+                               TextWrapping="Wrap" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" TextAlignment="Center" />
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="6" Margin="8,2,8,8">
+            <Button Grid.Column="0" Classes="FlatButton" Height="32"
+                    Grid.ColumnSpan="2"
+                    IsVisible="{Binding IsSubMacroDock}"
+                    Content="{Binding [Editor.AddSubMacro], Source={x:Static loc:Strings.Current}}">
+                <Button.Flyout>
+                    <MenuFlyout>
+                        <MenuItem Header="{Binding [Editor.NewSubMacro], Source={x:Static loc:Strings.Current}}"
+                                  Click="OnAddBlankSubMacro" />
+                        <MenuItem Header="{Binding [Editor.CopyProjectMacro], Source={x:Static loc:Strings.Current}}"
+                                  Click="OnCopyProjectMacro" />
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+            <Button Grid.Column="1" Classes="FlatButton" Height="32"
+                    Grid.ColumnSpan="2"
+                    IsVisible="{Binding IsPublicMacroDock}"
+                    Content="{Binding [Editor.ManagePublicMacros], Source={x:Static loc:Strings.Current}}"
+                    Click="OnManagePublicMacros" />
+            <TextBlock Grid.ColumnSpan="2" Classes="Muted" VerticalAlignment="Center"
+                       IsVisible="{Binding IsBasicDock}"
+                       Text="{Binding [Editor.DragActionHint], Source={x:Static loc:Strings.Current}}"
+                       TextWrapping="Wrap" />
+            <TextBlock Grid.ColumnSpan="2" Classes="Muted" VerticalAlignment="Center"
+                       IsVisible="{Binding IsFlowDock}"
+                       Text="{Binding [Editor.DragActionHint], Source={x:Static loc:Strings.Current}}"
+                       TextWrapping="Wrap" />
         </Grid>
     </Grid>
 </UserControl>

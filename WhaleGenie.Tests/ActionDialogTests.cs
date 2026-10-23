@@ -100,9 +100,9 @@ public class ActionDialogTests
     /// The same dialog, window and all, for a check that looks at what the form draws rather than
     /// only at what the view model holds.
     /// </summary>
-    private static (AddActionWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
+    private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("match.x", "match.y", "spot"), []);
 
         window.Show();
@@ -290,21 +290,6 @@ public class ActionDialogTests
             Assert.True(Shown(viewModel, "caseSensitive"));
             Assert.False(Shown(viewModel, "trim"));
             Assert.True(Shown(viewModel, "multiline"));
-
-            // A condition compares text too, so the same three answers are asked for there.
-            var condition = Open("condition.compare");
-            var folded = condition.AdvancedRows.SelectMany(Names).ToList();
-            Assert.Contains("caseSensitive", folded);
-            Assert.Contains("trim", folded);
-            Assert.Contains("multiline", folded);
-            Assert.True(Shown(condition, "trim"));
-            Assert.False(Shown(condition, "multiline"));
-
-            Choose(condition, "compareOperator", "regex");
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.False(Shown(condition, "trim"));
-            Assert.True(Shown(condition, "multiline"));
         });
     }
 
@@ -514,7 +499,7 @@ public class ActionDialogTests
             Assert.Equal("$count + 1",
                 saved!.Parameters.First(parameter => parameter.Name == "x").Value);
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions,
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("count"), []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
@@ -573,7 +558,7 @@ public class ActionDialogTests
     /// </summary>
     private static StepParameterViewModel Number(string key, string name, params string[] variables)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named(variables), []);
 
         window.Show();
@@ -623,8 +608,8 @@ public class ActionDialogTests
     [InlineData("vision.clickImage")]
     [InlineData("vision.findColor")]
     [InlineData("ocr.recognize")]
-    [InlineData("condition.colorEquals")]
-    [InlineData("condition.colorsMatch")]
+    [InlineData("vision.pixelMatches")]
+    [InlineData("vision.findColors")]
     public void An_action_that_names_a_position_offers_something_to_measure_it_from(string key)
     {
         Ui.Run(() =>
@@ -659,7 +644,7 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["match", "every", "coverage", "window", "method", "screenPoint",
+            Assert.Equal(["found", "match", "every", "coverage", "window", "method", "screenPoint",
                 "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
@@ -693,7 +678,7 @@ public class ActionDialogTests
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal(["match", "every", "window", "method", "screenPoint", "windowPoint"],
+            Assert.Equal(["found", "match", "every", "window", "method", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
@@ -800,28 +785,28 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_condition_can_be_written_as_an_expression()
+    public void A_block_condition_is_an_expression_field()
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("condition.expression");
+            var viewModel = Open("control.if");
             var expression = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "expression");
+                .First(parameter => parameter.Definition.Name == "condition");
 
             // The field is the one with live checking and suggestions, not a plain text box.
             Assert.True(expression.IsExpression);
-            Assert.Contains("$count", expression.Placeholder);
+            Assert.Contains("$found", expression.Placeholder);
             Assert.Contains("$spot", expression.ExpressionSuggestions);
             Assert.Contains("contains(", expression.ExpressionSuggestions);
         });
     }
 
     [Fact]
-    public void Conditions_are_offered_inside_a_step_and_not_as_one()
+    public void Condition_actions_are_not_offered_in_the_step_picker()
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, null, [], []);
+            var window = new ActionEditorWindow(null, null, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -830,17 +815,8 @@ public class ActionDialogTests
             // A condition says what has to be true rather than doing something, and the engine
             // only ever asks one inside an if, a while or a wait, so it is not on the step list.
             Assert.DoesNotContain(viewModel.AvailableActions,
-                action => action.Category == ActionCategory.Condition);
+                action => action.Key.StartsWith("condition.", StringComparison.Ordinal));
             Assert.Contains(viewModel.AvailableActions, action => action.Key == "input.mouseClick");
-
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.imageNotExists");
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.textNotExists");
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.uiaNotExists");
-            Assert.Contains(ActionCatalog.Conditions,
-                condition => condition.Key == "condition.expression");
         });
     }
 
@@ -849,7 +825,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, null, [], []);
+            var window = new ActionEditorWindow(null, null, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -864,23 +840,20 @@ public class ActionDialogTests
             var cases = viewModel.Parameters.First(parameter => parameter.Definition.Name == "cases");
 
             // The branches of a switch are steps of a block, so they are edited in the editor's
-            // own list, where the switch can be seen whole, and the dialog only says so. What a
-            // list may take is asked of the place the step is going (the editor's `InsertChoices`),
-            // not of this dialog.
+            // own list, where the switch can be seen whole. The form keeps their data for a round
+            // trip, but it never shows a second editor for them.
             var otherwise = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "otherwise");
 
-            Assert.True(cases.IsStepList);
-            Assert.False(cases.IsConditionList);
-            // A list that names itself says so on the button that adds to it, the way the editor's
-            // own list does: the branches of a switch are branches, not steps.
-            Assert.Equal(Strings.Get("Add.Case"), cases.List!.AddLabel);
-            Assert.True(otherwise.IsStepList);
+            Assert.NotNull(cases.List);
+            Assert.NotNull(otherwise.List);
+            Assert.DoesNotContain(viewModel.Rows,
+                row => Names(row).Any(name => name is "cases" or "otherwise"));
         });
     }
 
     [Fact]
-    public void The_add_button_in_a_block_offers_only_what_that_list_takes()
+    public void A_restricted_list_is_named_by_the_same_rule_every_entry_uses()
     {
         Ui.Run(() =>
         {
@@ -889,11 +862,12 @@ public class ActionDialogTests
             var otherwise = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "otherwise");
 
-            // A switch's branches are branches wherever they are added from, so the button in the
-            // dialog is narrowed the same way the editor's own list is. An ordinary block takes
-            // anything and says so by offering nothing in particular.
-            Assert.Equal(["control.case"], cases.List!.Catalog!.Select(action => action.Key));
-            Assert.Null(otherwise.List!.Catalog);
+            Assert.Equal(["control.case"],
+                StepPlacement.Allowed(cases.Definition).Select(action => action.Key));
+            Assert.Contains(StepPlacement.Allowed(otherwise.Definition),
+                action => action.Key == "control.log");
+            Assert.DoesNotContain(StepPlacement.Allowed(otherwise.Definition),
+                action => action.Key == "control.case");
         });
     }
 
@@ -929,7 +903,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("control.calculate");
+            var viewModel = Open("control.setVariable");
             var value = viewModel.Parameters.First(parameter => parameter.Definition.Name == "value");
 
             // The operand-and-operator pieces are gone: the whole value is one expression, offered
@@ -951,7 +925,7 @@ public class ActionDialogTests
             // under a name rather than to one action, so a calculation is refused the same way
             // "Set Variable" is. The clipboard is written by the clipboard action, never by
             // storing into sys.clipboard.
-            foreach (var key in new[] { "control.setVariable", "control.calculate", "control.listCreate" })
+            foreach (var key in new[] { "control.setVariable" })
             {
                 var viewModel = Open(key);
                 viewModel.Parameters.First(parameter => parameter.Definition.Name == "name").Text =
@@ -972,23 +946,17 @@ public class ActionDialogTests
             var viewModel = Open("control.repeat");
             var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
 
-            // The dialog says where the steps of a block went instead of showing a second list
-            // of the same steps, which is what used to make the same structure editable twice.
-            Assert.True(body.IsStepList);
-            Assert.False(body.IsConditionList);
-            Assert.NotEmpty(body.StepsNote);
+            // The child list remains in the model so the form can round-trip it, but no line or
+            // add control for it reaches the form.
+            Assert.NotNull(body.List);
+            Assert.DoesNotContain(viewModel.Rows.SelectMany(Names), name => name == "body");
 
-            // Adding one is still here: it is the one thing about the inside of a block you may
-            // well want while its settings are open.
-            Assert.Equal(Strings.Get("Add.AddStepToBlock"), body.List!.AddLabel);
-
-            // A condition is the one thing a step needs that is not a step, so it stays here.
+            // A condition is a Boolean expression inside its block, not another action list.
             var test = Open("control.if");
             var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
 
-            Assert.True(condition.IsConditionList);
-            Assert.False(condition.IsStepList);
-            Assert.Same(ActionCatalog.Conditions, condition.List!.Catalog);
+            Assert.True(condition.IsExpression);
+            Assert.Null(condition.List);
         });
     }
 
@@ -997,7 +965,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
+            var window = new ActionEditorWindow(
                 new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -1005,10 +973,22 @@ public class ActionDialogTests
             var viewModel = (AddActionViewModel)window.DataContext!;
 
             // Retries, timeouts and "when it fails" mean something bigger on a block: a failure
-            // inside it that no step answered is the block failing, so the dialog says so.
+            // inside it that no step answered is the block failing. Its explanation belongs with
+            // those controls, not among the fields that say what the block examines.
             Assert.True(viewModel.IsBlock);
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible && text.Text == Strings.Get("Add.BlockSettings"));
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockStepsInList"));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockSettings"));
+
+            viewModel.Select(viewModel.Pages.Single(page => page.Key == AddActionViewModel.OtherPage));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockSettings"));
 
             // A step that does one thing is not a block, and the line is not about it.
             Assert.False(Open("control.delay").IsBlock);
@@ -1016,99 +996,47 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_block_can_be_given_a_step_from_its_own_dialog()
+    public void A_block_form_keeps_children_without_showing_a_second_editor()
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(
-                new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
+            var child = Open("control.delay").BuildStep();
+            var window = new ActionEditorWindow(
+                new MacroStep
+                {
+                    Type = "control.repeat",
+                    Parameters =
+                    [
+                        new StepParameter
+                        {
+                            Name = "body",
+                            Kind = ActionParameterKind.Steps,
+                            Steps = [child],
+                        },
+                    ],
+                },
+                ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = (AddActionViewModel)window.DataContext!;
             var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
-            var before = body.StepsNote;
 
-            // The block's settings carry the line about where its steps are ordered, and beside it
-            // the one thing this dialog still does to them: add another.
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible && text.Text == body.StepsNote);
-            var button = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
-                candidate => candidate.IsEffectivelyVisible
-                    && Equals(candidate.Content, body.List!.AddLabel));
-
-            button.Command!.Execute(button.CommandParameter);
-            Dispatcher.UIThread.RunJobs();
-
-            // The action is picked in the same dialog the editor opens for a step of its own, and
-            // what it returns is appended to this block's list rather than to the macro.
-            var nested = window.OwnedWindows.OfType<AddActionWindow>().Single();
-            var picker = (AddActionViewModel)nested.DataContext!;
-            picker.SelectAction("control.delay");
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(picker.CanSave, picker.ValidationMessage);
-            picker.SaveCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal("control.delay", Assert.Single(body.List!.Steps).Type);
-
-            // The line under the settings is the count, so it has to follow what was added.
-            Assert.NotEqual(before, body.StepsNote);
+            // One explanation replaces one repeated note per child list, and no child editor is
+            // present. Saving still returns the child unchanged.
+            Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible
+                    && text.Text == Strings.Get("Add.BlockStepsInList"));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ItemsControl>(),
+                control => ReferenceEquals(control.ItemsSource, body.List!.Steps));
+            Assert.Empty(window.OwnedWindows);
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            Assert.Equal("control.delay",
-                Assert.Single(saved!.StepLists.Single().Steps).Type);
-        });
-    }
-
-    [Fact]
-    public void A_multi_point_colour_condition_asks_for_points_and_how_they_are_met()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("condition.colorsMatch");
-
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "points").IsMultiline);
-
-            var mode = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "colorMatchMode");
-            Assert.True(mode.IsChoice);
-            Assert.Equal(["all", "any"], mode.Choices.Select(choice => choice.Value));
-            Assert.Equal("all", mode.CurrentText);
-        });
-    }
-
-    /// <summary>
-    /// A colour share is asked for the way a colour search is — a colour, a place, and how much of
-    /// the place has to show it — and what is filled in is what the step is handed back with. The
-    /// share sits on the basic page beside the colour: a number somebody has to go looking for
-    /// under "advanced" is a number they will not find.
-    /// </summary>
-    [Fact]
-    public void A_colour_share_condition_asks_for_the_colour_the_place_and_how_much()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("condition.colorCoverage");
-
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "color").IsColor);
-            Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Contains("minCoverage", viewModel.Rows.Select(row => row.First.Definition.Name));
-
-            viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "minCoverage").NumberValue = 50;
-
-            MacroStep? saved = null;
-            viewModel.CloseRequested += result => saved = result;
-            viewModel.SaveCommand.Execute(null);
-
-            Assert.Equal("50", saved!.Parameters
-                .First(parameter => parameter.Name == "minCoverage").Value);
+            Assert.Equal("control.repeat", saved!.Type);
+            Assert.Equal("control.delay", Assert.Single(saved.StepLists.Single().Steps).Type);
         });
     }
 
@@ -1190,7 +1118,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -1245,7 +1173,7 @@ public class ActionDialogTests
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], []);
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions, [], []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -1409,7 +1337,6 @@ public class ActionDialogTests
     [Theory]
     [InlineData("ocr.findText", "region")]
     [InlineData("vision.findImage", "region")]
-    [InlineData("condition.imageExists", "region")]
     [InlineData("vision.capture", "x")]
     [InlineData("ocr.recognize", "x")]
     [InlineData("input.mouseDrag", "startX")]
@@ -1774,7 +1701,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_wait_until_is_edited_with_the_condition_editor()
+    public void A_wait_until_uses_the_expression_condition_editor()
     {
         Ui.Run(() =>
         {
@@ -1782,12 +1709,7 @@ public class ActionDialogTests
             var condition = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "condition");
 
-            // The wait borrows the same nested condition editor an if or a while uses, and it
-            // offers nothing but conditions, so a stray action cannot be dropped in as one.
-            Assert.True(condition.IsNested);
-            Assert.NotNull(condition.List);
-            Assert.True(condition.List!.IsCondition);
-            Assert.Same(ActionCatalog.Conditions, condition.List.Catalog);
+            Assert.True(condition.IsExpression);
 
             // How long the wait may last is not the action's business: the step's own timeout
             // says it, and this action names one of 10 seconds so a fresh step is not endless.
@@ -1837,7 +1759,7 @@ public class ActionDialogTests
                 },
             };
 
-            var window = new AddActionWindow(step, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(step, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2050,7 +1972,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2133,7 +2055,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2167,7 +2089,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2561,7 +2483,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2576,14 +2498,14 @@ public class ActionDialogTests
                 .ToList();
             Assert.NotEmpty(headings);
 
-            // The blocks are lifted out of the categories and listed together, in the order a
-            // task is built in: the four things that all "repeat" only read as different from
-            // each other when they stand side by side.
+            // This test hands over every definition, including the hidden grouping container.
+            // The ordinary user-facing palette is built from RunnableActions, where it is absent.
             var blocks = viewModel.ActionGroups.First(group => group.Key == "blocks");
             Assert.Equal(
-                ["control.sequence", "control.holdInput", "control.holdBrowser",
+                ["control.holdInput", "control.holdBrowser",
                     "control.repeat", "control.while", "control.for",
                     "control.forEach", "control.if", "control.switch", "control.try",
+                    "control.sequence",
                     // The switch case is a block too, and only ever offered inside a switch, so
                     // it lands after the ones a task is built from.
                     "control.case",
@@ -2622,7 +2544,7 @@ public class ActionDialogTests
                 card => Assert.Equal(PickerCategory(card.Definition.Category), group.Key)));
             Assert.All(groups.SelectMany(group => group.Actions), action => Assert.DoesNotContain(
                 action.Definition.Parameters,
-                parameter => parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly));
+                parameter => parameter.Kind is ActionParameterKind.Steps));
 
             // Over a hundred actions read as a dozen shut headings until one of them is opened or
             // a search says which one matters. ("Recently used" is the exception: it is open,
@@ -2698,7 +2620,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2737,7 +2659,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2767,7 +2689,7 @@ public class ActionDialogTests
             viewModel.CloseRequested += _ => { };
             viewModel.SaveCommand.Execute(null);
 
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2798,7 +2720,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2806,18 +2728,21 @@ public class ActionDialogTests
             viewModel.SelectAction("input.hotkey");
             Dispatcher.UIThread.RunJobs();
 
-            // The combination is written in one box with the keyboard beside it, and what the
-            // keyboard hands back joins what is written: Ctrl+Shift+S is put together one key at a
-            // time, so a key that replaced the rest would throw away the two already picked.
+            // The combination is a keyboard field button. What the keyboard hands back joins what
+            // is already there, so Ctrl+Shift+S is put together one key at a time.
             var keys = viewModel.Parameters.First(parameter => parameter.Definition.Name == "keys");
             Assert.True(keys.IsKeys);
             Assert.False(keys.IsKey);
 
-            var keyboard = window.GetVisualDescendants().OfType<Button>()
+            var field = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
-                    && Equals(button.Content, Strings.Get("Add.OpenKeyPad")));
-            Assert.NotNull(keyboard);
-            Assert.Same(keys, keyboard.DataContext);
+                    && button.Classes.Contains("KeyFieldButton")
+                    && ReferenceEquals(keys, button.DataContext));
+            Assert.NotNull(field);
+            Assert.Equal(Strings.Get("Add.ChooseKeys"), field.Content);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBox>()
+                    .Where(box => box.IsEffectivelyVisible),
+                box => ReferenceEquals(keys, box.DataContext));
 
             // The sides are named apart on the drawn keyboard, so a combination can say which
             // Ctrl or Shift it means — the same names the trigger bindings use.
@@ -2840,7 +2765,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2848,18 +2773,30 @@ public class ActionDialogTests
             viewModel.SelectAction("input.keyPress");
             Dispatcher.UIThread.RunJobs();
 
-            // The key can be typed, offered as a name, or pointed at on the keyboard drawn on
-            // screen; the three live on the same line, so the field never looks like it must be
-            // spelled from memory.
+            // The key is chosen on the keyboard drawn on screen; there is no text box whose
+            // spelling has to be remembered.
             var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
             Assert.True(field.IsKey);
-            Assert.Contains("F5", field.KeyChoices);
 
-            var keyboard = window.GetVisualDescendants().OfType<Button>()
+            var keyboardField = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
-                    && Equals(button.Content, Strings.Get("Add.OpenKeyPad")));
-            Assert.NotNull(keyboard);
-            Assert.Same(field, keyboard.DataContext);
+                    && button.Classes.Contains("KeyFieldButton")
+                    && ReferenceEquals(field, button.DataContext));
+            Assert.NotNull(keyboardField);
+            Assert.Equal(Strings.Get("Add.ChooseKey"), keyboardField.Content);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<AutoCompleteBox>()
+                    .Where(box => box.IsEffectivelyVisible),
+                box => ReferenceEquals(field, box.DataContext));
+
+            field.Text = "F5";
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("F5", keyboardField.Content);
+
+            keyboardField.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
+            Assert.Equal(field.Definition.LocalLabel, pad.Filling);
+            pad.Close();
 
             // Nothing else gets it: a plain text field has no keys to point at.
             viewModel.SelectAction("input.typeText");
@@ -2867,7 +2804,8 @@ public class ActionDialogTests
 
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
                     .Where(button => button.IsEffectivelyVisible),
-                button => button.DataContext is StepParameterViewModel { IsKey: true });
+                button => button.Classes.Contains("KeyFieldButton")
+                    && button.DataContext is StepParameterViewModel { IsKey: true });
         });
     }
 
@@ -2876,7 +2814,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -2929,7 +2867,7 @@ public class ActionDialogTests
         {
             var screen = new ColourScreen { Colour = new PixelColor(0x11, 0x22, 0x33) };
             var hook = new ClickingHook();
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], [])
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [])
             {
                 Devices = new ChecksDevices { Screen = screen, Hook = hook },
             };
@@ -3063,7 +3001,7 @@ public class ActionDialogTests
     {
         Ui.RunAsync(async () =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -3095,7 +3033,7 @@ public class ActionDialogTests
     {
         Ui.RunAsync(async () =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -3200,7 +3138,7 @@ public class ActionDialogTests
             Assert.Equal("答案", row.Text("key"));
             Assert.Equal("答案", row.Text("name"));
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], Macros());
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions, [], Macros());
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -3243,9 +3181,9 @@ public class ActionDialogTests
     }
 
     /// <summary>The dialog open on a call, with the project's macros to point it at.</summary>
-    private static AddActionWindow CallWindow()
+    private static ActionEditorWindow CallWindow()
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions, [], Macros());
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], Macros());
         window.Show();
         Dispatcher.UIThread.RunJobs();
 

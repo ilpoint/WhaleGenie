@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Variables;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -51,6 +52,10 @@ public partial class VariableDefinition : ObservableObject
     /// <summary>Macro that owns a local variable; empty for system and global variables.</summary>
     public string Owner { get; set; } = string.Empty;
 
+    /// <summary>Whether this global's current value is kept for this user between program runs.</summary>
+    [ObservableProperty]
+    public partial bool PersistValue { get; set; }
+
     /// <summary>
     /// Value shown in the Variable Center. System variables are read live; local ones are
     /// only known while their macro runs.
@@ -88,7 +93,7 @@ public partial class VariableDefinition : ObservableObject
     {
         if (type is not "list")
         {
-            return value;
+            return VariableValues.Preview(type, value, VariableValues.DesignContext());
         }
 
         if (value.Trim().Length == 0)
@@ -103,7 +108,7 @@ public partial class VariableDefinition : ObservableObject
 
     /// <summary>True when a starting value cannot be read for the given type.</summary>
     public static bool HasError(string type, string value)
-        => type is "list" && value.Trim().Length > 0 && !ListText.TryParse(value, out _, out _);
+        => VariableValues.HasError(type, value, VariableValues.DesignContext());
 
     /// <summary>Type name in the current interface language.</summary>
     public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);
@@ -139,4 +144,7 @@ public partial class VariableDefinition : ObservableObject
     }
 
     public override string ToString() => Name;
+
+    partial void OnPersistValueChanged(bool value)
+        => PersistentVariables.PersistChanged(this, value);
 }

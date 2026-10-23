@@ -348,6 +348,12 @@ public sealed partial class MacroRunner
         var (match, compare) = rule.Reading;
         var selected = rule.MatchValue.Trim();
 
+        if (match is WindowMatch.Handle && rule.Handle == 0)
+        {
+            throw new StepFailure(RunKeys.BadWindowRule,
+                "a window handle rule needs a non-zero handle");
+        }
+
         // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
         // puzzle over, so it comes back as a failed step before anything is looked at — the same
         // words whichever step asked.
@@ -377,6 +383,10 @@ public sealed partial class MacroRunner
         {
             WindowMatch.Process => Text(FieldNames.Process),
             WindowMatch.ClassName => Text(FieldNames.Class),
+            WindowMatch.Handle => record.Field(FieldNames.Handle)?.AsNumber() is { } windowHandle
+                && windowHandle != 0
+                ? windowHandle.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : string.Empty,
             _ => Text(FieldNames.Title),
         };
         if (selected.Length == 0)
@@ -385,6 +395,7 @@ public sealed partial class MacroRunner
             {
                 WindowMatch.Process => FieldNames.Process,
                 WindowMatch.ClassName => FieldNames.Class,
+                WindowMatch.Handle => FieldNames.Handle,
                 _ => FieldNames.Title,
             };
             throw new StepFailure(RunKeys.WindowRecordField, needed);
@@ -419,23 +430,7 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>True when the text is one variable name and nothing else.</summary>
-    private static bool WindowName(string name)
-    {
-        if (name.Length == 0 || (!char.IsLetter(name[0]) && name[0] != '_'))
-        {
-            return false;
-        }
-
-        foreach (var letter in name)
-        {
-            if (!char.IsLetterOrDigit(letter) && letter != '_' && letter != '.')
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    private static bool WindowName(string name) => VariableText.IsName(name);
 
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
     private string WindowText(ExecutableStep step) => WindowRuleOf(step).MatchValue.Trim();

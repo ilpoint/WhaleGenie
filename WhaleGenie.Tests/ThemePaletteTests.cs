@@ -75,6 +75,7 @@ public class ThemePaletteTests
 
                 var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
                 Assert.Equal(3, viewModel.ThemeOptions.Count);
+                viewModel.SetPage(SettingsRootPage.Appearance, SettingsSubPage.Theme);
                 viewModel.SelectedTheme = viewModel.ThemeOptions.Single(option => option.Mode == ThemeMode.Custom);
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 

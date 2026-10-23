@@ -120,6 +120,24 @@
         <Style Selector="Button.CardButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
+
+        <Style Selector="Button.DockButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="BorderThickness" Value="0,0,0,2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="4,7" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.DockButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
+        <Style Selector="Button.DockButton.On">
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="BorderBrush" Value="#4EA4E8" />
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="36,30,*,Auto">
@@ -349,18 +367,46 @@
         </Grid>
 
         <!-- ============ Main content ============ -->
-        <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="14,10">
+        <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" Margin="14,10">
+            <!-- Trigger dock -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="2"
+                  Margin="0,0,0,8">
+                <Button Grid.Column="0" Classes="DockButton" Classes.On="{Binding IsKeysDock}"
+                        Command="{Binding SelectDockCommand}" CommandParameter="Keys"
+                        Content="{Binding [Main.Dock.Keys], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="1" Classes="DockButton" Classes.On="{Binding IsInterfaceDock}"
+                        Command="{Binding SelectDockCommand}" CommandParameter="Interface"
+                        Content="{Binding [Main.Dock.Interface], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="2" Classes="DockButton" Classes.On="{Binding IsHotstringDock}"
+                        Command="{Binding SelectDockCommand}" CommandParameter="Hotstring"
+                        Content="{Binding [Main.Dock.Hotstring], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="3" Classes="DockButton" Classes.On="{Binding IsMenuDock}"
+                        Command="{Binding SelectDockCommand}" CommandParameter="Menu"
+                        Content="{Binding [Main.Dock.Menu], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="4" Classes="DockButton" Classes.On="{Binding IsOtherDock}"
+                        Command="{Binding SelectDockCommand}" CommandParameter="Other"
+                        Content="{Binding [Main.Dock.Other], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+
             <!-- Search box -->
-            <TextBox Grid.Row="0" Text="{Binding SearchText}"
+            <TextBox Grid.Row="1" Text="{Binding SearchText}"
                      PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
                      Background="{DynamicResource AppDock}" BorderBrush="{DynamicResource AppDock}"
                      Foreground="{DynamicResource AppText}" FontSize="13"
                      CornerRadius="4" Padding="10,7" />
 
             <!-- Macro list -->
-            <ItemsControl Grid.Row="1" Name="MacroList" ItemsSource="{Binding VisibleMacros}"
-                          Margin="0,10,0,0">
-                <ItemsControl.ItemTemplate>
+            <ScrollViewer Grid.Row="2" Name="MacroListScroll" Margin="0,10,0,0"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl Name="MacroList" ItemsSource="{Binding VisibleMacros}"
+                              VerticalAlignment="Top">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="0" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:MacroItem">
                         <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <!-- The same three things the card's own buttons do, where a right click
@@ -417,52 +463,33 @@
                                         Padding="12,9"
                                         Opacity="{Binding IsEnabled, Converter={StaticResource CardOpacity}}">
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                        <!-- Badge showing how the macro starts: keyboard, mouse or eyedropper -->
+                                        <!-- One badge for the entry set: a macro may now have several. -->
                                         <Border Grid.Column="0" Background="{DynamicResource AppHover}" CornerRadius="4"
                                                 Width="28" Height="28" VerticalAlignment="Center">
                                             <Panel>
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsKeyboardTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Keyboard}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsMouseTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Mouse}" />
-                                                <!-- A controller button as the trigger, drawn the way the other icons are -->
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsGamepadTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GameController}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsColorTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Dropper}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsTimerTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Clock}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsFileTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Folder}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsProcessTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Cpu}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsWindowTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.AppWindow}" />
-                                                <views:IconView Width="15" Height="15" IsVisible="{Binding IsIdleTrigger}" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Moon}" />
+                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GridFour}" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock FontSize="12.5">
-                                                <Run Text="{Binding Trigger}" Foreground="{DynamicResource AppText}" />
-                                                <Run Text="  " />
-                                                <Run Text="{Binding Action}" Foreground="{DynamicResource AppMuted}" />
-                                            </TextBlock>
-                                            <!-- What actually fires the macro: the bound key or the watched colour -->
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <Border Width="12" Height="12" CornerRadius="2"
-                                                        BorderBrush="{DynamicResource AppMuted}" BorderThickness="1"
-                                                        VerticalAlignment="Center"
-                                                        IsVisible="{Binding IsColorTrigger}"
-                                                        Background="{Binding HexColor, Converter={StaticResource HexBrush}}" />
-                                                <TextBlock FontSize="12" Foreground="#8FC7F0"
-                                                           MaxWidth="260" TextTrimming="CharacterEllipsis"
-                                                           ToolTip.Tip="{Binding TriggerPreview}"
-                                                           Text="{Binding TriggerPreview}" />
-                                            </StackPanel>
+                                            <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                                       TextWrapping="Wrap" MaxLines="2"
+                                                       Text="{Binding TriggerSummaries}" />
+                                            <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Text="{Binding Action}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
                             </Grid>
                         </Border>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
             <!-- Empty state, shown until the first macro is added -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="5"
-                        IsVisible="{Binding !HasMacros}">
+            <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="5"
+                        IsVisible="{Binding !HasMacros}" IsHitTestVisible="False">
                 <TextBlock Text="{Binding [Main.EmptyTitle], Source={x:Static loc:Strings.Current}}"
                            Foreground="{DynamicResource AppMuted}" FontSize="13" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding [Main.EmptyHint], Source={x:Static loc:Strings.Current}}"
@@ -471,8 +498,9 @@
             </StackPanel>
 
             <!-- What the search box did, when there are macros but none of them match -->
-            <TextBlock Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+            <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center"
                        IsVisible="{Binding HasNoMatch}"
+                       IsHitTestVisible="False"
                        Text="{Binding [Main.NoMatch], Source={x:Static loc:Strings.Current}}"
                        Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
         </Grid>

@@ -22,6 +22,9 @@ public sealed class VariableChoice
     /// <summary>What it holds: text, number, flag, colour, date or list.</summary>
     public string Type { get; init; } = string.Empty;
 
+    /// <summary>The fields a record holds, in catalogue order; empty when the shape is unknown.</summary>
+    public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
+
     /// <summary>One line saying what it is for.</summary>
     public string Description { get; init; } = string.Empty;
 
@@ -34,6 +37,12 @@ public sealed class VariableChoice
     /// <summary>True for a step's own ending, which a run leaves behind rather than a step naming it.</summary>
     public bool IsStepResult { get; init; }
 
+    /// <summary>Whether this global's current value is kept between program runs.</summary>
+    public bool IsPersistent { get; init; }
+
+    /// <summary>Where this name comes from, which decides which editor owns it.</summary>
+    public VariableOrigin Origin { get; init; }
+
     /// <summary>
     /// The steps that read this variable, in the order they run. A name on a button says nothing
     /// about who wants it, and "where is this used" is the question that follows "what is this" —
@@ -44,12 +53,63 @@ public sealed class VariableChoice
     /// <summary>What a field holds once this one is chosen.</summary>
     public string Token => "$" + Name;
 
+    internal Func<string?>? ContentReader { get; init; }
+
+    /// <summary>The current value when one can be read, or the reason there is none yet.</summary>
+    public string ContentPreview
+    {
+        get
+        {
+            var value = ContentReader?.Invoke();
+            return string.IsNullOrWhiteSpace(value)
+                ? Strings.Get("VarWall.NoRuntimeValue")
+                : value;
+        }
+    }
+
+    /// <summary>Record fields, one line each, read without opening another window.</summary>
+    public IReadOnlyList<string> FieldLines =>
+    [
+        .. Fields.Select(part =>
+            $"{part.Name}: {Strings.Get($"Variable.Type.{ActionReturn.TypeNameOf(part.Type)}",
+                ActionReturn.TypeNameOf(part.Type))}"),
+    ];
+
+    public bool HasFields => FieldLines.Count > 0;
+
+    public string HoverText
+    {
+        get
+        {
+            var lines = new List<string>
+            {
+                Strings.Format("VarWall.ContentLine", ContentPreview),
+            };
+            if (HasFields)
+            {
+                lines.Add(Strings.Get("VarWall.Fields"));
+                lines.AddRange(FieldLines.Select(part => "• " + part));
+            }
+
+            lines.Add(Details);
+            return string.Join("\n", lines);
+        }
+    }
+
     /// <summary>
     /// How the button names it: the Chinese name with the code name beside it where WhaleGenie gave
     /// it one — 剪贴板 ($sys.clipboard) — and the name a formula writes otherwise. What choosing it
     /// puts in the field is still <see cref="Token"/>; this is only what to read.
     /// </summary>
     public string Display => VariableCatalog.Display(Name, true);
+
+    /// <summary>A short mark on the card when a global value survives a restart.</summary>
+    public string PersistenceBadge => IsPersistent ? Strings.Get("VarWall.Persistent") : string.Empty;
+
+    public void RefreshLanguage() => PropertyChanged?.Invoke(this,
+        new System.ComponentModel.PropertyChangedEventArgs(string.Empty));
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>Which of the picker's buttons shows it.</summary>
     public VariableGroup Group => IsStepResult
@@ -79,6 +139,21 @@ public sealed class VariableChoice
             return said.Length > 0 ? line + "\n" + said : line;
         }
     }
+
+    internal VariableChoice WithContent(Func<string, VariableScope, string?> content) => new()
+    {
+        Name = Name,
+        Scope = Scope,
+        Type = Type,
+        Fields = Fields,
+        Description = Description,
+        Source = Source,
+        IsStepResult = IsStepResult,
+        IsPersistent = IsPersistent,
+        Origin = Origin,
+        Uses = Uses,
+        ContentReader = () => content(Name, Scope),
+    };
 }
 
 /// <summary>One step that reads a variable, named the way a step names itself on the list.</summary>
@@ -102,6 +177,17 @@ public enum VariableGroup
     StepResult,
 }
 
+/// <summary>The declaration or generated source that owns a variable name.</summary>
+public enum VariableOrigin
+{
+    Local,
+    Global,
+    System,
+    Parameter,
+    Result,
+    StepOutput,
+}
+
 /// <summary>
 /// The rows a variable picker offers, built from what the editor knows: what WhaleGenie provides,
 /// what the Variable Center shares, what this macro makes for itself, and the ending each step
@@ -110,7 +196,8 @@ public enum VariableGroup
 public static class VariableChoices
 {
     public static IReadOnlyList<VariableChoice> For(IEnumerable<MacroStep> steps,
-        IEnumerable<MacroParameter>? parameters = null, IEnumerable<MacroResult>? results = null)
+        IEnumerable<MacroParameter>? parameters = null, IEnumerable<MacroResult>? results = null,
+        Func<string, VariableScope, string?>? content = null)
     {
         var rows = new List<VariableChoice>();
         var uses = new Dictionary<string, List<VariableUse>>(StringComparer.OrdinalIgnoreCase);
@@ -126,6 +213,8 @@ public static class VariableChoices
                 Scope = VariableScope.Global,
                 Type = variable.Type,
                 Description = variable.Description,
+                IsPersistent = variable.PersistValue,
+                Origin = VariableOrigin.Global,
                 Uses = UsesOf(uses, variable.Name),
             }),
             .. VariableCatalog.SystemVariables.Select(variable => new VariableChoice
@@ -134,11 +223,15 @@ public static class VariableChoices
                 Scope = VariableScope.System,
                 Type = variable.Type,
                 Description = Strings.Get($"Variable.{variable.Name}.desc", variable.Description),
+                Origin = VariableOrigin.System,
                 Uses = UsesOf(uses, variable.Name),
             }),
         ];
 
-        return Merge(rows, shared);
+        var merged = Merge(rows, shared);
+        return content is null
+            ? merged
+            : [.. merged.Select(choice => choice.WithContent(content))];
     }
 
     /// <summary>
@@ -166,6 +259,7 @@ public static class VariableChoices
                 Type = ActionReturn.TypeNameOf(parameter.Type),
                 Description = parameter.Description,
                 Source = Strings.Get("VarWall.Parameter"),
+                Origin = VariableOrigin.Parameter,
                 Uses = UsesOf(uses, name),
             });
         }
@@ -185,6 +279,7 @@ public static class VariableChoices
                 Type = ActionReturn.TypeNameOf(result.Type),
                 Description = result.Description,
                 Source = Strings.Get("VarWall.Result"),
+                Origin = VariableOrigin.Result,
                 Uses = UsesOf(uses, name),
             });
         }
@@ -213,13 +308,6 @@ public static class VariableChoices
                 {
                     case ActionParameterKind.Steps:
                         Read(parameter.Steps, uses);
-                        continue;
-                    case ActionParameterKind.Condition:
-                        if (parameter.Condition is { } condition)
-                        {
-                            Read([condition], uses);
-                        }
-
                         continue;
                 }
 
@@ -300,8 +388,10 @@ public static class VariableChoices
                             Name = name,
                             Scope = VariableScope.Local,
                             Type = result?.TypeName ?? "text",
+                            Fields = result?.Fields ?? [],
                             Description = result?.LocalHint ?? string.Empty,
                             Source = step.PickerLabel,
+                            Origin = VariableOrigin.Local,
                             Uses = UsesOf(uses, name),
                         });
                     }
@@ -309,9 +399,7 @@ public static class VariableChoices
                     continue;
                 }
 
-                // A condition reads variables and makes none, so there is nothing to collect there.
-                if (parameter.Kind is ActionParameterKind.Condition
-                    || !step.DefinesVariable(parameter)
+                if (!step.DefinesVariable(parameter)
                     || parameter.Value.Trim().Length == 0)
                 {
                     continue;
@@ -325,13 +413,12 @@ public static class VariableChoices
                         .FirstOrDefault(candidate => candidate.Name == parameter.Name)
                         ?.LocalHint ?? string.Empty,
                     Source = step.PickerLabel,
+                    Origin = VariableOrigin.Local,
                     Uses = UsesOf(uses, parameter.Value.Trim()),
                 });
             }
 
-            // A condition is asked by the step it belongs to rather than run on its own, so its
-            // ending is nothing anybody can ask about.
-            if (!step.IsCondition && step.Id.Length > 0)
+            if (step.Id.Length > 0)
             {
                 rows.Add(new VariableChoice
                 {
@@ -341,6 +428,7 @@ public static class VariableChoices
                     Description = Strings.Get("VarWall.Outcome"),
                     Source = step.PickerLabel,
                     IsStepResult = true,
+                    Origin = VariableOrigin.StepOutput,
                     Uses = UsesOf(uses, MacroRunner.OutcomeName(step.Id)),
                 });
 
@@ -354,6 +442,7 @@ public static class VariableChoices
                     Description = Strings.Get("VarWall.Error"),
                     Source = step.PickerLabel,
                     IsStepResult = true,
+                    Origin = VariableOrigin.StepOutput,
                     Uses = UsesOf(uses, MacroRunner.ErrorName(step.Id)),
                 });
             }

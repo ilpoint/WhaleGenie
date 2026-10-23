@@ -17,6 +17,14 @@ public class MacroPackageFormatTests
 {
     [Theory]
     [InlineData(1)]
+    [InlineData(10)]
+    [InlineData(11)]
+    [InlineData(12)]
+    [InlineData(13)]
+    [InlineData(14)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(17)]
     [InlineData(9)]
     public void A_package_from_an_older_format_is_refused(int version)
     {
@@ -34,6 +42,118 @@ public class MacroPackageFormatTests
             Assert.Contains(version.ToString(), error.Message, StringComparison.Ordinal);
             Assert.Contains(MacroPackage.FormatVersion.ToString(), error.Message,
                 StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void Child_macros_and_their_public_origin_survive_the_package()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            var path = Path.Combine(folder, "children.wgmacro");
+            var parent = new MacroItem
+            {
+                Name = "parent",
+                Description = "Parent description",
+            };
+            var child = new MacroItem
+            {
+                Name = "child",
+                Description = "Child description",
+                Origin = new MacroOrigin("public-id", "Public child", 6),
+            };
+            child.Steps.Add(new MacroStep { Type = "control.log" });
+            parent.SubMacros.Add(child);
+
+            MacroPackage.Save(path, [parent], [], "test");
+            var loaded = Assert.Single(MacroPackage.Load(path).Macros);
+            var loadedChild = Assert.Single(loaded.SubMacros);
+
+            Assert.Equal("Parent description", loaded.Description);
+            Assert.Equal("Child description", loadedChild.Description);
+            Assert.Equal("public-id", loadedChild.Origin!.Id);
+            Assert.Equal(6, loadedChild.Origin.Version);
+            Assert.Equal("control.log", Assert.Single(loadedChild.Steps).Type);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void Trigger_entries_and_surface_layouts_live_in_triggers_json()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            var path = Path.Combine(folder, "multi.wgmacro");
+            var macro = new MacroItem { Name = "multi" };
+            var triggers = new ProjectTriggers();
+            triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Key,
+                MacroName = macro.Name,
+                BindKey = "F8",
+            });
+            triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Hotstring,
+                MacroName = macro.Name,
+                Abbreviation = ";go",
+                HotstringEndChars = "\n",
+            });
+            var page = triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
+            triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
+            triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Menu,
+                MacroName = macro.Name,
+                MenuPageId = page.Id,
+                MenuRow = 1,
+                MenuColumn = 2,
+            });
+            triggers.MenuLauncher = "Ctrl+Alt+M";
+            var blocked = new WindowRule(Process: "game", How: WindowHow.ProcessEquals);
+            triggers.BlockedMenuRules.Add(blocked);
+
+            MacroPackage.Save(path, [macro], triggers, [], "test");
+            string triggerJson;
+            using (var archive = ZipFile.OpenRead(path))
+            {
+                Assert.NotNull(archive.GetEntry("triggers.json"));
+                using var reader = new StreamReader(
+                    archive.GetEntry("triggers.json")!.Open());
+                triggerJson = reader.ReadToEnd();
+            }
+            Assert.DoesNotContain("\"label\"", triggerJson, StringComparison.Ordinal);
+            Assert.Contains("\"blockedRules\"", triggerJson, StringComparison.Ordinal);
+
+            var loaded = MacroPackage.Load(path);
+
+            Assert.Equal(3, loaded.Triggers.Entries.Count);
+            Assert.Equal(3, Assert.Single(loaded.Macros).Triggers.Count);
+            Assert.Contains(loaded.Triggers.Entries,
+                entry => entry.Kind == TriggerKind.Hotstring && entry.Abbreviation == ";go");
+            Assert.Equal("\n", loaded.Triggers.Entries
+                .Single(entry => entry.Kind == TriggerKind.Hotstring).HotstringEndChars);
+            Assert.Equal("Ctrl+Alt+M", loaded.Triggers.MenuLauncher);
+            Assert.Equal(blocked, Assert.Single(loaded.Triggers.BlockedMenuRules));
+            Assert.Single(loaded.Triggers.CommonMenuPages());
+            Assert.Equal(2, loaded.Triggers.ContextMenuPages().Count);
+            var menu = loaded.Triggers.Entries.Single(entry => entry.Kind == TriggerKind.Menu);
+            Assert.Equal((1, 2), (menu.MenuRow, menu.MenuColumn));
         }
         finally
         {
@@ -73,6 +193,83 @@ public class MacroPackageFormatTests
 
             Assert.Equal(rule, loaded.WindowTarget);
             Assert.Equal(WindowChangeKind.Disappeared, loaded.WindowChange);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void A_menu_image_is_carried_in_the_package_assets()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var icon = Path.Combine(folder, "menu.png");
+            File.WriteAllBytes(icon, [137, 80, 78, 71]);
+            var macro = new MacroItem { Name = "menu" };
+            var triggers = new ProjectTriggers();
+            triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Menu,
+                MacroName = macro.Name,
+                MenuPageId = triggers.CommonMenuPages()[0].Id,
+                MenuRow = 0,
+                MenuColumn = 0,
+                MenuIcon = new MenuIconReference(MenuIconKind.Image, icon),
+            });
+            var path = Path.Combine(folder, "menu.wgmacro");
+
+            MacroPackage.Save(path, [macro], triggers, [], "test");
+
+            using (var archive = ZipFile.OpenRead(path))
+            {
+                Assert.Contains(archive.Entries,
+                    entry => entry.FullName.StartsWith("assets/", StringComparison.Ordinal)
+                        && entry.Name == "menu.png");
+            }
+
+            var loaded = MacroPackage.Load(path);
+            var loadedIcon = loaded.Triggers.Entries.Single(entry =>
+                entry.Kind == TriggerKind.Menu).MenuIcon;
+            Assert.Equal(MenuIconKind.Image, loadedIcon?.Kind);
+            Assert.True(File.Exists(loadedIcon!.Value));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void A_package_with_conflicting_menu_cells_is_not_written()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var macro = new MacroItem { Name = "menu" };
+            var triggers = new ProjectTriggers();
+            var page = triggers.CommonMenuPages()[0];
+            for (var index = 0; index < 2; index++)
+            {
+                triggers.Entries.Add(new TriggerEntry
+                {
+                    Kind = TriggerKind.Menu,
+                    MacroName = macro.Name,
+                    MenuPageId = page.Id,
+                    MenuRow = 0,
+                    MenuColumn = 0,
+                });
+            }
+
+            Assert.Throws<InvalidDataException>(() =>
+                MacroPackage.Save(Path.Combine(folder, "bad.wgmacro"),
+                    [macro], triggers, [], "test"));
         }
         finally
         {

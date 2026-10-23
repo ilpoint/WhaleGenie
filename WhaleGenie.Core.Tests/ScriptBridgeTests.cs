@@ -283,12 +283,12 @@ public class AutoHotkeyDeviceTests
     [Fact]
     public void The_first_AutoHotkey_is_told_apart_from_the_second_one()
     {
-        // A copy of anything this build wrote, which carries the version 1.0.0.0 the build gives
-        // everything it makes.
+        // A dependency with a stable 1.x file version stands in for the first AutoHotkey. The
+        // project's own assembly cannot: its file version follows the release tag.
         var folder = Path.Combine(Path.GetTempPath(), $"wg-ahk-v1-{Guid.NewGuid():N}");
         Directory.CreateDirectory(folder);
         var first = Path.Combine(folder, "AutoHotkey64.exe");
-        File.Copy(typeof(AutoHotkeyDeviceTests).Assembly.Location, first);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Microsoft.Playwright.dll"), first);
 
         try
         {

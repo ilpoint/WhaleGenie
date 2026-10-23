@@ -647,7 +647,7 @@ public class WindowPreviewTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("condition.windowExists");
+            var viewModel = Open("window.exists");
             viewModel.Windows = Desk()
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Calculator", "calc", "CalcFrame");
@@ -655,8 +655,7 @@ public class WindowPreviewTests
             var text = Parameter(viewModel, "window");
             Assert.True(text.ShowsWindowPreview);
 
-            // A condition is asked about rather than done, so there is nothing for the run button.
-            Assert.False(viewModel.ShowsRun);
+            Assert.True(viewModel.ShowsRun);
 
             PutWindowRule(viewModel, "calc", "process");
             Dispatcher.UIThread.RunJobs();
@@ -710,7 +709,7 @@ public class WindowPreviewTests
 
             // A trigger that is not a window trigger has no rule to read, and the frames go with the
             // list rather than standing over a rule nothing reads.
-            viewModel.TriggerMode = MacroTrigger.Timer;
+            viewModel.TriggerMode = TriggerKind.Timer;
             Dispatcher.UIThread.RunJobs();
 
             Assert.Empty(viewModel.WindowPreview.Places);
@@ -765,9 +764,9 @@ public class WindowPreviewTests
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name);
 
     /// <summary>The dialog, opened on an action the way the editor opens it.</summary>
-    private static AddActionWindow Shell(string key)
+    private static ActionEditorWindow Shell(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("wanted"), []);
 
         window.Show();

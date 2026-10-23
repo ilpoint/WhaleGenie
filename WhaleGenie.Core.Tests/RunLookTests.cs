@@ -50,7 +50,7 @@ public class RunLookTests
         => new() { Name = name, Steps = steps };
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Condition = step };
+        => new() { Name = name, Text = TestConditions.Expression(step) };
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)

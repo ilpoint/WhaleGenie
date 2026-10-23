@@ -17,22 +17,139 @@ public class TriggerKindTests
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();
+            TriggerKind[] offered =
+            [
+                TriggerKind.Key,
+                TriggerKind.Color,
+                TriggerKind.Interface,
+                TriggerKind.Hotstring,
+                TriggerKind.Timer,
+                TriggerKind.File,
+                TriggerKind.Process,
+                TriggerKind.Window,
+                TriggerKind.Idle,
+            ];
 
-            Assert.Equal(Enum.GetValues<MacroTrigger>().Length, editor.TriggerOptions.Count);
+            Assert.Equal(offered, editor.TriggerKindChoices.Select(choice => choice.Kind));
 
-            foreach (var kind in Enum.GetValues<MacroTrigger>())
+            foreach (var kind in offered)
             {
-                editor.TriggerIndex = (int)kind;
+                editor.AddTriggerCommand.Execute(kind);
 
                 Assert.Equal(kind, editor.TriggerMode);
-                Assert.Equal(kind == MacroTrigger.KeystrokesButtonInputs, editor.IsKeyTrigger);
-                Assert.Equal(kind == MacroTrigger.ColorPixelChanges, editor.IsColorTrigger);
-                Assert.Equal(kind == MacroTrigger.Timer, editor.IsTimerTrigger);
-                Assert.Equal(kind == MacroTrigger.FileChanges, editor.IsFileTrigger);
-                Assert.Equal(kind == MacroTrigger.Process, editor.IsProcessTrigger);
-                Assert.Equal(kind == MacroTrigger.Window, editor.IsWindowTrigger);
-                Assert.Equal(kind == MacroTrigger.Idle, editor.IsIdleTrigger);
+                Assert.Equal(kind == TriggerKind.Key, editor.IsKeyTrigger);
+                Assert.Equal(kind == TriggerKind.Color, editor.IsColorTrigger);
+                Assert.Equal(kind == TriggerKind.Interface, editor.IsInterfaceTrigger);
+                Assert.Equal(kind == TriggerKind.Hotstring, editor.IsHotstringTrigger);
+                Assert.False(editor.IsMenuTrigger);
+                Assert.Equal(kind == TriggerKind.Timer, editor.IsTimerTrigger);
+                Assert.Equal(kind == TriggerKind.File, editor.IsFileTrigger);
+                Assert.Equal(kind == TriggerKind.Process, editor.IsProcessTrigger);
+                Assert.Equal(kind == TriggerKind.Window, editor.IsWindowTrigger);
+                Assert.Equal(kind is TriggerKind.Window or TriggerKind.Interface,
+                    editor.IsWindowRuleTrigger);
+                Assert.Equal(kind == TriggerKind.Idle, editor.IsIdleTrigger);
             }
+        });
+    }
+
+    [Fact]
+    public void Trigger_entries_can_be_added_by_kind_and_removed_one_card_at_a_time()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel { Name = "probe" };
+            var key = editor.SelectedTrigger!;
+            editor.BindKey = "F8";
+
+            editor.AddTriggerCommand.Execute(TriggerKind.Color);
+            var firstColor = editor.SelectedTrigger!;
+            editor.AddTriggerCommand.Execute(TriggerKind.Color);
+            var secondColor = editor.SelectedTrigger!;
+
+            Assert.Equal(3, editor.TriggerEntries.Count);
+            Assert.Equal(TriggerKind.Color, firstColor.Kind);
+            Assert.Equal(TriggerKind.Color, secondColor.Kind);
+            Assert.Equal("F8", key.BindKey);
+            Assert.Same(secondColor, editor.SelectedTrigger);
+
+            editor.RemoveTriggerCommand.Execute(firstColor);
+
+            Assert.DoesNotContain(firstColor, editor.TriggerEntries);
+            Assert.Same(secondColor, editor.SelectedTrigger);
+
+            var menu = new TriggerEntry { Kind = TriggerKind.Menu };
+            editor.TriggerEntries.Add(menu);
+            editor.SelectedTrigger = menu;
+            editor.RemoveTriggerCommand.Execute(menu);
+
+            Assert.Contains(menu, editor.TriggerEntries);
+            Assert.False(menu.IsRemovable);
+        });
+    }
+
+    [Fact]
+    public void Shared_trigger_fields_follow_the_selected_entry_kind()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            TriggerKind[] kinds =
+            [
+                TriggerKind.Key,
+                TriggerKind.Color,
+                TriggerKind.Interface,
+                TriggerKind.Hotstring,
+                TriggerKind.Timer,
+                TriggerKind.File,
+                TriggerKind.Process,
+                TriggerKind.Window,
+                TriggerKind.Idle,
+            ];
+
+            foreach (var kind in kinds)
+            {
+                editor.AddTriggerCommand.Execute(kind);
+
+                Assert.True(editor.ShowsTriggerSettings);
+                Assert.Equal(kind == TriggerKind.Key, editor.ShowsLoopMode);
+                Assert.Equal(kind is TriggerKind.Key or TriggerKind.Color or TriggerKind.Timer
+                    or TriggerKind.File or TriggerKind.Process or TriggerKind.Window or TriggerKind.Idle,
+                    editor.ShowsTriggerOnce);
+            }
+        });
+    }
+
+    [Fact]
+    public void Switching_entries_commits_the_old_fields_and_loads_the_new_ones()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel { Name = "probe" };
+            var key = editor.SelectedTrigger!;
+            editor.BindKey = "F8";
+            editor.TriggerOnce = true;
+
+            editor.AddTriggerCommand.Execute(TriggerKind.Timer);
+            var timer = editor.SelectedTrigger!;
+            editor.ScheduleMode = ScheduleMode.Daily;
+            editor.ScheduleTime = "21:15";
+            editor.TriggerOnce = true;
+
+            editor.SelectedTrigger = key;
+            Assert.Equal(TriggerKind.Key, editor.TriggerMode);
+            Assert.Equal("F8", editor.BindKey);
+            Assert.True(editor.TriggerOnce);
+
+            editor.BindKey = "F9";
+            editor.SelectedTrigger = timer;
+            Assert.Equal(TriggerKind.Timer, editor.TriggerMode);
+            Assert.Equal(ScheduleMode.Daily, editor.ScheduleMode);
+            Assert.Equal("21:15", editor.ScheduleTime);
+            Assert.True(editor.TriggerOnce);
+
+            editor.SelectedTrigger = key;
+            Assert.Equal("F9", editor.BindKey);
         });
     }
 

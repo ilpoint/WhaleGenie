@@ -75,10 +75,13 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
-拾取器、是否发输入、是否条件、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
+拾取器、是否发输入、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
 提示与页面归属（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
-这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，来自 `third_party/andrsrxn-icons`（MIT），由
-`IconView` 画；分类栏与工具栏按 24 格，菜单和窗口按钮用 `FitToBounds` 填自己的方框。
+这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
+`IconView` 包装 `Lucide.Avalonia` 的 `LucideIcon`，把旧属性名映射到 `Kind`、`Foreground` 与
+`StrokeWidth`，并把布局的 `Width`、`Height` 同步到 Lucide 的 `Size`，避免旧界面的小图标按 24 像素
+画布裁剪。菜单格子的 `Builtin` 引用只保存 `MenuIconCatalog` 中的稳定键，选择器再映射到常见
+`LucideIconKind`；新增菜单图标要同时给两个语言加标签。其它新增图标只加语义别名或直接使用 Lucide 枚举。
 一个数值字段的范围由它的单位给出（像素 −100000..100000、毫秒 0..`LongestPauseMs`、计数 0..1000000、
 百分比 0..100、手柄轴 −100..100、整数 −1000000..1000000），动作另有更窄的真实上限时在语义目录里写
 `Minimum` / `Maximum`。`ActionContractTests` 卡住两边动作、参数与返回结果一一对应，并禁止展示清单再写一份
@@ -120,6 +123,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning`、`System.Security.Cryptography.Pkcs` | 下载 NuGet 包（`script.nuget`）：到官方 v3 源上问一个包有哪些版本、把 nupkg 取下来、按目标框架挑最贴近的一份 lib、按版本区间解析传递依赖。包本身不跟着程序分发，下到程序自己的 `packages` 目录里。`System.Security.Cryptography.Pkcs` 单列一条钉在 10.0.13：`NuGet.Packaging` 7.9.0 拖来的 8.0.1 有两条已公开的公告（CVE-2026-84008 高、CVE-2026-70162 中），而 .NET 10 的 SDK 审计会把警告当错误，还原当场失败、CI 与发版都过不去；这个程序集由 WindowsDesktop 共享框架提供，钉住只是让还原图与运行时真正加载的那一份对上，包里不多一个文件 |
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 | `Avalonia.Controls.ColorPicker` | 界面：设置里的自定义主题用它做 HSV 色板、滑块与十六进制输入；只有界面引用，引擎不认，也不影响宏文件格式。MIT，Fluent 主题样式从包里的 `Themes/Fluent/Fluent.xaml` 引入 |
+| `Lucide.Avalonia` 0.2.27 | 界面：所有动作分类、工具栏、窗口按钮与菜单图标由 `LucideIconKind` 渲染；`IconView` 只做旧属性名到 Lucide `Kind`、`Foreground`、`StrokeWidth` 的映射。包按 MIT 授权，图形来自 ISC 授权的 Lucide |
 | `ModelContextProtocol.AspNetCore` | 界面：主界面 MCP 开关启动的本机 HTTP 服务器。它只监听环回地址，不设令牌；工具读写当前项目草稿与运行日志，不能运行宏。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，工具的传输与发现由 SDK 管 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
@@ -137,9 +141,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   增加；草稿 `apply` 前对不上就拒绝，避免覆盖人在界面里的修改。
 - `McpDraftStore` 只改内存草稿；`apply` 才替换 `MainViewModel` 的宏与全局变量，`save_project` 才
   调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。
-- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。参数还带
+- `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。动作带
+  `Hidden`，参数带 `ChildKeys`，所以外部作者能看出隐藏动作与每个子步骤列表接受的键。参数还带
   `Fields`（记录内部字段名）、`Unit`、`EmptyMeans`、`Minimum` 与 `Maximum`，窗口规则字段直接取自
-  `WindowRule.ToJson`，MCP 客户端不必猜记录结构或数字范围。
+  `WindowRule.ToJson`，MCP 客户端不必猜记录结构、数字范围或嵌套位置。
 - `McpServerViewModel.EnsureSaved` 是启动前的保存回调：`App` 把它接到
   `MainWindow.EnsureProjectSavedForMcpAsync`，后者在没有 `CurrentPath` 时弹「选择保存位置 / 先打开」，
   选择位置走现有 `SaveAsAsync`。没有窗口的测试不设回调，仍可直接启动。
@@ -157,8 +162,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
 - 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组。没有
   `run_macro` / `debug_macro` 工具。
-- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision
-  与保存；`RunLogTests` 验日志；无外网。
+- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision、
+  保存和非法落点；`McpActionKnowledgeTests` 验 `Hidden` / `ChildKeys` 对账；`RunLogTests` 验日志；无外网。
 
 ## 脚本怎么跑
 
@@ -176,8 +181,10 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 - **C#**：引擎用 Roslyn 把脚本与注入的一份 `__InjectedServices`（一个 `public static dynamic DynamicObject`）
   一起编成 dll，再让**程序自己的 exe 起第二个进程**执行（`WhaleGenie.exe --script-host <dll> 参数…`）。
   `Program.Main` 在 Avalonia 之前分支：宿进程不建窗口、不占通知区域，脚本里的 `Environment.Exit`、
-  栈溢出与死循环都伤不到主程序，超时也能直接杀进程。宿主从 `packages\nuget\references.json` 里认
-  编译时用到的那些 dll（`NuGetStore.References`），并把包里的 `runtimes\win-x64\native` 挂到 `PATH` 上。
+  栈溢出与死循环都伤不到主程序，超时也能直接杀进程。`ScriptDevice` 把本次运行的包根目录经
+  `WHALEGENIE_PACKAGES` 交给子进程；宿主从 `<包根>\nuget\references.json` 里认编译时用到的那些 dll
+  （`NuGetStore.References`），并把包里的 `runtimes\win-x64\native` 挂到 `PATH` 上，所以测试和发布可以用各自的
+  包目录而不互相污染。
 - **AutoHotkey**：AutoHotkey 的 `FileOpen` 打不开命名管道（实测会卡住），所以这一条不由脚本自己连管道，
   而是由**程序自己的 exe 再起一个进程**当桥：临时目录里写两份文件，`script.ahk` 是两行开头加用户正文
   （`#ErrorStdOut` 让语法错误写成错误输出而不是弹窗，`#Include` 把桥拉进来），`whalegenie.ahk` 是预置的
@@ -189,6 +196,10 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 `packages` 目录跟着 exe 走，写不进去时退到 `%LOCALAPPDATA%\WhaleGenie\packages`；`python` 与 `nuget`
 各占一格，脚本动作里因此不再列包。
+
+`script.nuget` 当前按常见托管包验收：下载目标框架最近的 `lib` 程序集与传递依赖，并准备 Windows x64 原生库。
+`ref`-only、分析器、MSBuild 目标、内容文件和只带其他平台运行时的包不在支持范围内，文档与失败提示不能暗示
+它们可用。确定性测试用临时包目录验证编译与子进程加载；真实联网测试由 `WHALEGENIE_REAL_NUGET=1` 开启。
 
 ## 宏文件的形状
 
@@ -216,7 +227,8 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写，形参与结果各带一个 `ActionReturnType`：
 调用处按它说明要的是什么，设计期按它标出明显不符的值。
 
-声明名是变量名：首字符字母或 `_`，其余字母、数字、`_`、`.`；空名、读不出来的名字、形参名以 `.given` 结尾、
+声明名是变量名：首字符是字母、数字或 `_`，其余是字母、数字、`_`、`.`；变量在值字段里总带 `$`，所以数字开头
+不会和数字字面量混淆，`$123` 读的是变量。空名、读不出来的名字、形参名以 `.given` 结尾、
 形参内或结果内重名、`sys.` 与 `step.<标识>.outcome` / `.error` 这类运行保留名，都在保存与写包前拦住。形参不能
 同时是必填又有默认值（`RequiredWithDefault`）。空名字的行不丢掉：`FromJson` 与恢复快照会把它带回来，编辑器
 显示声明问题，包写入则拒绝有致命声明错误的宏。被调用宏开始时先把形参写入局部表，再把尚未存在的声明结果初始化为
@@ -225,9 +237,55 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 10。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 18。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
+触发器入口从宏文档移进项目级的 `triggers.json` 时升到 11；字串入口增加 `endChars` 时升到 12；
+菜单增加标题、行列格子与每项标签，界面组增加显示/隐藏快捷键时升到 13；菜单改为固定 4×6
+通用/窗口规则页、图标和单一呼出键，字串结束键改为实际字符时升到 14；菜单移除自定义标题并把每条窗口
+规则升级为多页时升到 15；父宏开始携带 `subMacros`、说明和公共宏来源记录时升到 16；条件动作收口为整值布尔
+表达式、`try.catchWhen` 改成表达式时升到 17；菜单移除逐格标题、图标键改成完整 Lucide 枚举名并增加禁止
+呼出规则时升到 18。
+触发入口按名称引用宏，宏改名时同一份
+`ProjectTriggers` 改写所有引用，保存、恢复和 MCP 草稿都不允许悬空引用。
+
+父宏的内嵌子宏写在同一个宏文档的 `subMacros` 数组里，只保存名称、说明、形参、返回值、互斥设置、步骤和
+可选的 `origin { id, name, version }`；它们不进入主窗口的宏列表，但会由编辑器与运行库和父宏、项目宏一起
+扁平化。父宏、子宏与项目宏的可调用名忽略大小写后必须唯一。公共宏库是另一个原子写入的包，位置固定为
+`library/public-macros.wgmacro`，资源解压到相邻的 `public-macros.assets`；它使用独立格式版本 1。拖入时
+复制可调用内容并记录来源版本，之后不跟随来源更新。
+
+`ProjectTriggers` 是触发入口的唯一真源。`TriggerKind` 只有 `key`、`color`、`interface`、`hotstring`、
+`menu`、`timer`、`file`、`process`、`window`、`idle` 十个词。编辑器把每条入口按类型写成同一份
+`TriggerEntry` JSON；`MacroItem` 上的旧触发字段只作为写入前兼容投影，不参与包里的触发判断。界面宏按
+窗口规则的规范化键自动分组，`InterfaceLayout` 保存目标客户区内的位置与本组显示快捷键；同一规则下的全部
+宏共用一个悬浮窗，不同匹配规则各自保留一个悬浮窗。拖动只在松开后写一次布局。`MacroTriggerService` 从
+触发入口分派，但一个宏同时最多只占一条运行。
+
+菜单配置属于项目：固定为 4 列、上下各 3 行，格子为 80×80。`MenuPage` 分为最多 8 个通用页、默认窗口页和
+按顺序保存的窗口规则页；同一窗口规则可拥有最多 8 个下区子页。菜单入口的 `MenuPageId`、`MenuRow`、
+`MenuColumn` 与 `MenuIconReference` 指定页面、位置和图标；格子文字只来自 `MacroItem.Name`，提示同时显示
+`Description`。`BlockedMenuRules` 单独保存按进程名精确匹配的禁止呼出规则，在进入 `MacroTriggerGate` 前检查。
+启用项撞格、悬空页面或缺失宏会阻止保存；同一宏允许在不同格子重复出现。
+
+普通运行态使用 `WS_EX_NOACTIVATE`。搜索框始终保留一行布局高度，关闭时只取消可见性、命中测试与焦点；搜索
+按钮展开后才临时移除该样式并把焦点交给输入框，收起或失焦后恢复并把前台交还原窗口，窗口尺寸不变。方向键、
+在菜单内按下其他位置会延后到本次点击完成后收起搜索，窗口失去激活时立即收起。
+Enter 与 Esc 通过全局钩子处理，但置顶菜单不截取其他程序的
+键盘输入。主窗口用全局鼠标坐标判断菜单外点击，置顶菜单忽略外部点击；只读取不可变屏幕边界，不访问
+Avalonia 控件。菜单定位时让中间分隔条中心对齐指针的纵向位置，搜索展开后按新增高度重新对齐；工作区边缘
+只做夹紧。格子右键的四项动作始终可用，长按 400 毫秒后拖动才交换格子。
+右键菜单作为主菜单的受保护弹出层，打开期间不触发外部点击关闭；两个分页区各自保留第 1 页。
+图标选择器使用显式 `VirtualizingStackPanel`，并把结果硬分页为每页最多 140 个图标；搜索防抖 180 毫秒，
+每次只替换当前页的 20 行模板。虚拟化回收期间数据模板必须容纳短时 `null` 行，这由菜单图标选择器测试守住。
+
+字串识别器只读全局键盘钩子送来的字面字符，最多保留 40 个字符；它处理常见热字串的结束键、大小写、词中、
+`B0`（保留输入）和 `O`（舍弃结束键），命中后同步退格并重放结束键，再启动宏一次。菜单入口在项目里显式列出，
+`MenuLauncher` 只保存一个键盘组合、鼠标中键或鼠标 4/5 侧键；左键、右键和滚轮不用于菜单。菜单打开时进入
+`MacroTriggerGate`，点击宏后关闭并恢复前台再运行一次。
+每个字串入口的 `endChars` 保存实际字符：空格就是一个空格，换行与 Tab 由 JSON 的标准转义承载，反引号也是普通字符。钩子和计时器只能读取
+UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotkeyPlan`，二者都不访问 Avalonia 控件或
+可变 UI 集合。所有后台回调经过异常隔离，重复故障按阶段节流写入 `logs/runtime.log`。
 
 调用另一个宏的步骤（`control.runMacro`）写三个部分：
 
@@ -290,7 +348,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎每一步、变量与表达式；跑在替身设备层上，断言的是"引擎要求了什么"，不是"桌面上发生了什么"。后续的字段读法、是否发输入与返回形状的契约也在这里验 |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、页面归属、返回值页、触发器比对、卡片显示、文案完整性与文档对账，宏包往返，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
-| 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过） |
+| 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过）；`WHALEGENIE_REAL_NUGET=1` 时额外下载真实包并验证编译和运行 |
 | 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及驱动级输入：真机装一次 usbip-win2 驱动，勾上/不勾「启动时先把虚拟键鼠装上机器」各跑一次运行，键鼠四种动作（点击、打字、拖拽、滚轮）与手柄各来一次，退出程序后看设备管理器里虚拟设备是不是没了；三种屏幕拾取器（框选区域、取色放大镜、元素拾取）各进出一次：打开时鲸灵自己的窗口（含问话的那个对话框）都不在屏幕上，拾取器一开就拿到焦点、Esc 与回车与右键当场有效，拾完窗口按原状回来——其中一次在添加动作窗口里拾，看它自己也回来（它是编辑器的属主窗口，收起时跟着编辑器一起走）；框选器打开时屏幕是原样、指针看得见（底图定格在那一刻），一拖出框才框外压暗、框内照原样，框选之后截一张，图片里没有鲸灵自己的窗口；识别结果与偏移拾取窗口的标题栏都能拖着走（标题栏拖动是手动那一档，无头会话里只验到接没接线）；YOLO 检测的三步各跑一次（自备一份公开的 yolov8n.onnx 与类名表）：检测物体一次看框落在东西上、等待检测到物体在一段限时里等到与等到超时各一次、点击检测到的物体看落点在框中心加上偏移，并记下一次检测的耗时；脚本动作的三种窗口模式各跑一次（窗口留着/关着/不显示）、批处理、PowerShell 与 AutoHotkey 各一次，AutoHotkey 那一条还要在一台没装它的机器上看一次报错；Python 脚本与安装 PIP 包各一次（装的包能 import），C# 脚本与下载 NuGet 包各一次（装的包能编译进脚本），断网时看两个依赖动作各报什么；表达式编辑器里把变量、函数与树上已有的一支拖到位置上（拖到空位＝填入、拖到已有的一段＝换掉、拖自己的一支进自己的后代＝不理会、拖到窗口外＝取消，落点要跟着亮；1080×720 下四段分区与「翻译结果」一行排得下、滚动正常，函数卡片按分类 dock 只剩一组、颜色六个组两两不同、悬停气泡出得来，深嵌套公式的那句人话读起来顺） |
 
 界面用例走的是 Avalonia 自己的输入管线，不是系统里的鼠标与按键：真的注入按键、真的抓屏取色这类事情在
@@ -299,6 +357,23 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 手动项在提交信息里按环境（Windows 版本、DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
 三项记录；只写“已手动过”不算结论。环境不同就重跑受影响的那一项，不要把一次通过当成所有机器都通过。
+
+变量持久化保存在当前用户的 `%LOCALAPPDATA%\WhaleGenie\persistent-variables.json`，只保存勾选后的全局变量名和值；
+宏包仍只保存变量声明。全局声明由 `GlobalVariablesWindow` 和 `control.setVariable` 共用
+`VariableDefinitionDraft`：动作窗口保存时提交该步骤的全局定义，管理中心整窗保存时才替换
+`VariableCatalog.Globals`。默认值走 `VariableValues`，与动作整值字段使用同一表达式语法，并在
+`MacroVariables.Seed` 中按声明顺序计算；当前全局值只在用户改过时写回，避免覆盖同时运行的写入。
+管理中心按当前草稿重新生成表达式变量名单，只列系统变量和当前行之前的全局声明；编辑字段不会立即重算
+搜索筛选，避免正在编辑的行因改名或切换持久化而消失。无效保存会清空筛选、选中首个问题行并聚焦对应字段。
+关闭、Esc 与取消共用未保存确认；删除也先确认，但两者都只改变草稿，真正提交仍只由保存完成。
+`VariableRename` 用表达式/插值扫描器同步直接字段与引用，字符串、记录字段和脚本文本不猜改。运行调试页只显示值。
+`VariableBag.Changed` 与
+`VariableCatalog.GlobalsChanged` 都必须让已经打开的变量中心与运行页刷新；共享值写入仍由通知合并，退出前刷新。
+
+拖放编排还按一项真实桌面用例验收：从四个 Dock 各拖一次到空列表、行前、行后和单列表块内；确认高亮插入带
+写明落点、拒绝落点、动作窗口拖动与缩放、取消不插入、保存后落点正确；再验证保存按钮不关闭编辑器、
+连续保存不重复添加宏；最后把同一公共宏同版本拖两次、改出一版后拖一次，
+确认复用与新建副本的页签和来源版本；重启程序后确认公共宏库仍可列出。无头测试只验事件与结果，不替代这一项。
 
 每加一个动作至少有一条引擎用例走到它；用户可见文案由 `LocalizationTests` 卡住两边齐全。
 
@@ -322,10 +397,11 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 结果交付 | `MacroRunnerTests` + `MacroCheckTests` | `waitAll` 失败不消耗已成功句柄；`waitAny` 失败保留失败句柄；`cancelMacro` 不结算结果，取消后读结果仍标 `ResultBeforeWait` |
 | 是否发输入 | `ActionContractTests` | 每个会调用 `Input(step)`、回退成真实鼠标点击或按快捷键的动作在目录里标真；`MacroCheck` 与 `InputGate` 查同一处，并沿宏调用图看可达步骤 |
 | 返回形状 | `ReturnsPageTests` + `ActionContractTests` | 返回值页的每一行、引擎写出的键与记录字段一致 |
-| 失败键 | `FailureKeyTests` | `RunKeys` 与手册表一致；日志键、状态键不与失败键混用 |
+| 失败键 | `FailureKeyTests` + `MacroCheckTests` + `MacroRunnerTests` | `RunKeys` 与手册表一致；用户自定义键只接受 `User.<合法变量名>`；日志键、状态键不与失败键混用 |
 | 页面归属 | `ActionPageTests` | 一个参数只属于一页，基础页为空时不显示 |
 | 文案 | `LocalizationTests` | 中英文键齐全，参数与选项都有中文 |
 | 字段名 | `FieldNameTests` | 同一字段名只有一种 `Kind`、一套选项与一套标签；记录字段也走 `FieldNames`；例外要写进白名单与理由 |
+| 步骤落点 | `StepPlacementTests` + `MacroCheckTests` + `MacroEditorWorkspaceTests` | 新增、拖动、粘贴、组合、提取共用目录里的 `ChildKeys` 与 `Hidden`；`cases` 只收 Case，Case 不能离开多分支；拒绝不产生部分改动或撤销项，非法载入树在步骤行报错 |
 | 循环与结果 | `MacroRunnerTests` | 嵌套循环的 item/index/counter 恢复外层；四种循环的 `ended`；失败/重试后结果为空 |
 | 等按键 | `DeviceActionTests` | `input.waitKey` 只认钩子送来的匹配的键；`event` 选按下/松开；`swallow` 只拦结束等待的那个键；键名留空等任何键；超时按步骤超时 |
 | 互斥与调用图 | `MacroRunnerTests` + `DeviceActionTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时启动浏览器后台运行被拒；`control.holdInput` / `control.holdBrowser` 的块内步骤不再取门，嵌套只记层数；`control.runStatus` 不等待取状态并刷新句柄；同一宏的后台运行有上限 |

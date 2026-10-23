@@ -509,7 +509,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
             Dispatcher.UIThread.RunJobs();
 
-            var rows = window.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+            var rows = window.FindControl<ListBox>("StepList")!.GetVisualDescendants().OfType<ListBoxItem>().ToList();
             Assert.Equal(2, rows.Count);
 
             // Grab the first row by its middle and let go past the middle of the second,
@@ -735,25 +735,19 @@ public class MacroEditorTests
     }
 
     [Fact]
-    public void The_step_inspector_opens_inside_the_editor_and_takes_an_action()
+    public void The_action_editor_is_a_window_and_not_an_embedded_inspector()
     {
         Ui.Run(() =>
         {
             var (window, viewModel) = Open();
-            viewModel.NewStepCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
+            Assert.Null(window.FindControl<Border>("InspectorHost"));
+            Assert.Null(window.FindControl<ContentControl>("InspectorContent"));
+            Assert.NotNull(window.FindControl<Border>("MacroSettingsDrawer"));
 
-            var host = window.FindControl<Border>("InspectorHost");
-            Assert.NotNull(host);
-            Assert.True(host!.IsVisible);
-
-            var content = window.FindControl<ContentControl>("InspectorContent");
-            var view = Assert.IsType<ActionEditorView>(content!.Content);
-            view.SelectAction("control.delay");
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal("control.delay",
-                (view.DataContext as AddActionViewModel)?.SelectedKey);
+            var action = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
+            Assert.IsType<ActionEditorView>(action.Content);
+            Assert.False(action.StaysOpen);
+            action.Close();
         });
     }
 
@@ -965,21 +959,25 @@ public class MacroEditorTests
     }
 
     [Fact]
-    public void The_left_palette_filters_by_category()
+    public void The_left_palette_has_four_sources()
     {
         Ui.Run(() =>
         {
             var (window, _) = Open();
             var palette = Assert.IsType<ActionPaletteView>(
                 window.FindControl<ActionPaletteView>("ActionPalette"));
-            var form = Assert.IsType<AddActionViewModel>(palette.DataContext);
+            var model = Assert.IsType<ActionPaletteViewModel>(palette.DataContext);
 
-            var input = Assert.Single(form.Categories,
-                choice => choice.Value == ActionCategory.Input);
-            form.SelectedCategory = input;
+            Assert.Equal(4, model.Tabs.Count);
+            model.SelectDock(ActionPaletteDock.Basic);
             Dispatcher.UIThread.RunJobs();
+            Assert.Contains(model.Cards, card => card.Key == "input.keyPress");
+            Assert.DoesNotContain(model.Cards, card => card.Key.StartsWith("control."));
 
-            Assert.Contains(form.VisibleActions, card => card.Key == "input.keyPress");
+            model.SelectDock(ActionPaletteDock.Flow);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Contains(model.Cards, card => card.Key == "control.repeat");
+            Assert.All(model.Cards, card => Assert.StartsWith("control.", card.Key));
         });
     }
 
@@ -993,8 +991,10 @@ public class MacroEditorTests
 
             Assert.Equal(5, grid.ColumnDefinitions.Count);
             Assert.Equal(280d, grid.ColumnDefinitions[0].MinWidth);
-            Assert.Equal(560d, grid.ColumnDefinitions[2].MinWidth);
-            Assert.Equal(200d, grid.ColumnDefinitions[4].MinWidth);
+            Assert.Equal(280d, grid.ColumnDefinitions[0].Width.Value);
+            Assert.Equal(480d, grid.ColumnDefinitions[2].MinWidth);
+            Assert.Equal(360d, grid.ColumnDefinitions[4].MinWidth);
+            Assert.Equal(360d, grid.ColumnDefinitions[4].Width.Value);
 
             var splitters = grid.Children.OfType<GridSplitter>().ToList();
             Assert.Equal(2, splitters.Count);

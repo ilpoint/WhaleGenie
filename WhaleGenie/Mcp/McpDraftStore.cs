@@ -24,6 +24,8 @@ public sealed class McpDraft
     {
         Basis = basis;
         Macros = [.. basis.Macros];
+        Triggers = basis.Triggers.Copy();
+        Triggers.Attach(Macros);
         Globals = [.. basis.Globals];
     }
 
@@ -32,6 +34,8 @@ public sealed class McpDraft
     public McpProjectSnapshot Basis { get; }
 
     public List<MacroItem> Macros { get; }
+
+    public ProjectTriggers Triggers { get; }
 
     public List<VariableDefinition> Globals { get; }
 
@@ -76,6 +80,11 @@ public sealed class McpDraft
             {
                 Macros.Add(macro);
             }
+
+            if (macro.Triggers.Count > 0)
+            {
+                Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
+            }
         }
 
         return macro;
@@ -91,6 +100,8 @@ public sealed class McpDraft
             {
                 throw new McpException($"There is no macro named \"{name}\".");
             }
+
+            Triggers.RemoveMacro(name);
         }
     }
 

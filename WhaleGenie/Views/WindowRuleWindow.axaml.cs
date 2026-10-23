@@ -150,11 +150,22 @@ public partial class WindowRuleWindow : Window
         CaseBox.IsChecked = rule.CaseSensitive;
         TrimBox.IsChecked = rule.Trim;
         MultilineBox.IsChecked = rule.Multiline;
+        var textComparison = WindowHow.UsesTextComparison(rule.How);
+        ComparisonSwitches.IsVisible = textComparison;
+        HandleHint.IsVisible = !textComparison;
         Preview(rule);
     }
 
     private void Preview(WindowRule rule)
     {
+        if (rule.Reading.Match is WindowMatch.Handle && rule.Handle == 0)
+        {
+            PreviewText.Text = Strings.Get("WindowRule.BadHandle");
+            UseButton.IsEnabled = false;
+            return;
+        }
+
+        UseButton.IsEnabled = true;
         var (match, compare) = rule.Reading;
         try
         {
@@ -184,6 +195,9 @@ public partial class WindowRuleWindow : Window
         {
             WindowMatch.Process => rule with { Process = text },
             WindowMatch.ClassName => rule with { ClassName = text },
+            WindowMatch.Handle => long.TryParse(text, out var handle)
+                ? rule with { Handle = handle }
+                : rule with { Handle = 0 },
             _ => rule with { Title = text },
         };
         _rule = edited;

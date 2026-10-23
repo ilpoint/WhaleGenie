@@ -265,6 +265,7 @@ public sealed partial class MacroRunner
             minimum: Number(step, "minScore"));
 
         var span = hits.Count > 0 ? hits[0] : null;
+        Give(step, "found", Value.FromBool(span is not null));
 
         if (span is null)
         {

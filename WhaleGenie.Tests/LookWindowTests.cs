@@ -35,7 +35,7 @@ public class LookWindowTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("match"), []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -57,14 +57,10 @@ public class LookWindowTests
             Assert.True(FindRunButton(window).IsEnabled);
             Assert.Equal(Strings.Get("Add.RunStep"), FindRunButton(window).Content);
 
-            // A condition is asked about rather than done, so there is nothing to run.
-            viewModel.SelectAction("condition.imageExists");
+            // Blocks are runnable steps now; their condition is edited inside the same form.
+            viewModel.SelectAction("control.if");
             Dispatcher.UIThread.RunJobs();
-            Assert.False(viewModel.ShowsRun);
-            Assert.False(viewModel.CanRun);
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
-                    .Where(button => button.IsEffectivelyVisible),
-                button => Equals(button.Content, Strings.Get("Add.RunStep")));
+            Assert.True(viewModel.ShowsRun);
         });
     }
 
@@ -708,7 +704,7 @@ public class LookWindowTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("match"), []);
             window.Show();
             Dispatcher.UIThread.RunJobs();

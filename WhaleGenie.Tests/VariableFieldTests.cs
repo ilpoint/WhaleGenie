@@ -60,8 +60,7 @@ public class VariableFieldTests
             foreach (var key in new[]
                      {
                          "vision.findImage", "vision.waitImage", "vision.clickImage", "vision.findColor",
-                         "ocr.findText", "condition.imageExists", "condition.imageNotExists",
-                         "condition.textExists", "condition.textNotExists",
+                         "ocr.findText",
                      })
             {
                 var region = Parameter(Open(key), "region");
@@ -137,19 +136,19 @@ public class VariableFieldTests
         Assert.Empty(wrong);
     }
 
-    /// <summary>
-    /// Working a value out is an action, not only a field: a macro that has numbers or text to
-    /// put together picks it from the step list like any other step.
-    /// </summary>
+    /// <summary>Working a value out is the value half of Set Variable, not a second action.</summary>
     [Fact]
-    public void Working_a_value_out_is_offered_as_a_step_of_its_own()
+    public void Working_a_value_out_is_part_of_set_variable()
     {
-        var calculate = Ui.Run(() => ActionCatalog.RunnableActions
-            .FirstOrDefault(action => action.Key == "control.calculate"));
+        var set = Ui.Run(() => ActionCatalog.RunnableActions
+            .FirstOrDefault(action => action.Key == "control.setVariable"));
 
-        Assert.NotNull(calculate);
-        Assert.Equal(ActionCategory.Control, calculate.Category);
-        Assert.Equal("变量运算", ActionStrings.Chinese["control.calculate.name"]);
+        Assert.NotNull(set);
+        Assert.Equal(ActionCategory.Control, set.Category);
+        Assert.Equal("设置变量", ActionStrings.Chinese["control.setVariable.name"]);
+        Assert.DoesNotContain(ActionCatalog.RunnableActions, action =>
+            action.Key is "control.calculate" or "control.delayRandom" or "control.listCreate"
+                or "control.sequence");
     }
 
     /// <summary>
@@ -174,12 +173,10 @@ public class VariableFieldTests
             naming.InsertVariable("$count", 0);
             Assert.Equal("count", naming.Text);
 
-            // Reading one: a value compared against a number takes the reader's own form, which is
-            // what the wall hands back.
-            var reading = Parameter(Open("condition.valueInRange"), "testValue");
-            reading.InsertVariable("$count", 0);
+            var reading = Parameter(Open("control.if"), "condition");
+            reading.ApplyVariableDrop("$count");
             Assert.Equal("$count", reading.Text);
-            Assert.Equal(["$count", "$name"], reading.NameChoices.Order(StringComparer.Ordinal));
+            Assert.Contains("$count", reading.ExpressionSuggestions);
         });
     }
 
@@ -322,7 +319,7 @@ public class VariableFieldTests
     {
         Ui.Run(() =>
         {
-            var calculate = Open("control.calculate");
+            var calculate = Open("control.setVariable");
 
             var value = Parameter(calculate, "value");
 
@@ -386,7 +383,8 @@ public class VariableFieldTests
         // to the other language: a value gets into a script the way that language says, or by a
         // placeholder written into the script itself, rather than by a list of names standing over
         // the box it was written in. A page's own script is the same kind of box.
-        string[] otherNames = ["file.saveVariables.names", "system.environment.environmentName",
+        string[] otherNames = ["file.saveVariables.names", "control.fail.failureKey",
+            "system.environment.environmentName",
             "script.run.script", "script.ahk.script", "browser.evaluate.script"];
 
         // A box of several lines: a list of names standing over one would be in the way, so these

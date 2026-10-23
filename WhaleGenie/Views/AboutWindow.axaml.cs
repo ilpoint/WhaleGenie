@@ -1,7 +1,10 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
@@ -14,6 +17,13 @@ namespace WhaleGenie.Views;
 /// </summary>
 public partial class AboutWindow : Window
 {
+    private const double CollapsedHeight = 430;
+    private const double ExpandedHeight = 720;
+    private readonly Grid _supportCodes;
+    private readonly Button _supportButton;
+    private readonly Image _weChatQr;
+    private readonly Image _alipayQr;
+
     public AboutWindow()
     {
         InitializeComponent();
@@ -21,6 +31,10 @@ public partial class AboutWindow : Window
         Title = Strings.Get("Main.About");
         this.FindControl<TextBlock>("AboutText")!.Text =
             Strings.Format("Main.AboutText", AppVersion.Text);
+        _supportCodes = this.FindControl<Grid>("SupportCodes")!;
+        _supportButton = this.FindControl<Button>("SupportButton")!;
+        _weChatQr = this.FindControl<Image>("WeChatQr")!;
+        _alipayQr = this.FindControl<Image>("AlipayQr")!;
 
         var close = this.FindControl<Button>("CloseButton");
         if (close is not null)
@@ -31,6 +45,25 @@ public partial class AboutWindow : Window
 
     private void OnOpenProjectClicked(object? sender, RoutedEventArgs e)
         => WebPage.Open(ProjectLinks.Home);
+
+    private void OnSupportClicked(object? sender, RoutedEventArgs e)
+    {
+        var expand = !_supportCodes.IsVisible;
+        _supportCodes.IsVisible = expand;
+        Height = expand ? ExpandedHeight : CollapsedHeight;
+        _supportButton.Content = Strings.Get(expand
+            ? "About.SupportCollapse"
+            : "About.SupportButton");
+        if (!expand)
+        {
+            return;
+        }
+
+        _weChatQr.Source ??= new Bitmap(AssetLoader.Open(
+            new Uri("avares://WhaleGenie/Assets/DonateWeChat.png")));
+        _alipayQr.Source ??= new Bitmap(AssetLoader.Open(
+            new Uri("avares://WhaleGenie/Assets/DonateAlipay.png")));
+    }
 
     private async void OnNoticesClicked(object? sender, RoutedEventArgs e)
         => await ConfirmDialog.ShowAsync(this, Strings.Get("Main.AboutNotices"),

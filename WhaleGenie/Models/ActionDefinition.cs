@@ -44,9 +44,6 @@ public enum ActionParameterKind
     /// <summary>A list of child steps, rendered as a nested step editor.</summary>
     Steps,
 
-    /// <summary>A single <c>condition.*</c> action, rendered as a condition picker.</summary>
-    Condition,
-
     /// <summary>
     /// A value written as an expression, edited with suggestions for the variables in
     /// scope and for the built-in functions.
@@ -139,6 +136,9 @@ public sealed class ActionReturn
 
     /// <summary>What kind of value it is.</summary>
     public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+
+    /// <summary>The fields of a record result, or the fields of each record in a list result.</summary>
+    public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
 
     /// <summary>
     /// True for the result a step is nearly always asked for, which is the one ticked when the step
@@ -271,14 +271,8 @@ public class ActionParameter
 
     /// <summary>
     /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, that list only takes
-    /// conditions, so a logic group can hold other conditions and nest.
-    /// </summary>
-    public bool ConditionsOnly => Semantics.ConditionsOnly;
-
-    /// <summary>
-    /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, that list only takes
     /// these action keys: it is how a switch keeps a case list holding cases and nothing else,
-    /// the same way <see cref="ConditionsOnly"/> keeps a group holding conditions.
+    /// the same way a list can be narrowed to one kind of child.
     /// </summary>
     public IReadOnlyList<string> ChildKeys => Semantics.ChildKeys;
 
@@ -442,9 +436,6 @@ public class ActionDefinition
     /// <summary>True when carrying out this action puts input into the machine.</summary>
     public bool SendsInput => Semantics.SendsInput;
 
-    /// <summary>True for an action asked inside an if, a loop or a wait.</summary>
-    public bool IsCondition => Semantics.IsCondition;
-
     /// <summary>True when the action reads pixels from the screen.</summary>
     public bool LooksAtScreen => Semantics.LooksAtScreen;
 
@@ -483,7 +474,7 @@ public class ActionDefinition
     public bool Hidden => Semantics.Hidden;
 
     /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
-    public Avalonia.Media.Geometry? Icon => ActionCatalog.IconFor(Category);
+    public Lucide.Avalonia.LucideIconKind? Icon => ActionCatalog.IconFor(Category);
 
     /// <summary>
     /// The step timeout a step of this action starts out with, in milliseconds, or 0 for an action

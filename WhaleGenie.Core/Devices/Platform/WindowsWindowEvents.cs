@@ -26,6 +26,8 @@ public sealed class WindowsWindowEvents : IWindowEvents
     private const int EventObjectShow = 0x8002;
     private const int EventObjectHide = 0x8003;
     private const int EventObjectNameChange = 0x800C;
+    private const int EventObjectLocationChange = 0x800B;
+    private const int EventSystemForeground = 0x0003;
 
     private const uint OutOfContext = 0x0000;
     private const uint WmQuit = 0x0012;
@@ -40,6 +42,8 @@ public sealed class WindowsWindowEvents : IWindowEvents
     private Thread? _thread;
     private IntPtr _created;
     private IntPtr _renamed;
+    private IntPtr _foreground;
+    private IntPtr _bounds;
     private uint _nativeId;
     private bool _started;
     private bool _disposed;
@@ -49,6 +53,10 @@ public sealed class WindowsWindowEvents : IWindowEvents
     public bool Available => _created != IntPtr.Zero || _renamed != IntPtr.Zero;
 
     public event Action? Changed;
+
+    public event Action? ForegroundChanged;
+
+    public event Action<long>? BoundsChanged;
 
     public void Start()
     {
@@ -88,6 +96,18 @@ public sealed class WindowsWindowEvents : IWindowEvents
             _renamed = IntPtr.Zero;
         }
 
+        if (_foreground != IntPtr.Zero)
+        {
+            UnhookWinEvent(_foreground);
+            _foreground = IntPtr.Zero;
+        }
+
+        if (_bounds != IntPtr.Zero)
+        {
+            UnhookWinEvent(_bounds);
+            _bounds = IntPtr.Zero;
+        }
+
         if (_thread is { IsAlive: true } thread)
         {
             PostThreadMessage(_nativeId, WmQuit, IntPtr.Zero, IntPtr.Zero);
@@ -113,6 +133,10 @@ public sealed class WindowsWindowEvents : IWindowEvents
                 0, 0, OutOfContext);
             _renamed = SetWinEventHook(EventObjectNameChange, EventObjectNameChange, IntPtr.Zero,
                 _callback, 0, 0, OutOfContext);
+            _foreground = SetWinEventHook(EventSystemForeground, EventSystemForeground, IntPtr.Zero,
+                _callback, 0, 0, OutOfContext);
+            _bounds = SetWinEventHook(EventObjectLocationChange, EventObjectLocationChange,
+                IntPtr.Zero, _callback, 0, 0, OutOfContext);
         }
         catch (Exception)
         {
@@ -131,13 +155,34 @@ public sealed class WindowsWindowEvents : IWindowEvents
     private void OnWindowEvent(IntPtr hook, uint kind, IntPtr window, int idObject, int idChild,
         uint thread, uint time)
     {
-        if (_disposed || window == IntPtr.Zero || idObject != ObjectIdWindow || idChild != 0)
+        if (_disposed)
         {
             return;
         }
 
         try
         {
+            if (kind == EventSystemForeground)
+            {
+                ForegroundChanged?.Invoke();
+                return;
+            }
+
+            if (kind == EventObjectLocationChange)
+            {
+                if (window != IntPtr.Zero && idObject == ObjectIdWindow)
+                {
+                    BoundsChanged?.Invoke(window.ToInt64());
+                }
+
+                return;
+            }
+
+            if (window == IntPtr.Zero || idObject != ObjectIdWindow || idChild != 0)
+            {
+                return;
+            }
+
             Changed?.Invoke();
         }
         catch (Exception)

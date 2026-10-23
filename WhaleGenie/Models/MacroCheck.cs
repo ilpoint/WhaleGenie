@@ -387,7 +387,8 @@ public static class MacroCheck
         // is allowed to read.
         var namesAreOpen = WritesAnyName(tree);
 
-        Visit(tree, 0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
+        Visit(tree, null, 0, 0,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
             guarded: false, browserHeld: false);
         CheckSharedInput();
         CheckSharedBrowser();
@@ -498,13 +499,17 @@ public static class MacroCheck
             }
         }
 
-        void Visit(IReadOnlyList<MacroStep> list, int loops, int switches,
+        void Visit(IReadOnlyList<MacroStep> list, ActionParameter? destination,
+            int loops, int switches,
             IReadOnlySet<string> loopNames, bool bounded, bool guarded, bool browserHeld)
         {
             foreach (var step in list)
             {
+                CheckStepPlacement(step, destination);
                 CheckLoopControl(step, loops, switches);
                 CheckCondition(step);
+                CheckUserFailureKey(step);
+                CheckGlobalTarget(step);
                 CheckLoopIndex(step, loops);
                 CheckCall(step, guarded);
                 TrackPendingResults(step);
@@ -549,18 +554,37 @@ public static class MacroCheck
                     || step.Type is "browser.dialog" or "control.holdBrowser";
                 foreach (var parameter in step.Parameters)
                 {
-                    switch (parameter.Kind)
+                    if (parameter.Kind is ActionParameterKind.Steps)
                     {
-                        case ActionParameterKind.Steps:
-                            Visit(parameter.Steps, insideLoops, insideSwitches, insideNames,
-                                insideBounded, insideGuard, insideHeld);
-                            break;
-                        case ActionParameterKind.Condition when parameter.Condition is { } condition:
-                            Visit([condition], insideLoops, insideSwitches, insideNames,
-                                insideBounded, insideGuard, browserHeld);
-                            break;
+                        Visit(parameter.Steps, step.ParameterDefinition(parameter),
+                            insideLoops, insideSwitches, insideNames,
+                            insideBounded, insideGuard, insideHeld);
                     }
                 }
+            }
+        }
+
+        void CheckStepPlacement(MacroStep step, ActionParameter? destination)
+        {
+            if (StepPlacement.DirectIssue(destination, step) is not { } issue)
+            {
+                return;
+            }
+
+            var message = issue.Problem switch
+            {
+                StepPlacementProblem.WrongKind when issue.Destination is { } restricted =>
+                    Strings.Format("Editor.Problem.WrongStepKind",
+                        StepPlacement.AllowedSummary(restricted)),
+                StepPlacementProblem.HiddenStep when step.Type == "control.case" =>
+                    Strings.Get("Editor.Problem.CaseOutsideSwitch"),
+                StepPlacementProblem.HiddenStep =>
+                    Strings.Format("Editor.Problem.HiddenStep", step.DisplayName),
+                _ => string.Empty,
+            };
+            if (message.Length > 0)
+            {
+                Add(step, message);
             }
         }
 
@@ -571,12 +595,38 @@ public static class MacroCheck
                 return;
             }
 
-            var chosen = step.Parameters
-                .FirstOrDefault(parameter => parameter.Name == "condition")
-                ?.Condition;
-            if (chosen is null || chosen.Type.Trim().Length == 0)
+            if (string.IsNullOrWhiteSpace(step.Text("condition")))
             {
                 Add(step, Strings.Get("Editor.Problem.MissingCondition"));
+            }
+        }
+
+        void CheckUserFailureKey(MacroStep step)
+        {
+            if (step.Type != "control.fail")
+            {
+                return;
+            }
+
+            var key = step.Text("failureKey").Trim();
+            if (key.Length > 0 && !UserFailureKeys.IsValid(key))
+            {
+                Add(step, Strings.Format("Editor.Problem.BadUserFailureKey", key));
+            }
+        }
+
+        void CheckGlobalTarget(MacroStep step)
+        {
+            string? name = step.Type switch
+            {
+                "control.setVariable" when string.Equals(step.Text("scope").Trim(), "global",
+                    StringComparison.OrdinalIgnoreCase) => step.Text("name").Trim(),
+                "control.incrementGlobal" => step.Text("name").Trim(),
+                _ => null,
+            };
+            if (name is { Length: > 0 } && !VariableCatalog.IsGlobal(name))
+            {
+                Add(step, Strings.Format("Editor.Problem.GlobalMustExist", name));
             }
         }
 
@@ -681,7 +731,8 @@ public static class MacroCheck
                 // A run handle already has its own check; saying it twice would teach the user to
                 // ignore one of the two.
                 if (parameter.Semantics.MissingValue(step.Text(parameter.Name))
-                    && parameter.Semantics.MissingKey != RunKeys.MissingHandle)
+                    && parameter.Semantics.MissingKey is not (RunKeys.MissingHandle
+                        or RunKeys.MissingCondition))
                 {
                     Add(step, Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
                 }
@@ -903,7 +954,7 @@ public static class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
-                if (parameter.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition
+                if (parameter.Kind is ActionParameterKind.Steps
                     || step.ParameterDefinition(parameter) is { ForeignText: true })
                 {
                     continue;
@@ -1005,9 +1056,9 @@ public static class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
-                // Steps and conditions hold other steps rather than a value of their own, and text
-                // written in another language spells its own variables with a $.
-                if (parameter.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition
+                // Step lists hold other steps rather than a value of their own, and text written
+                // in another language spells its own variables with a $.
+                if (parameter.Kind is ActionParameterKind.Steps
                     || step.ParameterDefinition(parameter) is { ForeignText: true })
                 {
                     continue;
@@ -1413,9 +1464,7 @@ public static class MacroCheck
         }
 
         var name = text[1..];
-        return name.All(letter => char.IsLetterOrDigit(letter) || letter is '.' or '_' or '-')
-            ? name
-            : null;
+        return VariableText.IsName(name) ? name : null;
     }
 
     /// <summary>
@@ -1452,7 +1501,7 @@ public static class MacroCheck
 
         // Every step that can run leaves an ending and a failure key behind under its own id,
         // whether or not the editor asked for a named result.
-        foreach (var step in Every(steps).Where(step => !step.IsCondition && step.Id.Length > 0))
+        foreach (var step in Every(steps).Where(step => step.Id.Length > 0))
         {
             defined.Add(MacroRunner.OutcomeName(step.Id));
             defined.Add(MacroRunner.ErrorName(step.Id));
@@ -1577,20 +1626,7 @@ public static class MacroCheck
         }
 
         var name = text[1..];
-        if (!char.IsLetter(name[0]) && name[0] != '_')
-        {
-            return null;
-        }
-
-        foreach (var letter in name)
-        {
-            if (!char.IsLetterOrDigit(letter) && letter != '_' && letter != '.')
-            {
-                return null;
-            }
-        }
-
-        return name;
+        return VariableText.IsName(name) ? name : null;
     }
 
     private static IEnumerable<(string Result, string Name)> Wanted(MacroStep step)
@@ -1623,13 +1659,6 @@ public static class MacroCheck
                     yield return nested;
                 }
 
-                if (parameter.Condition is { } condition)
-                {
-                    foreach (var nested in Every([condition]))
-                    {
-                        yield return nested;
-                    }
-                }
             }
         }
     }

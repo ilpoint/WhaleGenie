@@ -20,7 +20,7 @@ public class JitterTests
 {
     private static AddActionViewModel Open(string key)
     {
-        var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -38,7 +38,7 @@ public class JitterTests
     {
         Ui.Run(() =>
         {
-            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -112,7 +112,7 @@ public class JitterTests
             // The step list says so as well, so a wait with slack is visible without opening it.
             Assert.Contains(Strings.Format("Editor.JitterDetail", "20"), saved.Detail);
 
-            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], []);
+            var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions, [], []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 

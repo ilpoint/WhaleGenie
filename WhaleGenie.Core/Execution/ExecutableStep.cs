@@ -31,8 +31,6 @@ public sealed class ExecutableParameter
     /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows { get; init; } = [];
 
-    /// <summary>Child step, for a parameter that holds a single condition.</summary>
-    public ExecutableStep? Condition { get; init; }
 }
 
 /// <summary>
@@ -86,9 +84,6 @@ public sealed class ExecutableStep
 
         return string.Empty;
     }
-
-    /// <summary>The condition held by a named parameter.</summary>
-    public ExecutableStep? Condition(string name) => Parameter(name)?.Condition;
 
     /// <summary>The slack a named parameter carries, as a fraction of it, or zero.</summary>
     public decimal Jitter(string name) => Parameter(name)?.Jitter ?? 0m;

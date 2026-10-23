@@ -22,8 +22,15 @@ public class VariableWallTests
     private static VariableChoice Local(string name) =>
         new() { Name = name, Scope = VariableScope.Local, Type = "text" };
 
-    private static VariableChoice Global(string name) =>
-        new() { Name = name, Scope = VariableScope.Global, Type = "number", Description = "总数" };
+    private static VariableChoice Global(string name, bool persistent = false) =>
+        new()
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+            Type = "number",
+            Description = "总数",
+            IsPersistent = persistent,
+        };
 
     private static VariableChoice System(string name) =>
         new() { Name = name, Scope = VariableScope.System, Type = "text", Description = "今天" };
@@ -154,6 +161,36 @@ public class VariableWallTests
     }
 
     [Fact]
+    public void Searching_narrows_the_current_group_without_changing_the_filter()
+    {
+        var wall = Wall();
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.All);
+
+        wall.SearchText = "总数";
+
+        Assert.Equal(VariableGroup.All, wall.SelectedFilter!.Group);
+        Assert.Equal(["total"], wall.Shown.Select(choice => choice.Name));
+
+        wall.SearchText = "not here";
+        Assert.True(wall.IsEmpty);
+    }
+
+    [Fact]
+    public void Refreshing_keeps_the_filter_and_the_variable_under_the_pointer()
+    {
+        var wall = Wall();
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Global);
+        wall.Looking = wall.Shown.Single();
+
+        wall.SetVariables([Local("rows"), Global("total", persistent: true), System("sys.date")]);
+
+        Assert.Equal(VariableGroup.Global, wall.SelectedFilter!.Group);
+        Assert.Equal("total", wall.Looking?.Name);
+        Assert.True(wall.Looking?.IsPersistent);
+        Assert.Equal(Strings.Get("VarWall.Persistent"), wall.Looking?.PersistenceBadge);
+    }
+
+    [Fact]
     public void A_group_with_nothing_in_it_says_so_rather_than_standing_empty()
     {
         var wall = new VariableWallViewModel([Local("rows")]);
@@ -161,6 +198,39 @@ public class VariableWallTests
 
         Assert.True(wall.IsEmpty);
         Assert.Equal(Strings.Get("VarWall.Empty"), wall.Details);
+    }
+
+    [Fact]
+    public void A_variable_bubble_shows_its_content_and_record_fields()
+    {
+        var choice = new VariableChoice
+        {
+            Name = "hit",
+            Scope = VariableScope.Global,
+            Type = "record",
+            ContentReader = () => "{ x: 12, y: 8 }",
+            Fields =
+            [
+                new ActionReturnField { Name = "x", Type = ActionReturnType.Number },
+                new ActionReturnField { Name = "name", Type = ActionReturnType.Text },
+            ],
+        };
+
+        Assert.Contains(Strings.Format("VarWall.ContentLine", "{ x: 12, y: 8 }"),
+            choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains("x", choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains("name", choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains(Strings.Get("Variable.Type.number"), choice.HoverText,
+            StringComparison.Ordinal);
+
+        var local = new VariableChoice
+        {
+            Name = "answer",
+            Scope = VariableScope.Local,
+            Type = "text",
+        };
+        Assert.Contains(Strings.Get("VarWall.NoRuntimeValue"), local.HoverText,
+            StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -338,7 +408,8 @@ public class VariableWallTests
             Dispatcher.UIThread.RunJobs();
 
             var buttons = window.GetVisualDescendants().OfType<Button>()
-                .Select(button => button.Content as string)
+                .SelectMany(button => button.GetVisualDescendants().OfType<TextBlock>())
+                .Select(text => text.Text ?? string.Empty)
                 .ToList();
             Assert.Contains("$rows", buttons);
 

@@ -9,7 +9,7 @@ namespace WhaleGenie.Mcp;
 
 /// <summary>A compact action entry for the MCP list.</summary>
 public sealed record McpActionSummary(
-    string Key, string Name, string Category, string Description, bool Condition);
+    string Key, string Name, string Category, string Description, bool Hidden);
 
 /// <summary>
 /// One parameter of an action, in the shape an external author needs to fill in. Record fields
@@ -17,15 +17,16 @@ public sealed record McpActionSummary(
 /// </summary>
 public sealed record McpActionParameter(
     string Name, string Label, string Kind, bool Required, string Default, string Hint,
-    string ReadMode, string Shape, IReadOnlyList<string> Options, IReadOnlyList<string> Fields,
-    string? Unit, string? EmptyMeans, decimal? Minimum, decimal? Maximum);
+    string ReadMode, string Shape, IReadOnlyList<string> Options,
+    IReadOnlyList<string> ChildKeys, IReadOnlyList<string> Fields, string? Unit,
+    string? EmptyMeans, decimal? Minimum, decimal? Maximum);
 
 /// <summary>One result an action can hand back.</summary>
 public sealed record McpActionReturn(string Key, string Label, string Type, bool Primary);
 
 /// <summary>The full description of one action.</summary>
 public sealed record McpActionDetails(
-    string Key, string Name, string Category, string Description,
+    string Key, string Name, string Category, string Description, bool Hidden,
     IReadOnlyList<McpActionParameter> Parameters, IReadOnlyList<McpActionReturn> Returns);
 
 /// <summary>
@@ -55,7 +56,7 @@ public static class ActionKnowledge
                     definition.LocalName,
                     definition.Category.ToString(),
                     definition.LocalDescription,
-                    definition.IsCondition)),
+                    definition.Hidden)),
         ];
     }
 
@@ -71,6 +72,7 @@ public static class ActionKnowledge
             definition.LocalName,
             definition.Category.ToString(),
             definition.LocalDescription,
+            definition.Hidden,
             [
                 .. definition.Parameters.Select(parameter => new McpActionParameter(
                     parameter.Name,
@@ -82,6 +84,7 @@ public static class ActionKnowledge
                     parameter.ReadMode.ToString(),
                     parameter.Shape.ToString(),
                     [.. parameter.Options],
+                    [.. parameter.ChildKeys],
                     FieldsOf(parameter.Shape),
                     parameter.Shape == ActionValueShape.Number ? parameter.Unit.ToString() : null,
                     parameter.Shape == ActionValueShape.Number

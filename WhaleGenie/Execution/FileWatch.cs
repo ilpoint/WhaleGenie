@@ -58,9 +58,17 @@ internal sealed class FileWatch : IDisposable
         => string.Join('\u001f', path, macro.WatchPath, macro.WatchChange, macro.WatchFilter,
             macro.WatchSubfolders);
 
+    public static string SignatureOf(TriggerEntry entry, string path)
+        => string.Join('\u001f', path, entry.WatchPath, entry.WatchChange, entry.WatchFilter,
+            entry.WatchSubfolders);
+
     public static FileWatch Create(MacroItem macro, string path)
         => new(path, SignatureOf(macro, path), macro.WatchChange, macro.WatchFilter,
             macro.WatchSubfolders);
+
+    public static FileWatch Create(TriggerEntry entry, string path)
+        => new(path, SignatureOf(entry, path), entry.WatchChange, entry.WatchFilter,
+            entry.WatchSubfolders);
 
     /// <summary>
     /// Makes sure the file system is being listened to. A path that cannot be watched yet — the

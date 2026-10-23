@@ -22,4 +22,15 @@ public static class AppPaths
 
     /// <summary>The logs of the runs that stopped on a failure.</summary>
     public static string Logs { get; } = Path.Combine(Root, "logs");
+
+    /// <summary>
+    /// Callable macros shared by every project opened by this copy of WhaleGenie. It follows the
+    /// program folder so a portable copy keeps its library with it.
+    /// </summary>
+    public static string PublicMacroLibrary { get; } =
+        Path.Combine(Root, "library", "public-macros.wgmacro");
+
+    /// <summary>Images unpacked from the public macro library.</summary>
+    public static string PublicMacroAssets { get; } =
+        Path.Combine(Root, "library", "public-macros.assets");
 }
