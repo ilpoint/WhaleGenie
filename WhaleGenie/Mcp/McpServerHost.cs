@@ -111,6 +111,7 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)
             .WithHttpTransport(options => options.Stateless = true)
             .WithTools<McpTools>()
+            .WithTools<McpControlTools>()
             .WithPrompts<McpPrompts>();
 
         var app = builder.Build();

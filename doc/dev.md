@@ -124,7 +124,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 | `Avalonia.Controls.ColorPicker` | 界面：设置里的自定义主题用它做 HSV 色板、滑块与十六进制输入；只有界面引用，引擎不认，也不影响宏文件格式。MIT，Fluent 主题样式从包里的 `Themes/Fluent/Fluent.xaml` 引入 |
 | `Lucide.Avalonia` 0.2.27 | 界面：所有动作分类、工具栏、窗口按钮与菜单图标由 `LucideIconKind` 渲染；`IconView` 只做旧属性名到 Lucide `Kind`、`Foreground`、`StrokeWidth` 的映射。包按 MIT 授权，图形来自 ISC 授权的 Lucide |
-| `ModelContextProtocol.AspNetCore` | 界面：主界面 MCP 开关启动的本机 HTTP 服务器。它只监听环回地址，不设令牌；工具读写当前项目草稿与运行日志，不能运行宏。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，工具的传输与发现由 SDK 管 |
+| `ModelContextProtocol.AspNetCore` | 界面：主界面 MCP 开关启动的本机 HTTP 服务器。它只监听环回地址，不设令牌；工具读写当前项目草稿与运行日志，还能看屏幕、窗口与 UI 元素，并在浮层自己的「允许直接控制」开关下发送键鼠与窗口操作，但不能运行宏。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，工具的传输与发现由 SDK 管 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
 和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
@@ -151,7 +151,21 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 - `McpPrompts`（`WhaleGenie/Mcp/McpPrompts.cs`）提供 `whalegenie_write_macro` 与
   `whalegenie_debug_macro` 两条默认提示词，并通过 `McpServerOptions.ServerInstructions` 给只显示
   服务说明的客户端一份简短版本；`McpTools.Instructions` 还给不显示 prompts 的客户端留了
-  一个同名工具。`McpServerHost` 用 `WithPrompts<McpPrompts>()` 注册。
+  一个同名工具。`McpServerHost` 用 `WithPrompts<McpPrompts>()` 注册。两条提示词都写明了视觉与
+  直接控制工具的用法：调试从「人来回传截图」变成「AI 自己看、自己点」，但运行宏仍由人按。
+- `McpControlTools`（`WhaleGenie/Mcp/McpControlTools.cs`）在项目工具之外给 AI 一双眼和一双手。
+  只读的一组服务器开着就能答：`whalegenie_capture_screen`（整桌面或按 `whalegenie_list_windows`
+  给出的窗口句柄，默认把最长边缩到 1920，否则 4K 桌面编码成 PNG 会把多数客户端撑爆）、
+  `whalegenie_pixel_at`、`whalegenie_cursor`、`whalegenie_list_windows`、`whalegenie_element_at`
+  （点上的控件，带可复用的 selector）。写的一组——移动 / 点击 / 滚轮 / 拖拽 / 按键 / 和弦 / 打字 /
+  激活 / 移动 / 关闭窗口——只在 `McpControl.Allowed` 为真时响应：那是浮层里「允许直接控制」自己的
+  开关（`McpServerViewModel.AllowControl` 写它），默认关、会话级，服务器停止或程序退出即复位。
+  输入经静态锁串行，两个客户端不会把一次和弦交错成谁都没想发送的输入；`type_text` 的回执只报字数，
+  不回显文本。截图默认经 `AppWindows.StepAside` 收起鲸灵自己的窗口再取，和拾取器同一套规矩，
+  只有这一句需要界面线程，走 `Dispatcher.UIThread.InvokeAsync`。
+- 新工具只经组合根交出的 `IDeviceLayer`（`SharedDevices.Current`）看屏幕、发输入，和宏运行看到、
+  做到的是同一台机器，界面里不出现 `WhaleGenie.Core.Devices.Platform`；`McpControlTools` 另有一个
+  收 `Func<IDeviceLayer>` 的内部构造供无头测试注入假设备层。
 - 退出程序时不能在 UI 线程同步等 MCP 停止：MCP 请求可能正等 UI 线程，`GetResult()` 会让
   `App.Exit` 永久卡住，留下一个无窗口进程。`App.Exit` 现在把停止放到工作线程并最多等 3 秒；
   `McpServerHost.StopAsync` 另有 2 秒 Kestrel 超时和释放。主窗口关闭只是收进通知区域，真正的退出是
@@ -160,10 +174,12 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   作为首选端口，被占用则回退到系统分配端口，浮层显示实际地址。
 - `RunLogStore`（`WhaleGenie/Execution/RunLogStore.cs`）保留最近 20 次运行的日志与步骤结局：
   `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
-- 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组。没有
-  `run_macro` / `debug_macro` 工具。
+- 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组，外加视觉与
+  直接控制一组（见下）。没有 `run_macro` / `debug_macro` 工具。
 - 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision、
-  保存和非法落点；`McpActionKnowledgeTests` 验 `Hidden` / `ChildKeys` 对账；`RunLogTests` 验日志；无外网。
+  保存和非法落点；`McpActionKnowledgeTests` 验 `Hidden` / `ChildKeys` 对账；`RunLogTests` 验日志；
+  `McpControlTests` 用假设备层验直接控制门禁、工具交给设备的请求、参数校验与截图降采样。无外网；
+  真实桌面行为按手动过一遍为准。
 
 ## 脚本怎么跑
 

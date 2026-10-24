@@ -309,6 +309,20 @@
                                                       OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
                                                       OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
+                                                IsEnabled="{Binding Mcp.IsRunning}">
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding [Mcp.Control], Source={x:Static loc:Strings.Current}}" />
+                                        <ToggleSwitch Name="McpControlToggle"
+                                                      IsChecked="{Binding Mcp.AllowControl, Mode=OneWay}"
+                                                      Command="{Binding Mcp.ToggleControlCommand}"
+                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
+                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding [Mcp.ControlHint], Source={x:Static loc:Strings.Current}}" />
                                     <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
                                                Text="{Binding Mcp.Status}" />
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">

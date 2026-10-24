@@ -44,6 +44,20 @@ public class McpServerTests
             Assert.Contains(tools, tool => tool.Name == "whalegenie_get_run_log");
             Assert.Contains(tools, tool => tool.Name == "whalegenie_save_project");
 
+            // The looking tools answer whenever the server is on; the driving ones only while the
+            // flyout's own switch is on.
+            foreach (var name in new[]
+                     {
+                         "whalegenie_capture_screen", "whalegenie_pixel_at", "whalegenie_cursor",
+                         "whalegenie_list_windows", "whalegenie_element_at",
+                         "whalegenie_mouse_move", "whalegenie_mouse_click", "whalegenie_mouse_scroll",
+                         "whalegenie_mouse_drag", "whalegenie_key", "whalegenie_type_text",
+                         "whalegenie_window_activate", "whalegenie_window_move", "whalegenie_window_close",
+                     })
+            {
+                Assert.Contains(tools, tool => tool.Name == name);
+            }
+
             var prompts = await client.ListPromptsAsync();
             Assert.Contains(prompts, prompt => prompt.Name == "whalegenie_write_macro");
             Assert.Contains(prompts, prompt => prompt.Name == "whalegenie_debug_macro");
@@ -62,6 +76,11 @@ public class McpServerTests
                 Assert.Single(debug.Messages).Content).Text;
             Assert.Contains("whalegenie_get_run_log", debugInstructions, StringComparison.Ordinal);
             Assert.Contains("childKeys", debugInstructions, StringComparison.Ordinal);
+
+            // The debug loop now closes on the machine itself: look at the screen, and drive it
+            // only while the person's own switch is on.
+            Assert.Contains("whalegenie_capture_screen", debugInstructions, StringComparison.Ordinal);
+            Assert.Contains("Allow direct control", debugInstructions, StringComparison.Ordinal);
 
             var status = await client.CallToolAsync("whalegenie_project_status",
                 new Dictionary<string, object?>());
@@ -138,6 +157,10 @@ public class McpServerTests
             var flyout = Assert.IsType<Flyout>(button.Flyout);
             Assert.NotNull(flyout.Content);
             Assert.NotNull(window.FindControl<TextBlock>("VersionText"));
+
+            // The server's own switch, and the direct-control switch beside it.
+            Assert.NotNull(window.FindControl<ToggleSwitch>("McpToggle"));
+            Assert.NotNull(window.FindControl<ToggleSwitch>("McpControlToggle"));
             window.Close();
         });
     }

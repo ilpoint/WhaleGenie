@@ -15,6 +15,7 @@ public partial class McpServerViewModel : ViewModelBase
     private readonly McpServerHost _host;
     private bool _running;
     private bool _busy;
+    private bool _allowControl;
     private string _status = Strings.Get("Mcp.Off");
     private string _endpoint = string.Empty;
     private int _port;
@@ -73,6 +74,28 @@ public partial class McpServerViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Whether an MCP client may send keys, clicks and window commands to this machine. It is the
+    /// flyout's own switch, beside the server's: looking at the screen needs nothing, while driving
+    /// the machine is the person's to allow. It goes back off when the server stops, so a client
+    /// left connected cannot keep driving after the person has walked away.
+    /// </summary>
+    public bool AllowControl
+    {
+        get => _allowControl;
+        set
+        {
+            if (_allowControl == value)
+            {
+                return;
+            }
+
+            _allowControl = value;
+            McpControl.Allowed = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string Status
     {
         get => _status;
@@ -125,6 +148,7 @@ public partial class McpServerViewModel : ViewModelBase
                 Status = Strings.Get("Mcp.Stopping");
                 await _host.StopAsync();
                 IsRunning = false;
+                AllowControl = false;
                 Endpoint = string.Empty;
                 Status = Strings.Get("Mcp.Off");
             }
@@ -156,6 +180,7 @@ public partial class McpServerViewModel : ViewModelBase
             }
 
             IsRunning = false;
+            AllowControl = false;
             Endpoint = string.Empty;
         }
         finally
@@ -178,9 +203,14 @@ public partial class McpServerViewModel : ViewModelBase
         finally
         {
             IsRunning = false;
+            AllowControl = false;
             Endpoint = string.Empty;
         }
     }
+
+    /// <summary>Flips the direct-control switch from the flyout, the way the server's own one flips.</summary>
+    [RelayCommand]
+    private void ToggleControl() => AllowControl = !AllowControl;
 
     /// <summary>Short confirmation under the flyout after the client config was copied.</summary>
     public void ShowCopied() => Status = Strings.Get("Mcp.Copied");
