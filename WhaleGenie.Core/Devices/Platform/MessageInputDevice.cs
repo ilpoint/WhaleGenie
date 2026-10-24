@@ -290,7 +290,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
             ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
         return WindowsKeys.VirtualKey(code)
-            ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+            ?? throw new DeviceActionException(RunKeys.KeyNotPressable, key);
     }
 
     private static bool IsAlt(int virtualKey) => virtualKey is VkAlt or VkMenu;
@@ -380,10 +380,11 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
            && (candidate == window || GetAncestor(candidate, GaRoot) == window);
 
     /// <summary>
-    /// A child that says it wants typed characters is the one a person would be typing into.
-    /// The second pass accepts the ordinary focusable control when no child answers that question.
+    /// A child that says it wants typed characters is the one a person would be typing into, and
+    /// null when the window has no such child: a game draws in its one window and has none, so the
+    /// window itself is where its keys go.
     /// </summary>
-    private IntPtr FindKeyboardChild(bool wantsChars)
+    private IntPtr? FindKeyboardChild(bool wantsChars)
     {
         var found = IntPtr.Zero;
         bool Visit(IntPtr child, IntPtr _)
@@ -403,7 +404,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         }
 
         EnumChildWindows(window, Visit, IntPtr.Zero);
-        return found;
+        return found == IntPtr.Zero ? null : found;
     }
 
     private static bool WantsKeyboard(IntPtr child)

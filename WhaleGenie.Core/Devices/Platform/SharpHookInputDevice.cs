@@ -262,8 +262,22 @@ public sealed class SharpHookInputDevice : IInputDevice
         }
     }
 
+    /// <summary>
+    /// The code a macro's key name stands for. A name the library knows but no keystroke can carry
+    /// is refused rather than handed over: the library's sender answers such a code with VK 0xFF,
+    /// which arrives as no key at all — or, for Pause, with RightCtrl, which is worse than nothing.
+    /// A step that says which key it could not press is worth more than one that quietly types
+    /// something else.
+    /// </summary>
     private static KeyCode Code(string key)
-        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+    {
+        var code = SharpKeys.ResolveCode(key)
+            ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+
+        return WindowsKeys.CanBePressed(code)
+            ? code
+            : throw new DeviceActionException(RunKeys.KeyNotPressable, key);
+    }
 
     private static MouseButton Button(string button) => button.Trim().ToLowerInvariant() switch
     {

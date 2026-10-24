@@ -106,6 +106,10 @@ public static class RunKeys
     public const string ImageNotFound = "Run.ImageNotFound";
     public const string IndexOutOfRange = "Run.IndexOutOfRange";
     public const string ItemNotFound = "Run.ItemNotFound";
+
+    /// <summary>The key name is a real one, but no keystroke on this machine can carry it.</summary>
+    public const string KeyNotPressable = "Run.KeyNotPressable";
+
     public const string LayoutNotFound = "Run.LayoutNotFound";
     public const string LayoutNotSwitched = "Run.LayoutNotSwitched";
     public const string LockRefused = "Run.LockRefused";

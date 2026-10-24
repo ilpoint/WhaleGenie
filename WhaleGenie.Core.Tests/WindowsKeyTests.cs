@@ -75,6 +75,11 @@ public class WindowsKeyTests
     [InlineData("AppBrowser")]
     [InlineData("AppCalculator")]
     [InlineData("MediaEject")]
+    [InlineData("Kana")]
+    [InlineData("Convert")]
+    [InlineData("Misc")]
+    [InlineData("NumPadSeparator")]
+    [InlineData("NumPadEquals")]
     public void A_key_windows_has_not_got_is_left_empty(string name)
         => Assert.Null(WindowsKeys.VirtualKey(SharpKeys.ResolveCode(name)!.Value));
 
@@ -111,9 +116,13 @@ public class WindowsKeyTests
     }
 
     /// <summary>
-    /// The keys the library has and Windows has no code for, named here rather than mapped to a
-    /// neighbouring key that would press something the macro did not ask for. A key the library adds
-    /// later lands in this list only when somebody has looked at what Windows makes of it.
+    /// The keys the library has and Windows has no keystroke for, named here rather than mapped to a
+    /// neighbouring key that would press something the macro did not ask for. That is two groups:
+    /// codes Windows does not number at all, and codes it numbers but gives no scan code — an IME's
+    /// own keys, the number pad's separator and equals key, and the library's "misc" key. Measured
+    /// with a keyboard hook: asking for one of the second group posts VK 0xFF and no key arrives. A
+    /// key the library adds later lands in this list only when somebody has looked at what Windows
+    /// makes of it.
     /// </summary>
     private static readonly KeyCode[] NoWindowsKey =
     [
@@ -132,6 +141,20 @@ public class WindowsKeyTests
         KeyCode.VcUnderscore,
         KeyCode.VcYen,
         KeyCode.VcJpComma,
+        KeyCode.VcKana,
+        KeyCode.VcHanja,
+        KeyCode.VcJunja,
+        KeyCode.VcFinal,
+        KeyCode.VcAccept,
+        KeyCode.VcConvert,
+        KeyCode.VcNonConvert,
+        KeyCode.VcImeOn,
+        KeyCode.VcImeOff,
+        KeyCode.VcModeChange,
+        KeyCode.VcProcess,
+        KeyCode.VcMisc,
+        KeyCode.VcNumPadSeparator,
+        KeyCode.VcNumPadEquals,
     ];
 
     [Fact]
@@ -153,5 +176,31 @@ public class WindowsKeyTests
         }
 
         Assert.Empty(unlisted.Order());
+    }
+
+    /// <summary>
+    /// Pause is numbered like any other key and still cannot be one key press: it goes out as the
+    /// three-byte sequence E1 1D 45, which the layer that presses keys cannot express, and asking it
+    /// for Pause presses RightCtrl instead (measured with a keyboard hook). Every other key that has
+    /// a Windows code is one press, which is what makes this the only exception worth writing down.
+    /// </summary>
+    [Fact]
+    public void Every_key_that_is_posted_can_be_pressed_except_pause()
+    {
+        Assert.False(WindowsKeys.CanBePressed(KeyCode.VcPause));
+
+        var pressable = Enum.GetValues<KeyCode>()
+            .Where(code => code != KeyCode.VcUndefined && WindowsKeys.CanBePressed(code))
+            .Order()
+            .ToArray();
+
+        var wanted = Enum.GetValues<KeyCode>()
+            .Where(code => code != KeyCode.VcUndefined
+                           && code != KeyCode.VcPause
+                           && !NoWindowsKey.Contains(code))
+            .Order()
+            .ToArray();
+
+        Assert.Equal(wanted, pressable);
     }
 }

@@ -1457,6 +1457,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.ImageNotFound` | 始终没有找到参考图片：{0} |
 | `Run.IndexOutOfRange` | 下标超出列表范围：{0} |
 | `Run.ItemNotFound` | 没有找到要选的那一项：{0} |
+| `Run.KeyNotPressable` | 这个键在这台机器上按不出去：{0} |
 | `Run.LayoutNotFound` | 这台机器上没有安装匹配的键盘布局：{0} |
 | `Run.LayoutNotSwitched` | 已请求当前窗口切换到 {0}，但它始终没有完成切换。 |
 | `Run.LockRefused` | Windows 没有锁定屏幕。 |
