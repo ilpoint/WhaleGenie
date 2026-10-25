@@ -627,10 +627,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.RecordActions"] = "Record Actions",
         ["Editor.RunningTogether"] = "Running next to other macros",
         ["Editor.ExclusiveInput"] = "Take turns sending input",
-        ["Editor.ExclusiveInputNote"] = "With this on, this macro and every other macro set up the "
-            + "same way send their keys and clicks one step at a time rather than through each "
-            + "other. Looking at the screen is not held back by it. Off by default: a macro running "
-            + "on its own has nobody to wait for.",
+        ["Editor.ExclusiveInputNote"] = "Shares one input door with every macro set up the same "
+            + "way: only the steps that send keys or clicks take it, one step at a time, so two "
+            + "such runs take turns and every step arrives whole. On when two macros send input to "
+            + "the same window at once; to keep a whole stretch from being cut into, put that "
+            + "stretch inside \"Hold input\". Reading the screen or waiting for a window does not "
+            + "take the door. Off by default.",
         ["Editor.PositionCapture"] = "Mouse Position Capture :",
         ["Editor.MouseMovement"] = "Mouse Movement",
         ["Editor.MouseButtons"] = "Mouse Buttons",
@@ -2524,9 +2526,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.RecordActions"] = "录制动作",
         ["Editor.RunningTogether"] = "与别的宏一起跑时",
         ["Editor.ExclusiveInput"] = "与别的宏互斥发输入",
-        ["Editor.ExclusiveInputNote"] = "勾上后，这个宏与同样勾上的其他宏一步一步轮流发键鼠，"
-            + "不会把自己的按键插进对方中间；看屏幕、识别的动作不受影响。默认不勾：一个宏单独跑时"
-            + "没有要等的人。",
+        ["Editor.ExclusiveInputNote"] = "与同样勾上的宏共用一道输入门：只有发键鼠的步骤去取门，"
+            + "一次放一步，两条宏因此轮流推进、每一步都完整。两条宏同时往同一个窗口发键鼠时勾上；"
+            + "要让一整段都不被打断，把这一段放进「按住输入门」。读屏幕、识别与等窗口不取门。默认不勾。",
         ["Editor.PositionCapture"] = "鼠标位置记录方式：",
         ["Editor.MouseMovement"] = "鼠标移动",
         ["Editor.MouseButtons"] = "鼠标按键",
