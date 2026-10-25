@@ -71,6 +71,12 @@ public partial class MainWindow : Window
     /// </summary>
     private RunWindow? _runDebug;
 
+    /// <summary>
+    /// The run-and-debug window on screen, or null while there is none. A property so that a check
+    /// can see which window the button opened without going through the desktop's own list.
+    /// </summary>
+    internal RunWindow? RunDebug => _runDebug;
+
     /// <summary>Whether the pin on the menu bar is holding the window above the other windows.</summary>
     private bool _alwaysOnTop;
 
@@ -1329,7 +1335,10 @@ public partial class MainWindow : Window
 
         if (_runDebug is { } open)
         {
-            open.Activate();
+            // The window is put away rather than gone: it may have been minimized to the taskbar
+            // or hidden by the scope that took the screen away for a moment. Bring it back before
+            // anything else, or the run it is showing goes on with nobody watching.
+            open.BringBack();
             if (macro is not null)
             {
                 await open.DebugAsync(macro);
@@ -1362,7 +1371,11 @@ public partial class MainWindow : Window
             }
         };
 
-        window.ShowOver(this);
+        // The run window stands beside the list rather than under it: the list goes into the
+        // notification area whenever it is minimized, and an owned window would be taken down
+        // with it — a run being watched would lose the window watching it, and the button that
+        // opens it would find a window that is not on the screen.
+        window.ShowAsPeer(this);
 
         if (macro is not null)
         {
