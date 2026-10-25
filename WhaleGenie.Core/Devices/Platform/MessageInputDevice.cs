@@ -301,7 +301,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         var scan = (int)(MapVirtualKey((uint)virtualKey, 0) & 0xFF);
         var bits = 1 | (scan << 16);
 
-        if (IsExtended(virtualKey))
+        if (WindowsKeys.IsExtended((ushort)virtualKey))
         {
             bits |= 1 << 24;
         }
@@ -314,10 +314,6 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         return bits;
     }
 
-    /// <summary>The keys that carry the extended flag, which tells them apart from numpad keys.</summary>
-    private static bool IsExtended(int virtualKey) => virtualKey is
-        0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28
-        or 0x2C or 0x2D or 0x2E or 0x5B or 0x5C or 0x5D or 0x6F or 0x90 or 0xA3 or 0xA5;
 
     /// <summary>
     /// The control on the target window's GUI thread that would receive a key press: the focused

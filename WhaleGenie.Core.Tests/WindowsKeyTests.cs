@@ -179,28 +179,83 @@ public class WindowsKeyTests
     }
 
     /// <summary>
-    /// Pause is numbered like any other key and still cannot be one key press: it goes out as the
-    /// three-byte sequence E1 1D 45, which the layer that presses keys cannot express, and asking it
-    /// for Pause presses RightCtrl instead (measured with a keyboard hook). Every other key that has
-    /// a Windows code is one press, which is what makes this the only exception worth writing down.
+    /// Every key Windows numbers can be one key press, Pause included. A keyboard sends Pause as
+    /// the three-byte sequence E1 1D 45, which a single input event cannot express — but the E1 1D
+    /// prefix is eaten by the keyboard driver, and what the application is handed is VK_PAUSE with
+    /// scan code 0x45. That pair is what the sender states, so the window is told the same thing a
+    /// keyboard would have told it. Windows' own table answers 0 for Pause, which is why the scan
+    /// code is written down for this one key: left out, the key could not be pressed at all — and
+    /// the library's sender used to answer Pause with RightCtrl, which is worse than nothing.
     /// </summary>
     [Fact]
-    public void Every_key_that_is_posted_can_be_pressed_except_pause()
+    public void Every_key_that_is_posted_can_be_pressed()
     {
-        Assert.False(WindowsKeys.CanBePressed(KeyCode.VcPause));
+        Assert.True(WindowsKeys.CanBePressed(KeyCode.VcPause));
 
+        // The pair a real keyboard produces, once the driver has taken the E1 1D prefix off.
+        Assert.Equal<ushort>(0x13, WindowsKeys.VirtualKey(KeyCode.VcPause) ?? 0);
+        Assert.Equal(0x45, WindowsKeys.ScanCode(0x13));
+
+        // Everything Windows numbers, and nothing it does not.
         var pressable = Enum.GetValues<KeyCode>()
             .Where(code => code != KeyCode.VcUndefined && WindowsKeys.CanBePressed(code))
             .Order()
             .ToArray();
 
         var wanted = Enum.GetValues<KeyCode>()
-            .Where(code => code != KeyCode.VcUndefined
-                           && code != KeyCode.VcPause
-                           && !NoWindowsKey.Contains(code))
+            .Where(code => code != KeyCode.VcUndefined && !NoWindowsKey.Contains(code))
             .Order()
             .ToArray();
 
         Assert.Equal(wanted, pressable);
+    }
+
+    /// <summary>
+    /// Two keys can share a scan code, and the extended flag is the only thing that tells them
+    /// apart. NumLock is where this went wrong: its scan code 0x45 is one byte of the Pause
+    /// sequence (E1 1D 45), so a NumLock sent without the flag flips the lock on the Windows side
+    /// and arrives at every browser as Pause — a key nobody pressed, one step after the Pause step
+    /// that was switched off.
+    /// </summary>
+    [Fact]
+    public void Keys_that_share_a_scan_code_are_told_apart_by_the_extended_flag()
+    {
+        // NumLock, whose scan code is the byte Pause is built from.
+        Assert.Equal(0x45, WindowsKeys.ScanCode(0x90));
+        Assert.True(WindowsKeys.IsExtended(0x90));
+
+        // The navigation block against the number pad, which are the same physical keys.
+        Assert.Equal(WindowsKeys.ScanCode(0x24), WindowsKeys.ScanCode(0x67));
+        Assert.True(WindowsKeys.IsExtended(0x24));
+        Assert.False(WindowsKeys.IsExtended(0x67));
+
+        Assert.Equal(WindowsKeys.ScanCode(0x28), WindowsKeys.ScanCode(0x62));
+        Assert.True(WindowsKeys.IsExtended(0x28));
+        Assert.False(WindowsKeys.IsExtended(0x62));
+
+        // A key that shares its scan code with nothing needs no flag.
+        Assert.False(WindowsKeys.IsExtended(0x41));
+        Assert.False(WindowsKeys.IsExtended(0x46));
+    }
+
+    /// <summary>
+    /// Every key that is one half of such a pair is flagged, and the keys around them are not: a
+    /// flag on the wrong key is the same bug from the other side.
+    /// </summary>
+    [Fact]
+    public void The_extended_flag_covers_the_keys_that_need_it_and_no_others()
+    {
+        ushort[] extended =
+        [
+            0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,   // PageUp..Down, Home, End and the arrows
+            0x2C, 0x2D, 0x2E,                                  // PrintScreen, Insert, Delete
+            0x5B, 0x5C, 0x5D,                                  // the Windows keys and the menu key
+            0x6F, 0x90, 0xA3, 0xA5,                            // number pad divide, NumLock, right Ctrl and Alt
+        ];
+
+        Assert.All(extended, key => Assert.True(WindowsKeys.IsExtended(key)));
+
+        ushort[] plain = [0x41, 0x31, 0x46, 0x54, 0x60, 0x61, 0x67, 0x6B, 0x6D, 0x6E, 0xA0, 0xA2, 0xA4];
+        Assert.All(plain, key => Assert.False(WindowsKeys.IsExtended(key)));
     }
 }

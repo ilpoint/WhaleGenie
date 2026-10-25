@@ -18,27 +18,70 @@ namespace WhaleGenie.Core.Devices.Platform;
 ///
 /// A key Windows numbers but gives no scan code is answered with null as well: an input message
 /// carries a scan code, so a key without one is a key no keystroke can carry, and pressing it
-/// either sends nothing or sends a different key than the name says. Both devices that send a
-/// Windows key code ask here before they send, so "this key cannot be pressed" is one answer
-/// rather than one answer per device.
+/// either sends nothing or sends a different key than the name says.
+///
+/// Whether a key can be sent at all is a question per way of sending, and the three ways answer
+/// differently: injecting a keystroke asks <see cref="CanBePressed"/>, a posted key message only
+/// needs a Windows code (<see cref="VirtualKey"/>, because the window is told about the key rather
+/// than given a keystroke), and the virtual USB keyboard speaks HID usages of its own and asks
+/// nothing here. Pause is where that shows: it is one key press like any other, it is only that
+/// Windows will not say which scan code goes with it.
 /// </remarks>
 internal static class WindowsKeys
 {
     /// <summary>The virtual key code of F1, which the rest of that row follows.</summary>
     private const int VkF1 = 0x70;
 
+    /// <summary>The virtual key code of Pause, the one key whose scan code is written down here.</summary>
+    private const ushort VkPause = 0x13;
+
     /// <summary>
-    /// Whether one keystroke can carry the key. Every key but Pause can: Pause goes out as the
-    /// three-byte sequence E1 1D 45, which a single key press cannot express, so the layer that
-    /// presses keys has nothing to press it with — measured, asking it for Pause presses RightCtrl
-    /// instead. A window that is only told about the key is another matter, which is why this is a
-    /// question asked here rather than Pause being taken out of the table above.
+    /// Whether one keystroke can carry the key, which is the question the injecting device asks: a
+    /// key press is a Windows key code and a scan code, so a key with either missing cannot be one.
+    /// Pause is the key this used to be asked about, and the answer has changed: what a keyboard
+    /// sends for it is the three-byte sequence E1 1D 45, which a single <c>SendInput</c> event
+    /// cannot express — but the E1 1D prefix is consumed by the keyboard driver, and what an
+    /// application is handed is VK_PAUSE with scan code 0x45. Stating that pair is therefore the
+    /// key press the window was going to see anyway, which is why <see cref="ScanCode"/> states it
+    /// rather than taking Windows' word for it (Windows answers 0, because Pause has no entry in
+    /// the one-scan-code-per-key table).
     /// </summary>
     internal static bool CanBePressed(KeyCode code)
-        => VirtualKey(code) is { } virtualKey && MapVirtualKey(virtualKey, VkToScan) != 0;
+        => VirtualKey(code) is { } virtualKey && ScanCode(virtualKey) != 0;
 
     /// <summary>MAPVK_VK_TO_VSC, which answers with 0 for a key no keyboard can send.</summary>
     private const uint VkToScan = 0;
+
+    /// <summary>Pause's scan code, which Windows will not hand out but every window is told about.</summary>
+    private const ushort ScanPause = 0x45;
+
+    /// <summary>
+    /// The scan code of a key, or 0 for one no keyboard can send. It goes out beside the Windows
+    /// key code because a keystroke carries both, and the pair is what tells two keys apart: the
+    /// number pad's 7 and Home are one scan code, and the extended flag is what says which of them
+    /// was meant.
+    /// </summary>
+    /// <remarks>
+    /// Pause is the one key that has to be written down here: its scan code is 0x45, the same byte
+    /// NumLock's is, and Windows answers 0 for it because the two are told apart by the E1 prefix
+    /// and the extended flag rather than by the table.
+    /// </remarks>
+    internal static ushort ScanCode(ushort virtualKey)
+        => virtualKey == VkPause
+            ? ScanPause
+            : (ushort)(MapVirtualKey(virtualKey, VkToScan) & 0xFF);
+
+    /// <summary>
+    /// The keys that carry the extended flag, which is what tells them apart from the keys they
+    /// share a scan code with. NumLock is the one that matters most in practice: its scan code
+    /// 0x45 is the same byte Pause is built from (E1 1D 45), so a NumLock sent without the flag
+    /// arrives as a key nobody asked for — every browser calls it Pause — while the Windows side
+    /// still flips the lock. The arrows and the navigation block share their scan codes with the
+    /// number pad the same way.
+    /// </summary>
+    internal static bool IsExtended(ushort virtualKey) => virtualKey is
+        0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28
+        or 0x2C or 0x2D or 0x2E or 0x5B or 0x5C or 0x5D or 0x6F or 0x90 or 0xA3 or 0xA5;
 
     /// <summary>The virtual key code for a library code, or null when Windows has no such key.</summary>
     internal static ushort? VirtualKey(KeyCode code) => code switch

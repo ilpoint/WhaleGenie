@@ -46,6 +46,30 @@ public class KeyNameTests
     }
 
     [Fact]
+    public void A_number_pad_key_is_also_known_by_the_navigation_key_it_becomes()
+    {
+        // With NumLock off the number pad is the navigation block, and the hook names what it sees
+        // in that state: the macro writes NumPad7 and the key comes back as Home.
+        Assert.Equal(["Home"], KeyNames.AlsoSeenAs(SharpKeys.Key(KeyCode.VcNumPad7)));
+        Assert.Equal(["Delete"], KeyNames.AlsoSeenAs(SharpKeys.Key(KeyCode.VcNumPadDecimal)));
+
+        // A key whose name no state decides has only the one name.
+        Assert.Empty(KeyNames.AlsoSeenAs(SharpKeys.Key(KeyCode.VcHome)));
+        Assert.Empty(KeyNames.AlsoSeenAs(SharpKeys.Key(KeyCode.VcA)));
+    }
+
+    [Fact]
+    public void Every_second_name_is_a_name_the_engine_understands()
+    {
+        // These words are written into the input gate, which compares them against what the hook
+        // says; a name nothing ever reports would be a key whose own output is not recognised.
+        foreach (var code in Enum.GetValues<KeyCode>())
+        {
+            Assert.All(KeyNames.AlsoSeenAs(SharpKeys.Key(code)), name => Assert.NotNull(KeyNames.Resolve(name)));
+        }
+    }
+
+    [Fact]
     public void OtherKeysAreSpelledTheSameEitherWay()
     {
         Assert.Equal("NumPad7", KeyNames.Name(SharpKeys.Key(KeyCode.VcNumPad7), sided: true));

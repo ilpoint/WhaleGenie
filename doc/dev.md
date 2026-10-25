@@ -304,6 +304,17 @@ Avalonia 控件。菜单定位时让中间分隔条中心对齐指针的纵向�
 UI 线程发布的 `TriggerRuntimeSnapshot`；全局快捷键只读 `GlobalHotkeyPlan`，二者都不访问 Avalonia 控件或
 可变 UI 集合。所有后台回调经过异常隔离，重复故障按阶段节流写入 `logs/runtime.log`。
 
+钩子回调里凡是回答「这个键是不是人按的」，一律先问 `WhaleGenieInputGate`，它记的是这个键**回来时**叫什么：
+`KeyNames.AlsoSeenAs` 里的第二名字就是为此存在的——小键盘在 NumLock 关闭时报的是 Home / End / 方向键，
+只记 `NumPad7` 就会把自家的按键当成人的按键，一个跑着按键的宏会把绑到 Home 的系统开关打起来、把自己停下。
+发送侧（前台注入与驱动级注入）都按 `HookKey` 记，不按名字记。
+
+**前台按键自己拼输入事件**（`WindowsKeyStrokes`）：一个按键同时带 Windows 键码与扫描码，**扩展位**才是把两个
+共用一个扫描码的键分开的东西——NumLock 的扫描码 `0x45` 就是 Pause 序列 `E1 1D 45` 里的一个字节，少了扩展位
+NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause（`0x45` 无扩展位在 Chromium 里就是 VK_PAUSE）。
+所以键码、扫描码、扩展位三样都从 `WindowsKeys` 取，交给 `SendInput`；`WindowsKeys.IsExtended` 是这两条发送
+路径（注入与投消息）共用的唯一一张表，不再各写一份。
+
 调用另一个宏的步骤（`control.runMacro`）写三个部分：
 
 ```json
