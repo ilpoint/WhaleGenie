@@ -328,7 +328,12 @@ public partial class RunWindow : Window
                     // the window knows of.
                     Devices = viewModel.Devices,
                 };
-                if (await dialog.ShowDialogOver<MacroStep?>(this) is { } condition)
+                // The window itself is waited on rather than the modal loop it is shown in: a picker
+                // hides it while it is out, and a hidden modal window is answered with nothing
+                // before the condition is finished. See ActionEditorWindow.Answer.
+                _ = dialog.ShowDialogOver<MacroStep?>(this);
+                var written = await dialog.Answer;
+                if (written is { } condition)
                 {
                     viewModel.ConditionBreakpoint(row, condition);
                 }

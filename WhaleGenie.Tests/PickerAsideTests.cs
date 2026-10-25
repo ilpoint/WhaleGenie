@@ -296,6 +296,24 @@ public class PickerAsideTests
     }
 
     /// <summary>
+    /// The dialog a step is written in is waited on for its own answer, not for the modal loop it
+    /// is shown in: the pickers above put that window away while they are out, and a hidden modal
+    /// window answers at once with nothing while the step is still being written.
+    /// </summary>
+    [Fact]
+    public void The_action_window_is_waited_on_rather_than_its_modal_loop()
+    {
+        foreach (var name in new[] { "MacroEditorWindow.axaml.cs", "RunWindow.axaml.cs" })
+        {
+            var source = Source(name);
+
+            Assert.Contains("await dialog.Answer", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("await dialog.ShowDialogOver<MacroStep?>", source,
+                StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
     /// The picture of a rectangle is taken inside the scope, once the screen has been drawn again:
     /// the screen answers with the last frame it drew, which still has the picker on it.
     /// </summary>

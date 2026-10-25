@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -22,6 +23,17 @@ namespace WhaleGenie.Views;
 public class ActionEditorWindow : Window
 {
     private readonly ActionEditorView _view;
+
+    /// <summary>
+    /// The step this window is closed with, kept here rather than read off the modal loop it is
+    /// shown in. Every picker that takes something off the screen hides all of this program's
+    /// windows while it is out, this one included, and a hidden modal window is answered at once
+    /// with nothing — while the window itself is still standing there with the step half written.
+    /// Waiting on the loop would then be over before the step is saved, and the step would go
+    /// nowhere. So the window is the one that says what it was closed with.
+    /// </summary>
+    private readonly TaskCompletionSource<MacroStep?> _answer =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public ActionEditorWindow()
         : this(null, null, null, null, null, null)
@@ -48,7 +60,7 @@ public class ActionEditorWindow : Window
             steps, newStepId);
         Content = _view;
         DataContext = _view.DataContext;
-        _view.Finished += step => Close(step);
+        _view.Finished += CloseWith;
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
 
         if (_view.FindControl<Button>("MinimizeButton") is { } minimize)
@@ -58,8 +70,31 @@ public class ActionEditorWindow : Window
 
         if (_view.FindControl<Button>("CloseButton") is { } close)
         {
-            close.Click += (_, _) => Close(null);
+            close.Click += (_, _) => CloseWith(null);
         }
+    }
+
+    /// <summary>
+    /// The step this window is closed with, which is what the window that opened it waits for. The
+    /// modal loop it is shown in is not that answer: see <c>_answer</c>.
+    /// </summary>
+    internal Task<MacroStep?> Answer => _answer.Task;
+
+    /// <summary>
+    /// Closes the window on a step, or on nothing when the form was cancelled. The answer is kept
+    /// before the window goes, so a window that closes itself for any other reason — its owner
+    /// going away — still leaves an answer behind rather than a caller waiting forever.
+    /// </summary>
+    private void CloseWith(MacroStep? step)
+    {
+        _answer.TrySetResult(step);
+        Close(step);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _answer.TrySetResult(null);
+        base.OnClosed(e);
     }
 
     /// <summary>

@@ -1,5 +1,7 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
@@ -182,6 +184,54 @@ public class ActionEditorWindowTests
             Assert.True(condition.IsExpression);
             Assert.False(condition.IsNested);
             window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A picker puts every window of this program away while it is out, the window a step is being
+    /// written in included — and that is exactly how a reference picture is taken. Taking the
+    /// window off the screen ends the modal loop it is shown in, so waiting on that loop would be
+    /// over before the step is written and the saved step would go nowhere. What the caller waits
+    /// on is the window itself.
+    /// </summary>
+    [Fact]
+    public void A_step_is_still_answered_after_a_picker_has_put_the_window_aside()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var owner = new Window();
+            owner.Show();
+
+            var dialog = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [],
+                "vision.findImage");
+            var loop = dialog.ShowDialogOver<MacroStep?>(owner);
+
+            using (AppWindows.StepAside([owner, dialog], dialog))
+            {
+            }
+
+            Dispatcher.UIThread.RunJobs();
+
+            // The loop is over and it brought nothing back, while the window is still standing
+            // there with the step half written.
+            Assert.True(loop.IsCompleted, "the modal loop outlived the window being put aside");
+            Assert.Null(await loop);
+            Assert.True(dialog.IsVisible);
+
+            var form = (AddActionViewModel)dialog.DataContext!;
+            var pictures = form.Parameters.First(parameter => parameter.Definition.Name == "images");
+            pictures.AddPicture();
+            pictures.Pictures[0].Text = @"C:\images\ok.png";
+            Dispatcher.UIThread.RunJobs();
+
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var step = await dialog.Answer;
+            Assert.Equal("vision.findImage", step?.Type);
+            Assert.False(dialog.IsVisible);
+            owner.Close();
+            return true;
         });
     }
 }

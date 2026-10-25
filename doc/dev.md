@@ -503,6 +503,10 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 - 格式与风格写在 `.editorconfig`，CI 会跑 `dotnet format --verify-no-changes` 卡住不合规的提交。
 - 每个项目共用的构建属性写在 `Directory.Build.props`，单个项目只留自己特有的部分。
 - 注释写"为什么"，不写"做了什么"；用户能看到的文字一律走文案表，不写死在代码或 XAML 里。
+- 模态窗口的答案由窗口自己留着，不从 `ShowDialog` 的返回等：屏幕拾取器在出场的整段时间里把鲸灵自己的窗口
+  全部收起来，问话的那个对话框也在内，而隐藏一个模态窗口会让 Avalonia 立刻以空值结束那一层模态循环——
+  对话框还在屏幕上、步骤还没写完，等循环的人就已经走下去了，随后保存的步骤无处可去。`ActionEditorWindow`
+  因此把答案放在 `Answer` 里，打开它的地方等这一份；新增"会收起鲸灵窗口、又要把结果交回去"的窗口照这个来。
 - 界面只认引擎交出的接口：屏幕、UIA、窗口表、录制器、全局钩子、驱动级输入与浏览器都由组合根
   （`WhaleGenie/Execution/SharedDevices.cs` 与 `App.axaml.cs`）交来，窗口、视图模型与拾取器里不出现
   `WhaleGenie.Core.Devices.Platform`——`LayeringTests` 扫源码卡住这一条，替身设备层也就够驱动它们。

@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -255,6 +258,48 @@ public class StepPlacementTests
         var editor = new MacroEditorViewModel();
         editor.AddStep(step);
         return editor;
+    }
+
+    /// <summary>
+    /// Every action the palette can offer lands as a step at the end of the macro, and shows up as a
+    /// row in the list straight away. A step that cannot go in reads to the user as "this action
+    /// cannot be added", so the whole catalogue is walked rather than the one action a report names:
+    /// the way in is shared, and one action missing from it is a gap in that shared way.
+    /// </summary>
+    [Fact]
+    public void Every_runnable_action_can_be_added_and_shows_up_in_the_list()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var refused = new List<string>();
+            foreach (var definition in ActionCatalog.RunnableActions)
+            {
+                var step = new MacroStep { Type = definition.Key };
+                step.EnsureDeclaredLists();
+
+                if (editor.AddStepHere(step) is { } refusal)
+                {
+                    refused.Add($"{definition.Key}: {refusal}");
+                    continue;
+                }
+
+                if (!editor.Rows.Any(row => row.IsStep && ReferenceEquals(row.Step, step)))
+                {
+                    refused.Add($"{definition.Key}: added but not in the list");
+                }
+
+                editor.Steps.Remove(step);
+            }
+
+            window.Close();
+            Assert.Empty(refused);
+        });
     }
 
     private static MacroStep Switch(params MacroStep[] cases)

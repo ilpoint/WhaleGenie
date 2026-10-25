@@ -1861,7 +1861,12 @@ public partial class MacroEditorWindow : Window
             dialog.SetMacroCall(macroName);
         }
 
-        var step = await dialog.ShowDialogOver<MacroStep?>(this);
+        // The modal loop is what keeps the editor behind the window out of reach; it is started and
+        // let go, because its own answer is not the step. A picker hides this window while it is
+        // out, and Avalonia answers a hidden modal window at once with nothing — so what is waited
+        // on is the window itself, which says what it was closed with.
+        _ = dialog.ShowDialogOver<MacroStep?>(this);
+        var step = await dialog.Answer;
 
         _viewModel = editingPage;
         DataContext = editingPage;
