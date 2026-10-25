@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
@@ -136,6 +138,94 @@ public class VirtualPadTests
         Assert.NotNull(start);
         Assert.NotNull(end);
         return end!.Value.X - (start!.Value.X + first.Bounds.Width);
+    }
+
+    /// <summary>Where a cap sits in its window, and how big it is.</summary>
+    private static Rect Place(List<Button> caps, string name, Visual window)
+    {
+        var cap = caps.First(candidate => (string?)candidate.Tag == name);
+        var at = cap.TranslatePoint(default, window);
+        Assert.NotNull(at);
+        return new Rect(at!.Value, cap.Bounds.Size);
+    }
+
+    /// <summary>
+    /// The keys a keyboard keeps to the side are found by where they sit, so a column of them is
+    /// only useful if it is a column: the lock row, the navigation keys and the arrows all start at
+    /// the same place, are the same width, and the gaps between them are the same. A key that
+    /// drifts by a few pixels is a key the eye looks for where it is not.
+    /// </summary>
+    [Fact]
+    public void The_keys_at_the_side_line_up_with_the_keys_under_them()
+    {
+        Ui.Run(() =>
+        {
+            var window = new VirtualKeyboardWindow();
+            var caps = Controls(window);
+
+            var columns = new[]
+            {
+                // The side block, whose lock row sits above the navigation keys in the same three
+                // columns, with the arrow of each column under them.
+                new[] { "PrintScreen", "Insert", "Delete", "Left" },
+                new[] { "ScrollLock", "Home", "End", "Up", "Down" },
+                new[] { "Pause", "PageUp", "PageDown", "Right" },
+
+                // The number pad, which is four columns of five keys.
+                new[] { "NumLock", "NumPad7", "NumPad4", "NumPad1" },
+                new[] { "NumPadDivide", "NumPad8", "NumPad5", "NumPad2" },
+                new[] { "NumPadMultiply", "NumPad9", "NumPad6", "NumPad3", "NumPadDecimal" },
+                new[] { "NumPadSubtract", "NumPadAdd", "NumPadEnter" },
+            };
+
+            foreach (var column in columns)
+            {
+                var places = column.Select(name => Place(caps, name, window)).ToList();
+                Assert.Single(places.Select(place => Math.Round(place.X, 1)).Distinct());
+                Assert.Single(places.Select(place => Math.Round(place.Width, 1)).Distinct());
+            }
+
+            // And the gap between two keys of a row is the gap between the two under it, so no row
+            // is spread out further than the one above it.
+            foreach (var gap in new[]
+                     {
+                         GapAfter(caps, "PrintScreen", "ScrollLock", window),
+                         GapAfter(caps, "Insert", "Home", window),
+                         GapAfter(caps, "Delete", "End", window),
+                         GapAfter(caps, "Home", "PageUp", window),
+                         GapAfter(caps, "End", "PageDown", window),
+                         GapAfter(caps, "NumPad7", "NumPad8", window),
+                         GapAfter(caps, "NumPad5", "NumPad6", window),
+                     })
+            {
+                Assert.InRange(gap, 3.9, 4.1);
+            }
+        });
+    }
+
+    /// <summary>
+    /// A cap says the whole name of its key. The program draws its writing in Inter, which the
+    /// headless session does not take as its own default, so the width is measured in Inter here:
+    /// a key that reads "NumL" is a key that cannot be told from the ones beside it.
+    /// </summary>
+    [Fact]
+    public void Every_cap_says_all_of_its_name()
+    {
+        Ui.Run(() =>
+        {
+            var inter = new FontFamily("avares://Avalonia.Fonts.Inter/Assets/Inter.ttf#Inter");
+
+            foreach (var cap in Controls(new VirtualKeyboardWindow()))
+            {
+                var text = new TextLayout((string?)cap.Content ?? string.Empty,
+                    new Typeface(inter), cap.FontSize, Brushes.Black);
+                var room = cap.Bounds.Width - cap.BorderThickness.Left
+                    - cap.BorderThickness.Right - cap.Padding.Left - cap.Padding.Right;
+
+                Assert.True(text.Width <= room,
+                    $"{cap.Content} needs {text.Width:F1} of the {room:F1} it has");
+            }
+        });
     }
 
     [Fact]

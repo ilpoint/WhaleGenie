@@ -3,13 +3,15 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// One capture loop serves two things: the trigger's binding and a key field in the step form.
-/// What a captured key writes into is the whole difference, so that is what is checked here.
+/// The editor's own capture loop answers every binding the editor itself asks for: the trigger's,
+/// the interface hotkey's, and whatever else hands it somewhere to write. A step form keeps its own,
+/// on the window the form stands in. What a captured key writes into is the whole difference, so
+/// that is what is checked here.
 /// </summary>
 public class KeyCaptureTests
 {
     [Fact]
-    public void A_key_captured_for_the_inspector_goes_to_the_field_that_asked()
+    public void A_key_captured_for_a_field_goes_to_the_field_that_asked()
     {
         var editor = new MacroEditorViewModel();
         string? written = null;
@@ -31,24 +33,6 @@ public class KeyCaptureTests
         editor.CaptureKey("F5");
 
         Assert.Equal("F5", editor.BindKey);
-        Assert.False(editor.IsCapturingKey);
-    }
-
-    [Fact]
-    public void A_key_run_capture_keeps_taking_presses_until_it_is_stopped()
-    {
-        var editor = new MacroEditorViewModel();
-        var captured = new List<string>();
-
-        editor.BeginKeyCapture(captured.Add, combination: true, continuous: true);
-        editor.CaptureKey("Ctrl+C");
-        editor.CaptureKey("Ctrl+V");
-
-        Assert.Equal(["Ctrl+C", "Ctrl+V"], captured);
-        Assert.True(editor.IsCapturingKey);
-
-        editor.StopKeyCapture();
-
         Assert.False(editor.IsCapturingKey);
     }
 

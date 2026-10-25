@@ -15,6 +15,8 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
+using Key = Avalonia.Input.Key;
+using KeyModifiers = Avalonia.Input.KeyModifiers;
 
 namespace WhaleGenie.Tests;
 
@@ -2759,6 +2761,139 @@ public class ActionDialogTests
             Assert.False(single.IsKeys);
         });
     }
+
+    /// <summary>
+    /// A key field has two ways in: the keyboard drawn on screen, and the keyboard under the hands.
+    /// Pressing the key is the quick way, and it is what a macro author reaches for when the key is
+    /// already in front of them — so a field that only offered the drawing would be a field they
+    /// have to hunt on a picture for a key they are looking at.
+    /// </summary>
+    [Fact]
+    public void A_key_field_takes_the_key_pressed_instead_of_clicked()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keyPress");
+            Dispatcher.UIThread.RunJobs();
+
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
+            var capture = CaptureButton(window, field);
+
+            // Clicking it again is how a capture started by mistake is called off, which is what
+            // makes Esc free to be the key a field holds.
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Strings.Get("Add.PressKey"), capture.Content);
+
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(field.IsCapturingKey);
+            Assert.Equal(Strings.Get("Editor.SetKey"), capture.Content);
+
+            // Waiting for a key, then taking the one that arrives: the field holds it and the
+            // button goes back to saying what it is for.
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Press(window, Key.Escape);
+
+            // Esc is a key the field may hold, so it is taken as the key rather than dismissing
+            // the form it is being written into.
+            Assert.Equal("Esc", field.CurrentText);
+            Assert.True(window.IsVisible);
+            Assert.False(field.IsCapturingKey);
+            Assert.Equal(Strings.Get("Editor.SetKey"), capture.Content);
+
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Press(window, Key.F5);
+
+            Assert.Equal("F5", field.CurrentText);
+            Assert.False(field.IsCapturingKey);
+            Assert.Equal(Strings.Get("Editor.SetKey"), capture.Content);
+        });
+    }
+
+    /// <summary>
+    /// A combination is built one key at a time, the way the keyboard drawn on screen builds it, so
+    /// the capture keeps taking keys until it is stopped: Ctrl, then Shift, then S is three keys,
+    /// and so is holding all three and pressing S once.
+    /// </summary>
+    [Fact]
+    public void A_combination_field_takes_every_key_pressed_until_it_is_stopped()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.hotkey");
+            Dispatcher.UIThread.RunJobs();
+
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "keys");
+            var capture = CaptureButton(window, field);
+
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Strings.Get("Add.StopKeyCapture"), capture.Content);
+
+            // Keys pressed one at a time, which is how a combination is put together by hand. A
+            // modifier on its own keeps its side, because the two sides are two different keys.
+            Press(window, Key.LeftCtrl);
+            Release(window, Key.LeftCtrl);
+            Assert.Equal("左Ctrl", field.CurrentText);
+
+            Press(window, Key.LeftShift);
+            Release(window, Key.LeftShift);
+            Assert.Equal("左Ctrl+左Shift", field.CurrentText);
+
+            Press(window, Key.S);
+            Assert.Equal("左Ctrl+左Shift+S", field.CurrentText);
+
+            // Keys held together are one press, and it joins what is there. A chord writes its
+            // modifiers without a side, the way a recorded combination is written.
+            Press(window, Key.LeftCtrl, KeyModifiers.Control);
+            Press(window, Key.A, KeyModifiers.Control);
+            Assert.Equal("左Ctrl+左Shift+S+Ctrl+A", field.CurrentText);
+
+            // The capture is still up, and Esc is the way out of it rather than a key of its own.
+            Assert.True(field.IsCapturingKey);
+            Press(window, Key.Escape);
+            Assert.Equal("左Ctrl+左Shift+S+Ctrl+A", field.CurrentText);
+            Assert.False(field.IsCapturingKey);
+            Assert.Equal(Strings.Get("Add.SetCombination"), capture.Content);
+        });
+    }
+
+    /// <summary>The button on a key field that takes the key pressed on the keyboard.</summary>
+    private static Button CaptureButton(Window window, StepParameterViewModel parameter)
+        => window.GetVisualDescendants().OfType<Button>()
+            .First(item => item.IsEffectivelyVisible
+                && item.Classes.Contains("CaptureToggle")
+                && ReferenceEquals(item.DataContext, parameter));
+
+    /// <summary>Presses one key of the physical keyboard on the window the form stands in.</summary>
+    private static void Press(Window window, Key key, KeyModifiers modifiers = KeyModifiers.None)
+        => window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+            Key = key,
+            KeyModifiers = modifiers,
+        });
+
+    /// <summary>Lets go of one key, the way a hand does after pressing it.</summary>
+    private static void Release(Window window, Key key)
+        => window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyUpEvent,
+            Key = key,
+        });
 
     [Fact]
     public void A_key_field_offers_the_virtual_keyboard_beside_it()

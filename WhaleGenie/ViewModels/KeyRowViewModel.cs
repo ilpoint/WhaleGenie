@@ -29,8 +29,11 @@ public partial class KeyRowViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CaptureLabel))]
     public partial bool IsCapturing { get; set; }
 
-    /// <summary>The row's capture button: start recording, then stop it with the mouse.</summary>
-    public string CaptureLabel => Strings.Get(IsCapturing ? "Add.StopKeyCapture" : "Add.CaptureKeyRun");
+    /// <summary>
+    /// The row's capture button, named the way the combination field's own is: it sets the
+    /// combination of this press, and while it is recording it says how to stop instead.
+    /// </summary>
+    public string CaptureLabel => Strings.Get(IsCapturing ? "Add.StopKeyCapture" : "Add.SetCombination");
 
     /// <summary>How long this combination stays down, or nothing for the run's own hold.</summary>
     [ObservableProperty]

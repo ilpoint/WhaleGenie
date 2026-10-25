@@ -1346,7 +1346,7 @@ public partial class MacroEditorWindow : Window
     private void OnPreviewKeyUp(object? sender, KeyEventArgs e)
     {
         if (DataContext is MacroEditorViewModel viewModel && viewModel.IsCapturingKey
-            && IsModifier(e.Key))
+            && HotkeyNameMapper.IsModifier(e.Key))
         {
             if (_captureModifiers.Remove(e.Key) && _captureModifiers.Count == 0)
             {
@@ -1382,7 +1382,7 @@ public partial class MacroEditorWindow : Window
                 return;
             }
 
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 if (!_captureModifiers.Contains(e.Key))
                 {
@@ -1409,14 +1409,7 @@ public partial class MacroEditorWindow : Window
 
         if (viewModel.IsCapturingKey)
         {
-            if (viewModel.CaptureContinues && e.Key == Key.Escape)
-            {
-                viewModel.StopKeyCapture();
-                e.Handled = true;
-                return;
-            }
-
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 // Held back rather than taken: Ctrl, Shift, Alt and Win may be the front of a
                 // combination, and which it was is only known once the capture ends.
@@ -1637,19 +1630,6 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>Whether the key is one of the eight halves of Ctrl, Shift, Alt and Win.</summary>
-    private static bool IsModifier(Key key) => ModifierFlag(key) != KeyModifiers.None;
-
-    /// <summary>The group a modifier key belongs to; None for anything that is not one.</summary>
-    private static KeyModifiers ModifierFlag(Key key) => key switch
-    {
-        Key.LeftCtrl or Key.RightCtrl => KeyModifiers.Control,
-        Key.LeftShift or Key.RightShift => KeyModifiers.Shift,
-        Key.LeftAlt or Key.RightAlt => KeyModifiers.Alt,
-        Key.LWin or Key.RWin => KeyModifiers.Meta,
-        _ => KeyModifiers.None,
-    };
-
     /// <summary>
     /// Everything held when a key was pressed: what the event itself carries, plus the modifiers
     /// this window saw go down, so a modifier pressed before the capture started still counts.
@@ -1659,7 +1639,7 @@ public partial class MacroEditorWindow : Window
         var held = e.KeyModifiers;
         foreach (var modifier in _captureModifiers)
         {
-            held |= ModifierFlag(modifier);
+            held |= HotkeyNameMapper.ModifierFlag(modifier);
         }
 
         return held;

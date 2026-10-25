@@ -77,35 +77,10 @@ public partial class ActionEditorView : UserControl
         }
     }
 
-    /// <summary>
-    /// True when the form stands in the editor, where a key field can take the next key pressed
-    /// on the keyboard. A form on its own has no capture loop, so it keeps the on-screen keyboard.
-    /// </summary>
-    public static readonly StyledProperty<bool> CanCaptureKeyProperty =
-        AvaloniaProperty.Register<ActionEditorView, bool>(nameof(CanCaptureKey));
-
-    public bool CanCaptureKey
-    {
-        get => GetValue(CanCaptureKeyProperty);
-        set => SetValue(CanCaptureKeyProperty, value);
-    }
-
     /// <summary>Chooses the action whose fields the form shows.</summary>
     internal void SelectAction(string key) => (DataContext as AddActionViewModel)?.SelectAction(key);
     /// <summary>Raised when the form is finished with a step, or with nothing when it was cleared.</summary>
     internal event Action<MacroStep?>? Finished;
-
-    /// <summary>
-    /// Raised when a key field asks for the key pressed on the keyboard instead of clicked on the
-    /// one drawn on screen. The editor hosting the form owns the capture loop and answers it.
-    /// </summary>
-    internal event Action<StepParameterViewModel>? KeyCaptureRequested;
-
-    /// <summary>
-    /// Raised when a key-run row asks to record several keys into itself. The editor hosting the
-    /// form owns the capture loop, the same one the trigger and the single-key fields use.
-    /// </summary>
-    internal event Action<KeyRowViewModel>? KeyRowCaptureRequested;
 
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
@@ -121,6 +96,30 @@ public partial class ActionEditorView : UserControl
 
     /// <summary>Where the keyboard is writing at the moment: the field or the row that asked for it.</summary>
     private Action<string>? _keyTarget;
+
+    /// <summary>The field waiting for a key pressed on the keyboard, or null when none is.</summary>
+    private StepParameterViewModel? _capturingField;
+
+    /// <summary>The press of a run being recorded into, or null when none is.</summary>
+    private KeyRowViewModel? _capturingRow;
+
+    /// <summary>The window the capture is heard on, kept so that its handlers come off again.</summary>
+    private TopLevel? _captureHost;
+
+    /// <summary>True while something on the form is waiting for a key from the keyboard.</summary>
+    internal bool IsCapturingKey => _capturingField is not null || _capturingRow is not null;
+
+    /// <summary>
+    /// The modifiers held since the capture began. A modifier that is still down when the capture
+    /// starts never comes back as a key press, so what is held has to be remembered here.
+    /// </summary>
+    private readonly List<Key> _captureModifiers = [];
+
+    /// <summary>
+    /// The keys whose release is swallowed after a captured press. A focused button reads Space or
+    /// Enter as a click when the key comes up, which would arm the capture all over again.
+    /// </summary>
+    private readonly List<Key> _swallowReleases = [];
 
     /// <summary>
     /// The frames standing around the windows the preview lists. They go up and come down with the
@@ -256,6 +255,23 @@ public partial class ActionEditorView : UserControl
     private void OnVariablePickerFocused(object? sender, RoutedEventArgs e) => OpenCandidates(e.Source);
 
     private void OnVariablePickerPressed(object? sender, PointerPressedEventArgs e) => OpenCandidates(e.Source);
+
+    /// <summary>
+    /// Listens for the keys of a capture on the window the form stands in rather than on the form:
+    /// a key press is raised at whatever holds the focus, and tunnelling down from the window is
+    /// what catches it wherever in the form that is. Handled events are taken as well, because a
+    /// focused button reads Space or Enter as a click of its own on the way.
+    /// </summary>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        _captureHost = TopLevel.GetTopLevel(this);
+        _captureHost?.AddHandler(KeyDownEvent, OnCaptureKeyDown, RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        _captureHost?.AddHandler(KeyUpEvent, OnCaptureKeyUp, RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+    }
 
     /// <summary>
     /// Opens at a size the desktop can hold. The four pages are read comfortably in a thousand
@@ -454,16 +470,25 @@ public partial class ActionEditorView : UserControl
 
     /// <summary>
     /// The form has moved on to another step, so the keyboard is no longer writing into anything
-    /// that is on screen: the fields it was pointed at are gone with the form it belonged to.
+    /// that is on screen: the fields it was pointed at, or was waiting for a key to, are gone with
+    /// the form it belonged to.
     /// </summary>
     private void ResetKeyPad()
     {
+        EndKeyCapture();
         _keyTarget = null;
         _keyPad?.Close();
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
+        // A field waiting for a key owns every key of the form, Escape and Alt+X included: those
+        // are keys a step may send, and the key is the answer rather than a shortcut.
+        if (IsCapturingKey)
+        {
+            return;
+        }
+
         // Alt + X takes the pointer's place, for the actions that aim at a screen position.
         if (e.Key == Key.X && e.KeyModifiers.HasFlag(KeyModifiers.Alt))
         {
@@ -672,8 +697,9 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Asks the hosting editor to record keys into this row. A form on its own has no capture
-    /// loop, so it falls back to the keyboard drawn on screen.
+    /// Starts or stops recording keys into one press of a run. A run takes one press after another,
+    /// so the capture stays up until it is clicked off — which is the only way out that is not a
+    /// key, because every key pressed belongs to the run.
     /// </summary>
     private void OnCaptureKeyRow(object? sender, RoutedEventArgs e)
     {
@@ -682,14 +708,15 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (KeyRowCaptureRequested is { } request)
+        var wasRecording = ReferenceEquals(_capturingRow, row);
+        EndKeyCapture();
+        if (wasRecording)
         {
-            request(row);
+            return;
         }
-        else
-        {
-            OpenKeyPad(Strings.Format("Add.KeyRunPress", row.Number), row.AddKey);
-        }
+
+        _capturingRow = row;
+        row.StartCapture();
     }
 
     /// <summary>
@@ -984,8 +1011,9 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Asks the editor that hosts the form for the next key pressed. The trigger's capture loop
-    /// does the listening, so a key is taken here exactly the way a trigger is bound.
+    /// Starts or stops taking the next key pressed on the keyboard into one field. Clicking it
+    /// again is how a capture that was started by mistake is called off: a key field may hold Esc,
+    /// so Esc is a key like any other here rather than the way out.
     /// </summary>
     private void OnCaptureKey(object? sender, RoutedEventArgs e)
     {
@@ -994,15 +1022,149 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (KeyCaptureRequested is { } request)
+        var wasWaiting = ReferenceEquals(_capturingField, parameter);
+        EndKeyCapture();
+        if (wasWaiting)
         {
-            request(parameter);
+            return;
         }
-        else
+
+        _capturingField = parameter;
+        parameter.IsCapturingKey = true;
+    }
+
+    /// <summary>
+    /// Gives the key just pressed to whatever asked for it. A single key field holds one key, so
+    /// the key pressed is the whole answer and the capture is over. A combination and a press of a
+    /// run are built a key at a time — the way the keyboard drawn on screen builds them — so every
+    /// key pressed joins what is already there and the capture stays up until it is stopped.
+    /// </summary>
+    private void TakeKey(string name, string chord)
+    {
+        if (_capturingRow is { } row)
         {
-            // The form on its own has no capture loop; the on-screen keyboard is the way in.
-            OpenKeyPadFor(parameter);
+            row.AddKey(chord);
+            return;
         }
+
+        if (_capturingField is not { } field)
+        {
+            return;
+        }
+
+        if (field.IsKeys)
+        {
+            field.AddKey(chord);
+            return;
+        }
+
+        field.Text = name;
+        EndKeyCapture();
+    }
+
+    /// <summary>
+    /// Stops waiting for a key and puts the button that asked back to its resting label. What is
+    /// left in the way of swallowed releases stays: the press that ended the capture still has to
+    /// come up without the focused button reading it as a click.
+    /// </summary>
+    private void EndKeyCapture()
+    {
+        _captureModifiers.Clear();
+
+        if (_capturingField is { } field)
+        {
+            field.IsCapturingKey = false;
+            _capturingField = null;
+        }
+
+        if (_capturingRow is { } row)
+        {
+            row.IsCapturing = false;
+            _capturingRow = null;
+        }
+    }
+
+    /// <summary>
+    /// A key went down while a field or a run was waiting for it. The whole keyboard belongs to the
+    /// capture for that moment, so every key is taken here rather than reaching the form.
+    /// </summary>
+    private void OnCaptureKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_capturingField is null && _capturingRow is null)
+        {
+            return;
+        }
+
+        // A capture that keeps taking keys is ended by the key that means stop, because every key
+        // pressed belongs to what is being written. A single key field is answered by the key
+        // itself, so Esc is a key there like any other.
+        if (e.Key is Key.Escape && (_capturingRow is not null || _capturingField is { IsKeys: true }))
+        {
+            EndKeyCapture();
+            e.Handled = true;
+            return;
+        }
+
+        if (HotkeyNameMapper.IsModifier(e.Key))
+        {
+            // Held back rather than taken: Ctrl, Shift, Alt and Win are the front of a combination
+            // more often than they are the key itself, and which it was is only known once the
+            // capture ends.
+            if (!_captureModifiers.Contains(e.Key))
+            {
+                _captureModifiers.Add(e.Key);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        var pressed = new List<Key>(_captureModifiers) { e.Key };
+        TakeKey(HotkeyNameMapper.Name(e.Key), HotkeyNameMapper.Chord(e.Key, HeldKey(e)));
+
+        // What was held has been written into the combination, so it starts again from nothing:
+        // letting go of those keys must not add them a second time.
+        _captureModifiers.Clear();
+        _swallowReleases.Clear();
+        _swallowReleases.AddRange(pressed);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Lets go of a modifier that nothing followed, which makes it the key that was picked — a
+    /// field can hold Right Shift, and that is the only way it can be pressed — and swallows the
+    /// releases that follow a captured press.
+    /// </summary>
+    private void OnCaptureKeyUp(object? sender, KeyEventArgs e)
+    {
+        if ((_capturingField is not null || _capturingRow is not null)
+            && HotkeyNameMapper.IsModifier(e.Key)
+            && _captureModifiers.Remove(e.Key)
+            && _captureModifiers.Count == 0)
+        {
+            var name = HotkeyNameMapper.Name(e.Key);
+            TakeKey(name, name);
+        }
+
+        if (_swallowReleases.Remove(e.Key))
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Everything held when a key was pressed: what the event carries, plus the modifiers this form
+    /// saw go down, so a modifier pressed before the capture started still counts.
+    /// </summary>
+    private KeyModifiers HeldKey(KeyEventArgs e)
+    {
+        var held = e.KeyModifiers;
+        foreach (var modifier in _captureModifiers)
+        {
+            held |= HotkeyNameMapper.ModifierFlag(modifier);
+        }
+
+        return held;
     }
 
     /// <summary>
@@ -1934,6 +2096,14 @@ public partial class ActionEditorView : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _closed = true;
+        EndKeyCapture();
+
+        if (_captureHost is { } host)
+        {
+            host.RemoveHandler(KeyDownEvent, OnCaptureKeyDown);
+            host.RemoveHandler(KeyUpEvent, OnCaptureKeyUp);
+            _captureHost = null;
+        }
 
         // The frames belong to this dialog: a list that stayed framed after the window it was read
         // in went away would be an overlay with nothing left to explain it.

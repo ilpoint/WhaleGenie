@@ -38,6 +38,13 @@
         <Style Selector="Button.Key.Small">
             <Setter Property="FontSize" Value="11" />
         </Style>
+        <!-- A key that takes the whole cell it stands in. The blocks at the side of the letters are
+             grids whose cells are the keys; a key of its own width would float in the middle of its
+             column instead of lining up with the keys above and below it. -->
+        <Style Selector="Button.Key.Cell">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
         <Style Selector="Button.Key:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
@@ -181,7 +188,7 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Classes="Key Small" Content="CapsLock" Tag="CapsLock" Width="64" />
+                            <Button Classes="Key Small" Content="CapsLock" Tag="CapsLock" Width="58" />
                             <Button Classes="Key" Content="A" Tag="A" />
                             <Button Classes="Key" Content="S" Tag="S" />
                             <Button Classes="Key" Content="D" Tag="D" />
@@ -193,7 +200,7 @@
                             <Button Classes="Key" Content="L" Tag="L" />
                             <Button Classes="Key" Content=";" Tag=";" />
                             <Button Classes="Key" Content="'" Tag="'" />
-                            <Button Classes="Key" Content="Enter" Tag="Enter" Width="82" />
+                            <Button Classes="Key" Content="Enter" Tag="Enter" Width="74" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
@@ -215,7 +222,7 @@
                             <Button Classes="Key Small" Content="左Ctrl" Tag="左Ctrl" Width="58" />
                             <Button Classes="Key Small" Content="左Win" Tag="左Win" Width="44" />
                             <Button Classes="Key Small" Content="左Alt" Tag="左Alt" Width="44" />
-                            <Button Classes="Key" Content="Space" Tag="Space" Width="200" />
+                            <Button Classes="Key" Content="Space" Tag="Space" Width="172" />
                             <Button Classes="Key Small" Content="右Alt" Tag="右Alt" Width="44" />
                             <Button Classes="Key Small" Content="右Win" Tag="右Win" Width="44" />
                             <Button Classes="Key Small" Content="Menu" Tag="ContextMenu" Width="44" />
@@ -223,45 +230,61 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- The keys a keyboard keeps to the side: the navigation block and the number
-                         pad, which are the ones a bare text field is worst at. -->
+                    <!-- The keys a keyboard keeps to the side: the lock row above the navigation
+                         block, the arrows under it, and then the number pad. Each block is a grid
+                         of cells that the keys fill, so a row starts where the row above it does
+                         and every gap between two keys is the same. -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16"
-                                VerticalAlignment="Top" Margin="0,36,0,0">
-                        <Grid ColumnDefinitions="50,50,62" RowDefinitions="32,32,32,32,32"
+                                VerticalAlignment="Top" Margin="0,40,0,0">
+                        <!-- The lock row sits above the navigation keys and the arrows under them,
+                             all in the same three columns, which is where a hand looks for each of
+                             them. The columns are as wide as the widest cap each of them holds,
+                             because those caps are the names the step stores and are written out
+                             in full. The empty row between the navigation keys and the arrows is
+                             the gap a keyboard leaves between the two. -->
+                        <Grid ColumnDefinitions="64,58,60" RowDefinitions="32,32,32,32,32,32"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key Small" Content="Insert" Tag="Insert" />
-                            <Button Grid.Column="1" Classes="Key Small" Content="Home" Tag="Home" />
-                            <Button Grid.Column="2" Classes="Key Small" Content="PageUp" Tag="PageUp" />
-                            <Button Grid.Row="1" Classes="Key Small" Content="Delete" Tag="Delete" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small" Content="End" Tag="End" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small" Content="PageDown" Tag="PageDown" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="↑" Tag="Up" />
-                            <Button Grid.Row="4" Classes="Key" Content="←" Tag="Left" />
-                            <Button Grid.Row="4" Grid.Column="1" Classes="Key" Content="↓" Tag="Down" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="→" Tag="Right" />
+                            <Button Classes="Key Small Cell" Content="PrintScreen" Tag="PrintScreen" />
+                            <Button Grid.Column="1" Classes="Key Small Cell" Content="ScrollLock" Tag="ScrollLock" />
+                            <Button Grid.Column="2" Classes="Key Small Cell" Content="Pause" Tag="Pause" />
+                            <Button Grid.Row="1" Classes="Key Small Cell" Content="Insert" Tag="Insert" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small Cell" Content="Home" Tag="Home" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small Cell" Content="PageUp" Tag="PageUp" />
+                            <Button Grid.Row="2" Classes="Key Small Cell" Content="Delete" Tag="Delete" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key Small Cell" Content="End" Tag="End" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key Small Cell" Content="PageDown" Tag="PageDown" />
+                            <Button Grid.Row="4" Grid.Column="1" Classes="Key Cell" FontSize="14"
+                                    Content="↑" Tag="Up" />
+                            <Button Grid.Row="5" Classes="Key Cell" FontSize="14" Content="←" Tag="Left" />
+                            <Button Grid.Row="5" Grid.Column="1" Classes="Key Cell" FontSize="14"
+                                    Content="↓" Tag="Down" />
+                            <Button Grid.Row="5" Grid.Column="2" Classes="Key Cell" FontSize="14"
+                                    Content="→" Tag="Right" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="44,36,36,36" RowDefinitions="32,32,32,32,32"
+                        <!-- Four equal columns, with the tall + and Enter and the wide 0 where a
+                             number pad has them. -->
+                        <Grid ColumnDefinitions="52,52,52,52" RowDefinitions="32,32,32,32,32"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key Small" Content="NumLock" Tag="NumLock" />
-                            <Button Grid.Column="1" Classes="Key" Content="/" Tag="NumPadDivide" />
-                            <Button Grid.Column="2" Classes="Key" Content="*" Tag="NumPadMultiply" />
-                            <Button Grid.Column="3" Classes="Key" Content="-" Tag="NumPadSubtract" />
-                            <Button Grid.Row="1" Classes="Key" Content="7" Tag="NumPad7" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Content="8" Tag="NumPad8" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Content="9" Tag="NumPad9" />
-                            <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key"
+                            <Button Classes="Key Small Cell" Content="NumLock" Tag="NumLock" />
+                            <Button Grid.Column="1" Classes="Key Cell" Content="/" Tag="NumPadDivide" />
+                            <Button Grid.Column="2" Classes="Key Cell" Content="*" Tag="NumPadMultiply" />
+                            <Button Grid.Column="3" Classes="Key Cell" Content="-" Tag="NumPadSubtract" />
+                            <Button Grid.Row="1" Classes="Key Cell" Content="7" Tag="NumPad7" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Cell" Content="8" Tag="NumPad8" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Cell" Content="9" Tag="NumPad9" />
+                            <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key Cell"
                                     Content="+" Tag="NumPadAdd" Height="68" />
-                            <Button Grid.Row="2" Classes="Key" Content="4" Tag="NumPad4" />
-                            <Button Grid.Row="2" Grid.Column="1" Classes="Key" Content="5" Tag="NumPad5" />
-                            <Button Grid.Row="2" Grid.Column="2" Classes="Key" Content="6" Tag="NumPad6" />
-                            <Button Grid.Row="3" Classes="Key" Content="1" Tag="NumPad1" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="2" Tag="NumPad2" />
-                            <Button Grid.Row="3" Grid.Column="2" Classes="Key" Content="3" Tag="NumPad3" />
-                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small"
+                            <Button Grid.Row="2" Classes="Key Cell" Content="4" Tag="NumPad4" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key Cell" Content="5" Tag="NumPad5" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key Cell" Content="6" Tag="NumPad6" />
+                            <Button Grid.Row="3" Classes="Key Cell" Content="1" Tag="NumPad1" />
+                            <Button Grid.Row="3" Grid.Column="1" Classes="Key Cell" Content="2" Tag="NumPad2" />
+                            <Button Grid.Row="3" Grid.Column="2" Classes="Key Cell" Content="3" Tag="NumPad3" />
+                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small Cell"
                                     Content="Enter" Tag="NumPadEnter" Height="68" />
-                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key" Content="0" Tag="NumPad0" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="." Tag="NumPadDecimal" />
+                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key Cell" Content="0" Tag="NumPad0" />
+                            <Button Grid.Row="4" Grid.Column="2" Classes="Key Cell" Content="." Tag="NumPadDecimal" />
                         </Grid>
                     </StackPanel>
                 </Grid>
@@ -282,10 +305,6 @@
                         <Button Classes="Key" Content="F22" Tag="F22" Width="38" />
                         <Button Classes="Key" Content="F23" Tag="F23" Width="38" />
                         <Button Classes="Key" Content="F24" Tag="F24" Width="38" />
-                        <Border Width="16" />
-                        <Button Classes="Key Small" Content="PrintScreen" Tag="PrintScreen" Width="78" />
-                        <Button Classes="Key Small" Content="ScrollLock" Tag="ScrollLock" Width="76" />
-                        <Button Classes="Key" Content="Pause" Tag="Pause" Width="56" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="4">

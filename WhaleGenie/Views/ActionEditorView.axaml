@@ -101,18 +101,16 @@
                 </Grid>
 
                 <!-- A key is chosen as a character button: the field itself opens the keyboard
-                     laid out on screen, while capture sets it from the physical keyboard. -->
+                     laid out on screen, while capture takes the key pressed on the physical
+                     keyboard instead of hunting for it on the drawing. -->
                 <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <Button Classes="KeyFieldButton"
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <!-- The editor's own key capture, when the form stands in its middle pane:
-                         press the key instead of finding it on the keyboard drawn on screen. -->
-                    <Button Grid.Column="1" Classes="FlatButton" Height="34" Padding="9,0"
+                    <Button Grid.Column="1" Classes="FlatButton CaptureToggle" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
-                            IsVisible="{Binding CanCaptureKey, RelativeSource={RelativeSource AncestorType={x:Type views:ActionEditorView}}}"
                             Click="OnCaptureKey" />
                     <!-- The same question the element picker answers with its test: is this the
                          thing I meant? For a key that is answered by pressing it once. -->
@@ -122,17 +120,16 @@
                             Click="OnTestStep" />
                 </Grid>
 
-                <!-- A combination is built from the same keyboard field one key button at a time;
-                     capture can replace the whole chord from the physical keyboard. -->
+                <!-- A combination is built the same way the keyboard drawn on screen builds it:
+                     one key at a time, so the keys pressed are joined to what is already there. -->
                 <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <Button Classes="KeyFieldButton"
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="34" Padding="9,0"
+                    <Button Grid.Column="1" Classes="FlatButton CaptureToggle" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
-                            IsVisible="{Binding CanCaptureKey, RelativeSource={RelativeSource AncestorType={x:Type views:ActionEditorView}}}"
                             Click="OnCaptureKey" />
                     <Button Grid.Column="2" Classes="FlatButton" Height="34" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"

@@ -282,6 +282,54 @@ public class KeyRunTests
         });
     }
 
+    /// <summary>
+    /// One press of a run can be recorded instead of clicked: the keys pressed on the keyboard land
+    /// in that row, and the row keeps taking them until it is stopped. Letting go of a key that was
+    /// held does not write it a second time.
+    /// </summary>
+    [Fact]
+    public void A_press_is_recorded_from_the_keyboard_until_the_mouse_stops_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keySequence");
+            Dispatcher.UIThread.RunJobs();
+
+            var run = Run(viewModel);
+            run.AddKeyRow();
+            Dispatcher.UIThread.RunJobs();
+
+            var row = run.KeyRows[0];
+            var capture = FindButton(window, row, Strings.Get("Add.SetCombination"));
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Strings.Get("Add.StopKeyCapture"), capture.Content);
+
+            Press(window, Avalonia.Input.Key.LeftCtrl, Avalonia.Input.KeyModifiers.Control);
+            Press(window, Avalonia.Input.Key.C, Avalonia.Input.KeyModifiers.Control);
+            Release(window, Avalonia.Input.Key.C);
+            Release(window, Avalonia.Input.Key.LeftCtrl);
+            Assert.Equal("Ctrl+C", row.Keys);
+
+            // Every press joins the same row, so the recording goes on until it is stopped.
+            Press(window, Avalonia.Input.Key.V);
+            Release(window, Avalonia.Input.Key.V);
+            Assert.Equal("Ctrl+C+V", row.Keys);
+            Assert.True(row.IsCapturing);
+
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(row.IsCapturing);
+            Assert.Equal(Strings.Get("Add.SetCombination"), capture.Content);
+        });
+    }
+
     /// <summary>Clicks one cap of the keyboard drawn on screen, the way a user finds it: by its name.</summary>
     private static void Cap(VirtualKeyboardWindow pad, string name)
         => pad.GetVisualDescendants().OfType<Button>()
@@ -299,4 +347,22 @@ public class KeyRunTests
             candidate.IsEffectivelyVisible
             && candidate.Classes.Contains("KeyFieldButton")
             && Equals(candidate.DataContext, data));
+
+    /// <summary>Presses one key of the physical keyboard on the window the form stands in.</summary>
+    private static void Press(Window window, Avalonia.Input.Key key,
+        Avalonia.Input.KeyModifiers modifiers = Avalonia.Input.KeyModifiers.None)
+        => window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+            Key = key,
+            KeyModifiers = modifiers,
+        });
+
+    /// <summary>Lets go of one key, the way a hand does after pressing it.</summary>
+    private static void Release(Window window, Avalonia.Input.Key key)
+        => window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyUpEvent,
+            Key = key,
+        });
 }

@@ -114,7 +114,7 @@ public partial class SettingsWindow : Window
     {
         if (_viewModel.IsCapturingSystemHotkey)
         {
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 e.Handled = true;
                 return;
@@ -134,7 +134,7 @@ public partial class SettingsWindow : Window
 
         if (_viewModel.IsCapturingMenuLauncher)
         {
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 e.Handled = true;
                 return;
@@ -161,7 +161,7 @@ public partial class SettingsWindow : Window
 
     private void OnPreviewKeyUp(object? sender, KeyEventArgs e)
     {
-        if (_viewModel.IsCapturingHotkey && IsModifier(e.Key))
+        if (_viewModel.IsCapturingHotkey && HotkeyNameMapper.IsModifier(e.Key))
         {
             e.Handled = true;
         }
@@ -311,10 +311,6 @@ public partial class SettingsWindow : Window
         var item = visual?.FindAncestorOfType<ListBoxItem>(true);
         return item?.DataContext as MenuRuleRow;
     }
-
-    private static bool IsModifier(Key key)
-        => key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
-            or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin;
 
     private static string Chord(Key key, KeyModifiers held)
         => HotkeyNameMapper.Chord(key, held);

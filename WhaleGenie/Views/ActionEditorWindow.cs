@@ -134,6 +134,13 @@ public class ActionEditorWindow : Window
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
+        // A form that is waiting for a key takes every key of the window, Esc and Alt+X included:
+        // those are keys a step may send, and clicking the button again is how a capture ends.
+        if (_view.IsCapturingKey)
+        {
+            return;
+        }
+
         if (DataContext is not AddActionViewModel form)
         {
             return;

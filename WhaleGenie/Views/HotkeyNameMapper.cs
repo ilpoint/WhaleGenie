@@ -9,6 +9,19 @@ namespace WhaleGenie.Views;
 /// </summary>
 public static class HotkeyNameMapper
 {
+    /// <summary>Whether the key is one of the eight halves of Ctrl, Shift, Alt and Win.</summary>
+    public static bool IsModifier(Key key) => ModifierFlag(key) != KeyModifiers.None;
+
+    /// <summary>The group a modifier key belongs to; None for anything that is not one.</summary>
+    public static KeyModifiers ModifierFlag(Key key) => key switch
+    {
+        Key.LeftCtrl or Key.RightCtrl => KeyModifiers.Control,
+        Key.LeftShift or Key.RightShift => KeyModifiers.Shift,
+        Key.LeftAlt or Key.RightAlt => KeyModifiers.Alt,
+        Key.LWin or Key.RWin => KeyModifiers.Meta,
+        _ => KeyModifiers.None,
+    };
+
     public static string Chord(Key key, KeyModifiers held)
     {
         var parts = new List<string>();
