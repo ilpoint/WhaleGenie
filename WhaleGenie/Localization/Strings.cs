@@ -342,7 +342,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RunStep"] = "Run",
         ["Add.Running"] = "Running…",
         ["Add.RunStepHint"] = "Do this step once, the way it is written. A step that looks at the "
-            + "screen only looks, and shows what it found.",
+            + "screen only looks, and shows what it found. Every window of WhaleGenie is out of the "
+            + "way while it runs, so the step sees what it is meant to look at.",
         ["Add.RanStep"] = "Ran {0}.",
         ["Add.RunPowerTitle"] = "Run this step",
         ["Add.RunPowerMessage"] = "This step signs out, sleeps or shuts the machine down. Run it now?",
@@ -2281,7 +2282,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RunStep"] = "运行",
         ["Add.Running"] = "正在运行…",
         ["Add.RunStepHint"] = "按现在写的样子把这一步跑一次。要看屏幕的动作只找不点，"
-            + "找到什么直接显示出来。",
+            + "找到什么直接显示出来。运行期间鲸灵自己的窗口全部收起来，这一步就不会看见它们。",
         ["Add.RanStep"] = "已运行 {0}。",
         ["Add.RunPowerTitle"] = "运行这一步",
         ["Add.RunPowerMessage"] = "这一步会注销、睡眠或关闭这台机器。现在运行吗？",

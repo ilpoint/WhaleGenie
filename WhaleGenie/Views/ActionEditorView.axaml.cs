@@ -34,18 +34,8 @@ public partial class ActionEditorView : UserControl
     /// <summary>The window this view is standing in, which owns its pickers and dialogs.</summary>
     private Window? HostWindow => TopLevel.GetTopLevel(this) as Window;
 
-    /// <summary>The host's window state, while a trial is out of the way.</summary>
-    private WindowState HostState
-    {
-        get => HostWindow?.WindowState ?? WindowState.Normal;
-        set
-        {
-            if (HostWindow is { } host)
-            {
-                host.WindowState = value;
-            }
-        }
-    }
+    /// <summary>The host's window state, which decides whether the frames it draws are worth drawing.</summary>
+    private WindowState HostState => HostWindow?.WindowState ?? WindowState.Normal;
 
     /// <summary>The file pickers belong to the top level the view is in.</summary>
     private IStorageProvider StorageProvider => TopLevel.GetTopLevel(this)?.StorageProvider
@@ -1216,30 +1206,10 @@ public partial class ActionEditorView : UserControl
         var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
 
         // Out of the way while it is tried, so the key or the control lands on the window that was
-        // meant, which is whatever the user had in mind behind this dialog.
-        var previous = HostState;
-        HostState = WindowState.Minimized;
-
-        RunResult outcome;
-        try
-        {
-            // Off the thread that draws the window: a device call can wait on hardware, and the
-            // dialog has to stay able to come back when it is done.
-            outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices));
-        }
-        finally
-        {
-            // The dialog can be dismissed while the trial runs, and a window on its way out has
-            // nothing left to come back to.
-            if (!_closed)
-            {
-                HostState = previous == WindowState.Maximized
-                    ? WindowState.Maximized
-                    : WindowState.Normal;
-                HostWindow?.Activate();
-            }
-        }
-
+        // meant, which is whatever the user had in mind behind this dialog — and so does everything
+        // else of this program, because minimizing this window alone leaves the editor behind it in
+        // front of the very window the trial is aimed at.
+        var outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices));
         if (outcome.Status is not RunStatus.Completed && !_closed)
         {
             await ReportTestAsync(TrialFailure(outcome));
@@ -1292,9 +1262,11 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private async Task RunLookingAsync(ExecutableStep step)
     {
-        // Off the thread that draws the window: reading the screen and matching a picture can take
-        // a moment, and the dialog has to stay able to come back when it is done.
-        var outcome = await Task.Run(() => MacroRunner.LookOnce(step, Devices, new TrialFrames(this)));
+        // Off the thread that draws the window, and with this program's windows out of the picture:
+        // reading the screen and matching a picture can take a moment, the dialog has to stay able
+        // to come back when it is done, and a look that has the window asking in front of it reads
+        // the window asking rather than what the user wanted to look at.
+        var outcome = await AwayAsync(() => MacroRunner.LookOnce(step, Devices, new TrialFrames(this)));
 
         // Nothing is being read any more, so the frame comes down with the reading.
         _trialFrames.Clear();
@@ -1313,26 +1285,19 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Sends the step for real, the way a run would. Input steps are sent with the dialog out of the
-    /// way, because a key or a click lands on whatever is in front, and the window in front of the
-    /// window the user meant would be this dialog.
+    /// Sends the step for real, the way a run would. Input steps are sent with every window of this
+    /// program out of the way, because a key or a click lands on whatever is in front, and a window
+    /// in front of the window the user meant would be one of ours.
     /// </summary>
     private async Task RunForRealAsync(AddActionViewModel viewModel, ExecutableStep step)
     {
-        var movesTheWindow = viewModel.SelectedDefinition?.Category is ActionCategory.Input;
-        var previous = HostState;
-        if (movesTheWindow)
-        {
-            HostState = WindowState.Minimized;
-        }
-
         viewModel.IsRunning = true;
         RunResult outcome;
         try
         {
             // Off the thread that draws the window: a device call can wait on hardware, and the
             // dialog has to stay able to come back when it is done.
-            outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices,
+            outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices,
                 variables: MacroVariables.Seed(new SystemVariableReader(Devices),
                     SharedVariables.Current),
                 macros: Macros));
@@ -1340,16 +1305,6 @@ public partial class ActionEditorView : UserControl
         finally
         {
             viewModel.IsRunning = false;
-
-            // The dialog can be dismissed while the run is going, and a window on its way out has
-            // nothing left to come back to.
-            if (movesTheWindow && !_closed)
-            {
-                HostState = previous == WindowState.Maximized
-                    ? WindowState.Maximized
-                    : WindowState.Normal;
-                HostWindow?.Activate();
-            }
         }
 
         if (outcome.Status is not RunStatus.Completed)
@@ -1363,6 +1318,52 @@ public partial class ActionEditorView : UserControl
         }
 
         Say(Strings.Format("Add.RanStep", viewModel.SelectedActionName));
+    }
+
+    /// <summary>
+    /// Runs a trial with every window of this program off the screen, and brings them back when it
+    /// is over — the same rule the pickers follow, and for the same reason: what a step looks at,
+    /// clicks or types into is behind this window, and this window is the one thing that is always
+    /// in the way. The screen is given a frame to be drawn again in first, because the picture read
+    /// straight after hiding still has the hidden window in it.
+    /// </summary>
+    private async Task<T> AwayAsync<T>(Func<T> trial)
+    {
+        T outcome;
+        using (AppWindows.StepAside(HostWindow))
+        {
+            ScreenComposed.Wait();
+            outcome = await Task.Run(trial);
+        }
+
+        return outcome;
+    }
+
+    /// <summary>The same, for a trial that waits on devices rather than on nothing but the machine.</summary>
+    private async Task<T> AwayForAsync<T>(Func<Task<T>> trial)
+    {
+        T outcome;
+        using (AppWindows.StepAside(HostWindow))
+        {
+            ScreenComposed.Wait();
+            outcome = await Task.Run(trial);
+        }
+
+        return outcome;
+    }
+
+    /// <summary>
+    /// The same, for a trial that draws on the screen as it goes and so cannot leave this thread:
+    /// what it puts up — a frame around a control, say — is not one of this program's windows to be
+    /// hidden, it is the answer being shown.
+    /// </summary>
+    private async Task AwayWhileAsync(Func<Task> trial)
+    {
+        using (AppWindows.StepAside(HostWindow))
+        {
+            ScreenComposed.Wait();
+            await trial();
+        }
     }
 
     /// <summary>
@@ -1824,11 +1825,8 @@ public partial class ActionEditorView : UserControl
         // Out of the way while the frame is up, the same way picking does it: the control is
         // usually behind the very window asking about it. The dialog waits the frame out, so it
         // never comes back on top of the thing it just said to look at.
-        var previous = HostState;
-        HostState = WindowState.Minimized;
-
         ScreenFrameWindow? flash = null;
-        try
+        await AwayWhileAsync(async () =>
         {
             if (ElementFlash.Locate(viewModel.Ui, selector, filter) is { } found)
             {
@@ -1838,19 +1836,7 @@ public partial class ActionEditorView : UserControl
                     await flash.Finished;
                 }
             }
-        }
-        finally
-        {
-            // The dialog can be dismissed while the frame is up, and a window on its way out has
-            // nothing left to come back to.
-            if (!_closed)
-            {
-                HostState = previous == WindowState.Maximized
-                    ? WindowState.Maximized
-                    : WindowState.Normal;
-                HostWindow?.Activate();
-            }
-        }
+        });
 
         if (flash is null && !_closed)
         {

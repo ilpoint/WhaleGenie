@@ -507,6 +507,8 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
   全部收起来，问话的那个对话框也在内，而隐藏一个模态窗口会让 Avalonia 立刻以空值结束那一层模态循环——
   对话框还在屏幕上、步骤还没写完，等循环的人就已经走下去了，随后保存的步骤无处可去。`ActionEditorWindow`
   因此把答案放在 `Answer` 里，打开它的地方等这一份；新增"会收起鲸灵窗口、又要把结果交回去"的窗口照这个来。
+- 动作窗口的「运行」与字段旁的测试同拾取器一套规矩：`AppWindows.StepAside` 收起全部窗口、`ScreenComposed.Wait()`
+  等桌面重画，再读屏幕或发输入，结束时按原状回来。只最小化本窗口不够——属主编辑器还在它后面挡着要被试的那块画面。
 - 界面只认引擎交出的接口：屏幕、UIA、窗口表、录制器、全局钩子、驱动级输入与浏览器都由组合根
   （`WhaleGenie/Execution/SharedDevices.cs` 与 `App.axaml.cs`）交来，窗口、视图模型与拾取器里不出现
   `WhaleGenie.Core.Devices.Platform`——`LayeringTests` 扫源码卡住这一条，替身设备层也就够驱动它们。
