@@ -197,7 +197,7 @@ public class McpControlTests : IDisposable
         McpControl.Allowed = true;
 
         var button = await Assert.ThrowsAsync<McpException>(
-            () => _tools.MouseClick(button: "elbow"));
+            () => _tools.MouseClick(0, 0, button: "elbow"));
         Assert.Contains("left", button.Message, StringComparison.Ordinal);
 
         _ = await Assert.ThrowsAsync<McpException>(() => _tools.MouseScroll(direction: "sideways"));
@@ -210,17 +210,43 @@ public class McpControlTests : IDisposable
     }
 
     [Fact]
+    public async Task Half_a_point_and_a_chord_of_nothing_are_mistakes()
+    {
+        McpControl.Allowed = true;
+
+        var half = await Assert.ThrowsAsync<McpException>(
+            () => _tools.MouseScroll("down", 120, x: 5, y: null));
+        Assert.Contains("both x and y", half.Message, StringComparison.Ordinal);
+
+        _ = await Assert.ThrowsAsync<McpException>(() => _tools.Key("+"));
+
+        Assert.Empty(_input.Done);
+    }
+
+    [Fact]
+    public async Task A_click_stands_when_the_pointer_cannot_be_read_afterwards()
+    {
+        McpControl.Allowed = true;
+        _screen.CursorFails = true;
+
+        var clicked = Json(await _tools.MouseClick(11, 22));
+
+        Assert.Contains("click left 11,22 1 0", _input.Done);
+        Assert.Equal(JsonValueKind.Null, clicked.GetProperty("cursor").ValueKind);
+    }
+
+    [Fact]
     public async Task A_click_a_drag_and_a_scroll_reach_the_input_device()
     {
         McpControl.Allowed = true;
 
-        var clicked = Json(await _tools.MouseClick("right", 11, 22, clicks: 2));
+        var clicked = Json(await _tools.MouseClick(11, 22, "right", clicks: 2));
         Assert.Equal("right", clicked.GetProperty("button").GetString());
         Assert.Equal(2, clicked.GetProperty("clicks").GetInt32());
         Assert.Equal(30, clicked.GetProperty("cursor").GetProperty("x").GetInt32());
         Assert.Contains("click right 11,22 2 0", _input.Done);
 
-        await _tools.MouseDrag("left", 1, 2, 3, 4);
+        await _tools.MouseDrag(1, 2, 3, 4, "left");
         Assert.Contains("drag left 1,2->3,4 0", _input.Done);
 
         await _tools.MouseScroll("up", 120, 5, 6);
@@ -381,7 +407,12 @@ internal sealed class ChecksScreen : IScreenDevice
 
     public PixelColor PixelAt(int x, int y) => Colour;
 
-    public ScreenPoint Cursor => Pointer;
+    /// <summary>Set to make reading the pointer fail, the way a screen that has gone does.</summary>
+    public bool CursorFails { get; set; }
+
+    public ScreenPoint Cursor => CursorFails
+        ? throw new DeviceUnavailableException("screen")
+        : Pointer;
 
     public ImageFrame Capture(int x, int y, int width, int height)
         => Blank(width, height);

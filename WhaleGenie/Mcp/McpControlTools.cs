@@ -189,16 +189,19 @@ public sealed class McpControlTools
     [McpServerTool(Name = "whalegenie_mouse_click", Destructive = true),
      Description("Moves the pointer to a point and presses a mouse button there.")]
     public Task<string> MouseClick(
+        [Description("Horizontal position in screen pixels.")] int x,
+        [Description("Vertical position in screen pixels.")] int y,
         [Description("Which button: left (default), right, middle, back or forward.")] string button = "left",
-        [Description("Horizontal position in screen pixels.")] int x = 0,
-        [Description("Vertical position in screen pixels.")] int y = 0,
         [Description("How many clicks, 1 to 10; 2 is a double click.")] int clicks = 1,
         [Description("Milliseconds between two clicks; 0 uses the usual gap.")] int intervalMs = 0)
         => Task.FromResult(Encode(Drive(() =>
         {
+            // The point is not optional the way a scroll's is: a click that was given no point
+            // would land in the screen's own corner, which is a place nobody asked for.
+            var pressed = Button(button);
             var times = Math.Clamp(clicks, 1, 10);
-            Front().Click(Button(button), x, y, times, Span(intervalMs));
-            return new { button = button.Trim().ToLowerInvariant(), x, y, clicks = times, cursor = Where() };
+            Front().Click(pressed, x, y, times, Span(intervalMs));
+            return new { button = pressed, x, y, clicks = times, cursor = Where() };
         })));
 
     [McpServerTool(Name = "whalegenie_mouse_scroll", Destructive = true),
@@ -219,20 +222,21 @@ public sealed class McpControlTools
     [McpServerTool(Name = "whalegenie_mouse_drag", Destructive = true),
      Description("Presses a mouse button at one point, walks the pointer to another with it held, and lets go there.")]
     public Task<string> MouseDrag(
+        [Description("Horizontal position the drag starts at, in screen pixels.")] int fromX,
+        [Description("Vertical position the drag starts at, in screen pixels.")] int fromY,
+        [Description("Horizontal position the drag ends at, in screen pixels.")] int toX,
+        [Description("Vertical position the drag ends at, in screen pixels.")] int toY,
         [Description("Which button: left (default), right, middle, back or forward.")] string button = "left",
-        [Description("Horizontal position the drag starts at, in screen pixels.")] int fromX = 0,
-        [Description("Vertical position the drag starts at, in screen pixels.")] int fromY = 0,
-        [Description("Horizontal position the drag ends at, in screen pixels.")] int toX = 0,
-        [Description("Vertical position the drag ends at, in screen pixels.")] int toY = 0,
         [Description("How long the drag takes in milliseconds; 0 goes as fast as it can.")] int durationMs = 0,
         [Description("How many moves along the way, 1 to 200; 0 is a straight line.")] int steps = 0)
         => Task.FromResult(Encode(Drive(() =>
         {
-            Front().Drag(Button(button), fromX, fromY, toX, toY, Span(durationMs),
+            var pressed = Button(button);
+            Front().Drag(pressed, fromX, fromY, toX, toY, Span(durationMs),
                 Math.Clamp(steps, 0, 200));
             return new
             {
-                button = button.Trim().ToLowerInvariant(),
+                button = pressed,
                 from = new { x = fromX, y = fromY },
                 to = new { x = toX, y = toY },
                 cursor = Where(),
@@ -253,6 +257,13 @@ public sealed class McpControlTools
                 if (unknown is { Length: > 0 })
                 {
                     throw new McpException($"There is no key named \"{unknown}\".");
+                }
+
+                // A lone "+" splits into no parts at all, so the call would be reported as sent
+                // while no key was pressed.
+                if (keys.Count == 0)
+                {
+                    throw new McpException($"\"{name}\" names no key.");
                 }
 
                 var names = keys.Select(KeyNames.Name).ToArray();
@@ -323,17 +334,43 @@ public sealed class McpControlTools
     private IInputDevice Front() => _devices().Inputs.For(InputRoute.Front);
 
     /// <summary>Where the pointer is, read from the screen rather than from the input device.</summary>
-    private object Where()
+    /// <remarks>
+    /// The input has already been sent by the time this runs, so a screen that cannot be read says
+    /// nothing here rather than failing the call: a click that happened must not come back as an
+    /// error, because the client would send it a second time.
+    /// </remarks>
+    private object? Where()
     {
-        var at = _devices().Screen.Cursor;
-        return new { x = at.X, y = at.Y };
+        try
+        {
+            var at = _devices().Screen.Cursor;
+            return new { x = at.X, y = at.Y };
+        }
+        catch (Exception error)
+            when (error is DeviceUnavailableException or DeviceActionException or ArgumentException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The point a scroll happens at: the one named, or where the pointer already is.</summary>
+    /// <remarks>
+    /// Half a point is a mistake rather than a wish to use the pointer: a client that sent one
+    /// number meant to turn the wheel there, and quietly using the pointer instead would turn the
+    /// wrong part of the screen.
+    /// </remarks>
     private WhaleGenie.Core.Devices.ScreenPoint At(int? x, int? y)
-        => x is int left && y is int top
+    {
+        if (x is null != y is null)
+        {
+            throw new McpException(
+                "A scroll point is both x and y or neither; with neither the wheel turns where the pointer already is.");
+        }
+
+        return x is int left && y is int top
             ? new WhaleGenie.Core.Devices.ScreenPoint(left, top)
             : _devices().Screen.Cursor;
+    }
 
     /// <summary>
     /// Runs one machine-driving call: the switch has to be on, and the calls go one at a time.
