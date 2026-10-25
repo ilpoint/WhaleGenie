@@ -83,6 +83,20 @@ internal static class WindowsKeys
         0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28
         or 0x2C or 0x2D or 0x2E or 0x5B or 0x5C or 0x5D or 0x6F or 0x90 or 0xA3 or 0xA5;
 
+    /// <summary>
+    /// Whether the key a macro named carries the flag, which the Windows key code alone cannot
+    /// answer: the number pad's Enter and the Enter under Backspace are both key code 0x0D and both
+    /// scan code 0x1C, and the flag is the only thing that says which was meant. So the answer is
+    /// read from the key that was written, and only the keys that have a key code of their own fall
+    /// back to the table above.
+    /// </summary>
+    internal static bool IsExtended(KeyCode code) => code switch
+    {
+        KeyCode.VcNumPadEnter => true,
+        KeyCode.VcEnter => false,
+        _ => VirtualKey(code) is { } virtualKey && IsExtended(virtualKey),
+    };
+
     /// <summary>The virtual key code for a library code, or null when Windows has no such key.</summary>
     internal static ushort? VirtualKey(KeyCode code) => code switch
     {

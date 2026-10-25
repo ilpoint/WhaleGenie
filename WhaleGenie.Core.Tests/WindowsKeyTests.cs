@@ -258,4 +258,37 @@ public class WindowsKeyTests
         ushort[] plain = [0x41, 0x31, 0x46, 0x54, 0x60, 0x61, 0x67, 0x6B, 0x6D, 0x6E, 0xA0, 0xA2, 0xA4];
         Assert.All(plain, key => Assert.False(WindowsKeys.IsExtended(key)));
     }
+
+    /// <summary>
+    /// The number pad's Enter and the Enter in the middle of the keyboard are one Windows key code
+    /// and one scan code; the extended flag is the only thing that says which was pressed. Asked of
+    /// the key code alone the answer was "not extended" for both, so a macro that pressed the number
+    /// pad's Enter typed the other one.
+    /// </summary>
+    [Fact]
+    public void The_two_enters_are_told_apart_by_the_key_that_was_written()
+    {
+        Assert.Equal<ushort>(0x0D, WindowsKeys.VirtualKey(KeyCode.VcEnter) ?? 0);
+        Assert.Equal<ushort>(0x0D, WindowsKeys.VirtualKey(KeyCode.VcNumPadEnter) ?? 0);
+
+        Assert.False(WindowsKeys.IsExtended(KeyCode.VcEnter));
+        Assert.True(WindowsKeys.IsExtended(KeyCode.VcNumPadEnter));
+    }
+
+    /// <summary>
+    /// Every other key is answered from its Windows code, which is the same table the posting device
+    /// builds its messages from: Home is extended, the number pad's 7 is not, and the letters are
+    /// neither.
+    /// </summary>
+    [Fact]
+    public void Every_other_key_takes_its_flag_from_its_key_code()
+    {
+        Assert.True(WindowsKeys.IsExtended(KeyCode.VcHome));
+        Assert.False(WindowsKeys.IsExtended(KeyCode.VcNumPad7));
+        Assert.True(WindowsKeys.IsExtended(KeyCode.VcUp));
+        Assert.False(WindowsKeys.IsExtended(KeyCode.VcNumPad8));
+        Assert.True(WindowsKeys.IsExtended(KeyCode.VcNumLock));
+        Assert.False(WindowsKeys.IsExtended(KeyCode.VcA));
+        Assert.False(WindowsKeys.IsExtended(KeyCode.VcPause));
+    }
 }

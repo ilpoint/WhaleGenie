@@ -33,23 +33,23 @@ public sealed class SharpHookInputDevice : IInputDevice
 
     public void KeyPress(string key, int holdMs)
     {
-        var pressed = Stroke(key);
-        WhaleGenieInputGate.Note(SharpKeys.Key(pressed.Key));
-        WindowsKeyStrokes.Press(pressed.VirtualKey, key, Hold(holdMs));
+        var code = Code(key);
+        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WindowsKeyStrokes.Press(code, key, Hold(holdMs));
     }
 
     public void KeyDown(string key)
     {
-        var pressed = Stroke(key);
-        WhaleGenieInputGate.Note(SharpKeys.Key(pressed.Key));
-        WindowsKeyStrokes.Down(pressed.VirtualKey, key);
+        var code = Code(key);
+        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WindowsKeyStrokes.Down(code, key);
     }
 
     public void KeyUp(string key)
     {
-        var pressed = Stroke(key);
-        WhaleGenieInputGate.Note(SharpKeys.Key(pressed.Key));
-        WindowsKeyStrokes.Up(pressed.VirtualKey, key);
+        var code = Code(key);
+        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WindowsKeyStrokes.Up(code, key);
     }
 
     public void Hotkey(IReadOnlyList<string> keys, int holdMs)
@@ -74,7 +74,7 @@ public sealed class SharpHookInputDevice : IInputDevice
         // different chord to the receiving window when the arrows arrive as the number pad.
         foreach (var code in codes)
         {
-            WindowsKeyStrokes.Down(VirtualKey(code), SharpKeys.Name(code, sided: true));
+            WindowsKeyStrokes.Down(code, SharpKeys.Name(code, sided: true));
             Thread.Sleep(10);
         }
 
@@ -82,7 +82,7 @@ public sealed class SharpHookInputDevice : IInputDevice
 
         for (var index = codes.Count - 1; index >= 0; index--)
         {
-            WindowsKeyStrokes.Up(VirtualKey(codes[index]), SharpKeys.Name(codes[index], sided: true));
+            WindowsKeyStrokes.Up(codes[index], SharpKeys.Name(codes[index], sided: true));
         }
     }
 
@@ -261,24 +261,6 @@ public sealed class SharpHookInputDevice : IInputDevice
             Thread.Sleep(wait);
         }
     }
-
-    /// <summary>One key of a macro's, as the library names it and as Windows numbers it.</summary>
-    private readonly record struct Pressed(KeyCode Key, ushort VirtualKey);
-
-    /// <summary>
-    /// The two names a key needs to be sent: the library's code, which the gate is told about, and
-    /// the Windows key code the event is built from.
-    /// </summary>
-    private static Pressed Stroke(string key)
-    {
-        var code = Code(key);
-        return new Pressed(code, VirtualKey(code));
-    }
-
-    /// <summary>The Windows key code behind a library code, refused when Windows has none.</summary>
-    private static ushort VirtualKey(KeyCode code)
-        => WindowsKeys.VirtualKey(code)
-           ?? throw new DeviceActionException(RunKeys.KeyNotPressable, SharpKeys.Name(code, sided: true));
 
     /// <summary>How long a key is held when the step asked for no hold: long enough to be seen.</summary>
     private static int Hold(int holdMs) => holdMs > 0 ? holdMs : 50;

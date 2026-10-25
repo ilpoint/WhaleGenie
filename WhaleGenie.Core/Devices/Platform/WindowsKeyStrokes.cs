@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using SharpHook.Data;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
@@ -28,33 +29,40 @@ internal static class WindowsKeyStrokes
     private const uint KeyEventKeyUp = 0x0002;
 
     /// <summary>Presses a key, holds it for as long as asked, and lets it go.</summary>
-    internal static void Press(ushort virtualKey, string name, int holdMs)
+    internal static void Press(KeyCode key, string name, int holdMs)
     {
-        Down(virtualKey, name);
+        Down(key, name);
 
         if (holdMs > 0)
         {
             Thread.Sleep(holdMs);
         }
 
-        Up(virtualKey, name);
+        Up(key, name);
     }
 
     /// <summary>Presses a key down and leaves it down.</summary>
-    internal static void Down(ushort virtualKey, string name) => Send(virtualKey, name, up: false);
+    internal static void Down(KeyCode key, string name) => Send(key, name, up: false);
 
     /// <summary>Lets a key that is down back up.</summary>
-    internal static void Up(ushort virtualKey, string name) => Send(virtualKey, name, up: true);
+    internal static void Up(KeyCode key, string name) => Send(key, name, up: true);
 
     /// <summary>
     /// Sends one input event. The scan code goes beside the key code because that is what a
     /// keyboard sends and what the extended flag is read against; a key with no scan code never
     /// reaches here, since <see cref="WindowsKeys.CanBePressed"/> has already refused it.
     /// </summary>
-    private static void Send(ushort virtualKey, string name, bool up)
+    private static void Send(KeyCode key, string name, bool up)
     {
+        var virtualKey = WindowsKeys.VirtualKey(key)
+            ?? throw new DeviceActionException(RunKeys.KeyNotPressable, name);
+
         var flags = up ? KeyEventKeyUp : 0u;
-        if (WindowsKeys.IsExtended(virtualKey))
+
+        // The flag is asked of the key the macro named rather than of its Windows code: the number
+        // pad's Enter and the Enter in the middle of the keyboard are one code, and this is what
+        // says which of them goes out.
+        if (WindowsKeys.IsExtended(key))
         {
             flags |= KeyEventExtended;
         }
