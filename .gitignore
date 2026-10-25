@@ -44,6 +44,8 @@ _site/
 .vs/
 # 个人编辑器配置，不进仓库
 .vscode/
+.workbuddy/
+testfile/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
