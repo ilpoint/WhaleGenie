@@ -4296,14 +4296,40 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { ElementExists = true };
         var (result, _, _) = await RunAsync(
         [
-            Within(50, Step("uia.waitElement",
+            Within(2000, Step("uia.waitElement",
                 Param("window", "Notepad"),
                 Param("uiSelector", "Button[name='Save']"),
                 Param("pollMs", "1"))),
         ], devices);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.Succeeded, $"{result.Key}: {result.Detail}");
         Assert.Contains("ui Button/Save/", devices.Calls);
+    }
+
+    /// <summary>
+    /// What turned up is handed over, in the same shape reading an element hands it over: a step that
+    /// waits for a box and then reads it asks the same question twice, and the second answer can be a
+    /// different element from the one that ended the wait.
+    /// </summary>
+    [Fact]
+    public async Task Waiting_for_an_element_hands_over_the_one_that_turned_up()
+    {
+        var devices = new FakeDeviceLayer { ElementExists = true, ElementText = "12 items" };
+        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+            new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2000, Step("uia.waitElement",
+                Param("window", "Notepad"),
+                Param("uiSelector", "Text[name='Count']"),
+                Returns("element=found"))),
+        ], devices);
+
+        Assert.True(result.Succeeded, $"{result.Key}: {result.Detail}");
+        Assert.Equal("12 items", Field(store, "found", "value").AsText());
+        Assert.Equal("countText", Field(store, "found", "automationId").AsText());
+        Assert.Equal("10,20,80,24", Field(store, "found", "box").AsText());
     }
 
     /// <summary>

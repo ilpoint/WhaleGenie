@@ -15108,7 +15108,13 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "element",
+        "Label": "Element",
+        "Hint": "What the element that turned up says about itself, in the same shape uia.read hands over: enabled and visible, value, name, automationId and controlType, then where it is. Read one part of it with field($name, \"value\")."
+      }
+    ]
   },
   {
     "Key": "uia.click",
