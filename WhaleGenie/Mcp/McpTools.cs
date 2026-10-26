@@ -478,6 +478,9 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 required = argument.Required,
                 @default = argument.Default,
                 description = argument.Description,
+                fields = argument.Fields
+                    .Select(field => new { name = field.Name, type = field.Type.ToString() })
+                    .ToList(),
             })
             .ToList();
 
@@ -487,6 +490,9 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 name = result.Name,
                 type = result.Type.ToString(),
                 description = result.Description,
+                fields = result.Fields
+                    .Select(field => new { name = field.Name, type = field.Type.ToString() })
+                    .ToList(),
             })
             .ToList();
 

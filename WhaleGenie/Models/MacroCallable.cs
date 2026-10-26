@@ -26,6 +26,23 @@ public sealed class MacroParameter
 
     /// <summary>What kind of value the call is asked for, so a mismatch can be seen before the run.</summary>
     public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+
+    /// <summary>
+    /// What a record of this kind holds. Empty for every other kind, and empty for a record whose
+    /// author has not said — a record without it is a bag of names nobody can check, which is why it
+    /// is worth writing down when the macro is written rather than found out at the run.
+    /// </summary>
+    public List<MacroField> Fields { get; set; } = [];
+}
+
+/// <summary>One field of a record a macro declares: the name it is read by and what it holds.</summary>
+public sealed class MacroField
+{
+    /// <summary>The name `$record.name` reads.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>What kind of value the field holds.</summary>
+    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
 }
 
 /// <summary>
@@ -43,6 +60,9 @@ public sealed class MacroResult
 
     /// <summary>What kind of value it is, so the variable pickers can say what a name is good for.</summary>
     public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+
+    /// <summary>What a record result holds, field by field; empty for every other kind.</summary>
+    public List<MacroField> Fields { get; set; } = [];
 }
 
 /// <summary>

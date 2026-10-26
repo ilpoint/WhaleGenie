@@ -39,14 +39,22 @@ public static class CallableSignature
             string.Equals(argument.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
 }
 
-/// <summary>One value a macro asks a call to fill in, as the call site and the tools describe it.</summary>
+/// <summary>
+/// One value a macro asks a call to fill in, as the call site and the tools describe it. A record
+/// carries the fields it holds, because `$record.name` is a name somebody has to be able to look up:
+/// a record without them is a bag of names nobody can check before the run.
+/// </summary>
 public sealed record CalledArgument(
-    string Name, ActionReturnType Type, bool Required, string Default, string Description)
+    string Name, ActionReturnType Type, bool Required, string Default, string Description,
+    IReadOnlyList<CalledField> Fields)
 {
     /// <summary>The same, read off a declaration row.</summary>
     public static CalledArgument Of(MacroParameter parameter)
         => new(parameter.Name.Trim(), parameter.Type, parameter.Required, parameter.Default,
-            parameter.Description);
+            parameter.Description, CalledField.Of(parameter.Fields));
+
+    /// <summary>True when the argument asks for a record and says what it holds.</summary>
+    public bool HasFields => Fields.Count > 0;
 
     /// <summary>
     /// What the call form says under the row: the macro's own words about the value, what kind it
@@ -81,11 +89,15 @@ public sealed record CalledArgument(
 }
 
 /// <summary>One value a macro offers to hand back, as the results page and the tools describe it.</summary>
-public sealed record CalledResult(string Name, ActionReturnType Type, string Description)
+public sealed record CalledResult(
+    string Name, ActionReturnType Type, string Description, IReadOnlyList<CalledField> Fields)
 {
     /// <summary>The same, read off a declaration row.</summary>
     public static CalledResult Of(MacroResult result)
-        => new(result.Name.Trim(), result.Type, result.Description);
+        => new(result.Name.Trim(), result.Type, result.Description, CalledField.Of(result.Fields));
+
+    /// <summary>True when the result is a record and says what it holds.</summary>
+    public bool HasFields => Fields.Count > 0;
 
     /// <summary>
     /// What the results page says under the name: the macro's own words and what kind of value it
@@ -100,4 +112,13 @@ public sealed record CalledResult(string Name, ActionReturnType Type, string Des
             return Description.Length == 0 ? kind : Description + " " + kind;
         }
     }
+}
+
+/// <summary>One field of a record a macro declares, as the call site and the tools describe it.</summary>
+public sealed record CalledField(string Name, ActionReturnType Type)
+{
+    /// <summary>The fields a declaration names, in order, skipping rows with no name.</summary>
+    public static IReadOnlyList<CalledField> Of(IReadOnlyList<MacroField> fields)
+        => [.. fields.Where(field => field.Name.Trim().Length > 0)
+            .Select(field => new CalledField(field.Name.Trim(), field.Type))];
 }

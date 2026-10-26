@@ -402,6 +402,56 @@ public class MacroPackageFormatTests
         }
     }
 
+    /// <summary>
+    /// A record argument may say which fields it holds, and a package has to bring them back: the
+    /// names are what `$record.field` is checked against, so losing them would make a checked macro
+    /// an unchecked one after a save.
+    /// </summary>
+    [Fact]
+    public void A_record_argument_keeps_the_fields_it_declares()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            var path = Path.Combine(folder, "record.wgmacro");
+            var macro = new MacroItem { Name = "主" };
+            macro.Parameters.Add(new MacroParameter
+            {
+                Name = "点",
+                Type = ActionReturnType.Record,
+                Required = true,
+                Fields =
+                [
+                    new MacroField { Name = "x", Type = ActionReturnType.Number },
+                    new MacroField { Name = "y", Type = ActionReturnType.Number },
+                ],
+            });
+            macro.Results.Add(new MacroResult
+            {
+                Name = "框",
+                Type = ActionReturnType.Record,
+                Fields = [new MacroField { Name = "left", Type = ActionReturnType.Number }],
+            });
+
+            MacroPackage.Save(path, [macro], [], "test");
+
+            var loaded = Assert.Single(MacroPackage.Load(path).Macros);
+            var argument = Assert.Single(loaded.Parameters);
+            Assert.Equal(["x", "y"], argument.Fields.Select(field => field.Name));
+            Assert.All(argument.Fields, field => Assert.Equal(ActionReturnType.Number, field.Type));
+
+            var result = Assert.Single(loaded.Results);
+            Assert.Equal(["left"], result.Fields.Select(field => field.Name));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
     /// <summary>One row of a list parameter, written the way the editor writes it.</summary>
     private static StepParameterRow Row(params (string Column, string? Value)[] columns)
     {
