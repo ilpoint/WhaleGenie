@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using WhaleGenie.Core.Devices;
@@ -54,7 +55,12 @@ public sealed class RangeWindow : Window
         // No frame, so the window's own position is the corner of the part a control sits in: a
         // client that reads (x, y) and clicks there lands where it meant to.
         WindowDecorations = WindowDecorations.None;
+
+        // The window keeps its own colours rather than the application's: a dark theme would draw
+        // white letters on this light background, which is a range a person cannot read while a
+        // client clicks it.
         Background = new SolidColorBrush(Color.Parse("#F4F6F8"));
+        Foreground = new SolidColorBrush(Color.Parse("#1F2937"));
 
         var canvas = new Canvas { Width = 520, Height = 260 };
 
@@ -209,6 +215,17 @@ public sealed class RangeWindow : Window
         {
             block.Text = text;
             block.VerticalAlignment = VerticalAlignment.Center;
+        }
+
+        // The letters are read by a person watching the machine, so they keep a colour that shows on
+        // this window's light background whatever theme the application is wearing.
+        if (control is TemplatedControl templated)
+        {
+            templated.Foreground = new SolidColorBrush(Color.Parse("#1F2937"));
+            if (control is TextBox box)
+            {
+                box.Background = new SolidColorBrush(Colors.White);
+            }
         }
 
         AutomationProperties.SetAutomationId(control, id);

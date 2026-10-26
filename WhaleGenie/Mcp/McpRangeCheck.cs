@@ -113,6 +113,14 @@ internal static class McpRangeCheck
         report.Checks.Add(new McpCheck("range.run", ran ? McpCheckResult.Pass : McpCheckResult.Fail,
             run.Ok ? Trim(run.Text) : run.Text));
 
+        // Out of the way of the controls before the picture: a pointer left resting on the button it
+        // just clicked keeps the hover state on, which in a still looks like a label nobody can read.
+        await Call(client, "whalegenie_mouse_move", new Dictionary<string, object?>
+        {
+            ["x"] = room.GetProperty("x").GetInt32() + 4,
+            ["y"] = room.GetProperty("y").GetInt32() + 4,
+        }, token).ConfigureAwait(false);
+
         // A picture of the window as it is now, kept beside the report: what a run did to a window
         // is easier to see than to read, and the doctor is already the thing that knows where it is.
         await Picture(client, report, room.GetProperty("handle").GetInt64(), token);
@@ -254,13 +262,30 @@ internal static class McpRangeCheck
             }
 
             PicturePath = Path.Combine(Path.GetTempPath(), "whalegenie-range-check.png");
-            await File.WriteAllBytesAsync(PicturePath, image.Data.ToArray(), token).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(PicturePath, Raw(image.Data.Span), token).ConfigureAwait(false);
             report.Facts["picture"] = PicturePath;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
             // A picture is a help, not a check: a machine that will not draw one still got the run.
         }
+    }
+
+    /// <summary>
+    /// The bytes of a picture as a file wants them. The protocol carries an image as base64 text, and
+    /// what a client library hands back is that text in a byte array; writing it straight to a .png
+    /// produces a file that opens as a page of letters. Both spellings are accepted, because whether
+    /// the decoding has happened is the client's business, not the file's.
+    /// </summary>
+    internal static byte[] Raw(ReadOnlySpan<byte> data)
+    {
+        if (data.Length > 0 && data[0] == 0x89)
+        {
+            return data.ToArray();
+        }
+
+        var text = Encoding.UTF8.GetString(data).Trim();
+        return text.Length == 0 ? [] : Convert.FromBase64String(text);
     }
 
     /// <summary>Where the last picture went, so a person can look at what the run did.</summary>
