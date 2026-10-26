@@ -138,6 +138,7 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             .WithTools<McpTools>()
             .WithTools<McpControlTools>()
             .WithTools<McpRunTools>()
+            .WithTools<McpRangeTools>()
             .WithResources<McpResources>()
             .WithPrompts<McpPrompts>();
 

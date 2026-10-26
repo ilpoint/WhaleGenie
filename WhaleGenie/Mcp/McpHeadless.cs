@@ -35,7 +35,14 @@ internal static class McpHeadless
             Stop(desktop, project);
         };
 
-        _ = ServeAsync(desktop, project, options.Port);
+        if (options.Range)
+        {
+            var range = new Range.RangeWindow();
+            range.Closed += (_, _) => Stop(desktop, project);
+            range.Show();
+        }
+
+        _ = ServeAsync(desktop, project, options.Port, options.Range);
     }
 
     /// <summary>
@@ -72,7 +79,7 @@ internal static class McpHeadless
     }
 
     private static async Task ServeAsync(IClassicDesktopStyleApplicationLifetime desktop,
-        MainViewModel project, int port)
+        MainViewModel project, int port, bool range)
     {
         try
         {
@@ -81,6 +88,13 @@ internal static class McpHeadless
             // One line for a program, one for a person: a doctor reads stdout and nothing else, so
             // anything else written there would have to be understood by it.
             Console.Out.WriteLine($"endpoint={project.Mcp.Endpoint}");
+            if (range)
+            {
+                // The window's own handle, so a client that was started by something else can be
+                // pointed straight at the place it is allowed to touch.
+                Console.Out.WriteLine($"range={Range.RangeWindow.Current?.TryGetPlatformHandle()?.Handle ?? 0}");
+            }
+
             Console.Out.Flush();
             Console.Error.WriteLine($"whalegenie: MCP on {project.Mcp.Endpoint}; Ctrl+C stops it");
         }

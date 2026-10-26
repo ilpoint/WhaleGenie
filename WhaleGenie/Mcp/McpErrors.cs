@@ -30,6 +30,7 @@ internal static class McpErrors
     public const string DirectControlOff = "DirectControlOff";
     public const string RunNotAllowed = "RunNotAllowed";
     public const string RunBusy = "RunBusy";
+    public const string RangeNotAvailable = "RangeNotAvailable";
     public const string DeviceUnavailable = "DeviceUnavailable";
     public const string DeviceFailed = "DeviceFailed";
     public const string Internal = "Internal";

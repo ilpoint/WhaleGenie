@@ -5,7 +5,8 @@ using System.IO;
 namespace WhaleGenie.Mcp;
 
 /// <summary>What a run without a window was asked to serve.</summary>
-internal sealed record McpHostOptions(int Port, string? PackagePath, string? NewFolder);
+internal sealed record McpHostOptions(
+    int Port, string? PackagePath, string? NewFolder, bool Range = false);
 
 /// <summary>What a doctor run was asked to look at.</summary>
 internal sealed record McpDoctorOptions(
@@ -22,8 +23,9 @@ internal static class McpCommandLine
     internal const string DoctorFlag = "--mcp-doctor";
 
     internal static string Usage => """
-        whalegenie --mcp [--port N] [--open FILE.wgmacro] [--new FOLDER]
-          Serves MCP without a window until Ctrl+C.
+        whalegenie --mcp [--port N] [--open FILE.wgmacro] [--new FOLDER] [--range]
+          Serves MCP without a window until Ctrl+C. --range also opens the range window a
+          client can try things on.
         whalegenie --mcp-doctor (--url URL | --spawn) [--open FILE.wgmacro] [--report FILE] [--write] [--strict]
           Checks an MCP server and prints what it found.
         """;
@@ -41,6 +43,7 @@ internal static class McpCommandLine
         var port = 0;
         string? open = null;
         string? folder = null;
+        var range = false;
         error = string.Empty;
 
         for (var index = 1; index < args.Length; index++)
@@ -73,6 +76,9 @@ internal static class McpCommandLine
                     }
 
                     break;
+                case "--range":
+                    range = true;
+                    break;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;
@@ -86,7 +92,7 @@ internal static class McpCommandLine
         }
 
         return new McpHostOptions(port, open is null ? null : Path.GetFullPath(open),
-            folder is null ? null : Path.GetFullPath(folder));
+            folder is null ? null : Path.GetFullPath(folder), range);
     }
 
     /// <summary>The doctor command, or null with a reason.</summary>
