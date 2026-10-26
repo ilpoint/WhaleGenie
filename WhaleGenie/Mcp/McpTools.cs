@@ -255,12 +255,27 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     return null;
                 }
 
+                // The outer macro first, then each submacro: a step id is unique across the whole
+                // document, so the first place it turns up is the place it belongs to.
                 var found = Find(macro.Steps, stepId, string.Empty);
+                var scope = "main";
+                foreach (var sub in macro.SubMacros)
+                {
+                    if (found is not null)
+                    {
+                        break;
+                    }
+
+                    found = Find(sub.Steps, stepId, string.Empty);
+                    scope = "sub:" + sub.Name;
+                }
+
                 return found is { } place
                     ? new
                     {
                         name,
                         stepId,
+                        macro = scope,
                         place.Path,
                         type = place.Step.Type,
                         step = place.Step.ToJson(),
@@ -700,10 +715,19 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     /// is what an insert or a move names as its parent, so the next step can be placed without
     /// reading the whole macro back. Submacros are left out: they are written with put_macro.
     /// </summary>
+    /// <summary>
+    /// Every step of a macro, in the order it runs, with the macro each one belongs to. The submacros
+    /// are listed after the outer steps rather than inside them: they are separate documents, and a
+    /// path is only meaningful inside the macro it was read from.
+    /// </summary>
     private static IReadOnlyList<object> Outline(MacroItem macro)
-        => [.. Walk(macro.Steps, string.Empty)];
+        =>
+        [
+            .. Walk(macro.Steps, string.Empty, "main"),
+            .. macro.SubMacros.SelectMany(sub => Walk(sub.Steps, string.Empty, "sub:" + sub.Name)),
+        ];
 
-    private static IEnumerable<object> Walk(IReadOnlyList<MacroStep> steps, string prefix)
+    private static IEnumerable<object> Walk(IReadOnlyList<MacroStep> steps, string prefix, string scope)
     {
         for (var at = 0; at < steps.Count; at++)
         {
@@ -711,11 +735,11 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             var path = prefix.Length == 0
                 ? at.ToString(CultureInfo.InvariantCulture)
                 : $"{prefix}.{at.ToString(CultureInfo.InvariantCulture)}";
-            yield return new { id = step.Id, type = step.Type, path };
+            yield return new { id = step.Id, type = step.Type, path, macro = scope };
 
             foreach (var parameter in step.StepLists)
             {
-                foreach (var child in Walk(parameter.Steps, $"{path}.{parameter.Name}"))
+                foreach (var child in Walk(parameter.Steps, $"{path}.{parameter.Name}", scope))
                 {
                     yield return child;
                 }

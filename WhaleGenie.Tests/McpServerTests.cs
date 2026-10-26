@@ -1434,6 +1434,85 @@ public class McpServerTests
         });
     }
 
+    /// <summary>
+    /// A submacro's steps are in the outline and can be patched like any other: before this, a
+    /// project that used one could only be changed by sending the whole macro again.
+    /// </summary>
+    [Fact]
+    public void A_submacro_s_steps_can_be_read_and_patched()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse("""
+                        {"name":"外面","steps":[{"type":"control.delay","params":{"ms":"1"}}],
+                         "subMacros":[{"name":"里面","steps":[
+                           {"type":"control.delay","params":{"ms":"2"}}]}]}
+                        """),
+                })).RootElement;
+
+            var rows = put.GetProperty("outline").EnumerateArray().ToList();
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("main", rows[0].GetProperty("macro").GetString());
+            Assert.Equal("sub:里面", rows[1].GetProperty("macro").GetString());
+
+            var inner = rows[1].GetProperty("id").GetString()!;
+            var step = JsonDocument.Parse(await Call(client, "whalegenie_get_step",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "外面",
+                    ["stepId"] = inner,
+                })).RootElement;
+            Assert.Equal("sub:里面", step.GetProperty("macro").GetString());
+
+            // A parameter inside the submacro, changed where it lives.
+            var patched = await Wrote(client, "whalegenie_patch_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["name"] = "外面",
+                ["operations"] = JsonNode.Parse(
+                    "[{\"op\":\"set\",\"macro\":\"sub:里面\",\"stepId\":\"" + inner
+                    + "\",\"param\":\"ms\",\"value\":900}]"),
+            });
+            Assert.Contains("set", patched, StringComparison.Ordinal);
+
+            var macro = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "外面",
+                })).RootElement;
+            Assert.Equal("900", macro.GetProperty("subMacros")[0].GetProperty("steps")[0]
+                .GetProperty("params").GetProperty("ms").GetRawText());
+            Assert.Equal("1", macro.GetProperty("steps")[0].GetProperty("params")
+                .GetProperty("ms").GetRawText());
+
+            var missing = await client.CallToolAsync("whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "外面",
+                    ["operations"] = JsonNode.Parse(
+                        "[{\"op\":\"set\",\"macro\":\"sub:没有\",\"stepId\":\"abcd\",\"param\":\"ms\",\"value\":1}]"),
+                });
+            Assert.True(missing.IsError);
+            Assert.Contains("submacro", missing.Content.OfType<TextContentBlock>().First().Text,
+                StringComparison.OrdinalIgnoreCase);
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
     /// <summary>Calls a tool that is supposed to work, and shows the refusal when it does not.</summary>
     private static async Task<string> Wrote(McpClient client, string name,
         Dictionary<string, object?> arguments)

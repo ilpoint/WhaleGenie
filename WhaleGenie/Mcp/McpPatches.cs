@@ -89,7 +89,7 @@ internal static class McpPatches
     public static void Settle(MacroItem macro) => StepIds.SettleAcross(Documents(macro));
 
     private static Refusal? Run(MacroItem macro, JsonObject operation, List<Touch> touches)
-        => Text(operation["op"]).Trim().ToLowerInvariant() switch
+        => Scope(macro, operation).Error ?? Text(operation["op"]).Trim().ToLowerInvariant() switch
         {
             "set" => Set(macro, operation, touches),
             // The operation name is read without regard to case, so the labels a person sees
@@ -1120,7 +1120,8 @@ internal static class McpPatches
         }
 
         var parent = Text(operation["parent"]);
-        if (!Resolve(macro, parent, out var list, out var destination, out var pathError))
+        if (!Resolve(Scope(macro, operation).Steps, parent, out var list, out var destination,
+                out var pathError))
         {
             return Refused(McpErrors.BadArgument, pathError!,
                 "A parent is a path such as 0.then or 0.then.2.else; leave it empty for the top level.",
@@ -1154,13 +1155,14 @@ internal static class McpPatches
     private static Refusal? Move(MacroItem macro, JsonObject operation, List<Touch> touches)
     {
         var id = Text(operation["stepId"]).Trim();
-        if (!Locate(macro.Steps, id, out var from, out var at, out var step))
+        var scope = Scope(macro, operation);
+        if (!Locate(scope.Steps, id, out var from, out var at, out var step))
         {
             return NoStep(operation);
         }
 
         var parent = Text(operation["parent"]);
-        if (!Resolve(macro, parent, out var to, out var destination, out var pathError))
+        if (!Resolve(scope.Steps, parent, out var to, out var destination, out var pathError))
         {
             return Refused(McpErrors.BadArgument, pathError!,
                 "A parent is a path such as 0.then; leave it empty for the top level.", true, new { parent });
@@ -1215,10 +1217,10 @@ internal static class McpPatches
     /// The list a parent path names, and the parameter that declares it. An empty path is the
     /// macro's own list; anything else is step indexes and list names in turn: <c>0.then.2.else</c>.
     /// </summary>
-    private static bool Resolve(MacroItem macro, string path, out List<MacroStep> list,
+    private static bool Resolve(List<MacroStep> root, string path, out List<MacroStep> list,
         out ActionParameter? destination, out string? error)
     {
-        list = macro.Steps;
+        list = root;
         destination = null;
         error = null;
 
@@ -1235,7 +1237,7 @@ internal static class McpPatches
             return false;
         }
 
-        var current = macro.Steps;
+        var current = root;
         for (var index = 0; index < tokens.Length; index += 2)
         {
             if (!int.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture,
@@ -1269,7 +1271,42 @@ internal static class McpPatches
     private static MacroStep? Located(MacroItem macro, JsonObject operation)
     {
         var id = Text(operation["stepId"]).Trim();
-        return Locate(macro.Steps, id, out _, out _, out var step) ? step : null;
+        return Locate(Scope(macro, operation).Steps, id, out _, out _, out var step) ? step : null;
+    }
+
+    /// <summary>
+    /// Which step tree an operation works on: the macro's own, or one of the submacros it carries.
+    /// A submacro is written <c>sub:名字</c>; nothing at all means the macro itself.
+    /// </summary>
+    /// <remarks>
+    /// The submacros are separate documents inside one package, and until now a patch could only
+    /// reach the outer one: a project that used a submacro could only be changed by sending the
+    /// whole macro again, which is exactly what a patch exists to avoid.
+    /// </remarks>
+    private static (List<MacroStep> Steps, string Label, Refusal? Error) Scope(
+        MacroItem macro, JsonObject operation)
+    {
+        var written = Text(operation["macro"]).Trim();
+        if (written.Length == 0 || string.Equals(written, TopLevel, StringComparison.OrdinalIgnoreCase))
+        {
+            return (macro.Steps, "main", null);
+        }
+
+        var name = written.StartsWith("sub:", StringComparison.OrdinalIgnoreCase)
+            ? written[4..].Trim()
+            : written;
+
+        var sub = macro.SubMacros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
+        if (sub is not null)
+        {
+            return (sub.Steps, "sub:" + sub.Name.Trim(), null);
+        }
+
+        return ([], written, Refused(McpErrors.BadArgument,
+            $"There is no submacro named \"{name}\" in \"{macro.Name}\".",
+            "Call whalegenie_get_macro: every row of its outline says which macro it belongs to.",
+            true, new { macro = name, submacros = macro.SubMacros.Select(child => child.Name).ToList() }));
     }
 
     /// <summary>Where one step sits: the list holding it and its place in that list.</summary>
