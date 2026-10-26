@@ -1976,6 +1976,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UnknownParameter"] = "\"{0}\" is not a field of this action any more: delete this entry.",
         ["Editor.Problem.PlaceAndNumbers"] = "\"{0}\" and the numbers beside it are both filled in: keep one way of saying where, the other is ignored.",
         ["Editor.Problem.DuplicateResultName"] = "Two results go by the same name \"{0}\": the later one overwrites the earlier.",
+        ["Editor.Problem.DuplicateRunHandle"] =
+            "A background run is already started under the name \"{0}\": the first one keeps running with nothing able to wait for it. Give each run its own name.",
         ["Editor.Problem.DuplicateResultKey"] = "The result \"{0}\" is requested more than once in this step: keep one row for it.",
         ["Editor.Problem.DuplicateArgument"] =
             "The argument \"{0}\" is filled in by more than one row: keep one row for it, so which value it gets is not left to guesswork.",
@@ -4120,6 +4122,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UnknownParameter"] = "「{0}」不是这个动作的字段（可能已经改名或删除）：删掉这一项。",
         ["Editor.Problem.PlaceAndNumbers"] = "「{0}」和旁边的数字都填了：只留一种写法，另一种会被忽略。",
         ["Editor.Problem.DuplicateResultName"] = "有两个结果用了同一个名字「{0}」：后一个会盖掉前一个。",
+        ["Editor.Problem.DuplicateRunHandle"] =
+            "已经有一个后台运行叫「{0}」了：先起的那个还在跑，却没人能等它。给它换一个名字。",
         ["Editor.Problem.DuplicateResultKey"] = "同一步里请求了两次结果「{0}」：只保留一行。",
         ["Editor.Problem.DuplicateArgument"] = "同一个形参「{0}」填了两行：只保留一行，传哪一个才不含糊。",
         ["Editor.Problem.BadResultName"] = "「{0}」不能当变量名读，这个结果无法写在它下面。",

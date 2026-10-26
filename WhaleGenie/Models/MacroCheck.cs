@@ -528,6 +528,8 @@ public static class MacroCheck
             int loops, int switches,
             IReadOnlySet<string> loopNames, bool bounded, bool guarded, bool browserHeld)
         {
+            CheckSiblings(list);
+
             foreach (var step in list)
             {
                 CheckStepPlacement(step, destination);
@@ -963,6 +965,49 @@ public static class MacroCheck
         /// read that comes before that wait is said to be reading something that is not there yet.
         /// Cancelling is not a wait: it stops the run without taking any result back.
         /// </summary>
+        /// <summary>
+        /// Two steps side by side that would claim the same name. Only siblings are compared: two
+        /// branches of one switch never both run, so the same handle name in both is a way of not
+        /// inventing two names, not a mistake. A sibling pair is different — the second one runs
+        /// after the first, and whatever the first left is what gets overwritten.
+        /// </summary>
+        void CheckSiblings(IReadOnlyList<MacroStep> siblings)
+        {
+            var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var step in siblings)
+            {
+                if (step.Type == "control.startMacro")
+                {
+                    var handle = step.Text("runHandleName").Trim();
+                    if (handle.Length > 0 && !handles.Add(handle))
+                    {
+                        // A handle is the only way back to a run. Two runs under one name leave the
+                        // first unreachable: it keeps running, and nothing can wait for it.
+                        Add(step, "DuplicateRunHandle",
+                            Strings.Format("Editor.Problem.DuplicateRunHandle", handle));
+                    }
+                }
+
+                // Only a call's results are compared: an ordinary step writing a name twice in a row
+                // is a plain overwrite the author can see in the macro itself.
+                if (!CallsMacro(step))
+                {
+                    continue;
+                }
+
+                foreach (var (_, name) in Wanted(step))
+                {
+                    if (!results.Add(name))
+                    {
+                        Add(step, "DuplicateResultName",
+                            Strings.Format("Editor.Problem.DuplicateResultName", name));
+                    }
+                }
+            }
+        }
+
         void TrackPendingResults(MacroStep step)
         {
             switch (step.Type)
@@ -970,8 +1015,18 @@ public static class MacroCheck
                 case "control.waitMacro":
                     ForgetPending(step.Text("runHandle"));
                     break;
+
+                // A list of handles settles the runs it names and no others. Clearing every pending
+                // name — which is what this used to do — let a read of a third run look answered
+                // when nothing had waited for it; settling only one name would keep saying a run is
+                // owed a wait after the macro has already begun taking its answers back.
+                case "control.waitAny":
                 case "control.waitAll":
-                    pending.Clear();
+                    foreach (var name in Expression.ReferencedNames(step.Text("runHandles")))
+                    {
+                        ForgetPending("$" + name);
+                    }
+
                     break;
             }
 

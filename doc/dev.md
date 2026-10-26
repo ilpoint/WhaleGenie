@@ -225,6 +225,17 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 - 动作目录作为资源：`whalegenie://actions`（全部动作的 key / 名字 / 分类 / 是否隐藏 / 参数名）与
   `whalegenie://actions/{key}`（一条动作的完整描述，与 `whalegenie_get_action` 同一份），在
   `WhaleGenie/Mcp/McpResources.cs`。能缓存资源的客户端读一次就留着；读不了资源的仍用工具，两条路说同一件事。
+- 后台运行的句柄规则：一次等成功取回结果之后句柄才从表里拿掉（`Finish`），等待本身失败时留着——三个等待
+  （`waitMacro` / `waitAll` / `waitAny`）因此是同一条规则，宏可以在失败后再用 `runStatus` 读它结束时的状态。
+  `WaitOtherMacro` 原先在核结果**之前**就 `Finish`，是三个里唯一不一样的。
+- 子运行的失败键：`EndingOf` 把任务抛出的异常与取消折成 `Run.Failed`（详情是异常类型名），`HandleValue` 在
+  出错/取消的任务上不再读 `.Result`——那是 `AggregateException` 绕过失败键的唯一一条路。
+- 后台运行的归属：一个宏自己的 `RunAsync` 结束时（`StopChildrenAsync`）把它起的、还没被等的运行停下，所以
+  同步调用里起的后台运行不会留到调用方那里，句柄随局部表一起消失是设计如此，不是漏。
+- 设计期：`TrackPendingResults` 按句柄名结算（`waitAny` / `waitAll` 只忘掉列表里点到的那些，别的一律还算
+  欠一次等）；`CheckSiblings` 在同一层步骤里查两件事——两个 `startMacro` 共用一个句柄名
+  （`DuplicateRunHandle`），两个调用把结果写进同一个名字（`DuplicateResultName`）。只比同层，因为同一个
+  `switch` 的两个分支不会都跑，同名在那里是省事而不是错。
 - 调用审计：`WhaleGenie/Mcp/McpAudit.cs` 往 `logs/mcp-<日期>.log` 追加一行一次调用（时间、工具、一句话摘要、
   结果）。**只记改了东西或动了机器的**：`Drive` 里记 9 个动手工具（成功 `sent`、被拒带 `code`），`McpDraft` 的
   `Put` / `Delete` / `SetGlobals` 与 `McpLiveProject` 的 `ApplyAsync` / `SaveAsync` 各记一条；只读工具不记。

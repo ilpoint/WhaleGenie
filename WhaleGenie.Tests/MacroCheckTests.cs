@@ -525,6 +525,82 @@ public class MacroCheckTests
         Assert.Equal("UnknownField", problem.Code);
     }
 
+    /// <summary>启动一个后台运行，句柄名与要取回的结果按写下来的样子。</summary>
+    private static MacroStep Start(string macro, string handle, params string[] wants)
+        => Step("control.startMacro", Text("macro", macro), Text("runHandleName", handle),
+            Results(wants));
+
+    [Fact]
+    public void Waiting_for_one_run_does_not_settle_another()
+    {
+        var steps = new[]
+        {
+            Start("甲", "a", "一"),
+            Start("乙", "b", "二"),
+            Step("control.waitAll", Text("runHandles", "[$a]")),
+            Set("用", "$二"),
+        };
+
+        var problems = Against("自己",
+            [Callable("甲", results: ["一"]), Callable("乙", results: ["二"])], steps);
+
+        // 二 belongs to the run named b, and this wait named only a. Clearing every pending name —
+        // which is what this used to do — would let the read below look answered.
+        Assert.Contains(problems, problem => problem.Code == "ResultBeforeWait"
+            && problem.Message.Contains("二", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Waiting_for_any_of_a_list_settles_the_runs_it_names()
+    {
+        var steps = new[]
+        {
+            Start("甲", "a", "一"),
+            Start("乙", "b", "二"),
+            Step("control.waitAny", Text("runHandles", "[$a, $b]")),
+            Set("用", "$二"),
+        };
+
+        var problems = Against("自己",
+            [Callable("甲", results: ["一"]), Callable("乙", results: ["二"])], steps);
+
+        // waitAny is a wait like the others: whichever run finished, the macro has begun taking
+        // answers back, so reading one is no longer reading something nothing waited for.
+        Assert.DoesNotContain(problems, problem => problem.Code == "ResultBeforeWait");
+    }
+
+    [Fact]
+    public void Two_background_runs_under_one_name_are_marked()
+    {
+        var steps = new[]
+        {
+            Start("甲", "job"),
+            Start("甲", "job"),
+        };
+
+        var problem = Assert.Single(Against("自己", [Callable("甲")], steps),
+            candidate => candidate.Code == "DuplicateRunHandle");
+
+        // The second one is where it goes wrong: the first run keeps going with nothing able to
+        // wait for it, because the name that reached it now belongs to the second.
+        Assert.Same(steps[1], problem.Step);
+        Assert.Contains("job", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_calls_side_by_side_writing_one_name_are_marked()
+    {
+        var steps = new[]
+        {
+            Step("control.runMacro", Text("macro", "甲"), Results("一")),
+            Step("control.runMacro", Text("macro", "甲"), Results("一")),
+        };
+
+        var problem = Assert.Single(Against("自己", [Callable("甲", results: ["一"])], steps),
+            candidate => candidate.Code == "DuplicateResultName");
+        Assert.Same(steps[1], problem.Step);
+    }
+
     [Fact]
     public void A_call_that_names_no_macro_is_reported()
         => Assert.Single(Against("自己", [Callable("另一个")], Call("")));

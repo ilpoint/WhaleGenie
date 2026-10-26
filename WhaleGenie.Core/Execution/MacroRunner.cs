@@ -1147,23 +1147,57 @@ public sealed partial class MacroRunner
     private async Task<Signal> WaitOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
         var child = FindChild(ReadValue(step, "runHandle"));
-        var result = await child.Task.WaitAsync(token);
+        var result = await EndingOf(child, token);
 
-        Finish(child);
         if (result.Status is RunStatus.Failed)
         {
+            TellHandle(child);
             throw new StepFailure(result.Key, result.Detail);
         }
 
         if (result.Status is RunStatus.Stopped)
         {
+            TellHandle(child);
             throw new StepFailure(RunKeys.ChildStopped, child.Macro);
         }
 
+        // The run is let go of only once its answers are actually in hand. A wait that fails on what
+        // came back — a value of the wrong kind, say — leaves the run in the table, so the macro can
+        // still ask how it ended and read the value under a name it can use. That is what the other
+        // two waits already do; doing it here too is what makes the three of them one rule.
         CheckResults(child.Signature, child.Wanted, child.Store.Local);
         Take(child.Wanted, child.Store.Local);
+        Finish(child);
         Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
         return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Waits for a background run and answers with how it ended, turning the one ending that has no
+    /// key into one that has. The runner answers every step failure as a result, so a task that
+    /// throws is the exception rather than the rule — an exception outside its own guard, or a task
+    /// cancelled from underneath. Letting it through as an <c>AggregateException</c> would hand the
+    /// macro a failure it cannot branch on, in a run where every other failure is a key.
+    /// </summary>
+    private static async Task<RunResult> EndingOf(ChildRun child, CancellationToken token)
+    {
+        try
+        {
+            return await child.Task.WaitAsync(token);
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            // The token the wait was given is still live, so the cancellation came from the run
+            // itself: it was stopped from inside after it had been started as a background run.
+            return new RunResult(RunStatus.Failed, RunKeys.Failed,
+                nameof(OperationCanceledException), 0);
+        }
+        catch (Exception error)
+        {
+            // The detail is the kind of failure rather than its message: what an unexpected
+            // exception has to say is for the log, and the log already has it.
+            return new RunResult(RunStatus.Failed, RunKeys.Failed, error.GetType().Name, 0);
+        }
     }
 
     /// <summary>
@@ -1221,7 +1255,7 @@ public sealed partial class MacroRunner
         RunResult result;
         try
         {
-            result = await child.Task.WaitAsync(token);
+            result = await EndingOf(child, token);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested
                                                 && !_runToken.IsCancellationRequested)
@@ -1250,7 +1284,7 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.NoRunsToWait);
         }
 
-        var results = await Task.WhenAll(children.Select(child => child.Task.WaitAsync(token)));
+        var results = await Task.WhenAll(children.Select(child => EndingOf(child, token)));
 
         // Every ending is looked at before any result is written: a list that failed partway
         // through hands back none of its answers rather than the ones it happened to reach first.
@@ -1262,11 +1296,13 @@ public sealed partial class MacroRunner
             var result = results[index];
             if (result.Status is RunStatus.Failed)
             {
+                TellHandles(children);
                 throw new StepFailure(result.Key, result.Detail);
             }
 
             if (result.Status is RunStatus.Stopped)
             {
+                TellHandles(children);
                 throw new StepFailure(RunKeys.ChildStopped, child.Macro);
             }
 
@@ -1299,7 +1335,7 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.NoRunsToWait);
         }
 
-        var tasks = children.Select(child => child.Task).ToArray();
+        var tasks = children.Select(child => EndingOf(child, token)).ToArray();
         var first = await Task.WhenAny(tasks).WaitAsync(token);
         var index = Array.FindIndex(tasks, task => ReferenceEquals(task, first));
         var child = children[index];
@@ -1307,11 +1343,13 @@ public sealed partial class MacroRunner
 
         if (result.Status is RunStatus.Failed)
         {
+            TellHandle(child);
             throw new StepFailure(result.Key, result.Detail);
         }
 
         if (result.Status is RunStatus.Stopped)
         {
+            TellHandle(child);
             throw new StepFailure(RunKeys.ChildStopped, child.Macro);
         }
 
@@ -1337,6 +1375,28 @@ public sealed partial class MacroRunner
         var child = _children.FirstOrDefault(candidate =>
             string.Equals(candidate.Handle, id.AsText(), StringComparison.Ordinal));
         return child ?? throw new StepFailure(RunKeys.NoSuchRun, id.AsText());
+    }
+
+    /// <summary>
+    /// Writes a run's handle back saying how it ended, without letting go of the run. A wait that
+    /// fails still leaves the caller able to read the handle afterwards — that is the point of
+    /// keeping the run in the table — but a handle that still says "running" would be a lie about a
+    /// run that is over.
+    /// </summary>
+    private void TellHandle(ChildRun child)
+    {
+        if (Variables.Local.Contains(child.HandleName))
+        {
+            Variables.Local.Set(child.HandleName, HandleValue(child));
+        }
+    }
+
+    private void TellHandles(IEnumerable<ChildRun> children)
+    {
+        foreach (var child in children)
+        {
+            TellHandle(child);
+        }
     }
 
     /// <summary>
@@ -1366,14 +1426,21 @@ public sealed partial class MacroRunner
     /// </summary>
     private static Value HandleValue(ChildRun child)
     {
+        // A task that ended by throwing or by being cancelled has no result to read: asking for one
+        // throws an AggregateException out of the middle of building a handle, which is the one way a
+        // run could fail without a key. It counts as failed, under the key every other unexplained
+        // failure uses.
+        var faulted = child.Task.IsFaulted || child.Task.IsCanceled;
         var status = !child.Task.IsCompleted
             ? RunHandleStatus.Running
-            : child.Task.Result.Status switch
-            {
-                RunStatus.Failed => RunHandleStatus.Failed,
-                RunStatus.Stopped => RunHandleStatus.Stopped,
-                _ => RunHandleStatus.Done,
-            };
+            : faulted
+                ? RunHandleStatus.Failed
+                : child.Task.Result.Status switch
+                {
+                    RunStatus.Failed => RunHandleStatus.Failed,
+                    RunStatus.Stopped => RunHandleStatus.Stopped,
+                    _ => RunHandleStatus.Done,
+                };
 
         return Value.FromRecord(
         [
@@ -1381,7 +1448,9 @@ public sealed partial class MacroRunner
             (FieldNames.Macro, Value.FromText(child.Macro)),
             (FieldNames.Status, Value.FromText(status)),
             (FieldNames.Error, Value.FromText(
-                child.Task.IsCompleted ? child.Task.Result.Key : string.Empty)),
+                !child.Task.IsCompleted ? string.Empty
+                : faulted ? RunKeys.Failed
+                : child.Task.Result.Key)),
             (FieldNames.Results, Value.FromList(
                 [.. child.Wanted.Select(wanted => Value.FromText(wanted.Name))])),
         ]);

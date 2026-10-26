@@ -2345,6 +2345,33 @@ public class MacroRunnerTests
         Assert.False(store.Global.Contains("finished"));
     }
 
+    /// <summary>
+    /// 一次等失败之后，句柄还在表里：这次运行确实结束了，但它是怎么结束的、哪个失败键，宏仍能问。
+    /// 三个等待动作因此是同一条规则——答案拿到手了才放手。
+    /// </summary>
+    [Fact]
+    public async Task A_wait_that_fails_leaves_the_handle_for_a_later_question()
+    {
+        var library = new Library(("坏", MacroSignature.Empty,
+            [Step("control.fail", Param("reason", "boom"))]));
+
+        var runner = new MacroRunner(Store(), new SilentRunHost(), null, 1, library);
+        var result = await runner.RunAsync(
+        [
+            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "job")),
+            Step("control.waitMacro", Param("runHandle", "$job")),
+        ]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.StepFailedByMacro, result.Key);
+
+        // The run is gone from the table only when a wait has taken its answers: a macro that caught
+        // this failure can still ask how the run ended, which is what runStatus reads.
+        var child = Assert.Single(runner.Children);
+        Assert.Equal("坏", child.Macro);
+        Assert.False(child.Running);
+    }
+
     [Fact]
     public async Task A_background_call_without_a_handle_is_refused()
     {
