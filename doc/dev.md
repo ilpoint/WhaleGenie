@@ -57,6 +57,11 @@ Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotne
 不写 `-p:Platform` 也一样；根 `Directory.Build.props` 里的 `PlatformTarget` 让直接构建某个
 工程时也不会退回 32 位。
 
+**跑测试不要和 `dotnet build` 混着用 `--no-build`**：整个解决方案构建写到 `bin/x64/<配置>`，而
+`dotnet test <工程> --no-build` 可能去 `bin/<配置>` 找，那里是上一次的二进制。症状很像真的坏了——刚加的
+中文文案在测试里"不存在"、刚加的结果没有标签。跑测试要么带构建（`dotnet test <工程> -c Release`），要么
+两边都写上 `-p:Platform=x64`。
+
 构建把警告当成错误（`Directory.Build.props` 里的 `TreatWarningsAsErrors`），
 所以"能编译过"就等于"零警告"。
 
