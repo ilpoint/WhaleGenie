@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -35,18 +37,29 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             return;
         }
 
+        WebApplication app;
         try
         {
-            _app = await StartOnAsync(preferredPort);
+            app = await StartOnAsync(preferredPort);
         }
         catch (IOException)
         {
             // The preferred port is taken by something else. The system can pick one instead; the
             // window shows the address it got.
-            _app = await StartOnAsync(0);
+            app = await StartOnAsync(0);
         }
 
-        _endpoint = _app.Urls.FirstOrDefault()?.TrimEnd('/') + "/mcp";
+        // The address has to be the one the listener is really holding. Asking for port 0 and then
+        // reporting port 0 would hand out a client config that nobody can connect to.
+        var address = AddressOf(app);
+        if (address.Length == 0)
+        {
+            await StopAppAsync(app);
+            throw new InvalidOperationException("The MCP server started but reported no address.");
+        }
+
+        _app = app;
+        _endpoint = address.TrimEnd('/') + "/mcp";
     }
 
     public async Task StopAsync()
@@ -58,7 +71,20 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
 
         _app = null;
         _endpoint = string.Empty;
+        await StopAppAsync(app);
+    }
 
+    public async ValueTask DisposeAsync() => await StopAsync();
+
+    private static string AddressOf(WebApplication app)
+        => app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()
+            ?.Addresses.FirstOrDefault(address =>
+                address.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        ?? app.Urls.FirstOrDefault()
+        ?? string.Empty;
+
+    private static async Task StopAppAsync(WebApplication app)
+    {
         // A connected MCP client can keep a stream open, and a graceful stop would wait for it.
         // The server belongs to this process, so two seconds is enough to let requests finish and
         // then the socket is closed; the process must not stay alive because a client went quiet.
@@ -86,8 +112,6 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync() => await StopAsync();
-
     private async Task<WebApplication> StartOnAsync(int port)
     {
         var drafts = new McpDraftStore();
@@ -112,6 +136,7 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             .WithHttpTransport(options => options.Stateless = true)
             .WithTools<McpTools>()
             .WithTools<McpControlTools>()
+            .WithResources<McpResources>()
             .WithPrompts<McpPrompts>();
 
         var app = builder.Build();

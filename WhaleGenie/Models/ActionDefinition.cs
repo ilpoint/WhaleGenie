@@ -104,6 +104,14 @@ public enum ActionParameterKind
     Returns,
 
     /// <summary>
+    /// What a call passes to the macro it names, edited as a list of them: one row per argument,
+    /// with the argument's name and the value going into it. A call and the results it asks for are
+    /// the same kind of thing written the same way, which is why the names the called macro
+    /// declares are read off the same kind of row the results are.
+    /// </summary>
+    Arguments,
+
+    /// <summary>
     /// What a page step says the element it means has to be like, edited as one row each: a way of
     /// narrowing the page down and what to look for by it. A selector that names five elements
     /// which look alike is told apart by these rather than by counting them, and every row has to

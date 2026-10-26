@@ -13,7 +13,13 @@ namespace WhaleGenie.Models;
 /// Something about a step that the editor can tell is wrong before the macro runs, together with
 /// the step it came from so the list can point at the row rather than leaving the user to find it.
 /// </summary>
-public sealed record MacroProblem(MacroStep Step, string Message);
+/// <summary>
+/// One thing wrong with a step. <paramref name="Code"/> is the stable name of the problem — the
+/// part a program branches on — and <paramref name="Message"/> is the sentence a person reads.
+/// A client that has to say "this is the same problem as last time" cannot do it by comparing
+/// sentences, because they are translated.
+/// </summary>
+public sealed record MacroProblem(MacroStep Step, string Code, string Message);
 
 /// <summary>
 /// Reads a macro the way the engine would and reports what cannot work, while the user is still
@@ -25,6 +31,23 @@ public static class MacroCheck
 {
     private static bool CallsMacro(MacroStep step)
         => step.Definition?.Semantics.SignatureSource is ActionSignatureSource.CalledMacro;
+
+    /// <summary>
+    /// The rows of a call's argument list, in the order they were written. The names a row may hold
+    /// belong to the called macro rather than to the catalogue, so this list is the only place a
+    /// check can learn which argument a step fills in, and the only place an argument that the
+    /// called macro no longer declares can be seen sitting in a step.
+    /// </summary>
+    private static IEnumerable<StepParameterRow> ArgumentRows(MacroStep step)
+        => step.Parameters
+            .Where(parameter => parameter.Name == FieldNames.Arguments)
+            .SelectMany(parameter => parameter.Rows);
+
+    /// <summary>What one row of a call's argument list says, read the way the engine reads it.</summary>
+    private static (string Name, string Value, bool Given) Argument(StepParameterRow row)
+        => (row.Text(FieldNames.Name).Trim(),
+            row.Text(FieldNames.Value).Trim(),
+            string.Equals(row.Text(FieldNames.Given).Trim(), "true", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>The steps that give a break or a continue something to act on.</summary>
     private static readonly HashSet<string> LoopKeys = new(StringComparer.Ordinal)
@@ -78,7 +101,16 @@ public static class MacroCheck
     /// the save button refuses to write the macro.
     /// </summary>
     public static IReadOnlyList<string> DeclarationFaults(MacroCallable own)
-        => [.. own.Problems().Select(problem => FaultMessage(own, problem))];
+        => [.. DeclarationFaultProblems(own).Select(problem => problem.Message)];
+
+    /// <summary>
+    /// The same faults, each with the name a program can branch on. The code carries the fault
+    /// rather than the sentence: a client told "RequiredWithDefault" can tell the author which of
+    /// the two to drop, while the sentence is only ever in one language.
+    /// </summary>
+    public static IReadOnlyList<(string Code, string Message)> DeclarationFaultProblems(MacroCallable own)
+        => [.. own.Problems().Select(problem =>
+            ($"Declaration.{problem.Fault}", FaultMessage(own, problem)))];
 
     /// <summary>
     /// Everything the declaration editor has to say: the fatal faults above, plus warnings about
@@ -88,7 +120,11 @@ public static class MacroCheck
     public static IReadOnlyList<string> DeclarationProblems(MacroCallable own)
         => [.. DeclarationFaults(own), .. DeclarationWarnings(own)];
 
-    private static IReadOnlyList<string> DeclarationWarnings(MacroCallable own)
+    /// <summary>
+    /// The same warnings on their own. An external author is told what blocks the write and what is
+    /// only worth reading apart from each other, the way the editor draws them.
+    /// </summary>
+    public static IReadOnlyList<string> DeclarationWarnings(MacroCallable own)
     {
         var warnings = new List<string>();
         var open = WritesAnyName(own.OwnSteps);
@@ -209,8 +245,6 @@ public static class MacroCheck
                 Strings.Format("Editor.Problem.EmptyDeclaration", own.Name),
             MacroSignatureFault.InvalidName =>
                 Strings.Format("Editor.Problem.InvalidDeclarationName", own.Name, problem.Name),
-            MacroSignatureFault.ConflictingName =>
-                Strings.Format("Editor.Problem.ConflictingDeclarationName", own.Name, problem.Name),
             MacroSignatureFault.RequiredWithDefault =>
                 Strings.Format("Editor.Problem.RequiredWithDefault", own.Name, problem.Name),
             _ => Strings.Format("Editor.Problem.BadDeclaration", own.Name, problem.Name),
@@ -272,42 +306,26 @@ public static class MacroCheck
     /// </summary>
     private static bool CallMismatch(MacroStep step, MacroCallable own)
     {
-        foreach (var parameter in own.Parameters)
+        var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in ArgumentRows(step))
         {
-            var name = parameter.Name.Trim();
+            var (name, _, _) = Argument(row);
             if (name.Length == 0)
             {
                 continue;
             }
 
-            var supplied = step.Text(MacroCallFields.Argument(name)).Trim().Length > 0
-                || string.Equals(step.Text(MacroCallFields.Given(name)).Trim(), "true",
-                    StringComparison.OrdinalIgnoreCase);
-            if (!supplied && parameter.Required)
+            // A row naming something the declaration does not have, or a second row naming the same
+            // argument, is a call that no longer says what it was written to say.
+            if (own.Parameter(name) is null || !named.Add(name))
             {
                 return true;
             }
         }
 
-        foreach (var parameter in step.Parameters)
+        foreach (var argument in CallableSignature.Arguments(own))
         {
-            if (MacroCallFields.IsGiven(parameter.Name))
-            {
-                var given = parameter.Name[MacroCallFields.ArgumentPrefix.Length..^MacroCallFields.GivenSuffix.Length];
-                if (own.Parameter(given) is null)
-                {
-                    return true;
-                }
-
-                continue;
-            }
-
-            if (!parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (own.Parameter(parameter.Name[MacroCallFields.ArgumentPrefix.Length..]) is null)
+            if (argument.Required && !named.Contains(argument.Name))
             {
                 return true;
             }
@@ -455,7 +473,7 @@ public static class MacroCheck
             {
                 if (Reaches(step, MacroRunner.SendsInput, walking))
                 {
-                    Add(step, Strings.Get("Editor.Problem.SharedInput"));
+                    Add(step, "SharedInput", Strings.Get("Editor.Problem.SharedInput"));
                     return;
                 }
             }
@@ -476,7 +494,7 @@ public static class MacroCheck
             {
                 if (Reaches(step, MacroRunner.UsesBrowser, walking))
                 {
-                    Add(step, Strings.Get("Editor.Problem.SharedBrowser"));
+                    Add(step, "SharedBrowser", Strings.Get("Editor.Problem.SharedBrowser"));
                     return;
                 }
             }
@@ -498,7 +516,7 @@ public static class MacroCheck
                 && called.OwnSteps.Any(child => Reaches(child, MacroRunner.UsesBrowser,
                     new HashSet<string>(StringComparer.OrdinalIgnoreCase))))
             {
-                Add(step, Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
+                Add(step, "BrowserRunWhileHeld", Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
             }
         }
 
@@ -541,7 +559,7 @@ public static class MacroCheck
                 {
                     if (loopNames.Contains(name))
                     {
-                        Add(step, Strings.Format("Editor.Problem.LoopVariableShadowed", name));
+                        Add(step, "LoopVariableShadowed", Strings.Format("Editor.Problem.LoopVariableShadowed", name));
                     }
                 }
 
@@ -575,20 +593,21 @@ public static class MacroCheck
                 return;
             }
 
-            var message = issue.Problem switch
+            var (code, message) = issue.Problem switch
             {
                 StepPlacementProblem.WrongKind when issue.Destination is { } restricted =>
-                    Strings.Format("Editor.Problem.WrongStepKind",
-                        StepPlacement.AllowedSummary(restricted)),
+                    ("WrongStepKind",
+                        Strings.Format("Editor.Problem.WrongStepKind",
+                            StepPlacement.AllowedSummary(restricted))),
                 StepPlacementProblem.HiddenStep when step.Type == "control.case" =>
-                    Strings.Get("Editor.Problem.CaseOutsideSwitch"),
+                    ("CaseOutsideSwitch", Strings.Get("Editor.Problem.CaseOutsideSwitch")),
                 StepPlacementProblem.HiddenStep =>
-                    Strings.Format("Editor.Problem.HiddenStep", step.DisplayName),
-                _ => string.Empty,
+                    ("HiddenStep", Strings.Format("Editor.Problem.HiddenStep", step.DisplayName)),
+                _ => (string.Empty, string.Empty),
             };
             if (message.Length > 0)
             {
-                Add(step, message);
+                Add(step, code, message);
             }
         }
 
@@ -601,7 +620,7 @@ public static class MacroCheck
 
             if (string.IsNullOrWhiteSpace(step.Text("condition")))
             {
-                Add(step, Strings.Get("Editor.Problem.MissingCondition"));
+                Add(step, "MissingCondition", Strings.Get("Editor.Problem.MissingCondition"));
             }
         }
 
@@ -615,7 +634,7 @@ public static class MacroCheck
             var key = step.Text("failureKey").Trim();
             if (key.Length > 0 && !UserFailureKeys.IsValid(key))
             {
-                Add(step, Strings.Format("Editor.Problem.BadUserFailureKey", key));
+                Add(step, "BadUserFailureKey", Strings.Format("Editor.Problem.BadUserFailureKey", key));
             }
         }
 
@@ -630,7 +649,7 @@ public static class MacroCheck
             };
             if (name is { Length: > 0 } && !VariableCatalog.IsGlobal(name))
             {
-                Add(step, Strings.Format("Editor.Problem.GlobalMustExist", name));
+                Add(step, "GlobalMustExist", Strings.Format("Editor.Problem.GlobalMustExist", name));
             }
         }
 
@@ -642,7 +661,7 @@ public static class MacroCheck
             if (declared is not null
                 && string.Equals(declared.Value, "true", StringComparison.OrdinalIgnoreCase))
             {
-                Add(step, Strings.Get("Editor.Problem.ScriptInput"));
+                Add(step, "ScriptInput", Strings.Get("Editor.Problem.ScriptInput"));
             }
         }
 
@@ -654,7 +673,7 @@ public static class MacroCheck
                     var handle = step.Text("runHandleName").Trim();
                     if (handle.Length == 0)
                     {
-                        Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));
+                        Add(step, "MissingRunHandle", Strings.Get("Editor.Problem.MissingRunHandle"));
                         break;
                     }
 
@@ -673,14 +692,14 @@ public static class MacroCheck
                 case "control.runStatus":
                     if (step.Text("runHandle").Trim().Length == 0)
                     {
-                        Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));
+                        Add(step, "MissingRunHandle", Strings.Get("Editor.Problem.MissingRunHandle"));
                     }
 
                     break;
                 case "control.waitAll":
                     if (step.Text("runHandles").Trim().Length == 0)
                     {
-                        Add(step, Strings.Get("Editor.Problem.MissingRunHandles"));
+                        Add(step, "MissingRunHandles", Strings.Get("Editor.Problem.MissingRunHandles"));
                     }
 
                     break;
@@ -690,30 +709,23 @@ public static class MacroCheck
         /// <summary>
         /// Whether the step's action and every field it writes still exist in the catalogue. A macro
         /// written before an action or a field was renamed would otherwise run with values nothing
-        /// reads, which looks like the step ignoring what its author wrote. The fields a call passes
-        /// to another macro are named by that macro rather than by the catalogue, so they are not
-        /// this question's.
+        /// reads, which looks like the step ignoring what its author wrote. What a call passes to
+        /// another macro lives in its argument rows rather than in fields of its own, so this
+        /// question is about the step's own parameters and stops there.
         /// </summary>
         void CheckKnownStep(MacroStep step)
         {
             if (step.Definition is not { } definition)
             {
-                Add(step, Strings.Get("Editor.Problem.UnknownAction"));
+                Add(step, "UnknownAction", Strings.Get("Editor.Problem.UnknownAction"));
                 return;
             }
 
-            var calling = CallsMacro(step);
             foreach (var parameter in step.Parameters)
             {
-                if (calling && parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix,
-                        StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
                 if (!definition.Parameters.Any(known => known.Name == parameter.Name))
                 {
-                    Add(step, Strings.Format("Editor.Problem.UnknownParameter", parameter.Name));
+                    Add(step, "UnknownParameter", Strings.Format("Editor.Problem.UnknownParameter", parameter.Name));
                 }
             }
         }
@@ -732,13 +744,14 @@ public static class MacroCheck
 
             foreach (var parameter in definition.Parameters)
             {
-                // A run handle already has its own check; saying it twice would teach the user to
-                // ignore one of the two.
+                // A run handle, a condition and the macro a call names each have a check of their
+                // own; saying it twice would teach the user to ignore one of the two.
                 if (parameter.Semantics.MissingValue(step.Text(parameter.Name))
                     && parameter.Semantics.MissingKey is not (RunKeys.MissingHandle
-                        or RunKeys.MissingCondition))
+                        or RunKeys.MissingCondition)
+                    && !(CallsMacro(step) && parameter.Name == FieldNames.Macro))
                 {
-                    Add(step, Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
+                    Add(step, "MissingField", Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
                 }
             }
         }
@@ -767,7 +780,7 @@ public static class MacroCheck
                 if (written.Length > 0
                     && !parameter.Semantics.Options.Contains(written, StringComparer.Ordinal))
                 {
-                    Add(step, Strings.Format("Editor.Problem.BadOption",
+                    Add(step, "BadOption", Strings.Format("Editor.Problem.BadOption",
                         parameter.LocalLabel, written));
                 }
             }
@@ -804,7 +817,7 @@ public static class MacroCheck
                         if (!definition.Semantics.Columns.Any(known =>
                                 string.Equals(known.Name, column, StringComparison.OrdinalIgnoreCase)))
                         {
-                            Add(step, Strings.Format("Editor.Problem.UnknownRowColumn",
+                            Add(step, "UnknownRowColumn", Strings.Format("Editor.Problem.UnknownRowColumn",
                                 definition.LocalLabel, column));
                         }
                     }
@@ -812,7 +825,7 @@ public static class MacroCheck
                     if (string.Equals(definition.Semantics.Name, "region", StringComparison.Ordinal)
                         && RegionHasBoth(row))
                     {
-                        Add(step, Strings.Format("Editor.Problem.ExclusiveRowColumn",
+                        Add(step, "ExclusiveRowColumn", Strings.Format("Editor.Problem.ExclusiveRowColumn",
                             definition.LocalLabel));
                     }
                     foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
@@ -820,7 +833,7 @@ public static class MacroCheck
                         if (!row.Columns.TryGetValue(column.Name, out var value)
                             || string.IsNullOrWhiteSpace(value))
                         {
-                            Add(step, Strings.Format("Editor.Problem.MissingRowColumn",
+                            Add(step, "MissingRowColumn", Strings.Format("Editor.Problem.MissingRowColumn",
                                 definition.LocalLabel, column.Name));
                         }
                     }
@@ -845,7 +858,7 @@ public static class MacroCheck
                 {
                     if (!seen.Add(name))
                     {
-                        Add(step, Strings.Format("Editor.Problem.DuplicateResultName", name));
+                        Add(step, "DuplicateResultName", Strings.Format("Editor.Problem.DuplicateResultName", name));
                     }
                 }
             }
@@ -872,19 +885,19 @@ public static class MacroCheck
                 {
                     if (!VariableText.IsName(name))
                     {
-                        Add(step, Strings.Format("Editor.Problem.BadResultName", name));
+                        Add(step, "BadResultName", Strings.Format("Editor.Problem.BadResultName", name));
                     }
 
                     if (key.Length > 0 && !keys.Add(key))
                     {
-                        Add(step, Strings.Format("Editor.Problem.DuplicateResultKey", key));
+                        Add(step, "DuplicateResultKey", Strings.Format("Editor.Problem.DuplicateResultKey", key));
                     }
 
                     if (key.Length > 0
                         && definition.Semantics.SignatureSource is ActionSignatureSource.Own
                         && definition.Semantics.Return(key) is null)
                     {
-                        Add(step, Strings.Format("Editor.Problem.UndeclaredActionResult", key,
+                        Add(step, "UndeclaredActionResult", Strings.Format("Editor.Problem.UndeclaredActionResult", key,
                             definition.LocalName));
                     }
                 }
@@ -912,7 +925,7 @@ public static class MacroCheck
                     {
                         if (!Expression.TryParse(expression, out _, out var fault))
                         {
-                            Add(step, Strings.Format("Editor.Problem.BadExpression",
+                            Add(step, "BadExpression", Strings.Format("Editor.Problem.BadExpression",
                                 fault?.Detail ?? expression));
                         }
                     }
@@ -933,7 +946,7 @@ public static class MacroCheck
 
                 if (!Expression.TryParse(written, out _, out var error))
                 {
-                    Add(step, Strings.Format("Editor.Problem.BadExpression",
+                    Add(step, "BadExpression", Strings.Format("Editor.Problem.BadExpression",
                         error?.Detail ?? written));
                 }
             }
@@ -973,7 +986,7 @@ public static class MacroCheck
                 {
                     if (pending.Contains(name))
                     {
-                        Add(step, Strings.Format("Editor.Problem.ResultBeforeWait", name));
+                        Add(step, "ResultBeforeWait", Strings.Format("Editor.Problem.ResultBeforeWait", name));
                         return;
                     }
                 }
@@ -1007,7 +1020,7 @@ public static class MacroCheck
                 if (ReadsOf(step, parameter).Contains(VariableStore.LoopIndexName,
                         StringComparer.OrdinalIgnoreCase))
                 {
-                    Add(step, Strings.Get("Editor.Problem.LoopIndexOutsideLoop"));
+                    Add(step, "LoopIndexOutsideLoop", Strings.Get("Editor.Problem.LoopIndexOutsideLoop"));
                     return;
                 }
             }
@@ -1027,9 +1040,10 @@ public static class MacroCheck
                 return;
             }
 
-            Add(step, Strings.Get(step.Type == "control.break"
-                ? "Editor.Problem.BreakOutsideLoop"
-                : "Editor.Problem.ContinueOutsideLoop"));
+            var (code, key) = step.Type == "control.break"
+                ? ("BreakOutsideLoop", "Editor.Problem.BreakOutsideLoop")
+                : ("ContinueOutsideLoop", "Editor.Problem.ContinueOutsideLoop");
+            Add(step, code, Strings.Get(key));
         }
 
         void CheckCall(MacroStep step, bool guarded)
@@ -1042,13 +1056,13 @@ public static class MacroCheck
             var name = step.Text("macro").Trim();
             if (name.Length == 0)
             {
-                Add(step, Strings.Get("Editor.Problem.NoMacro"));
+                Add(step, "NoMacro", Strings.Get("Editor.Problem.NoMacro"));
                 return;
             }
 
             if (!reachable.TryGetValue(name, out var called))
             {
-                Add(step, Strings.Format("Editor.Problem.MacroNotFound", name));
+                Add(step, "MacroNotFound", Strings.Format("Editor.Problem.MacroNotFound", name));
                 return;
             }
 
@@ -1064,21 +1078,15 @@ public static class MacroCheck
                 && string.Equals(called.Name.Trim(), ownName, StringComparison.OrdinalIgnoreCase)
                 && !guarded)
             {
-                Add(step, Strings.Get("Editor.Problem.UnguardedRecursion"));
+                Add(step, "UnguardedRecursion", Strings.Get("Editor.Problem.UnguardedRecursion"));
             }
 
-            foreach (var parameter in step.Parameters)
+            foreach (var row in ArgumentRows(step))
             {
-                if (!parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)
-                    || MacroCallFields.IsGiven(parameter.Name))
+                var (passed, _, _) = Argument(row);
+                if (passed.Length > 0 && called.Parameter(passed) is null)
                 {
-                    continue;
-                }
-
-                var passed = parameter.Name[MacroCallFields.ArgumentPrefix.Length..];
-                if (called.Parameter(passed) is null)
-                {
-                    Add(step, Strings.Format("Editor.Problem.UndeclaredArgument", passed, name));
+                    Add(step, "UndeclaredArgument", Strings.Format("Editor.Problem.UndeclaredArgument", passed, name));
                 }
             }
 
@@ -1086,7 +1094,7 @@ public static class MacroCheck
             {
                 if (!called.Offers(result))
                 {
-                    Add(step, Strings.Format("Editor.Problem.UndeclaredResult", result, name));
+                    Add(step, "UndeclaredResult", Strings.Format("Editor.Problem.UndeclaredResult", result, name));
                 }
             }
         }
@@ -1112,7 +1120,7 @@ public static class MacroCheck
                 {
                     if (!defined.Contains(name))
                     {
-                        Add(step, Strings.Format("Editor.Problem.UndefinedVariable", name));
+                        Add(step, "UndefinedVariable", Strings.Format("Editor.Problem.UndefinedVariable", name));
                     }
                 }
             }
@@ -1137,7 +1145,7 @@ public static class MacroCheck
 
             if (step.Meta.RetryCount > 0 || bounded)
             {
-                Add(step, Strings.Get("Editor.Problem.WaitWithoutTimeout"));
+                Add(step, "WaitWithoutTimeout", Strings.Get("Editor.Problem.WaitWithoutTimeout"));
             }
         }
 
@@ -1169,13 +1177,13 @@ public static class MacroCheck
                 var number = numbers.Any(name => step.Text(name).Trim().Length > 0);
                 if (written.Length == 0 && !number)
                 {
-                    Add(step, Strings.Format("Editor.Problem.NoPlace", field.LocalLabel));
+                    Add(step, "NoPlace", Strings.Format("Editor.Problem.NoPlace", field.LocalLabel));
                 }
                 else if (written.Length > 0 && number)
                 {
                     // The record wins in the engine, so the numbers the author typed are not read
                     // at all. Saying so is better than letting the step look like it uses both.
-                    Add(step, Strings.Format("Editor.Problem.PlaceAndNumbers", field.LocalLabel));
+                    Add(step, "PlaceAndNumbers", Strings.Format("Editor.Problem.PlaceAndNumbers", field.LocalLabel));
                 }
             }
         }
@@ -1196,14 +1204,14 @@ public static class MacroCheck
                 .Any(name => step.Text(name).Trim().Length > 0);
             if (hasRect && hasSides)
             {
-                Add(step, Strings.Format("Editor.Problem.PlaceAndNumbers",
+                Add(step, "PlaceAndNumbers", Strings.Format("Editor.Problem.PlaceAndNumbers",
                     ActionCatalog.Find(step.Type)?.Parameters
                         .FirstOrDefault(parameter => parameter.Name == "rect")?.LocalLabel
                     ?? "rect"));
             }
             else if (!hasRect && !hasSides)
             {
-                Add(step, Strings.Get("Editor.Problem.WindowBounds"));
+                Add(step, "WindowBounds", Strings.Get("Editor.Problem.WindowBounds"));
             }
         }
 
@@ -1234,7 +1242,7 @@ public static class MacroCheck
                     if (definition.Shape == ActionValueShape.Number
                         && type == ActionReturnType.Record)
                     {
-                        Add(step, Strings.Format("Editor.Problem.RecordWhereNumber",
+                        Add(step, "RecordWhereNumber", Strings.Format("Editor.Problem.RecordWhereNumber",
                             definition.LocalLabel));
                     }
                     else if (definition.Shape
@@ -1243,7 +1251,7 @@ public static class MacroCheck
                              && type != ActionReturnType.Record
                              && type != ActionReturnType.List)
                     {
-                        Add(step, Strings.Format("Editor.Problem.NotARecord",
+                        Add(step, "NotARecord", Strings.Format("Editor.Problem.NotARecord",
                             definition.LocalLabel, name));
                     }
                 }
@@ -1264,7 +1272,7 @@ public static class MacroCheck
                     if (known.TryGetValue(referenced, out var kind)
                         && kind == ActionReturnType.Record)
                     {
-                        Add(step, Strings.Format("Editor.Problem.RecordInText", referenced,
+                        Add(step, "RecordInText", Strings.Format("Editor.Problem.RecordInText", referenced,
                             definition.LocalLabel));
                     }
                 }
@@ -1285,9 +1293,9 @@ public static class MacroCheck
             }
 
             var faults = DeclarationFaults(called);
-            foreach (var message in faults)
+            foreach (var fault in DeclarationFaultProblems(called))
             {
-                Add(step, message);
+                Add(step, fault.Code, fault.Message);
             }
 
             // A call whose declaration cannot be used will fail before the arguments matter; the
@@ -1297,70 +1305,69 @@ public static class MacroCheck
                 return;
             }
 
-            foreach (var declared in called.Parameters)
+            var filled = new Dictionary<string, (string Value, bool Given)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in ArgumentRows(step))
             {
-                var name = declared.Name.Trim();
-                if (name.Length == 0)
+                var (passed, value, given) = Argument(row);
+                if (passed.Length == 0)
                 {
                     continue;
                 }
 
-                var field = step.Text(MacroCallFields.Argument(name)).Trim();
-                var given = string.Equals(step.Text(MacroCallFields.Given(name)).Trim(), "true",
-                    StringComparison.OrdinalIgnoreCase);
-                var supplied = field.Length > 0 || given;
-
-                if (given && field.Length > 0)
+                if (called.Parameter(passed) is null)
                 {
-                    Add(step, Strings.Format("Editor.Problem.GivenWithValue", name));
+                    Add(step, "UndeclaredArgument", Strings.Format("Editor.Problem.UndeclaredArgument", passed,
+                        step.Text("macro").Trim()));
+                    continue;
                 }
 
-                if (!supplied)
+                if (!filled.TryAdd(passed, (value, given)))
+                {
+                    Add(step, "DuplicateArgument", Strings.Format("Editor.Problem.DuplicateArgument", passed));
+                }
+            }
+
+            foreach (var declared in CallableSignature.Arguments(called))
+            {
+                var name = declared.Name;
+                if (!filled.TryGetValue(name, out var input))
                 {
                     if (declared.Required)
                     {
-                        Add(step, Strings.Format("Editor.Problem.MissingArgument", name,
+                        Add(step, "MissingArgument", Strings.Format("Editor.Problem.MissingArgument", name,
                             step.Text("macro").Trim()));
                     }
 
                     continue;
                 }
 
-                if (field.Length == 0)
+                if (input.Given && input.Value.Length > 0)
+                {
+                    Add(step, "GivenWithValue", Strings.Format("Editor.Problem.GivenWithValue", name));
+                }
+
+                if (input.Value.Length == 0)
                 {
                     continue;
                 }
 
-                if (ConstantValue(field) is { } value
+                if (ConstantValue(input.Value) is { } value
                     && !MacroValues.Fits(declared.Type, value))
                 {
-                    Add(step, Strings.Format("Editor.Problem.ArgumentType", name,
+                    Add(step, "ArgumentType", Strings.Format("Editor.Problem.ArgumentType", name,
                         Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
                     continue;
                 }
 
-                if (WholeName(field) is not { } whole
+                if (WholeName(input.Value) is not { } whole
                     || !known.TryGetValue(whole, out var type)
                     || !ObviouslyWrong(declared.Type, type))
                 {
                     continue;
                 }
 
-                Add(step, Strings.Format("Editor.Problem.ArgumentType", name,
+                Add(step, "ArgumentType", Strings.Format("Editor.Problem.ArgumentType", name,
                     Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
-            }
-
-            foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(
-                         MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
-            {
-                var passed = MacroCallFields.IsGiven(parameter.Name)
-                    ? parameter.Name[MacroCallFields.ArgumentPrefix.Length..^MacroCallFields.GivenSuffix.Length]
-                    : parameter.Name[MacroCallFields.ArgumentPrefix.Length..];
-                if (called.Parameter(passed) is null)
-                {
-                    Add(step, Strings.Format("Editor.Problem.UndeclaredArgument", passed,
-                        step.Text("macro").Trim()));
-                }
             }
         }
 
@@ -1377,7 +1384,7 @@ public static class MacroCheck
                 .FirstOrDefault(parameter => parameter.Name == "otherwise")?.Steps.Count ?? 0;
             if (cases == 0 && otherwise == 0)
             {
-                Add(step, Strings.Get("Editor.Problem.EmptySwitch"));
+                Add(step, "EmptySwitch", Strings.Get("Editor.Problem.EmptySwitch"));
             }
         }
 
@@ -1410,16 +1417,19 @@ public static class MacroCheck
                     && (name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
                         || MacroRunner.IsRunStepName(name)))
                 {
-                    Add(step, Strings.Format("Editor.Problem.ReservedVariable", name));
+                    Add(step, "ReservedVariable", Strings.Format("Editor.Problem.ReservedVariable", name));
                 }
             }
         }
 
-        void Add(MacroStep step, string message)
+        void Add(MacroStep step, string code, string message)
         {
-            if (!problems.Any(problem => problem.Step == step && problem.Message == message))
+            // Two checks can find the same thing about one step; the code is what makes them the
+            // same thing, and the message is only how it is said.
+            if (!problems.Any(problem => problem.Step == step && problem.Code == code
+                && problem.Message == message))
             {
-                problems.Add(new MacroProblem(step, message));
+                problems.Add(new MacroProblem(step, code, message));
             }
         }
     }

@@ -35,7 +35,13 @@ public static class MacroPackage
     /// </summary>
     public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
-    public const int FormatVersion = 19;
+    /// <summary>
+    /// Bumped when what a field means changes, not only when a field is added. 20 is the version
+    /// where a call writes what it passes as an argument row list rather than one parameter per
+    /// argument: a 19 package's <c>arg.*</c> keys would be read as fields the action does not have,
+    /// so it is refused rather than half-read.
+    /// </summary>
+    public const int FormatVersion = 20;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

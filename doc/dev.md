@@ -16,6 +16,13 @@ dotnet run --project WhaleGenie                  # 启动程序
 pwsh build/site.ps1                              # 拼出介绍页 _site
 ```
 
+量 MCP 的易用性，不必点界面：
+
+```powershell
+dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report TestResults/mcp-after.md
+dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停
+```
+
 解决方案只声明 `x64` 一个平台（`WhaleGenie.slnx`），没有 `Any CPU`：程序依赖的 OpenCV 与
 Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotnet build` / `dotnet test`
 不写 `-p:Platform` 也一样；根 `Directory.Build.props` 里的 `PlatformTarget` 让直接构建某个
@@ -62,6 +69,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | [manual.md](manual.md) | 用程序的人 | 每个动作、字段、失败键、限制与手动操作 | 实现细节、提交与发布 |
 | `doc/dev.md` | 改仓库的人 | 命令、结构、依赖、测试分层、改动作顺序、发布 | 用户教程、路线排序 |
 | [roadmap.md](roadmap.md) | 改仓库的人与 agent | 未完成阶段、依赖、验收、明确不做 | 已完成清单、工期 |
+| [mcp-usability.md](mcp-usability.md) | 改 MCP 的人 | 一次真实自检的指标、改前改后、遗留项 | 手写的评价（它是 `--mcp-doctor --report` 的产物） |
 | `AGENTS.md` | agent | 长期目标、开发规范与设计约定 | 已完成变更、逐阶段计划 |
 
 四类事实各有一个真源：用户看到的行为以 `manual.md` 为准；动作语义（字段读法、值形状、单位、空值含义、
@@ -176,10 +184,75 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
 - 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组，外加视觉与
   直接控制一组（见下）。没有 `run_macro` / `debug_macro` 工具。
-- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表与完整写存流程；`McpDraftTests` 验 Revision、
-  保存和非法落点；`McpActionKnowledgeTests` 验 `Hidden` / `ChildKeys` 对账；`RunLogTests` 验日志；
-  `McpControlTests` 用假设备层验直接控制门禁、工具交给设备的请求、参数校验与截图降采样。无外网；
-  真实桌面行为按手动过一遍为准。
+- 发现与形状：`whalegenie_list_actions` 返回一页 `{total, offset, limit, hasMore, categories, actions}`，
+  隐藏动作默认不列（它们只允许出现在指名它的子列表里）；`whalegenie_get_actions` 一次描述多个键。
+  `put_macro` 收 JSON 对象、`set_globals` 收 JSON 数组，不再把 JSON 塞进字符串参数。参数里的闭集
+  （鼠标键、滚轮方向、窗口部位、比较方式、提示词主题）是枚举，由 SDK 变成 schema 的 `enum`；
+  参数还带 `Conditional` 与 `MissingKey`，所以「后台才需要窗口规则」不会被读成「永远必填」。
+- 错误：`McpErrors` 统一给出 `{error:{code,message,hint,retryable,details}}` 并置 `isError`，工具方法返回
+  `CallToolResult`；深处用 `McpFailure` 抛，`McpErrors.Run` 接住。码表：`BadArgument`、`BadJson`、
+  `BadPatch`、`BadPlacement`、`DraftNotFound`、`NoSuchMacro`、`NoSuchRun`、`UnknownAction`、`AlreadyApplied`、
+  `RevisionConflict`、`NoPackagePath`、`DraftHasBlockingProblems`、`DirectControlOff`、`DeviceUnavailable`、
+  `DeviceFailed`、`Internal`。消息可以改写，码不能改：客户端按码分支。
+- 写入与补丁：`McpDraft.Put` 落地就 `McpPatches.Settle`，给宏与子宏的每个步骤发四字符 id（父宏与子宏共用
+  一套名字），因为一次运行按 `step.<id>.outcome` 报步骤，客户端写的步骤等到有人打开编辑器才补号就太晚。
+  回答给 `outline`（每步 `id` / `type` / `path`），整宏只在 `includeMacro` 时回：客户端刚发过的东西不必再收一遍。
+  `whalegenie_patch_macro`（`WhaleGenie/Mcp/McpPatches.cs`）在副本上按序执行七种操作：
+
+  | 操作 | 改什么 | 怎么点名 |
+  | --- | --- | --- |
+  | `set` | 一个标量参数的值 | `stepId` + `param` + `value` |
+  | `setRow` | 一张表里一行的几列 | `stepId` + `param` + `match` + `values` |
+  | `addRow` | 往表里加一行 | `stepId` + `param` + `values` |
+  | `removeRow` | 从表里删一行 | `stepId` + `param` + `match` |
+  | `insert` | 往列表里插一步 | `parent`（列表路径）+ `index` + `step` |
+  | `remove` | 删一步 | `stepId` |
+  | `move` | 把一步挪到别处 | `stepId` + `parent` + `index` |
+
+  `set` 只收标量（记录要 `put_macro`：一个值里几个字段，写一半是几种可能的意思）；表是
+  `arguments` / `returns` / `region` / `keySequence` / `images` / `narrow` 这些行列表。行按**它自己说的话**
+  点名而不是按位置，所以上面插一行不会让这次改动落到另一行上；`match` 命中多行或零行都拒绝——猜哪一行是作者
+  没做的那个决定。`addRow` 要求目录声明为必填的列都在，且不与已有行重复。`insert` / `move` 的落点走
+  `StepPlacement`，与编辑器同一套 `childKeys` 规则；任一条不合就整批不改。`parent` 是 `0.then`、`0.then.2.else`
+  这样的列表路径，空串是顶层；子宏里的步骤仍由 `put_macro` 改。
+- 校验：`McpDraftStore.Validate` 把 `MacroCheck.DeclarationFaults` 与 `Inspect` 记为 `Blocking`，把
+  `DeclarationWarnings` 记为 `Hints`；`apply` 只拦 `Blocking`，`force` 可越过。每条带 `macro`、`stepId` 与
+  **`code`**：`Inspect` 的每条问题在 `MacroCheck` 里就带一个与语言无关的键（`NoMacro`、`MissingField`、
+  `BadOption`、`CaseOutsideSwitch`…，就是文案键 `Editor.Problem.*` 的后缀），声明类问题带
+  `Declaration.<Fault>`（`Declaration.RequiredWithDefault` 等）。句子会随界面语言变，代号不会，客户端按代号分支。
+- 动作目录作为资源：`whalegenie://actions`（全部动作的 key / 名字 / 分类 / 是否隐藏 / 参数名）与
+  `whalegenie://actions/{key}`（一条动作的完整描述，与 `whalegenie_get_action` 同一份），在
+  `WhaleGenie/Mcp/McpResources.cs`。能缓存资源的客户端读一次就留着；读不了资源的仍用工具，两条路说同一件事。
+- 调用审计：`WhaleGenie/Mcp/McpAudit.cs` 往 `logs/mcp-<日期>.log` 追加一行一次调用（时间、工具、一句话摘要、
+  结果）。**只记改了东西或动了机器的**：`Drive` 里记 9 个动手工具（成功 `sent`、被拒带 `code`），`McpDraft` 的
+  `Put` / `Delete` / `SetGlobals` 与 `McpLiveProject` 的 `ApplyAsync` / `SaveAsync` 各记一条；只读工具不记。
+  `type_text` 只记字数不记内容——日志在磁盘上，正文不该在那里。浮层的「查看调用记录」打开今天的文件（还没写过
+  就打开文件夹）。`builder.Logging.ClearProviders()` 保留：框架日志关着，审计是我们自己的记录。
+- 列表类返回一律带 `total`；`get_run_log` 带 `totalLines` / `returned` / `truncated`，不再静默截断。
+- 无界面入口：`WhaleGenie.exe --mcp [--port N] [--open 包] [--new 文件夹]` 在 `App.Headless` 里以
+  `ShutdownMode.OnExplicitShutdown` 起 Avalonia 但不建窗口（`MainViewModel` 与设备层都要那个线程），
+  只做 `PersistentVariables.Initialize` 与 `CaptureSetup.Load`，不装虚拟键鼠、不预热 OCR；stdout 只写
+  一行 `endpoint=…` 给人以外的程序读。参数解析在 `McpCommandLine`。
+- 体检：`WhaleGenie.exe --mcp-doctor (--url … | --spawn) [--open …] [--report …] [--write] [--strict]`
+  在 Avalonia 之前跑（`McpDoctor`），用 `McpSelfCheck` 量一遍并打印 markdown；`--spawn` 先复制包到临时
+  目录再拉起 `--mcp --port 0`，用完杀掉。退出码：0 全过、1 有 fail（`--strict` 下 `missing` 也算）、
+  2 参数或包有问题、3 连不上、4 子进程没报出地址。客户端显式不用系统代理：本机助手的环回请求被代理
+  接走时，回话是 502 而不是「连接被拒」，会把人引向错的问题。
+- 调用传参：`whalegenie_get_macro_signature(draftId, name)` 交出一个宏的 `arguments`（名字、类型、必填、
+  默认值、说明）与 `results`，外加 `argumentColumns`（`name` / `value` / `given` 三列的名字）与一份
+  `callTemplate`——模板里只列必填的形参，可选的一个都不写，因为「没写」才是用默认值的写法。形参与结果来自被调用宏的声明，动作目录里没有，所以这是客户端唯一能读到它们的地方；
+  `get_action` 对 `SignatureSource = CalledMacro` 的动作只说这件事，并给出 `returns` 行的两张必需列
+  （`columns`）与返回记录的字段（`fields`）。
+- `McpSelfCheck`（`WhaleGenie/Mcp/McpSelfCheck.cs`）是改前改后共用的尺子：只认 `McpClient`，不抛、不断言，
+  缺失的字段记 0 并写进 `Facts`；指标与检查项见 `doc/mcp-usability.md`。它容错的是尺子遇到没见过的形状，
+  不是产品里的兼容分支。
+- 测试：`McpServerTests` 用官方 HTTP 客户端走工具列表、schema 里的 `enum`/对象参数、完整写存流程与
+  `apply` 门禁与 `patch_macro`（改一个参数、增改删一张表的行、拒绝放错的步骤且草稿不变、`includeMacro`）；
+  `McpDraftTests`
+  验 Revision、保存、非法落点与「写入即发步骤标识」；`McpActionKnowledgeTests` 验 `Hidden` /
+  `ChildKeys` / 分页总数 / `Conditional`；`McpSelfCheckTests` 验尺子自己（闭环、六类错误、端点消失不抛）；
+  `RunLogTests` 验日志；`McpControlTests` 用假设备层验直接控制门禁、工具交给设备的请求、错误码与截图降采样。
+  无外网；真实桌面行为按手动过一遍为准。
 
 ## 脚本怎么跑
 
@@ -244,11 +317,11 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 调用处按它说明要的是什么，设计期按它标出明显不符的值。
 
 声明名是变量名：首字符是字母、数字或 `_`，其余是字母、数字、`_`、`.`；变量在值字段里总带 `$`，所以数字开头
-不会和数字字面量混淆，`$123` 读的是变量。空名、读不出来的名字、形参名以 `.given` 结尾、
-形参内或结果内重名、`sys.` 与 `step.<标识>.outcome` / `.error` 这类运行保留名，都在保存与写包前拦住。形参不能
+不会和数字字面量混淆，`$123` 读的是变量。空名、读不出来的名字、形参内或结果内重名、`sys.` 与
+`step.<标识>.outcome` / `.error` 这类运行保留名，都在保存与写包前拦住。形参不能
 同时是必填又有默认值（`RequiredWithDefault`）。空名字的行不丢掉：`FromJson` 与恢复快照会把它带回来，编辑器
 显示声明问题，包写入则拒绝有致命声明错误的宏。被调用宏开始时先把形参写入局部表，再把尚未存在的声明结果初始化为
-空；形参与结果同名时保留形参值（in-out）。默认值留在声明里，不写进调用步：调用表单留空就不写 `arg.<名字>`，
+空；形参与结果同名时保留形参值（in-out）。默认值留在声明里，不写进调用步：调用表单没填的行不写进 `arguments`，
 运行时才取默认值。宏接口里默认值一行的「表达式」「变量」复用 `ExpressionBuilderWindow` 与
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
@@ -322,19 +395,29 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
   "type": "control.runMacro",
   "params": {
     "macro": "整理",
-    "arg.次数": "$n",
-    "arg.标签": "开始",
+    "arguments": [
+      { "name": "次数", "value": "$n" },
+      { "name": "标签", "value": "开始" }
+    ],
     "returns": [ { "key": "答案", "name": "答案" } ]
   }
 }
 ```
 
-`macro` 是被调用宏的名字；每一个形参各占一格，名字是 `arg.<形参名>`——带前缀是因为形参名是被调用宏
-自己的，不加前缀就会和 `macro`、`returns` 这些调用自己的键撞上。`arg.<名字>` 存在但为空、且没有
-`arg.<名字>.given` 为 `true` 时算“没给”：可选形参用默认值，必填报 `Run.MissingArgument`；只有 `.given`
-把空字段变成显式空串。`returns` 一行一个要取回的结果：`key` 是被调用宏那边叫这个名字，`name` 是本宏
+`macro` 是被调用宏的名字。`arguments` 一行一个形参：`name` 是被调用宏声明的名字，`value` 是传过去的值，
+`given` 为 `true` 表示「这一格是空的，但确实要传空」。两者是同一套行列表，列名由目录声明（`returns` 是
+`key` / `name`，`arguments` 是 `name` / `value` / `given`），界面用的是同一个行编辑器，补丁也按行改。
+**没有行就是没给**：可选形参用默认值，必填报 `Run.MissingArgument`；有行但 `value` 为空且没勾 `given` 算同一件事，
+所以编辑器不为没填的行写任何东西。`returns` 一行一个要取回的结果：`key` 是被调用宏那边叫这个名字，`name` 是本宏
 这边落在哪个变量里。引擎按被调用宏声明的形参逐个读，并从 `returns` 的每一行取回一个值（名字没被声明过报
-`Run.UndeclaredResult`），要取回什么在调用开始之前就说清楚，出错因此发生在送输入之前。结果变量在每次
+`Run.UndeclaredResult`），要取回什么在调用开始之前就说清楚，出错因此发生在送输入之前。步骤里带着一个被调
+宏没有声明的名字报 `Run.UndeclaredArgument`，两行写同一个名字报 `Run.DuplicateArgument`，一行既填了值又勾了
+「传空值」报 `Run.GivenWithValue`——三者在被调宏开始跑之前。
+
+形参名属于被调用宏，目录里没有：目录只声明「这个动作的参数来自被调用宏的声明」（`SignatureSource`），
+`Control.runMacro.arguments` 的列也只是 `name` / `value` / `given` 这一套骨架。真正读名字的三处——编辑器参数页
+（`AddActionViewModel.FillCallArguments`）、`whalegenie_get_macro_signature`、设计期检查——都从被调用宏的声明取，
+把这几处收成一个投影函数是 M5 剩下的最后一件事。结果变量在每次
 尝试开始时先清空；同步调用失败或后台等待失败时一个结果都不写。F3 会把同步调用与后台启动拆成
 `control.runMacro` / `control.startMacro`；后台句柄是记录，结果只在 `waitMacro` / `waitAll` / `waitAny`
 成功后写，`waitAll` / `waitAny` 失败时失败的那次运行的句柄仍留在表里，可以再用 `runStatus` 查看或

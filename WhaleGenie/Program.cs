@@ -4,8 +4,11 @@ using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
+using WhaleGenie.Mcp;
 
 namespace WhaleGenie;
 
@@ -54,9 +57,39 @@ sealed class Program
             return ScriptBridge.Run(args);
         }
 
+        // The doctor is a client, not a host: it talks to an MCP server over the loopback and
+        // prints what it found, so it belongs here where nothing of the window has been built yet.
+        if (McpCommandLine.DoctorAsked(args))
+        {
+            return McpDoctor.Run(args);
+        }
+
+        // And this one is a host with no window: the interface still has to exist, because the
+        // project lives on its thread, but nothing is ever shown.
+        if (McpCommandLine.HostAsked(args))
+        {
+            var options = McpCommandLine.ParseHost(args, out var error);
+            if (options is null)
+            {
+                Console.Error.WriteLine($"whalegenie: {error}");
+                Console.Error.WriteLine(McpCommandLine.Usage);
+                return 2;
+            }
+
+            App.Headless = options;
+            return RunHeadless();
+        }
+
         Run(args);
         return 0;
     }
+
+    /// <summary>
+    /// Runs with no window. The lifetime is asked to end only when told to, because a lifetime that
+    /// ends with its last window would end immediately when there is no window at all.
+    /// </summary>
+    private static int RunHeadless()
+        => BuildAvaloniaApp().StartWithClassicDesktopLifetime([], ShutdownMode.OnExplicitShutdown);
 
     private static void Run(string[] args)
     {

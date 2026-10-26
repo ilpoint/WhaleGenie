@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
-using ModelContextProtocol;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
@@ -43,7 +42,7 @@ public class McpDraftTests
                 });
 
                 var validation = McpDraftStore.Validate(draft);
-                Assert.False(validation.HasErrors);
+                Assert.True(validation.Ok);
 
                 await live.ApplyAsync(draft.Basis, draft.MacroSnapshot(), draft.Globals);
                 await live.SaveAsync();
@@ -63,6 +62,64 @@ public class McpDraftTests
     }
 
     [Fact]
+    public void A_macro_written_by_a_client_gets_step_ids()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var project = new MainViewModel();
+            var live = new McpLiveProject(project);
+            var draft = new McpDraftStore().Create(await live.SnapshotAsync());
+
+            // A run reports every step as step.<id>.outcome, so a macro written through MCP has to
+            // carry ids the moment it lands, not only after somebody opens it in the editor.
+            var macro = draft.Put(new JsonObject
+            {
+                ["name"] = "无标识",
+                ["steps"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["type"] = "control.delay",
+                        ["params"] = new JsonObject { ["ms"] = "1" },
+                    },
+                    new JsonObject
+                    {
+                        ["type"] = "control.if",
+                        ["params"] = new JsonObject
+                        {
+                            ["condition"] = "$sys.screenWidth > 1",
+                            ["then"] = new JsonArray(new JsonObject
+                            {
+                                ["type"] = "control.delay",
+                                ["params"] = new JsonObject { ["ms"] = "2" },
+                            }),
+                        },
+                    }),
+            });
+
+            var ids = Ids(macro.Steps);
+            Assert.Equal(3, ids.Count);
+            Assert.All(ids, id => Assert.Equal(4, id.Length));
+            Assert.Equal(3, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            return true;
+        });
+    }
+
+    private static List<string> Ids(IEnumerable<MacroStep> steps)
+    {
+        var ids = new List<string>();
+        foreach (var step in steps)
+        {
+            ids.Add(step.Id);
+            foreach (var parameter in step.StepLists)
+            {
+                ids.AddRange(Ids(parameter.Steps));
+            }
+        }
+
+        return ids;
+    }
+
+    [Fact]
     public void A_draft_is_refused_after_the_project_moves()
     {
         Ui.RunAsync(async () =>
@@ -75,7 +132,7 @@ public class McpDraftTests
 
             project.AddMacro(new MacroItem { Name = "后来加的" });
 
-            await Assert.ThrowsAsync<McpException>(() =>
+            await Assert.ThrowsAsync<McpFailure>(() =>
                 live.ApplyAsync(draft.Basis, draft.MacroSnapshot(), draft.Globals));
             return true;
         });
@@ -87,7 +144,7 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var live = new McpLiveProject(new MainViewModel());
-            await Assert.ThrowsAsync<McpException>(() => live.SaveAsync());
+            await Assert.ThrowsAsync<McpFailure>(() => live.SaveAsync());
             return true;
         });
     }
@@ -124,9 +181,9 @@ public class McpDraftTests
 
             var validation = McpDraftStore.Validate(draft);
 
-            Assert.True(validation.HasErrors);
-            Assert.Contains(validation.Messages, message =>
-                message.Contains(Strings.Get("Editor.Problem.CaseOutsideSwitch"),
+            Assert.False(validation.Ok);
+            Assert.Contains(validation.Blocking, problem =>
+                problem.Message.Contains(Strings.Get("Editor.Problem.CaseOutsideSwitch"),
                     StringComparison.Ordinal));
             return true;
         });

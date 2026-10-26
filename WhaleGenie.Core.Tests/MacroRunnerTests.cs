@@ -18,6 +18,37 @@ public class MacroRunnerTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>
+    /// What a call passes: one row per argument, the way a saved step writes it. An argument with
+    /// no row is one the call left out, so it takes its declared default — which is why a test that
+    /// means to pass nothing writes no row at all rather than an empty one.
+    /// </summary>
+    private static ExecutableParameter Args(params (string Name, string Text)[] arguments)
+        => new()
+        {
+            Name = FieldNames.Arguments,
+            Rows = [.. arguments.Select(argument => Row(argument.Name, argument.Text, null))],
+        };
+
+    /// <summary>One argument row, saying whether the empty value is the value.</summary>
+    private static ExecutableParameter ArgRow(string name, string text, bool? given)
+        => new() { Name = FieldNames.Arguments, Rows = [Row(name, text, given)] };
+
+    private static IReadOnlyDictionary<string, string> Row(string name, string text, bool? given)
+    {
+        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [FieldNames.Name] = name,
+            [FieldNames.Value] = text,
+        };
+        if (given is { } written)
+        {
+            row[FieldNames.Given] = written ? "true" : "false";
+        }
+
+        return row;
+    }
+
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
         => SampleFiles.Returns(results);
@@ -2984,9 +3015,9 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Call("双击", Param("arg.n", "$n"), Returns("n=n")),
+            Call("双击", Args(("n", "$n")), Returns("n=n")),
             Set("中间", "$n"),
-            Call("清空", Param("arg.n", "$n"), Returns("n=n")),
+            Call("清空", Args(("n", "$n")), Returns("n=n")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -3002,7 +3033,7 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Call("加一", Param("arg.输入", "$我的数"), Returns("结果=结果")),
+            Call("加一", Args(("输入", "$我的数")), Returns("结果=结果")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -3032,7 +3063,7 @@ public class MacroRunnerTests
             [Set("结果", "$倍数 * 2")]));
 
         var (result, _) = await RunAsync(
-            [Call("倍数", Param("arg.倍数", ""), Returns("结果=结果"))],
+            [Call("倍数", Returns("结果=结果"))],
             variables: store, macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3047,7 +3078,7 @@ public class MacroRunnerTests
             [Set("痕迹", "1")]));
 
         var (result, _) = await RunAsync(
-            [Call("甲", Param("arg.次数", ""))], macros: library);
+            [Call("甲", Args(("次数", "")))], macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal(RunKeys.MissingArgument, result.Key);
@@ -3087,8 +3118,8 @@ public class MacroRunnerTests
             [Set("痕迹", "$数量")]));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
-                Param("arg.数量.given", "true"), Returns("痕迹=取回"))], variables: store,
+            [Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
+                Returns("痕迹=取回"))], variables: store,
             macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3112,6 +3143,41 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_value_passed_to_an_argument_the_macro_does_not_declare_stops_the_call()
+    {
+        var store = Store();
+        var library = new Library(Takes("甲", [], [], Set("痕迹", "1")));
+
+        // The call was written for an older declaration of "甲". The value now has nowhere to go,
+        // and saying so beats running with it quietly dropped.
+        var (result, _) = await RunAsync(
+            [Call("甲", Args(("次数", "3")))], variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.UndeclaredArgument", result.Key);
+        Assert.Equal("次数", result.Detail);
+        Assert.False(store.TryGet("痕迹", out _));
+    }
+
+    [Fact]
+    public async Task An_argument_with_both_a_value_and_the_empty_marker_stops_the_call()
+    {
+        var store = Store();
+        var library = new Library(Takes("甲", ["次数"], [], Set("痕迹", "$次数")));
+
+        // The field says a value and the marker beside it says none. Which one the author meant is
+        // a guess, so the call stops instead of picking.
+        var (result, _) = await RunAsync(
+            [Call("甲", ArgRow("次数", "3", true))],
+            variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.GivenWithValue", result.Key);
+        Assert.Equal("次数", result.Detail);
+        Assert.False(store.TryGet("痕迹", out _));
+    }
+
+    [Fact]
     public async Task A_required_argument_can_be_supplied_as_an_empty_value()
     {
         var store = Store();
@@ -3121,8 +3187,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
-                Param("arg.数量.given", "true"), Returns("痕迹=取回")),
+            Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
+                Returns("痕迹=取回")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3139,8 +3205,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
-                Param("arg.数量.given", "true"), Returns("痕迹=取回")),
+            Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
+                Returns("痕迹=取回")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3157,7 +3223,7 @@ public class MacroRunnerTests
             [Set("结果", "$数量")]));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", "不是数"))],
+            [Step("control.runMacro", Param("macro", "甲"), Args(("数量", "不是数")))],
             variables: store, macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -3268,7 +3334,7 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             Set("项目", "list(1, 2, 3)"),
-            Call("数个数", Param("arg.项目", "$项目"), Returns("个数=个数")),
+            Call("数个数", Args(("项目", "$项目")), Returns("个数=个数")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -3302,7 +3368,7 @@ public class MacroRunnerTests
             []));
 
         var (result, _) = await RunAsync(
-            [Call("甲", Param("arg.n", "$source"), Returns("n=n"))], variables: store,
+            [Call("甲", Args(("n", "$source")), Returns("n=n"))], variables: store,
             macros: library);
 
         // The in-out name is the declared one: the argument arrives as n and the same n comes back.
@@ -3418,8 +3484,10 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
             [Call("")], macros: new Library(Plain("甲")));
 
+        // The macro a call names is a required field now, so leaving it empty is answered the same
+        // way every other required field is rather than as a name that was looked for and missed.
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal("Run.MacroNotFound", result.Key);
+        Assert.Equal(RunKeys.MissingField, result.Key);
     }
 
     [Fact]

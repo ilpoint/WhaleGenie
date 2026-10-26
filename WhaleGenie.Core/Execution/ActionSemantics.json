@@ -1484,11 +1484,39 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": false,
+        "Required": true,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
+      },
+      {
+        "Name": "arguments",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Value",
+            "Required": false
+          },
+          {
+            "Name": "given",
+            "Role": "Flag",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "returns",
@@ -1533,7 +1561,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": false,
+        "Required": true,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1550,6 +1578,34 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "MissingKey": "Run.MissingHandle"
+      },
+      {
+        "Name": "arguments",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Value",
+            "Required": false
+          },
+          {
+            "Name": "given",
+            "Role": "Flag",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "returns",

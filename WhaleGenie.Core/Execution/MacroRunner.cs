@@ -996,13 +996,16 @@ public sealed partial class MacroRunner
         }
 
         var wanted = WantedResults(step, signature);
+        var supplied = ReadArguments(step, signature);
 
         // A macro's own values are its own, so a call says what goes in and what comes back rather
         // than leaning on whatever happened to be left lying around.
         var called = new VariableBag();
         foreach (var argument in signature.Arguments)
         {
-            called.Set(argument.Name, ArgumentValue(step, argument));
+            supplied.TryGetValue(argument.Name.Trim(), out var input);
+            called.Set(argument.Name, ReadArgument(argument,
+                input?.Value ?? string.Empty, input?.Given ?? false));
         }
 
         // A declared result is empty until this attempt writes it. Putting it into the local table
@@ -1023,6 +1026,49 @@ public sealed partial class MacroRunner
         called.Set("sys.macroName", Value.FromText(name));
         return (name, steps, signature, wanted, called);
     }
+
+    /// <summary>
+    /// Reads a call's argument list once: which argument each row names, and what that row gives
+    /// it. A call is written the same way as its results are asked for — one row per name — so the
+    /// names and the values sit in the same place a reader already looks for the results.
+    /// A row naming an argument the called macro does not declare, or a second row naming one that
+    /// was already named, is the mistake the declaration exists to catch: it stops the call before
+    /// the called macro runs, because either one would otherwise leave a value with nowhere to go or
+    /// silently drop the one that was written first. A row with no name is a row the editor added
+    /// and left empty, so it passes nothing and the argument it might have filled takes its default.
+    /// </summary>
+    private static Dictionary<string, CallArgument> ReadArguments(
+        ExecutableStep step, MacroSignature signature)
+    {
+        var supplied = new Dictionary<string, CallArgument>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in step.Rows(FieldNames.Arguments))
+        {
+            var name = (row.GetValueOrDefault(FieldNames.Name) ?? string.Empty).Trim();
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            if (signature.Argument(name) is null)
+            {
+                throw new StepFailure(RunKeys.UndeclaredArgument, name);
+            }
+
+            var value = (row.GetValueOrDefault(FieldNames.Value) ?? string.Empty).Trim();
+            var given = string.Equals(
+                (row.GetValueOrDefault(FieldNames.Given) ?? string.Empty).Trim(), "true",
+                StringComparison.OrdinalIgnoreCase);
+            if (!supplied.TryAdd(name, new CallArgument(value, given)))
+            {
+                throw new StepFailure(RunKeys.DuplicateArgument, name);
+            }
+        }
+
+        return supplied;
+    }
+
+    /// <summary>What one row of a call's argument list says about the argument it names.</summary>
+    private sealed record CallArgument(string Value, bool Given);
 
     /// <summary>
     /// Starts a call in the background and leaves its handle in the caller's local table. The child
@@ -1429,28 +1475,22 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// What one argument of a call says, read the way every other value field is: <c>$n + 1</c>
-    /// passes a number and <c>$list</c> passes the list itself rather than its text. A call that
-    /// leaves the field empty gets the argument's default; a required argument with no default is
-    /// the mistake the declaration exists to catch, so it stops the call before the called macro
-    /// runs at all.
-    /// </summary>
-    private Value ArgumentValue(ExecutableStep step, MacroArgument argument)
-    {
-        var written = step.Text(MacroCallFields.Argument(argument.Name)).Trim();
-        var given = string.Equals(step.Text(MacroCallFields.Given(argument.Name)).Trim(), "true",
-            StringComparison.OrdinalIgnoreCase);
-        return ReadArgument(argument, written, given);
-    }
-
-    /// <summary>
     /// One argument value, read the same way whether it came from a call step or from the debug
-    /// window. A field that is present but empty has not supplied anything: only the supplied-empty
-    /// marker turns it into a value. A value that was not supplied takes the default, or fails when
-    /// the declaration says it is required.
+    /// window: <c>$n + 1</c> passes a number and <c>$list</c> passes the list itself rather than its
+    /// text, because the value cell is read like every other value field. A cell that is present but
+    /// empty has not supplied anything: only the supplied-empty marker turns it into a value. A
+    /// value that was not supplied takes the default, or fails when the declaration says it is
+    /// required.
     /// </summary>
     private Value ReadArgument(MacroArgument argument, string written, bool given)
     {
+        // Two answers to one question: the field says a value, the marker beside it says no value.
+        // Picking one would be guessing which the author meant, so neither is used.
+        if (given && written.Length > 0)
+        {
+            throw new StepFailure(RunKeys.GivenWithValue, argument.Name);
+        }
+
         if (written.Length == 0 && !given)
         {
             if (argument.Required)

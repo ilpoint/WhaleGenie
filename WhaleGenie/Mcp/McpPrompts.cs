@@ -19,8 +19,24 @@ public sealed class McpPrompts
         WhaleGenie is a Windows macro editor. Use its MCP tools to read the open project, inspect
         actions, write a macro draft, validate it, apply it, and save the package. The person runs
         the macro; you never run it. Read run logs for debugging. If the project has no package
-        path, ask the person to save it once in WhaleGenie before save_project. Respect hidden and
-        childKeys in the action catalogue when placing nested steps.
+        path, ask the person to save it once in WhaleGenie before save_project.
+        The catalogue holds around 180 actions. whalegenie_list_actions returns one page with
+        total, offset and hasMore, so you can tell whether anything was left out; filter with query
+        and category, and pass includeHidden only when you are placing a step inside a child list.
+        whalegenie_get_actions describes several keys in one call, which is cheaper than one
+        get_action per key. Respect hidden and childKeys in the catalogue when placing nested steps.
+        A refusal is a JSON object with error.code, error.message and error.hint. Read the code to
+        know what sort of refusal it was and the hint to know what to do next instead of guessing.
+        whalegenie_apply refuses a draft that validation calls blocking; fix it, or pass force when
+        you know the problem is wanted.
+        A write answer carries an outline: every step's id, type and path. When the macro already
+        exists and one thing changes, call whalegenie_patch_macro with that step id instead of
+        sending the whole macro again; a patch is one write or none, so a refused operation changes
+        nothing.
+        A step that calls another macro takes its argument keys from that macro's declaration, not
+        from the catalogue: whalegenie_get_macro_signature says what the macro takes and hands back
+        and gives a call skeleton. A call passes each argument under params["arg.<name>"], and asks
+        for results in params.returns rows of key and name.
         You can also look at the machine: whalegenie_capture_screen takes a picture of the desktop
         or of one window, whalegenie_pixel_at and whalegenie_cursor read a colour and the pointer,
         whalegenie_list_windows lists the open windows, and whalegenie_element_at names the control
@@ -29,8 +45,8 @@ public sealed class McpPrompts
         whalegenie_mouse_scroll, whalegenie_mouse_drag, whalegenie_key, whalegenie_type_text,
         whalegenie_window_activate, whalegenie_window_move, whalegenie_window_close) only work
         while the person has turned on "Allow direct control" in the WhaleGenie MCP flyout; when
-        they are refused, ask the person to turn it on rather than trying another way. Driving the
-        machine is still not running the macro: the person presses Run.
+        they are refused with DirectControlOff, ask the person to turn it on rather than trying
+        another way. Driving the machine is still not running the macro: the person presses Run.
         """;
 
     [McpServerPrompt(Name = "whalegenie_write_macro",
@@ -46,17 +62,27 @@ public sealed class McpPrompts
            the project once in WhaleGenie (or choose "Choose location" when MCP starts). Do not
            invent a path.
         2. Call whalegenie_open_project to get a draft id. Do not edit through any other route.
-        3. Call whalegenie_list_actions / whalegenie_get_action to learn exact action keys,
-           parameter names, record fields and number ranges. Call whalegenie_macro_template or
-           whalegenie_get_macro to get the JSON shape. Action keys and field names must come from
-           the catalogue; never guess them. A parameter with non-empty childKeys only accepts the
-           action keys listed there. A hidden action is only valid where the catalogue says it may
-           appear: control.case belongs only in a child list whose childKeys names it, while
-           control.sequence is the editor-generated grouping container for ordered steps.
-        4. Put the whole macro back with whalegenie_put_macro, then call whalegenie_validate and fix
-           every reported problem.
-        5. Call whalegenie_apply only when the user wants the draft in the open project. Applying
-           does not run the macro and does not save the package.
+        3. Call whalegenie_list_actions / whalegenie_get_actions to learn exact action keys,
+           parameter names, record fields and number ranges. One list page carries total and
+           hasMore, so page through it rather than guessing at queries; one get_actions call
+           describes several keys at once. Call whalegenie_macro_template or whalegenie_get_macro
+           to get the JSON shape. Action keys and field names must come from the catalogue; never
+           guess them. A parameter with non-empty childKeys only accepts the action keys listed
+           there. A hidden action is only valid where the catalogue says it may appear:
+           control.case belongs only in a child list whose childKeys names it, while
+           control.sequence is the editor-generated grouping container for ordered steps. A call
+           step's argument keys (arg.<name>) and its result rows come from the called macro, so read
+           them with whalegenie_get_macro_signature before writing that step.
+        4. Put a new macro in with whalegenie_put_macro as a JSON object. To change a macro that is
+           already written, use whalegenie_patch_macro: set one parameter by step id, insert,
+           remove or move a step. Sending the whole macro again for one number is how a long macro
+           gets rewritten in a place nobody meant to touch. Then call whalegenie_validate and fix
+           every blocking problem. Every problem names the macro and
+           the step id it came from, so you can go straight to the row instead of re-reading the
+           macro. Hints are worth reading and block nothing.
+        5. Call whalegenie_apply only when the user wants the draft in the open project. It refuses
+           a draft that validation calls blocking, so fix that first rather than forcing it.
+           Applying does not run the macro and does not save the package.
         6. Call whalegenie_save_project only when the user wants the package written. It keeps a
            .bak copy. If it reports that there is no path, ask the user to save once in WhaleGenie.
         7. The user runs the macro. Never claim that you ran it, and do not add a script or action

@@ -60,8 +60,18 @@ public partial class AddActionViewModel : ViewModelBase
     /// written in the same window starts empty — a value remembered from another step is the one
     /// thing about this form that could silently make two steps say different things.
     /// </summary>
-    private readonly Dictionary<string, (Dictionary<string, string> Arguments,
+    private readonly Dictionary<string, (Dictionary<string, (string Value, bool Given)> Arguments,
         Dictionary<string, string> Results)> _callFill = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The argument rows the step was opened with, and the macro they were written for. They are
+    /// kept apart from what the form holds now so a renamed argument can be told from another
+    /// macro: the rows written for a macro this call no longer names are not this call's to show.
+    /// </summary>
+    private IReadOnlyList<(string Name, string Value, bool Given)> _loadedArguments = [];
+
+    /// <summary>The macro those loaded rows belong to, or empty when the step was just created.</summary>
+    private string _loadedFor = string.Empty;
 
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
@@ -151,6 +161,8 @@ public partial class AddActionViewModel : ViewModelBase
         {
             result.RefreshLanguage();
         }
+
+        RefreshCallArgumentHints();
 
         GlobalVariableDraft?.RefreshLanguage();
         OnPropertyChanged(nameof(GlobalVariableProblem));
@@ -567,6 +579,16 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>The results this step may hand over, which are asked for on their own page.</summary>
     public ObservableCollection<ReturnsRowViewModel> ReturnsRows { get; } = [];
+
+    /// <summary>
+    /// What this step passes to the macro it calls, one row per argument the called macro declares.
+    /// It is filled from that macro rather than from the catalogue, so it is not a row of the
+    /// ordinary parameter list: the names change when the call names another macro.
+    /// </summary>
+    public ObservableCollection<CallArgumentRowViewModel> CallArgumentRows { get; } = [];
+
+    /// <summary>True when the macro being called declares something this step can fill in.</summary>
+    public bool HasCallArguments => CallArgumentRows.Count > 0;
 
     /// <summary>True when this action has settings that belong on the advanced page.</summary>
     public bool HasAdvanced => AdvancedRows.Any(row => row.IsApplicable);
@@ -1282,6 +1304,10 @@ public partial class AddActionViewModel : ViewModelBase
             called.WriteValue(step.Text("macro"));
         }
 
+        // The argument rows are read after the name they belong to, because which rows exist is the
+        // called macro's answer rather than the step's.
+        LoadCallArguments(step);
+
         foreach (var editor in Parameters)
         {
             var stored = step.Parameters.FirstOrDefault(parameter => parameter.Name == editor.Definition.Name);
@@ -1342,15 +1368,14 @@ public partial class AddActionViewModel : ViewModelBase
             {
                 foreach (var parameter in definition.Parameters)
                 {
-                    // A call's arguments are that macro's declarations, so they belong between "which
-                    // macro" and the results: one end asks what goes in and the other asks what comes
-                    // back out, and both are read off the macro being called.
-                    if (parameter.Kind is ActionParameterKind.Returns)
+                    // A call's arguments are the called macro's declarations rather than settings
+                    // of this action, so they are built as one list read off that macro. One end of
+                    // the form asks what goes in and the other asks what comes back out, and both
+                    // come from the macro being called.
+                    if (parameter.Kind is ActionParameterKind.Arguments)
                     {
-                        foreach (var argument in CallArguments())
-                        {
-                            AddEditor(argument, [], variables, steps);
-                        }
+                        FillCallArguments();
+                        continue;
                     }
 
                     var editor = AddEditor(parameter, CalledResults(definition), variables, steps);
@@ -1418,91 +1443,87 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// The fields a call fills in: one per value the called macro says it wants, named the way the
-    /// engine reads them and carrying the macro's own words about what each one is. A macro that
-    /// declares nothing asks for nothing, so the form says only which macro and what to bring back.
+    /// Builds the rows a call fills in: one per argument the called macro declares, carrying that
+    /// macro's own words about what each one is. A macro that declares nothing asks for nothing, so
+    /// the form says only which macro and what to bring back.
     /// </summary>
-    private IReadOnlyList<ActionParameter> CallArguments()
+    private void FillCallArguments()
     {
-        if (CalledMacro() is not { } call)
+        CallArgumentRows.Clear();
+
+        // What the file said about these arguments counts only while the call still names the macro
+        // that file named. Switching to another macro shows what that one asks for; coming back puts
+        // the file's own values back with it.
+        var loaded = string.Equals(_loadedFor, _callMacro, StringComparison.OrdinalIgnoreCase)
+            ? _loadedArguments.ToDictionary(row => row.Name, StringComparer.OrdinalIgnoreCase)
+            : [];
+
+        if (CalledMacro() is { } call)
         {
-            return [];
+            foreach (var argument in CallableSignature.Arguments(call))
+            {
+                loaded.TryGetValue(argument.Name, out var written);
+                CallArgumentRows.Add(new CallArgumentRowViewModel(
+                    argument.Name, argument.Hint, argument.Required, declared: true,
+                    written.Given, written.Value ?? string.Empty));
+            }
         }
 
-        return
+        // A row the file holds for an argument this macro no longer declares keeps its place. It is
+        // what a rename or a removed argument leaves behind, and dropping it here would delete a
+        // value the author typed without saying anything.
+        foreach (var (name, value, given) in loaded.Values)
+        {
+            if (CallArgumentRows.Any(row =>
+                    string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            CallArgumentRows.Add(new CallArgumentRowViewModel(
+                name, string.Empty, required: false, declared: false, given, value));
+        }
+
+        OnPropertyChanged(nameof(HasCallArguments));
+    }
+
+    /// <summary>
+    /// Writes the words under each argument row again in the interface language. They are read off
+    /// the called macro's declaration, so they are rebuilt here rather than stored in the row.
+    /// </summary>
+    private void RefreshCallArgumentHints()
+    {
+        var call = CalledMacro();
+        foreach (var row in CallArgumentRows)
+        {
+            row.SetHint(call is null
+                ? string.Empty
+                : CallableSignature.Argument(call, row.Name)?.Hint ?? string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Reads the arguments an existing step passes, before the rows are built: a row naming an
+    /// argument the called macro no longer declares has nothing in the declaration to come from, so
+    /// it has to be remembered here or it would be gone the moment the step is opened.
+    /// </summary>
+    private void LoadCallArguments(MacroStep step)
+    {
+        _loadedArguments =
         [
-            .. call.Parameters
-                .Where(parameter => parameter.Name.Trim().Length > 0)
-                .SelectMany(parameter => new ActionParameter[]
-                {
-                    new()
-                    {
-                        Name = MacroCallFields.Argument(parameter.Name.Trim()),
-                        Label = parameter.Name.Trim(),
-                        Kind = ActionParameterKind.Expression,
-                        Hint = ArgumentHint(parameter),
-                        Semantics = new ActionParameterSemantics
-                        {
-                            Name = MacroCallFields.Argument(parameter.Name.Trim()),
-                            Shape = ActionValueShape.Text,
-                            ReadMode = ActionReadMode.WholeValue,
-                            Required = parameter.Required,
-                        },
-                    },
-                    new()
-                    {
-                        Name = MacroCallFields.Given(parameter.Name.Trim()),
-                        Label = Strings.Get("Add.CallArgumentGiven"),
-                        Kind = ActionParameterKind.Bool,
-                        Hint = Strings.Get("Add.CallArgumentGivenHint"),
-                        Semantics = new ActionParameterSemantics
-                        {
-                            Name = MacroCallFields.Given(parameter.Name.Trim()),
-                            Shape = ActionValueShape.Flag,
-                            ReadMode = ActionReadMode.Text,
-                        },
-                    },
-                }),
+            .. step.Parameters
+                .Where(parameter => parameter.Name == FieldNames.Arguments)
+                .SelectMany(parameter => parameter.Rows)
+                .Select(row => (
+                    Name: row.Text(FieldNames.Name).Trim(),
+                    Value: row.Text(FieldNames.Value),
+                    Given: string.Equals(row.Text(FieldNames.Given).Trim(), "true",
+                        StringComparison.OrdinalIgnoreCase)))
+                .Where(row => row.Name.Length > 0),
         ];
-    }
 
-    /// <summary>
-    /// What an argument field says under itself: the called macro's own words, the kind of value
-    /// asked for, and whether the call has to fill it in or may leave it to the macro's default.
-    /// The default is not written into the field: it belongs to the declaration, and copying it
-    /// into every call is what made a changed default invisible to calls already written.
-    /// </summary>
-    private static string ArgumentHint(MacroParameter parameter)
-    {
-        var parts = new List<string>();
-        if (parameter.Description.Length > 0)
-        {
-            parts.Add(parameter.Description);
-        }
-
-        parts.Add(Strings.Format("Add.CallArgumentType",
-            Strings.Get("ActionType." + parameter.Type, parameter.Type.ToString())));
-        if (parameter.Required)
-        {
-            parts.Add(Strings.Get("Add.CallArgumentRequired"));
-        }
-        else if (parameter.Default.Trim().Length > 0)
-        {
-            parts.Add(Strings.Format("Add.CallArgumentDefault", parameter.Default));
-        }
-
-        return string.Join(" ", parts);
-    }
-
-    /// <summary>
-    /// What a result field says under itself: the called macro's own words and what kind of value
-    /// it hands back, so a record is not mistaken for a line of text at the call site.
-    /// </summary>
-    private static string CalledHint(string description, ActionReturnType type)
-    {
-        var kind = Strings.Format("Add.CallArgumentType",
-            Strings.Get("ActionType." + type, type.ToString()));
-        return description.Length == 0 ? kind : description + " " + kind;
+        _loadedFor = _callMacro;
+        FillCallArguments();
     }
 
     /// <summary>
@@ -1519,15 +1540,13 @@ public partial class AddActionViewModel : ViewModelBase
 
         return
         [
-            .. call.Results
-                .Where(result => result.Name.Trim().Length > 0)
-                .Select(result => new ActionReturn
-                {
-                    Key = result.Name.Trim(),
-                    Label = result.Name.Trim(),
-                    Hint = CalledHint(result.Description, result.Type),
-                    Type = result.Type,
-                }),
+            .. CallableSignature.Results(call).Select(result => new ActionReturn
+            {
+                Key = result.Name,
+                Label = result.Name,
+                Hint = result.Hint,
+                Type = result.Type,
+            }),
         ];
     }
 
@@ -1558,11 +1577,11 @@ public partial class AddActionViewModel : ViewModelBase
             return;
         }
 
-        var arguments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var editor in Parameters.Where(editor => editor.Definition.Name.StartsWith(
-            MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
+        var arguments = new Dictionary<string, (string Value, bool Given)>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var row in CallArgumentRows)
         {
-            arguments[editor.Definition.Name] = editor.CurrentText;
+            arguments[row.Name] = (row.Value, row.Given);
         }
 
         var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1582,9 +1601,12 @@ public partial class AddActionViewModel : ViewModelBase
             return;
         }
 
-        foreach (var (name, text) in filled.Arguments)
+        foreach (var row in CallArgumentRows)
         {
-            Parameter(name)?.WriteValue(text);
+            if (filled.Arguments.TryGetValue(row.Name, out var kept))
+            {
+                row.Load(kept.Value, kept.Given);
+            }
         }
 
         if (ReturnsField is not { } returns)
@@ -1624,6 +1646,13 @@ public partial class AddActionViewModel : ViewModelBase
             // The results are a page of their own rather than a line among the fields: what the
             // step hands over is a list of names to choose from, not one more setting.
             if (parameter.IsReturns)
+            {
+                continue;
+            }
+
+            // A call's arguments are a list too, and it is drawn where the step says which macro it
+            // calls rather than as one more row of the form.
+            if (parameter.Definition.Kind is ActionParameterKind.Arguments)
             {
                 continue;
             }
@@ -2301,27 +2330,18 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     private List<string> MissingParameters()
-        => Parameters.Where(parameter => parameter.IsMissing && !PassedEmpty(parameter))
+    {
+        var missing = Parameters.Where(parameter => parameter.IsMissing)
             .Select(parameter => parameter.Definition.LocalLabel)
             .ToList();
 
-    /// <summary>
-    /// True when the required argument beside this one has its "pass an empty value" box ticked.
-    /// An empty field is only missing when the call has not said it means an empty value.
-    /// </summary>
-    private bool PassedEmpty(StepParameterViewModel parameter)
-    {
-        var name = parameter.Definition.Name;
-        if (!name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)
-            || MacroCallFields.IsGiven(name))
-        {
-            return false;
-        }
-
-        var given = MacroCallFields.Given(name[MacroCallFields.ArgumentPrefix.Length..]);
-        return Parameters.Any(candidate =>
-            string.Equals(candidate.Definition.Name, given, StringComparison.OrdinalIgnoreCase)
-            && candidate.Flag);
+        // A call's arguments are its own list rather than fields of the form, so a required one
+        // with no value and no "pass an empty value" tick is missing the same way an ordinary
+        // required field is — and has to be counted here or the dialog would let it be saved.
+        missing.AddRange(CallArgumentRows
+            .Where(row => row.IsDeclared && row.IsRequired && row.IsEmpty && !row.Given)
+            .Select(row => row.Name));
+        return missing;
     }
 
     /// <summary>
@@ -2399,6 +2419,24 @@ public partial class AddActionViewModel : ViewModelBase
                 OnError = StepMeta.Action(MetaOnError.Value),
             },
         };
+        // A call's arguments are written as one list rather than as a field per argument: the names
+        // belong to the macro being called, so a file that says which name goes with which value can
+        // be read without the reader having to know that macro first.
+        var arguments = CallArgumentRows
+            .Select(row => row.ToRow())
+            .OfType<StepParameterRow>()
+            .ToList();
+        if (arguments.Count > 0)
+        {
+            step.Parameters.RemoveAll(parameter => parameter.Name == FieldNames.Arguments);
+            step.Parameters.Add(new StepParameter
+            {
+                Name = FieldNames.Arguments,
+                Kind = ActionParameterKind.Arguments,
+                Rows = arguments,
+            });
+        }
+
         step.EnsureDeclaredLists();
         return step;
     }

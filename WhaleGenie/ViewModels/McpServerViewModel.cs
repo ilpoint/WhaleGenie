@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 
@@ -160,11 +163,7 @@ public partial class McpServerViewModel : ViewModelBase
                     return;
                 }
 
-                Status = Strings.Get("Mcp.Starting");
-                await _host.StartAsync(Port);
-                Endpoint = _host.Endpoint;
-                IsRunning = _host.IsRunning;
-                Status = Strings.Get("Mcp.On");
+                await StartHeadlessAsync(Port);
             }
         }
         catch (Exception error)
@@ -193,6 +192,20 @@ public partial class McpServerViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Starts the server for a run that has no window. There is nobody to ask about saving and no
+    /// switch to flip, so the port is the one that was handed in and the settings file is left
+    /// alone: a check must not change what the person chose.
+    /// </summary>
+    internal async Task StartHeadlessAsync(int port)
+    {
+        Status = Strings.Get("Mcp.Starting");
+        await _host.StartAsync(port);
+        Endpoint = _host.Endpoint;
+        IsRunning = _host.IsRunning;
+        Status = Strings.Get("Mcp.On");
+    }
+
     /// <summary>Stops the server when the program is leaving, without touching the switch's text.</summary>
     public async Task StopAsync()
     {
@@ -211,6 +224,20 @@ public partial class McpServerViewModel : ViewModelBase
     /// <summary>Flips the direct-control switch from the flyout, the way the server's own one flips.</summary>
     [RelayCommand]
     private void ToggleControl() => AllowControl = !AllowControl;
+
+    /// <summary>
+    /// Opens the file the calls are recorded in. The person asking "what did it do" is at the
+    /// machine, not in a terminal, so the answer is a file opened for them — and the folder when
+    /// nothing has been written yet, which is a different answer from an empty file.
+    /// </summary>
+    [RelayCommand]
+    private void OpenAudit()
+    {
+        var file = McpAudit.File;
+        var target = File.Exists(file) ? file : AppPaths.Logs;
+        Directory.CreateDirectory(AppPaths.Logs);
+        Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true });
+    }
 
     /// <summary>Short confirmation under the flyout after the client config was copied.</summary>
     public void ShowCopied() => Status = Strings.Get("Mcp.Copied");

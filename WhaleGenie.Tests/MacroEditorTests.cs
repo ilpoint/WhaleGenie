@@ -91,7 +91,11 @@ public class MacroEditorTests
             var call = viewModel.Steps[1];
             Assert.Equal("control.runMacro", call.Type);
             Assert.Equal(lifted.Name, call.Text("macro"));
-            Assert.Equal("$开始", call.Text("arg.开始"));
+            // What the call passes is one list of rows: the lifted macro's argument, and the value
+            // the stretch already had under that name.
+            var passed = call.Parameters.First(parameter => parameter.Name == FieldNames.Arguments).Rows;
+            Assert.Equal(["开始"], passed.Select(row => row.Text(FieldNames.Name)));
+            Assert.Equal(["$开始"], passed.Select(row => row.Text(FieldNames.Value)));
             Assert.Same(after, viewModel.Steps[2]);
 
             var wanted = call.Parameters.First(parameter => parameter.Name == "returns").Rows;

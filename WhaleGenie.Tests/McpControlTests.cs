@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
@@ -44,12 +43,14 @@ public class McpControlTests : IDisposable
     {
         Assert.False(McpControl.Allowed);
 
-        var refused = await Assert.ThrowsAsync<McpException>(() => _tools.MouseMove(10, 20));
-        Assert.Contains("Allow direct control", refused.Message, StringComparison.Ordinal);
+        var refused = await _tools.MouseMove(10, 20);
+        Assert.Equal(McpErrors.DirectControlOff, Code(refused));
+        Assert.Contains("Allow direct control", Text(refused), StringComparison.Ordinal);
         Assert.Empty(_input.Done);
 
         McpControl.Allowed = true;
-        await _tools.MouseMove(10, 20);
+        var moved = await _tools.MouseMove(10, 20);
+        Assert.True(moved.IsError != true);
         Assert.Contains("move 10,20 0", _input.Done);
     }
 
@@ -72,7 +73,7 @@ public class McpControlTests : IDisposable
         Assert.Equal("image/png", image.MimeType);
         Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, image.DecodedData.ToArray().Take(4));
 
-        var about = Json(Assert.IsType<TextContentBlock>(shot.Content[1]).Text);
+        var about = Json(shot);
         Assert.Equal(4242, about.GetProperty("window").GetInt64());
         Assert.Equal(100, about.GetProperty("x").GetInt32());
         Assert.Equal(50, about.GetProperty("y").GetInt32());
@@ -92,11 +93,10 @@ public class McpControlTests : IDisposable
         Assert.Equal(0, asked.Y);
         Assert.Equal(800, asked.Width);
         Assert.Equal(600, asked.Height);
-        Assert.Equal(JsonValueKind.Null, Json(Assert.IsType<TextContentBlock>(whole.Content[1]).Text)
-            .GetProperty("scaledFrom").ValueKind);
+        Assert.Equal(JsonValueKind.Null, Json(whole).GetProperty("scaledFrom").ValueKind);
 
         var small = await _tools.CaptureScreen(maxSide: 400, hideWhaleGenie: false);
-        var about = Json(Assert.IsType<TextContentBlock>(small.Content[1]).Text);
+        var about = Json(small);
         Assert.Equal(400, about.GetProperty("width").GetInt32());
         Assert.Equal(300, about.GetProperty("height").GetInt32());
         Assert.Equal(800, about.GetProperty("scaledFrom").GetProperty("width").GetInt32());
@@ -106,10 +106,10 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task A_window_that_has_gone_says_so()
     {
-        var gone = await Assert.ThrowsAsync<McpException>(
-            () => _tools.CaptureScreen(windowHandle: 999));
+        var gone = await _tools.CaptureScreen(windowHandle: 999);
 
-        Assert.Contains("999", gone.Message, StringComparison.Ordinal);
+        Assert.Equal(McpErrors.BadArgument, Code(gone));
+        Assert.Contains("999", Text(gone), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -133,15 +133,17 @@ public class McpControlTests : IDisposable
         _windows.Add(9, "演示", "Demo", "DemoWindow");
         _windows.Place(9, 5, 6, 70, 80);
 
-        var every = JsonArray(await _tools.ListWindows());
-        Assert.Equal(2, every.Length);
-        Assert.Equal(7, every[0].GetProperty("handle").GetInt64());
-        Assert.Equal(9, every[1].GetProperty("handle").GetInt64());
-        Assert.Equal("演示", every[1].GetProperty("title").GetString());
-        Assert.Equal(5, every[1].GetProperty("x").GetInt32());
-        Assert.Equal(70, every[1].GetProperty("width").GetInt32());
+        var every = Json(await _tools.ListWindows());
+        Assert.Equal(2, every.GetProperty("total").GetInt32());
+        var windows = every.GetProperty("windows").EnumerateArray().ToArray();
+        Assert.Equal(7, windows[0].GetProperty("handle").GetInt64());
+        Assert.Equal(9, windows[1].GetProperty("handle").GetInt64());
+        Assert.Equal("演示", windows[1].GetProperty("title").GetString());
+        Assert.Equal(5, windows[1].GetProperty("x").GetInt32());
+        Assert.Equal(70, windows[1].GetProperty("width").GetInt32());
 
-        var found = JsonArray(await _tools.ListWindows(value: "演示", match: "title"));
+        var found = Json(await _tools.ListWindows(value: "演示", part: WindowPart.Title))
+            .GetProperty("windows").EnumerateArray().ToArray();
         var one = Assert.Single(found);
         Assert.Equal(9, one.GetProperty("handle").GetInt64());
     }
@@ -188,37 +190,27 @@ public class McpControlTests : IDisposable
 
         var answer = await _tools.TypeText("秘密", 0);
 
-        Assert.DoesNotContain("秘密", answer, StringComparison.Ordinal);
+        Assert.DoesNotContain("秘密", Text(answer), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_mouse_answers_are_checked_before_they_are_sent()
+    public async Task A_mistake_is_refused_with_a_code_and_says_what_is_allowed()
     {
         McpControl.Allowed = true;
 
-        var button = await Assert.ThrowsAsync<McpException>(
-            () => _tools.MouseClick(0, 0, button: "elbow"));
-        Assert.Contains("left", button.Message, StringComparison.Ordinal);
+        var key = await _tools.Key("nosuchkey");
+        Assert.Equal(McpErrors.BadArgument, Code(key));
 
-        _ = await Assert.ThrowsAsync<McpException>(() => _tools.MouseScroll(direction: "sideways"));
-        _ = await Assert.ThrowsAsync<McpException>(() => _tools.ListWindows(match: "corner"));
-        _ = await Assert.ThrowsAsync<McpException>(() => _tools.Key("nosuchkey"));
-        _ = await Assert.ThrowsAsync<McpException>(
-            () => _tools.WindowMove(55, 0, 0, 0, 100));
+        var size = await _tools.WindowMove(55, 0, 0, 0, 100);
+        Assert.Equal(McpErrors.BadArgument, Code(size));
 
-        Assert.Empty(_input.Done);
-    }
+        // A point is both numbers or neither: one number means the caller meant a point, and
+        // quietly scrolling where the pointer is would turn the wrong part of the screen.
+        var half = await _tools.MouseScroll(ScrollDirection.Down, 120, x: 5, y: null);
+        Assert.Equal(McpErrors.BadArgument, Code(half));
+        Assert.Contains("both x and y", Text(half), StringComparison.Ordinal);
 
-    [Fact]
-    public async Task Half_a_point_and_a_chord_of_nothing_are_mistakes()
-    {
-        McpControl.Allowed = true;
-
-        var half = await Assert.ThrowsAsync<McpException>(
-            () => _tools.MouseScroll("down", 120, x: 5, y: null));
-        Assert.Contains("both x and y", half.Message, StringComparison.Ordinal);
-
-        _ = await Assert.ThrowsAsync<McpException>(() => _tools.Key("+"));
+        _ = await _tools.Key("+");
 
         Assert.Empty(_input.Done);
     }
@@ -240,16 +232,16 @@ public class McpControlTests : IDisposable
     {
         McpControl.Allowed = true;
 
-        var clicked = Json(await _tools.MouseClick(11, 22, "right", clicks: 2));
+        var clicked = Json(await _tools.MouseClick(11, 22, MouseButtonName.Right, clicks: 2));
         Assert.Equal("right", clicked.GetProperty("button").GetString());
         Assert.Equal(2, clicked.GetProperty("clicks").GetInt32());
         Assert.Equal(30, clicked.GetProperty("cursor").GetProperty("x").GetInt32());
         Assert.Contains("click right 11,22 2 0", _input.Done);
 
-        await _tools.MouseDrag(1, 2, 3, 4, "left");
+        await _tools.MouseDrag(1, 2, 3, 4, MouseButtonName.Left);
         Assert.Contains("drag left 1,2->3,4 0", _input.Done);
 
-        await _tools.MouseScroll("up", 120, 5, 6);
+        await _tools.MouseScroll(ScrollDirection.Up, 120, 5, 6);
         Assert.Contains("scroll up 120 5,6", _input.Done);
 
         await _tools.MouseMove(7, 8, durationMs: 100);
@@ -338,10 +330,23 @@ public class McpControlTests : IDisposable
         });
     }
 
-    private static JsonElement Json(string text) => JsonDocument.Parse(text).RootElement;
+    private static string Text(CallToolResult result)
+        => result.Content.OfType<TextContentBlock>().Last().Text;
 
-    private static JsonElement[] JsonArray(string text)
-        => JsonDocument.Parse(text).RootElement.EnumerateArray().ToArray();
+    private static JsonElement Json(CallToolResult result) => JsonDocument.Parse(Text(result)).RootElement;
+
+    /// <summary>
+    /// The code a refusal carries. The sentence is for a person; the code is what a client branches
+    /// on, so that is what a check asserts.
+    /// </summary>
+    private static string Code(CallToolResult result)
+        => Refusal(result).GetProperty("code").GetString()!;
+
+    private static JsonElement Refusal(CallToolResult result)
+    {
+        Assert.True(result.IsError == true, "the call was expected to be refused");
+        return JsonDocument.Parse(Text(result)).RootElement.GetProperty("error");
+    }
 }
 
 /// <summary>The input a check was sent, written down instead of sent to the machine.</summary>

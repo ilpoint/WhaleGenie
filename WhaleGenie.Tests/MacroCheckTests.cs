@@ -48,6 +48,34 @@ public class MacroCheckTests
         => Step("control.runMacro", Text("macro", macro), Results(wants));
 
     /// <summary>The results a step hands over, one row each, named the way the file writes them.</summary>
+    /// <summary>What a call passes, one row per argument, written the way a call is written.</summary>
+    private static StepParameter Arguments(params (string Name, string Value)[] arguments)
+        => ArgumentRows(arguments, given: false);
+
+    /// <summary>The same rows, each saying the empty value is the value it passes.</summary>
+    private static StepParameter ArgumentsGiven(params (string Name, string Value)[] arguments)
+        => ArgumentRows(arguments, given: true);
+
+    private static StepParameter ArgumentRows(
+        (string Name, string Value)[] arguments, bool given)
+        => new()
+        {
+            Name = FieldNames.Arguments,
+            Kind = ActionParameterKind.Arguments,
+            Rows =
+            [
+                .. arguments.Select(argument => new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        [FieldNames.Name] = argument.Name,
+                        [FieldNames.Value] = argument.Value,
+                        [FieldNames.Given] = given ? "true" : "false",
+                    },
+                }),
+            ],
+        };
+
     private static StepParameter Results(params string[] names)
         => Returned([.. names.Select(name => (name, name))]);
 
@@ -421,7 +449,7 @@ public class MacroCheckTests
     public void A_call_that_fills_in_a_name_the_called_macro_never_declared_is_reported()
     {
         var passed = Step("control.runMacro",
-            Text("macro", "另一个"), Value("arg.别的", "1"));
+            Text("macro", "另一个"), Arguments(("别的", "1")));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], passed);
         var problem = Assert.Single(problems, candidate =>
@@ -451,7 +479,7 @@ public class MacroCheckTests
     public void A_given_marker_for_an_undeclared_argument_is_marked()
     {
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Flag("arg.别的.given", true));
+            Text("macro", "另一个"), ArgumentsGiven(("别的", "")));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
 
@@ -463,7 +491,7 @@ public class MacroCheckTests
     public void A_given_marker_beside_a_value_is_marked()
     {
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Value("arg.次数", "1"), Flag("arg.次数.given", true));
+            Text("macro", "另一个"), ArgumentsGiven(("次数", "1")));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
 
@@ -482,7 +510,7 @@ public class MacroCheckTests
                 Type = ActionReturnType.Number,
             }], []);
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Text("arg.数量", "不是数"));
+            Text("macro", "另一个"), Arguments(("数量", "不是数")));
 
         var problems = Against("自己", [called], call);
 
@@ -851,7 +879,7 @@ public class MacroCheckTests
         var target = new MacroCallable("整理",
             [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }], []);
         var call = Step("control.runMacro", Text("macro", "整理"),
-            Text(MacroCallFields.Argument("窗口"), "$sys.date"));
+            Arguments(("窗口", "$sys.date")));
 
         var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [target]));
         var problem = Assert.Single(problems, candidate => candidate.Step == call);

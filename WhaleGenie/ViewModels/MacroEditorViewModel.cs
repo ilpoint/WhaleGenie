@@ -1962,15 +1962,26 @@ public partial class MacroEditorViewModel : ViewModelBase
             },
         };
 
-        foreach (var argument in lifted.Parameters)
+        // What the call passes is the same values the stretch read, so each argument row points at
+        // the name the value already had: the lifted steps keep working without a rename anywhere.
+        parameters.Add(new StepParameter
         {
-            parameters.Add(new StepParameter
-            {
-                Name = MacroCallFields.Argument(argument.Name),
-                Kind = ActionParameterKind.Expression,
-                Value = "$" + argument.Name,
-            });
-        }
+            Name = FieldNames.Arguments,
+            Kind = ActionParameterKind.Arguments,
+            Rows =
+            [
+                .. lifted.Parameters
+                    .Where(argument => argument.Name.Trim().Length > 0)
+                    .Select(argument => new StepParameterRow
+                    {
+                        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            [FieldNames.Name] = argument.Name.Trim(),
+                            [FieldNames.Value] = "$" + argument.Name.Trim(),
+                        },
+                    }),
+            ],
+        });
 
         parameters.Add(new StepParameter
         {

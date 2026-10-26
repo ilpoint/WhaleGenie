@@ -53,7 +53,7 @@ public class StepParameter
     /// </summary>
     public bool IsRowList => Kind is ActionParameterKind.Region
         or ActionParameterKind.KeySequence or ActionParameterKind.Images or ActionParameterKind.Returns
-        or ActionParameterKind.Narrow;
+        or ActionParameterKind.Arguments or ActionParameterKind.Narrow;
 
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
@@ -73,7 +73,8 @@ public class StepParameter
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
-            or ActionParameterKind.Returns or ActionParameterKind.Narrow => RowsJson(),
+            or ActionParameterKind.Returns or ActionParameterKind.Arguments
+            or ActionParameterKind.Narrow => RowsJson(),
         ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
             => JsonNode.Parse(Value),
         _ => JsonValue.Create(Value),
@@ -138,7 +139,8 @@ public class StepParameter
         {
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
                 or ActionParameterKind.KeySequence or ActionParameterKind.Images
-                or ActionParameterKind.Returns or ActionParameterKind.Narrow => new StepParameter
+                or ActionParameterKind.Returns or ActionParameterKind.Arguments
+                or ActionParameterKind.Narrow => new StepParameter
                 {
                     Name = name,
                     Kind = definition!.Kind,
@@ -463,13 +465,16 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Returns when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.ReturnCount", parameter.Rows.Count)}");
                         break;
+                    case ActionParameterKind.Arguments when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ArgumentCount", parameter.Rows.Count)}");
+                        break;
                     case ActionParameterKind.Narrow when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.NarrowCount", parameter.Rows.Count)}");
                         break;
                     case ActionParameterKind.Steps or ActionParameterKind.Region
                         or ActionParameterKind.KeySequence
                         or ActionParameterKind.Images or ActionParameterKind.Returns
-                        or ActionParameterKind.Narrow:
+                        or ActionParameterKind.Arguments or ActionParameterKind.Narrow:
                         break;
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))

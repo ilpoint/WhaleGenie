@@ -3,14 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using ModelContextProtocol;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Mcp;
 
-/// <summary>What validation has to say about one draft, before it can be applied.</summary>
+/// <summary>One thing validation says about a draft. It names the macro and, where the problem is
+/// about one step, the step id, so a client can point at the row instead of re-reading the macro.</summary>
+/// <summary>
+/// One thing validation found. <paramref name="Code"/> is what a client branches on: the sentence in
+/// <paramref name="Message"/> is in whatever language the interface is set to, so comparing it is
+/// not a way to recognise a problem.
+/// </summary>
+public sealed record McpProblem(string Macro, string? StepId, string Code, string Message);
+
+/// <summary>
+/// What validation says about one draft. Blocking problems make a macro that cannot run and stop
+/// apply; hints are worth reading and block nothing.
+/// </summary>
 public sealed record McpDraftValidation(
-    bool HasErrors, IReadOnlyList<string> Messages);
+    bool Ok, IReadOnlyList<McpProblem> Blocking, IReadOnlyList<McpProblem> Hints);
 
 /// <summary>
 /// A copy of the project that an MCP client is editing. It is not the project the window shows:
@@ -62,10 +73,12 @@ public sealed class McpDraft
     public MacroItem Put(JsonObject json)
     {
         var macro = MacroItem.FromJson(json);
+        McpPatches.Settle(macro);
         macro.Name = macro.Name.Trim();
         if (macro.Name.Length == 0)
         {
-            throw new McpException("The macro has no name.");
+            throw new McpFailure(McpErrors.BadArgument, "The macro has no name.",
+                "Every macro needs a name: it is how apply, get_macro and the trigger list find it.");
         }
 
         lock (_gate)
@@ -87,6 +100,7 @@ public sealed class McpDraft
             }
         }
 
+        McpAudit.Note("draft.put", $"{macro.Name} ({macro.Steps.Count} steps)");
         return macro;
     }
 
@@ -98,10 +112,13 @@ public sealed class McpDraft
                 string.Equals(macro.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
             if (removed == 0)
             {
-                throw new McpException($"There is no macro named \"{name}\".");
+                throw new McpFailure(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\".",
+                    "Call whalegenie_list_macros to see the names this draft holds.",
+                    retryable: true, details: new { name });
             }
 
             Triggers.RemoveMacro(name);
+            McpAudit.Note("draft.delete", name);
         }
     }
 
@@ -113,22 +130,24 @@ public sealed class McpDraft
         {
             if (item is not JsonObject variable)
             {
-                throw new McpException("Every global has to be an object.");
+                throw new McpFailure(McpErrors.BadArgument, "Every global has to be an object.",
+                    "A declaration is {name, type, default, description}.");
             }
 
-            var name = variable["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
+            var name = Text(variable["name"]).Trim();
             if (name.Length == 0)
             {
-                throw new McpException("A global has no name.");
+                throw new McpFailure(McpErrors.BadArgument, "A global has no name.",
+                    "Every declaration needs a name; it is the word a macro reads as $name.");
             }
 
             globals.Add(new VariableDefinition
             {
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = variable["type"]?.GetValue<string>() ?? "text",
-                DefaultValue = variable["default"]?.GetValue<string>() ?? string.Empty,
-                Description = variable["description"]?.GetValue<string>() ?? string.Empty,
+                Type = Default(Text(variable["type"]), "text"),
+                DefaultValue = Text(variable["default"]),
+                Description = Text(variable["description"]),
             });
         }
 
@@ -137,7 +156,18 @@ public sealed class McpDraft
             Globals.Clear();
             Globals.AddRange(globals);
         }
+
+        McpAudit.Note("draft.globals", $"{globals.Count} declarations");
     }
+
+    /// <summary>
+    /// A string as it was written, or empty. A field of the wrong type is a shape the caller can fix
+    /// and not a reason to stop with a framework exception.
+    /// </summary>
+    private static string Text(JsonNode? node)
+        => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : string.Empty;
+
+    private static string Default(string text, string fallback) => text.Length > 0 ? text : fallback;
 
     internal void MarkApplied()
     {
@@ -171,7 +201,9 @@ public sealed class McpDraftStore
         {
             return _drafts.TryGetValue(id, out var draft)
                 ? draft
-                : throw new McpException($"There is no draft \"{id}\".");
+                : throw new McpFailure(McpErrors.DraftNotFound, $"There is no draft \"{id}\".",
+                    "A draft is dropped when the server stops; call whalegenie_open_project for a new one.",
+                    retryable: true, details: new { draftId = id });
         }
     }
 
@@ -186,7 +218,8 @@ public sealed class McpDraftStore
     /// <summary>Checks every macro, including the call graph between them.</summary>
     public static McpDraftValidation Validate(McpDraft draft)
     {
-        var messages = new List<string>();
+        var blocking = new List<McpProblem>();
+        var hints = new List<McpProblem>();
         var macros = draft.MacroSnapshot();
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -195,30 +228,40 @@ public sealed class McpDraftStore
             var name = macro.Name.Trim();
             if (name.Length == 0)
             {
-                messages.Add("A macro has no name.");
+                blocking.Add(new McpProblem(string.Empty, null, "MacroNameMissing", "A macro has no name."));
                 continue;
             }
 
             if (!names.Add(name))
             {
-                messages.Add($"Two macros are named \"{name}\".");
+                blocking.Add(new McpProblem(name, null, "MacroNameDuplicate",
+                    $"Two macros are named \"{name}\"."));
             }
         }
 
         var callables = macros.Select(macro => macro.Callable).ToList();
         foreach (var macro in macros)
         {
-            foreach (var problem in MacroCheck.DeclarationProblems(macro.Callable))
+            // The editor has always drawn these apart: a fault makes the macro impossible to call,
+            // a warning is worth reading while it is being written. Applying follows the same line.
+            foreach (var fault in MacroCheck.DeclarationFaultProblems(macro.Callable))
             {
-                messages.Add($"{macro.Name}: {problem}");
+                blocking.Add(new McpProblem(macro.Name, null, fault.Code, fault.Message));
+            }
+
+            foreach (var warning in MacroCheck.DeclarationWarnings(macro.Callable))
+            {
+                hints.Add(new McpProblem(macro.Name, null, "DeclarationWarning", warning));
             }
 
             foreach (var problem in MacroCheck.Inspect(macro.Steps, macro.Callable, callables))
             {
-                messages.Add($"{macro.Name}: {problem.Message}");
+                blocking.Add(new McpProblem(macro.Name,
+                    problem.Step.Id.Length > 0 ? problem.Step.Id : null,
+                    problem.Code, problem.Message));
             }
         }
 
-        return new McpDraftValidation(messages.Count > 0, messages);
+        return new McpDraftValidation(blocking.Count == 0, blocking, hints);
     }
 }

@@ -315,6 +315,12 @@ public enum ActionRowColumnRole
 
     /// <summary>A picture path or image value.</summary>
     Image,
+
+    /// <summary>
+    /// True or false, written the way every other truth value is. A row that carries a flag says
+    /// something about the row itself rather than holding one more thing the action reads.
+    /// </summary>
+    Flag,
 }
 
 /// <summary>One column a row of a list may hold.</summary>

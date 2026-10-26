@@ -78,17 +78,14 @@ public class ActionEditorWindowTests
             form.Parameters.First(parameter => parameter.Definition.Name == "macro").Text = "子";
             Dispatcher.UIThread.RunJobs();
 
-            var argument = form.Parameters.First(parameter =>
-                parameter.Definition.Name == MacroCallFields.Argument("数量"));
-            var given = form.Parameters.First(parameter =>
-                parameter.Definition.Name == MacroCallFields.Given("数量"));
+            var row = Assert.Single(form.CallArgumentRows);
 
             Assert.False(form.CanSave);
-            given.Flag = true;
+            row.Given = true;
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(form.CanSave, form.ValidationMessage);
-            Assert.Equal(string.Empty, argument.Text);
+            Assert.Equal(string.Empty, row.Value);
             window.Close();
         });
     }

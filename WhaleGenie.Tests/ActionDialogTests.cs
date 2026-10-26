@@ -3211,34 +3211,35 @@ public class ActionDialogTests
             var viewModel = (AddActionViewModel)window.DataContext!;
 
             // Nothing is asked for until a macro is named: what a call fills in is that macro's list.
-            Assert.Null(Field(viewModel, "arg.次数"));
+            Assert.Empty(viewModel.CallArgumentRows);
             Assert.Empty(viewModel.ReturnsRows);
 
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
 
-            var times = Field(viewModel, "arg.次数");
-            Assert.NotNull(times);
-            // The default belongs to the declaration, not to the call: an untouched field stays
-            // empty so a changed default is what every call without a value reads.
-            Assert.Equal(string.Empty, times!.CurrentText);
+            var rows = viewModel.CallArgumentRows;
+            var times = Assert.Single(rows, row => row.Name == "次数");
+            // The default belongs to the declaration, not to the call: an untouched row stays empty
+            // so a changed default is what every call without a value reads.
+            Assert.Equal(string.Empty, times.Value);
             Assert.Contains("3", times.Hint, StringComparison.Ordinal);
-            Assert.False(times.Definition.Required);
-            Assert.True(Field(viewModel, "arg.标签")!.Definition.Required);
+            Assert.False(times.IsRequired);
+            Assert.True(Assert.Single(rows, row => row.Name == "标签").IsRequired);
             Assert.Equal("答案", Assert.Single(viewModel.ReturnsRows).Key);
 
-            times.WriteValue("$n");
+            times.Value = "$n";
 
             // Another macro is another form...
             Field(viewModel, "macro")!.WriteValue("清空");
             Dispatcher.UIThread.RunJobs();
-            Assert.Null(Field(viewModel, "arg.次数"));
+            Assert.Empty(viewModel.CallArgumentRows);
             Assert.Empty(viewModel.ReturnsRows);
 
-            // ...and coming back does not empty the fields that were filled in.
+            // ...and coming back does not empty the values that were filled in.
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("$n", Field(viewModel, "arg.次数")!.CurrentText);
+            Assert.Equal("$n", Assert.Single(viewModel.CallArgumentRows,
+                row => row.Name == "次数").Value);
         });
     }
 
@@ -3252,8 +3253,8 @@ public class ActionDialogTests
 
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
-            Field(viewModel, "arg.次数")!.WriteValue("$n");
-            Field(viewModel, "arg.标签")!.WriteValue("开始");
+            Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数").Value = "$n";
+            Assert.Single(viewModel.CallArgumentRows, row => row.Name == "标签").Value = "开始";
             viewModel.ReturnsRows[0].Ticked = true;
             viewModel.ReturnsRows[0].Name = "答案";
 
@@ -3263,12 +3264,19 @@ public class ActionDialogTests
 
             Assert.NotNull(saved);
             Assert.Equal("整理", saved!.Text("macro"));
-            Assert.Equal("$n", saved.Text("arg.次数"));
-            Assert.Equal("开始", saved.Text("arg.标签"));
+
+            // What a call passes is one list of rows, written the way its results are asked for.
+            var passed = Assert.Single(saved.Parameters,
+                parameter => parameter.Name == FieldNames.Arguments).Rows;
+            Assert.Equal(2, passed.Count);
+            Assert.Equal("$n", Assert.Single(passed, row => row.Text(FieldNames.Name) == "次数")
+                .Text(FieldNames.Value));
+            Assert.Equal("开始", Assert.Single(passed, row => row.Text(FieldNames.Name) == "标签")
+                .Text(FieldNames.Value));
 
             // An argument nobody filled in is not written at all, which is how the engine tells
             // "use the default" from "pass this value".
-            Assert.DoesNotContain(saved.Parameters, parameter => parameter.Name == "arg.可省");
+            Assert.DoesNotContain(passed, row => row.Text(FieldNames.Name) == "可省");
             var row = Assert.Single(saved.Parameters.First(parameter => parameter.Name == "returns").Rows);
             Assert.Equal("答案", row.Text("key"));
             Assert.Equal("答案", row.Text("name"));
@@ -3279,8 +3287,8 @@ public class ActionDialogTests
 
             var again = (AddActionViewModel)reopened.DataContext!;
             Assert.Equal("整理", Field(again, "macro")!.CurrentText);
-            Assert.Equal("$n", Field(again, "arg.次数")!.CurrentText);
-            Assert.Equal("开始", Field(again, "arg.标签")!.CurrentText);
+            Assert.Equal("$n", Assert.Single(again.CallArgumentRows, row => row.Name == "次数").Value);
+            Assert.Equal("开始", Assert.Single(again.CallArgumentRows, row => row.Name == "标签").Value);
             Assert.True(Assert.Single(again.ReturnsRows).Ticked);
         });
     }
@@ -3300,7 +3308,7 @@ public class ActionDialogTests
 
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
-            Field(viewModel, "arg.次数")!.WriteValue("$n");
+            Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数").Value = "$n";
 
             window.MintStepId = () => "eeee";
             window.BeginStep("control.runMacro");
@@ -3309,8 +3317,8 @@ public class ActionDialogTests
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
 
-            var next = Field(viewModel, "arg.次数")!;
-            Assert.Equal(string.Empty, next.CurrentText);
+            var next = Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数");
+            Assert.Equal(string.Empty, next.Value);
             Assert.Contains("3", next.Hint, StringComparison.Ordinal);
         });
     }

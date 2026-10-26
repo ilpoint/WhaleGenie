@@ -84,6 +84,7 @@ public static class RunKeys
     public const string ContinueOutsideLoop = "Run.ContinueOutsideLoop";
     public const string DetectNotFound = "Run.DetectNotFound";
     public const string DeviceFailed = "Run.DeviceFailed";
+    public const string DuplicateArgument = "Run.DuplicateArgument";
     public const string ElementNotATable = "Run.ElementNotATable";
     public const string ElementNotCheckable = "Run.ElementNotCheckable";
     public const string ElementNotClickable = "Run.ElementNotClickable";
@@ -103,6 +104,9 @@ public static class RunKeys
     public const string FileNotFound = "Run.FileNotFound";
     public const string FolderNotFound = "Run.FolderNotFound";
     public const string GlobalMustExist = "Run.GlobalMustExist";
+
+    /// <summary>An argument was both given a value and marked as supplied empty.</summary>
+    public const string GivenWithValue = "Run.GivenWithValue";
     public const string ImageNotFound = "Run.ImageNotFound";
     public const string IndexOutOfRange = "Run.IndexOutOfRange";
     public const string ItemNotFound = "Run.ItemNotFound";
@@ -183,6 +187,7 @@ public static class RunKeys
     public const string TextNotFound = "Run.TextNotFound";
     public const string Timeout = "Run.Timeout";
     public const string TooManyRuns = "Run.TooManyRuns";
+    public const string UndeclaredArgument = "Run.UndeclaredArgument";
     public const string UndeclaredResult = "Run.UndeclaredResult";
     public const string UnknownBrightnessAction = "Run.UnknownBrightnessAction";
     public const string UnknownGamepadButton = "Run.UnknownGamepadButton";

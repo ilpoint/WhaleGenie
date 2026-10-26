@@ -351,6 +351,14 @@
                                             HorizontalAlignment="Left"
                                             Click="OnCopyMcpConfig"
                                             Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
+                                    <!-- What the client did to this machine is a question the person
+                                         asks afterwards, so the record is one click away rather than
+                                         something to go looking for in a folder. -->
+                                    <Button Classes="FlatButton" Height="28" Padding="10,0"
+                                            HorizontalAlignment="Left"
+                                            Command="{Binding Mcp.OpenAuditCommand}"
+                                            ToolTip.Tip="{Binding [Mcp.OpenAuditHint], Source={x:Static loc:Strings.Current}}"
+                                            Content="{Binding [Mcp.OpenAudit], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Border>
                         </Flyout>

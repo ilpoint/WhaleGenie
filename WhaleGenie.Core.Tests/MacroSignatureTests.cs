@@ -40,18 +40,10 @@ public class MacroSignatureTests
     }
 
     [Fact]
-    public void A_parameter_may_not_end_with_the_supplied_empty_suffix()
+    public void A_name_ending_in_a_dot_marks_nothing_by_itself()
     {
-        var problem = Assert.Single(Signature(new MacroArgument("x.given", string.Empty, false)).Problems());
-
-        Assert.Equal(MacroSignatureFault.ConflictingName, problem.Fault);
-        Assert.Equal("x.given", problem.Name);
-    }
-
-    [Fact]
-    public void A_result_may_end_with_the_supplied_empty_suffix()
-    {
-        // Only a parameter has an argument field and a marker; a result is just a variable.
+        // An argument is a row naming it now, so a name that looks like a marker is only a name.
+        Assert.Empty(Signature(new MacroArgument("x.given", string.Empty, false)).Problems());
         Assert.Empty(WithResult(new MacroReturn("x.given")).Problems());
     }
 

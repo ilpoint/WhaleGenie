@@ -673,6 +673,10 @@ internal static class ActionStrings
         ["control.runMacro.macro.label"] = "宏",
         ["control.runMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
             + "改名或删除后这里需要跟着改。",
+        ["control.runMacro.arguments.label"] = "实参",
+        ["control.runMacro.arguments.hint"] = "被调用的宏声明了哪些形参，这里就有哪些行："
+            + "一行一个名字，后面填这一行传过去的值。留空表示这一步不给它，它用自己的默认值；"
+            + "要传一个空串就勾「传空值」，那和留空是两件事。",
         ["control.runMacro.returns.label"] = "要带回的结果",
         ["control.runMacro.returns.hint"] = "勾上被调用的宏声明过、这一步要取回的结果："
             + "每勾一行就得到一个本宏变量，名字可以在这一行里改。没勾就什么都不带回来。"
@@ -687,6 +691,10 @@ internal static class ActionStrings
         ["control.startMacro.runHandleName.hint"] = "句柄写进这个本宏变量，通常叫 job。"
             + "把它交给后面的「等待后台运行」「取消后台运行」或「等待全部后台运行」；"
             + "一个句柄只能等一次。",
+        ["control.startMacro.arguments.label"] = "实参",
+        ["control.startMacro.arguments.hint"] = "被调用的宏声明了哪些形参，这里就有哪些行："
+            + "一行一个名字，后面填这一行传过去的值。留空表示这一步不给它，它用自己的默认值；"
+            + "要传一个空串就勾「传空值」，那和留空是两件事。",
         ["control.startMacro.returns.label"] = "要带回的结果",
         ["control.startMacro.returns.hint"] = "勾上被调用的宏声明过、这次运行要取回的结果："
             + "名字在等待之后才有值；在等到之前读它，编辑器会标出来。",
