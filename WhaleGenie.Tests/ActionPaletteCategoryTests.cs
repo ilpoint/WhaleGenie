@@ -38,6 +38,30 @@ public class ActionPaletteCategoryTests
         Assert.Null(palette.SelectedCategory!.Value);
     }
 
+    /// <summary>
+    /// The submacro dock lists what the document has, not only what it already calls: a submacro
+    /// that was just made and saved is exactly the one somebody wants to call next.
+    /// </summary>
+    [Fact]
+    public void The_submacro_dock_lists_the_submacros_the_document_has()
+    {
+        var palette = new ActionPaletteViewModel();
+        var sub = new MacroItem { Name = "收尾", Description = "收个尾" };
+
+        palette.SetSources(null, [sub], []);
+        palette.SelectDock(ActionPaletteDock.SubMacros);
+
+        var card = Assert.Single(palette.Cards);
+        Assert.Equal("收尾", card.Title);
+        Assert.Equal("收个尾", card.Description);
+        Assert.False(palette.HasNoCards);
+
+        // With none at all, the dock says what to do about it rather than looking broken.
+        palette.SetSources(null, [], []);
+        Assert.True(palette.HasNoCards);
+        Assert.Equal(Strings.Get("Palette.NoSubMacros"), palette.EmptyText);
+    }
+
     [Fact]
     public void Choosing_a_category_filters_actions_and_keeps_the_choice_across_docks()
     {
@@ -95,6 +119,36 @@ public class ActionPaletteCategoryTests
         palette.SelectedCategory = palette.Categories.Single(category =>
             category.Value == ActionCategory.Process);
         Assert.Contains(palette.Cards, card => card.Key == windowKey);
+    }
+
+    /// <summary>
+    /// A submacro that is part of the document shows up in the dock as soon as the editor opens,
+    /// and a run started from the editor can reach it — the two halves that were missing between
+    /// "the file has a submacro" and "a step can call it".
+    /// </summary>
+    [Fact]
+    public void A_submacro_in_the_document_shows_in_the_dock_and_runs()
+    {
+        Ui.Run(() =>
+        {
+            var sub = new MacroItem { Name = "收尾" };
+            var macro = new MacroItem { Name = "外面" };
+            macro.SubMacros.Add(sub);
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
+            var model = (ActionPaletteViewModel)palette.DataContext!;
+            model.SelectDock(ActionPaletteDock.SubMacros);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(model.Cards, card => card.Title == "收尾");
+            Assert.NotNull(window.BuildLibrary().Steps("收尾"));
+
+            window.Close();
+        });
     }
 
     [Fact]

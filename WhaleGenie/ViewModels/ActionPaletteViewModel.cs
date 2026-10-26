@@ -111,7 +111,7 @@ public partial class ActionPaletteViewModel : ViewModelBase
         ? Strings.Get("Add.NoActionFound")
         : SelectedTab.Dock switch
         {
-            ActionPaletteDock.SubMacros => Strings.Get("Palette.NoCalledSubMacros"),
+            ActionPaletteDock.SubMacros => Strings.Get("Palette.NoSubMacros"),
             ActionPaletteDock.PublicMacros => Strings.Get("Palette.NoPublicMacros"),
             _ => Strings.Get("Add.NoActionFound"),
         };

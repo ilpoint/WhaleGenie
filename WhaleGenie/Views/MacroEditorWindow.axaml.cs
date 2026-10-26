@@ -864,13 +864,22 @@ public partial class MacroEditorWindow : Window
         var inputShared = OtherMacroSendsInput();
         var browserShared = OtherMacroUsesBrowser();
 
+        // The submacros of the document being edited are callable too, and they were nowhere in
+        // this list: the picker beside a call step could not name one, and a step that did name one
+        // was reported as a call to a macro the project does not have. They are gathered by the
+        // same rule the run uses, so a name that works here works there.
+        var subCalls = CallableMacros.Callables(DocumentSubMacros());
+
         foreach (var page in _documentPages)
         {
             var ownName = page.Editor.Name.Trim();
             var calls = projectCalls
                 .Concat(sharedChildren)
+                .Concat(subCalls)
                 .Where(call => !string.Equals(call.Name.Trim(), ownName,
                     StringComparison.OrdinalIgnoreCase))
+                .GroupBy(call => call.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
                 .ToList();
             page.Editor.SetProjectMacros(calls, inputShared, browserShared);
         }
@@ -888,45 +897,32 @@ public partial class MacroEditorWindow : Window
 
     private void RefreshPalette()
     {
-        var called = DirectlyCalledSubMacros(_viewModel);
-        _palette.SetSources(_viewModel.InsertChoices, called, _publicMacros);
+        // Every submacro the document holds, not only the ones already called: the dock is where
+        // one is picked to be called, so it has to show the one that was just written and saved.
+        _palette.SetSources(_viewModel.InsertChoices, DocumentSubMacros(), _publicMacros);
     }
 
-    private IReadOnlyList<MacroItem> DirectlyCalledSubMacros(MacroEditorViewModel editor)
-    {
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var step in editor.Steps)
-        {
-            Collect(step);
-        }
+    /// <summary>
+    /// Every submacro of the document being edited, as the pages hold them: the root editor hands
+    /// its own list over to the pages when the window opens, so the pages are where a submacro
+    /// lives while it is being written.
+    /// </summary>
+    private IReadOnlyList<MacroItem> DocumentSubMacros()
+        =>
+        [
+            .. _documentPages
+                .Where(page => !page.IsCurrent)
+                .Select(page => page.Editor.BuildMacro())
+                .Where(macro => macro.Name.Trim().Length > 0),
+        ];
 
-        return [.. _documentPages
-            .Where(page => !page.IsCurrent && page.Source is not null)
-            .Select(page => page.Editor.BuildMacro())
-            .Where(macro => names.Contains(macro.Name))
-            .GroupBy(macro => macro.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First())];
-
-        void Collect(MacroStep step)
-        {
-            if (step.Type is "control.runMacro" or "control.startMacro")
-            {
-                var name = step.Text("macro").Trim();
-                if (name.Length > 0)
-                {
-                    names.Add(name);
-                }
-            }
-
-            foreach (var parameter in step.StepLists)
-            {
-                foreach (var child in parameter.Steps)
-                {
-                    Collect(child);
-                }
-            }
-        }
-    }
+    /// <summary>The name a call writes for one submacro: its own when that is unique, else 父/子.</summary>
+    private string CallNameFor(MacroItem sub)
+        => CallableMacros.Named(DocumentSubMacros())
+            .FirstOrDefault(pair => string.Equals(pair.Macro.Name, sub.Name,
+                StringComparison.OrdinalIgnoreCase)) is { Name: { } name }
+            ? name
+            : sub.Name;
 
     private void SelectDocument(MacroDocumentPageViewModel page)
     {
@@ -2026,6 +2022,18 @@ public partial class MacroEditorWindow : Window
             }
         }
 
+        // And the submacros of this document by the names a run looks them up by, whether or not a
+        // page is open for them: that is the list the 宏 field beside a call step shows.
+        foreach (var callable in CallableMacros.Callables(DocumentSubMacros()))
+        {
+            if (callable.Name.Length > 0
+                && !calls.Any(call => string.Equals(call.Name, callable.Name,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                calls.Add(callable);
+            }
+        }
+
         return calls;
     }
 
@@ -2056,6 +2064,17 @@ public partial class MacroEditorWindow : Window
             {
                 entries.Add((edited.Name, page.Editor.Steps.ToExecutable(),
                     edited.Callable.Signature, edited.ExclusiveInput));
+            }
+        }
+
+        // The submacros of the document as it stands, under the names a call writes: pressing 运行
+        // here has to reach the same macros the saved file would.
+        foreach (var entry in CallableMacros.Entries(DocumentSubMacros()))
+        {
+            if (!entries.Any(known => string.Equals(known.Name, entry.Name,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                entries.Add(entry);
             }
         }
 
@@ -2886,11 +2905,11 @@ public partial class MacroEditorWindow : Window
         _pendingSubMacro = null;
         if (payload.Kind == ActionPaletteCardKind.SubMacro)
         {
-            macroName = _documentPages
-                .FirstOrDefault(page => !page.IsCurrent
-                    && string.Equals(page.Editor.Name, payload.Key,
-                        StringComparison.OrdinalIgnoreCase))
-                ?.Editor.Name;
+            // A submacro no longer has to be open in a page of its own to be called: it is in the
+            // document, and the dock that offered it is the document's own list.
+            var sub = DocumentSubMacros().FirstOrDefault(macro =>
+                string.Equals(macro.Name, payload.Key, StringComparison.OrdinalIgnoreCase));
+            macroName = sub is null ? null : CallNameFor(sub);
             if (macroName is null)
             {
                 _viewModel.ClearPendingInsertion();

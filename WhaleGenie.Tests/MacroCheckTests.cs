@@ -117,6 +117,22 @@ public class MacroCheckTests
         => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros));
 
     /// <summary>
+    /// A call to a submacro is a call to a macro of this document. With the submacro in the list
+    /// the check has nothing to say about it; with nothing in the list the step is a call into
+    /// thin air, which is what it used to say about a submacro that was right there in the file.
+    /// </summary>
+    [Fact]
+    public void A_call_to_a_submacro_is_known_when_the_submacro_is()
+    {
+        var call = Step("control.runMacro", Text("macro", "里面"));
+
+        Assert.DoesNotContain(Against("外面", [Callable("里面")], call), problem =>
+            problem.Code == "MacroNotFound");
+        Assert.Contains(Against("外面", [], call), problem =>
+            problem.Code == "MacroNotFound");
+    }
+
+    /// <summary>
     /// A step that sends keys, written the way the file writes one. What it sends does not matter to
     /// the check — that it sends anything at all is the whole of the question.
     /// </summary>
