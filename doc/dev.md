@@ -57,6 +57,14 @@ schtasks /Run /TN WhaleGenieRange
 跑完看 `range.log`。这样验证过 Windows 10 22H2 / .NET 10 / 1280×1024 的虚拟机：
 [TestResults/mcp-range-vm.md](../TestResults/mcp-range-vm.md) 九项全过，presses 从 0 到 1。
 
+**靶场检查需要能把窗口提到前台**：`range.front` 会核对靶场是不是真的在最前面（`window_activate` 的
+`activated` 与 `requested` 是两件事），提不上来就不点——点给别人的窗口比不点更糟——并把 `range.draft` /
+`range.run` / `range.effect` / `range.reset` 记成跳过，报告里写清是谁占了前台。一块被别人占着的桌面
+（比如停在虚拟机的连接窗口上）会让这项检查变红，这时的红是真话，不是阀门坏了。
+
+客户端那一面由 `build/vm-sweep/` 量：28 个场景，每个都读一个数（`presses`、输入框里的字、色块颜色、
+每步算出的值），用法见那里的 README。
+
 量动作契约，把矩阵写到指定文件（不给变量就只在测试里算，不落盘）：
 
 ```powershell

@@ -982,7 +982,12 @@ selector）、按 selector 找到的一组控件、正在运行的程序、剪�
   那个窗口（`Range.ForeignWindow`）；跑宏时脚本、`process.kill`、`system.power` 与 `command.run` 一律拒绝
   （`Range.ActionRefused`），文件动作只能写进 `%TEMP%\whalegenie-range`（`Range.PathOutside`），单次运行
   最多 60 秒。按键发给当前焦点窗口，所以靶场里打字前必须先 `whalegenie_window_activate` 把靶场窗口提到
-  前面——不在前面时按键按 `Range.NotFocused` 拒绝，而不是落到别的窗口里。
+  前面——不在前面时按键按 `Range.NotFocused` 拒绝，而不是落到别的窗口里。`window_activate` 的回答分两个
+  字段：`requested` 是"请求发出去没有"，`activated` 是"窗口真的到前面了没有"——Windows 可以拒绝把窗口提到
+  前台却仍然报告调用成功，只看前者会让下一步点到别人的窗口里。
+- 窗口移动不必带尺寸：`window_move` 只给位置就保持原来的大小，给宽高才是改大小。
+- 子宏可以直接按名字调用：同一个宏里的子宏用它的名字（`control.runMacro` 的「宏」），重名时用
+  `父宏/子宏` 这种写法，两种都认。
 - 用「复制客户端配置」得到一段 `.mcp.json`，把它交给支持 HTTP MCP 的客户端。
 - 客户端必须有 `http` 类型的 MCP 支持；只支持 stdio 的客户端第一版还不能接。
 - 客户端如果支持 MCP prompts，会看到两条默认提示词：`whalegenie_write_macro`（怎么写宏）与
