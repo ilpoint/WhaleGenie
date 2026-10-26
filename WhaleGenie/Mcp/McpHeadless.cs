@@ -40,6 +40,15 @@ internal static class McpHeadless
             var range = new Range.RangeWindow();
             range.Closed += (_, _) => Stop(desktop, project);
             range.Show();
+
+            // In front of whatever was there: a range nobody can click is a range that answers
+            // "the step worked" while the count stays at nothing.
+            range.Activate();
+
+            // A range run exists to be tried on, and the person asked for it by starting it this
+            // way: both switches are on for its lifetime, and the edges are what keeps it honest.
+            McpControl.Allowed = true;
+            McpControl.AllowsRun = true;
         }
 
         _ = ServeAsync(desktop, project, options.Port, options.Range);

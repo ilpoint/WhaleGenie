@@ -29,6 +29,14 @@ dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口�
 dotnet run --project WhaleGenie -c Release -- --mcp --range --port 3917
 ```
 
+端到端跑一遍靶场（会开一个真窗口、真的点一下它自己的按钮）：
+
+```
+dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --range --report TestResults/mcp-range.md
+```
+
+九项：窗口在哪、把它提到前面、写一个点按钮的宏、跑它、读回按了几下、复位、三条边界各被拒绝一次。
+
 它会多打一行 `range=<窗口句柄>`，`whalegenie_range_state` / `whalegenie_range_reset` 读它、把它复位。
 没有 `--range` 的进程里这两个工具按 `RangeNotAvailable` 拒绝。
 

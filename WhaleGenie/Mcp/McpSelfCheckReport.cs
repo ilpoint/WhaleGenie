@@ -32,6 +32,9 @@ internal sealed class McpSelfCheckReport
 {
     public string Endpoint { get; init; } = string.Empty;
 
+    /// <summary>What this run was: the whole surface, or the range alone.</summary>
+    public string Title { get; init; } = "self-check";
+
     public DateTimeOffset At { get; init; } = DateTimeOffset.Now;
 
     public List<McpCheck> Checks { get; } = [];
@@ -51,7 +54,7 @@ internal sealed class McpSelfCheckReport
     public string ToMarkdown()
     {
         var text = new StringBuilder();
-        text.Append("## WhaleGenie MCP self-check — ").Append(Endpoint).Append(" — ")
+        text.Append("## WhaleGenie MCP ").Append(Title).Append(" — ").Append(Endpoint).Append(" — ")
             .Append(At.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
             .Append('\n');
         text.Append('\n');

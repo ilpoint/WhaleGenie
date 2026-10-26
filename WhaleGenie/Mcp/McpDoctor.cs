@@ -102,12 +102,22 @@ internal static class McpDoctor
             // own server gets the whole loop; one pointed at a server somebody is using does not
             // write unless it was asked to.
             var write = options.Write || options.Spawn;
-            var report = await new McpSelfCheck(client, new McpSelfCheckOptions
+
+            // A range run is checked as a whole loop rather than as a surface: what matters there is
+            // that a macro really moved the window and that the edges really held.
+            var report = options.Range
+                ? await McpRangeCheck.RunAsync(client, endpoint, deadline.Token).ConfigureAwait(false)
+                : await new McpSelfCheck(client, new McpSelfCheckOptions
+                {
+                    Endpoint = endpoint,
+                    AllowApply = write,
+                    AllowSave = write,
+                }).RunAsync(deadline.Token).ConfigureAwait(false);
+
+            if (report is null)
             {
-                Endpoint = endpoint,
-                AllowApply = write,
-                AllowSave = write,
-            }).RunAsync(deadline.Token).ConfigureAwait(false);
+                return 1;
+            }
 
             var text = report.ToMarkdown();
             Console.Out.Write(text);
@@ -163,6 +173,10 @@ internal static class McpDoctor
         start.ArgumentList.Add("--mcp");
         start.ArgumentList.Add("--port");
         start.ArgumentList.Add("0");
+        if (options.Range)
+        {
+            start.ArgumentList.Add("--range");
+        }
 
         if (options.PackagePath is { } package)
         {
