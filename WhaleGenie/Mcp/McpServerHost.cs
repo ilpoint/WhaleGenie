@@ -131,11 +131,13 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             options.ShutdownTimeout = TimeSpan.FromSeconds(2));
         builder.Services.AddSingleton(drafts);
         builder.Services.AddSingleton(live);
+        builder.Services.AddSingleton(project);
         builder.Services
             .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)
             .WithHttpTransport(options => options.Stateless = true)
             .WithTools<McpTools>()
             .WithTools<McpControlTools>()
+            .WithTools<McpRunTools>()
             .WithResources<McpResources>()
             .WithPrompts<McpPrompts>();
 

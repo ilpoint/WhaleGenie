@@ -16,4 +16,12 @@ public static class McpControl
     /// that change something on the machine ask.
     /// </summary>
     public static bool Allowed { get; set; }
+
+    /// <summary>
+    /// True while the person has allowed an MCP client to run one macro at a time. It is a second
+    /// switch rather than part of the first: sending a click and running a macro that writes files
+    /// and starts programs are not the same favour to ask, and a person may want one without the
+    /// other. It goes back off when the server stops, like the first one.
+    /// </summary>
+    public static bool AllowsRun { get; set; }
 }

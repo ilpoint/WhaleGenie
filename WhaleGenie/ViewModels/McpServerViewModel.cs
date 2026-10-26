@@ -19,6 +19,8 @@ public partial class McpServerViewModel : ViewModelBase
     private bool _running;
     private bool _busy;
     private bool _allowControl;
+
+    private bool _allowRun;
     private string _status = Strings.Get("Mcp.Off");
     private string _endpoint = string.Empty;
     private int _port;
@@ -99,6 +101,27 @@ public partial class McpServerViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Whether an MCP client may run one macro at a time. A second switch rather than part of the
+    /// first: clicking once and running a macro that writes files are not the same favour, and it
+    /// goes back off when the server stops for the same reason the first one does.
+    /// </summary>
+    public bool AllowRun
+    {
+        get => _allowRun;
+        set
+        {
+            if (_allowRun == value)
+            {
+                return;
+            }
+
+            _allowRun = value;
+            McpControl.AllowsRun = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string Status
     {
         get => _status;
@@ -152,6 +175,7 @@ public partial class McpServerViewModel : ViewModelBase
                 await _host.StopAsync();
                 IsRunning = false;
                 AllowControl = false;
+                AllowRun = false;
                 Endpoint = string.Empty;
                 Status = Strings.Get("Mcp.Off");
             }
@@ -180,6 +204,7 @@ public partial class McpServerViewModel : ViewModelBase
 
             IsRunning = false;
             AllowControl = false;
+            AllowRun = false;
             Endpoint = string.Empty;
         }
         finally
@@ -217,6 +242,7 @@ public partial class McpServerViewModel : ViewModelBase
         {
             IsRunning = false;
             AllowControl = false;
+            AllowRun = false;
             Endpoint = string.Empty;
         }
     }
@@ -224,6 +250,10 @@ public partial class McpServerViewModel : ViewModelBase
     /// <summary>Flips the direct-control switch from the flyout, the way the server's own one flips.</summary>
     [RelayCommand]
     private void ToggleControl() => AllowControl = !AllowControl;
+
+    /// <summary>The same for running macros, which is the other thing a client can be let do.</summary>
+    [RelayCommand]
+    private void ToggleRun() => AllowRun = !AllowRun;
 
     /// <summary>
     /// Opens the file the calls are recorded in. The person asking "what did it do" is at the
