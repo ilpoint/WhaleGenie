@@ -1476,7 +1476,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "SignatureSource": "CalledMacro",
     "Parameters": [
       {
@@ -1547,7 +1547,6 @@
   {
     "Key": "control.startMacro",
     "Category": "Control",
-    "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": false,
@@ -1631,18 +1630,18 @@
         ]
       }
     ],
-    "Returns": []
+    "Returns": [],
+    "Retired": true
   },
   {
     "Key": "control.waitMacro",
     "Category": "Control",
-    "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "runHandle",
@@ -1657,12 +1656,12 @@
         "MissingKey": "Run.MissingHandle"
       }
     ],
-    "Returns": []
+    "Returns": [],
+    "Retired": true
   },
   {
     "Key": "control.runStatus",
     "Category": "Control",
-    "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": false,
@@ -1720,12 +1719,12 @@
         "Key": "error",
         "Type": "Text"
       }
-    ]
+    ],
+    "Retired": true
   },
   {
     "Key": "control.cancelMacro",
     "Category": "Control",
-    "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": true,
@@ -1775,12 +1774,12 @@
         "Type": "Flag",
         "Primary": true
       }
-    ]
+    ],
+    "Retired": true
   },
   {
     "Key": "control.waitAll",
     "Category": "Control",
-    "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": true,
@@ -1829,12 +1828,12 @@
         "Type": "Number",
         "Primary": true
       }
-    ]
+    ],
+    "Retired": true
   },
   {
     "Key": "control.waitAny",
     "Category": "Control",
-    "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
     "Waits": true,
@@ -1910,7 +1909,8 @@
         "Type": "Number",
         "Primary": false
       }
-    ]
+    ],
+    "Retired": true
   },
   {
     "Key": "file.readText",

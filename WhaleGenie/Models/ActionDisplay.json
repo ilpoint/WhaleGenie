@@ -1810,13 +1810,13 @@
   },
   {
     "Key": "control.runMacro",
-    "DisplayName": "Run Another Macro",
-    "Description": "Run another macro in this project and wait for it to finish. The called macro works on values of its own: this step fills in the arguments that macro declares, and asks for whichever of its results it wants.",
+    "DisplayName": "Run a Submacro",
+    "Description": "Call a submacro: another macro of this project, or one of this macro's own, and wait for it to finish. The submacro works on values of its own, so this step fills in the arguments it declares and asks for whichever of its results it wants.",
     "Parameters": [
       {
         "Name": "macro",
-        "Label": "Macro",
-        "Hint": "Another macro in this project.",
+        "Label": "Submacro",
+        "Hint": "Which one to call: the macros of this project and this macro's own submacros are all in the list. The arguments and results below come from it.",
         "Placeholder": "",
         "Kind": "Macro",
         "OptionLabels": [],

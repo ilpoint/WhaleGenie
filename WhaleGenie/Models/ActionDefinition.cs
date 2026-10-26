@@ -502,6 +502,12 @@ public class ActionDefinition
     /// </summary>
     public bool Hidden => Semantics.Hidden;
 
+    /// <summary>
+    /// True for an action the palette no longer offers. It still runs, and a macro written before it
+    /// was retired opens and plays as it did.
+    /// </summary>
+    public bool Retired => Semantics.Retired;
+
     /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
     public Lucide.Avalonia.LucideIconKind? Icon => ActionCatalog.IconFor(Category);
 

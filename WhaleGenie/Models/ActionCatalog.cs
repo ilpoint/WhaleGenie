@@ -106,7 +106,8 @@ public static class ActionCatalog
 
         Definitions = definitions;
         ByKey = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
-        RunnableActions = [.. definitions.Where(definition => !definition.Hidden)];
+        RunnableActions = [.. definitions.Where(definition => !definition.Hidden && !definition.Retired)];
+        PlaceableActions = [.. definitions.Where(definition => !definition.Hidden)];
     }
 
     /// <summary>
@@ -120,8 +121,17 @@ public static class ActionCatalog
 
     private static readonly Dictionary<string, ActionDefinition> ByKey;
 
-    /// <summary>Everything that can be a step of its own, hidden actions excluded.</summary>
+    /// <summary>
+    /// Everything a new macro may use: hidden and retired actions left out. This is what the palette
+    /// and the step pickers list.
+    /// </summary>
     public static IReadOnlyList<ActionDefinition> RunnableActions { get; private set; } = [];
+
+    /// <summary>
+    /// Everything that can sit in a step list, including the actions no longer offered. A macro
+    /// written before an action was retired still has to open without being told it is wrong.
+    /// </summary>
+    public static IReadOnlyList<ActionDefinition> PlaceableActions { get; private set; } = [];
 
     /// <summary>Finds a definition by its fully qualified key.</summary>
     public static ActionDefinition? Find(string key)

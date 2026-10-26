@@ -667,18 +667,18 @@ internal static class ActionStrings
         ["control.input.return.text.label"] = "回答",
         ["control.input.return.text.hint"] = "对方写下的内容。对方取消、或者没有人在场可问时为空。",
 
-        ["control.runMacro.name"] = "执行其他宏",
-        ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里，等它跑完。"
-            + "被调用的宏使用自己的一套变量：这一步按它声明的形参逐个填值，再勾选要取回的结果。",
-        ["control.runMacro.macro.label"] = "宏",
-        ["control.runMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
-            + "改名或删除后这里需要跟着改。",
+        ["control.runMacro.name"] = "执行子宏",
+        ["control.runMacro.desc"] = "调用一个子宏（别的宏或这个宏自己的子宏），效果相当于把它的步骤写在这里，等它跑完。"
+            + "子宏使用自己的一套变量：这一步按它声明的形参逐个填值，再勾选要取回的结果。",
+        ["control.runMacro.macro.label"] = "子宏",
+        ["control.runMacro.macro.hint"] = "要调用哪一个：本项目的宏，或这个宏自己的子宏都在下拉里。"
+            + "下面的形参与结果由它声明；改名或删除后这里需要跟着改。",
         ["control.runMacro.arguments.label"] = "实参",
-        ["control.runMacro.arguments.hint"] = "被调用的宏声明了哪些形参，这里就有哪些行："
+        ["control.runMacro.arguments.hint"] = "子宏声明了哪些形参，这里就有哪些行："
             + "一行一个名字，后面填这一行传过去的值。留空表示这一步不给它，它用自己的默认值；"
             + "要传一个空串就勾「传空值」，那和留空是两件事。",
         ["control.runMacro.returns.label"] = "要带回的结果",
-        ["control.runMacro.returns.hint"] = "勾上被调用的宏声明过、这一步要取回的结果："
+        ["control.runMacro.returns.hint"] = "勾上子宏声明过、这一步要取回的结果："
             + "每勾一行就得到一个本宏变量，名字可以在这一行里改。没勾就什么都不带回来。"
             + "这一步等它跑完，所以结果写完就能读。",
         ["control.startMacro.name"] = "启动其他宏",

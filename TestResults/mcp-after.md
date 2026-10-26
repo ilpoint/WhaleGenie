@@ -1,4 +1,4 @@
-## WhaleGenie MCP self-check — http://127.0.0.1:19954/mcp — 2026-10-27 06:17:05
+## WhaleGenie MCP self-check — http://127.0.0.1:18757/mcp — 2026-10-27 07:26:00
 
 Result: pass, 36 pass, 0 fail, 0 missing, 0 skip
 
@@ -9,14 +9,14 @@ Result: pass, 36 pass, 0 fail, 0 missing, 0 skip
 | tools.optional | pass | every one of 38 optional tools present |
 | prompts.list | pass | 2 prompts |
 | prompts.text | pass | both prompts carry the workflow |
-| loop.status | pass | path=C:\Users\q1233\AppData\Local\Temp\wg-mcp-doctor-b59d0832a1aa4ea3816d684ed29dc3bc\doctor.wgmacro revision=0 |
-| loop.open | pass | draft 637cc6d1 at revision 0 |
-| discovery.batch | pass | 3 actions in one call, 3593 characters |
+| loop.status | pass | path=C:\Users\q1233\AppData\Local\Temp\wg-mcp-doctor-a3ad1e6b411743e6b8822389861ce62d\doctor.wgmacro revision=0 |
+| loop.open | pass | draft 2faea98b at revision 0 |
+| discovery.batch | pass | 3 actions in one call, 3641 characters |
 | loop.put | pass | 2 steps written |
 | loop.validate | pass | no blocking problem |
 | loop.apply | pass | revision 7 |
 | reject.double_apply | pass | {"error":{"code":"AlreadyApplied","message":"This draft has already been applied.","hint":"Open the project again to get a fresh draft; one draft is written once.","retryable":false,"details":null}} |
-| loop.save | pass | C:\Users\q1233\AppData\Local\Temp\wg-mcp-doctor-b59d0832a1aa4ea3816d684ed29dc3bc\doctor.wgmacro |
+| loop.save | pass | C:\Users\q1233\AppData\Local\Temp\wg-mcp-doctor-a3ad1e6b411743e6b8822389861ce62d\doctor.wgmacro |
 | patch.put | pass | 40 steps, 40 ids in the outline |
 | patch.ids | pass | 40 ids, 40 distinct |
 | patch.set | pass | one parameter for 125 bytes against 1914 for the whole macro |
@@ -31,15 +31,15 @@ Result: pass, 36 pass, 0 fail, 0 missing, 0 skip
 | reject.bad_json | pass | An error occurred invoking 'whalegenie_put_macro'. |
 | signature.tool | pass | the signature names the argument columns and gives a call skeleton |
 | action.callShape | pass | the catalogue names where a call's parameters come from and the rows they have |
-| resources.listed | pass | 2 resources, 1 templates: whalegenie://actions / whalegenie://action-matrix / whalegenie://actions/{key} |
+| resources.listed | pass | 2 resources, 1 templates: whalegenie://action-matrix / whalegenie://actions / whalegenie://actions/{key} |
 | resources.read | pass | the catalogue reads back as a resource with 176 actions |
 | gate.control_off | pass | sending input is refused until the person allows it |
 | gate.run_off | pass | running a macro is refused until the person allows it |
 | range.absent | pass | this server has no range window and says so |
 | gate.apply_invalid | pass | {"error":{"code":"DraftHasBlockingProblems","message":"The draft has 1 blocking problem(s), so it was not applied.","hint":"Call whalegenie_validate, fix what it names, then apply again. Pass force when the problems are known and wanted.","… |
-| cleanup.637cc6d1 | pass | discarded |
-| cleanup.f79c0f65 | pass | discarded |
-| cleanup.13c494ae | pass | discarded |
+| cleanup.2faea98b | pass | discarded |
+| cleanup.41938c51 | pass | discarded |
+| cleanup.27cc427e | pass | discarded |
 
 | metric | value |
 | --- | --- |
@@ -53,9 +53,9 @@ Result: pass, 36 pass, 0 fail, 0 missing, 0 skip
 | patch.saving | 15.31 |
 | prompts.count | 2 |
 | scenario.calls | 9 |
-| scenario.longestCall | 4253 |
+| scenario.longestCall | 4301 |
 | scenario.requestBytes | 480 |
-| scenario.responseBytes | 6512 |
+| scenario.responseBytes | 6560 |
 | schema.enumParameters | 6 |
 | schema.enumRatio | 0.06 |
 | schema.jsonInString | 0 |
@@ -76,29 +76,29 @@ Result: pass, 36 pass, 0 fail, 0 missing, 0 skip
 
 | # | tool | request | response | ms | error |
 | --- | --- | --- | --- | --- | --- |
-| 1 | whalegenie_project_status | 2 | 202 | 28 |  |
-| 2 | whalegenie_open_project | 2 | 159 | 6 |  |
-| 3 | whalegenie_get_actions | 56 | 4253 | 144 |  |
-| 4 | whalegenie_macro_template | 25 | 905 | 11 |  |
-| 5 | whalegenie_put_macro | 327 | 395 | 57 |  |
+| 1 | whalegenie_project_status | 2 | 202 | 30 |  |
+| 2 | whalegenie_open_project | 2 | 159 | 7 |  |
+| 3 | whalegenie_get_actions | 56 | 4301 | 148 |  |
+| 4 | whalegenie_macro_template | 25 | 905 | 12 |  |
+| 5 | whalegenie_put_macro | 327 | 395 | 67 |  |
 | 6 | whalegenie_validate | 22 | 70 | 2 |  |
-| 7 | whalegenie_apply | 22 | 64 | 21 |  |
+| 7 | whalegenie_apply | 22 | 64 | 22 |  |
 | 8 | whalegenie_apply | 22 | 198 | 3 | yes |
 | 9 | whalegenie_save_project | 2 | 266 | 13 |  |
-| 10 | whalegenie_list_actions | 11 | 1215 | 10 |  |
+| 10 | whalegenie_list_actions | 11 | 1295 | 10 |  |
 | 11 | whalegenie_list_macros | 22 | 125 | 6 |  |
 | 12 | whalegenie_list_runs | 11 | 34 | 3 |  |
 | 13 | whalegenie_get_run_log | 2 | 172 | 2 | yes |
 | 14 | whalegenie_open_project | 2 | 222 | 4 |  |
 | 15 | whalegenie_put_macro | 1914 | 2690 | 5 |  |
 | 16 | whalegenie_patch_macro | 125 | 2765 | 17 |  |
-| 17 | whalegenie_get_macro | 54 | 3189 | 2 |  |
+| 17 | whalegenie_get_macro | 54 | 3189 | 3 |  |
 | 18 | whalegenie_patch_macro | 179 | 2834 | 6 |  |
 | 19 | whalegenie_get_macro | 54 | 3187 | 1 |  |
 | 20 | whalegenie_put_macro | 240 | 198 | 6 |  |
-| 21 | whalegenie_patch_macro | 220 | 2838 | 13 |  |
-| 22 | whalegenie_patch_macro | 279 | 3045 | 26 |  |
-| 23 | whalegenie_get_macro | 54 | 3344 | 1 |  |
+| 21 | whalegenie_patch_macro | 220 | 2838 | 15 |  |
+| 22 | whalegenie_patch_macro | 279 | 3045 | 11 |  |
+| 23 | whalegenie_get_macro | 54 | 3344 | 13 |  |
 | 24 | whalegenie_patch_macro | 140 | 287 | 3 | yes |
 | 25 | whalegenie_open_project | 2 | 222 | 1 |  |
 | 26 | whalegenie_put_macro | 116 | 348 | 2 |  |
@@ -111,16 +111,16 @@ Result: pass, 36 pass, 0 fail, 0 missing, 0 skip
 | 33 | whalegenie_validate | 22 | 204 | 1 |  |
 | 34 | whalegenie_put_macro | 51 | 50 | 4 | yes |
 | 35 | whalegenie_put_macro | 224 | 585 | 4 |  |
-| 36 | whalegenie_get_macro_signature | 37 | 1211 | 9 |  |
-| 37 | whalegenie_get_action | 26 | 2175 | 2 |  |
+| 36 | whalegenie_get_macro_signature | 37 | 1211 | 8 |  |
+| 37 | whalegenie_get_action | 26 | 2243 | 2 |  |
 | 38 | whalegenie_discard | 22 | 24 | 1 |  |
 | 39 | whalegenie_mouse_move | 13 | 287 | 4 | yes |
 | 40 | whalegenie_run_macro | 32 | 327 | 5 | yes |
 | 41 | whalegenie_range_state | 2 | 229 | 2 | yes |
 | 42 | whalegenie_open_project | 2 | 222 | 1 |  |
 | 43 | whalegenie_put_macro | 107 | 358 | 2 |  |
-| 44 | whalegenie_apply | 22 | 460 | 3 | yes |
-| 45 | whalegenie_discard | 22 | 24 | 1 |  |
+| 44 | whalegenie_apply | 22 | 460 | 2 | yes |
+| 45 | whalegenie_discard | 22 | 24 | 0 |  |
 | 46 | whalegenie_discard | 22 | 24 | 0 |  |
 | 47 | whalegenie_discard | 22 | 24 | 0 |  |
 

@@ -79,7 +79,8 @@ public class McpActionKnowledgeTests
         // The arguments and results of a call belong to the macro it calls, so the catalogue can
         // only say where they come from — and what shape the row list that asks for them has.
         Assert.Equal("CalledMacro", call.SignatureSource);
-        Assert.Equal(60_000, call.TimeoutMs);
+        // Ten minutes, not one: a submacro with slow work in it used to time out at a minute.
+        Assert.Equal(600_000, call.TimeoutMs);
         var returns = Assert.Single(call.Parameters, parameter => parameter.Name == "returns");
         Assert.Equal(["key", "name"], returns.Columns.Select(column => column.Name));
         Assert.All(returns.Columns, column => Assert.True(column.Required));

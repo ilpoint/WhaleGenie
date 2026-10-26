@@ -9,7 +9,7 @@ namespace WhaleGenie.Mcp;
 
 /// <summary>A compact action entry for the MCP list.</summary>
 public sealed record McpActionSummary(
-    string Key, string Name, string Category, string Description, bool Hidden);
+    string Key, string Name, string Category, string Description, bool Hidden, bool Retired);
 
 /// <summary>One category of the catalogue and how many actions it holds.</summary>
 public sealed record McpActionCategory(string Name, int Count);
@@ -54,7 +54,7 @@ public sealed record McpActionReturn(
 /// is why its own parameter list cannot name them.
 /// </summary>
 public sealed record McpActionDetails(
-    string Key, string Name, string Category, string Description, bool Hidden,
+    string Key, string Name, string Category, string Description, bool Hidden, bool Retired,
     bool SendsInput, bool LooksAtScreen, bool Waits, string TimeoutSource,
     IReadOnlyList<McpActionParameter> Parameters, IReadOnlyList<McpActionReturn> Returns,
     string SignatureSource, int TimeoutMs);
@@ -109,7 +109,8 @@ public static class ActionKnowledge
                 definition.LocalName,
                 definition.Category.ToString(),
                 definition.LocalDescription,
-                definition.Hidden))
+                definition.Hidden,
+                definition.Retired))
             .ToList();
 
         return new McpActionPage(
@@ -250,6 +251,7 @@ public static class ActionKnowledge
             definition.Category.ToString(),
             definition.LocalDescription,
             definition.Hidden,
+            definition.Retired,
             facts?.SendsInput ?? false,
             facts?.LooksAtScreen ?? false,
             facts?.Waits ?? false,
