@@ -418,6 +418,53 @@ public class McpControlTests : IDisposable
         Assert.Equal("CalcFrame", detailed.GetProperty("windows")[0].GetProperty("className").GetString());
     }
 
+    /// <summary>
+    /// Raising a window answers for what happened, not for what was asked: Windows can refuse to
+    /// bring a window forward and still report the call as made, and a client that believes it is
+    /// typing into the window it raised types into whatever is really in front.
+    /// </summary>
+    [Fact]
+    public async Task Raising_a_window_says_whether_it_got_there()
+    {
+        McpControl.Allowed = true;
+        _windows.Add(4242, "别的窗口", "other", "Other");
+        _windows.Add(9999, "WhaleGenie Range", "WhaleGenie", "AvaloniaWindow");
+
+        // The other window is listed first, so it is the one in front: asking for ours changed
+        // nothing, and the answer says so while still saying the request was made.
+        var refused = Json(await _tools.WindowActivate(9999));
+        Assert.False(refused.GetProperty("activated").GetBoolean());
+        Assert.True(refused.GetProperty("requested").GetBoolean());
+    }
+
+    /// <summary>
+    /// Moving a window does not need its size. A client that only wanted it somewhere else had to
+    /// read the size first and send it back unchanged, and a call without it was refused.
+    /// </summary>
+    [Fact]
+    public async Task A_window_can_be_moved_without_resizing_it()
+    {
+        _windows.Add(4242, "计算器", "Calculator", "CalcFrame");
+        _windows.Place(4242, 0, 0, 320, 240);
+        McpControl.Allowed = true;
+
+        var moved = Json(await _tools.WindowMove(4242, 50, 60));
+        Assert.True(moved.GetProperty("moved").GetBoolean());
+        Assert.Equal(320, moved.GetProperty("width").GetInt32());
+        Assert.Equal(240, moved.GetProperty("height").GetInt32());
+
+        var window = _windows.List().Single(candidate => candidate.Handle == 4242);
+        Assert.Equal(50, window.Location.X);
+        Assert.Equal(60, window.Location.Y);
+        Assert.Equal(320, window.Size.Width);
+
+        // A size that was named still resizes, and one that cannot exist is still refused.
+        var resized = Json(await _tools.WindowMove(4242, 10, 20, 200, 100));
+        Assert.Equal(200, resized.GetProperty("width").GetInt32());
+        var refused = await _tools.WindowMove(4242, 10, 20, 0, 100);
+        Assert.True(refused.IsError);
+    }
+
     private static string Text(CallToolResult result)
         => result.Content.OfType<TextContentBlock>().Last().Text;
 

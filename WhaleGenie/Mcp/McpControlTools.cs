@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
@@ -425,8 +426,25 @@ public sealed class McpControlTools
         [Description("The window handle from whalegenie_list_windows.")] long handle)
         => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Drive("whalegenie_window_activate", () =>
         {
-            var activated = _devices().Windows.Activate(handle);
-            return new { handle, activated };
+            var windows = _devices().Windows;
+            var asked = windows.Activate(handle);
+
+            // Windows answers the request, not the result: it can refuse to raise a window and
+            // still say the call went through, which leaves a client believing it is typing into
+            // the window it raised. The window is looked for in front before that is reported.
+            var raised = false;
+            for (var look = 0; look < 6; look++)
+            {
+                if (windows.Foreground()?.Handle == handle)
+                {
+                    raised = true;
+                    break;
+                }
+
+                Thread.Sleep(30);
+            }
+
+            return new { handle, activated = raised, requested = asked };
         }, allow: () => NotOurs(handle)))));
 
     [McpServerTool(Name = "whalegenie_window_move", Destructive = true, Title = "Move or resize a window"),
@@ -435,19 +453,32 @@ public sealed class McpControlTools
         [Description("The window handle from whalegenie_list_windows.")] long handle,
         [Description("Left edge of the window in screen pixels.")] int x,
         [Description("Top edge of the window in screen pixels.")] int y,
-        [Description("Width of the window in pixels.")] int width,
-        [Description("Height of the window in pixels.")] int height)
+        [Description("Width in pixels; empty keeps the width it has. A window is moved far more often than it is resized.")] int? width = null,
+        [Description("Height in pixels; empty keeps the height it has.")] int? height = null)
         => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Drive("whalegenie_window_move", () =>
         {
-            if (width <= 0 || height <= 0)
+            if (width is <= 0 || height is <= 0)
             {
                 throw new McpFailure(McpErrors.BadArgument,
                     "A window's width and height have to be above zero.",
-                    "Screen pixels; the window cannot be smaller than one pixel either way.");
+                    "Screen pixels; leave them out to keep the size the window has now.");
             }
 
-            var moved = _devices().Windows.Move(handle, x, y, width, height);
-            return new { handle, x, y, width, height, moved };
+            // Moving a window used to need its size as well, so a client that only wanted it
+            // somewhere else had to read the size first and pass it back unchanged.
+            var windows = _devices().Windows;
+            var current = windows.List().FirstOrDefault(candidate => candidate.Handle == handle);
+            var moved = windows.Move(handle, x, y,
+                width ?? current?.Size.Width ?? 0, height ?? current?.Size.Height ?? 0);
+            return new
+            {
+                handle,
+                x,
+                y,
+                width = width ?? current?.Size.Width ?? 0,
+                height = height ?? current?.Size.Height ?? 0,
+                moved,
+            };
         }, allow: () => NotOurs(handle)))));
 
     [McpServerTool(Name = "whalegenie_window_close", Destructive = true, Title = "Close a window"),
