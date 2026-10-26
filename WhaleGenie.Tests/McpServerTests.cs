@@ -978,6 +978,178 @@ public class McpServerTests
         });
     }
 
+    /// <summary>
+    /// One step can be read on its own: its JSON, where it sits, and what validation says about it.
+    /// Before this, changing one parameter meant fetching the whole macro.
+    /// </summary>
+    [Fact]
+    public void A_client_can_read_one_step_by_id()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse("""
+                        {"name":"单步","steps":[
+                          {"type":"control.repeat","params":{"times":"2","intervalMs":"0","body":[
+                            {"type":"control.delay","params":{"ms":"5"}}
+                          ]}}
+                        ]}
+                        """),
+                })).RootElement;
+            var inner = put.GetProperty("outline")[1].GetProperty("id").GetString()!;
+
+            var step = JsonDocument.Parse(await Call(client, "whalegenie_get_step",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "单步",
+                    ["stepId"] = inner,
+                })).RootElement;
+            Assert.Equal("control.delay", step.GetProperty("type").GetString());
+            Assert.Equal("0.body.0", step.GetProperty("path").GetString());
+            Assert.Equal("5", step.GetProperty("step").GetProperty("params")
+                .GetProperty("ms").GetRawText());
+            Assert.Equal(0, step.GetProperty("problems").GetArrayLength());
+
+            var missing = await client.CallToolAsync("whalegenie_get_step",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "单步",
+                    ["stepId"] = "zzzz",
+                });
+            Assert.True(missing.IsError);
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// The global declarations can be read back in the shape they are written in, so a client does
+    /// not have to replace a list it has never seen.
+    /// </summary>
+    [Fact]
+    public void A_client_can_read_the_global_declarations()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            await Call(client, "whalegenie_set_globals", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["globals"] = JsonNode.Parse("""
+                    [{"name":"计数","type":"number","default":"1","description":"多少次"}]
+                    """),
+            });
+
+            var answer = JsonDocument.Parse(await Call(client, "whalegenie_get_globals",
+                new Dictionary<string, object?> { ["draftId"] = draft })).RootElement;
+            Assert.Equal(1, answer.GetProperty("count").GetInt32());
+            var one = answer.GetProperty("globals")[0];
+            Assert.Equal("计数", one.GetProperty("name").GetString());
+            Assert.Equal("number", one.GetProperty("type").GetString());
+            Assert.Equal("1", one.GetProperty("default").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>A long project is paged rather than answered whole, and says whether more is left.</summary>
+    [Fact]
+    public void The_macro_list_is_paged()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            foreach (var name in new[] { "甲", "乙", "丙" })
+            {
+                await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse($$"""{"name":"{{name}}","steps":[]}"""),
+                });
+            }
+
+            var first = JsonDocument.Parse(await Call(client, "whalegenie_list_macros",
+                new Dictionary<string, object?> { ["draftId"] = draft, ["limit"] = 2 })).RootElement;
+            Assert.Equal(3, first.GetProperty("total").GetInt32());
+            Assert.Equal(2, first.GetProperty("macros").GetArrayLength());
+            Assert.True(first.GetProperty("hasMore").GetBoolean());
+
+            var last = JsonDocument.Parse(await Call(client, "whalegenie_list_macros",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["offset"] = 2,
+                    ["limit"] = 2,
+                })).RootElement;
+            Assert.Equal(1, last.GetProperty("macros").GetArrayLength());
+            Assert.False(last.GetProperty("hasMore").GetBoolean());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>A patch can leave the outline out, which is most of the answer for a long macro.</summary>
+    [Fact]
+    public void A_patch_can_leave_the_outline_out()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse("""{"name":"短","steps":[{"type":"control.delay","params":{"ms":"1"}}]}"""),
+                })).RootElement;
+            var id = put.GetProperty("outline")[0].GetProperty("id").GetString()!;
+
+            var small = JsonDocument.Parse(await Call(client, "whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "短",
+                    ["operations"] = JsonNode.Parse(
+                        $$"""[{"op":"set","stepId":"{{id}}","param":"ms","value":7}]"""),
+                    ["includeOutline"] = false,
+                })).RootElement;
+            Assert.False(small.TryGetProperty("outline", out _));
+            Assert.Equal(1, small.GetProperty("changed").GetArrayLength());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>Opens a draft and hands back its id.</summary>
+    private static async Task<string> Draft(McpClient client)
+        => JsonDocument.Parse(await Call(client, "whalegenie_open_project",
+            new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
+
     private static async Task<string> Call(McpClient client, string name,
         Dictionary<string, object?> arguments)
     {

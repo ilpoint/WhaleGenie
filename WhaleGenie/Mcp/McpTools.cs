@@ -134,13 +134,25 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_list_macros", ReadOnly = true,
             Title = "List the macros in a draft"),
-     Description("Lists the macros in an MCP draft with the total, and for each one the arguments it declares (name, type, required) and the results it hands back — which is what a call to it has to know.")]
+     Description("Lists the macros in an MCP draft with the total, and for each one the arguments it declares (name, type, required) and the results it hands back — which is what a call to it has to know. A long project is paged: hasMore says whether anything was left out.")]
     public Task<CallToolResult> ListMacros(
-        [Description("The draft id returned by whalegenie_open_project.")] string draftId)
+        [Description("The draft id returned by whalegenie_open_project.")] string draftId,
+        [Description("How many to skip; empty starts at the first.")] int offset = 0,
+        [Description("How many to return, 1 to 200; 100 by default.")] int limit = 100)
         => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
         {
-            var macros = drafts.Get(draftId).MacroSnapshot().Select(Summary).ToList();
-            return new { total = macros.Count, macros };
+            var all = drafts.Get(draftId).MacroSnapshot().Select(Summary).ToList();
+            var from = Math.Clamp(offset, 0, all.Count);
+            var size = Math.Clamp(limit <= 0 ? 100 : limit, 1, 200);
+            var page = all.Skip(from).Take(size).ToList();
+            return new
+            {
+                total = all.Count,
+                offset = from,
+                limit = size,
+                hasMore = from + page.Count < all.Count,
+                macros = page,
+            };
         })));
 
     [McpServerTool(Name = "whalegenie_get_macro", ReadOnly = true,
@@ -158,6 +170,56 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     retryable: true, details: new { name })
                 : McpErrors.Ok(await Ui(() => macro.ToJson(includeTriggers: true)));
         });
+
+    [McpServerTool(Name = "whalegenie_get_step", ReadOnly = true,
+            Title = "Read one step"),
+     Description("Returns one step of a macro as the JSON the package stores, the path it sits at, and whatever validation says about that step alone. Reading one step is what a client needs before changing one parameter: fetching the whole macro for that is the cost this avoids.")]
+    public Task<CallToolResult> GetStep(
+        [Description("The draft id.")] string draftId,
+        [Description("The macro name.")] string name,
+        [Description("The four-character step id from an outline.")] string stepId)
+        => McpErrors.RunAsync(async () =>
+        {
+            var answer = await Ui(() =>
+            {
+                var draft = drafts.Get(draftId);
+                var macro = draft.Find(name);
+                if (macro is null)
+                {
+                    return null;
+                }
+
+                var found = Find(macro.Steps, stepId, string.Empty);
+                return found is { } place
+                    ? new
+                    {
+                        name,
+                        stepId,
+                        place.Path,
+                        type = place.Step.Type,
+                        step = place.Step.ToJson(),
+                        problems = Problems(draft, name, stepId),
+                    }
+                    : null;
+            });
+
+            return answer is null
+                ? McpErrors.Fail(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\" with step \"{stepId}\".",
+                    "Call whalegenie_get_macro and read its outline; the path there is what insert and move use.",
+                    retryable: true, details: new { name, stepId })
+                : McpErrors.Ok(answer);
+        });
+
+    [McpServerTool(Name = "whalegenie_get_globals", ReadOnly = true,
+            Title = "Read the global declarations"),
+     Description("Returns the package's global variable declarations in the shape whalegenie_set_globals takes, so a whole-list write does not have to be made blind.")]
+    public Task<CallToolResult> GetGlobals(
+        [Description("The draft id.")] string draftId)
+        => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
+        {
+            var globals = drafts.Get(draftId).GlobalList();
+            return new { count = globals.Count, globals };
+        })));
 
     [McpServerTool(Name = "whalegenie_put_macro", Destructive = true,
             Title = "Write a whole macro"),
@@ -197,7 +259,8 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name,
         [Description("The operations: {op:\"set\",stepId,param,value}, {op:\"insert\",parent,index,step}, {op:\"remove\",stepId} or {op:\"move\",stepId,parent,index}. A parent is a list path such as 0.then, or empty for the top level.")] JsonArray operations,
-        [Description("Also returns the whole macro. Off by default, because the outline already says what it holds.")] bool includeMacro = false)
+        [Description("Also returns the whole macro. Off by default, because the outline already says what it holds.")] bool includeMacro = false,
+        [Description("Returns the outline of every step after the patch. On by default; turn it off when only the changed list is needed.")] bool includeOutline = true)
         => McpErrors.RunAsync(async () =>
         {
             var draft = drafts.Get(draftId);
@@ -229,24 +292,28 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             var changed = outcome.Touches
                 .Select(touch => new { op = touch.Op, stepId = touch.Step.Id, type = touch.Step.Type })
                 .ToList();
-            return includeMacro
-                ? McpErrors.Ok(new
-                {
-                    name = written.Name,
-                    steps = written.Steps.Count,
-                    changed,
-                    outline,
-                    validation = Shape(validation),
-                    macro = await Ui(() => written.ToJson(includeTriggers: true)),
-                })
-                : McpErrors.Ok(new
-                {
-                    name = written.Name,
-                    steps = written.Steps.Count,
-                    changed,
-                    outline,
-                    validation = Shape(validation),
-                });
+            // What a patch answers with is decided by what the caller asked for: the outline of a
+            // forty-step macro is most of the answer, and a client that only wants to know what
+            // changed should not pay for it on every call.
+            var answer = new Dictionary<string, object?>
+            {
+                ["name"] = written.Name,
+                ["steps"] = written.Steps.Count,
+                ["changed"] = changed,
+                ["validation"] = Shape(validation),
+            };
+
+            if (includeOutline)
+            {
+                answer["outline"] = outline;
+            }
+
+            if (includeMacro)
+            {
+                answer["macro"] = await Ui(() => written.ToJson(includeTriggers: true));
+            }
+
+            return McpErrors.Ok(answer);
         });
 
     [McpServerTool(Name = "whalegenie_delete_macro", Destructive = true,
@@ -580,6 +647,47 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 }
             }
         }
+    }
+
+    /// <summary>Where a step sits: the step itself and the path an insert or a move would name.</summary>
+    private static (MacroStep Step, string Path)? Find(IReadOnlyList<MacroStep> steps, string id, string prefix)
+    {
+        for (var at = 0; at < steps.Count; at++)
+        {
+            var step = steps[at];
+            var path = prefix.Length == 0
+                ? at.ToString(CultureInfo.InvariantCulture)
+                : $"{prefix}.{at.ToString(CultureInfo.InvariantCulture)}";
+            if (string.Equals(step.Id, id, StringComparison.OrdinalIgnoreCase))
+            {
+                return (step, path);
+            }
+
+            foreach (var parameter in step.StepLists)
+            {
+                if (Find(parameter.Steps, id, $"{path}.{parameter.Name}") is { } child)
+                {
+                    return child;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>What validation says about one step, both what blocks and what is only worth reading.</summary>
+    private static IReadOnlyList<object> Problems(McpDraft draft, string macro, string stepId)
+    {
+        var validation = McpDraftStore.Validate(draft);
+        return
+        [
+            .. validation.Blocking
+                .Where(problem => problem.Macro == macro && problem.StepId == stepId)
+                .Select(problem => (object)new { kind = "blocking", problem.Code, problem.Message }),
+            .. validation.Hints
+                .Where(problem => problem.Macro == macro && problem.StepId == stepId)
+                .Select(problem => (object)new { kind = "hint", problem.Code, problem.Message }),
+        ];
     }
 
     /// <summary>

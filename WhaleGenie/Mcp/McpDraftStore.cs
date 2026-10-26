@@ -122,6 +122,26 @@ public sealed class McpDraft
         }
     }
 
+    /// <summary>
+    /// The global declarations this draft carries, in the same shape <see cref="SetGlobals"/> takes.
+    /// Reading them first is what keeps a whole-list write from quietly dropping the ones nobody
+    /// mentioned.
+    /// </summary>
+    public IReadOnlyList<object> GlobalList()
+    {
+        lock (_gate)
+        {
+            return [.. Globals.Select(variable => new
+            {
+                name = variable.Name,
+                type = variable.Type,
+                @default = variable.DefaultValue,
+                description = variable.Description,
+                persistent = variable.PersistValue,
+            })];
+        }
+    }
+
     /// <summary>Replaces the package's global declarations. Values are not run here; only the declarations change.</summary>
     public void SetGlobals(JsonArray array)
     {

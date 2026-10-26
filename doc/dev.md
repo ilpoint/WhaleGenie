@@ -261,7 +261,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   `Put` / `Delete` / `SetGlobals` 与 `McpLiveProject` 的 `ApplyAsync` / `SaveAsync` 各记一条；只读工具不记。
   `type_text` 只记字数不记内容——日志在磁盘上，正文不该在那里。浮层的「查看调用记录」打开今天的文件（还没写过
   就打开文件夹）。`builder.Logging.ClearProviders()` 保留：框架日志关着，审计是我们自己的记录。
-- 列表类返回一律带 `total`；`get_run_log` 带 `totalLines` / `returned` / `truncated` / `fromLine`，从末尾
+- 列表类返回一律带 `total` 与 `hasMore`（`list_macros`、`list_actions`）；`get_run_log` 带 `totalLines` / `returned` / `truncated` / `fromLine`，从末尾
   取（出错的行在最后），不再静默截断。
 - 失败日志按文件名认（`McpFailureLogs`，只认 `failure-*.log` 且必须在日志目录里）：日志目录里还有服务器
   自己的调用记录，按"最新一个 .log"取会读到审计文件。
