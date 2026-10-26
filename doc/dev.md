@@ -44,6 +44,19 @@ dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --range --rep
 落在窗口里、窗口句柄只认靶场那个、跑宏时不放脚本/结束进程/关机、文件只能写进靶场目录、单次运行 60 秒封顶。
 拒绝码是 `Range.*`，每条都写审计。窗口位置另存一份纯数字（`RangeWindow.Where`），别的线程读它不必碰界面。
 
+**换一台机器验证**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录落在
+会话 0，那里没有桌面——窗口建得出来但没人看得见，SendInput 也到不了，靶场会一直报 presses 为 0。
+在没有图形登录的机器上，先建一个交互式计划任务再运行：
+
+```
+schtasks /Create /TN WhaleGenieRange /TR C:\wg\run.bat /SC ONCE /ST 23:59 /IT /F
+schtasks /Run /TN WhaleGenieRange
+```
+
+`run.bat` 里写 `WhaleGenie.exe --mcp-doctor --spawn --range --report C:\wg\mcp-range.md > C:\wg\range.log 2>&1`，
+跑完看 `range.log`。这样验证过 Windows 10 22H2 / .NET 10 / 1280×1024 的虚拟机：
+[TestResults/mcp-range-vm.md](../TestResults/mcp-range-vm.md) 九项全过，presses 从 0 到 1。
+
 量动作契约，把矩阵写到指定文件（不给变量就只在测试里算，不落盘）：
 
 ```powershell
