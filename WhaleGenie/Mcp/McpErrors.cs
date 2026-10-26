@@ -31,6 +31,11 @@ internal static class McpErrors
     public const string RunNotAllowed = "RunNotAllowed";
     public const string RunBusy = "RunBusy";
     public const string RangeNotAvailable = "RangeNotAvailable";
+    public const string RangeOutsideTarget = "Range.OutsideTarget";
+    public const string RangeForeignWindow = "Range.ForeignWindow";
+    public const string RangePathOutside = "Range.PathOutside";
+    public const string RangeActionRefused = "Range.ActionRefused";
+    public const string RangeTimeout = "Range.Timeout";
     public const string DeviceUnavailable = "DeviceUnavailable";
     public const string DeviceFailed = "DeviceFailed";
     public const string Internal = "Internal";

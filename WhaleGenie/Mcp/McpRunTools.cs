@@ -98,6 +98,26 @@ public sealed class McpRunTools
                     candidate.Steps.ToExecutable(),
                     candidate.Callable.Signature,
                     candidate.ExclusiveInput)));
+            // A range run is the same run with edges: steps that start a program of their own, or
+            // write outside the range folder, are refused before anything is touched, and the run
+            // gets a shorter budget than a person's own would.
+            var inRange = Range.RangeWindow.Where is not null;
+            if (inRange)
+            {
+                Range.RangePolicy.Ready();
+                if (Range.RangePolicy.Judge(steps) is { } crossed)
+                {
+                    McpAudit.Note("run_macro", "refused", crossed.Edge == Range.RangeEdge.Action
+                        ? McpErrors.RangeActionRefused
+                        : McpErrors.RangePathOutside);
+                    return crossed.Edge == Range.RangeEdge.Action
+                        ? McpErrors.Fail(McpErrors.RangeActionRefused, crossed.Why,
+                            "Take that step out, or run the macro outside a range run.")
+                        : McpErrors.Fail(McpErrors.RangePathOutside, crossed.Why,
+                            $"Write inside {Range.RangePolicy.Folder}, or run the macro outside a range run.");
+                }
+            }
+
             var signature = macro.Callable.Signature;
             var exclusive = macro.ExclusiveInput;
             var scale = macro.DelayScale;
@@ -140,6 +160,10 @@ public sealed class McpRunTools
                 };
 
                 var budget = Math.Clamp(timeoutMs, 1000, 3_600_000);
+                if (inRange && budget > Range.RangePolicy.LongestRunMs)
+                {
+                    budget = Range.RangePolicy.LongestRunMs;
+                }
                 using var deadline = new CancellationTokenSource(budget);
                 using var both = CancellationTokenSource.CreateLinkedTokenSource(token.Token, deadline.Token);
 

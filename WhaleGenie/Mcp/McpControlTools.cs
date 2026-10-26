@@ -305,7 +305,7 @@ public sealed class McpControlTools
         {
             Front().MoveMouse(x, y, Span(durationMs));
             return new { x, y, durationMs = Span(durationMs), cursor = Where() };
-        }))));
+        }, allow: () => Outside(x, y)))));
 
     [McpServerTool(Name = "whalegenie_mouse_click", Destructive = true, Title = "Click"),
      Description("Moves the pointer to a point and presses a mouse button there.")]
@@ -323,7 +323,7 @@ public sealed class McpControlTools
             var times = Math.Clamp(clicks, 1, 10);
             Front().Click(pressed, x, y, times, Span(intervalMs));
             return new { button = pressed, x, y, clicks = times, cursor = Where() };
-        }))));
+        }, allow: () => Outside(x, y)))));
 
     [McpServerTool(Name = "whalegenie_mouse_scroll", Destructive = true, Title = "Turn the wheel"),
      Description("Turns the wheel at a point of the screen, or where the pointer already is.")]
@@ -332,13 +332,18 @@ public sealed class McpControlTools
         [Description("How far, in wheel units, where 120 is one notch.")] int delta = 120,
         [Description("Horizontal position in screen pixels; empty means where the pointer is.")] int? x = null,
         [Description("Vertical position in screen pixels; empty means where the pointer is.")] int? y = null)
-        => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Drive("whalegenie_mouse_scroll", () =>
+        => Task.FromResult(McpErrors.Run(() =>
         {
+            // Where the wheel turns is read before the call rather than inside it, so the range can
+            // refuse a point that was never asked for as well as one that was.
             var at = At(x, y);
-            var way = Way(direction);
-            Front().Scroll(way, delta, at.X, at.Y);
-            return new { direction = way, delta, at = new { at.X, at.Y }, cursor = Where() };
-        }))));
+            return McpErrors.Ok(Drive("whalegenie_mouse_scroll", () =>
+            {
+                var way = Way(direction);
+                Front().Scroll(way, delta, at.X, at.Y);
+                return new { direction = way, delta, at = new { at.X, at.Y }, cursor = Where() };
+            }, allow: () => Outside(at.X, at.Y)));
+        }));
 
     [McpServerTool(Name = "whalegenie_mouse_drag", Destructive = true, Title = "Drag"),
      Description("Presses a mouse button at one point, walks the pointer to another with it held, and lets go there.")]
@@ -362,7 +367,7 @@ public sealed class McpControlTools
                 to = new { x = toX, y = toY },
                 cursor = Where(),
             };
-        }))));
+        }, allow: () => Outside(fromX, fromY) ?? Outside(toX, toY)))));
 
     [McpServerTool(Name = "whalegenie_key", Destructive = true, Title = "Press keys"),
      Description("Presses one key, or a chord of keys held together such as Ctrl+Shift+S, the way a person's hands do. Input goes to whatever window has the focus.")]
@@ -422,7 +427,7 @@ public sealed class McpControlTools
         {
             var activated = _devices().Windows.Activate(handle);
             return new { handle, activated };
-        }))));
+        }, allow: () => NotOurs(handle)))));
 
     [McpServerTool(Name = "whalegenie_window_move", Destructive = true, Title = "Move or resize a window"),
      Description("Moves and resizes one window, in screen pixels.")]
@@ -443,7 +448,7 @@ public sealed class McpControlTools
 
             var moved = _devices().Windows.Move(handle, x, y, width, height);
             return new { handle, x, y, width, height, moved };
-        }))));
+        }, allow: () => NotOurs(handle)))));
 
     [McpServerTool(Name = "whalegenie_window_close", Destructive = true, Title = "Close a window"),
      Description("Asks one window to close, the same as clicking its close button.")]
@@ -453,7 +458,7 @@ public sealed class McpControlTools
         {
             var closed = _devices().Windows.Close(handle);
             return new { handle, closed };
-        }))));
+        }, allow: () => NotOurs(handle)))));
 
     /// <summary>The device that sends input the way a person's own input goes.</summary>
     private IInputDevice Front() => _devices().Inputs.For(InputRoute.Front);
@@ -499,6 +504,37 @@ public sealed class McpControlTools
     }
 
     /// <summary>
+    /// Why a point may not be touched, or null when it may. With no range window open every point is
+    /// allowed: the range only takes edges away from the client, it never adds one.
+    /// </summary>
+    private static McpFailure? Outside(int x, int y)
+    {
+        if (Range.RangeWindow.Where is not { } where)
+        {
+            return null;
+        }
+
+        return Range.RangePolicy.Inside(x, y, where.X, where.Y, where.Width, where.Height)
+            ? null
+            : new McpFailure(McpErrors.RangeOutsideTarget,
+                $"({x}, {y}) is outside the range window.",
+                $"The range is at ({where.X}, {where.Y}) and {where.Width} by {where.Height}; aim inside it, or read whalegenie_range_state for where each control sits.");
+    }
+
+    /// <summary>Why a window may not be worked, or null when it may.</summary>
+    private static McpFailure? NotOurs(long handle)
+    {
+        if (Range.RangeWindow.Where is not { } where || handle == where.Handle)
+        {
+            return null;
+        }
+
+        return new McpFailure(McpErrors.RangeForeignWindow,
+            $"Window {handle} is not the range window.",
+            $"A range run only works its own window ({where.Handle}); the rest of the desktop is out of bounds.");
+    }
+
+    /// <summary>
     /// What one control says about itself right now, or null when it cannot be asked. The selector
     /// the element reports is what the question is put with, so the answer is about the same control
     /// the caller was looking at.
@@ -522,7 +558,8 @@ public sealed class McpControlTools
     /// What to write in the audit line, for a call whose size is the thing worth remembering. The
     /// typed text itself is never written: the log says how much was typed, not what.
     /// </param>
-    private static T Drive<T>(string tool, Func<T> work, string? summary = null)
+    private static T Drive<T>(string tool, Func<T> work, string? summary = null,
+        Func<McpFailure?>? allow = null)
     {
         if (!McpControl.Allowed)
         {
@@ -531,6 +568,14 @@ public sealed class McpControlTools
                 "Direct control is off, so nothing was sent to the machine.",
                 "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
                 " Looking at the screen needs no switch.");
+        }
+
+        // The range takes edges away on top of the switch: with one open, a point outside it and a
+        // window that is not it are refused whatever the person allowed.
+        if (allow?.Invoke() is { } refusal)
+        {
+            McpAudit.Note(tool, "refused", refusal.Code);
+            throw refusal;
         }
 
         lock (InputLock)

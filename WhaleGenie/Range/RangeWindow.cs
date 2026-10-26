@@ -23,6 +23,12 @@ public sealed class RangeWindow : Window
     /// <summary>The window a range run opened, or null when this run is not a range.</summary>
     public static RangeWindow? Current { get; private set; }
 
+    /// <summary>
+    /// Where the window is, kept as plain numbers so a check on another thread can read it without
+    /// touching the interface. It is refreshed as the window opens, moves and resizes.
+    /// </summary>
+    public static RangeBounds? Where { get; private set; }
+
     /// <summary>The colour of the swatch, which never changes while the window is open.</summary>
     public const string Swatch = "#3366CC";
 
@@ -93,6 +99,9 @@ public sealed class RangeWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         Current = this;
+        Locate();
+        PositionChanged += (_, _) => Locate();
+        SizeChanged += (_, _) => Locate();
         base.OnOpened(e);
     }
 
@@ -102,10 +111,19 @@ public sealed class RangeWindow : Window
         if (ReferenceEquals(Current, this))
         {
             Current = null;
+            Where = null;
         }
 
         base.OnClosed(e);
     }
+
+    /// <summary>Reads where the window is now, so the check on another thread has the latest numbers.</summary>
+    private void Locate() => Where = new RangeBounds(
+        (TryGetPlatformHandle()?.Handle ?? IntPtr.Zero).ToInt64(),
+        Position.X,
+        Position.Y,
+        (int)ClientSize.Width,
+        (int)ClientSize.Height);
 
     /// <summary>How many times the counting button was pressed since the last reset.</summary>
     public int Presses { get; private set; }
@@ -131,6 +149,7 @@ public sealed class RangeWindow : Window
             y = Position.Y,
             width = (int)ClientSize.Width,
             height = (int)ClientSize.Height,
+            folder = RangePolicy.Folder,
             presses = Presses,
             dangerPresses = DangerPresses,
             text = Field,

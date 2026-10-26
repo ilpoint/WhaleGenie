@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -9,6 +10,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Mcp;
 using WhaleGenie.Range;
 using WhaleGenie.ViewModels;
@@ -138,6 +140,152 @@ public class RangeWindowTests
             return true;
         });
     }
+
+    /// <summary>
+    /// A point outside the window is refused, and the refusal says where the window is. Without the
+    /// edge the window would only be a target, not a range.
+    /// </summary>
+    [Fact]
+    public void A_point_outside_the_range_is_refused()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RangeWindow();
+            window.Show();
+            var where = RangeWindow.Where!;
+
+            var devices = new ChecksDevices { Inputs = new SingleInputRouter(new RecordingInput()) };
+            var tools = new McpControlTools(() => devices);
+            McpControl.Allowed = true;
+            try
+            {
+                var inside = new[] { tools.MouseMove(where.X + 60, where.Y + 58) };
+                Assert.True(inside[0].Result.IsError is not true);
+
+                var outside = tools.MouseMove(where.X - 40, where.Y - 40).Result;
+                Assert.True(outside.IsError == true);
+                Assert.Equal("Range.OutsideTarget", Code(outside));
+
+                var far = tools.MouseClick(where.X + where.Width + 5, where.Y + 10).Result;
+                Assert.Equal("Range.OutsideTarget", Code(far));
+            }
+            finally
+            {
+                McpControl.Allowed = false;
+                window.Close();
+            }
+        });
+    }
+
+    /// <summary>A window that is not the range's is refused, so the rest of the desktop stays out of reach.</summary>
+    [Fact]
+    public void A_window_that_is_not_the_range_is_refused()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RangeWindow();
+            window.Show();
+            var mine = RangeWindow.Where!.Handle;
+
+            var windows = new WindowsForChecks();
+            windows.Add(mine, "WhaleGenie Range", "WhaleGenie", "AvaloniaWindow");
+            windows.Add(4242, "别的窗口", "other", "Other");
+            var devices = new ChecksDevices { Windows = windows };
+            var tools = new McpControlTools(() => devices);
+            McpControl.Allowed = true;
+            try
+            {
+                Assert.True(tools.WindowActivate(mine).Result.IsError is not true);
+
+                var other = tools.WindowActivate(4242).Result;
+                Assert.True(other.IsError == true);
+                Assert.Equal("Range.ForeignWindow", Code(other));
+
+                Assert.Equal("Range.ForeignWindow", Code(tools.WindowClose(4242).Result));
+            }
+            finally
+            {
+                McpControl.Allowed = false;
+                window.Close();
+            }
+        });
+    }
+
+    /// <summary>
+    /// A range run refuses what a range cannot promise — a script of its own, or a place outside its
+    /// own folder — before anything is touched, and says which edge was crossed.
+    /// </summary>
+    [Fact]
+    public void A_range_run_refuses_a_script_and_a_path_outside()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var window = new RangeWindow();
+            window.Show();
+            McpControl.AllowsRun = true;
+            try
+            {
+                await using var host = new McpServerHost(new MainViewModel());
+                await host.StartAsync();
+                await using var client = await ConnectAsync(host.Endpoint);
+
+                var draft = await Draft(client);
+                await Put(client, draft, """
+                    {"name":"脚本","steps":[
+                      {"type":"script.run","params":{"kind":"ps1","scriptSource":"text","script":"Write-Output 1"}}
+                    ]}
+                    """);
+                var script = await client.CallToolAsync("whalegenie_run_macro",
+                    new Dictionary<string, object?> { ["name"] = "脚本", ["draftId"] = draft });
+                Assert.True(script.IsError);
+                Assert.Equal("Range.ActionRefused", ErrorCode(script));
+
+                await Put(client, draft, """
+                    {"name":"写外面","steps":[
+                      {"type":"file.writeText","params":{"path":"C:////Windows////nope.txt","fileContent":"x"}}
+                    ]}
+                    """);
+                var outside = await client.CallToolAsync("whalegenie_run_macro",
+                    new Dictionary<string, object?> { ["name"] = "写外面", ["draftId"] = draft });
+                Assert.True(outside.IsError);
+                Assert.Equal("Range.PathOutside", ErrorCode(outside));
+
+                // A place inside the range folder is allowed, and the run really does it.
+                var inside = System.IO.Path.Combine(RangePolicy.Folder, "note.txt");
+                await Put(client, draft,
+                    "{\"name\":\"写里面\",\"steps\":[{\"type\":\"file.writeText\",\"params\":"
+                    + "{\"path\":\"" + inside.Replace("\\", "\\\\") + "\",\"fileContent\":\"x\"}}]}");
+                await Call(client, "whalegenie_run_macro",
+                    new Dictionary<string, object?> { ["name"] = "写里面", ["draftId"] = draft });
+                Assert.True(System.IO.File.Exists(inside));
+                System.IO.File.Delete(inside);
+
+                await host.StopAsync();
+            }
+            finally
+            {
+                McpControl.AllowsRun = false;
+                window.Close();
+            }
+
+            return true;
+        });
+    }
+
+    private static string ErrorCode(CallToolResult result)
+        => JsonDocument.Parse(result.Content.OfType<TextContentBlock>().First().Text)
+            .RootElement.GetProperty("error").GetProperty("code").GetString()!;
+
+    private static async Task<string> Draft(McpClient client)
+        => JsonDocument.Parse(await Call(client, "whalegenie_open_project",
+            new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
+
+    private static async Task Put(McpClient client, string draft, string macro)
+        => await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+        {
+            ["draftId"] = draft,
+            ["macro"] = JsonNode.Parse(macro),
+        });
 
     private static void Press(RangeWindow window, string id)
     {

@@ -32,6 +32,10 @@ dotnet run --project WhaleGenie -c Release -- --mcp --range --port 3917
 它会多打一行 `range=<窗口句柄>`，`whalegenie_range_state` / `whalegenie_range_reset` 读它、把它复位。
 没有 `--range` 的进程里这两个工具按 `RangeNotAvailable` 拒绝。
 
+边界在工具这一层执行（`WhaleGenie/Range/RangePolicy.cs` 与 `McpControlTools.Drive` 的前置判定）：坐标必须
+落在窗口里、窗口句柄只认靶场那个、跑宏时不放脚本/结束进程/关机、文件只能写进靶场目录、单次运行 60 秒封顶。
+拒绝码是 `Range.*`，每条都写审计。窗口位置另存一份纯数字（`RangeWindow.Where`），别的线程读它不必碰界面。
+
 量动作契约，把矩阵写到指定文件（不给变量就只在测试里算，不落盘）：
 
 ```powershell
