@@ -162,6 +162,10 @@ $env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
 dotnet test WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
 ```
 
+三条「等」是最难量的：`vision.waitImage`、`vision.waitDetect`、`window.waitFor` 的夹具把要等的东西放到
+第三次查找才出现，再核「等到之后交回来的那个值在不在」——一条在第一次就命中的等待只证明了条件本来
+就成立，不能证明它会等。报告里这三行的说明写着「第三次才出现」，设备调用次数也跟着涨上去。
+
 报告是生成物，进版本库；改前改后各留一份，数字对不上就是代码变了。今天它一份 176 行全部通过，
 另有四条用例专门证明尺子会失败：把 `control.delay` 声明成会发输入、把 `input.keyPress` 声明成不发输入，
 都必须报「不符」——一把不会报错的尺子，绿色什么也说明不了。

@@ -99,6 +99,10 @@ internal static class ActionBench
         var devices = Desk();
         var store = Store();
 
+        // A few waits are about something turning up after a look or two, not about ending. The
+        // fixture makes it late, and the check below asks whether the step noticed.
+        var later = Later(action.Key, devices);
+
         // The one action that waits for a key needs somebody to press it: the bench presses it a
         // moment after the run starts, which is what a person at the keyboard does.
         if (action.Key == "input.waitKey")
@@ -121,6 +125,17 @@ internal static class ActionBench
         }
 
         Results(action, store, notes, problems);
+        if (later is { } arrival)
+        {
+            notes.Add(arrival.Note);
+            foreach (var key in arrival.Keys)
+            {
+                if (!store.Local.TryGet(key, out var value) || value.Kind == ValueKind.Null)
+                {
+                    problems.Add($"等在第三步才出现的 {key} 没有被交出来");
+                }
+            }
+        }
         Ledger(says, devices, notes, problems);
 
         return new BenchCell(action.Key, action.Category.ToString(), action.Hidden,
@@ -248,6 +263,36 @@ internal static class ActionBench
         {
             notes.Add("这次设置没写出：" + string.Join(",", absent));
         }
+    }
+
+    /// <summary>What a wait was told to wait for, and which results have to be there when it ends.</summary>
+    private sealed record Arrival(string Note, string[] Keys);
+
+    /// <summary>
+    /// Makes the thing a wait waits for show up on the third look rather than the first, and says
+    /// which results then have to be filled in. A wait that ends on its first look proves only that
+    /// the condition was already true; these are the steps whose whole job is to wait.
+    /// </summary>
+    private static Arrival? Later(string key, FakeDeviceLayer devices) => key switch
+    {
+        "vision.waitImage" => Third(devices, () => devices.MatchAfter = 3, "match",
+            "图在第三次查找才出现"),
+        "vision.waitDetect" => Third(devices, () => devices.DetectAfter = 3, "match",
+            "检测在第三次才找到"),
+        "window.waitFor" => Third(devices, () =>
+        {
+            devices.WindowAppearsLater = "Bench";
+            devices.WindowAppearsAfter = 3;
+        }, "window", "窗口在第三次列窗口才出现"),
+        _ => null,
+    };
+
+    /// <summary>One arrival: the switch to set, and the results that have to come back filled in.</summary>
+    private static Arrival Third(FakeDeviceLayer devices, Action later, string result, string note)
+    {
+        later();
+        _ = devices;
+        return new Arrival(note, [BenchFixtures.Name(result)]);
     }
 
     /// <summary>Whether a value is the kind a declared result says it is.</summary>

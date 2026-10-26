@@ -1,6 +1,6 @@
 # 动作矩阵
 
-生成时间：2026-10-27 01:51；动作 176 个。
+生成时间：2026-10-27 01:57；动作 176 个。
 
 这份文件由 `WhaleGenie.Core.Tests/Bench` 生成，不是手写的。每个动作都按目录声明合成一步，
 在替身设备层上跑一遍，然后核四件事：返回值是否写出来且形状对、副作用声明是否与设备账本一致、
@@ -123,7 +123,7 @@
 | `system.ime` | System | 通过 | 结果 2/2；设备调用 1 次 |
 | `system.brightness` | System | 通过 | 结果 1/1；设备调用 1 次 |
 | `window.exists` | Window | 通过 | 结果 1/1；设备调用 1 次 |
-| `window.waitFor` | Window | 通过 | 结果 2/2；设备调用 5 次 |
+| `window.waitFor` | Window | 通过 | 结果 2/2；窗口在第三次列窗口才出现；设备调用 5 次 |
 | `window.activate` | Window | 通过 | 设备调用 2 次 |
 | `window.minimize` | Window | 通过 | 设备调用 2 次 |
 | `window.maximize` | Window | 通过 | 设备调用 2 次 |
@@ -155,15 +155,15 @@
 | `vision.capture` | Vision | 通过 | 结果 7/7；设备调用 8 次 |
 | `vision.captureWindow` | Vision | 通过 | 结果 7/7；设备调用 4 次 |
 | `vision.findImage` | Vision | 通过 | 结果 7/7；设备调用 7 次 |
-| `vision.waitImage` | Vision | 通过 | 结果 6/6；设备调用 7 次 |
+| `vision.waitImage` | Vision | 通过 | 结果 6/6；图在第三次查找才出现；设备调用 17 次 |
 | `vision.clickImage` | Vision | 通过 | 结果 6/6；设备调用 8 次 |
 | `vision.getPixel` | Vision | 通过 | 结果 4/4；设备调用 5 次 |
 | `vision.waitColor` | Vision | 通过 | 结果 2/2；设备调用 9 次 |
 | `vision.findColor` | Vision | 通过 | 结果 8/8；设备调用 5 次 |
-| `vision.waitStable` | Vision | 通过 | 结果 2/2；设备调用 485 次 |
+| `vision.waitStable` | Vision | 通过 | 结果 2/2；设备调用 473 次 |
 | `vision.findColors` | Vision | 通过 | 结果 7/7；设备调用 5 次 |
 | `vision.detect` | Vision | 通过 | 结果 7/7；设备调用 6 次 |
-| `vision.waitDetect` | Vision | 通过 | 结果 6/6；设备调用 6 次 |
+| `vision.waitDetect` | Vision | 通过 | 结果 6/6；检测在第三次才找到；设备调用 14 次 |
 | `vision.clickDetect` | Vision | 通过 | 结果 6/6；设备调用 7 次 |
 | `ocr.recognize` | Ocr | 通过 | 结果 3/4；这次设置没写出：table；设备调用 8 次 |
 | `ocr.findText` | Ocr | 通过 | 结果 7/7；设备调用 6 次 |
