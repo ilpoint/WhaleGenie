@@ -1,13 +1,13 @@
-## WhaleGenie MCP range check — http://127.0.0.1:58050/mcp — 2026-10-27 01:30:01
+## WhaleGenie MCP range check — http://127.0.0.1:59486/mcp — 2026-10-27 01:42:13
 
 Result: pass, 9 pass, 0 fail, 0 missing, 0 skip
 
 | check | result | detail |
 | --- | --- | --- |
-| range.state | pass | handle 41617162, 5 controls, at (208, 208) 520 by 260 |
-| range.front | pass | {"handle":41617162,"activated":true} |
+| range.state | pass | handle 1200949912, 5 controls, at (286, 286) 520 by 260 |
+| range.front | pass | {"handle":1200949912,"activated":true} |
 | range.draft | pass | one step written into a draft |
-| range.run | pass | {"runId":"c632b868","macro":"按一下","status":"Completed","key":"","detail":"","steps":1,"timedOut":false,"outcomes":[{"stepId":"r7q5","stepType":"input.mouseClick","outcome":"ok","failure":"","results":[]}]} |
+| range.run | pass | {"runId":"433cb803","macro":"按一下","status":"Completed","key":"","detail":"","steps":1,"timedOut":false,"outcomes":[{"stepId":"fm4r","stepType":"input.mouseClick","outcome":"ok","failure":"","results":[]}]} |
 | range.effect | pass | presses after the run: 1 |
 | range.reset | pass | back to none |
 | range.edge.point | pass | refused with Range.OutsideTarget |

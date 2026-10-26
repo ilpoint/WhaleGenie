@@ -1,6 +1,6 @@
 # 动作矩阵
 
-生成时间：2026-10-27 01:26；动作 176 个。
+生成时间：2026-10-27 01:38；动作 176 个。
 
 这份文件由 `WhaleGenie.Core.Tests/Bench` 生成，不是手写的。每个动作都按目录声明合成一步，
 在替身设备层上跑一遍，然后核四件事：返回值是否写出来且形状对、副作用声明是否与设备账本一致、
@@ -160,7 +160,7 @@
 | `vision.getPixel` | Vision | 通过 | 结果 4/4；设备调用 5 次 |
 | `vision.waitColor` | Vision | 通过 | 结果 2/2；设备调用 9 次 |
 | `vision.findColor` | Vision | 通过 | 结果 8/8；设备调用 5 次 |
-| `vision.waitStable` | Vision | 通过 | 结果 2/2；设备调用 440 次 |
+| `vision.waitStable` | Vision | 通过 | 结果 2/2；设备调用 491 次 |
 | `vision.findColors` | Vision | 通过 | 结果 7/7；设备调用 5 次 |
 | `vision.detect` | Vision | 通过 | 结果 7/7；设备调用 6 次 |
 | `vision.waitDetect` | Vision | 通过 | 结果 6/6；设备调用 6 次 |
