@@ -49,13 +49,13 @@
 
 ## 第三轮：调用另一个宏的传参
 
-写一个「调用别的宏并传参」的步骤，客户端必须知道三件目录里没有的事：实参键是 `arg.<名字>`、行列表只有
+写一个「调用别的宏并传参」的步骤，客户端必须知道三件目录里没有的事：实参写成 `arguments` 的一行、行列表只有
 `key` / `name` 两列、可选形参留空才用默认值。这三件都属于**被调用宏的声明**，而 `get_action` 只讲动作自己的
 参数，于是客户端只能猜，猜错了要等 `validate` 报错再改。
 
 | 改了什么 | 结果 |
 | --- | --- |
-| 新增 `whalegenie_get_macro_signature` | 给出一个宏的 `arguments`（含 `arg.<名字>` 与 `arg.<名字>.given` 两个键）、`results`、以及可直接填的 `callTemplate` |
+| 新增 `whalegenie_get_macro_signature` | 给出一个宏的 `arguments` 与 `results`，以及可直接填的 `callTemplate` |
 | `get_action` 补三样事实 | `signatureSource`（`CalledMacro` 说明形参来自被调宏）、`columns`（`returns` 行只有 `key`/`name`，两列都必填）、`fields`（返回记录的字段，例如窗口记录的 `title/process/handle/left/top/width/height`） |
 | 照骨架写出的调用步 | 一条 HTTP 用例从 `callTemplate` 起手写 `control.runMacro`，填一个值后 `validate.ok == true` |
 | 工具数 | 34 → 35 |

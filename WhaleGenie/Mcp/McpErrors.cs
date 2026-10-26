@@ -52,6 +52,12 @@ internal static class McpErrors
         Content = [Text(JsonSerializer.Serialize(value, Json))],
     };
 
+    /// <summary>
+    /// A result that is writing rather than data: instructions and prompt text are read by a model,
+    /// and wrapping them in a JSON string only adds a layer of quoting and escapes to see through.
+    /// </summary>
+    public static CallToolResult Plain(string text) => new() { Content = [Text(text)] };
+
     public static CallToolResult Fail(string code, string message, string? hint = null,
         bool retryable = false, object? details = null) => new()
         {

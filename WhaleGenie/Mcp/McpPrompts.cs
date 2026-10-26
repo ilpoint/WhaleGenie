@@ -35,8 +35,10 @@ public sealed class McpPrompts
         nothing.
         A step that calls another macro takes its argument keys from that macro's declaration, not
         from the catalogue: whalegenie_get_macro_signature says what the macro takes and hands back
-        and gives a call skeleton. A call passes each argument under params["arg.<name>"], and asks
-        for results in params.returns rows of key and name.
+        and gives a call skeleton. A call passes each argument as one row of params.arguments, whose
+        columns are name, value and given, and asks for results in params.returns rows of key and
+        name. An argument with no row is left to its default; a row with given=true passes an empty
+        value on purpose.
         You can also look at the machine: whalegenie_capture_screen takes a picture of the desktop
         or of one window, whalegenie_pixel_at and whalegenie_cursor read a colour and the pointer,
         whalegenie_list_windows lists the open windows, and whalegenie_element_at names the control
@@ -71,8 +73,9 @@ public sealed class McpPrompts
            there. A hidden action is only valid where the catalogue says it may appear:
            control.case belongs only in a child list whose childKeys names it, while
            control.sequence is the editor-generated grouping container for ordered steps. A call
-           step's argument keys (arg.<name>) and its result rows come from the called macro, so read
-           them with whalegenie_get_macro_signature before writing that step.
+           step's params.arguments rows (name, value, given) and its params.returns rows come from
+           the called macro, so read them with whalegenie_get_macro_signature before writing that
+           step.
         4. Put a new macro in with whalegenie_put_macro as a JSON object. To change a macro that is
            already written, use whalegenie_patch_macro: set one parameter by step id, insert,
            remove or move a step. Sending the whole macro again for one number is how a long macro

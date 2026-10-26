@@ -207,11 +207,25 @@ public sealed class McpDraftStore
         }
     }
 
-    public void Remove(string id)
+    /// <summary>Drops a draft, and says whether there was one: a client that typed the wrong id
+    /// should hear about it rather than be told the discard worked.</summary>
+    public bool Remove(string id)
     {
         lock (_gate)
         {
-            _drafts.Remove(id);
+            return _drafts.Remove(id);
+        }
+    }
+
+    /// <summary>How many drafts a client is holding open right now.</summary>
+    public int Open
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _drafts.Count;
+            }
         }
     }
 

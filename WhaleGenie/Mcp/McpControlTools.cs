@@ -59,7 +59,7 @@ public sealed class McpControlTools
     /// <summary>The same tools over a device layer a check hands in.</summary>
     internal McpControlTools(Func<IDeviceLayer> devices) => _devices = devices;
 
-    [McpServerTool(Name = "whalegenie_capture_screen", ReadOnly = true, Title = "Look at the screen"),
+    [McpServerTool(Name = "whalegenie_capture_screen", Title = "Look at the screen"),
      Description("Takes a picture of the desktop, or of one window, and returns it as a PNG image. Coordinates are screen pixels; a region left empty is the whole desktop, or the whole window when a window is named.")]
     public Task<CallToolResult> CaptureScreen(
         [Description("Window handle from whalegenie_list_windows; 0 means the desktop.")] long windowHandle = 0,

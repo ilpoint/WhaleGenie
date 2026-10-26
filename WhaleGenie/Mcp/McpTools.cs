@@ -48,7 +48,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_get_action", ReadOnly = true,
             Title = "Describe one action"),
-     Description("Describes one action: hidden state, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns. A required field marked conditional is required only in the modes its hint names, such as the window rule of a background click. A wrong key is refused with the nearest keys as candidates.")]
+     Description("Describes one action: hidden state, whether it sends input or looks at the screen, whether and how it waits, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns. A required field marked conditional is required only in the modes its hint names, such as the window rule of a background click. A wrong key is refused with the nearest keys as candidates.")]
     public Task<CallToolResult> GetAction(
         [Description("The action key, for example control.delay.")] string key)
         => McpErrors.RunAsync(async () =>
@@ -82,7 +82,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_get_macro_signature", ReadOnly = true,
             Title = "What a macro takes and gives back"),
-     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, description) and the results it hands back, plus a call template. A control.runMacro or control.startMacro step passes each argument under arg.<name> and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
+     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, description) and the results it hands back, plus a call template. A control.runMacro or control.startMacro step passes each argument as one row of params.arguments (columns name, value, given) and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
     public Task<CallToolResult> GetMacroSignature(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
@@ -99,7 +99,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             return McpErrors.Ok(await Ui(() => Signature(macro)));
         });
 
-    [McpServerTool(Name = "whalegenie_open_project", ReadOnly = true,
+    [McpServerTool(Name = "whalegenie_open_project",
             Title = "Open a draft"),
      Description("Takes a snapshot of the open project and returns a draft id for editing it. Everything is edited through that id; nothing reaches the window until apply.")]
     public Task<CallToolResult> OpenProject()
@@ -121,7 +121,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
      Description("Returns the default writing or debugging instructions, for clients that do not show MCP prompts.")]
     public Task<CallToolResult> Instructions(
         [Description("Write or debug; write by default.")] InstructionTopic topic = InstructionTopic.Write)
-        => Task.FromResult(McpErrors.Ok(
+        => Task.FromResult(McpErrors.Plain(
             topic == InstructionTopic.Debug ? McpPrompts.DebugMacro() : McpPrompts.WriteMacro()));
 
     [McpServerTool(Name = "whalegenie_macro_template", ReadOnly = true,
@@ -339,7 +339,20 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         {
             var path = await project.SaveAsync();
             var status = await project.StatusAsync();
-            return McpErrors.Ok(new { path, status.Revision, status.Dirty });
+
+            // Saving writes the project, not a draft: a draft that was never applied is not in the
+            // file, and a client that saved instead of applying would otherwise believe it is.
+            var open = drafts.Open;
+            return open == 0
+                ? McpErrors.Ok(new { path, status.Revision, status.Dirty })
+                : McpErrors.Ok(new
+                {
+                    path,
+                    status.Revision,
+                    status.Dirty,
+                    openDrafts = open,
+                    hint = "This saved the project, not a draft. Call whalegenie_apply first for draft changes to reach the file.",
+                });
         });
 
     [McpServerTool(Name = "whalegenie_discard", Destructive = true,
@@ -348,7 +361,14 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     public Task<CallToolResult> Discard(
         [Description("The draft id.")] string draftId)
     {
-        drafts.Remove(draftId);
+        if (!drafts.Remove(draftId))
+        {
+            return Task.FromResult(McpErrors.Fail(McpErrors.DraftNotFound,
+                $"There is no draft \"{draftId}\" to discard.",
+                "Call whalegenie_open_project for a new one; a draft is also dropped when the server stops.",
+                retryable: true, details: new { draftId }));
+        }
+
         return Task.FromResult(McpErrors.Ok(new { discarded = draftId }));
     }
 
@@ -372,7 +392,8 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             Title = "Read one run's log"),
      Description("Returns one run's log and step outcomes, or the latest run when no id is given. A long log is cut off and says so: totalLines is what the run wrote, returned is what came back.")]
     public Task<CallToolResult> GetRunLog(
-        [Description("The run id from whalegenie_list_runs; empty means the latest run.")] string? runId = null)
+        [Description("The run id from whalegenie_list_runs; empty means the latest run.")] string? runId = null,
+        [Description("How many lines to return, counted from the end: the last ones are where a run goes wrong. 500 at most.")] int tail = 500)
     {
         var run = string.IsNullOrWhiteSpace(runId)
             ? RunLogStore.Latest()
@@ -391,7 +412,8 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             depth = line.Depth,
             text = line.Text,
         }).ToList();
-        var returned = Math.Min(lines.Count, 500);
+        var returned = Math.Clamp(tail <= 0 ? 500 : tail, 1, 500);
+        var from = Math.Max(0, lines.Count - returned);
         return Task.FromResult(McpErrors.Ok(new
         {
             run.Id,
@@ -407,21 +429,19 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             totalLines = lines.Count,
             returned,
             truncated = lines.Count > returned,
-            lines = lines.Take(returned),
+            fromLine = from,
+            lines = lines.Skip(from),
             outcomes = run.Outcomes,
         }));
     }
 
     [McpServerTool(Name = "whalegenie_get_last_failure_log", ReadOnly = true,
             Title = "Read the newest failure log"),
-     Description("Returns the newest failure log WhaleGenie wrote, for debugging a run the person already performed.")]
-    public Task<CallToolResult> GetLastFailureLog()
+     Description("Returns the newest failure log WhaleGenie wrote, or the one at a path an earlier answer named. Only files a failed run writes are read: the call log the server keeps is not one of them.")]
+    public Task<CallToolResult> GetLastFailureLog(
+        [Description("A path from a run's failureLogPath; empty means the newest failure log.")] string? path = null)
     {
-        var file = Directory.Exists(AppPaths.Logs)
-            ? Directory.EnumerateFiles(AppPaths.Logs, "*.log")
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .FirstOrDefault()
-            : null;
+        var file = McpFailureLogs.Named(AppPaths.Logs, path);
 
         if (file is null)
         {

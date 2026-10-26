@@ -55,6 +55,7 @@ public sealed record McpActionReturn(
 /// </summary>
 public sealed record McpActionDetails(
     string Key, string Name, string Category, string Description, bool Hidden,
+    bool SendsInput, bool LooksAtScreen, bool Waits, string TimeoutSource,
     IReadOnlyList<McpActionParameter> Parameters, IReadOnlyList<McpActionReturn> Returns,
     string SignatureSource, int TimeoutMs);
 
@@ -163,19 +164,78 @@ public static class ActionKnowledge
     public static IReadOnlyList<string> Suggest(string key)
     {
         var trimmed = (key ?? string.Empty).Trim();
-        var tail = trimmed.LastIndexOf('.') is var dot and >= 0 ? trimmed[(dot + 1)..] : trimmed;
-        if (tail.Length < 2)
+        if (trimmed.Length < 2)
         {
             return [];
         }
 
+        // Two ways of being close count: the same tail as the key, and a spelling one or two
+        // letters away from it. "control.delai" is not part of "control.delay", so matching on
+        // containment alone answers nothing exactly when a client needs the hint most.
         return
         [
             .. ActionCatalog.Definitions
-                .Where(definition => definition.Key.Contains(tail, StringComparison.OrdinalIgnoreCase))
-                .Select(definition => definition.Key)
+                .Select(definition => (definition.Key, Distance: Among(trimmed, definition.Key)))
+                .Where(candidate => candidate.Distance <= 2)
+                .OrderBy(candidate => candidate.Distance)
+                .ThenBy(candidate => candidate.Key, StringComparer.Ordinal)
+                .Select(candidate => candidate.Key)
                 .Take(5),
         ];
+    }
+
+    /// <summary>
+    /// How far one written key is from a real one: the smaller of the distance between the whole
+    /// keys and the distance between their last parts, so a wrong group name does not hide a right
+    /// action name.
+    /// </summary>
+    private static int Among(string written, string key)
+    {
+        var whole = Distance(written, key);
+        var left = Tail(written);
+        var right = Tail(key);
+        return Math.Min(whole, Distance(left, right));
+    }
+
+    /// <summary>The part of an action key after the last dot.</summary>
+    private static string Tail(string key)
+        => key.LastIndexOf('.') is var dot and >= 0 ? key[(dot + 1)..] : key;
+
+    /// <summary>
+    /// How many single letters have to be changed, added or dropped to turn one into the other.
+    /// Two rows at a time is all a suggestion needs, and it keeps the whole catalogue cheap to walk.
+    /// </summary>
+    private static int Distance(string left, string right)
+    {
+        if (left.Length == 0)
+        {
+            return right.Length;
+        }
+
+        var previous = new int[right.Length + 1];
+        var current = new int[right.Length + 1];
+        for (var column = 0; column <= right.Length; column++)
+        {
+            previous[column] = column;
+        }
+
+        for (var row = 1; row <= left.Length; row++)
+        {
+            current[0] = row;
+            for (var column = 1; column <= right.Length; column++)
+            {
+                var cost = char.ToLowerInvariant(left[row - 1]) == char.ToLowerInvariant(right[column - 1])
+                    ? 0
+                    : 1;
+                current[column] = Math.Min(
+                    Math.Min(current[column - 1] + 1, previous[column] + 1),
+                    previous[column - 1] + cost);
+            }
+
+            (previous, current) = (current, previous);
+        }
+
+        return previous[right.Length];
     }
 
     private static McpActionDetails Describe(ActionDefinition definition)
@@ -190,6 +250,10 @@ public static class ActionKnowledge
             definition.Category.ToString(),
             definition.LocalDescription,
             definition.Hidden,
+            facts?.SendsInput ?? false,
+            facts?.LooksAtScreen ?? false,
+            facts?.Waits ?? false,
+            facts?.TimeoutSource.ToString() ?? ActionTimeoutSource.None.ToString(),
             [
                 .. definition.Parameters.Select(parameter => new McpActionParameter(
                     parameter.Name,

@@ -962,7 +962,7 @@ $response | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "orders.json"
 - **允许直接控制**是独立的一档：开着它，AI 才能发送键鼠与窗口操作；关掉 MCP 时它自动归位。看屏幕、窗口和控件不需要这一档。
 - 让 AI 写「调用另一个宏」的步骤时，形参名与结果名来自**被调用宏的声明**，动作目录里查不到；客户端用
   `whalegenie_get_macro_signature` 就能读到它收什么、交回什么，还能拿到一段可直接用的调用骨架
-  （`arg.<名字>` 与 `returns` 的 `key`/`name`）。
+  （`arguments` 行列表里一行一个形参，列是 `name` / `value` / `given`；`returns` 行列表的列是 `key` / `name`）。
 - 目录也能作为 MCP **资源**读（`whalegenie://actions` 与 `whalegenie://actions/{key}`）：能缓存资源的客户端
   读一次就留着，不必每一轮重新问。
 - AI 对这台机器做过什么可以查：浮层的「查看调用记录」打开当天的 `logs/mcp-<日期>.log`，一行一次调用——改了
@@ -999,8 +999,10 @@ $response | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "orders.json"
    apply，只是值得看。
 6. 你点运行调试或在触发器里运行；失败时让 AI 用运行日志分析：
    - `whalegenie_list_runs`：最近几次运行；
-   - `whalegenie_get_run_log`：某一次运行的整段日志、步骤结局、失败日志路径；太长会说明截到了哪里；
-   - `whalegenie_get_last_failure_log`：最近一份失败日志文件。
+   - `whalegenie_get_run_log`：某一次运行的日志、步骤结局、失败日志路径；默认给**最后** 500 行（出错的行
+     在末尾），`tail` 可以改，回答里的 `fromLine` 说从第几行开始、`truncated` 说前面还有没有；
+   - `whalegenie_get_last_failure_log`：最近一份失败日志。只认失败运行写下的 `failure-*.log`，不会把服务器
+     自己的调用记录当成失败；也可以把上一次回答里的 `failureLogPath` 传进去读那一份。
 7. AI 根据日志改草稿，再 `apply`、`save_project`。保存前鲸灵会把旧包复制成 `.wgmacro.bak`。
 
 注意：

@@ -79,6 +79,13 @@ public class McpServerTests
             Assert.Contains("whalegenie_get_run_log", debugInstructions, StringComparison.Ordinal);
             Assert.Contains("childKeys", debugInstructions, StringComparison.Ordinal);
 
+            // What a call passes is a row of arguments, not a key per argument: the shape changed
+            // with package version 20, and a prompt that still says otherwise teaches a step the
+            // engine cannot read.
+            Assert.DoesNotContain("arg.", instructions, StringComparison.Ordinal);
+            Assert.DoesNotContain("arg.", debugInstructions, StringComparison.Ordinal);
+            Assert.Contains("params.arguments", instructions, StringComparison.Ordinal);
+
             // The debug loop now closes on the machine itself: look at the screen, and drive it
             // only while the person's own switch is on.
             Assert.Contains("whalegenie_capture_screen", debugInstructions, StringComparison.Ordinal);
@@ -842,6 +849,134 @@ public class McpServerTests
             Endpoint = new Uri(endpoint),
             TransportMode = HttpTransportMode.StreamableHttp,
         }));
+
+    /// <summary>
+    /// What a step says it does to the machine, so a client can tell a click from a read before it
+    /// writes the step: the flags are in the catalogue and used to be dropped on the way out.
+    /// </summary>
+    [Fact]
+    public void An_action_says_whether_it_touches_the_machine()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var click = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "input.mouseClick" })).RootElement;
+            Assert.True(click.GetProperty("sendsInput").GetBoolean());
+            Assert.False(click.GetProperty("looksAtScreen").GetBoolean());
+            Assert.Equal("None", click.GetProperty("timeoutSource").GetString());
+
+            var shot = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "vision.capture" })).RootElement;
+            Assert.False(shot.GetProperty("sendsInput").GetBoolean());
+            Assert.True(shot.GetProperty("looksAtScreen").GetBoolean());
+
+            var wait = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "window.waitFor" })).RootElement;
+            Assert.True(wait.GetProperty("waits").GetBoolean());
+            Assert.Equal("Step", wait.GetProperty("timeoutSource").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// A key one letter away from a real one gets its neighbours. Containment alone answered nothing
+    /// for "control.delai", which is exactly when a client needs the hint.
+    /// </summary>
+    [Fact]
+    public void A_misspelled_action_key_gets_its_neighbours()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var answer = await client.CallToolAsync("whalegenie_get_action",
+                new Dictionary<string, object?> { ["key"] = "control.delai" });
+            Assert.True(answer.IsError);
+            var error = JsonDocument.Parse(answer.Content.OfType<TextContentBlock>().First().Text)
+                .RootElement.GetProperty("error");
+            Assert.Equal("UnknownAction", error.GetProperty("code").GetString());
+            var candidates = error.GetProperty("details").GetProperty("candidates").EnumerateArray()
+                .Select(candidate => candidate.GetString()).ToList();
+            Assert.Contains("control.delay", candidates);
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// A draft id nobody handed out is not a discard that worked: a client that mistyped it has to
+    /// hear so, or it believes it cleaned up.
+    /// </summary>
+    [Fact]
+    public void Discarding_a_draft_that_never_existed_says_so()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var answer = await client.CallToolAsync("whalegenie_discard",
+                new Dictionary<string, object?> { ["draftId"] = "nope1234" });
+            Assert.True(answer.IsError);
+            var error = JsonDocument.Parse(answer.Content.OfType<TextContentBlock>().First().Text)
+                .RootElement.GetProperty("error");
+            Assert.Equal("DraftNotFound", error.GetProperty("code").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// A long log comes back from its end. The lines worth reading are the last ones; answering with
+    /// the first five hundred shows a run that started fine and hides how it went wrong.
+    /// </summary>
+    [Fact]
+    public void A_long_run_log_comes_back_from_its_end()
+    {
+        Ui.RunAsync(async () =>
+        {
+            RunLogStore.Clear();
+            var capture = RunLogStore.Begin("长日志", "debug");
+            for (var line = 0; line < 600; line++)
+            {
+                capture.Add(new WhaleGenie.Core.Execution.LogEntry(DateTimeOffset.Now,
+                    WhaleGenie.Core.Execution.LogLevel.Info, 0, string.Empty,
+                    WhaleGenie.Core.Execution.LogKeys.Finished, []), line.ToString(
+                        System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            capture.Finish(new WhaleGenie.Core.Execution.RunResult(
+                WhaleGenie.Core.Execution.RunStatus.Completed, string.Empty, string.Empty, 600), "完成");
+
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var log = JsonDocument.Parse(await Call(client, "whalegenie_get_run_log",
+                new Dictionary<string, object?> { ["tail"] = 10 })).RootElement;
+            Assert.Equal(600, log.GetProperty("totalLines").GetInt32());
+            Assert.Equal(10, log.GetProperty("returned").GetInt32());
+            Assert.Equal(590, log.GetProperty("fromLine").GetInt32());
+            Assert.True(log.GetProperty("truncated").GetBoolean());
+            var lines = log.GetProperty("lines").EnumerateArray().ToList();
+            Assert.Equal("590", lines[0].GetProperty("text").GetString());
+            Assert.Equal("599", lines[^1].GetProperty("text").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
 
     private static async Task<string> Call(McpClient client, string name,
         Dictionary<string, object?> arguments)
