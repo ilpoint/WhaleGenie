@@ -23,6 +23,14 @@ dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report Test
 dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停
 ```
 
+量动作契约，把矩阵写到指定文件（不给变量就只在测试里算，不落盘）：
+
+```powershell
+$env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
+dotnet test WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+Remove-Item Env:ACTION_MATRIX_REPORT
+```
+
 解决方案只声明 `x64` 一个平台（`WhaleGenie.slnx`），没有 `Any CPU`：程序依赖的 OpenCV 与
 Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotnet build` / `dotnet test`
 不写 `-p:Platform` 也一样；根 `Directory.Build.props` 里的 `PlatformTarget` 让直接构建某个
@@ -518,6 +526,7 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 | 层 | 项目 | 验证内容 |
 | --- | --- | --- |
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎每一步、变量与表达式；跑在替身设备层上，断言的是"引擎要求了什么"，不是"桌面上发生了什么"。后续的字段读法、是否发输入与返回形状的契约也在这里验 |
+| 动作矩阵 | `WhaleGenie.Core.Tests/Bench` | 目录声明的 176 个动作逐个按声明合成一步、在替身设备层上跑一遍，核四件事：结局、返回值形状、副作用声明与设备账本是否一致、有没有参数给不出值。它只量不改，缺的东西显式写进报告，不静默跳过 |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、页面归属、返回值页、触发器比对、卡片显示、文案完整性与文档对账，宏包往返，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
 | 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过）；`WHALEGENIE_REAL_NUGET=1` 时额外下载真实包并验证编译和运行 |
