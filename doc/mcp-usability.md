@@ -74,6 +74,7 @@
 | 动作目录作为 MCP resources | `whalegenie://actions` 与 `whalegenie://actions/{key}`；实测列出 1 个资源 + 1 个模板，能读回 176 条动作 |
 | 调用审计 | `logs/mcp-<日期>.log`，一行一次调用；9 个动手工具 + 5 个写入点；`type_text` 只记字数 |
 | 补丁能改表的行 | `setRow` / `addRow` / `removeRow`，一次改一行 + 加一行 279 B（见上一节） |
+| 记录字段表 | `get_macro_signature` / `list_macros` 带 `fields`；接口页可编，设计期用它核对 `field(...)` |
 
 自检从 31 条涨到 33 条（`resources.listed` / `resources.read`），仍 0 fail、0 missing。
 
@@ -113,8 +114,11 @@
 - **校验消息是本地化文案，代号不是**。结构里有 `macro` / `stepId` / `code`；消息跟着界面语言走，代号不跟。
   客户端按 `code` 分支，别再比对句子。
 - **运行日志只有一条实**：没有运行记录时 `get_run_log` 返回 `NoSuchRun`，所以分页那一格量到 3/4。
-- **补丁改不了记录**：`set` 只收标量，`rect` / `place` / 窗口规则这类一个值里几个字段的仍要 `put_macro`——
-  写一半是几种可能的意思，需要一个整体替换的操作。行列表已经有 `setRow` / `addRow` / `removeRow`。
+- **记录只有窗口规则能整条补**：`set` 收一个值，窗口规则在文件里本来就写成对象，所以能整条给（未知字段会被拒
+  并列出该有的）；`rect` / `point` 在文件里是**一个值**（记录变量，或 `field($记录, "名字")`），给对象会被拒
+  并说明写法。行列表另有 `setRow` / `addRow` / `removeRow`。
+- **记录的字段表只在声明里写才有**：`get_macro_signature` 与 `list_macros` 带出 `fields`，但它是宏接口页里
+  人写下来的东西；没写就没有，客户端读到的只是一条空表，`field(...)` 的字段名也就无从核对。
 - **补丁只管宏自己的步骤**：子宏里的步骤要整段重写。
 - **资源只覆盖动作目录**：项目、宏、运行日志仍是工具，不在资源里。一个能被缓存的宏清单要跟着草稿的
   revision 变，那不是「读一次留着」的东西。

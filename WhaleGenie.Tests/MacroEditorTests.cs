@@ -114,6 +114,51 @@ public class MacroEditorTests
         });
     }
 
+    /// <summary>
+    /// A lifted macro takes the values the stretch read, and each of them keeps the kind it already
+    /// had. Calling them all text would make the call site say a number is text, which is a
+    /// disagreement the author would have to find by reading the declaration.
+    /// </summary>
+    [Fact]
+    public void A_lifted_macro_declares_the_kind_its_arguments_already_had()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "主" };
+            macro.Parameters.Add(new MacroParameter
+            {
+                Name = "数",
+                Type = ActionReturnType.Number,
+                Required = true,
+            });
+
+            var counted = Set("中间", "$数 + 1");
+            macro.Steps.Add(counted);
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            MacroItem? lifted = null;
+            viewModel.MacroLifted += made => lifted = made;
+            viewModel.SetSelection([counted]);
+            viewModel.LiftSelectedCommand.Execute(null);
+
+            Assert.NotNull(lifted);
+            var argument = Assert.Single(lifted!.Parameters);
+            Assert.Equal("数", argument.Name);
+            Assert.Equal(ActionReturnType.Number, argument.Type);
+            Assert.True(argument.Required);
+
+            // Nothing said what the written name holds — a plain assignment is text until something
+            // declares otherwise — so it is declared text rather than guessed at.
+            var result = Assert.Single(lifted.Results);
+            Assert.Equal("中间", result.Name);
+            Assert.Equal(ActionReturnType.Text, result.Type);
+        });
+    }
+
     [Fact]
     public void The_macro_the_editor_ends_with_is_read_from_the_window()
     {
@@ -784,6 +829,48 @@ public class MacroEditorTests
     }
 
     [Fact]
+    public void The_inspector_can_say_what_a_record_holds()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            var host = window.FindControl<ContentControl>("MacroInterfaceHost");
+            Assert.NotNull(host);
+            var view = Assert.IsType<MacroInterfaceView>(host!.Content);
+            var model = (MacroInterfaceViewModel)view.DataContext!;
+
+            model.AddParameterCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var row = Assert.Single(model.Parameters);
+            row.Name = "点";
+
+            // Fields only mean something for a record, so the rows wait for the kind to say so.
+            Assert.False(row.IsRecord);
+            row.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Record);
+            Assert.True(row.IsRecord);
+
+            row.AddFieldCommand.Execute(null);
+            var field = Assert.Single(row.Fields);
+            field.Name = "x";
+            field.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Number);
+            Dispatcher.UIThread.RunJobs();
+
+            var declared = Assert.Single(viewModel.DeclaredParameters);
+            var written = Assert.Single(declared.Fields);
+            Assert.Equal("x", written.Name);
+            Assert.Equal(ActionReturnType.Number, written.Type);
+
+            // A field row is a declaration edit like any other: the variable wall and the check that
+            // reads field(...) both answer differently once it is written down.
+            Assert.True(viewModel.IsDirty);
+
+            row.RemoveFieldCommand.Execute(field);
+            Assert.Empty(declared.Fields);
+        });
+    }
+
+    [Fact]
     public void The_macro_interface_offers_expression_and_variable_tools_for_a_default()
     {
         Ui.Run(() =>
@@ -803,6 +890,53 @@ public class MacroEditorTests
             Assert.Contains(Strings.Get("Add.ExpressionBuilder"), buttons);
             Assert.Contains(Strings.Get("Add.VariablePicker"), buttons);
             Assert.Contains(model.ValueVariables, choice => choice.Name == "sys.date");
+        });
+    }
+
+    [Fact]
+    public void The_inspector_can_change_the_order_of_the_declarations()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            var host = window.FindControl<ContentControl>("MacroInterfaceHost");
+            Assert.NotNull(host);
+            var view = Assert.IsType<MacroInterfaceView>(host!.Content);
+            var model = (MacroInterfaceViewModel)view.DataContext!;
+
+            model.AddParameterCommand.Execute(null);
+            model.AddParameterCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var first = model.Parameters[0];
+            var second = model.Parameters[1];
+            first.Name = "甲";
+            second.Name = "乙";
+
+            // The order is the order a call form asks for the values in, so moving one has to change
+            // what is saved rather than only what is drawn.
+            Assert.False(first.CanMoveUp);
+            Assert.True(first.CanMoveDown);
+            Assert.True(second.CanMoveUp);
+            Assert.False(second.CanMoveDown);
+
+            model.MoveParameterUpCommand.Execute(second);
+            Assert.Equal(["乙", "甲"], model.Parameters.Select(row => row.Name));
+            Assert.Equal(["乙", "甲"], viewModel.DeclaredParameters.Select(parameter => parameter.Name));
+
+            // At the top there is nothing to swap with, so the button is off and the command is a
+            // no-op rather than an error.
+            model.MoveParameterUpCommand.Execute(model.Parameters[0]);
+            Assert.Equal(["乙", "甲"], viewModel.DeclaredParameters.Select(parameter => parameter.Name));
+
+            model.AddResultCommand.Execute(null);
+            model.AddResultCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            model.Results[0].Name = "一";
+            model.Results[1].Name = "二";
+
+            model.MoveResultDownCommand.Execute(model.Results[0]);
+            Assert.Equal(["二", "一"], viewModel.DeclaredResults.Select(result => result.Name));
         });
     }
 

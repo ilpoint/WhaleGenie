@@ -321,6 +321,28 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 记录类型的形参与结果可以带字段表（`fields: [{name, type}]`，`MacroField`）：它是**新增可选字段**，不写就是
 「没说」；因为旧包读进来只是空表、不会读错，所以没有升包格式版本。`get_macro_signature` 与 `list_macros` 都带出来。
 
+字段表有三处读它，都只在**类型是 `Record` 且至少写了一个字段名**时生效：
+
+- 宏接口页（`MacroInterfaceViewModel` 的 `MacroParameterRow.Fields` / `MacroResultRow.Fields`）：`Record` 那行
+  展开一个两列的表（名字 + 类型），增删行直接写进 `MacroParameter.Fields` / `MacroResult.Fields`。类型换走再换
+  回来时**不清空**字段：那是一次改正，不是扔掉已写的东西。
+- 变量墙：`VariableChoices` 把声明里的字段填进 `VariableChoice.Fields`，于是变量墙说的是「这条记录有什么」，
+  而不是只有「这是一条记录」。
+- 设计期检查：`MacroCheck.CheckFieldNames` 把每个值当公式读（整值一次，文本里每个 `${…}` 再一次），找到
+  `field($记录, "名字")` 这种调用就对着字段表核对，对不上报 `UnknownField`，消息里带该记录声明过的字段。
+  一条记录没写字段表就**不查**——对着没人写过的名字查等于猜。
+
+字段的读法只有 `field($记录, "名字")`（`ExpressionFunctions` 的 `field`）：`$记录.名字` 不是宏语言的写法，
+它会被当成一个没定义过的变量名。所以检查与变量墙都对着 `field(...)` 做，而不是对着点号做。
+
+形参与结果的**顺序**就是声明里的顺序，也是一次调用的表单与运行调试「形参」段列它们的顺序；接口页有上移/下移
+（`MoveParameterUp` / `MoveResultDown` 等），移动同时改行集合与 `DeclaredParameters`，所以画出来的和存下去的
+始终是同一个顺序。第一行没有上移、最后一行没有下移，按钮据此灰掉。
+
+「提为子宏」按 `MacroCheck.TypesOf`（与设计期检查同一份推断）给新宏的形参与结果定类型：读到的名字原来是什么
+就声明成什么，什么都不知道就是 `Text`。**必填仍是必填**——那次提取写出的调用一定把每个参数都传了，声明成可选
+只会让以后有人删掉那一行时变成静默的空值。新建形参的「必填」默认也统一成 `true`，与模型和文件缺省一致。
+
 声明名是变量名：首字符是字母、数字或 `_`，其余是字母、数字、`_`、`.`；变量在值字段里总带 `$`，所以数字开头
 不会和数字字面量混淆，`$123` 读的是变量。空名、读不出来的名字、形参内或结果内重名、`sys.` 与
 `step.<标识>.outcome` / `.error` 这类运行保留名，都在保存与写包前拦住。形参不能
@@ -331,7 +353,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 19。
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 20。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。
 触发器入口从宏文档移进项目级的 `triggers.json` 时升到 11；字串入口增加 `endChars` 时升到 12；
@@ -340,7 +362,9 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 规则升级为多页时升到 15；父宏开始携带 `subMacros`、说明和公共宏来源记录时升到 16；条件动作收口为整值布尔
 表达式、`try.catchWhen` 改成表达式时升到 17；菜单移除逐格标题、图标键改成完整 Lucide 枚举名并增加禁止
 呼出规则时升到 18；删掉 `file.readText.storeAs`、`vision.getPixel.asHex`、识别文字的三个比较开关与
-`recheckMs`，并把启动程序改交 `program` 记录时升到 19。
+`recheckMs`，并把启动程序改交 `program` 记录时升到 19；调用步的实参从散键（`arg.<名字>` 与
+`arg.<名字>.given`）改成行列表 `arguments` 时升到 20——**形状变了就必须升版**，旧包的 `arg.*` 会被读成
+「这个动作没有这个字段」，所以 19 的包直接拒绝，而不是读一半。
 触发入口按名称引用宏，宏改名时同一份
 `ProjectTriggers` 改写所有引用，保存、恢复和 MCP 草稿都不允许悬空引用。
 

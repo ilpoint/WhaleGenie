@@ -257,11 +257,13 @@ public static class VariableChoices
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = ActionReturn.TypeNameOf(parameter.Type),
+                Fields = FieldsOf(parameter.Fields),
                 Description = parameter.Description,
                 Source = Strings.Get("VarWall.Parameter"),
                 Origin = VariableOrigin.Parameter,
                 Uses = UsesOf(uses, name),
             });
+
         }
 
         foreach (var result in results ?? [])
@@ -277,13 +279,26 @@ public static class VariableChoices
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = ActionReturn.TypeNameOf(result.Type),
+                Fields = FieldsOf(result.Fields),
                 Description = result.Description,
                 Source = Strings.Get("VarWall.Result"),
                 Origin = VariableOrigin.Result,
                 Uses = UsesOf(uses, name),
             });
+
         }
     }
+
+    /// <summary>
+    /// The fields a declared record names, in the shape the wall and the picker draw them from.
+    /// </summary>
+    private static IReadOnlyList<ActionReturnField> FieldsOf(IReadOnlyList<MacroField> fields)
+        => [.. fields.Where(field => field.Name.Trim().Length > 0)
+            .Select(field => new ActionReturnField
+            {
+                Name = field.Name.Trim(),
+                Type = field.Type,
+            })];
 
     private static IReadOnlyList<VariableUse> UsesOf(
         Dictionary<string, List<VariableUse>> uses, string name)

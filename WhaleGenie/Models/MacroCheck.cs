@@ -29,6 +29,9 @@ public sealed record MacroProblem(MacroStep Step, string Code, string Message);
 /// </summary>
 public static class MacroCheck
 {
+    /// <summary>The formula function that reads one field of a record, as the reader spells it.</summary>
+    private const string FieldFunction = "field";
+
     private static bool CallsMacro(MacroStep step)
         => step.Definition?.Semantics.SignatureSource is ActionSignatureSource.CalledMacro;
 
@@ -378,6 +381,7 @@ public static class MacroCheck
 
         var defined = DefinedVariables(tree);
         var known = KnownTypes(tree, own, reachable);
+        var recordFields = KnownFields(tree, own, reachable);
 
         // A background run's results exist only once it has been waited for. These two say which
         // handle carries which names, and which of those names is still owed a wait: reading one
@@ -539,6 +543,7 @@ public static class MacroCheck
                 CheckPlace(step);
                 CheckWindowBounds(step);
                 CheckValueTypes(step);
+                CheckFieldNames(step);
                 CheckSwitch(step);
                 CheckReservedNames(step);
                 CheckScriptInput(step);
@@ -1216,6 +1221,98 @@ public static class MacroCheck
         }
 
         /// <summary>
+        /// A field read of a record whose declaration names its fields. <c>field($point, "x")</c>
+        /// where the record declares `x` and `y` is a mistake the editor can see now, rather than one
+        /// the run reports after it has already sent the input before it. A record whose declaration
+        /// says nothing about its fields is left alone: checking against names nobody wrote down
+        /// would be a guess, and a guessed mark teaches the user to ignore the real ones.
+        /// </summary>
+        void CheckFieldNames(MacroStep step)
+        {
+            foreach (var value in Values(step))
+            {
+                foreach (var tree in Trees(value))
+                {
+                    foreach (var call in Calls(tree))
+                    {
+                        if (!string.Equals(call.Name, FieldFunction,
+                                StringComparison.OrdinalIgnoreCase)
+                            || call.Arguments.Count != 2
+                            || call.Arguments[0] is not VariableNode variable
+                            || call.Arguments[1] is not TextNode name)
+                        {
+                            continue;
+                        }
+
+                        if (!recordFields.TryGetValue(variable.Name, out var declared)
+                            || declared.Any(field => string.Equals(field, name.Text,
+                                StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue;
+                        }
+
+                        Add(step, "UnknownField", Strings.Format("Editor.Problem.UnknownField",
+                            name.Text, variable.Name, string.Join(", ", declared)));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The formulas a value holds: the whole of it when it is one, and each braced part of it
+        /// when it is text. A field read is written either way — <c>field($p, "x")</c> on its own,
+        /// or inside a line that says what it is for.
+        /// </summary>
+        static IEnumerable<ExpressionNode> Trees(string value)
+        {
+            if (Expression.TryParse(value, out var whole, out _) && whole is not null)
+            {
+                yield return whole;
+            }
+
+            foreach (var part in VariableText.Expressions(value))
+            {
+                if (Expression.TryParse(part, out var tree, out _) && tree is not null)
+                {
+                    yield return tree;
+                }
+            }
+        }
+
+        /// <summary>Every call in a formula, including the ones inside another call's arguments.</summary>
+        static IEnumerable<CallNode> Calls(ExpressionNode node) => node switch
+        {
+            CallNode call => [call, .. call.Arguments.SelectMany(Calls)],
+            UnaryNode unary => Calls(unary.Operand),
+            BinaryNode binary => [.. Calls(binary.Left), .. Calls(binary.Right)],
+            ListNode list => list.Items.SelectMany(Calls),
+            _ => [],
+        };
+
+        /// <summary>
+        /// Every value the step holds, whether a box of its own or a cell of a row: a field read in
+        /// the fifth row of a call's arguments is as wrong as one in a plain field.
+        /// </summary>
+        static IEnumerable<string> Values(MacroStep step)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Value.Trim().Length > 0)
+                {
+                    yield return parameter.Value;
+                }
+
+                foreach (var cell in parameter.Rows.SelectMany(row => row.Columns.Values))
+                {
+                    if (cell.Trim().Length > 0)
+                    {
+                        yield return cell;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// What a value is has to match what the field takes. Only names whose kind the steps
         /// themselves declare are judged — a hit is a record, a line of writing is text — because
         /// guessing at a name nobody declared would teach the user to ignore the marks.
@@ -1646,6 +1743,69 @@ public static class MacroCheck
     }
 
     /// <summary>
+    /// The fields each record this macro can read declares, by variable name. Only a record whose
+    /// author wrote its fields down appears: a record that says nothing is one whose fields are
+    /// whatever the value happens to hold, and a check against nothing would be a guess.
+    /// </summary>
+    private static Dictionary<string, IReadOnlyList<string>> KnownFields(
+        IReadOnlyList<MacroStep> steps, MacroCallable? own,
+        Dictionary<string, MacroCallable?> reachable)
+    {
+        var fields = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+
+        void Add(string name, ActionReturnType type, IEnumerable<MacroField> declared)
+        {
+            if (!VariableText.IsName(name) || fields.ContainsKey(name))
+            {
+                return;
+            }
+
+            var named = declared.Select(field => field.Name.Trim())
+                .Where(field => field.Length > 0)
+                .ToList();
+            if (type == ActionReturnType.Record && named.Count > 0)
+            {
+                fields[name] = named;
+            }
+        }
+
+        if (own is not null)
+        {
+            foreach (var parameter in own.Parameters)
+            {
+                Add(parameter.Name.Trim(), parameter.Type, parameter.Fields);
+            }
+
+            foreach (var result in own.Results)
+            {
+                Add(result.Name.Trim(), result.Type, result.Fields);
+            }
+        }
+
+        // A record that arrives from a call belongs to the called macro's declaration, so its
+        // fields come from there; the call's own rows say where the value lands, not what is in it.
+        foreach (var step in Every(steps))
+        {
+            if (!CallsMacro(step)
+                || reachable.GetValueOrDefault(step.Text("macro").Trim()) is not { } called)
+            {
+                continue;
+            }
+
+            foreach (var (result, name) in Wanted(step))
+            {
+                if (called.Results.FirstOrDefault(candidate => string.Equals(candidate.Name,
+                        result, StringComparison.OrdinalIgnoreCase)) is { } declared)
+                {
+                    Add(name, declared.Type, declared.Fields);
+                }
+            }
+        }
+
+        return fields;
+    }
+
+    /// <summary>
     /// True when a value of one kind cannot stand for a value the called macro declared: a record
     /// is not a line of text, a line of text is not a record, and a list is not a number.
     /// </summary>
@@ -1722,6 +1882,30 @@ public static class MacroCheck
     /// stretch of steps takes from around it: the values a lift has to turn into arguments of the
     /// macro it makes, and what "nothing defines this" is decided against elsewhere.
     /// </summary>
+    /// <summary>
+    /// What kind of value each name the steps can read is known to hold — the same answer the checks
+    /// work from, offered to the editor. A macro lifted out of a stretch of steps declares the
+    /// arguments it now takes; without this it would call every one of them text, and the call site
+    /// would then say a number is being passed where text is expected.
+    /// </summary>
+    public static IReadOnlyDictionary<string, ActionReturnType> TypesOf(IEnumerable<MacroStep> steps,
+        MacroCallable? own, IEnumerable<MacroCallable> macros)
+    {
+        IReadOnlyList<MacroStep> tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];
+        var reachable = new Dictionary<string, MacroCallable?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in macros)
+        {
+            reachable[macro.Name.Trim()] = macro;
+        }
+
+        if (own?.Name.Trim() is { Length: > 0 } name)
+        {
+            reachable[name] = own;
+        }
+
+        return KnownTypes(tree, own, reachable);
+    }
+
     public static IReadOnlyList<string> Reads(IEnumerable<MacroStep> steps)
     {
         var names = new List<string>();

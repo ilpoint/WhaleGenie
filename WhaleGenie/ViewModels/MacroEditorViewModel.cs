@@ -1924,6 +1924,15 @@ public partial class MacroEditorViewModel : ViewModelBase
         alwaysVisible.Add(MacroRunner.CaughtKeyName);
         alwaysVisible.Add(MacroRunner.CaughtDetailName);
 
+        // What each name holds, read from the steps themselves: a value a call handed back as a
+        // number stays a number when it becomes an argument, so the call form says what it wants and
+        // the checks either side of the call agree about it.
+        var types = MacroCheck.TypesOf(stretch, OwnCallable, _projectMacros);
+
+        // A lifted argument is required because the call this very lift writes always passes it. The
+        // alternative — declaring it optional — would let a later edit delete the row and leave the
+        // macro reading an empty value with nothing said, which is the failure the declaration rules
+        // are for.
         var read = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in MacroCheck.Reads(stretch))
         {
@@ -1932,12 +1941,17 @@ public partial class MacroEditorViewModel : ViewModelBase
                 continue;
             }
 
-            lifted.Parameters.Add(new MacroParameter { Name = name });
+            lifted.Parameters.Add(new MacroParameter
+            {
+                Name = name,
+                Type = TypeOf(types, name),
+                Required = true,
+            });
         }
 
         foreach (var name in written)
         {
-            lifted.Results.Add(new MacroResult { Name = name });
+            lifted.Results.Add(new MacroResult { Name = name, Type = TypeOf(types, name) });
         }
 
         foreach (var step in stretch)
@@ -1947,6 +1961,14 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         return lifted;
     }
+
+    /// <summary>
+    /// What a name was seen to hold, or text when nothing said. Text is the honest answer for a name
+    /// whose value nothing declares: a wrong guess here would be a type the call site enforces.
+    /// </summary>
+    private static ActionReturnType TypeOf(IReadOnlyDictionary<string, ActionReturnType> types,
+        string name)
+        => types.TryGetValue(name, out var type) ? type : ActionReturnType.Text;
 
     /// <summary>The call left where the stretch was: it hands in this macro's values and takes back
     /// every name the stretch writes, each under the name it already had.</summary>

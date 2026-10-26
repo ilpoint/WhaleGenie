@@ -816,6 +816,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.MissingArgument"] = "\"{0}\" is required by \"{1}\", and this call does not fill it in: check the box beside it to pass an empty value if that is what you mean.",
         ["Editor.Problem.GivenWithValue"] = "\"{0}\" is marked to pass an empty value, but its field still has a value: clear the field for an empty value, or uncheck the box to pass the value.",
         ["Editor.Problem.NotARecord"] = "\"{0}\" takes a record, and \"{1}\" is not one: a hit, a window or a picture taken earlier carries one.",
+        ["Editor.Problem.UnknownField"] =
+            "\"{1}\" has no field \"{0}\": it declares {2}.",
         ["Editor.Problem.RecordInText"] = "\"{1}\" takes text and names the record \"{0}\": the whole record would be written as JSON text. Read one field with field(record, \"name\").",
         ["Editor.Problem.EmptySwitch"] = "This switch has no case and no otherwise branch, so it does nothing.",
         ["Editor.Problem.WrongStepKind"] = "This list only takes {0}, so this step would not run here.",
@@ -2038,6 +2040,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.Description"] = "Description",
         ["MacroInterface.AddParameter"] = "Add parameter",
         ["MacroInterface.DefaultParameterName"] = "parameter",
+        ["MacroInterface.AddField"] = "Add field",
+        ["MacroInterface.MoveUp"] = "Move up",
+        ["MacroInterface.MoveDown"] = "Move down",
+        ["MacroInterface.FieldName"] = "field name",
+        ["MacroInterface.DefaultFieldName"] = "field",
+        ["MacroInterface.FieldsHint"] =
+            "What this record holds, one row per field. Writing them down is what lets "
+            + "\"$record.name\" be checked while the macro is written; left empty, the fields are "
+            + "whatever the value happens to hold, and nothing can be checked.",
         ["MacroInterface.DefaultResultName"] = "result",
         ["MacroInterface.AddResult"] = "Add result",
         ["MacroInterface.Remove"] = "Remove",
@@ -2706,6 +2717,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.MissingArgument"] = "「{0}」是「{1}」要求的形参，这一步没有填：要传空值就勾上旁边的「传空值」。",
         ["Editor.Problem.GivenWithValue"] = "「{0}」勾了「传空值」，但格子里还有值：要传空串就清空格子，要传这个值就取消勾选。",
         ["Editor.Problem.NotARecord"] = "「{0}」要一条记录，而「{1}」不是：上一步的命中、窗口或截图都带着一条记录。",
+        ["Editor.Problem.UnknownField"] = "「{1}」没有字段「{0}」：它声明的是 {2}。",
         ["Editor.Problem.RecordInText"] = "「{1}」只收文本，却引用了记录「{0}」：整条记录会被写成 JSON 文字；取其中一项用 field(记录, \"字段名\")。",
         ["Editor.Problem.EmptySwitch"] = "这个多分支没有 case，也没有 otherwise，运行时什么也不做。",
         ["Editor.Problem.WrongStepKind"] = "这个列表只收{0}，这一步放在这里不会运行。",
@@ -4170,6 +4182,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.Description"] = "说明",
         ["MacroInterface.AddParameter"] = "添加形参",
         ["MacroInterface.DefaultParameterName"] = "参数",
+        ["MacroInterface.AddField"] = "添加字段",
+        ["MacroInterface.MoveUp"] = "上移",
+        ["MacroInterface.MoveDown"] = "下移",
+        ["MacroInterface.FieldName"] = "字段名",
+        ["MacroInterface.DefaultFieldName"] = "字段",
+        ["MacroInterface.FieldsHint"] =
+            "这条记录里有什么，一行一个字段。写下来以后「$记录.字段」在写宏时就能核对；"
+            + "留空表示没说，字段随值而定，也就什么都核对不了。",
         ["MacroInterface.DefaultResultName"] = "结果",
         ["MacroInterface.AddResult"] = "添加结果",
         ["MacroInterface.Remove"] = "删除",

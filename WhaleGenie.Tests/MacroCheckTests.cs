@@ -441,6 +441,90 @@ public class MacroCheckTests
         Assert.Empty(Against("自己", [], Repeat(Call("自己"))));
     }
 
+    /// <summary>
+    /// A record whose declaration names its fields is checkable while the macro is written; one that
+    /// names none is not, because checking against names nobody wrote down would be a guess.
+    /// </summary>
+    private static MacroCallable WithRecord(string name,
+        params (string Name, ActionReturnType Type)[] fields)
+        => new(name,
+            [
+                new MacroParameter
+                {
+                    Name = "点",
+                    Type = ActionReturnType.Record,
+                    Required = true,
+                    Fields = [.. fields.Select(field => new MacroField
+                    {
+                        Name = field.Name,
+                        Type = field.Type,
+                    })],
+                },
+            ], []);
+
+    [Fact]
+    public void A_field_a_declared_record_has_is_left_alone()
+        => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [Set("左", "field($点, \"x\")")],
+            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            [])));
+
+    [Fact]
+    public void A_field_a_declared_record_does_not_have_is_marked()
+    {
+        var step = Set("左", "field($点, \"z\")");
+
+        var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
+            [step],
+            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            [])));
+
+        // The mark names the field that is not there and the ones that are: "wrong field" without
+        // the list would leave the author guessing at the spelling.
+        Assert.Equal("UnknownField", problem.Code);
+        Assert.Same(step, problem.Step);
+        Assert.Contains("z", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("x, y", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_record_that_names_no_fields_is_not_checked()
+        => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [Set("左", "field($点, \"随便\")")],
+            WithRecord("自己"),
+            [])));
+
+    [Fact]
+    public void A_record_a_call_hands_back_is_checked_by_the_called_macro()
+    {
+        var called = new MacroCallable("找图",
+            [new MacroParameter { Name = "图", Required = true }],
+            [
+                new MacroResult
+                {
+                    Name = "命中",
+                    Type = ActionReturnType.Record,
+                    Fields =
+                    [
+                        new MacroField { Name = "left", Type = ActionReturnType.Number },
+                        new MacroField { Name = "top", Type = ActionReturnType.Number },
+                    ],
+                },
+            ]);
+
+        var call = Step("control.runMacro", Text("macro", "找图"), Arguments(("图", "a.png")),
+            Results("命中"));
+
+        // Reading a field of a record a call handed back is checked against the called macro's
+        // declaration: nowhere else says what is in it.
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [call, Set("左", "field($命中, \"left\")")], Callable("自己"), [called])));
+
+        var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
+            [call, Set("左", "field($命中, \"middle\")")], Callable("自己"), [called])));
+        Assert.Equal("UnknownField", problem.Code);
+    }
+
     [Fact]
     public void A_call_that_names_no_macro_is_reported()
         => Assert.Single(Against("自己", [Callable("另一个")], Call("")));
