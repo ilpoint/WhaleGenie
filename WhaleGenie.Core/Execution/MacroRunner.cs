@@ -3055,6 +3055,19 @@ public sealed partial class MacroRunner
         RequireCondition(step, name);
         ValidateAnswers(step);
         token.ThrowIfCancellationRequested();
+
+        // A condition written with a comparison sign was meant as an expression. Text that cannot
+        // be worked out is otherwise used as the words it is, and words are true — so "1 = 2", the
+        // usual typo for "==", quietly ran the branch it was written to skip. Anything shaped like
+        // a comparison gets the expression reader's own complaint instead.
+        var written = step.Text(name).Trim();
+        if (written.Length > 0
+            && !Expression.TryEvaluate(written, Variables, out _, out var error)
+            && written.Any(character => character is '=' or '<' or '>' or '!'))
+        {
+            throw error!;
+        }
+
         return ReadValue(step, name).AsBool();
     }
 

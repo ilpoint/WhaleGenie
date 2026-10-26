@@ -831,10 +831,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </summary>
     private IMacroLibrary Library => _macros ?? (_listed.Count == 0
         ? EmptyMacroLibrary.Instance
-        : new ProjectMacroLibrary(_listed
-            .Where(macro => macro.Name.Trim().Length > 0)
-            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable(), macro.Callable.Signature,
-                macro.ExclusiveInput))));
+        : new ProjectMacroLibrary(CallableMacros.Entries(_listed)));
 
     /// <summary>Every step of the macro, in the order it runs, nested ones indented.</summary>
     public ObservableCollection<RunStepViewModel> Steps { get; } = [];

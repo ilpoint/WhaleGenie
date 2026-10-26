@@ -199,6 +199,71 @@ public class McpRunTests
         });
     }
 
+    /// <summary>
+    /// A macro that calls one of its own submacros runs. The engine only knows names, and until the
+    /// submacros were gathered into the run's library the call failed with Run.MacroNotFound however
+    /// it was written — the editor could make the call, the run could not find it.
+    /// </summary>
+    [Fact]
+    public void A_macro_can_call_its_own_submacro()
+    {
+        Ui.RunAsync(async () =>
+        {
+            McpControl.AllowsRun = true;
+            try
+            {
+                await using var host = new McpServerHost(new MainViewModel());
+                await host.StartAsync();
+                await using var client = await ConnectAsync(host.Endpoint);
+
+                var draft = await Draft(client);
+                var put = await Put(client, draft, """
+                    {"name":"外面","steps":[
+                       {"type":"control.runMacro","params":{"macro":"里面","arguments":[],"returns":[]}}
+                     ],
+                     "subMacros":[
+                       {"name":"里面","steps":[
+                          {"type":"control.setVariable",
+                           "params":{"name":"见过","scope":"local","value":"yes"}}
+                        ]}
+                     ]}
+                    """);
+                var stepId = JsonDocument.Parse(put).RootElement
+                    .GetProperty("outline")[0].GetProperty("id").GetString()!;
+
+                var byBareName = JsonDocument.Parse(await Call(client, "whalegenie_run_macro",
+                    new Dictionary<string, object?> { ["name"] = "外面", ["draftId"] = draft }))
+                    .RootElement;
+                Assert.Equal("Completed", byBareName.GetProperty("status").GetString());
+
+                // The qualified name works whatever else the project holds: two parents may each
+                // have a submacro called the same thing.
+                await Call(client, "whalegenie_patch_macro", new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "外面",
+                    ["operations"] = JsonNode.Parse(
+                        "[{\"op\":\"set\",\"stepId\":\"" + stepId + "\",\"param\":\"macro\","
+                        + "\"value\":\"外面/里面\"}]"),
+                });
+
+                var byQualifiedName = JsonDocument.Parse(await Call(client, "whalegenie_run_macro",
+                    new Dictionary<string, object?> { ["name"] = "外面", ["draftId"] = draft }))
+                    .RootElement;
+                Assert.Equal("Completed", byQualifiedName.GetProperty("status").GetString());
+                Assert.Equal(2, byQualifiedName.GetProperty("steps").GetInt32());
+
+                await host.StopAsync();
+            }
+            finally
+            {
+                McpControl.AllowsRun = false;
+            }
+
+            return true;
+        });
+    }
+
     private static async Task<string> Draft(McpClient client)
         => JsonDocument.Parse(await Call(client, "whalegenie_open_project",
             new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;

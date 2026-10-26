@@ -91,13 +91,7 @@ public sealed class McpRunTools
             // Everything the run needs is copied off the view model here, on the interface thread:
             // the run itself then works with plain objects on a thread of its own.
             var steps = macro.Steps.ToExecutable();
-            var library = new ProjectMacroLibrary(sources.Macros
-                .Where(candidate => candidate.Name.Trim().Length > 0)
-                .Select(candidate => (
-                    candidate.Name.Trim(),
-                    candidate.Steps.ToExecutable(),
-                    candidate.Callable.Signature,
-                    candidate.ExclusiveInput)));
+            var library = new ProjectMacroLibrary(CallableMacros.Entries(sources.Macros));
             // A range run is the same run with edges: steps that start a program of their own, or
             // write outside the range folder, are refused before anything is touched, and the run
             // gets a shorter budget than a person's own would.

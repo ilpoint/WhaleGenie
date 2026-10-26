@@ -122,4 +122,56 @@ public class ValueReadTests
         Assert.True(store.TryGet("seen", out var seen));
         Assert.Equal("yes", seen.AsText());
     }
+
+    /// <summary>
+    /// A condition written with one "=" is a typo for "==", and it has to be told as one. Read as
+    /// the words "1 = 2" it is a non-empty text, which is true — so the branch the author meant to
+    /// skip ran, and nothing anywhere said why.
+    /// </summary>
+    [Fact]
+    public async Task A_single_equals_in_a_condition_is_a_failure_not_a_true()
+    {
+        var store = new VariableStore();
+        var result = await new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer())
+            .RunAsync([
+                Step("control.if",
+                    Param("condition", "1 = 2"),
+                    new ExecutableParameter
+                    {
+                        Name = "then",
+                        Steps = [Step("control.setVariable", Param("name", "ran"),
+                            Param("scope", "local"), Param("value", "yes"))],
+                    }),
+            ]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadExpression, result.Key);
+        Assert.False(store.TryGet("ran", out _));
+    }
+
+    /// <summary>
+    /// Words are still a value: a condition that names no comparison keeps the meaning it had, so
+    /// the fix above takes nothing away from a macro that wrote one.
+    /// </summary>
+    [Fact]
+    public async Task A_condition_in_words_still_means_what_it_said()
+    {
+        var store = new VariableStore();
+        store.Local.SetText("state", "已登录");
+
+        var result = await new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer())
+            .RunAsync([
+                Step("control.if",
+                    Param("condition", "$state"),
+                    new ExecutableParameter
+                    {
+                        Name = "then",
+                        Steps = [Step("control.setVariable", Param("name", "ran"),
+                            Param("scope", "local"), Param("value", "yes"))],
+                    }),
+            ]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.TryGet("ran", out _));
+    }
 }
