@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -53,6 +54,48 @@ public sealed class McpResources
             }).ToList();
 
             return JsonSerializer.Serialize(new { total = actions.Count, actions }, Json);
+        });
+
+    /// <summary>
+    /// What the catalogue adds up to, by group: how many actions, parameters, results and how many
+    /// actions hand anything back. It is the shape a client reads before deciding what is worth
+    /// looking at, and the numbers are the ones the action matrix measures, so a change shows up in
+    /// both places at once.
+    /// </summary>
+    [McpServerResource(UriTemplate = "whalegenie://action-matrix", Name = "Action matrix",
+        Title = "Action matrix", MimeType = "application/json")]
+    [Description("How many actions, parameters and results the catalogue holds, and the same counts by group. Useful for deciding what to look at; the per-action detail is in whalegenie://actions/{key}.")]
+    public async Task<string> Matrix()
+        => await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var all = ActionSemanticsCatalog.All;
+            var groups = all
+                .GroupBy(action => action.Category)
+                .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
+                .Select(group => new
+                {
+                    category = group.Key.ToString(),
+                    actions = group.Count(),
+                    parameters = group.Sum(action => action.Parameters.Count),
+                    results = group.Sum(action => action.Returns.Count),
+                    withReturns = group.Count(action => action.Returns.Count > 0),
+                    sendsInput = group.Count(action => action.SendsInput),
+                    looksAtScreen = group.Count(action => action.LooksAtScreen),
+                    waits = group.Count(action => action.Waits),
+                })
+                .ToList();
+
+            return JsonSerializer.Serialize(new
+            {
+                total = all.Count,
+                parameters = all.Sum(action => action.Parameters.Count),
+                results = all.Sum(action => action.Returns.Count),
+                withReturns = all.Count(action => action.Returns.Count > 0),
+                sendsInput = all.Count(action => action.SendsInput),
+                looksAtScreen = all.Count(action => action.LooksAtScreen),
+                waits = all.Count(action => action.Waits),
+                byCategory = groups,
+            }, Json);
         });
 
     /// <summary>

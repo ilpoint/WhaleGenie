@@ -67,7 +67,11 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
         "whalegenie_element_at", "whalegenie_mouse_move", "whalegenie_mouse_click",
         "whalegenie_mouse_scroll", "whalegenie_mouse_drag", "whalegenie_key",
         "whalegenie_type_text", "whalegenie_window_activate", "whalegenie_window_move",
-        "whalegenie_window_close",
+        "whalegenie_window_close", "whalegenie_get_step", "whalegenie_get_globals",
+        "whalegenie_find_elements", "whalegenie_window_info", "whalegenie_clipboard_read",
+        "whalegenie_clipboard_write", "whalegenie_process_list", "whalegenie_read_picture",
+        "whalegenie_run_macro", "whalegenie_stop_macro", "whalegenie_run_status",
+        "whalegenie_range_state", "whalegenie_range_reset",
     ];
 
     private readonly McpSelfCheckOptions _options = options ?? new McpSelfCheckOptions();
@@ -85,6 +89,7 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
             await PatchAsync(token).ConfigureAwait(false);
             await RejectAsync(token).ConfigureAwait(false);
             await ResourcesAsync(token).ConfigureAwait(false);
+            await DoorsAsync(token).ConfigureAwait(false);
             await GateAsync(token).ConfigureAwait(false);
         }
         catch (Exception error)
@@ -124,11 +129,14 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
                 ? $"{tools.Count} tools, every required one present"
                 : $"missing {string.Join(", ", absent)}");
 
+        // A tool this build knows and the server does not is a difference worth reporting, not a
+        // pass with a number beside it: a client that needs it would find out by being refused.
         var absentOptional = OptionalTools.Where(name => !_tools.Contains(name)).ToArray();
         _report.Metrics["tools.absentOptional"] = absentOptional.Length;
-        Add("tools.optional", McpCheckResult.Pass, absentOptional.Length == 0
-            ? "every optional tool present"
-            : $"absent: {string.Join(", ", absentOptional)}");
+        Add("tools.optional", absentOptional.Length == 0 ? McpCheckResult.Pass : McpCheckResult.Missing,
+            absentOptional.Length == 0
+                ? $"every one of {OptionalTools.Length} optional tools present"
+                : $"absent: {string.Join(", ", absentOptional)}");
 
         MeasureSchema(tools);
 
@@ -814,6 +822,36 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
         }
     }
 
+    /// <summary>
+    /// Whether the two permissions really are off when nobody turned them on, and whether a run
+    /// without a range says so. A server that quietly allowed either would be a hole the person did
+    /// not open.
+    /// </summary>
+    private async Task DoorsAsync(CancellationToken token)
+    {
+        var control = await InvokeAsync("whalegenie_mouse_move",
+            new Dictionary<string, object?>(StringComparer.Ordinal) { ["x"] = 1, ["y"] = 1 },
+            token).ConfigureAwait(false);
+        var controlOff = Refused(control, McpErrors.DirectControlOff);
+        Add("gate.control_off", controlOff ? McpCheckResult.Pass : McpCheckResult.Fail,
+            controlOff ? "sending input is refused until the person allows it" : control.Text);
+
+        var run = await InvokeAsync("whalegenie_run_macro",
+            new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["name"] = "nothing in particular",
+            }, token).ConfigureAwait(false);
+        var runOff = Refused(run, McpErrors.RunNotAllowed);
+        Add("gate.run_off", runOff ? McpCheckResult.Pass : McpCheckResult.Fail,
+            runOff ? "running a macro is refused until the person allows it" : run.Text);
+
+        var range = await InvokeAsync("whalegenie_range_state",
+            new Dictionary<string, object?>(StringComparer.Ordinal), token).ConfigureAwait(false);
+        var noRange = Refused(range, McpErrors.RangeNotAvailable);
+        Add("range.absent", noRange ? McpCheckResult.Pass : McpCheckResult.Missing,
+            noRange ? "this server has no range window and says so" : range.Text);
+    }
+
     private async Task GateAsync(CancellationToken token)
     {
         if (!_options.AllowApply)
@@ -1203,6 +1241,10 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
 
     private static bool Mentions(string text, string word)
         => word.Length > 0 && text.Contains(word, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Whether an answer was a refusal with this code.</summary>
+    private static bool Refused(Answer answer, string code)
+        => answer.Failed && answer.Text.Contains(code, StringComparison.Ordinal);
 
     private static string Describe(Exception error)
         => $"{error.GetType().Name}: {error.Message}";
