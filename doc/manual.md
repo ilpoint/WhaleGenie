@@ -981,7 +981,8 @@ selector）、按 selector 找到的一组控件、正在运行的程序、剪�
   靶场真的**有边界**，不只是有个目标：点或拖到窗口外按 `Range.OutsideTarget` 拒绝；`window_*` 只认靶场
   那个窗口（`Range.ForeignWindow`）；跑宏时脚本、`process.kill`、`system.power` 与 `command.run` 一律拒绝
   （`Range.ActionRefused`），文件动作只能写进 `%TEMP%\whalegenie-range`（`Range.PathOutside`），单次运行
-  最多 60 秒。按键仍发给当前焦点窗口，所以在靶场里打字前先 `whalegenie_window_activate` 把靶场窗口提到前面。
+  最多 60 秒。按键发给当前焦点窗口，所以靶场里打字前必须先 `whalegenie_window_activate` 把靶场窗口提到
+  前面——不在前面时按键按 `Range.NotFocused` 拒绝，而不是落到别的窗口里。
 - 用「复制客户端配置」得到一段 `.mcp.json`，把它交给支持 HTTP MCP 的客户端。
 - 客户端必须有 `http` 类型的 MCP 支持；只支持 stdio 的客户端第一版还不能接。
 - 客户端如果支持 MCP prompts，会看到两条默认提示词：`whalegenie_write_macro`（怎么写宏）与

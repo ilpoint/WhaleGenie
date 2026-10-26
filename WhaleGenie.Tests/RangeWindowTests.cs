@@ -212,6 +212,58 @@ public class RangeWindowTests
     }
 
     /// <summary>
+    /// Keys go to whatever has the focus, so in a range run the window in front has to be the range
+    /// itself: otherwise typing lands somewhere nobody asked for.
+    /// </summary>
+    [Fact]
+    public void Keys_only_go_into_the_range_while_it_is_in_front()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RangeWindow();
+            window.Show();
+            var mine = RangeWindow.Where!.Handle;
+            McpControl.Allowed = true;
+            try
+            {
+                // Something else in front: refused, and the hint says what to do about it.
+                var behind = new WindowsForChecks();
+                behind.Add(4242, "别的窗口", "other", "Other");
+                behind.Add(mine, "WhaleGenie Range", "WhaleGenie", "AvaloniaWindow");
+                var away = new McpControlTools(() => new ChecksDevices
+                {
+                    Windows = behind,
+                    Inputs = new SingleInputRouter(new RecordingInput()),
+                });
+
+                var refused = away.TypeText("hi").Result;
+                Assert.True(refused.IsError == true);
+                Assert.Equal("Range.NotFocused", Code(refused));
+                Assert.Equal("Range.NotFocused", Code(away.Key("F5").Result));
+
+                // The range in front: allowed.
+                var front = new WindowsForChecks();
+                front.Add(mine, "WhaleGenie Range", "WhaleGenie", "AvaloniaWindow");
+                var input = new RecordingInput();
+                var here = new McpControlTools(() => new ChecksDevices
+                {
+                    Windows = front,
+                    Inputs = new SingleInputRouter(input),
+                });
+                Assert.True(here.TypeText("hi").Result.IsError is not true);
+
+                // What was typed is not recorded, only how much: the log says the length, not the text.
+                Assert.Contains("type 2 0", input.Done);
+            }
+            finally
+            {
+                McpControl.Allowed = false;
+                window.Close();
+            }
+        });
+    }
+
+    /// <summary>
     /// A range run refuses what a range cannot promise — a script of its own, or a place outside its
     /// own folder — before anything is touched, and says which edge was crossed.
     /// </summary>

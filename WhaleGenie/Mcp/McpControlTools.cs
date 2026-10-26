@@ -406,7 +406,7 @@ public sealed class McpControlTools
 
             Front().KeyPress(name, Span(holdMs));
             return new { key = name, holdMs = Span(holdMs) };
-        }))));
+        }, allow: () => Unfocused()))));
 
     [McpServerTool(Name = "whalegenie_type_text", Destructive = true, Title = "Type text"),
      Description("Types text where the keyboard is pointing, one character at a time when an interval is asked for. The text itself is not echoed back.")]
@@ -417,7 +417,7 @@ public sealed class McpControlTools
         {
             Front().TypeText(text ?? string.Empty, Span(intervalMs));
             return new { characters = (text ?? string.Empty).Length, intervalMs = Span(intervalMs) };
-        }, $"{(text ?? string.Empty).Length} characters"))));
+        }, $"{(text ?? string.Empty).Length} characters", () => Unfocused()))));
 
     [McpServerTool(Name = "whalegenie_window_activate", Destructive = true, Title = "Bring a window forward"),
      Description("Brings one window to the front, restoring it first when it was shrunk. This is how a window is chosen before keys and clicks are sent to it.")]
@@ -532,6 +532,28 @@ public sealed class McpControlTools
         return new McpFailure(McpErrors.RangeForeignWindow,
             $"Window {handle} is not the range window.",
             $"A range run only works its own window ({where.Handle}); the rest of the desktop is out of bounds.");
+    }
+
+    /// <summary>
+    /// Why keys may not be sent, or null when they may. Keys go to whatever has the focus, which a
+    /// point cannot be checked against: in a range run the window in front has to be the range,
+    /// otherwise the typing lands somewhere nobody asked for.
+    /// </summary>
+    private McpFailure? Unfocused()
+    {
+        if (Range.RangeWindow.Where is not { } where)
+        {
+            return null;
+        }
+
+        if (_devices().Windows.Foreground() is { } front && front.Handle == where.Handle)
+        {
+            return null;
+        }
+
+        return new McpFailure(McpErrors.RangeNotFocused,
+            "The range window is not in front, so keys would go somewhere else.",
+            "Call whalegenie_window_activate with the range handle first; the range only types into itself.");
     }
 
     /// <summary>
