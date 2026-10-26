@@ -330,6 +330,94 @@ public class McpControlTests : IDisposable
         });
     }
 
+    /// <summary>
+    /// The control at a point is not only what it is: what it holds and whether it can be used are
+    /// the two things a step has to check after typing into it.
+    /// </summary>
+    [Fact]
+    public async Task The_control_at_a_point_says_what_it_holds()
+    {
+        _ui.Element = new UiElementInfo("姓名", "txtName", "Edit", "Edit",
+            new ScreenPoint(10, 20), new ScreenSize(100, 24), "记事本");
+        _ui.Said = new UiElementFacts(true, true, "张三", "姓名", "txtName", "Edit",
+            new ScreenPoint(10, 20), new ScreenSize(100, 24));
+
+        var read = Json(await _tools.ElementAt(15, 25));
+        Assert.True(read.GetProperty("found").GetBoolean());
+        Assert.Equal("张三", read.GetProperty("value").GetString());
+        Assert.True(read.GetProperty("enabled").GetBoolean());
+        Assert.True(read.GetProperty("visible").GetBoolean());
+        Assert.True(read.GetProperty("hasValue").GetBoolean());
+
+        // A control that cannot be asked says so rather than pretending the value is empty.
+        _ui.Said = null;
+        var silent = Json(await _tools.ElementAt(15, 25));
+        Assert.False(silent.GetProperty("hasValue").GetBoolean());
+    }
+
+    /// <summary>A selector found once can be found again, which is what a step needs.</summary>
+    [Fact]
+    public async Task Controls_can_be_found_by_selector()
+    {
+        _ui.Element = new UiElementInfo("保存", "btnSave", "Button", "Button",
+            new ScreenPoint(10, 20), new ScreenSize(60, 24), "记事本");
+
+        var found = Json(await _tools.FindElements("Button[name='保存']"));
+        Assert.Equal(1, found.GetProperty("count").GetInt32());
+        Assert.Equal("保存", found.GetProperty("elements")[0].GetProperty("name").GetString());
+    }
+
+    /// <summary>The clipboard is a place a step can read from and write to, and writing needs the switch.</summary>
+    [Fact]
+    public async Task The_clipboard_can_be_read_and_written()
+    {
+        var clipboard = new RecordingClipboard();
+        clipboard.WriteText("读到的");
+        _devices.Clipboard = clipboard;
+
+        var read = Json(await _tools.ClipboardRead());
+        Assert.Equal("读到的", read.GetProperty("text").GetString());
+
+        Assert.Equal(McpErrors.DirectControlOff, Code(await _tools.ClipboardWrite("写进去的")));
+
+        McpControl.Allowed = true;
+        var wrote = await _tools.ClipboardWrite("写进去的");
+        Assert.True(wrote.IsError != true);
+        Assert.Equal("写进去的", clipboard.Text);
+    }
+
+    /// <summary>One window can be asked about by handle, including which program owns it.</summary>
+    [Fact]
+    public async Task One_window_can_be_read_by_handle()
+    {
+        _windows.Add(4242, "计算器", "Calculator", "CalcFrame");
+        _windows.Place(4242, 100, 200, 320, 240);
+        _windows.ClientAt(4242, 108, 232);
+
+        var info = Json(await _tools.WindowInfo(4242));
+        Assert.True(info.GetProperty("found").GetBoolean());
+        Assert.Equal("Calculator", info.GetProperty("process").GetString());
+        Assert.Equal("CalcFrame", info.GetProperty("className").GetString());
+        Assert.Equal(108, info.GetProperty("clientX").GetInt32());
+
+        var missing = Json(await _tools.WindowInfo(9));
+        Assert.False(missing.GetProperty("found").GetBoolean());
+    }
+
+    /// <summary>A listing can carry the program and class of every window, which is what a filter matched.</summary>
+    [Fact]
+    public async Task A_window_listing_can_carry_each_window_s_program()
+    {
+        _windows.Add(4242, "计算器", "Calculator", "CalcFrame");
+
+        var plain = Json(await _tools.ListWindows());
+        Assert.Equal(string.Empty, plain.GetProperty("windows")[0].GetProperty("process").GetString());
+
+        var detailed = Json(await _tools.ListWindows(details: true));
+        Assert.Equal("Calculator", detailed.GetProperty("windows")[0].GetProperty("process").GetString());
+        Assert.Equal("CalcFrame", detailed.GetProperty("windows")[0].GetProperty("className").GetString());
+    }
+
     private static string Text(CallToolResult result)
         => result.Content.OfType<TextContentBlock>().Last().Text;
 
@@ -450,7 +538,10 @@ internal sealed class ElementAtUi : IUiDevice
 
     public bool Invoke(UiQuery query) => false;
 
-    public UiElementFacts? Facts(UiQuery query) => null;
+    /// <summary>What the control says about itself; null is a control that cannot be asked.</summary>
+    public UiElementFacts? Said { get; set; }
+
+    public UiElementFacts? Facts(UiQuery query) => Said;
 
     public bool FocusWindow(UiQuery query) => false;
 

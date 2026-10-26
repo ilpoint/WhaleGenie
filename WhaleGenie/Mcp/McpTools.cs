@@ -31,9 +31,23 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_project_status", ReadOnly = true,
             Title = "Project status"),
-     Description("Reports the open WhaleGenie project: package path, revision, dirty state and macro count.")]
+     Description("Reports the open WhaleGenie project: package path, revision, dirty state and macro count, and which of the two permissions a client has right now — sending input, and running a macro.")]
     public Task<CallToolResult> ProjectStatus()
-        => McpErrors.RunAsync(async () => McpErrors.Ok(await project.StatusAsync()));
+        => McpErrors.RunAsync(async () =>
+        {
+            var status = await project.StatusAsync();
+            return McpErrors.Ok(new
+            {
+                path = status.Path,
+                revision = status.Revision,
+                dirty = status.Dirty,
+                macroCount = status.MacroCount,
+
+                // What a client is allowed to do, so it can say "the switch is off" instead of
+                // finding out by being refused.
+                control = new { allowed = McpControl.Allowed, runAllowed = McpControl.AllowsRun },
+            });
+        });
 
     [McpServerTool(Name = "whalegenie_list_actions", ReadOnly = true,
             Title = "Search the action catalogue"),
