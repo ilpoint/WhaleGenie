@@ -1684,7 +1684,7 @@ public sealed class MacroTriggerService : IDisposable
                 var runner = new MacroRunner(
                     MacroVariables.Seed(new SystemVariableReader(_devices), SharedVariables.Current),
                     host, _devices,
-                    macro.DelayScale, library)
+                    macro.DelayScale, library, capture)
                 {
                     FailureLogFolder = AppPaths.Logs,
                     RunName = macro.Name,

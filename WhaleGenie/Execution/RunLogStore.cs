@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 
 namespace WhaleGenie.Execution;
@@ -8,8 +9,20 @@ namespace WhaleGenie.Execution;
 /// <summary>One line of a run, kept after the window that showed it has moved on.</summary>
 public sealed record RunLogLine(DateTimeOffset Time, LogLevel Level, int Depth, string Text);
 
-/// <summary>What a step came to, kept with the run that produced it.</summary>
-public sealed record RunLogOutcome(string Name, string Label, string Value);
+/// <summary>One value a step worked out, kept with the run that produced it.</summary>
+/// <param name="Key">The result's own name in the catalogue, such as <c>match</c> or <c>text</c>.</param>
+/// <param name="Label">The name the macro keeps it under, or empty when the step did not ask for it.</param>
+/// <param name="Value">What it came to, as a person reads it.</param>
+/// <param name="Kept">True when the macro keeps it under a name of its own.</param>
+public sealed record RunLogResult(string Key, string Label, string Value, bool Kept);
+
+/// <summary>
+/// What a step came to, kept with the run that produced it: how it ended, why if it failed, and
+/// everything it worked out. A log line says what happened; this says what the step answered, which
+/// is what a client has to compare against what it expected.
+/// </summary>
+public sealed record RunLogOutcome(
+    string StepId, string StepType, string Outcome, string Failure, IReadOnlyList<RunLogResult> Results);
 
 /// <summary>A finished or still-running run as the MCP debug tools see it.</summary>
 public sealed record RunLogSnapshot(
@@ -31,7 +44,7 @@ public sealed record RunLogSnapshot(
 /// it through its host. It is deliberately independent of the window so MCP can read a run that
 /// nobody is looking at.
 /// </summary>
-public sealed class RunLogCapture
+public sealed class RunLogCapture : IRunLooks
 {
     private readonly object _gate = new();
     private readonly List<RunLogLine> _lines = [];
@@ -74,8 +87,43 @@ public sealed class RunLogCapture
         }
     }
 
-    /// <summary>Records how the run ended and what its steps came to.</summary>
-    public void Finish(RunResult? result, string status, IEnumerable<RunLogOutcome>? outcomes = null)
+    /// <summary>Nothing to say about a look: this capture only keeps what each step came to.</summary>
+    public void Look(StepLook look)
+    {
+    }
+
+    /// <summary>The window a step was reading is not part of what the run answers.</summary>
+    public void Reading(WindowInfo? window)
+    {
+    }
+
+    /// <summary>
+    /// One step's answer, kept as it arrives. A step that worked something out is worth reading
+    /// afterwards even when the macro never kept it: "it found the picture, at this place" is the
+    /// answer a client is usually after.
+    /// </summary>
+    public void Ran(StepRun run)
+    {
+        lock (_gate)
+        {
+            _outcomes.RemoveAll(outcome =>
+                string.Equals(outcome.StepId, run.StepId, StringComparison.Ordinal));
+            _outcomes.Add(new RunLogOutcome(
+                run.StepId,
+                run.StepType,
+                run.Outcome,
+                run.FailureKey,
+                [.. run.Results.Select(result => new RunLogResult(
+                    result.Key, result.Name, Short(result.Text), result.Name.Length > 0))]));
+        }
+    }
+
+    /// <summary>A value as long as it is worth sending; a whole table read is not one answer.</summary>
+    private static string Short(string text)
+        => text.Length <= 300 ? text : text[..300] + "…";
+
+    /// <summary>Records how the run ended.</summary>
+    public void Finish(RunResult? result, string status)
     {
         lock (_gate)
         {
@@ -90,11 +138,6 @@ public sealed class RunLogCapture
             _key = result?.Key ?? string.Empty;
             _detail = result?.Detail ?? string.Empty;
             _steps = result?.Steps ?? 0;
-            _outcomes.Clear();
-            if (outcomes is not null)
-            {
-                _outcomes.AddRange(outcomes);
-            }
         }
     }
 

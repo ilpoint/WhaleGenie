@@ -1140,7 +1140,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         try
         {
             var runner = new MacroRunner(
-                _variables, new UiThreadRunHost(this), _devices, _delayScale, Library, this)
+                _variables, new UiThreadRunHost(this), _devices, _delayScale, Library,
+                _capture is { } capture ? new RunLooks(capture, this) : this)
             {
                 FailureLogFolder = AppPaths.Logs,
                 RunName = Debugged,
@@ -1181,9 +1182,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             RefreshVariables();
             RefreshStepOutcomes();
             Status = Lines.Count > 0 ? Lines[^1].Text : Strings.Get("Run.Ready");
-            _capture?.Finish(result, result?.Status.ToString() ?? Status,
-                StepOutcomes.Select(outcome =>
-                    new RunLogOutcome(outcome.Name, outcome.Label, outcome.Value)));
+            _capture?.Finish(result, result?.Status.ToString() ?? Status);
             _capture = null;
         }
     }

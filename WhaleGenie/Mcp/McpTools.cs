@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -114,6 +115,57 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 revision = basis.Revision,
                 macros = basis.Macros.Select(Summary),
             });
+        });
+
+    [McpServerTool(Name = "whalegenie_read_picture", ReadOnly = true,
+            Title = "Read a picture a macro saved"),
+     Description("Returns a PNG that a step saved, as an image. Only files inside the project folder or the log folder are read: this is for looking at what a capture step produced, not for reading any file on the machine.")]
+    public Task<CallToolResult> ReadPicture(
+        [Description("The path a capture step reported, such as the path result of vision.capture.")] string path)
+        => McpErrors.RunAsync(async () =>
+        {
+            var status = await project.StatusAsync();
+            var roots = new List<string> { AppPaths.Logs };
+            if (Path.GetDirectoryName(status.Path) is { Length: > 0 } folder)
+            {
+                roots.Add(folder);
+            }
+
+            var full = Path.GetFullPath((path ?? string.Empty).Trim());
+            var allowed = roots.Any(root => full.StartsWith(
+                Path.GetFullPath(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+
+            if (!allowed)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument,
+                    "That file is outside the project folder and the log folder.",
+                    "Pass the path a capture step reported; only what the project itself wrote is read.");
+            }
+
+            if (!full.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || !File.Exists(full))
+            {
+                return McpErrors.Fail(McpErrors.BadArgument, $"There is no PNG at \"{full}\".",
+                    "A capture step reports the path it wrote; call it again if the file is gone.");
+            }
+
+            var bytes = await File.ReadAllBytesAsync(full);
+            if (bytes.Length > 8 * 1024 * 1024)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument, "That picture is larger than 8 MB.",
+                    "Capture a smaller region, or read it on the machine instead.");
+            }
+
+            return new CallToolResult
+            {
+                Content =
+                [
+                    ImageContentBlock.FromBytes(bytes, "image/png"),
+                    new TextContentBlock
+                    {
+                        Text = JsonSerializer.Serialize(new { path = full, bytes = bytes.Length }),
+                    },
+                ],
+            };
         });
 
     [McpServerTool(Name = "whalegenie_instructions", ReadOnly = true,

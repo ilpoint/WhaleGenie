@@ -1004,8 +1004,11 @@ $response | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "orders.json"
    apply，只是值得看。
 6. 你点运行调试或在触发器里运行；失败时让 AI 用运行日志分析：
    - `whalegenie_list_runs`：最近几次运行；
-   - `whalegenie_get_run_log`：某一次运行的日志、步骤结局、失败日志路径；默认给**最后** 500 行（出错的行
+   - `whalegenie_get_run_log`：某一次运行的日志、**每一步算出了什么**（结果名、值、宏有没有留下它），
+     以及失败日志路径；默认给**最后** 500 行（出错的行
      在末尾），`tail` 可以改，回答里的 `fromLine` 说从第几行开始、`truncated` 说前面还有没有；
+   - `whalegenie_read_picture`：把宏自己截下的 PNG 读回来（只认项目目录与日志目录里的文件），
+     让 AI 能看着图判断，而不是只凭坐标猜。
    - `whalegenie_get_last_failure_log`：最近一份失败日志。只认失败运行写下的 `failure-*.log`，不会把服务器
      自己的调用记录当成失败；也可以把上一次回答里的 `failureLogPath` 传进去读那一份。
 7. AI 根据日志改草稿，再 `apply`、`save_project`。保存前鲸灵会把旧包复制成 `.wgmacro.bak`。
