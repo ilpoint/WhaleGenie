@@ -134,7 +134,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_list_macros", ReadOnly = true,
             Title = "List the macros in a draft"),
-     Description("Lists the macros in an MCP draft, with the total.")]
+     Description("Lists the macros in an MCP draft with the total, and for each one the arguments it declares (name, type, required) and the results it hands back — which is what a call to it has to know.")]
     public Task<CallToolResult> ListMacros(
         [Description("The draft id returned by whalegenie_open_project.")] string draftId)
         => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
@@ -192,7 +192,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_patch_macro", Destructive = true,
             Title = "Change one step"),
-     Description("Changes a macro without sending it again: one operation per change, applied in order. set changes one scalar parameter's value; setRow changes the columns of one row of a table, addRow adds one, removeRow takes one out (a table is a call's arguments, a step's results, the places a search looks); insert adds a step to a list; remove takes one out; move puts a step in another place. A record still needs put_macro. A patch is one write or none — if any operation does not fit, nothing changes and the refusal says which operation and what that list accepts.")]
+     Description("Changes a macro without sending it again: one operation per change, applied in order. set changes one parameter's value, whole records included (a record with a field missing is refused); setRow changes the columns of one row of a table, addRow adds one, removeRow takes one out (a table is a call's arguments, a step's results, the places a search looks); insert adds a step to a list; remove takes one out; move puts a step in another place. A patch is one write or none — if any operation does not fit, nothing changes and the refusal says which operation and what that list accepts.")]
     public Task<CallToolResult> PatchMacro(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name,
@@ -580,13 +580,31 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         return changed;
     }
 
-    private static object Summary(MacroItem macro) => new
+    /// <summary>
+    /// One macro in a list: what it is called, how long it is, and what a call to it would have to
+    /// know. The names are here rather than behind another call because picking which macro to call
+    /// is exactly when a client needs them — opening every macro to find out would be one call each.
+    /// </summary>
+    private static object Summary(MacroItem macro)
     {
-        name = macro.Name,
-        steps = macro.Steps.Count,
-        parameters = macro.Parameters.Count,
-        results = macro.Results.Count,
-    };
+        var call = macro.Callable;
+        return new
+        {
+            name = macro.Name,
+            steps = macro.Steps.Count,
+            arguments = CallableSignature.Arguments(call)
+                .Select(argument => new
+                {
+                    name = argument.Name,
+                    type = argument.Type.ToString(),
+                    required = argument.Required,
+                })
+                .ToList(),
+            results = CallableSignature.Results(call)
+                .Select(result => new { name = result.Name, type = result.Type.ToString() })
+                .ToList(),
+        };
+    }
 
     private static object RunSummary(RunLogSnapshot run) => new
     {

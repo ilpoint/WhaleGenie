@@ -614,6 +614,73 @@ public class McpServerTests
                     JsonDocument.Parse(unknownColumn.Content.OfType<TextContentBlock>().First().Text)
                         .RootElement.GetProperty("error").GetProperty("code").GetString());
 
+                // A window rule is the one record written as an object in the file, so it is the one
+                // that can be sent whole. A rectangle is written as one value instead, and an object
+                // there would be a shape the run reads as something else — so it is refused with the
+                // way that field is actually written.
+                var withWindow = JsonDocument.Parse(await Call(client, "whalegenie_patch_macro",
+                    new Dictionary<string, object?>
+                    {
+                        ["draftId"] = draft,
+                        ["name"] = "补丁宏",
+                        ["operations"] = new JsonArray(new JsonObject
+                        {
+                            ["op"] = "insert",
+                            ["index"] = 0,
+                            ["step"] = new JsonObject
+                            {
+                                ["type"] = "window.activate",
+                                ["params"] = new JsonObject
+                                {
+                                    ["window"] = new JsonObject
+                                    {
+                                        ["title"] = "记事本",
+                                        ["how"] = "contains",
+                                    },
+                                },
+                            },
+                        }),
+                    })).RootElement;
+                var windowId = withWindow.GetProperty("outline")[0].GetProperty("id").GetString()!;
+
+                var rule = JsonDocument.Parse(await Call(client, "whalegenie_patch_macro",
+                    new Dictionary<string, object?>
+                    {
+                        ["draftId"] = draft,
+                        ["name"] = "补丁宏",
+                        ["operations"] = new JsonArray(new JsonObject
+                        {
+                            ["op"] = "set",
+                            ["stepId"] = windowId,
+                            ["param"] = "window",
+                            ["value"] = new JsonObject
+                            {
+                                ["title"] = "计算器",
+                                ["how"] = "equal",
+                            },
+                        }),
+                    })).RootElement;
+                Assert.Equal(1, rule.GetProperty("changed").GetArrayLength());
+
+                // A field the window rule does not have is refused with the ones it has.
+                var wrongField = await client.CallToolAsync("whalegenie_patch_macro",
+                    new Dictionary<string, object?>
+                    {
+                        ["draftId"] = draft,
+                        ["name"] = "补丁宏",
+                        ["operations"] = new JsonArray(new JsonObject
+                        {
+                            ["op"] = "set",
+                            ["stepId"] = windowId,
+                            ["param"] = "window",
+                            ["value"] = new JsonObject { ["titel"] = "打错了" },
+                        }),
+                    });
+                Assert.True(wrongField.IsError == true);
+                Assert.Equal(McpErrors.BadArgument,
+                    JsonDocument.Parse(wrongField.Content.OfType<TextContentBlock>().First().Text)
+                        .RootElement.GetProperty("error").GetProperty("code").GetString());
+
                 // The macro comes back when it is asked for, which is the one time it is wanted.
                 var echoed = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
                     new Dictionary<string, object?>

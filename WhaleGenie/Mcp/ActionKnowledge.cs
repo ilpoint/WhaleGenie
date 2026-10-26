@@ -237,7 +237,11 @@ public static class ActionKnowledge
     /// The names written inside a record, in the order the file writes them. A window rule is read
     /// from the same serialiser the package uses, so this list cannot drift from the field shape.
     /// </summary>
-    private static IReadOnlyList<string> FieldsOf(ActionValueShape shape) => shape switch
+    /// <summary>
+    /// The names written inside a record of this shape, in the order the file writes them. Empty for
+    /// a shape that is one value rather than several.
+    /// </summary>
+    internal static IReadOnlyList<string> FieldsOf(ActionValueShape shape) => shape switch
     {
         ActionValueShape.WindowRule => [.. WindowRule.Empty.ToJson().Select(field => field.Key)],
         ActionValueShape.Point => [FieldNames.X, FieldNames.Y],

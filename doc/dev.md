@@ -201,7 +201,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
   | 操作 | 改什么 | 怎么点名 |
   | --- | --- | --- |
-  | `set` | 一个标量参数的值 | `stepId` + `param` + `value` |
+  | `set` | 一个参数的值（窗口规则可整条给对象） | `stepId` + `param` + `value` |
   | `setRow` | 一张表里一行的几列 | `stepId` + `param` + `match` + `values` |
   | `addRow` | 往表里加一行 | `stepId` + `param` + `values` |
   | `removeRow` | 从表里删一行 | `stepId` + `param` + `match` |
@@ -209,7 +209,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   | `remove` | 删一步 | `stepId` |
   | `move` | 把一步挪到别处 | `stepId` + `parent` + `index` |
 
-  `set` 只收标量（记录要 `put_macro`：一个值里几个字段，写一半是几种可能的意思）；表是
+  `set` 收一个值：标量、整值表达式都行，**窗口规则**还能整条给一个对象（它在文件里本来就写成对象，
+  未知字段会被拒并列出该有的）。`rect` / `point` 不同——它们在文件里是**一个值**（一条记录变量，或
+  `field($rec, "name")`），给对象会被拒并说明这一点。表是
   `arguments` / `returns` / `region` / `keySequence` / `images` / `narrow` 这些行列表。行按**它自己说的话**
   点名而不是按位置，所以上面插一行不会让这次改动落到另一行上；`match` 命中多行或零行都拒绝——猜哪一行是作者
   没做的那个决定。`addRow` 要求目录声明为必填的列都在，且不与已有行重复。`insert` / `move` 的落点走

@@ -155,14 +155,35 @@ internal static class McpPatches
                 true, new { step = step.Type, param = name });
         }
 
-        // A record, a point or a rectangle is several fields in one value. Writing half of it would
-        // be a shape the engine reads as something else, so those go back through put_macro.
-        if (declared.Shape is ActionValueShape.Record or ActionValueShape.Point
-            or ActionValueShape.Rect or ActionValueShape.WindowRule)
+        // A window rule is the one record written as an object in the file, so it is the one that can
+        // be sent whole. A point or a rectangle is written as one value instead — a variable holding
+        // the record, or a field of it — and an object there is a shape the run reads as something
+        // else, which is why it is refused with the way it is written rather than half-accepted.
+        var recordFields = ActionKnowledge.FieldsOf(declared.Shape);
+        if (recordFields.Count > 0 && declared.Shape is not ActionValueShape.WindowRule)
         {
-            return Refused(McpErrors.BadPatch, $"\"{name}\" is a {declared.Shape} written as one record.",
-                "Change the scalar fields around it instead, or write the macro again with whalegenie_put_macro.",
-                true, new { step = step.Type, param = name, shape = declared.Shape.ToString() });
+            if (value is JsonObject)
+            {
+                return Refused(McpErrors.BadPatch,
+                    $"\"{name}\" is a {declared.Shape} written as one value, not as an object.",
+                    "Send one value: a variable holding the record, or field($record, \"name\") for one "
+                    + $"field of it. Its fields are {string.Join(", ", recordFields)}.",
+                    true, new { step = step.Type, param = name, fields = recordFields });
+            }
+        }
+
+        if (declared.Shape is ActionValueShape.WindowRule && value is JsonObject window)
+        {
+            var unknown = window.Select(field => field.Key)
+                .Where(field => !recordFields.Contains(field, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            if (unknown.Count > 0)
+            {
+                return Refused(McpErrors.BadArgument,
+                    $"\"{name}\" has no field {string.Join(", ", unknown)}.",
+                    $"A window rule holds: {string.Join(", ", recordFields)}.",
+                    true, new { step = step.Type, param = name, unknown, fields = recordFields });
+            }
         }
 
         var text = Written(value);
