@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -225,29 +226,120 @@ public class ReturnsPageTests
     }
 
     /// <summary>
-    /// Every result the catalogue says an action can hand over has to be one the engine really
-    /// writes. The engine names them as plain string literals, so its own source is the list of
-    /// them, and a key the catalogue invented would be a box that ticks and does nothing.
+    /// Every result the catalogue promises has to be written by the path its own action takes, not
+    /// merely appear somewhere in the engine. The difference is what makes a forgotten write findable:
+    /// "this key is in some file" passes on a key a neighbour's handler writes, while "this path
+    /// writes this key" fails on the action that was added without one.
     /// </summary>
     [Fact]
-    public void Every_result_the_catalogue_names_is_one_the_engine_writes()
+    public void Every_result_the_catalogue_names_is_one_its_own_path_writes()
     {
-        // The runner is split by action family, so a result may be written in any of its files.
+        var ledger = Ledger();
+
+        var missing = RunnerLedger.Missing(
+            [.. ActionCatalog.Definitions.Select(definition => (
+                definition.Key, Results: (IReadOnlyList<string>)
+                    [.. definition.Returns.Select(result => result.Key)]))],
+            ledger);
+
+        // One line per action, so a failure lists every action to fix rather than a count.
+        Assert.True(missing.Count == 0, string.Join(Environment.NewLine, missing));
+    }
+
+    /// <summary>
+    /// The other two ways the engine and the catalogue can disagree about an action: one has a step
+    /// nobody can route, the other routes a step nobody can write.
+    /// </summary>
+    [Fact]
+    public void Every_action_the_catalogue_has_is_one_the_engine_routes()
+    {
+        var ledger = Ledger();
+
+        Assert.Empty(RunnerLedger.Unrouted(
+            [.. ActionCatalog.Definitions.Select(definition => (definition.Key, definition.Hidden))],
+            ledger));
+
+        Assert.Empty(RunnerLedger.Stray(
+            [.. ActionCatalog.Definitions.Select(definition => definition.Key)], ledger));
+    }
+
+    /// <summary>
+    /// A made-up pair of sources with a result nobody writes, so the report itself is checked: it has
+    /// to say which action, which method and which key. A test that only asserts "not empty" would
+    /// pass on a message that named nothing.
+    /// </summary>
+    [Fact]
+    public void A_result_no_path_writes_is_named_with_its_action_its_method_and_its_key()
+    {
+        const string source = """
+private Task<Signal> DispatchWindow(ExecutableStep step, int depth, CancellationToken token)
+{
+    switch (step.Type)
+    {
+        case "window.info":
+            WindowBox(step, depth);
+            return Task.FromResult(Signal.Normal);
+        case "window.close":
+            CloseWindow(step, depth);
+            return Task.FromResult(Signal.Normal);
+    }
+
+    return Task.FromResult(Signal.Normal);
+}
+
+private void WindowBox(ExecutableStep step, int depth)
+{
+    Give(step, "window", WindowRecord());
+    Give(step, FieldNames.Title, Value.FromText(""));
+}
+""";
+
+        var ledger = RunnerLedger.Build(
+        [
+            source,
+            """
+private void CloseWindow(ExecutableStep step, int depth)
+{
+    Store(step, "closed", Value.FromBool(true), depth);
+}
+""",
+        ], new Dictionary<string, string>(StringComparer.Ordinal) { ["Title"] = "title" });
+
+        var missing = RunnerLedger.Missing(
+        [
+            ("window.info", (IReadOnlyList<string>)["window", "title", "handle"]),
+            ("window.close", (IReadOnlyList<string>)["closed"]),
+        ], ledger);
+
+        var line = Assert.Single(missing);
+        Assert.Contains("window.info", line, StringComparison.Ordinal);
+        Assert.Contains("WindowBox", line, StringComparison.Ordinal);
+        Assert.Contains("\"handle\"", line, StringComparison.Ordinal);
+
+        // The same sources say nothing about a key that is written, and a branch the catalogue does
+        // not have is its own answer rather than a missing key.
+        Assert.Empty(RunnerLedger.Stray(["window.info", "window.close"], ledger));
+        Assert.Single(RunnerLedger.Stray(["window.info"], ledger));
+    }
+
+    /// <summary>
+    /// The runner's source as the ledger reads it, with the field-name constants resolved: a result
+    /// written through <c>FieldNames.Width</c> is written under <c>width</c>, and the ledger has to
+    /// know that or it would report a write that is there.
+    /// </summary>
+    private static IReadOnlyDictionary<string, RunnerLedger.Path> Ledger()
+    {
         var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
-        var source = string.Join("\n", Directory
-            .GetFiles(folder, "MacroRunner*.cs")
+        var sources = Directory.GetFiles(folder, "MacroRunner*.cs")
             .Order(StringComparer.Ordinal)
-            .Select(File.ReadAllText));
+            .Select(File.ReadAllText);
 
-        var unknown = new List<string>();
-        foreach (var definition in ActionCatalog.Definitions)
-        {
-            unknown.AddRange(definition.Returns
-                .Where(result => source.IndexOf($"\"{result.Key}\"", StringComparison.Ordinal) < 0)
-                .Select(result => $"{definition.Key}.{result.Key}"));
-        }
+        var constants = typeof(FieldNames).GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.IsLiteral && field.FieldType == typeof(string))
+            .ToDictionary(field => field.Name,
+                field => (string)field.GetRawConstantValue()!, StringComparer.Ordinal);
 
-        Assert.Empty(unknown);
+        return RunnerLedger.Build(sources, constants);
     }
 
     private static StepParameterRow Row(string key, string name) => new()

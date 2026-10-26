@@ -20,28 +20,32 @@ public static class ActionCatalog
     static ActionCatalog()
     {
         var display = LoadDisplay();
+        Display = [.. display.Select(Shown)];
+
+        // Both files have to describe the same actions, and every action the same parameters and
+        // results. The whole list is collected before anything is thrown, so a broken pair of files
+        // is one message naming every gap rather than a message naming whichever gap came first —
+        // fixing them one startup at a time is how a report gets read as "it is always broken".
+        var issues = ActionContract.Check(ActionSemanticsCatalog.All, Display);
+        if (issues.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "The action catalogues disagree:" + Environment.NewLine
+                + string.Join(Environment.NewLine, issues));
+        }
+
         var byKey = display.ToDictionary(action => action.Key, StringComparer.Ordinal);
         var definitions = new List<ActionDefinition>(ActionSemanticsCatalog.All.Count);
 
         foreach (var semantics in ActionSemanticsCatalog.All)
         {
-            if (!byKey.TryGetValue(semantics.Key, out var shown))
-            {
-                throw new InvalidOperationException(
-                    $"{semantics.Key} has engine semantics but no display metadata.");
-            }
-
+            var shown = byKey[semantics.Key];
             var shownParameters = shown.Parameters.ToDictionary(
                 parameter => parameter.Name, StringComparer.Ordinal);
             var parameters = new List<ActionParameter>(semantics.Parameters.Count);
             foreach (var facts in semantics.Parameters)
             {
-                if (!shownParameters.TryGetValue(facts.Name, out var field))
-                {
-                    throw new InvalidOperationException(
-                        $"{semantics.Key}.{facts.Name} has engine semantics but no display metadata.");
-                }
-
+                var field = shownParameters[facts.Name];
                 parameters.Add(new ActionParameter
                 {
                     Name = facts.Name,
@@ -71,12 +75,7 @@ public static class ActionCatalog
             var returns = new List<ActionReturn>(semantics.Returns.Count);
             foreach (var facts in semantics.Returns)
             {
-                if (!shownReturns.TryGetValue(facts.Key, out var result))
-                {
-                    throw new InvalidOperationException(
-                        $"{semantics.Key}.return.{facts.Key} has engine semantics but no display metadata.");
-                }
-
+                var result = shownReturns[facts.Key];
                 returns.Add(new ActionReturn
                 {
                     Key = facts.Key,
@@ -109,6 +108,12 @@ public static class ActionCatalog
         ByKey = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
         RunnableActions = [.. definitions.Where(definition => !definition.Hidden)];
     }
+
+    /// <summary>
+    /// The display file's own facts, in the shape the contract check reads. Exposed so the check can
+    /// be run against the shipped files from a test rather than only when the program starts.
+    /// </summary>
+    public static IReadOnlyList<ActionContractDisplay> Display { get; } = [];
 
     /// <summary>Every action and condition, in the order the picker lists them.</summary>
     public static IReadOnlyList<ActionDefinition> Definitions { get; private set; } = [];
@@ -157,14 +162,15 @@ public static class ActionCatalog
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new InvalidOperationException("The action display catalogue is empty.");
 
-        if (display.Select(action => action.Key).Distinct(StringComparer.Ordinal).Count()
-            != display.Count)
-        {
-            throw new InvalidOperationException("The action display catalogue repeats an action key.");
-        }
-
         return display;
     }
+
+    /// <summary>One display entry cut down to what the contract check reads.</summary>
+    private static ActionContractDisplay Shown(DisplayAction action)
+        => new(action.Key,
+            [.. action.Parameters.Select(parameter => new ActionContractParameter(
+                parameter.Name, parameter.Kind))],
+            [.. action.Returns.Select(result => result.Key)]);
 
     private static ActionParameterKind KindOf(string written, string field)
         => Enum.TryParse<ActionParameterKind>(written, ignoreCase: true, out var kind)

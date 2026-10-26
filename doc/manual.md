@@ -350,7 +350,7 @@ Esc 退回），双击画面在像素原本大小与适应窗口之间切换；�
 | 显示器（`screen.list` 的 `displays`） | `x`、`y`、`left`、`top`、`width`、`height`、`right`、`bottom`、`primary`、`box` |
 | 程序（`process.info` 的 `program`） | `info`（程序文件）、`id`、`name`、`memoryMb`、`cpuSeconds` |
 | 元素（`uia.read` 的 `element`） | `enabled`、`visible`、`value`、`name`、`automationId`、`controlType`、`x`、`y`、`left`、`top`、`width`、`height`、`box` |
-| 运行句柄（`control.startMacro` 的 `run`） | `id`、`macro`、`status`、`error`、`results` |
+| 运行句柄（`control.startMacro` 写进「运行句柄」那一格的变量） | `id`、`macro`、`status`、`error`、`results` |
 
 `x`、`y` 是那块矩形的中心，单位是屏幕像素：点图、点文字落的就是这里，也是"下一步移过去"的意思；
 `left`、`top` 与「搜索区域」里那四个数同一个口径；`box` 是 `左,上,宽,高`，填进搜索区域那一行的

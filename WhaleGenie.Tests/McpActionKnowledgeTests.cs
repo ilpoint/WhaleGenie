@@ -84,11 +84,17 @@ public class McpActionKnowledgeTests
         Assert.Equal(["key", "name"], returns.Columns.Select(column => column.Name));
         Assert.All(returns.Columns, column => Assert.True(column.Required));
 
-        // A run handle is a record; its fields are what a wait or a status step reads.
+        // Starting a run hands the handle to the variable the step names, not out through a result
+        // row: a call's rows are the called macro's results, so a handle offered as one would be a
+        // row that ticks and delivers nothing.
         var start = Assert.IsType<McpActionDetails>(ActionKnowledge.Find("control.startMacro"));
-        var run = Assert.Single(start.Returns);
-        Assert.Equal(["id", "macro", "status", "error", "results"],
-            run.Fields.Select(field => field.Name));
+        Assert.Empty(start.Returns);
+
+        // A record another action does hand over still carries its fields, which is what a client
+        // reads before writing `field($记录, "名字")`.
+        var window = Assert.Single(
+            Assert.IsType<McpActionDetails>(ActionKnowledge.Find("window.info")).Returns);
+        Assert.Equal(["title", "process", "class"], window.Fields.Take(3).Select(field => field.Name));
 
         Assert.Equal("Own",
             Assert.IsType<McpActionDetails>(ActionKnowledge.Find("control.delay")).SignatureSource);

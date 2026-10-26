@@ -1631,35 +1631,7 @@
         ]
       }
     ],
-    "Returns": [
-      {
-        "Key": "run",
-        "Type": "Record",
-        "Primary": true,
-        "Fields": [
-          {
-            "Name": "id",
-            "Type": "Text"
-          },
-          {
-            "Name": "macro",
-            "Type": "Text"
-          },
-          {
-            "Name": "status",
-            "Type": "Text"
-          },
-          {
-            "Name": "error",
-            "Type": "Text"
-          },
-          {
-            "Name": "results",
-            "Type": "List"
-          }
-        ]
-      }
-    ]
+    "Returns": []
   },
   {
     "Key": "control.waitMacro",

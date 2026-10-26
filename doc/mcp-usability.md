@@ -56,7 +56,7 @@
 | 改了什么 | 结果 |
 | --- | --- |
 | 新增 `whalegenie_get_macro_signature` | 给出一个宏的 `arguments`（含 `arg.<名字>` 与 `arg.<名字>.given` 两个键）、`results`、以及可直接填的 `callTemplate` |
-| `get_action` 补三样事实 | `signatureSource`（`CalledMacro` 说明形参来自被调宏）、`columns`（`returns` 行只有 `key`/`name`，两列都必填）、`fields`（返回记录的字段，例如运行句柄的 `id/macro/status/error/results`） |
+| `get_action` 补三样事实 | `signatureSource`（`CalledMacro` 说明形参来自被调宏）、`columns`（`returns` 行只有 `key`/`name`，两列都必填）、`fields`（返回记录的字段，例如窗口记录的 `title/process/handle/left/top/width/height`） |
 | 照骨架写出的调用步 | 一条 HTTP 用例从 `callTemplate` 起手写 `control.runMacro`，填一个值后 `validate.ok == true` |
 | 工具数 | 34 → 35 |
 | 同一段脚本的返回字节 | 6689 → 6017 |

@@ -1962,13 +1962,7 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": [
-      {
-        "Key": "run",
-        "Label": "Run handle",
-        "Hint": "Where the background run is: its id, the macro it runs, whether it is running, the failure key if it failed, and the names of the results it will hand over."
-      }
-    ]
+    "Returns": []
   },
   {
     "Key": "control.waitMacro",

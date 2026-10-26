@@ -236,6 +236,18 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   欠一次等）；`CheckSiblings` 在同一层步骤里查两件事——两个 `startMacro` 共用一个句柄名
   （`DuplicateRunHandle`），两个调用把结果写进同一个名字（`DuplicateResultName`）。只比同层，因为同一个
   `switch` 的两个分支不会都跑，同名在那里是省事而不是错。
+- 返回值证据（C3）：`WhaleGenie.Tests/RunnerLedger.cs` 从源码读出「动作键 → 分派方法 → 这条路径写得出的
+  结果」，不是「整个引擎目录里出现过这个字面量」。读法是：只在 `Dispatch*` 里找 `case "动作键":`（别的
+  switch 的 case 是词，不是动作键），取该分支里调用的方法（含同名重载、两跳以内），把这一片的字符串、
+  `FieldNames` 常量与键参数默认值都算作可写键。`ReturnsPageTests` 据此断言三件事：**每条声明的结果都被
+  自己那条路径写过**、**目录里的每个动作都有分支**（隐藏动作除外，`control.case` 由父步骤读）、**每条分支
+  都在目录里**。失败信息逐条给 `动作 → 方法: 声明了结果 "键"`。
+  这条台账第一次跑就抓到 `control.startMacro` 声明了 `run` 却没人写它；句柄的通道是 `runHandleName` 那一格，
+  所以删掉了这个死结果（目录与展示目录、中文文案一起删）。
+- 目录合约（C4）：`WhaleGenie/Models/ActionContract.cs` 的 `ActionContract.Check(语义, 展示)` 一次列出缺动作、
+  多动作、重名（两份各自查）、缺参数、多参数、未知控件种类 `UnknownKind`、缺结果、多结果，每条 `Kind 动作.字段`。
+  `ActionCatalog` 的静态构造先跑它，**全部报完再抛一句**（以前是遇到第一个就抛）。`ActionCatalog.Display`
+  把展示事实按合约形状暴露出来，测试因此能在不启动窗口的情况下核对两份**出厂**文件。
 - 调用审计：`WhaleGenie/Mcp/McpAudit.cs` 往 `logs/mcp-<日期>.log` 追加一行一次调用（时间、工具、一句话摘要、
   结果）。**只记改了东西或动了机器的**：`Drive` 里记 9 个动手工具（成功 `sent`、被拒带 `code`），`McpDraft` 的
   `Put` / `Delete` / `SetGlobals` 与 `McpLiveProject` 的 `ApplyAsync` / `SaveAsync` 各记一条；只读工具不记。
@@ -264,7 +276,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   `McpDraftTests`
   验 Revision、保存、非法落点与「写入即发步骤标识」；`McpActionKnowledgeTests` 验 `Hidden` /
   `ChildKeys` / 分页总数 / `Conditional`；`McpSelfCheckTests` 验尺子自己（闭环、六类错误、端点消失不抛）；
-  `RunLogTests` 验日志；`McpControlTests` 用假设备层验直接控制门禁、工具交给设备的请求、错误码与截图降采样。
+  `RunLogTests` 验日志；`ActionContractReportTests` 验两份目录的缺口报告；`McpControlTests` 用假设备层验直接控制门禁、工具交给设备的请求、错误码与截图降采样。
   无外网；真实桌面行为按手动过一遍为准。
 
 ## 脚本怎么跑

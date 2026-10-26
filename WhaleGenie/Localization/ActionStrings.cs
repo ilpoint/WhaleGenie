@@ -698,10 +698,6 @@ internal static class ActionStrings
         ["control.startMacro.returns.label"] = "要带回的结果",
         ["control.startMacro.returns.hint"] = "勾上被调用的宏声明过、这次运行要取回的结果："
             + "名字在等待之后才有值；在等到之前读它，编辑器会标出来。",
-        ["control.startMacro.return.run.label"] = "运行句柄",
-        ["control.startMacro.return.run.hint"] = "这次后台运行的句柄：编号、宏名、现在的状态、"
-            + "失败时的失败键，以及它稍后交回哪些结果。",
-
         ["control.waitMacro.name"] = "等待后台运行",
         ["control.waitMacro.desc"] = "等一次由「启动其他宏」留下的后台运行结束，"
             + "并按启动处勾选的结果取回值。",
