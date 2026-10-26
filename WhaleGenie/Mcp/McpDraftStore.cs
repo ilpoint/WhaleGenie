@@ -85,6 +85,14 @@ public sealed class McpDraft
         {
             var existing = Macros.FindIndex(candidate =>
                 string.Equals(candidate.Name.Trim(), macro.Name, StringComparison.OrdinalIgnoreCase));
+
+            // A macro sent with no trigger key is a macro whose steps changed, not one whose
+            // triggers did: the triggers it had come along, taken from the project's own list.
+            if (!json.ContainsKey("triggers") && existing >= 0)
+            {
+                macro.Triggers.AddRange(Triggers.ForMacro(macro.Name).Select(entry => entry.Copy()));
+            }
+
             if (existing >= 0)
             {
                 Macros[existing] = macro;
@@ -94,7 +102,10 @@ public sealed class McpDraft
                 Macros.Add(macro);
             }
 
-            if (macro.Triggers.Count > 0)
+            // A macro sent with no trigger key keeps the triggers the project already had — that is
+            // what "I only changed the steps" means. A macro sent with an empty trigger list is a
+            // different statement: it says this macro has none, so the old ones come out.
+            if (json.ContainsKey("triggers") || macro.Triggers.Count > 0)
             {
                 Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
             }

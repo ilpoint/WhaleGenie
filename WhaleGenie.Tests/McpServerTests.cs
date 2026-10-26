@@ -1145,6 +1145,306 @@ public class McpServerTests
         });
     }
 
+    /// <summary>
+    /// A step's own settings are reachable without resending the macro: its note, whether it is
+    /// skipped, its timeout and its retries.
+    /// </summary>
+    [Fact]
+    public void A_patch_can_change_what_a_step_says_about_itself()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse("""{"name":"设置","steps":[{"type":"control.delay","params":{"ms":"1"}}]}"""),
+                })).RootElement;
+            var id = put.GetProperty("outline")[0].GetProperty("id").GetString()!;
+
+            var answer = JsonDocument.Parse(await Wrote(client, "whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "设置",
+                    ["operations"] = JsonNode.Parse($$"""
+                        [{"op":"meta","stepId":"{{id}}","comment":"等一下","enabled":false,
+                          "timeoutMs":2500,"retryCount":2,"retryDelayMs":300,"onError":"continue"}]
+                        """),
+                })).RootElement;
+
+            var touched = answer.GetProperty("changed")[0];
+            Assert.Equal("meta", touched.GetProperty("op").GetString());
+            Assert.Equal(id, touched.GetProperty("stepId").GetString());
+
+            var step = JsonDocument.Parse(await Call(client, "whalegenie_get_step",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "设置",
+                    ["stepId"] = id,
+                })).RootElement.GetProperty("step").GetProperty("meta");
+            Assert.Equal("等一下", step.GetProperty("comment").GetString());
+            Assert.False(step.GetProperty("enabled").GetBoolean());
+            Assert.Equal(2500, step.GetProperty("timeoutMs").GetInt32());
+            Assert.Equal(2, step.GetProperty("retryCount").GetInt32());
+            Assert.Equal("continue", step.GetProperty("onError").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// The macro's own settings are reachable the same way, and changing one leaves the others
+    /// alone — which resending the whole macro never did.
+    /// </summary>
+    [Fact]
+    public void A_patch_can_change_the_macro_itself()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""{"name":"宏设置","description":"原来的","steps":[]}"""),
+            });
+
+            var answer = JsonDocument.Parse(await Wrote(client, "whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "宏设置",
+                    ["operations"] = JsonNode.Parse(
+                        """[{"op":"macro","description":"改过的","delayScale":0.5,"triggerMode":"Timer"}]"""),
+                })).RootElement;
+            Assert.Equal(3, answer.GetProperty("changed").GetArrayLength());
+            Assert.Equal("description", answer.GetProperty("changed")[0].GetProperty("field").GetString());
+
+            var macro = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "宏设置",
+                })).RootElement;
+            Assert.Equal("改过的", macro.GetProperty("description").GetString());
+            Assert.Equal(0.5, macro.GetProperty("delayScale").GetDouble());
+            Assert.Equal("Timer", macro.GetProperty("triggerMode").GetString());
+
+            var refused = await client.CallToolAsync("whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "宏设置",
+                    ["operations"] = JsonNode.Parse("""[{"op":"macro","triggerMode":"Nonsense"}]"""),
+                });
+            Assert.True(refused.IsError);
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// What a macro asks a call to fill in, and what it hands back, are reachable without resending
+    /// the macro either.
+    /// </summary>
+    [Fact]
+    public void A_patch_can_change_the_declarations()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""{"name":"声明","steps":[]}"""),
+            });
+
+            await Wrote(client, "whalegenie_patch_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["name"] = "声明",
+                ["operations"] = JsonNode.Parse("""
+                    [{"op":"declare","kind":"argument","action":"add","name":"数量","type":"Number"},
+                     {"op":"declare","kind":"argument","action":"add","name":"标题","description":"要写什么"},
+                     {"op":"declare","kind":"result","action":"add","name":"结果","type":"Text"},
+                     {"op":"declare","kind":"argument","action":"move","name":"标题","index":0}]
+                    """),
+            });
+
+            var signature = JsonDocument.Parse(await Call(client, "whalegenie_get_macro_signature",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "声明",
+                })).RootElement;
+            var arguments = signature.GetProperty("arguments").EnumerateArray().ToList();
+            Assert.Equal(2, arguments.Count);
+            Assert.Equal("标题", arguments[0].GetProperty("name").GetString());
+            Assert.Equal("Number", arguments[1].GetProperty("type").GetString());
+            Assert.Equal("结果", signature.GetProperty("results")[0].GetProperty("name").GetString());
+
+            // A name nothing could read back is refused before it reaches the project.
+            var refused = await client.CallToolAsync("whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "声明",
+                    ["operations"] = JsonNode.Parse(
+                        """[{"op":"declare","kind":"argument","action":"add","name":"1 bad"}]"""),
+                });
+            Assert.True(refused.IsError);
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// The first row of a table that has never had one can be added. The old answer told a client
+    /// to use addRow and then refused that very call, which was a loop with no exit.
+    /// </summary>
+    [Fact]
+    public void The_first_row_of_a_table_can_be_added()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse("""
+                        {"name":"调用","steps":[
+                          {"type":"control.runMacro","params":{"macro":"别的"}}
+                        ]}
+                        """),
+                })).RootElement;
+            var id = put.GetProperty("outline")[0].GetProperty("id").GetString()!;
+
+            var answer = await client.CallToolAsync("whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "调用",
+                    ["operations"] = JsonNode.Parse(
+                        "[{\"op\":\"addRow\",\"stepId\":\"" + id
+                        + "\",\"param\":\"arguments\",\"values\":{\"name\":\"数量\",\"value\":\"3\"}}]"),
+                });
+            Assert.True(answer.IsError is not true,
+                answer.Content.OfType<TextContentBlock>().First().Text);
+
+            var macro = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "调用",
+                })).RootElement;
+            var rows = macro.GetProperty("steps")[0].GetProperty("params")
+                .GetProperty("arguments");
+            Assert.Equal(1, rows.GetArrayLength());
+            Assert.Equal("数量", rows[0].GetProperty("name").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// Sending a macro with an empty trigger list takes the old ones out; sending one with no
+    /// trigger key leaves them. The two used to mean the same thing, which meant neither worked.
+    /// </summary>
+    [Fact]
+    public void An_empty_trigger_list_clears_the_triggers_and_a_missing_one_keeps_them()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse($$"""
+                    {"name":"触发器","steps":[],
+                     "triggers":[{"kind":"key","macro":"触发器","enabled":true,
+                                  "bindKey":"Ctrl+Alt+1","loopMode":"Toggle","triggerOnce":false}]}
+                    """),
+            });
+
+            var kept = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "触发器",
+                })).RootElement;
+            Assert.True(kept.GetProperty("triggers").GetArrayLength() == 1, kept.GetRawText());
+
+            // No trigger key: the project's own trigger stays.
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""{"name":"触发器","steps":[]}"""),
+            });
+            var still = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "触发器",
+                })).RootElement;
+            Assert.Equal(1, still.GetProperty("triggers").GetArrayLength());
+
+            // An empty list: this macro has none.
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""{"name":"触发器","steps":[],"triggers":[]}"""),
+            });
+            var gone = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "触发器",
+                })).RootElement;
+            Assert.Equal(0, gone.GetProperty("triggers").GetArrayLength());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>Calls a tool that is supposed to work, and shows the refusal when it does not.</summary>
+    private static async Task<string> Wrote(McpClient client, string name,
+        Dictionary<string, object?> arguments)
+    {
+        var result = await client.CallToolAsync(name, arguments);
+        var text = result.Content.OfType<TextContentBlock>().First().Text;
+        // The protocol leaves isError unset on success, so it is null rather than false.
+        Assert.True(result.IsError is not true, $"isError={result.IsError}; {text}");
+        return text;
+    }
+
     /// <summary>Opens a draft and hands back its id.</summary>
     private static async Task<string> Draft(McpClient client)
         => JsonDocument.Parse(await Call(client, "whalegenie_open_project",

@@ -290,7 +290,15 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             var validation = await Ui(() => McpDraftStore.Validate(draft));
             var outline = await Ui(() => Outline(written));
             var changed = outcome.Touches
-                .Select(touch => new { op = touch.Op, stepId = touch.Step.Id, type = touch.Step.Type })
+                .Select(touch => new
+                {
+                    op = touch.Op,
+                    stepId = touch.Step?.Id ?? string.Empty,
+                    type = touch.Step?.Type ?? string.Empty,
+
+                    // A change to the macro itself has no step behind it; the field says what moved.
+                    field = touch.Field ?? string.Empty,
+                })
                 .ToList();
             // What a patch answers with is decided by what the caller asked for: the outline of a
             // forty-step macro is most of the answer, and a client that only wants to know what

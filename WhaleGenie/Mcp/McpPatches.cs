@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Mcp;
@@ -23,7 +25,8 @@ internal static class McpPatches
     private const string TopLevel = "";
 
     /// <summary>One step a patch touched, named after the ids are settled so the answer is usable.</summary>
-    internal sealed record Touch(string Op, MacroStep Step);
+    /// <summary>What one operation changed: a step, or a field of the macro itself.</summary>
+    internal sealed record Touch(string Op, MacroStep? Step, string? Field = null);
 
     /// <summary>Why a patch was refused. Nothing has been written when this comes back.</summary>
     internal sealed record Refusal(
@@ -97,10 +100,13 @@ internal static class McpPatches
             "insert" => Insert(macro, operation, touches),
             "remove" => Remove(macro, operation, touches),
             "move" => Move(macro, operation, touches),
+            "meta" => Meta(macro, operation, touches),
+            "macro" => Fields(macro, operation, touches),
+            "declare" => Declare(macro, operation, touches),
             "" => Refused(McpErrors.BadPatch, "An operation has no op.",
-                "op is set, setRow, addRow, removeRow, insert, remove or move.", true, null),
+                "op is set, setRow, addRow, removeRow, insert, remove, move, meta, macro or declare.", true, null),
             var other => Refused(McpErrors.BadPatch, $"There is no operation \"{other}\".",
-                "op is set, setRow, addRow, removeRow, insert, remove or move.", true,
+                "op is set, setRow, addRow, removeRow, insert, remove, move, meta, macro or declare.", true,
                 new { op = other }),
         };
 
@@ -131,7 +137,17 @@ internal static class McpPatches
             ?? step.Definition?.Parameters.FirstOrDefault(parameter => parameter.Name == name);
         if (declared is null)
         {
-            var names = step.Definition?.Parameters.Select(parameter => parameter.Name).ToList() ?? [];
+            // An action key that is not in the catalogue is a different mistake from a parameter
+            // this action does not have, and a client branches on the code to tell them apart.
+            if (step.Definition is null)
+            {
+                return Refused(McpErrors.UnknownAction,
+                    $"There is no action \"{step.Type}\" in the catalogue.",
+                    "Action keys come from the catalogue; check it with whalegenie_get_action.",
+                    true, new { step = step.Type });
+            }
+
+            var names = step.Definition.Parameters.Select(parameter => parameter.Name).ToList();
             return Refused(McpErrors.BadArgument,
                 $"\"{step.Type}\" has no parameter named \"{name}\".",
                 names.Count == 0
@@ -296,6 +312,14 @@ internal static class McpPatches
                 true, new { step = step!.Type, param = declared.Name, missing });
         }
 
+        // The first row of a table that has never had one creates the table. Telling a client to
+        // "add the first one with addRow" and then refusing that very call was a loop with no exit.
+        if (stored is null)
+        {
+            stored = new StepParameter { Name = declared.Name, Kind = declared.Kind };
+            step!.Parameters.Add(stored);
+        }
+
         var (rows, refusal2) = RowsOf(step!, stored, declared);
         if (refusal2 is not null)
         {
@@ -365,6 +389,585 @@ internal static class McpPatches
         rows.Remove(found[0]);
         touches.Add(new Touch("removeRow", step!));
         return null;
+    }
+
+    /// <summary>
+    /// Changes what a step says about itself: its note, whether it is skipped, its timeout, its
+    /// retries, the pauses around it and what a failure does. These are the settings a macro author
+    /// adjusts on almost every step, and they had no way in short of sending the whole macro.
+    /// </summary>
+    private static Refusal? Meta(MacroItem macro, JsonObject operation, List<Touch> touches)
+    {
+        var step = Located(macro, operation);
+        if (step is null)
+        {
+            return NoStep(operation);
+        }
+
+        var before = step.Meta;
+        var next = new StepMeta
+        {
+            Comment = Said(operation, "comment") ?? before.Comment,
+            IsEnabled = Flag(operation, "enabled") ?? before.IsEnabled,
+            TimeoutMs = Number(operation, "timeoutMs") ?? before.TimeoutMs,
+            RetryCount = Number(operation, "retryCount") ?? before.RetryCount,
+            RetryDelayMs = Number(operation, "retryDelayMs") ?? before.RetryDelayMs,
+            RetryBackoff = Picked<RetryBackoff>(operation, "retryBackoff") ?? before.RetryBackoff,
+            DelayBeforeMs = Number(operation, "delayBeforeMs") ?? before.DelayBeforeMs,
+            DelayAfterMs = Number(operation, "delayAfterMs") ?? before.DelayAfterMs,
+            OnError = Picked<StepErrorAction>(operation, "onError") ?? before.OnError,
+        };
+
+        if (next.TimeoutMs is < 0 or > StepMeta.LongestPauseMs
+            || next.DelayBeforeMs is < 0 or > StepMeta.LongestPauseMs
+            || next.DelayAfterMs is < 0 or > StepMeta.LongestPauseMs)
+        {
+            return Refused(McpErrors.BadArgument,
+                "A pause or timeout is outside what a step may ask for.",
+                $"A length of time is between 0 and {StepMeta.LongestPauseMs} milliseconds.",
+                true, new { step = step.Type, longest = StepMeta.LongestPauseMs });
+        }
+
+        step.Meta = next;
+        touches.Add(new Touch("meta", step));
+        return null;
+    }
+
+    /// <summary>
+    /// Changes the macro itself rather than a step: what it is called, how it starts, how it loops,
+    /// when it runs, what it watches and how fast it plays. A whole macro sent again was how these
+    /// used to change, which also reset every one of them that was not mentioned.
+    /// </summary>
+    private static Refusal? Fields(MacroItem macro, JsonObject operation, List<Touch> touches)
+    {
+        var changed = 0;
+
+        if (Said(operation, "description") is { } description)
+        {
+            macro.Description = description;
+            touches.Add(new Touch("macro", null, "description"));
+            changed++;
+        }
+
+        if (Said(operation, "name") is { } name && name.Trim().Length > 0
+            && !string.Equals(name.Trim(), macro.Name, StringComparison.Ordinal))
+        {
+            macro.Name = name.Trim();
+            touches.Add(new Touch("macro", null, "name"));
+            changed++;
+        }
+
+        if (Flag(operation, "enabled") is { } enabled)
+        {
+            macro.IsEnabled = enabled;
+            touches.Add(new Touch("macro", null, "enabled"));
+            changed++;
+        }
+
+        if (Flag(operation, "exclusiveInput") is { } exclusive)
+        {
+            macro.ExclusiveInput = exclusive;
+            touches.Add(new Touch("macro", null, "exclusiveInput"));
+            changed++;
+        }
+
+        if (Said(operation, "bindKey") is { } bind)
+        {
+            macro.BindKey = bind;
+            touches.Add(new Touch("macro", null, "bindKey"));
+            changed++;
+        }
+
+        if (operation.TryGetPropertyValue("delayScale", out var scale))
+        {
+            var written = Text(scale).Trim();
+            if (!double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture, out var delay)
+                || delay is < 0.1 or > 10)
+            {
+                return Refused(McpErrors.BadArgument, $"\"{written}\" is not a delay factor.",
+                    "A delay factor is between 0.1 and 10, where 1 plays the macro as written.",
+                    true, new { field = "delayScale", value = written });
+            }
+
+            macro.DelayScale = delay;
+            touches.Add(new Touch("macro", null, "delayScale"));
+            changed++;
+        }
+
+        if (Enum<MacroTrigger>(macro.TriggerMode, operation, "triggerMode") is { } trigger)
+        {
+            if (trigger.Refusal is { } refusal)
+            {
+                return refusal;
+            }
+
+            macro.TriggerMode = trigger.Value;
+            touches.Add(new Touch("macro", null, "triggerMode"));
+            changed++;
+        }
+
+        if (Enum<MacroLoop>(macro.LoopMode, operation, "loopMode") is { } loop)
+        {
+            if (loop.Refusal is { } refusal)
+            {
+                return refusal;
+            }
+
+            macro.LoopMode = loop.Value;
+            touches.Add(new Touch("macro", null, "loopMode"));
+            changed++;
+        }
+
+        if (Enum<ScheduleMode>(macro.ScheduleMode, operation, "scheduleMode") is { } scheduleMode)
+        {
+            if (scheduleMode.Refusal is { } refusal)
+            {
+                return refusal;
+            }
+
+            macro.ScheduleMode = scheduleMode.Value;
+            touches.Add(new Touch("macro", null, "scheduleMode"));
+            changed++;
+        }
+
+        if (Enum<ScheduleUnit>(macro.ScheduleUnit, operation, "scheduleUnit") is { } scheduleUnit)
+        {
+            if (scheduleUnit.Refusal is { } refusal)
+            {
+                return refusal;
+            }
+
+            macro.ScheduleUnit = scheduleUnit.Value;
+            touches.Add(new Touch("macro", null, "scheduleUnit"));
+            changed++;
+        }
+
+        if (Said(operation, "scheduleTime") is { } time)
+        {
+            macro.ScheduleTime = time;
+            touches.Add(new Touch("macro", null, "scheduleTime"));
+            changed++;
+        }
+
+        if (Number(operation, "scheduleInterval") is { } interval)
+        {
+            macro.ScheduleInterval = interval;
+            touches.Add(new Touch("macro", null, "scheduleInterval"));
+            changed++;
+        }
+
+        if (Said(operation, "watchPath") is { } watchPath)
+        {
+            macro.WatchPath = watchPath;
+            touches.Add(new Touch("macro", null, "watchPath"));
+            changed++;
+        }
+
+        if (Said(operation, "watchFilter") is { } watchFilter)
+        {
+            macro.WatchFilter = watchFilter;
+            touches.Add(new Touch("macro", null, "watchFilter"));
+            changed++;
+        }
+
+        if (Flag(operation, "watchSubfolders") is { } watchFolders)
+        {
+            macro.WatchSubfolders = watchFolders;
+            touches.Add(new Touch("macro", null, "watchSubfolders"));
+            changed++;
+        }
+
+        if (Said(operation, "processName") is { } process)
+        {
+            macro.ProcessName = process;
+            touches.Add(new Touch("macro", null, "processName"));
+            changed++;
+        }
+
+        if (Number(operation, "idleSeconds") is { } idle)
+        {
+            macro.IdleSeconds = idle;
+            touches.Add(new Touch("macro", null, "idleSeconds"));
+            changed++;
+        }
+
+        if (operation["windowTarget"] is JsonObject rule)
+        {
+            macro.WindowTarget = WindowRule.FromJson(rule);
+            touches.Add(new Touch("macro", null, "windowTarget"));
+            changed++;
+        }
+
+        return changed == 0
+            ? Refused(McpErrors.BadArgument, "The operation names no field this macro has.",
+                "Fields are description, name, enabled, exclusiveInput, bindKey, delayScale, "
+                + "triggerMode, loopMode, scheduleMode, scheduleUnit, scheduleTime, scheduleInterval, "
+                + "watchPath, watchFilter, watchSubfolders, processName, idleSeconds and windowTarget.",
+                true, null)
+            : null;
+    }
+
+    /// <summary>
+    /// Changes what the macro asks a call to fill in, or what it offers to hand back: add, update,
+    /// remove or reorder one declaration. These are the fields a call site reads, and they had no
+    /// way in short of sending the whole macro — which also lost every declaration nobody retyped.
+    /// </summary>
+    private static Refusal? Declare(MacroItem macro, JsonObject operation, List<Touch> touches)
+    {
+        var kind = Text(operation["kind"]).Trim().ToLowerInvariant();
+        if (kind is not ("argument" or "result"))
+        {
+            return Refused(McpErrors.BadArgument, $"\"{kind}\" is not a kind of declaration.",
+                "kind is argument (what a call fills in) or result (what the macro hands back).",
+                true, new { kind });
+        }
+
+        var action = Text(operation["action"]).Trim().ToLowerInvariant();
+        if (action is not ("add" or "update" or "remove" or "move"))
+        {
+            return Refused(McpErrors.BadArgument, $"\"{action}\" is not a declaration change.",
+                "action is add, update, remove or move.", true, new { action });
+        }
+
+        var name = Text(operation["name"]).Trim();
+        if (name.Length == 0)
+        {
+            return Refused(McpErrors.BadArgument, "A declaration change needs name.",
+                "name is the word the macro reads the value by, such as 数量.", true, null);
+        }
+
+        if (!VariableText.IsName(name))
+        {
+            return Refused(McpErrors.BadArgument, $"\"{name}\" cannot be read back as a variable.",
+                "A name is letters, digits and underscores, and does not start with a digit.",
+                true, new { name });
+        }
+
+        return kind == "argument"
+            ? DeclareArgument(macro, operation, action, name, touches)
+            : DeclareResult(macro, operation, action, name, touches);
+    }
+
+    /// <summary>One argument of a macro: what a call fills in.</summary>
+    private static Refusal? DeclareArgument(MacroItem macro, JsonObject operation, string action,
+        string name, List<Touch> touches)
+    {
+        var found = macro.Parameters.FindIndex(parameter =>
+            string.Equals(parameter.Name, name, StringComparison.Ordinal));
+
+        switch (action)
+        {
+            case "add":
+                if (found >= 0)
+                {
+                    return Refused(McpErrors.BadArgument, $"\"{name}\" is already an argument.",
+                        "Change it with action=update, or pick another name.", true, new { name });
+                }
+
+                if (Typed(operation) is { Refusal: { } badType })
+                {
+                    return badType;
+                }
+
+                var added = new MacroParameter { Name = name };
+                if (Fill(added, operation) is { } refusal)
+                {
+                    return refusal;
+                }
+
+                macro.Parameters.Add(added);
+                touches.Add(new Touch("declare", null, "argument:" + name));
+                return null;
+
+            case "update":
+                if (found < 0)
+                {
+                    return Refused(McpErrors.BadArgument, $"There is no argument named \"{name}\".",
+                        "Read the declarations with whalegenie_get_macro_signature.", true, new { name });
+                }
+
+                if (Typed(operation) is { Refusal: { } badUpdate })
+                {
+                    return badUpdate;
+                }
+
+                if (Fill(macro.Parameters[found], operation) is { } failed)
+                {
+                    return failed;
+                }
+
+                touches.Add(new Touch("declare", null, "argument:" + name));
+                return null;
+
+            case "remove":
+                if (found < 0)
+                {
+                    return Refused(McpErrors.BadArgument, $"There is no argument named \"{name}\".",
+                        "Read the declarations with whalegenie_get_macro_signature.", true, new { name });
+                }
+
+                macro.Parameters.RemoveAt(found);
+                touches.Add(new Touch("declare", null, "argument:" + name));
+                return null;
+
+            default:
+                return Move(macro.Parameters, found, name, operation, "argument", touches);
+        }
+    }
+
+    /// <summary>One result of a macro: what a call may ask it to hand back.</summary>
+    private static Refusal? DeclareResult(MacroItem macro, JsonObject operation, string action,
+        string name, List<Touch> touches)
+    {
+        var found = macro.Results.FindIndex(result =>
+            string.Equals(result.Name, name, StringComparison.Ordinal));
+
+        switch (action)
+        {
+            case "add":
+                if (found >= 0)
+                {
+                    return Refused(McpErrors.BadArgument, $"\"{name}\" is already a result.",
+                        "Change it with action=update, or pick another name.", true, new { name });
+                }
+
+                if (Typed(operation) is { Refusal: { } badType })
+                {
+                    return badType;
+                }
+
+                var added = new MacroResult { Name = name };
+                if (Fill(added, operation) is { } refusal)
+                {
+                    return refusal;
+                }
+
+                macro.Results.Add(added);
+                touches.Add(new Touch("declare", null, "result:" + name));
+                return null;
+
+            case "update":
+                if (found < 0)
+                {
+                    return Refused(McpErrors.BadArgument, $"There is no result named \"{name}\".",
+                        "Read the declarations with whalegenie_get_macro_signature.", true, new { name });
+                }
+
+                if (Typed(operation) is { Refusal: { } badUpdate })
+                {
+                    return badUpdate;
+                }
+
+                if (Fill(macro.Results[found], operation) is { } failed)
+                {
+                    return failed;
+                }
+
+                touches.Add(new Touch("declare", null, "result:" + name));
+                return null;
+
+            case "remove":
+                if (found < 0)
+                {
+                    return Refused(McpErrors.BadArgument, $"There is no result named \"{name}\".",
+                        "Read the declarations with whalegenie_get_macro_signature.", true, new { name });
+                }
+
+                macro.Results.RemoveAt(found);
+                touches.Add(new Touch("declare", null, "result:" + name));
+                return null;
+
+            default:
+                return Move(macro.Results, found, name, operation, "result", touches);
+        }
+    }
+
+    /// <summary>Puts one declaration at another place in the list, which is the order a call form uses.</summary>
+    private static Refusal? Move<T>(List<T> declarations, int found, string name, JsonObject operation,
+        string kind, List<Touch> touches)
+    {
+        if (found < 0)
+        {
+            return Refused(McpErrors.BadArgument, $"There is no {kind} named \"{name}\".",
+                "Read the declarations with whalegenie_get_macro_signature.", true, new { name });
+        }
+
+        var asked = Number(operation, "index");
+        if (asked is not { } at || at < 0 || at >= declarations.Count)
+        {
+            return Refused(McpErrors.BadArgument, "move needs an index inside the list.",
+                $"index is 0 to {declarations.Count - 1}; it is where the declaration lands.",
+                true, new { name, count = declarations.Count });
+        }
+
+        var moved = declarations[found];
+        declarations.RemoveAt(found);
+        declarations.Insert(at, moved);
+        touches.Add(new Touch("declare", null, $"{kind}:{name}"));
+        return null;
+    }
+
+    /// <summary>What a declaration can say, whichever kind of declaration it is.</summary>
+    private static Refusal? Fill(MacroParameter argument, JsonObject operation)
+    {
+        if (Said(operation, "default") is { } fallback)
+        {
+            argument.Default = fallback;
+        }
+
+        if (Flag(operation, "required") is { } required)
+        {
+            argument.Required = required;
+        }
+
+        if (Said(operation, "description") is { } description)
+        {
+            argument.Description = description;
+        }
+
+        if (Typed(operation) is { } type && type.Refusal is null)
+        {
+            argument.Type = type.Value;
+        }
+
+        if (Reading(operation) is { } fields)
+        {
+            if (fields.Refusal is { } refusal)
+            {
+                return refusal;
+            }
+
+            argument.Fields = fields.Value ?? [];
+        }
+
+        // A value that is required and has a default is two answers to one question: the call must
+        // give it, and the call may leave it out.
+        return argument.Required && argument.Default.Length > 0
+            ? Refused(McpErrors.BadArgument,
+                $"\"{argument.Name}\" cannot be both required and defaulted.",
+                "Drop required, or drop default.", true, new { name = argument.Name })
+            : null;
+    }
+
+    /// <summary>The same, for a result, which has no such thing as required.</summary>
+    private static Refusal? Fill(MacroResult result, JsonObject operation)
+    {
+        if (Said(operation, "description") is { } description)
+        {
+            result.Description = description;
+        }
+
+        if (Typed(operation) is { } type && type.Refusal is null)
+        {
+            result.Type = type.Value;
+        }
+
+        if (Reading(operation) is { } fields)
+        {
+            if (fields.Refusal is { } refusal)
+            {
+                return refusal;
+            }
+
+            result.Fields = fields.Value ?? [];
+        }
+
+        return null;
+    }
+
+    /// <summary>The declared type of a declaration, or null when the operation did not name one.</summary>
+    private static (ActionReturnType Value, Refusal? Refusal)? Typed(JsonObject operation)
+        => Enum<ActionReturnType>(ActionReturnType.Text, operation, "type");
+
+    /// <summary>The fields of a record declaration, or null when the operation did not name any.</summary>
+    private static (List<MacroField>? Value, Refusal? Refusal)? Reading(JsonObject operation)
+    {
+        if (operation["fields"] is not JsonArray fields)
+        {
+            return null;
+        }
+
+        var read = new List<MacroField>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in fields)
+        {
+            if (entry is not JsonObject field)
+            {
+                return (null, Refused(McpErrors.BadArgument, "A field has to be an object.",
+                    "A field is {name, type}.", true, null));
+            }
+
+            var name = Text(field["name"]).Trim();
+            if (name.Length == 0 || !seen.Add(name))
+            {
+                return (null, Refused(McpErrors.BadArgument,
+                    $"\"{name}\" is empty or appears twice in the field list.",
+                    "Every field of a record needs a name of its own.", true, new { name }));
+            }
+
+            var type = System.Enum.TryParse<ActionReturnType>(Text(field["type"]).Trim(),
+                ignoreCase: true, out var parsed)
+                ? parsed
+                : ActionReturnType.Text;
+            read.Add(new MacroField { Name = name, Type = type });
+        }
+
+        return (read, null);
+    }
+
+    /// <summary>A string field as written, or null when the operation did not name it.</summary>
+    private static string? Said(JsonObject operation, string field)
+        => operation.TryGetPropertyValue(field, out var node) && node is not null
+            ? Text(node)
+            : null;
+
+    /// <summary>A flag as written, or null when the operation did not name it.</summary>
+    private static bool? Flag(JsonObject operation, string field)
+    {
+        if (!operation.TryGetPropertyValue(field, out var node) || node is null)
+        {
+            return null;
+        }
+
+        return bool.TryParse(Text(node).Trim(), out var flag) ? flag : null;
+    }
+
+    /// <summary>A whole number as written, or null when the operation did not name it.</summary>
+    private static int? Number(JsonObject operation, string field)
+    {
+        if (!operation.TryGetPropertyValue(field, out var node) || node is null)
+        {
+            return null;
+        }
+
+        return int.TryParse(Text(node).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out var number)
+            ? number
+            : null;
+    }
+
+    /// <summary>One of a closed set of words, or null when the operation did not name it.</summary>
+    private static T? Picked<T>(JsonObject operation, string field) where T : struct, Enum
+        => Enum<T>(default, operation, field)?.Value;
+
+    /// <summary>One of an enum's words, read without regard to case, with the words named on refusal.</summary>
+    private static (T Value, Refusal? Refusal)? Enum<T>(T current, JsonObject operation, string field)
+        where T : struct, Enum
+    {
+        if (!operation.TryGetPropertyValue(field, out var node) || node is null)
+        {
+            return null;
+        }
+
+        var written = Text(node).Trim();
+        if (System.Enum.TryParse<T>(written, ignoreCase: true, out var value))
+        {
+            return (value, null);
+        }
+
+        var words = string.Join(", ", System.Enum.GetNames<T>().Select(name => char.ToLowerInvariant(name[0]) + name[1..]));
+        return (current, Refused(McpErrors.BadArgument, $"\"{written}\" is not a {field}.",
+            $"One of: {words}.", true, new { field, value = written }));
     }
 
     /// <summary>
@@ -739,7 +1342,16 @@ internal static class McpPatches
         object? details) => new(code, message, hint, retryable, details);
 
     private static string Text(JsonNode? node)
-        => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : string.Empty;
+        => node switch
+        {
+            null => string.Empty,
+            JsonValue value when value.TryGetValue<string>(out var text) => text,
+
+            // A number or a truth value written as JSON is still what the caller meant: refusing it
+            // because it is not a string would make a client quote every count.
+            JsonValue value => value.ToJsonString(),
+            _ => node.ToJsonString(),
+        };
 
     /// <summary>
     /// One cell of a row, as the file writes it. A number and a truth value are written the way the
