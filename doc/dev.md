@@ -376,6 +376,13 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `VariablePickerWindow`，名单来自 `VariableChoices.For([])`（全局与系统）：默认值在调用方作用域求值，调用方的
 局部变量只能手写；变量墙在没有局部变量时初始选中「全部」，否则选择器会停在一个空页上。
 
+宏名唯一由两条入口保证，都不是「报错让人改」而是「给后到的加日期」（`MacroNames.Free`）：
+`MacroPackage.Load` 在 `triggers.Attach` 之前把同一个文件里的重名宏改成 `名字 (yyyy-MM-dd)`（再撞加 ` 2`），
+`MainViewModel.AddMacro` 在名字已被项目占用时做同样的事——导入包撞名走的是这一条。改名同时改该宏的
+`Triggers`；`ImportPackage` 还会把包里那张触发器表里的名字一起改（`contents.Triggers.RenameMacro`），
+否则后面的 `MergeMenuFrom` 会把导入的菜单项挂到留下的那个宏上。先有的那个保留原名，因为文件里的调用和
+触发器都是按它写的。`ProjectMacroLibrary` 的 `TryAdd` 因此只是最后一道闸，正常路径上撞不到。
+
 包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 20。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
 `intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8；F3 把`runMacro`的`wait`开关拆成`runMacro`与`startMacro`时升到 9。

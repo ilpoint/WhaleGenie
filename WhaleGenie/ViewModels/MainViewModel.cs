@@ -192,6 +192,15 @@ public partial class MainViewModel : ViewModelBase
         {
             macro.Name = MacroNames.NextDefault(Macros.Select(item => item.Name));
         }
+        else if (Macros.FirstOrDefault(item => string.Equals(item.Name.Trim(), macro.Name.Trim(),
+                     StringComparison.OrdinalIgnoreCase)) is not null)
+        {
+            // Two macros cannot share a name: a macro is reached by its name, so the second one would
+            // be the one a call never finds. Neither is a mistake — importing a package that holds a
+            // macro this project already has is an ordinary thing to do — so the one arriving now
+            // keeps its steps under a name of its own, dated the day it arrived.
+            macro.Name = MacroNames.Free(macro.Name, Macros.Select(item => item.Name), DateTime.Now);
+        }
 
         if (macro.Triggers.Count == 0)
         {
@@ -316,9 +325,16 @@ public partial class MainViewModel : ViewModelBase
 
         foreach (var macro in contents.Macros)
         {
+            var wanted = macro.Name;
             AddMacro(macro);
-            Triggers.ReplaceMacro(macro.Name, contents.Triggers.ForMacro(macro.Name)
-                .Select(entry => entry.Copy()));
+
+            // The macro's own entries came across with it, under whatever name it ended up with. The
+            // package's trigger table still says the old one, and the menu merge below reads it, so
+            // the rename is carried over there as well.
+            if (!string.Equals(wanted, macro.Name, StringComparison.Ordinal))
+            {
+                contents.Triggers.RenameMacro(wanted, macro.Name);
+            }
         }
 
         Triggers.MergeMenuFrom(contents.Triggers, contents.Macros);

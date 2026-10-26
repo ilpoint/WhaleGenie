@@ -114,6 +114,46 @@ public static class MacroPackage
         }
     }
 
+    /// <summary>
+    /// Gives every macro after the first one of its name a suffix saying when it was read, so a
+    /// package that carries two macros of one name still arrives as two macros. The first one keeps
+    /// the name, because that is the one the file’s call sites and triggers were written against.
+    /// </summary>
+    internal static void Disambiguate(IReadOnlyList<MacroItem> macros, DateTime when)
+    {
+        // Taken names start as every name the file has, not just the ones seen so far: a macro whose
+        // own name happens to be the suffixed form must not be pushed aside by the suffix.
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in macros)
+        {
+            if (macro.Name.Trim() is { Length: > 0 } name)
+            {
+                taken.Add(name);
+            }
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in macros)
+        {
+            var name = macro.Name.Trim();
+            if (name.Length == 0)
+            {
+                // An unnamed macro is the declaration editor's problem; there is nothing to make
+                // unique about a name nobody has.
+                continue;
+            }
+
+            macro.Name = name;
+            if (seen.Add(name))
+            {
+                continue;
+            }
+
+            macro.Name = MacroNames.Free(name, taken, when);
+            taken.Add(macro.Name);
+        }
+    }
+
     /// <summary>Reads a package file back into macros and shared variables.</summary>
     public static PackageContents Load(string path)
     {
@@ -164,6 +204,13 @@ public static class MacroPackage
             macro.IsEnabled = ReadBool(entry, "enabled", true);
             macros.Add(macro);
         }
+
+        // Two macros with one name can only come from a file somebody edited by hand: the editor
+        // refuses to save a second macro under a name that is taken. They are still two macros with
+        // their own steps, so the later one is given the date it was read on and both are kept —
+        // dropping one, which is what a name-keyed table would do, loses work and leaves every call
+        // to that name meaning whichever happened to be read first.
+        Disambiguate(macros, DateTime.Now);
 
         var triggers = ProjectTriggers.FromJson(ReadObject(archive, TriggersEntry));
         ExpandMenuIcons(triggers, assets.Expand);
