@@ -2471,6 +2471,8 @@ internal static class ActionStrings
             "选择器可能匹配到多个元素，这里填要等的是第几个。" + MatchIndexHint,
         ["uia.waitElement.intervalMs.label"] = "轮询间隔",
         ["uia.waitElement.intervalMs.hint"] = "两次检查之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
+        ["uia.waitElement.returns.label"] = "要留下的结果",
+        ["uia.waitElement.returns.hint"] = ReturnsHintText,
 
         ["uia.click.name"] = "点击元素",
         ["uia.click.desc"] = "点击一个 UI Automation 元素。",
@@ -2515,6 +2517,12 @@ internal static class ActionStrings
             + "width、height 与 box。"
             + "取其中一项用 field($变量, \"value\")。value 是元素持有的内容，输入框里的文字、"
             + "按钮上的标题，元素本身不持有内容时为空。",
+
+        ["uia.waitElement.return.element.label"] = "等到的元素",
+        ["uia.waitElement.return.element.hint"] = "让这一次等待结束的那个元素，与「读取元素」同一种记录："
+            + "enabled 与 visible、value、name、automationId、controlType，然后是 x、y（它的中心），"
+            + "以及 left、top、width、height 与 box。取其中一项用 field($变量, \"value\")；"
+            + "等一个输入框出现再看它里面写着什么，一条步骤就够了，读到的就是让等待结束的那一个。",
 
         ["uia.select.name"] = "选择列表项",
         ["uia.select.desc"] = "在下拉框、列表或选项卡里选中一项。",

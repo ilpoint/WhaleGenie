@@ -14085,6 +14085,29 @@
         "ChildKeys": []
       },
       {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      },
+      {
         "Name": "intervalMs",
         "Shape": "Number",
         "Unit": "Milliseconds",
@@ -14098,7 +14121,67 @@
         "ChildKeys": []
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "element",
+        "Type": "Record",
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "enabled",
+            "Type": "Flag"
+          },
+          {
+            "Name": "visible",
+            "Type": "Flag"
+          },
+          {
+            "Name": "value",
+            "Type": "Text"
+          },
+          {
+            "Name": "name",
+            "Type": "Text"
+          },
+          {
+            "Name": "automationId",
+            "Type": "Text"
+          },
+          {
+            "Name": "controlType",
+            "Type": "Text"
+          },
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          }
+        ]
+      }
+    ]
   },
   {
     "Key": "uia.click",
