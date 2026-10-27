@@ -2761,7 +2761,7 @@ public partial class MacroEditorWindow : Window
                 _dropSlot = _viewModel.Rows.Count;
                 _dropMarkerY = last.Top + last.Height;
                 _dropMarkerIndent = 0;
-                _dropHintKey = "Editor.DropAtPosition";
+                _dropHintKey = "Editor.DropAfterStep";
                 EvaluateDrop(_dropSlot, _dropInto, actionKey);
                 ShowDropMarker();
                 return;
@@ -2773,6 +2773,18 @@ public partial class MacroEditorWindow : Window
             var bottom = top + itemHeight;
             var height = bottom - top;
             var inside = point.Y >= top && point.Y < bottom;
+
+            // A block whose one list is still empty is a single target: its title, its empty body
+            // and its closing line all stand for the same place, so hovering anywhere on them puts
+            // the action there and draws one marker instead of four.
+            if (!_draggingSteps && inside && EmptySingleList(row.Step))
+            {
+                slot = row.RowIndex;
+                markerY = top;
+                indent = (row.Depth + 1) * 18;
+                hintKey = "Editor.DropIntoEmptyList";
+                break;
+            }
 
             // The middle of a block that runs one list of steps means "put it inside this block".
             // A block with several lists — an if, a try, a switch — leaves it to the row of the
@@ -2794,6 +2806,7 @@ public partial class MacroEditorWindow : Window
                 slot = row.RowIndex;
                 markerY = top;
                 indent = (row.Depth + 1) * 18;
+                hintKey = "Editor.DropAtBlockStart";
                 break;
             }
 
@@ -2803,19 +2816,25 @@ public partial class MacroEditorWindow : Window
                 slot = row.RowIndex;
                 markerY = top;
                 indent = (row.Depth + 1) * 18;
+                hintKey = "Editor.DropAtBlockStart";
                 break;
             }
 
-            // Past the middle of a row means the block goes after it, not before.
+            // Past the middle of a row means the block goes after it, not before. The hint names
+            // what stands at the seam, because "before the loop" and "before the step inside the
+            // loop" are different places and the marker sits at the same place for one of them.
+            var holds = row.CanFold || row.Step.StepLists.Any();
             if (point.Y < top + ((bottom - top) / 2))
             {
                 slot = row.RowIndex;
                 markerY = top;
+                hintKey = holds ? "Editor.DropBeforeBlock" : "Editor.DropBeforeStep";
                 break;
             }
 
             slot = row.RowIndex + 1;
             markerY = bottom;
+            hintKey = holds ? "Editor.DropAfterBlock" : "Editor.DropAfterStep";
         }
 
         _dropSlot = slot;
@@ -2824,6 +2843,13 @@ public partial class MacroEditorWindow : Window
         _dropHintKey = hintKey;
         EvaluateDrop(_dropSlot, _dropInto, actionKey);
         ShowDropMarker();
+    }
+
+    /// <summary>A block with one child list that does not hold a step yet.</summary>
+    private static bool EmptySingleList(MacroStep step)
+    {
+        var lists = step.StepLists.ToList();
+        return lists.Count == 1 && lists[0].Steps.Count == 0;
     }
 
     /// <summary>Asks the editor whether the seam under the pointer accepts the proposed step(s).</summary>

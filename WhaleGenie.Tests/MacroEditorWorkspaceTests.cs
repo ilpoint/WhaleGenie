@@ -447,6 +447,100 @@ public class MacroEditorWorkspaceTests
         });
     }
 
+    /// <summary>
+    /// A loop whose body is still empty is one place, not four: its own row, the title of the body
+    /// and the line that closes it all put the action in the same slot, so the band does not jump
+    /// between four heights while the pointer moves down an empty body.
+    /// </summary>
+    [Fact]
+    public void An_empty_block_body_is_a_single_drop_target()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var marker = window.FindControl<Border>("DropMarker")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            var heights = new[] { top + 3, (top + bottom) / 2, bottom - 3 };
+            var seen = new List<(string? Hint, double? Marker)>();
+            foreach (var y in heights)
+            {
+                DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, y));
+                seen.Add((hint.Text, Canvas.GetTop(marker)));
+            }
+
+            // One answer, one place.
+            Assert.All(seen, entry => Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), entry.Hint));
+            Assert.Single(seen.Select(entry => entry.Marker).Distinct());
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// Once the body holds a step, the heights of the loop row mean different things again — before
+    /// the block, or inside it at the end — and the band says which.
+    /// </summary>
+    [Fact]
+    public void A_block_row_with_a_step_inside_still_offers_before_and_inside()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.delay",
+                        new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "1" })],
+                }));
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, top + 3));
+            Assert.Equal(Strings.Get("Editor.DropBeforeBlock"), hint.Text);
+
+            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, (top + bottom) / 2));
+            Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
+
+            window.Close();
+        });
+    }
+
     [Fact]
     public void The_drop_band_says_where_the_action_will_land()
     {
