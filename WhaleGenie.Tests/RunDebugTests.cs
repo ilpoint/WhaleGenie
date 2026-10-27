@@ -199,6 +199,72 @@ public class RunDebugTests
     }
 
     /// <summary>
+    /// The watch list at the window's narrowest: the copy button keeps its place, the value keeps
+    /// its column, and neither is drawn over the other or pushed out of the panel.
+    /// </summary>
+    [Fact]
+    public void The_watch_list_stays_inside_its_panel_when_it_is_narrow()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            var other = Count("other", "1");
+            StepIds.Settle([set, other]);
+
+            var window = new RunWindow([set, other]) { Width = 760 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var row = window.GetVisualDescendants().OfType<Grid>()
+                .First(grid => grid.DataContext is WatchedVariable);
+            var button = row.Children.OfType<Button>().Single();
+            var value = row.Children.OfType<SelectableTextBlock>().Single();
+
+            Assert.True(button.Bounds.Right <= row.Bounds.Width + 0.5);
+            Assert.True(value.Bounds.Right <= button.Bounds.X + 0.5);
+            Assert.True(value.Bounds.Width > 0);
+
+            // The title of the value column stands over the values, not over the copy buttons: the
+            // two grids carry the same columns, the button column included.
+            var title = window.GetVisualDescendants().OfType<TextBlock>()
+                .First(text => text.Text == Strings.Get("Variable.Value"));
+            var leftOfTitle = title.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            var leftOfValue = value.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.Equal(leftOfTitle, leftOfValue, 1);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The title over the name column and the name under it start at the same place, so the column
+    /// reads as one column rather than as a heading shifted off its values.
+    /// </summary>
+    [Fact]
+    public void The_name_column_and_its_title_start_together()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var texts = window.GetVisualDescendants().OfType<TextBlock>().ToList();
+            var title = texts.First(text => text.Text == Strings.Get("Variable.Name"));
+            var value = texts.First(text => text.Text == "total");
+
+            var leftOfTitle = title.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            var leftOfValue = value.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.Equal(leftOfTitle, leftOfValue, 1);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
     /// The note an action carries is written under the step, the same one the editor shows: it is
     /// where the person who wrote the macro says why the step is there.
     /// </summary>

@@ -681,28 +681,34 @@
         <TextBlock Classes="Muted"
                    IsVisible="{Binding !HasVariables}"
                    Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
-        <Grid ColumnDefinitions="130,54,72,*,Auto" Margin="0,0,0,4"
+        <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,4" ColumnSpacing="6"
               IsVisible="{Binding HasVariables}">
-            <TextBlock Classes="ColumnHeader" Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="1" Classes="ColumnHeader" Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="2" Classes="ColumnHeader" Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="3" Classes="ColumnHeader" Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="1" Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="2" Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="3" Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
         </Grid>
         <ItemsControl ItemsSource="{Binding Variables}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:WatchedVariable">
-                    <Grid ColumnDefinitions="130,54,72,*,Auto" Margin="0,0,0,3"
+                    <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,3" ColumnSpacing="6"
                           ToolTip.Tip="{Binding Display}">
                         <TextBlock Text="{Binding Display}" FontSize="12" Foreground="#BFE3BF"
-                                   TextTrimming="CharacterEllipsis" />
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
                                    Foreground="#D6C08A" />
                         <TextBlock Grid.Column="2" Text="{Binding LocalType}" FontSize="11.5"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource AppMuted}" />
-                        <SelectableTextBlock Grid.Column="3" Text="{Binding Value}"
-                                             FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                             TextWrapping="Wrap" />
-                        <Button Grid.Column="4" Classes="CopyButton" Margin="8,0,0,0"
+                        <SelectableTextBlock Grid.Column="3" Text="{Binding Value}" FontSize="11.5"
+                                             VerticalAlignment="Center" TextWrapping="Wrap"
+                                             Foreground="{DynamicResource AppMuted}" />
+                        <Button Grid.Column="4" Classes="CopyButton" Margin="4,0,0,0" Width="44"
+                                Padding="6,0" FontSize="11" VerticalAlignment="Center"
                                 Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
                                 Click="OnCopyValueClicked" />
                     </Grid>
