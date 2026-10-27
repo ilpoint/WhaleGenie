@@ -34,6 +34,16 @@ python build/vm-sweep/sweep.py      # 报告写到 TestResults/vm-mcp-sweep.md
 `mcpvm.py` 起一条 SSH 隧道，把本机的一个端口接到虚拟机的 `127.0.0.1:3917`，再用最小的 MCP 客户端
 （`initialize` → `tools/call`）走这条路。服务本身只监听回环，不对外开端口。
 
+## 逐个动作
+
+`actions.py` 换一种问法：不是“客户端能不能调通”，而是**每个动作有没有做成它说的事**。它从动作目录里取
+参数与默认值，为每个动作生成一条宏，跑完读一个只有做成了才会变的数——靶场上的计数、输入框里的字、
+色块的颜色、磁盘上的文件。30 个动作，报告写到 `TestResults/vm-action-sweep.md`。
+
+写探针时踩过两个坑，值得记住：字段名要按目录声明写（写错的字段在 `put_macro` 的 `validation.blocking`
+里是 `UnknownParameter`，不检查就会被当成空字段跑过去）；窗口字段要的是规则**记录**（`{"title": …}`），
+只写标题文本会被 `Run.BadWindowRule` 拒绝。
+
 ## 什么时候该重跑
 
 改了工具、动作目录、运行入口或靶场之后。报告里的每一行都有一个读数，例如 `presses` 从 0 变 1、
