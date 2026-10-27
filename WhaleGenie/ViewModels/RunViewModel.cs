@@ -102,8 +102,22 @@ public partial class RunStepViewModel : ObservableObject
     /// <summary>How deep the step sits, used to indent it under its parent.</summary>
     public required int Depth { get; init; }
 
-    /// <summary>Left margin that lines the step up under its parent.</summary>
-    public Thickness Indent => new(Depth * 16, 0, 0, 0);
+    /// <summary>
+    /// One entry for every level above this step, drawn as a guide line: the list is flat, and the
+    /// lines are what make a step inside a loop look like one.
+    /// </summary>
+    public IReadOnlyList<int> Guides => [.. Enumerable.Range(0, Depth)];
+
+    /// <summary>True for a step that holds steps of its own: a group, a loop, a branch.</summary>
+    public bool IsContainer { get; init; }
+
+    /// <summary>The mark in front of a container, so a folded-looking row still says it has a body.</summary>
+    public string Marker => IsContainer ? "▾" : string.Empty;
+
+    /// <summary>The note the step carries, or empty when it carries none.</summary>
+    public string Comment { get; init; } = string.Empty;
+
+    public bool HasComment => Comment.Length > 0;
 
     /// <summary>
     /// Whether the engine can stop in front of this row. A condition is asked by the step it
@@ -1470,6 +1484,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
                 Depth = depth,
+                IsContainer = HoldsSteps(step),
+                Comment = step.Meta.Comment.Trim(),
                 CanBreak = true,
             });
 
@@ -1482,6 +1498,16 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             Build(step.Children("conditions"), depth + 1);
         }
     }
+
+    /// <summary>Whether a step holds steps of its own, in any of the lists a block can have.</summary>
+    private static bool HoldsSteps(ExecutableStep step)
+        => step.Children("steps").Count > 0
+            || step.Children("then").Count > 0
+            || step.Children("else").Count > 0
+            || step.Children("body").Count > 0
+            || step.Children("catch").Count > 0
+            || step.Children("finally").Count > 0
+            || step.Children("conditions").Count > 0;
 
     internal static string Detail(ExecutableStep step)
     {

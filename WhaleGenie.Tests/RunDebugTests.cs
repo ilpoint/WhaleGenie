@@ -199,6 +199,77 @@ public class RunDebugTests
     }
 
     /// <summary>
+    /// The note an action carries is written under the step, the same one the editor shows: it is
+    /// where the person who wrote the macro says why the step is there.
+    /// </summary>
+    [Fact]
+    public void A_step_row_carries_the_note_written_under_it()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            set.Meta = new StepMeta { Comment = "记下这一轮的总数" };
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            Assert.Equal("记下这一轮的总数", row.Comment);
+            Assert.True(row.HasComment);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The list is flat, so a step inside a loop is told how deep it sits and drawn under a guide
+    /// line for each level; the step that holds it says so with a mark of its own.
+    /// </summary>
+    [Fact]
+    public void A_step_inside_a_loop_is_drawn_under_it()
+    {
+        Ui.Run(() =>
+        {
+            var inner = new MacroStep
+            {
+                Type = "control.delay",
+                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "1" }],
+            };
+            var loop = new MacroStep
+            {
+                Type = "control.repeat",
+                Parameters =
+                [
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                    new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [inner] },
+                ],
+            };
+            StepIds.Settle([loop, inner]);
+
+            var window = new RunWindow([loop]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var holder = viewModel.Steps[0];
+            var child = viewModel.Steps[1];
+
+            Assert.True(holder.IsContainer);
+            Assert.Equal("▾", holder.Marker);
+            Assert.Empty(holder.Guides);
+
+            Assert.False(child.IsContainer);
+            Assert.Equal(1, child.Depth);
+            Assert.Single(child.Guides);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
     /// The watch list is about the macro, not about how far the run has got: every variable the
     /// macro creates or reads is listed from the moment it is loaded, with its type, and the value
     /// stays empty until something writes it.
