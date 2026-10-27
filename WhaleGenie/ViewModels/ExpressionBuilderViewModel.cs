@@ -1322,6 +1322,7 @@ public sealed class ExpressionFunctionChoice
         // The Chinese line lives in the text table and the English one beside the function in the
         // engine, the way the built-in variables are written: one sentence per language, no copies.
         Hint = Strings.Get($"Expr.Fn.{function.Name}", function.Description);
+        ArityNote = NoteArity(function);
     }
 
     /// <summary>The function itself, which is what the structure page builds its lines from.</summary>
@@ -1344,6 +1345,24 @@ public sealed class ExpressionFunctionChoice
 
     /// <summary>How the call is written, said in the reader's own language.</summary>
     public string WrittenAs { get; }
+
+    /// <summary>
+    /// How many places this function asks for, on the card itself: the one thing a card cannot say by
+    /// its name alone, and the reason a six-argument function looked like six numbers to fill in.
+    /// </summary>
+    public string ArityNote { get; }
+
+    /// <summary>The sentence that says how many places a function takes, optional ones included.</summary>
+    private static string NoteArity(ExpressionFunction function) => function switch
+    {
+        { MaxArguments: 0 } => Strings.Get("ExprBuilder.ArityNone"),
+        { MaxArguments: int.MaxValue } => Strings.Format("ExprBuilder.ArityAtLeast",
+            function.MinArguments),
+        { MaxArguments: var most } when most == function.MinArguments =>
+            Strings.Format("ExprBuilder.ArityFixed", most),
+        { MinArguments: var few, MaxArguments: var most } =>
+            Strings.Format("ExprBuilder.ArityRange", few, most - few),
+    };
 
     /// <summary>
     /// What each argument is for, one line each, in the order the call takes them: this is what the

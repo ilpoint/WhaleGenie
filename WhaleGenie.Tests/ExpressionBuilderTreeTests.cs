@@ -39,6 +39,27 @@ public class ExpressionBuilderTreeTests
     /// nothing is picked when the page opens, so the click says what to do instead of wrapping
     /// whatever happens to be at the top.
     /// </summary>
+    /// <summary>
+    /// A card says how many places the function asks for, so a function that wants three arguments and
+    /// allows three more says so before it is dropped into a formula.
+    /// </summary>
+    [Fact]
+    public void A_card_says_how_many_places_the_function_asks_for()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder(string.Empty);
+            Assert.Equal(Strings.Format("ExprBuilder.ArityFixed", 1),
+                Function(builder, "abs").ArityNote);
+            Assert.Equal(Strings.Format("ExprBuilder.ArityRange", 3, 3),
+                Function(builder, "compare").ArityNote);
+
+            var open = builder.Functions.First(choice => choice.Function.MaxArguments == int.MaxValue);
+            Assert.Equal(Strings.Format("ExprBuilder.ArityAtLeast", open.Function.MinArguments),
+                open.ArityNote);
+        });
+    }
+
     [Fact]
     public void A_click_with_nothing_picked_says_what_to_do_instead_of_inserting()
     {

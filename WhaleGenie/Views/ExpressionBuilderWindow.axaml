@@ -495,8 +495,15 @@
                                     <Button Classes="Card FnCard"
                                             BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
                                             Click="OnInsertFunction">
-                                        <TextBlock Text="{Binding Heading}"
-                                                   Foreground="{DynamicResource AppTextStrong}" />
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Heading}"
+                                                       Foreground="{DynamicResource AppTextStrong}" />
+                                            <!-- How many places it asks for, so a function with three
+                                                 required and three optional ones says so before it is
+                                                 dropped into the formula. -->
+                                            <TextBlock Text="{Binding ArityNote}" FontSize="10.5"
+                                                       Foreground="{DynamicResource AppMuted}" />
+                                        </StackPanel>
                                         <!-- What a card cannot say: how the call is written in the
                                              reader's own language, one line saying what it does, and one
                                              line for each argument it takes. -->
@@ -508,6 +515,8 @@
                                                            Foreground="{DynamicResource AppInfo}" TextWrapping="Wrap" />
                                                 <TextBlock Text="{Binding Hint}" FontSize="12"
                                                            Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding ArityNote}" FontSize="11.5"
+                                                           Foreground="{DynamicResource AppInfo}" />
                                                 <ItemsControl ItemsSource="{Binding Arguments}"
                                                               Margin="0,2,0,0">
                                                     <ItemsControl.ItemTemplate>
