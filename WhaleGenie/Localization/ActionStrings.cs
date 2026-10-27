@@ -646,8 +646,8 @@ internal static class ActionStrings
         ["control.note.note.hint"] = "这一段是干什么的，写给后面读这个宏的人看。按写下的原文显示："
             + "不替换变量，也不写进日志。",
 
-        ["control.ask.name"] = "询问使用者",
-        ["control.ask.desc"] = "问一句话，按对方的回答继续。",
+        ["control.ask.name"] = "询问是否",
+        ["control.ask.desc"] = "问一个能用“确定 / 取消”回答的问题，按对方的回答继续；要一行字用「询问文字」。",
         ["control.ask.message.label"] = "问题",
         ["control.ask.message.hint"] = "要问的整句话，宏等回答时显示给坐在电脑前的人。",
         ["control.ask.detail.label"] = "补充说明",
@@ -658,7 +658,7 @@ internal static class ActionStrings
             + "也是假，触发器发起的运行就是这样。",
 
         ["control.input.name"] = "询问文字",
-        ["control.input.desc"] = "要一行文字，存进变量。",
+        ["control.input.desc"] = "要一行文字，存进变量；只要一个“是 / 否”用「询问是否」。",
         ["control.input.message.label"] = "问题",
         ["control.input.message.hint"] = "要问的整句话，宏等回答时显示给坐在电脑前的人。",
         ["control.input.default.label"] = "输入框的初始内容",

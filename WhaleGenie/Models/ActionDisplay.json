@@ -1662,8 +1662,8 @@
   },
   {
     "Key": "control.ask",
-    "DisplayName": "Ask the Person",
-    "Description": "Ask a yes-or-no question and go on according to the answer.",
+    "DisplayName": "Ask Yes or No",
+    "Description": "Ask a question that is answered with OK or Cancel, and go on according to the answer. For a line of writing use Ask for Text.",
     "Parameters": [
       {
         "Name": "message",
@@ -1737,7 +1737,7 @@
   {
     "Key": "control.input",
     "DisplayName": "Ask for Text",
-    "Description": "Ask for a line of writing and keep it in a variable.",
+    "Description": "Ask for a line of writing and keep it in a variable. For a yes-or-no question use Ask Yes or No.",
     "Parameters": [
       {
         "Name": "message",
