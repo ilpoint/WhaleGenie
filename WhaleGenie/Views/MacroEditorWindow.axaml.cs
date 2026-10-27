@@ -2742,7 +2742,7 @@ public partial class MacroEditorWindow : Window
             : "Editor.DropAtPosition";
         _dropInto = null;
 
-        var visible = _stepList.GetVisualDescendants()
+        var boxes = _stepList.GetVisualDescendants()
             .OfType<ListBoxItem>()
             .Select(item => (Item: item, Row: item.DataContext as StepRow))
             .Where(candidate => candidate.Row is { RowIndex: >= 0 })
@@ -2753,6 +2753,20 @@ public partial class MacroEditorWindow : Window
             .OrderBy(candidate => candidate.Row.RowIndex)
             .ToList();
 
+        // Rows sit a few pixels apart, and those pixels used to belong to no row at all: the
+        // pointer fell through them to whichever row the next comparison happened to name, which
+        // is what made the marker jump while it moved down a body. Each row now owns everything up
+        // to the middle of the gap on either side, so every height on the list belongs to exactly
+        // one row.
+        var visible = boxes
+            .Select((box, index) => new DropBox(
+                box.Row,
+                box.Top,
+                box.Height,
+                index == 0 ? double.NegativeInfinity : (boxes[index - 1].Top + boxes[index - 1].Height + box.Top) / 2,
+                index == boxes.Count - 1 ? double.PositiveInfinity : (box.Top + box.Height + boxes[index + 1].Top) / 2))
+            .ToList();
+
         // A block whose one list is empty is one target from its title to its closing line, the
         // gaps between those rows included: the rows are separate items, and a pointer in a gap
         // used to fall through to "before the block" for the row below it.
@@ -2761,9 +2775,9 @@ public partial class MacroEditorWindow : Window
             var emptyBand = visible
                 .Where(candidate => EmptySingleList(candidate.Row.Step))
                 .GroupBy(candidate => candidate.Row.Step)
-                .Where(band => point.Y >= band.Min(candidate => candidate.Top)
-                    && point.Y < band.Max(candidate => candidate.Top + candidate.Height))
-                .OrderBy(band => band.Min(candidate => candidate.Top))
+                .Where(band => point.Y >= band.Min(candidate => candidate.ZoneTop)
+                    && point.Y < band.Max(candidate => candidate.ZoneBottom))
+                .OrderBy(band => band.Min(candidate => candidate.ZoneTop))
                 .FirstOrDefault();
             if (emptyBand is not null)
             {
@@ -2794,11 +2808,13 @@ public partial class MacroEditorWindow : Window
             }
         }
 
-        foreach (var (row, top, itemHeight) in visible)
+        foreach (var box in visible)
         {
-            var bottom = top + itemHeight;
-            var height = bottom - top;
-            var inside = point.Y >= top && point.Y < bottom;
+            var row = box.Row;
+            var top = box.Top;
+            var height = box.Height;
+            var bottom = top + height;
+            var inside = point.Y >= box.ZoneTop && point.Y < box.ZoneBottom;
 
             // The middle of a block that runs one list of steps means "put it inside this block".
             // A block with several lists — an if, a try, a switch — leaves it to the row of the
@@ -2858,6 +2874,10 @@ public partial class MacroEditorWindow : Window
         EvaluateDrop(_dropSlot, _dropInto, actionKey);
         ShowDropMarker();
     }
+
+    /// <summary>One row of the list: where it is drawn, and the band of heights it answers for.</summary>
+    private readonly record struct DropBox(
+        StepRow Row, double Top, double Height, double ZoneTop, double ZoneBottom);
 
     /// <summary>A block with one child list that does not hold a step yet.</summary>
     private static bool EmptySingleList(MacroStep step)
