@@ -31,7 +31,27 @@ public sealed record ExpressionFunction(
 /// to call it in the reader's language, and one line saying what goes there. The name is the piece
 /// of code being written, so it stays as it is; the other two are text and are translated.
 /// </summary>
-public sealed record ExpressionParameter(string Name, string Label, string Hint);
+public sealed record ExpressionParameter(string Name, string Label, string Hint,
+    ExpressionParameterKind Kind = ExpressionParameterKind.Any,
+    IReadOnlyList<string>? Options = null)
+{
+    /// <summary>The words a choice argument may hold, or nothing when it is not a choice.</summary>
+    public IReadOnlyList<string> Choices => Options ?? [];
+}
+
+/// <summary>
+/// What goes in one argument: any value, a line of text, a number, true or false, or one of a few
+/// words. The editor draws each of them with the box it deserves instead of one text line for all,
+/// which is what makes a formula readable as the thing it is.
+/// </summary>
+public enum ExpressionParameterKind
+{
+    Any,
+    Text,
+    Number,
+    Flag,
+    Choice,
+}
 
 /// <summary>One entry of the built-in function table.</summary>
 internal sealed record FunctionEntry(
@@ -338,12 +358,33 @@ internal static class FunctionLibrary
         ["field.name"] = "The name of the field to read, such as x.",
     };
 
+    /// <summary>The words a comparison argument may hold: the text ways and the number ways.</summary>
+    private static readonly string[] ComparisonWays =
+        ["contains", "startsWith", "endsWith", "equals", "regex", ">", ">=", "<", "<=", "=", "!="];
+
+    /// <summary>
+    /// Which arguments are not free text. The name says what the argument is for and the engine reads
+    /// the same names everywhere, so the shape is read off it rather than written out per function.
+    /// </summary>
+    private static (ExpressionParameterKind Kind, IReadOnlyList<string> Choices) ShapeOf(string name)
+        => name switch
+        {
+            "caseSensitive" or "trim" or "multiline" or "descending" =>
+                (ExpressionParameterKind.Flag, []),
+            "comparison" => (ExpressionParameterKind.Choice, ComparisonWays),
+            _ => (ExpressionParameterKind.Any, []),
+        };
+
     /// <summary>Names and signatures the expression editor offers as suggestions.</summary>
     public static IReadOnlyList<ExpressionFunction> Metadata { get; } =
         [.. Entries.Select(entry =>
             new ExpressionFunction(entry.Name, entry.Signature, entry.Description, entry.Group,
-                [.. ArgumentNames(entry.Signature).Select(name => new ExpressionParameter(
-                    name, ArgumentLibrary.Label(name), HintOf(entry.Name, name)))],
+                [.. ArgumentNames(entry.Signature).Select(name =>
+                {
+                    var (kind, choices) = ShapeOf(name);
+                    return new ExpressionParameter(name, ArgumentLibrary.Label(name),
+                        HintOf(entry.Name, name), kind, choices);
+                })],
                 entry.MinArguments,
                 entry.MaxArguments))];
 

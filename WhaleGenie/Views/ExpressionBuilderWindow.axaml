@@ -305,7 +305,18 @@
                                             <TextBox Classes="Cell" Width="150"
                                                      Text="{Binding Literal}"
                                                      PlaceholderText="{Binding HoleHint}"
-                                                     IsVisible="{Binding IsTyped}" />
+                                                     IsVisible="{Binding IsTextBox}" />
+                                            <!-- A yes or a no is ticked, a comparison is picked from
+                                                 the words it may hold: one text line for all of them
+                                                 made compare() read as six numbers to type. -->
+                                            <CheckBox IsVisible="{Binding IsFlag}"
+                                                      IsChecked="{Binding FlagValue}"
+                                                      ToolTip.Tip="{Binding LabelHint}" />
+                                            <ComboBox Classes="Cell" Width="150"
+                                                      ItemsSource="{Binding Choices}"
+                                                      SelectedItem="{Binding ChoiceValue}"
+                                                      PlaceholderText="{Binding HoleHint}"
+                                                      IsVisible="{Binding IsChoice}" />
                                             <Border Classes="Chip" IsVisible="{Binding ShowsToken}">
                                                 <TextBlock Text="{Binding Token}"
                                                            ToolTip.Tip="{Binding LabelHint}" />

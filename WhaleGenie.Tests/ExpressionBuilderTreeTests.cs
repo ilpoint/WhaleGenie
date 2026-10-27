@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -28,6 +29,41 @@ public class ExpressionBuilderTreeTests
 
     private static ExpressionFunctionChoice Function(ExpressionBuilderViewModel builder, string name)
         => builder.Functions.First(choice => choice.Name == name);
+
+    /// <summary>
+    /// A function's arguments are not six numbers to type: the comparison is one of its own words and
+    /// the flags are ticks, which is what makes compare() readable as the sentence it is.
+    /// </summary>
+    [Fact]
+    public void A_comparison_argument_is_picked_and_a_yes_or_no_is_ticked()
+    {
+        Ui.Run(() =>
+        {
+            var compare = WhaleGenie.Core.Expressions.Expression.Functions
+                .First(function => function.Name == "compare");
+            Assert.Equal(WhaleGenie.Core.Expressions.ExpressionParameterKind.Choice, compare.Parameters[1].Kind);
+            Assert.Contains("contains", compare.Parameters[1].Choices);
+            Assert.Equal(WhaleGenie.Core.Expressions.ExpressionParameterKind.Flag, compare.Parameters[3].Kind);
+
+            var builder = Builder("compare($a, \"contains\", \"x\", true)", "a");
+            var slots = builder.Rows.Skip(1).ToList();
+
+            // The first argument is a variable that was already there, so it stays what it is.
+            Assert.False(slots[0].IsTyped);
+            Assert.True(slots[1].IsChoice);
+            Assert.Contains("contains", slots[1].Choices);
+            Assert.False(slots[1].IsTextBox);
+            Assert.True(slots[3].IsFlag);
+            Assert.True(slots[3].FlagValue);
+
+            slots[1].ChoiceValue = "regex";
+            slots[3].FlagValue = false;
+
+            Assert.Contains("regex", builder.Preview, System.StringComparison.Ordinal);
+            Assert.Contains("false", builder.Preview, System.StringComparison.Ordinal);
+            Assert.DoesNotContain("\"true\"", builder.Preview, System.StringComparison.Ordinal);
+        });
+    }
 
     [Fact]
     public void The_structure_page_lays_the_formula_out_one_line_to_a_piece()

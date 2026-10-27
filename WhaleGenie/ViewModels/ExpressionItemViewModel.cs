@@ -214,6 +214,68 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The argument this line stands for, when it sits under a function: it is what says whether the
+    /// line is typed into, ticked, or picked from a few words.
+    /// </summary>
+    public ExpressionParameter? Slot { get; internal set; }
+
+    /// <summary>True for a line that is a yes or a no.</summary>
+    public bool IsFlag => Slot?.Kind is ExpressionParameterKind.Flag
+        && Kind is ExpressionItemKind.Hole or ExpressionItemKind.Text or ExpressionItemKind.Constant;
+
+    /// <summary>True for a line that is one of a few words.</summary>
+    public bool IsChoice => IsTyped && Slot?.Kind is ExpressionParameterKind.Choice;
+
+    /// <summary>The words that may be picked here, or nothing when this is not a choice.</summary>
+    public IReadOnlyList<string> Choices => Slot?.Choices ?? [];
+
+    /// <summary>True for the lines written by typing, which is everything that is not ticked or picked.</summary>
+    public bool IsTextBox => IsTyped && Slot?.Kind is not (ExpressionParameterKind.Flag
+        or ExpressionParameterKind.Choice);
+
+    /// <summary>A yes-or-no argument, read and written as the word the engine takes.</summary>
+    public bool FlagValue
+    {
+        // A tick already made is a constant, which keeps its word in Name rather than in the box.
+        get => Kind is ExpressionItemKind.Constant
+            ? string.Equals(Name, "true", StringComparison.OrdinalIgnoreCase)
+            : string.Equals(_literal, "true", StringComparison.OrdinalIgnoreCase);
+        set => Literal = value ? "true" : "false";
+    }
+
+    /// <summary>A picked argument, written as the word it was picked from.</summary>
+    public string? ChoiceValue
+    {
+        get => _literal.Length == 0 ? null : _literal;
+        set => Literal = value ?? string.Empty;
+    }
+
+    /// <summary>Tells the line which argument it stands for, and forgets the guess it made before.</summary>
+    internal void Stands(ExpressionParameter? slot)
+    {
+        if (ReferenceEquals(Slot, slot))
+        {
+            return;
+        }
+
+        Slot = slot;
+
+        // Only a line that is filled by typing can change its mind here. A variable, a call or an
+        // operator is what it is whatever argument it was dropped into.
+        if (IsTyped)
+        {
+            SettleKind();
+        }
+
+        OnPropertyChanged(nameof(IsFlag));
+        OnPropertyChanged(nameof(IsChoice));
+        OnPropertyChanged(nameof(IsTextBox));
+        OnPropertyChanged(nameof(Choices));
+        OnPropertyChanged(nameof(FlagValue));
+        OnPropertyChanged(nameof(ChoiceValue));
+    }
+
     /// <summary>True for the pieces that are filled by typing in their own line.</summary>
     public bool IsTyped => Kind is ExpressionItemKind.Hole or ExpressionItemKind.Number
         or ExpressionItemKind.Text;
@@ -367,8 +429,17 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         {
             Kind = ExpressionItemKind.Hole;
         }
-        else if (_literalIsText)
+        else if (Slot?.Kind is ExpressionParameterKind.Flag
+            && _literal is "true" or "false")
         {
+            // True and false are words the engine reads as values: writing them as text would hand
+            // the function the four letters instead of the answer.
+            Kind = ExpressionItemKind.Constant;
+            Name = _literal;
+        }
+        else if (_literalIsText || Slot?.Kind is ExpressionParameterKind.Choice)
+        {
+            // A word picked from a comparison is a piece of text by definition: `>` is not a number.
             Kind = ExpressionItemKind.Text;
         }
         else
@@ -382,5 +453,8 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsTyped));
         OnPropertyChanged(nameof(ShowsToken));
         OnPropertyChanged(nameof(IsHole));
+        OnPropertyChanged(nameof(IsTextBox));
+        OnPropertyChanged(nameof(FlagValue));
+        OnPropertyChanged(nameof(ChoiceValue));
     }
 }
