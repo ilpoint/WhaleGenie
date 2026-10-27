@@ -74,7 +74,14 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             TextUnreadable = !IsTreePage;
         }
 
-        Selected = _root;
+        // Nothing is picked when the page opens: a click from the palette needs a place that was
+        // chosen on purpose, and wrapping whatever happens to be at the top of an existing formula
+        // is how a structure used to appear from nowhere.
+        //
+        // The handwritten page opens on the formula that is there, so it is never a blank box in
+        // front of somebody who wants to change one number of it.
+        Written = _empty ? string.Empty : Preview.Length > 0 ? Preview : Expression;
+
         Redraw();
     }
 
@@ -174,11 +181,73 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsTextPage))]
     [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    [NotifyPropertyChangedFor(nameof(HasUnappliedWritten))]
     [NotifyPropertyChangedFor(nameof(ShowsSaying))]
     public partial bool IsTreePage { get; set; } = true;
 
     /// <summary>True while the page the formula is written out on is the one on show.</summary>
     public bool IsTextPage => !IsTreePage;
+
+    /// <summary>
+    /// What the handwritten page holds. It is a buffer of its own: typing here changes nothing until
+    /// "build the structure from this" is pressed, which is what keeps a hand-built formula safe from
+    /// a stray keystroke.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUnappliedWritten))]
+    [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    public partial string Written { get; set; } = string.Empty;
+
+    /// <summary>What the buffer says when it does not read, or how much it is when it does.</summary>
+    [ObservableProperty]
+    public partial string WrittenMessage { get; set; } = string.Empty;
+
+    /// <summary>True while the buffer holds something the structure does not have yet.</summary>
+    public bool HasUnappliedWritten => Written.Trim().Length > 0
+        && !string.Equals(Written.Trim(), Preview.Trim(), StringComparison.Ordinal);
+
+    partial void OnWrittenChanged(string value) => CheckWritten();
+
+    /// <summary>Says whether what was typed reads, so the button under it is never a guess.</summary>
+    private void CheckWritten()
+    {
+        if (Written.Trim().Length == 0)
+        {
+            WrittenMessage = string.Empty;
+            OnPropertyChanged(nameof(HasUnappliedWritten));
+            OnPropertyChanged(nameof(CanConfirm));
+            return;
+        }
+
+        WrittenMessage = Language.TryParse(Written, out _, out var error)
+            ? Strings.Get("ExprBuilder.WrittenReads")
+            : error is null ? Strings.Get("ExprBuilder.CannotRead") : ExpressionText.Describe(error);
+
+        OnPropertyChanged(nameof(HasUnappliedWritten));
+        OnPropertyChanged(nameof(CanConfirm));
+    }
+
+    /// <summary>
+    /// The one way the buffer reaches the structure: what was typed is read and becomes the formula.
+    /// It is the only direction this page goes, which is what stops written text from quietly
+    /// reshaping a formula that was dragged together.
+    /// </summary>
+    [RelayCommand]
+    private void Rebuild()
+    {
+        if (!Language.TryParse(Written, out var parsed, out _))
+        {
+            CheckWritten();
+            return;
+        }
+
+        Adopt(ExpressionItemViewModel.From(parsed!, Changed));
+        IsTreePage = true;
+        TextUnreadable = false;
+        Refresh();
+        OnPropertyChanged(nameof(HasUnappliedWritten));
+        OnPropertyChanged(nameof(CanConfirm));
+    }
 
     /// <summary>
     /// True while the text page holds something that was meant to be a formula and does not read.
@@ -260,7 +329,8 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// back a formula with places still to fill in — handing one over would write a step that
     /// cannot run — while the text page leaves it to the user, the way it always has.
     /// </summary>
-    public bool CanConfirm => !IsTreePage || (!TextUnreadable && (_empty || _previewReads));
+    public bool CanConfirm => !HasUnappliedWritten
+        && (IsTextPage || (!TextUnreadable && (_empty || _previewReads)));
 
     partial void OnExpressionChanged(string value) => Recheck();
 
@@ -269,7 +339,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     partial void OnSelectedFunctionFilterChanged(ExpressionFunctionFilter? value) => Refill();
 
     [RelayCommand]
-    private void Confirm() => CloseRequested?.Invoke(IsTreePage && !_empty ? Preview : Expression);
+    private void Confirm() => CloseRequested?.Invoke(_empty ? Expression : Preview);
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
@@ -283,16 +353,16 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             return;
         }
 
-        // The tree and the text are the same formula, so a finished tree is written into the box
-        // and the user carries on from there. A formula with places still to fill in would only put
-        // markers in the box, so the box keeps what it had.
-        if (_root.Holes() == 0 && !_empty)
+        // The box starts from the formula the structure holds, so the page opens on the thing being
+        // edited rather than on nothing. A box that already holds something nobody has built yet is
+        // left alone: coming back to look at the page must not throw away what was typed in it.
+        if (!HasUnappliedWritten)
         {
-            Expression = Preview;
+            Written = _root.Holes() == 0 && !_empty ? Preview : Expression;
         }
-
         TextUnreadable = false;
         IsTreePage = false;
+        CheckWritten();
         Recheck();
     }
 
@@ -309,24 +379,46 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             return;
         }
 
-        if (Language.TryParse(Expression, out var parsed, out _))
-        {
-            Adopt(ExpressionItemViewModel.From(parsed!, Changed));
-            TextUnreadable = false;
-        }
-        else if (string.IsNullOrWhiteSpace(Expression))
-        {
-            Adopt(ExpressionItemViewModel.Hole(Changed));
-            TextUnreadable = false;
-        }
-        else
-        {
-            TextUnreadable = true;
-        }
-
+        // Back to the structure as it stands. What was typed on the other page stays in its buffer,
+        // and reaches the tree only through the button that says so.
         IsTreePage = true;
         Refresh();
+        OnPropertyChanged(nameof(HasUnappliedWritten));
+        OnPropertyChanged(nameof(CanConfirm));
     }
+
+    /// <summary>
+    /// Whether a click from the palette has somewhere to go. Dragging says where a piece goes by
+    /// where it is let go; a click has to be told, so with nothing picked it says what to do rather
+    /// than dropping the piece wherever the last look happened to be.
+    /// </summary>
+    private bool HasTarget()
+    {
+        if (Selected is not null)
+        {
+            PaletteNotice = string.Empty;
+            return true;
+        }
+
+        // An empty formula has one place and it is the top: there is nothing to pick, and refusing
+        // the click there would be refusing the only thing there is to do.
+        if (_root is { Kind: ExpressionItemKind.Hole, Children.Count: 0 })
+        {
+            Select(_root);
+            PaletteNotice = string.Empty;
+            return true;
+        }
+
+        PaletteNotice = Strings.Get("ExprBuilder.PickFirst");
+        return false;
+    }
+
+    /// <summary>What the palette says when a click had nowhere to go.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPaletteNotice))]
+    public partial string PaletteNotice { get; set; } = string.Empty;
+
+    public bool HasPaletteNotice => PaletteNotice.Length > 0;
 
     /// <summary>Picks the piece the next click from the palette goes into.</summary>
     public void Select(ExpressionItemViewModel? item)
@@ -397,12 +489,12 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// </summary>
     public void ChooseValue(ValueChoice choice)
     {
-        if (TextUnreadable)
+        if (TextUnreadable || !HasTarget())
         {
             return;
         }
 
-        var item = Selected ?? _root;
+        var item = Selected!;
         switch (choice.Kind)
         {
             case ValueChoiceKind.Number when item.IsTyped:
@@ -431,12 +523,12 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// </summary>
     public void ChooseOperator(TreeOperator choice)
     {
-        if (TextUnreadable)
+        if (TextUnreadable || !HasTarget())
         {
             return;
         }
 
-        var target = Selected ?? _root;
+        var target = Selected!;
         switch (choice.Kind)
         {
             case TreeOperatorKind.Binary:
@@ -476,12 +568,12 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// </summary>
     public void ChooseFunction(ExpressionFunctionChoice choice)
     {
-        if (TextUnreadable)
+        if (TextUnreadable || !HasTarget())
         {
             return;
         }
 
-        Wrap(choice.Function, Selected ?? _root);
+        Wrap(choice.Function, Selected!);
     }
 
     /// <summary>Adds an argument or an item under a piece that takes more of them.</summary>
@@ -888,9 +980,21 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         }
 
         Rows.Clear();
-        if (Selected is null || !Holds(_root, Selected))
+
+        // A piece that is no longer in the tree cannot stay picked, and nothing is picked in its
+        // place: choosing a place is the user's job, and a click from the palette has to have a place
+        // that was chosen rather than one this redraw happened to land on.
+        if (Selected is not null && !Holds(_root, Selected))
         {
-            Selected = FirstHole(_root) ?? _root;
+            Selected = null;
+        }
+
+        // A formula with nothing in it has one place, and picking it costs nobody anything. The
+        // emptiness is read off the tree here rather than off the last redraw's answer, because the
+        // tree is what has just changed.
+        if (Selected is null && _root is { Kind: ExpressionItemKind.Hole, Children.Count: 0 })
+        {
+            Selected = _root;
         }
 
         Walk(_root, 0);

@@ -337,9 +337,10 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- The page the formula is written out on: the buttons beside it put their text where
-                     the caret is, which is what this page has always done. -->
-                <Grid Grid.Row="2" Margin="0,8,0,0" RowDefinitions="Auto,Auto,*"
+                <!-- The page written out by hand: the way back in for a formula that is easier to type
+                     than to build. What is typed here changes nothing until the button under it is
+                     pressed, so a hand-built structure can never be lost to a stray keystroke. -->
+                <Grid Grid.Row="2" Margin="0,8,0,0" RowDefinitions="Auto,Auto,*,Auto"
                       IsVisible="{Binding IsTextPage}">
                     <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Help}" />
                     <TextBlock Grid.Row="1" Classes="FieldLabel" Margin="2,14,0,6"
@@ -348,7 +349,15 @@
                              AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
                              VerticalAlignment="Stretch"
                              PlaceholderText="{Binding Placeholder}"
-                             Text="{Binding Expression}" />
+                             Text="{Binding Written}" />
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                        <Button Classes="FlatButton" Height="30" Name="RebuildButton"
+                                Content="{Binding [ExprBuilder.Rebuild], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [ExprBuilder.RebuildHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding RebuildCommand}" />
+                        <TextBlock Classes="Muted" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Text="{Binding WrittenMessage}" />
+                    </StackPanel>
                 </Grid>
 
                 <!-- What the formula comes to, said under it: what is picked, how the formula is
@@ -393,6 +402,11 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
+                        <!-- A click with nothing picked says what to do instead of choosing for you. -->
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,6"
+                                   Foreground="{DynamicResource AppWarning}"
+                                   Text="{Binding PaletteNotice}"
+                                   IsVisible="{Binding HasPaletteNotice}" />
                         <!-- On the structure page an operator wraps what is picked; on the page written
                              out by hand it is dropped in at the caret, exactly as it always was. -->
                         <ItemsControl ItemsSource="{Binding TreeOperators}"
@@ -413,21 +427,6 @@
                         <!-- The operators read as a wall of cards that wrap, and each one says what it
                              does on hover. A list with a description beside every button would push
                              the variable wall below the fold, which is what made the dialog too tall. -->
-                        <ItemsControl ItemsSource="{Binding Operators}"
-                                      IsVisible="{Binding IsTextPage}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ExpressionOperator">
-                                    <Button Classes="Card" Content="{Binding Token}"
-                                            ToolTip.Tip="{Binding Hint}" Click="OnInsertOperator" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
                         <StackPanel IsVisible="{Binding IsTreePage}">
                             <Border Classes="Divider" />
                             <TextBlock Classes="FieldLabel" Text="{Binding ValuesHeader}" />

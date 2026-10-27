@@ -34,6 +34,61 @@ public class ExpressionBuilderTreeTests
     /// A function's arguments are not six numbers to type: the comparison is one of its own words and
     /// the flags are ticks, which is what makes compare() readable as the sentence it is.
     /// </summary>
+    /// <summary>
+    /// A click on a function card needs a place picked on purpose: on a formula that is already there
+    /// nothing is picked when the page opens, so the click says what to do instead of wrapping
+    /// whatever happens to be at the top.
+    /// </summary>
+    [Fact]
+    public void A_click_with_nothing_picked_says_what_to_do_instead_of_inserting()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$count + 1", "count");
+            builder.ChooseFunction(Function(builder, "abs"));
+
+            Assert.Equal("$count + 1", builder.Preview);
+            Assert.True(builder.HasPaletteNotice);
+
+            // Picking a place first is all it takes.
+            builder.Select(builder.Rows.Last(row => row.IsTyped));
+            builder.ChooseFunction(Function(builder, "abs"));
+
+            Assert.Equal("$count + abs(1)", builder.Preview);
+            Assert.False(builder.HasPaletteNotice);
+        });
+    }
+
+    /// <summary>
+    /// The page written out by hand is a buffer: what is typed there changes nothing until it is
+    /// built, so a formula dragged together cannot be lost to a stray keystroke.
+    /// </summary>
+    [Fact]
+    public void The_handwritten_page_changes_nothing_until_it_is_built()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$count", "count");
+            builder.ShowTextCommand.Execute(null);
+            Assert.True(builder.IsTextPage);
+            Assert.Equal("$count", builder.Written);
+
+            builder.Written = "1 +";
+            Assert.False(builder.CanConfirm);
+
+            builder.Written = "$count + 1";
+            Assert.Equal("$count", builder.Preview);
+            Assert.True(builder.HasUnappliedWritten);
+            Assert.False(builder.CanConfirm);
+
+            builder.RebuildCommand.Execute(null);
+            Assert.True(builder.IsTreePage);
+            Assert.Equal("$count + 1", builder.Preview);
+            Assert.False(builder.HasUnappliedWritten);
+            Assert.True(builder.CanConfirm);
+        });
+    }
+
     [Fact]
     public void A_comparison_argument_is_picked_and_a_yes_or_no_is_ticked()
     {
@@ -495,40 +550,55 @@ public class ExpressionBuilderTreeTests
     }
 
     [Fact]
-    public void The_two_pages_are_the_same_formula()
+    public void The_handwritten_page_reaches_the_structure_only_when_it_is_built()
     {
         Ui.Run(() =>
         {
             var builder = Builder("$count + 1", "count");
             builder.ShowTextCommand.Execute(null);
             Assert.True(builder.IsTextPage);
-            Assert.Equal("$count + 1", builder.Expression);
+            Assert.Equal("$count + 1", builder.Written);
 
-            builder.Expression = "upper($count)";
+            // Typing is kept in the buffer, not read into the tree.
+            builder.Written = "upper($count)";
             builder.ShowTreeCommand.Execute(null);
+
+            Assert.True(builder.IsTreePage);
+            Assert.Equal("$count + 1", builder.Preview);
+            Assert.False(builder.CanConfirm);
+
+            builder.ShowTextCommand.Execute(null);
+            builder.RebuildCommand.Execute(null);
 
             Assert.True(builder.IsTreePage);
             Assert.False(builder.TextUnreadable);
             Assert.Equal("upper($count)", builder.Preview);
             Assert.Equal(2, builder.Rows.Count);
+            Assert.True(builder.CanConfirm);
         });
     }
 
+    /// <summary>
+    /// Half a formula in the buffer is not a reason to hand back something else: the dialog waits for
+    /// either the buffer to be built or the formula to be left as it was.
+    /// </summary>
     [Fact]
-    public void A_half_written_formula_is_not_handed_over_from_the_structure_page()
+    public void A_half_written_formula_holds_the_dialog_back_until_it_is_built()
     {
         Ui.Run(() =>
         {
             var builder = Builder("$a + 1", "a");
             builder.ShowTextCommand.Execute(null);
-            builder.Expression = "1 +";
-            builder.ShowTreeCommand.Execute(null);
+            builder.Written = "1 +";
 
-            Assert.True(builder.TextUnreadable);
             Assert.False(builder.CanConfirm);
 
-            // The text page keeps its own answer: it never held a formula back and still does not.
-            builder.ShowTextCommand.Execute(null);
+            builder.Written = "1 + 2";
+            Assert.False(builder.CanConfirm);
+
+            builder.RebuildCommand.Execute(null);
+            Assert.True(builder.IsTreePage);
+            Assert.Equal("1 + 2", builder.Preview);
             Assert.True(builder.CanConfirm);
         });
     }

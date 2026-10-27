@@ -1248,9 +1248,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.Parameter"] = "Macro parameter",
         ["VarWall.Result"] = "Macro result",
         ["ExprBuilder.Title"] = "Expression",
-        ["ExprBuilder.Help"] = "Click an operator, a variable or a function to add it at the "
-            + "cursor, or edit the expression directly. Hover over an operator or a function to see "
-            + "what it does, and watch the line under the box for what the expression comes to.",
+        ["ExprBuilder.Help"] = "Type the formula here if that is easier than building it. Nothing on "
+            + "the structure page changes until it is built, and the page switches back once it is.",
         ["ExprBuilder.Operators"] = "Operators",
         ["ExprBuilder.Expression"] = "Expression",
         ["ExprBuilder.Variables"] = "Insert variable",
@@ -1280,6 +1279,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Expr.Compare.<="] = "less or equal",
         ["Expr.Compare.="] = "equals",
         ["Expr.Compare.!="] = "not equal",
+        ["ExprBuilder.Rebuild"] = "Build the structure from this",
+        ["ExprBuilder.RebuildHint"] = "What is written here replaces the structure, and the structure page comes back in front.",
+        ["ExprBuilder.WrittenReads"] = "This reads; press the button to build it.",
+        ["ExprBuilder.CannotRead"] = "This cannot be read as a formula.",
+        ["ExprBuilder.PickFirst"] = "Pick a place in the structure first, or drag the piece onto it.",
         ["ExprBuilder.Tree.Hole"] = "Number or text",
         ["ExprBuilder.Tree.Picked"] = "Picked: {0}",
         ["ExprBuilder.Tree.Nothing"] = "Nothing written yet: OK leaves the value empty.",
@@ -3147,7 +3151,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.Parameter"] = "宏形参",
         ["VarWall.Result"] = "宏结果",
         ["ExprBuilder.Title"] = "表达式",
-        ["ExprBuilder.Help"] = "点运算符、变量或函数即可插入到光标处，也可以直接改下面的表达式。"
+        ["ExprBuilder.Help"] = "嫌拖拽麻烦时，把整条公式写在这里。结构页不会跟着改，按下面的按钮才会按这段重建。"
             + "鼠标停在运算符或函数上会说明它的作用；输入框下方会显示它算出来的结果。",
         ["ExprBuilder.Operators"] = "运算符",
         ["ExprBuilder.Expression"] = "当前表达式",
@@ -3164,6 +3168,11 @@ public sealed class Strings : INotifyPropertyChanged
             + "这里不写括号，括号由树的形状决定。",
         ["ExprBuilder.Tree.CannotRead"] = "另一页上写的内容目前还不是一条算式，此处没有可显示的内容。"
             + "先在那一页改好，再回来。",
+        ["ExprBuilder.Rebuild"] = "按这段重建结构",
+        ["ExprBuilder.RebuildHint"] = "这里写的会替换现有结构，并按它重建后切回结构页。",
+        ["ExprBuilder.WrittenReads"] = "这段读得通；按左边的按钮才会换成结构。",
+        ["ExprBuilder.CannotRead"] = "这段读不成一条公式。",
+        ["ExprBuilder.PickFirst"] = "先在结构里选中一个位置，或者直接把这块拖到要放的地方。",
         ["ExprBuilder.Tree.Hole"] = "数字或文字",
         ["ExprBuilder.Tree.Picked"] = "当前选中：{0}",
         ["ExprBuilder.Tree.Nothing"] = "还什么都没写：确认就是把这个值留空。",
