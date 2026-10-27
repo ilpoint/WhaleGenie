@@ -2753,6 +2753,32 @@ public partial class MacroEditorWindow : Window
             .OrderBy(candidate => candidate.Row.RowIndex)
             .ToList();
 
+        // A block whose one list is empty is one target from its title to its closing line, the
+        // gaps between those rows included: the rows are separate items, and a pointer in a gap
+        // used to fall through to "before the block" for the row below it.
+        if (!_draggingSteps)
+        {
+            var emptyBand = visible
+                .Where(candidate => EmptySingleList(candidate.Row.Step))
+                .GroupBy(candidate => candidate.Row.Step)
+                .Where(band => point.Y >= band.Min(candidate => candidate.Top)
+                    && point.Y < band.Max(candidate => candidate.Top + candidate.Height))
+                .OrderBy(band => band.Min(candidate => candidate.Top))
+                .FirstOrDefault();
+            if (emptyBand is not null)
+            {
+                var first = emptyBand.OrderBy(candidate => candidate.Row.RowIndex).First();
+                _dropSlot = first.Row.RowIndex;
+                _dropMarkerY = first.Top;
+                _dropMarkerIndent = (first.Row.Depth + 1) * 18;
+                _dropHintKey = "Editor.DropIntoEmptyList";
+                _dropInto = null;
+                EvaluateDrop(_dropSlot, _dropInto, actionKey);
+                ShowDropMarker();
+                return;
+            }
+        }
+
         if (visible.Count > 0)
         {
             var last = visible[^1];
@@ -2773,18 +2799,6 @@ public partial class MacroEditorWindow : Window
             var bottom = top + itemHeight;
             var height = bottom - top;
             var inside = point.Y >= top && point.Y < bottom;
-
-            // A block whose one list is still empty is a single target: its title, its empty body
-            // and its closing line all stand for the same place, so hovering anywhere on them puts
-            // the action there and draws one marker instead of four.
-            if (!_draggingSteps && inside && EmptySingleList(row.Step))
-            {
-                slot = row.RowIndex;
-                markerY = top;
-                indent = (row.Depth + 1) * 18;
-                hintKey = "Editor.DropIntoEmptyList";
-                break;
-            }
 
             // The middle of a block that runs one list of steps means "put it inside this block".
             // A block with several lists — an if, a try, a switch — leaves it to the row of the

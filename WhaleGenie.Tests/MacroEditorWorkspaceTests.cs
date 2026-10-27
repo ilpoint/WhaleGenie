@@ -474,20 +474,23 @@ public class MacroEditorWorkspaceTests
             var block = list.GetVisualDescendants().OfType<ListBoxItem>()
                 .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
                     row && row.Step.Type == "control.repeat");
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsFoot: true });
             var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
-            var bottom = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
-            var heights = new[] { top + 3, (top + bottom) / 2, bottom - 3 };
+            // Every two pixels from the title of the block to the line that closes it, so a gap
+            // between two of those rows cannot hide a second answer.
             var seen = new List<(string? Hint, double? Marker)>();
-            foreach (var y in heights)
+            for (var y = top; y < bottom; y += 2)
             {
                 DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, y));
                 seen.Add((hint.Text, Canvas.GetTop(marker)));
             }
 
-            // One answer, one place.
+            Assert.True(seen.Count > 4);
             Assert.All(seen, entry => Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), entry.Hint));
             Assert.Single(seen.Select(entry => entry.Marker).Distinct());
 
