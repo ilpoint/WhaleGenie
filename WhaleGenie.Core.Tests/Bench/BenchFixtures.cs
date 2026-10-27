@@ -40,15 +40,14 @@ internal sealed record BenchFixture(
     IReadOnlyList<string> Unfilled,
     string? Unreachable,
     BenchWrapper Wrapper,
-    BenchEnding Ending,
-    IReadOnlyList<ExecutableStep> Prelude)
+    BenchEnding Ending)
 {
     public static BenchFixture Built(string key, ExecutableStep step, BenchWrapper wrapper,
-        BenchEnding ending, IReadOnlyList<string> unfilled, IReadOnlyList<ExecutableStep> prelude)
-        => new(key, step, unfilled, null, wrapper, ending, prelude);
+        BenchEnding ending, IReadOnlyList<string> unfilled)
+        => new(key, step, unfilled, null, wrapper, ending);
 
     public static BenchFixture Absent(string key, string why)
-        => new(key, null, [], why, BenchWrapper.None, BenchEnding.Completed, []);
+        => new(key, null, [], why, BenchWrapper.None, BenchEnding.Completed);
 }
 
 /// <summary>
@@ -160,8 +159,6 @@ internal static class BenchFixtures
         ["items"] = "$" + ListName,
         ["listIndex"] = "1",
         ["item"] = "bench",
-        ["runHandle"] = "$" + HandleName,
-        ["runHandles"] = "$" + HandleName,
         ["note"] = "bench",
         ["message"] = "bench",
         ["label"] = "bench",
@@ -238,18 +235,7 @@ internal static class BenchFixtures
         [("vision.captureWindow", "path")] = "bench-capture.png",
     };
 
-    /// <summary>
-    /// The actions that need a handle from a background call, and the call that makes one. What the
-    /// bench runs is the call and then the step, which is the order a macro author writes.
-    /// </summary>
-    private static readonly HashSet<string> AfterBackground = new(StringComparer.Ordinal)
-    {
-        "control.waitMacro", "control.runStatus", "control.cancelMacro",
-        "control.waitAll", "control.waitAny",
-    };
 
-    /// <summary>The handle a background call hands back, by the name the macro keeps it under.</summary>
-    public const string HandleName = "benchRun";
 
     /// <summary>
     /// Builds the step for one action. A parameter whose value cannot be worked out is reported in
@@ -319,20 +305,9 @@ internal static class BenchFixtures
             Meta = new StepMeta { TimeoutMs = Timeout(action) },
         };
 
-        var prelude = AfterBackground.Contains(action.Key) ? [Background()] : Array.Empty<ExecutableStep>();
-        return BenchFixture.Built(action.Key, step, Wrapper(action.Key), Ending(action.Key), unfilled, prelude);
+        return BenchFixture.Built(action.Key, step, Wrapper(action.Key), Ending(action.Key), unfilled);
     }
 
-    /// <summary>A background call of the bench's macro, which hands back a handle.</summary>
-    private static ExecutableStep Background() => new()
-    {
-        Type = "control.startMacro",
-        Parameters =
-        [
-            new ExecutableParameter { Name = "macro", Text = CalledMacro },
-            new ExecutableParameter { Name = "runHandleName", Text = HandleName },
-        ],
-    };
 
     /// <summary>The name a result is kept under while the bench looks at it.</summary>
     public static string Name(string key) => "bench_" + key;

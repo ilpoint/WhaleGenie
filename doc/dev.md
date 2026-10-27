@@ -280,25 +280,13 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 - 动作目录作为资源：`whalegenie://actions`（全部动作的 key / 名字 / 分类 / 是否隐藏 / 参数名）与
   `whalegenie://actions/{key}`（一条动作的完整描述，与 `whalegenie_get_action` 同一份），在
   `WhaleGenie/Mcp/McpResources.cs`。能缓存资源的客户端读一次就留着；读不了资源的仍用工具，两条路说同一件事。
-- 后台运行的句柄规则：一次等成功取回结果之后句柄才从表里拿掉（`Finish`），等待本身失败时留着——三个等待
-  （`waitMacro` / `waitAll` / `waitAny`）因此是同一条规则，宏可以在失败后再用 `runStatus` 读它结束时的状态。
-  `WaitOtherMacro` 原先在核结果**之前**就 `Finish`，是三个里唯一不一样的。
-- 子运行的失败键：`EndingOf` 把任务抛出的异常与取消折成 `Run.Failed`（详情是异常类型名），`HandleValue` 在
-  出错/取消的任务上不再读 `.Result`——那是 `AggregateException` 绕过失败键的唯一一条路。
-- 后台运行的归属：一个宏自己的 `RunAsync` 结束时（`StopChildrenAsync`）把它起的、还没被等的运行停下，所以
-  同步调用里起的后台运行不会留到调用方那里，句柄随局部表一起消失是设计如此，不是漏。
-- 设计期：`TrackPendingResults` 按句柄名结算（`waitAny` / `waitAll` 只忘掉列表里点到的那些，别的一律还算
-  欠一次等）；`CheckSiblings` 在同一层步骤里查两件事——两个 `startMacro` 共用一个句柄名
-  （`DuplicateRunHandle`），两个调用把结果写进同一个名字（`DuplicateResultName`）。只比同层，因为同一个
-  `switch` 的两个分支不会都跑，同名在那里是省事而不是错。
 - 返回值证据（C3）：`WhaleGenie.Tests/RunnerLedger.cs` 从源码读出「动作键 → 分派方法 → 这条路径写得出的
   结果」，不是「整个引擎目录里出现过这个字面量」。读法是：只在 `Dispatch*` 里找 `case "动作键":`（别的
   switch 的 case 是词，不是动作键），取该分支里调用的方法（含同名重载、两跳以内），把这一片的字符串、
   `FieldNames` 常量与键参数默认值都算作可写键。`ReturnsPageTests` 据此断言三件事：**每条声明的结果都被
   自己那条路径写过**、**目录里的每个动作都有分支**（隐藏动作除外，`control.case` 由父步骤读）、**每条分支
   都在目录里**。失败信息逐条给 `动作 → 方法: 声明了结果 "键"`。
-  这条台账第一次跑就抓到 `control.startMacro` 声明了 `run` 却没人写它；句柄的通道是 `runHandleName` 那一格，
-  所以删掉了这个死结果（目录与展示目录、中文文案一起删）。
+  这条台账也保证删掉一个动作时不会留下“声明了结果却没人写”的半截目录。
 - 目录合约（C4）：`WhaleGenie/Models/ActionContract.cs` 的 `ActionContract.Check(语义, 展示)` 一次列出缺动作、
   多动作、重名（两份各自查）、缺参数、多参数、未知控件种类 `UnknownKind`、缺结果、多结果，每条 `Kind 动作.字段`。
   `ActionCatalog` 的静态构造先跑它，**全部报完再抛一句**（以前是遇到第一个就抛）。`ActionCatalog.Display`
@@ -535,10 +523,8 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 `Control.runMacro.arguments` 的列也只是 `name` / `value` / `given` 这一套骨架。真正读名字的三处——编辑器参数页
 （`AddActionViewModel.FillCallArguments`）、`whalegenie_get_macro_signature`、设计期检查——都从被调用宏的声明取，
 把这几处收成一个投影函数是 M5 剩下的最后一件事。结果变量在每次
-尝试开始时先清空；同步调用失败或后台等待失败时一个结果都不写。F3 会把同步调用与后台启动拆成
-`control.runMacro` / `control.startMacro`；后台句柄是记录，结果只在 `waitMacro` / `waitAll` / `waitAny`
-成功后写，`waitAll` / `waitAny` 失败时失败的那次运行的句柄仍留在表里，可以再用 `runStatus` 查看或
-`waitMacro` 逐个等待。顶层的运行调试与触发器没有调用者，`MacroRunner.StartSignature` / `StartArguments` 把同一份
+尝试开始时先清空；调用失败时一个结果都不写。`control.runMacro` 是唯一的调用动作：同步、必等、步骤超时。
+顶层的运行调试与触发器没有调用者，`MacroRunner.StartSignature` / `StartArguments` 把同一份
 声明种进运行自己的表：调试窗口提供 `MacroStartArgument`，触发器不提供、默认值照用；两者都与调用共用
 `ReadArgument` 和 `MacroValues.Fits`。必填缺失在 `RunAsync` 进入步骤前以 `Run.MissingArgument` 结束并写失败日志。
 
@@ -636,7 +622,7 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 | 步骤落点 | `StepPlacementTests` + `MacroCheckTests` + `MacroEditorWorkspaceTests` | 新增、拖动、粘贴、组合、提取共用目录里的 `ChildKeys` 与 `Hidden`；`cases` 只收 Case，Case 不能离开多分支；拒绝不产生部分改动或撤销项，非法载入树在步骤行报错 |
 | 循环与结果 | `MacroRunnerTests` | 嵌套循环的 item/index/counter 恢复外层；四种循环的 `ended`；失败/重试后结果为空 |
 | 等按键 | `DeviceActionTests` | `input.waitKey` 只认钩子送来的匹配的键；`event` 选按下/松开；`swallow` 只拦结束等待的那个键；键名留空等任何键；超时按步骤超时 |
-| 互斥与调用图 | `MacroRunnerTests` + `DeviceActionTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时启动浏览器后台运行被拒；`control.holdInput` / `control.holdBrowser` 的块内步骤不再取门，嵌套只记层数；`control.runStatus` 不等待取状态并刷新句柄；同一宏的后台运行有上限 |
+| 互斥与调用图 | `MacroRunnerTests` + `DeviceActionTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时调用要页面的宏被拒；`control.holdInput` / `control.holdBrowser` 的块内步骤不再取门，嵌套只记层数 |
 | 表达式函数 | `FunctionTableTests` | 函数表与手册「表达式函数一览」一一对应 |
 
 新增行时先加断言，再改实现。
@@ -727,9 +713,7 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 - 全局变量是一份 `SharedVariables.Current` 交给所有运行，普通写入最后写入者胜，`control.incrementGlobal`
   在同一把锁里读写；浏览器步骤另取 `BrowserGate`，与 `InputGate` 分开；脚本的「会发键鼠」只作声明，
   整段脚本不取输入门。
-- 后台运行是同一套 `MacroRunner` 的另一条运行：局部变量独立、全局表共享，父运行的取消令牌传给子运行；
-  `control.waitMacro` 取回调用处勾选的结果，父运行结束时还没等的子运行由 `StopChildrenAsync` 停下。
-  句柄是记录，等完或取消后改写成结束时的样子；后台运行的嵌套类型在 `MacroRunner.Children.cs`。
+
 - `MacroRunner` 按动作家族拆成 partial：主文件放状态、运行循环与按 `Category` 分派的入口，每个
   `MacroRunner.<Family>.cs` 里放**该家族的分派与实现**（`Dispatch<Family>` 的 switch 只认这个家族的
   动作）；跨家族共用的读值与数字读法集中在 `MacroRunner.Reading.cs`。新增动作先进对应家族文件：

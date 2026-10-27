@@ -97,7 +97,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_get_macro_signature", ReadOnly = true,
             Title = "What a macro takes and gives back"),
-     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, description) and the results it hands back, plus a call template. A control.runMacro or control.startMacro step passes each argument as one row of params.arguments (columns name, value, given) and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
+     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, description) and the results it hands back, plus a call template. A control.runMacro step passes each argument as one row of params.arguments (columns name, value, given) and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
     public Task<CallToolResult> GetMacroSignature(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
@@ -705,7 +705,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 "An argument with no row takes its declared default; a required one with no row fails the call with Run.MissingArgument before the called macro runs.",
                 "To pass an empty value instead of the default, write the row with an empty value and given true. An empty value without given means the argument was left out.",
                 "Results are asked for in params.returns, one row per value: key is the name the called macro declared, name is the local variable it lands in.",
-                "control.runMacro waits for the called macro; control.startMacro gives a run handle whose results exist only after control.waitMacro.",
+                "control.runMacro waits for the called macro, and its results exist when it returns.",
             },
         };
     }

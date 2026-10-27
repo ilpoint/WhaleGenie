@@ -492,12 +492,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private bool _exclusiveInput;
 
     /// <summary>
-    /// The runner whose background calls the window is showing. It is set for one run and cleared
-    /// when that run ends, so a line about a child cannot outlive the macro that started it.
-    /// </summary>
-    private MacroRunner? _childrenRunner;
-
-    /// <summary>
     /// Whose turn it is at the input door, as a line to read. It is shown only for the macros that
     /// asked to share the door, because for any other macro the answer is always the same and says
     /// nothing.
@@ -523,32 +517,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>True while some run is using the browser, so the line has something to say.</summary>
     public bool ShowsBrowserOwner => BrowserGate.Owner.Length > 0;
-
-    /// <summary>The background calls this run has started and not yet waited for.</summary>
-    public string ChildrenLine
-    {
-        get
-        {
-            var running = _childrenRunner?.Children
-                .Where(child => child.Running)
-                .Select(child => child.Macro)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList() ?? [];
-            return running.Count == 0
-                ? string.Empty
-                : Strings.Format("Run.Children", string.Join(", ", running));
-        }
-    }
-
-    public bool HasChildren => _childrenRunner?.Children.Any(child => child.Running) == true;
-
-    /// <summary>A background run started, finished, or was waited for.</summary>
-    private void OnChildrenChanged()
-        => Dispatcher.UIThread.Post(() =>
-        {
-            OnPropertyChanged(nameof(ChildrenLine));
-            OnPropertyChanged(nameof(HasChildren));
-        });
 
     /// <summary>The browser door changed hands.</summary>
     public void RefreshBrowserOwner()
@@ -1146,8 +1114,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 StartSignature = _callable?.Signature,
                 StartArguments = StartArguments(),
             };
-            _childrenRunner = runner;
-            runner.ChildrenChanged += OnChildrenChanged;
 
             // Off the interface thread: a step that talks to a device waits for it right there in
             // the same call, and a page that has not drawn the element yet is waited on for the
@@ -1158,14 +1124,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         }
         finally
         {
-            if (_childrenRunner is { } watched)
-            {
-                watched.ChildrenChanged -= OnChildrenChanged;
-            }
-
-            _childrenRunner = null;
-            OnPropertyChanged(nameof(ChildrenLine));
-            OnPropertyChanged(nameof(HasChildren));
             _cancellation = null;
             _ended = null;
             ended.TrySetResult();

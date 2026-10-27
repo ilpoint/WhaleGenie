@@ -72,36 +72,6 @@ public class McpActionKnowledgeTests
     }
 
     [Fact]
-    public void A_call_action_says_whose_signature_it_uses()
-    {
-        var call = Assert.IsType<McpActionDetails>(ActionKnowledge.Find("control.runMacro"));
-
-        // The arguments and results of a call belong to the macro it calls, so the catalogue can
-        // only say where they come from — and what shape the row list that asks for them has.
-        Assert.Equal("CalledMacro", call.SignatureSource);
-        // Ten minutes, not one: a submacro with slow work in it used to time out at a minute.
-        Assert.Equal(600_000, call.TimeoutMs);
-        var returns = Assert.Single(call.Parameters, parameter => parameter.Name == "returns");
-        Assert.Equal(["key", "name"], returns.Columns.Select(column => column.Name));
-        Assert.All(returns.Columns, column => Assert.True(column.Required));
-
-        // Starting a run hands the handle to the variable the step names, not out through a result
-        // row: a call's rows are the called macro's results, so a handle offered as one would be a
-        // row that ticks and delivers nothing.
-        var start = Assert.IsType<McpActionDetails>(ActionKnowledge.Find("control.startMacro"));
-        Assert.Empty(start.Returns);
-
-        // A record another action does hand over still carries its fields, which is what a client
-        // reads before writing `field($记录, "名字")`.
-        var window = Assert.Single(
-            Assert.IsType<McpActionDetails>(ActionKnowledge.Find("window.info")).Returns);
-        Assert.Equal(["title", "process", "class"], window.Fields.Take(3).Select(field => field.Name));
-
-        Assert.Equal("Own",
-            Assert.IsType<McpActionDetails>(ActionKnowledge.Find("control.delay")).SignatureSource);
-    }
-
-    [Fact]
     public void A_page_says_what_it_left_out()
     {
         var first = ActionKnowledge.Search(null, null, false, 0, 5);

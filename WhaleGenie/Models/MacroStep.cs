@@ -602,7 +602,6 @@ public class MacroStep : INotifyPropertyChanged
         "itemVariable" or "indexVariable" => true,
         "name" => type is "control.setVariable"
             or "control.for",
-        "runHandleName" => type is "control.startMacro",
         _ => false,
     };
 

@@ -228,9 +228,7 @@ public partial class ActionPaletteViewModel : ViewModelBase
             or "control.stop" or "control.fail" => "Jump",
         "control.delay" or "control.waitUntil"
             or "control.holdInput" or "control.holdBrowser"
-            or "control.runMacro" or "control.startMacro" or "control.waitMacro"
-            or "control.waitAll" or "control.waitAny" or "control.runStatus"
-            or "control.cancelMacro" => "Waiting",
+            or "control.runMacro" => "Waiting",
         "control.setVariable" or "control.incrementGlobal"
             or "control.listAdd" or "control.listInsert"
             or "control.listRemoveAt" or "control.listSet" or "control.listClear"

@@ -386,8 +386,6 @@ public static class MacroCheck
         // A background run's results exist only once it has been waited for. These two say which
         // handle carries which names, and which of those names is still owed a wait: reading one
         // before then would read nothing.
-        var started = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var pending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // What the macro declares is a name it reads like any other: the caller hands a value to it
         // under that name and the steps inside read $name. A macro lifted out of a stretch of steps
@@ -504,26 +502,6 @@ public static class MacroCheck
             }
         }
 
-        /// <summary>
-        /// A background run started while this run is inside a browser step that holds the one page
-        /// would wait for that page for good. The start step is marked instead.
-        /// </summary>
-        void CheckHeldBrowserRun(MacroStep step, bool browserHeld)
-        {
-            if (!browserHeld || step.Type != "control.startMacro")
-            {
-                return;
-            }
-
-            var name = step.Text("macro").Trim();
-            if (reachable.GetValueOrDefault(name) is { } called
-                && called.OwnSteps.Any(child => Reaches(child, MacroRunner.UsesBrowser,
-                    new HashSet<string>(StringComparer.OrdinalIgnoreCase))))
-            {
-                Add(step, "BrowserRunWhileHeld", Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
-            }
-        }
-
         void Visit(IReadOnlyList<MacroStep> list, ActionParameter? destination,
             int loops, int switches,
             IReadOnlySet<string> loopNames, bool bounded, bool guarded, bool browserHeld)
@@ -539,7 +517,6 @@ public static class MacroCheck
                 CheckGlobalTarget(step);
                 CheckLoopIndex(step, loops);
                 CheckCall(step, guarded);
-                TrackPendingResults(step);
                 CheckNames(step, namesAreOpen);
                 CheckWait(step, bounded);
                 CheckPlace(step);
@@ -549,8 +526,6 @@ public static class MacroCheck
                 CheckSwitch(step);
                 CheckReservedNames(step);
                 CheckScriptInput(step);
-                CheckRunHandle(step);
-                CheckHeldBrowserRun(step, browserHeld);
                 CheckKnownStep(step);
                 CheckMissingFields(step);
                 CheckOptions(step);
@@ -672,54 +647,6 @@ public static class MacroCheck
             }
         }
 
-        void CheckRunHandle(MacroStep step)
-        {
-            switch (step.Type)
-            {
-                case "control.startMacro":
-                    var handle = step.Text("runHandleName").Trim();
-                    if (handle.Length == 0)
-                    {
-                        Add(step, "MissingRunHandle", Strings.Get("Editor.Problem.MissingRunHandle"));
-                        break;
-                    }
-
-                    // The names this call asked for are owed a wait: the results are not written
-                    // until one takes them back.
-                    var names = Wanted(step).Select(wanted => wanted.Name).ToList();
-                    if (names.Count > 0)
-                    {
-                        started[handle] = names;
-                        pending.UnionWith(names);
-                    }
-
-                    break;
-                case "control.waitMacro":
-                case "control.cancelMacro":
-                case "control.runStatus":
-                    if (step.Text("runHandle").Trim().Length == 0)
-                    {
-                        Add(step, "MissingRunHandle", Strings.Get("Editor.Problem.MissingRunHandle"));
-                    }
-
-                    break;
-                case "control.waitAll":
-                    if (step.Text("runHandles").Trim().Length == 0)
-                    {
-                        Add(step, "MissingRunHandles", Strings.Get("Editor.Problem.MissingRunHandles"));
-                    }
-
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Whether the step's action and every field it writes still exist in the catalogue. A macro
-        /// written before an action or a field was renamed would otherwise run with values nothing
-        /// reads, which looks like the step ignoring what its author wrote. What a call passes to
-        /// another macro lives in its argument rows rather than in fields of its own, so this
-        /// question is about the step's own parameters and stops there.
-        /// </summary>
         void CheckKnownStep(MacroStep step)
         {
             if (step.Definition is not { } definition)
@@ -751,11 +678,10 @@ public static class MacroCheck
 
             foreach (var parameter in definition.Parameters)
             {
-                // A run handle, a condition and the macro a call names each have a check of their
-                // own; saying it twice would teach the user to ignore one of the two.
+                // A condition and the macro a call names each have a check of their own; saying it
+                // twice would teach the user to ignore one of the two.
                 if (parameter.Semantics.MissingValue(step.Text(parameter.Name))
-                    && parameter.Semantics.MissingKey is not (RunKeys.MissingHandle
-                        or RunKeys.MissingCondition)
+                    && parameter.Semantics.MissingKey is not RunKeys.MissingCondition
                     && !(CallsMacro(step) && parameter.Name == FieldNames.Macro))
                 {
                     Add(step, "MissingField", Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
@@ -973,23 +899,10 @@ public static class MacroCheck
         /// </summary>
         void CheckSiblings(IReadOnlyList<MacroStep> siblings)
         {
-            var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var step in siblings)
             {
-                if (step.Type == "control.startMacro")
-                {
-                    var handle = step.Text("runHandleName").Trim();
-                    if (handle.Length > 0 && !handles.Add(handle))
-                    {
-                        // A handle is the only way back to a run. Two runs under one name leave the
-                        // first unreachable: it keeps running, and nothing can wait for it.
-                        Add(step, "DuplicateRunHandle",
-                            Strings.Format("Editor.Problem.DuplicateRunHandle", handle));
-                    }
-                }
-
                 // Only a call's results are compared: an ordinary step writing a name twice in a row
                 // is a plain overwrite the author can see in the macro itself.
                 if (!CallsMacro(step))
@@ -1005,60 +918,6 @@ public static class MacroCheck
                             Strings.Format("Editor.Problem.DuplicateResultName", name));
                     }
                 }
-            }
-        }
-
-        void TrackPendingResults(MacroStep step)
-        {
-            switch (step.Type)
-            {
-                case "control.waitMacro":
-                    ForgetPending(step.Text("runHandle"));
-                    break;
-
-                // A list of handles settles the runs it names and no others. Clearing every pending
-                // name — which is what this used to do — let a read of a third run look answered
-                // when nothing had waited for it; settling only one name would keep saying a run is
-                // owed a wait after the macro has already begun taking its answers back.
-                case "control.waitAny":
-                case "control.waitAll":
-                    foreach (var name in Expression.ReferencedNames(step.Text("runHandles")))
-                    {
-                        ForgetPending("$" + name);
-                    }
-
-                    break;
-            }
-
-            if (namesAreOpen)
-            {
-                return;
-            }
-
-            foreach (var parameter in step.Parameters)
-            {
-                if (step.ParameterDefinition(parameter) is { ForeignText: true })
-                {
-                    continue;
-                }
-
-                foreach (var name in ReadsOf(step, parameter))
-                {
-                    if (pending.Contains(name))
-                    {
-                        Add(step, "ResultBeforeWait", Strings.Format("Editor.Problem.ResultBeforeWait", name));
-                        return;
-                    }
-                }
-            }
-        }
-
-        /// <summary>Forgets the names a wait or cancel step has settled, by the handle it names.</summary>
-        void ForgetPending(string written)
-        {
-            if (HandleVariable(written) is { } handle && started.Remove(handle, out var names))
-            {
-                pending.ExceptWith(names);
             }
         }
 
@@ -1661,19 +1520,7 @@ public static class MacroCheck
     /// The variable a run-handle field names when it holds one variable and nothing else, or null
     /// when it is an expression. Only that form lets the check say which run a wait settles.
     /// </summary>
-    private static string? HandleVariable(string written)
-    {
-        var text = written.Trim();
-        if (text.Length < 2 || text[0] != '$' || text.Contains(' ', StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var name = text[1..];
-        return VariableText.IsName(name) ? name : null;
-    }
-
-    /// <summary>
+    /// <summary>    /// <summary>
     /// The names a macro may read: the ones WhaleGenie provides, the shared ones, the ones its own
     /// steps create, and the ones a call asks a called macro to bring back. A name the macro
     /// defines anywhere counts, because whether a step runs before the one that reads it is a

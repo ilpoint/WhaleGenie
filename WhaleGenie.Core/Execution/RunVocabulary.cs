@@ -66,7 +66,6 @@ public static class RunKeys
     public const string BrowserNoAttribute = "Run.BrowserNoAttribute";
     public const string BrowserNoDialog = "Run.BrowserNoDialog";
     public const string BrowserNoNewTab = "Run.BrowserNoNewTab";
-    public const string BrowserRunWhileHeld = "Run.BrowserRunWhileHeld";
     public const string BrowserNoScript = "Run.BrowserNoScript";
     public const string BrowserNoSelector = "Run.BrowserNoSelector";
     public const string BrowserNoTab = "Run.BrowserNoTab";
@@ -75,8 +74,6 @@ public static class RunKeys
     public const string BrowserTabNeedsText = "Run.BrowserTabNeedsText";
     public const string BrowserTooFew = "Run.BrowserTooFew";
     public const string CaptureFailed = "Run.CaptureFailed";
-    public const string ChildStillRunning = "Run.ChildStillRunning";
-    public const string ChildStopped = "Run.ChildStopped";
     public const string ClipboardBusy = "Run.ClipboardBusy";
     public const string ClipboardTimeout = "Run.ClipboardTimeout";
     public const string ClipboardWriteFailed = "Run.ClipboardWriteFailed";
@@ -122,7 +119,6 @@ public static class RunKeys
     public const string MissingArgument = "Run.MissingArgument";
     public const string MissingCondition = "Run.MissingCondition";
     public const string MissingField = "Run.MissingField";
-    public const string MissingHandle = "Run.MissingHandle";
     public const string MissingImage = "Run.MissingImage";
     public const string MissingInterpreter = "Run.MissingInterpreter";
     public const string MissingItem = "Run.MissingItem";
@@ -160,8 +156,6 @@ public static class RunKeys
     public const string NoPython = "Run.NoPython";
     public const string NoSuchColumn = "Run.NoSuchColumn";
     public const string NoSuchProcess = "Run.NoSuchProcess";
-    public const string NoRunsToWait = "Run.NoRunsToWait";
-    public const string NoSuchRun = "Run.NoSuchRun";
     public const string NoSuchStep = "Run.NoSuchStep";
     public const string NotAList = "Run.NotAList";
     public const string NotALookingStep = "Run.NotALookingStep";
@@ -186,7 +180,6 @@ public static class RunKeys
     public const string StepFailedByMacro = "Run.StepFailedByMacro";
     public const string TextNotFound = "Run.TextNotFound";
     public const string Timeout = "Run.Timeout";
-    public const string TooManyRuns = "Run.TooManyRuns";
     public const string UndeclaredArgument = "Run.UndeclaredArgument";
     public const string UndeclaredResult = "Run.UndeclaredResult";
     public const string UnknownBrightnessAction = "Run.UnknownBrightnessAction";

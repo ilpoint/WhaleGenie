@@ -1055,7 +1055,7 @@ public partial class MacroEditorWindow : Window
     {
         foreach (var step in steps)
         {
-            if (step.Type is "control.runMacro" or "control.startMacro"
+            if (step.Type is "control.runMacro"
                 && string.Equals(step.Text("macro").Trim(), macroName,
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -1075,7 +1075,7 @@ public partial class MacroEditorWindow : Window
     {
         foreach (var step in steps)
         {
-            if (step.Type is "control.runMacro" or "control.startMacro"
+            if (step.Type is "control.runMacro"
                 && step.Parameters.FirstOrDefault(parameter => parameter.Name == "macro")
                     is { } target
                 && string.Equals(target.Value?.Trim(), oldName,
@@ -1796,7 +1796,7 @@ public partial class MacroEditorWindow : Window
                 }
             }
 
-            if (step.Type is not ("control.runMacro" or "control.startMacro"))
+            if (step.Type is not "control.runMacro")
             {
                 return false;
             }

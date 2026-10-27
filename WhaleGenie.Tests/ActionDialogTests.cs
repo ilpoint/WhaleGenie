@@ -1714,10 +1714,11 @@ public class ActionDialogTests
             Assert.True(condition.IsExpression);
 
             // How long the wait may last is not the action's business: the step's own timeout
-            // says it, and this action names one of 10 seconds so a fresh step is not endless.
+            // says it, and this action names the "waiting on something outside" length, ten
+            // minutes, so a fresh step is neither endless nor done in a minute.
             Assert.DoesNotContain(viewModel.Parameters,
                 parameter => parameter.Definition.Name is "timeoutMs" or "onTimeout");
-            Assert.Equal(10_000, viewModel.MetaTimeout.Milliseconds);
+            Assert.Equal(600_000, viewModel.MetaTimeout.Milliseconds);
             Assert.Equal("200", Value(viewModel, "intervalMs"));
             Assert.True(viewModel.ReturnsRows
                 .First(row => row.Key == "elapsed").Ticked);
@@ -1835,12 +1836,12 @@ public class ActionDialogTests
                      })
             {
                 var viewModel = Open(key);
-                Assert.Equal(5000, viewModel.MetaTimeout.Milliseconds);
+                Assert.Equal(10_000, viewModel.MetaTimeout.Milliseconds);
 
                 MacroStep? saved = null;
                 viewModel.CloseRequested += result => saved = result;
                 viewModel.SaveCommand.Execute(null);
-                Assert.Equal(5000, saved!.Meta.TimeoutMs);
+                Assert.Equal(10_000, saved!.Meta.TimeoutMs);
             }
 
             Assert.Equal(0, Open("vision.findColor").MetaTimeout.Milliseconds);

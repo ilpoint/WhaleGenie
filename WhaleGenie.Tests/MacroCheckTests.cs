@@ -247,69 +247,6 @@ public class MacroCheckTests
         Assert.Empty(Inspect(quiet));
     }
 
-    /// <summary>
-    /// 启动那一步必须说清楚句柄写进哪个变量；等待与取消那两步必须说清楚句柄从哪来；
-    /// 等全部那一步必须给出一列句柄。
-    /// </summary>
-    [Fact]
-    public void A_background_run_without_a_handle_is_marked()
-    {
-        var call = Step("control.startMacro", Text("macro", "后台"));
-        var wait = Step("control.waitMacro");
-        var cancel = Step("control.cancelMacro");
-        var waitAll = Step("control.waitAll");
-
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
-            Assert.Single(Against("当前", [Callable("后台")], call)).Message);
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
-            Assert.Single(Inspect(wait)).Message);
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
-            Assert.Single(Inspect(cancel)).Message);
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandles"),
-            Assert.Single(Inspect(waitAll)).Message);
-
-        var named = Step("control.startMacro", Text("macro", "后台"),
-            Name("runHandleName", "job"));
-        Assert.Empty(Against("当前", [Callable("后台")], named));
-    }
-
-    /// <summary>
-    /// 后台运行的结果要到等待之后才有值：在启动与等待之间读它，编辑期就标出来。
-    /// </summary>
-    [Fact]
-    public void Reading_a_background_result_before_the_wait_is_marked()
-    {
-        var started = Step("control.startMacro", Text("macro", "后台"),
-            Name("runHandleName", "job"), Results("结果"));
-        var early = Step("control.setVariable",
-            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
-        var wait = Step("control.waitMacro", Text("runHandle", "$job"));
-        var late = Step("control.setVariable",
-            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
-
-        var problems = Against("当前", [Callable("后台", [], ["结果"])], started, early, wait, late);
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == early);
-        Assert.Equal(Strings.Format("Editor.Problem.ResultBeforeWait", "结果"), problem.Message);
-        Assert.DoesNotContain(problems, candidate => candidate.Step == late);
-    }
-
-    [Fact]
-    public void Cancelling_a_background_run_does_not_settle_its_results()
-    {
-        var started = Step("control.startMacro", Text("macro", "后台"),
-            Name("runHandleName", "job"), Results("结果"));
-        var cancel = Step("control.cancelMacro", Text("runHandle", "$job"));
-        var read = Step("control.setVariable",
-            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
-
-        var problems = Against("当前", [Callable("后台", [], ["结果"])], started, cancel, read);
-
-        Assert.Contains(problems, problem =>
-            problem.Step == read
-            && problem.Message == Strings.Format("Editor.Problem.ResultBeforeWait", "结果"));
-    }
-
     [Fact]
     public void A_catch_condition_may_read_the_failure_it_was_given()
     {
@@ -541,67 +478,6 @@ public class MacroCheckTests
         Assert.Equal("UnknownField", problem.Code);
     }
 
-    /// <summary>启动一个后台运行，句柄名与要取回的结果按写下来的样子。</summary>
-    private static MacroStep Start(string macro, string handle, params string[] wants)
-        => Step("control.startMacro", Text("macro", macro), Text("runHandleName", handle),
-            Results(wants));
-
-    [Fact]
-    public void Waiting_for_one_run_does_not_settle_another()
-    {
-        var steps = new[]
-        {
-            Start("甲", "a", "一"),
-            Start("乙", "b", "二"),
-            Step("control.waitAll", Text("runHandles", "[$a]")),
-            Set("用", "$二"),
-        };
-
-        var problems = Against("自己",
-            [Callable("甲", results: ["一"]), Callable("乙", results: ["二"])], steps);
-
-        // 二 belongs to the run named b, and this wait named only a. Clearing every pending name —
-        // which is what this used to do — would let the read below look answered.
-        Assert.Contains(problems, problem => problem.Code == "ResultBeforeWait"
-            && problem.Message.Contains("二", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Waiting_for_any_of_a_list_settles_the_runs_it_names()
-    {
-        var steps = new[]
-        {
-            Start("甲", "a", "一"),
-            Start("乙", "b", "二"),
-            Step("control.waitAny", Text("runHandles", "[$a, $b]")),
-            Set("用", "$二"),
-        };
-
-        var problems = Against("自己",
-            [Callable("甲", results: ["一"]), Callable("乙", results: ["二"])], steps);
-
-        // waitAny is a wait like the others: whichever run finished, the macro has begun taking
-        // answers back, so reading one is no longer reading something nothing waited for.
-        Assert.DoesNotContain(problems, problem => problem.Code == "ResultBeforeWait");
-    }
-
-    [Fact]
-    public void Two_background_runs_under_one_name_are_marked()
-    {
-        var steps = new[]
-        {
-            Start("甲", "job"),
-            Start("甲", "job"),
-        };
-
-        var problem = Assert.Single(Against("自己", [Callable("甲")], steps),
-            candidate => candidate.Code == "DuplicateRunHandle");
-
-        // The second one is where it goes wrong: the first run keeps going with nothing able to
-        // wait for it, because the name that reached it now belongs to the second.
-        Assert.Same(steps[1], problem.Step);
-        Assert.Contains("job", problem.Message, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void Two_calls_side_by_side_writing_one_name_are_marked()
@@ -782,26 +658,6 @@ public class MacroCheckTests
 
         Assert.Empty(MacroCheck.DeclarationProblems(byScript));
         Assert.Empty(MacroCheck.DeclarationProblems(inOut));
-    }
-
-    /// <summary>
-    /// A background run started while the macro is inside a browser hold waits for the one page for
-    /// good when the called macro also reaches the browser. The called macro here is the macro
-    /// itself, so the check has to follow its own steps rather than an empty declaration.
-    /// </summary>
-    [Fact]
-    public void A_self_call_is_followed_when_the_macro_uses_the_browser()
-    {
-        var start = Step("control.startMacro",
-            Text("macro", "自己"), Text("runHandleName", "job"));
-        var hold = Step("control.holdBrowser", Steps("steps", start));
-        var browse = Step("browser.goTo", Text("url", "https://example.com"));
-        var own = new MacroCallable("自己", [], [], [hold, browse]);
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([hold, browse], own, []));
-
-        Assert.Contains(problems, problem =>
-            problem.Step == start && problem.Message == Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
     }
 
     [Fact]
@@ -1113,38 +969,6 @@ public class MacroCheckTests
 
         var problem = Assert.Single(problems, candidate => candidate.Step == call);
         Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
-    }
-
-    /// <summary>先要按住浏览器那一页，启动一个用浏览器的后台运行会一直等下去，写宏时就标出来。</summary>
-    [Fact]
-    public void Starting_a_browser_run_inside_a_dialog_is_marked()
-    {
-        var child = Callable("用页面", null, null,
-            Step("browser.click", Text("pageSelector", "#submit")));
-        var start = Step("control.startMacro", Text("macro", "用页面"),
-            Name("runHandleName", "job"));
-        var dialog = Step("browser.dialog", Text("dialogHow", "accept"), Steps("body", start));
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([dialog], null, [child]));
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == start);
-        Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
-    }
-
-    /// <summary>A block that holds the browser door is the same answer as a dialog for a start inside it.</summary>
-    [Fact]
-    public void Starting_a_browser_run_inside_a_held_browser_is_marked()
-    {
-        var child = Callable("用页面", null, null,
-            Step("browser.click", Text("pageSelector", "#submit")));
-        var start = Step("control.startMacro", Text("macro", "用页面"),
-            Name("runHandleName", "job"));
-        var hold = Step("control.holdBrowser", Steps("steps", start));
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([hold], null, [child]));
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == start);
-        Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
     }
 
     /// <summary>两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。</summary>

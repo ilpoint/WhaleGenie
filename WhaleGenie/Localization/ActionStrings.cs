@@ -681,76 +681,6 @@ internal static class ActionStrings
         ["control.runMacro.returns.hint"] = "勾上子宏声明过、这一步要取回的结果："
             + "每勾一行就得到一个本宏变量，名字可以在这一行里改。没勾就什么都不带回来。"
             + "这一步等它跑完，所以结果写完就能读。",
-        ["control.startMacro.name"] = "启动其他宏",
-        ["control.startMacro.desc"] = "在本项目里启动另一个宏，这一步立刻完成，并留下一个运行句柄。"
-            + "被调用的宏在后台跑，稍后用「等待后台运行」或「等待全部后台运行」取回结果。",
-        ["control.startMacro.macro.label"] = "宏",
-        ["control.startMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
-            + "改名或删除后这里需要跟着改。",
-        ["control.startMacro.runHandleName.label"] = "运行句柄",
-        ["control.startMacro.runHandleName.hint"] = "句柄写进这个本宏变量，通常叫 job。"
-            + "把它交给后面的「等待后台运行」「取消后台运行」或「等待全部后台运行」；"
-            + "一个句柄只能等一次。",
-        ["control.startMacro.arguments.label"] = "实参",
-        ["control.startMacro.arguments.hint"] = "被调用的宏声明了哪些形参，这里就有哪些行："
-            + "一行一个名字，后面填这一行传过去的值。留空表示这一步不给它，它用自己的默认值；"
-            + "要传一个空串就勾「传空值」，那和留空是两件事。",
-        ["control.startMacro.returns.label"] = "要带回的结果",
-        ["control.startMacro.returns.hint"] = "勾上被调用的宏声明过、这次运行要取回的结果："
-            + "名字在等待之后才有值；在等到之前读它，编辑器会标出来。",
-        ["control.waitMacro.name"] = "等待后台运行",
-        ["control.waitMacro.desc"] = "等一次由「启动其他宏」留下的后台运行结束，"
-            + "并按启动处勾选的结果取回值。",
-        ["control.waitMacro.runHandle.label"] = "运行句柄",
-        ["control.waitMacro.runHandle.hint"] = "装着「启动其他宏」写下的句柄的本宏变量，通常写成 $job。"
-            + "句柄只能等一次；等待超时由这一步自己的「超时」决定，清空就一直等。等待超时只结束等待，"
-            + "后台运行还在跑，可以再等一次。",
-
-        ["control.runStatus.name"] = "查看后台运行",
-        ["control.runStatus.desc"] = "不等它结束，看它现在是在跑、跑完了还是失败了；句柄也跟着更新。",
-        ["control.runStatus.runHandle.label"] = "运行句柄",
-        ["control.runStatus.runHandle.hint"] = "装着「启动其他宏」写下的句柄的本宏变量，通常写成 $job。",
-        ["control.runStatus.returns.label"] = "要留下的结果",
-        ["control.runStatus.returns.hint"] = ReturnsHintText,
-        ["control.runStatus.return.status.label"] = "状态",
-        ["control.runStatus.return.status.hint"] = "running、done、failed 或 stopped：它正在做什么，或者已经怎么结束。",
-        ["control.runStatus.return.running.label"] = "还在跑",
-        ["control.runStatus.return.running.hint"] = "还在跑时为真，结束后为假。",
-        ["control.runStatus.return.error.label"] = "失败原因",
-        ["control.runStatus.return.error.hint"] = "失败时的运行键；没有失败时为空。",
-
-        ["control.cancelMacro.name"] = "取消后台运行",
-        ["control.cancelMacro.desc"] = "让一次后台运行停下来，并等它真的结束。"
-            + "它正在做的事就此不再继续，收尾步骤照样执行。",
-        ["control.cancelMacro.runHandle.label"] = "运行句柄",
-        ["control.cancelMacro.runHandle.hint"] = "装着「启动其他宏」写下的句柄的本宏变量。"
-            + "取消后这一步等它结束，默认五秒；等不到就报 Run.ChildStillRunning，"
-            + "那次运行仍在句柄里，可以再取消或等待。",
-        ["control.cancelMacro.returns.label"] = "要留下的结果",
-        ["control.cancelMacro.returns.hint"] = ReturnsHintText,
-        ["control.cancelMacro.return.stopped.label"] = "已停下",
-        ["control.cancelMacro.return.stopped.hint"] = "这次运行是不是因为被取消而结束。",
-
-        ["control.waitAll.name"] = "等待全部后台运行",
-        ["control.waitAll.desc"] = "等一列后台运行全部结束，并逐个取回它们启动时说好的结果。",
-        ["control.waitAll.runHandles.label"] = "运行句柄",
-        ["control.waitAll.runHandles.hint"] = "装着多个句柄的列表，通常用「列表追加」把几次"
-            + "「启动其他宏」的句柄收在一起。列表里的每一次运行都会等到；同一句柄重复出现只算一次。",
-        ["control.waitAll.returns.label"] = "要留下的结果",
-        ["control.waitAll.returns.hint"] = ReturnsHintText,
-        ["control.waitAll.return.count.label"] = "等到了几个",
-        ["control.waitAll.return.count.hint"] = "这一步等到并取回结果的后台运行个数。",
-        ["control.waitAny.name"] = "等任意一个后台运行",
-        ["control.waitAny.desc"] = "等一列后台运行里最先结束的那一个，取回它启动时说好的结果，并交回是哪一个。",
-        ["control.waitAny.runHandles.label"] = "运行句柄",
-        ["control.waitAny.runHandles.hint"] = "装着多个句柄的列表。最先结束的那个被等到并取回结果；其余的继续跑，可以稍后再等。",
-        ["control.waitAny.returns.label"] = "要留下的结果",
-        ["control.waitAny.returns.hint"] = ReturnsHintText,
-        ["control.waitAny.return.handle.label"] = "结束的运行",
-        ["control.waitAny.return.handle.hint"] = "最先结束的那次运行的句柄，已经是结束时的样子。",
-        ["control.waitAny.return.index.label"] = "它在列表里的位置",
-        ["control.waitAny.return.index.hint"] = "这个句柄在列表里是第几个，从 1 开始数。",
-
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
         ["file.readText.desc"] = "把文本文件读入变量。",
@@ -2613,7 +2543,7 @@ internal static class ActionStrings
         ["browser.goTo.desc"] = "让浏览器当前页面转到另一个网址。",
         ["browser.goTo.url.label"] = "网址",
         ["browser.goTo.url.hint"] = "要让当前页面转到的网址。按一个值读取，变量或表达式都可以写成它。"
-            + "等页面加载完要多久由这一步设置里的「超时」说，默认 15000 毫秒。",
+            + "等页面加载完要多久由这一步设置里的「超时」说，默认 10000 毫秒。",
 
         ["browser.click.name"] = "点击元素",
         ["browser.click.desc"] = "点击选择器指定的元素。",
@@ -2796,7 +2726,7 @@ internal static class ActionStrings
         ["browser.waitFor.pageSelector.label"] = "选择器",
         ["browser.waitFor.pageSelector.hint"] = PageTargetHint + "要等哪个元素，写法与「点击元素」相同。"
             + "页面自己去取内容时要用这一步，而不是固定停一会儿：状态一到，这一步立刻结束。"
-            + "等多久由这一步设置里的「超时」说，默认 15000 毫秒。",
+            + "等多久由这一步设置里的「超时」说，默认 10000 毫秒。",
         ["browser.waitFor.elementState.label"] = "等到它",
         ["browser.waitFor.elementState.hint"] = "等哪一种状态。「可见」是接下来要点击某处时用的；"
             + "「不可见」用于等一个转圈的进度提示消失；「在页面上」等的是存在但可以没有大小的"

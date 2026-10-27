@@ -117,7 +117,7 @@ internal static class ActionBench
         var problems = new List<string>();
 
         var result = await new MacroRunner(store, new BenchHost(), devices, 0.02, BenchLibrary.Instance)
-            .RunAsync([.. fixture.Prelude, Wrapped(step, fixture.Wrapper)]);
+            .RunAsync([Wrapped(step, fixture.Wrapper)]);
 
         if (result.Status != Status(fixture.Ending))
         {

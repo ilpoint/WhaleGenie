@@ -17,27 +17,6 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ActionContractTests
 {
-    [Fact]
-    public void Only_macro_calls_take_their_signature_from_the_called_macro()
-    {
-        var fromCall = ActionSemanticsCatalog.All
-            .Where(action => action.SignatureSource is ActionSignatureSource.CalledMacro)
-            .Select(action => action.Key)
-            .Order(StringComparer.Ordinal)
-            .ToList();
-
-        Assert.Equal(["control.runMacro", "control.startMacro"], fromCall);
-        Assert.All(ActionSemanticsCatalog.All.Where(action =>
-                action.SignatureSource is ActionSignatureSource.CalledMacro),
-            action =>
-            {
-                Assert.NotNull(action.Parameter("macro"));
-                Assert.Equal(ActionValueShape.Rows, action.Parameter("returns")?.Shape);
-            });
-        Assert.All(ActionSemanticsCatalog.All.Where(action =>
-                action.SignatureSource is ActionSignatureSource.Own),
-            action => Assert.DoesNotContain(action.Key, fromCall, StringComparer.Ordinal));
-    }
 
     [Fact]
     public void Coordinates_and_window_rules_have_one_shape()

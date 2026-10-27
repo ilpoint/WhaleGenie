@@ -1,6 +1,6 @@
 # 动作矩阵
 
-生成时间：2026-10-27 07:26；动作 176 个。
+生成时间：2026-10-27 08:10；动作 170 个。
 
 这份文件由 `WhaleGenie.Core.Tests/Bench` 生成，不是手写的。每个动作都按目录声明合成一步，
 在替身设备层上跑一遍，然后核四件事：返回值是否写出来且形状对、副作用声明是否与设备账本一致、
@@ -10,13 +10,13 @@
 
 | 通过 | 不符 | 缺夹具 | 不可达 | 合计 |
 | ---: | ---: | ---: | ---: | ---: |
-| 176 | 0 | 0 | 0 | 176 |
+| 170 | 0 | 0 | 0 | 170 |
 
 | 分组 | 动作 | 通过 | 不符 | 缺夹具 | 不可达 |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Browser | 24 | 24 | 0 | 0 | 0 |
 | Clipboard | 10 | 10 | 0 | 0 | 0 |
-| Control | 37 | 37 | 0 | 0 | 0 |
+| Control | 31 | 31 | 0 | 0 | 0 |
 | Data | 3 | 3 | 0 | 0 | 0 |
 | File | 19 | 19 | 0 | 0 | 0 |
 | Input | 20 | 20 | 0 | 0 | 0 |
@@ -67,12 +67,6 @@
 | `control.ask` | Control | 通过 | 结果 1/1；设备调用 0 次 |
 | `control.input` | Control | 通过 | 结果 1/1；设备调用 0 次 |
 | `control.runMacro` | Control | 通过 | 设备调用 0 次 |
-| `control.startMacro` | Control | 通过 | 设备调用 0 次 |
-| `control.waitMacro` | Control | 通过 | 设备调用 0 次 |
-| `control.runStatus` | Control | 通过 | 结果 2/3；这次设置没写出：error；设备调用 0 次 |
-| `control.cancelMacro` | Control | 通过 | 结果 1/1；设备调用 0 次 |
-| `control.waitAll` | Control | 通过 | 结果 1/1；设备调用 0 次 |
-| `control.waitAny` | Control | 通过 | 结果 2/2；设备调用 0 次 |
 | `file.readText` | File | 通过 | 结果 2/2；设备调用 1 次 |
 | `file.writeText` | File | 通过 | 设备调用 1 次 |
 | `file.appendLog` | File | 通过 | 设备调用 2 次 |
@@ -160,7 +154,7 @@
 | `vision.getPixel` | Vision | 通过 | 结果 4/4；设备调用 5 次 |
 | `vision.waitColor` | Vision | 通过 | 结果 2/2；设备调用 9 次 |
 | `vision.findColor` | Vision | 通过 | 结果 8/8；设备调用 5 次 |
-| `vision.waitStable` | Vision | 通过 | 结果 2/2；设备调用 155 次 |
+| `vision.waitStable` | Vision | 通过 | 结果 2/2；设备调用 128 次 |
 | `vision.findColors` | Vision | 通过 | 结果 7/7；设备调用 5 次 |
 | `vision.detect` | Vision | 通过 | 结果 7/7；设备调用 6 次 |
 | `vision.waitDetect` | Vision | 通过 | 结果 6/6；检测在第三次才找到；设备调用 14 次 |

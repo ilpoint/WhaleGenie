@@ -289,11 +289,6 @@
                     <StackPanel Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center">
                         <TextBlock TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
                                    Text="{Binding Status}" />
-                        <!-- What is still running behind this macro: a call started with waiting
-                             turned off belongs to this run until it is waited for. -->
-                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="11.5" Foreground="#8FB8D9"
-                                   IsVisible="{Binding HasChildren}"
-                                   Text="{Binding ChildrenLine}" />
                     </StackPanel>
                     <Border Grid.Column="6" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
                             CornerRadius="4"

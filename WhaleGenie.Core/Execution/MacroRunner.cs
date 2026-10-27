@@ -32,7 +32,7 @@ public sealed partial class MacroRunner
 {
     // What this class holds, by lifetime. Program-wide: the shared global table, the two gates
     // and the device layer. One run: _host, _devices, _macros, _looks, Variables, _log, _steps,
-    // _children, _frames, _references, _looked and _runToken. One step: _failure, _worked, _saw,
+    // _frames, _references, _looked and _runToken. One step: _failure, _worked, _saw,
     // _read, _takenWindow, _takenMethod, _heldKeys, _heldButtons, _gamepadUsed and _browserHolds.
     // The family methods live beside this file in MacroRunner.<Family>.cs.
 
@@ -130,7 +130,7 @@ public sealed partial class MacroRunner
     /// The background runs this run has started and not yet waited for. They keep the shared global
     /// table, but a local table of their own.
     /// </summary>
-    private readonly List<ChildRun> _children = [];
+
 
     /// <summary>
     /// How many browser steps of this run are inside the browser door right now. A block such as
@@ -379,17 +379,6 @@ public sealed partial class MacroRunner
     /// </summary>
     public int InitialCallDepth { get; init; }
 
-    /// <summary>Raised when a background run is started, finishes, or is waited for.</summary>
-    public event Action? ChildrenChanged;
-
-    /// <summary>
-    /// The background runs this run has started and not yet waited for, oldest first. A watcher
-    /// shows these so "what is still going on behind this macro" has an answer.
-    /// </summary>
-    public IReadOnlyList<ChildRunInfo> Children
-        => [.. _children.Select(child =>
-            new ChildRunInfo(child.Handle, child.Macro, !child.Task.IsCompleted))];
-
     /// <summary>
     /// How long a move borrows when it was written as an instant jump but asked to travel along a
     /// bent or hand-like path: there is no path to travel without a duration, and quietly going
@@ -528,10 +517,6 @@ public sealed partial class MacroRunner
             // Whatever the run decided, the machine is handed back the way it was found.
             LetGoOfHeldInput();
 
-            // A background run belongs to the macro that started it. Once that macro is over there
-            // is nobody left to wait for it, so it is stopped rather than left running unseen.
-            await StopChildrenAsync();
-
             _cleanup?.Dispose();
             _cleanup = null;
         }
@@ -545,66 +530,6 @@ public sealed partial class MacroRunner
         _ => LogKeys.Finished,
     };
 
-    /// <summary>
-    /// Stops every background run this macro started and never waited for. A device call already
-    /// under way may not look at a cancellation until it returns, so the wait for them is bounded:
-    /// the macro is over, and refusing to end until a driver lets go would leave the whole run
-    /// hanging.
-    /// </summary>
-    private async Task StopChildrenAsync()
-    {
-        var running = _children.Where(child => !child.Task.IsCompleted).ToList();
-        if (running.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var child in running)
-        {
-            child.Stop.Cancel();
-        }
-
-        ChildrenChanged?.Invoke();
-        await Task.WhenAny(
-            Task.WhenAll(running.Select(child => child.Task)),
-            Task.Delay(5000));
-    }
-
-    /// <summary>
-    /// Lets go of finished runs nobody can wait for any more. A handle is the only way back to a
-    /// run, so a finished one whose name has been overwritten is kept for nothing; one still named
-    /// by a variable stays, because a later wait may still ask for it.
-    /// </summary>
-    private void PruneFinishedChildren()
-    {
-        var finished = _children.Where(child => child.Task.IsCompleted).ToList();
-        if (finished.Count <= MaxFinishedRuns)
-        {
-            return;
-        }
-
-        foreach (var child in finished.ToList())
-        {
-            if (finished.Count <= MaxFinishedRuns)
-            {
-                break;
-            }
-
-            if (HandleIsNamed(child.Handle))
-            {
-                continue;
-            }
-
-            Finish(child, writeHandle: false);
-            finished.Remove(child);
-        }
-    }
-
-    /// <summary>True while a variable in this macro still names the handle.</summary>
-    private bool HandleIsNamed(string handle)
-        => Variables.Local.Values.Any(pair => pair.Value.IsRecord
-            && string.Equals(pair.Value.Field(FieldNames.Id)?.AsText(), handle,
-                StringComparison.Ordinal));
     /// <summary>The message a break or a continue gets when it turns out to have no loop.</summary>
     private static string LoopControlKey(Signal signal)
         => signal is Signal.Break ? RunKeys.BreakOutsideLoop : RunKeys.ContinueOutsideLoop;
@@ -832,19 +757,6 @@ public sealed partial class MacroRunner
     private const int CallDepthLimit = 16;
 
     /// <summary>
-    /// The most background runs one macro may have going at once. A loop that starts a run per
-    /// item can otherwise fill the machine with runs faster than they end.
-    /// </summary>
-    public const int MaxBackgroundRuns = 32;
-
-    /// <summary>
-    /// How many finished runs are kept while their handle still names them. A macro that starts
-    /// run after run under one handle would otherwise keep every old result alive for the rest of
-    /// the run; one whose handle is still readable is kept because it can still be waited for.
-    /// </summary>
-    public const int MaxFinishedRuns = 64;
-
-    /// <summary>
     /// Runs a body while holding one of the two doors. The steps inside are the reason the block
     /// exists: another macro must not put its own keys or page work between them. A hold inside the
     /// same door only counts, so a block nested in another — or a browser step's own door — does not
@@ -1069,392 +981,6 @@ public sealed partial class MacroRunner
 
     /// <summary>What one row of a call's argument list says about the argument it names.</summary>
     private sealed record CallArgument(string Value, bool Given);
-
-    /// <summary>
-    /// Starts a call in the background and leaves its handle in the caller's local table. The child
-    /// reads and writes the same global table as its caller, but its local table is the one built
-    /// from the call's arguments, so neither macro can see the other's local names. The handle says
-    /// which run it is, what macro it runs, how it is doing, what went wrong, and which names its
-    /// results will be written under once a wait takes them back.
-    /// </summary>
-    private Signal StartOtherMacro(ExecutableStep step, int depth)
-    {
-        var handleName = ReadText(step, "runHandleName").Trim();
-        if (handleName.Length == 0)
-        {
-            throw new StepFailure(RunKeys.MissingHandle);
-        }
-
-        if (_children.Count(child => !child.Task.IsCompleted) >= MaxBackgroundRuns)
-        {
-            throw new StepFailure(RunKeys.TooManyRuns,
-                MaxBackgroundRuns.ToString(CultureInfo.InvariantCulture));
-        }
-
-        var (name, steps, signature, wanted, called) = ResolveCall(step);
-
-        // A run that is inside a browser step holding the one page cannot start another run that
-        // needs that page: it would wait for a door its own caller is holding, and wait forever.
-        if (_browserHolds > 0 && UsesBrowser(steps, _macros))
-        {
-            throw new StepFailure(RunKeys.BrowserRunWhileHeld, name);
-        }
-
-        var childStore = new VariableStore(Variables.Global);
-        childStore.SwapLocal(called);
-
-        var runner = new MacroRunner(childStore, new ChildRunHost(_host), _devices, DelayScale,
-            _macros)
-        {
-            RunName = name,
-            ExclusiveInput = CallExclusiveInput(name),
-            FailureLogFolder = FailureLogFolder,
-            InitialCallDepth = _callDepth + 1,
-        };
-
-        var stop = CancellationTokenSource.CreateLinkedTokenSource(_runToken);
-        var task = Task.Run(() => runner.RunAsync(steps, stop.Token));
-        var child = new ChildRun
-        {
-            Handle = "run-" + Guid.NewGuid().ToString("N")[..12],
-            Macro = name,
-            Signature = signature,
-            Store = childStore,
-            Stop = stop,
-            Wanted = wanted,
-            Task = task,
-            HandleName = handleName,
-        };
-
-        // The watcher shows that the run is over as well as that it started, which is what makes
-        // "still running" something the window can answer rather than guess.
-        _ = task.ContinueWith(_ => ChildrenChanged?.Invoke(), CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-
-        _children.Add(child);
-        Variables.Local.Set(handleName, HandleValue(child));
-        PruneFinishedChildren();
-        Log(LogLevel.Info, depth, step.Type, LogKeys.StartedRun, name, child.Handle);
-        ChildrenChanged?.Invoke();
-        return Signal.Normal;
-    }
-
-    /// <summary>
-    /// Waits for one background run and takes back what the call that started it asked for. The
-    /// step's own timeout is the wait's clock; a timeout leaves the run going, so the macro may
-    /// catch it and wait again.
-    /// </summary>
-    private async Task<Signal> WaitOtherMacro(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var child = FindChild(ReadValue(step, "runHandle"));
-        var result = await EndingOf(child, token);
-
-        if (result.Status is RunStatus.Failed)
-        {
-            TellHandle(child);
-            throw new StepFailure(result.Key, result.Detail);
-        }
-
-        if (result.Status is RunStatus.Stopped)
-        {
-            TellHandle(child);
-            throw new StepFailure(RunKeys.ChildStopped, child.Macro);
-        }
-
-        // The run is let go of only once its answers are actually in hand. A wait that fails on what
-        // came back — a value of the wrong kind, say — leaves the run in the table, so the macro can
-        // still ask how it ended and read the value under a name it can use. That is what the other
-        // two waits already do; doing it here too is what makes the three of them one rule.
-        CheckResults(child.Signature, child.Wanted, child.Store.Local);
-        Take(child.Wanted, child.Store.Local);
-        Finish(child);
-        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
-        return Signal.Normal;
-    }
-
-    /// <summary>
-    /// Waits for a background run and answers with how it ended, turning the one ending that has no
-    /// key into one that has. The runner answers every step failure as a result, so a task that
-    /// throws is the exception rather than the rule — an exception outside its own guard, or a task
-    /// cancelled from underneath. Letting it through as an <c>AggregateException</c> would hand the
-    /// macro a failure it cannot branch on, in a run where every other failure is a key.
-    /// </summary>
-    private static async Task<RunResult> EndingOf(ChildRun child, CancellationToken token)
-    {
-        try
-        {
-            return await child.Task.WaitAsync(token);
-        }
-        catch (OperationCanceledException) when (!token.IsCancellationRequested)
-        {
-            // The token the wait was given is still live, so the cancellation came from the run
-            // itself: it was stopped from inside after it had been started as a background run.
-            return new RunResult(RunStatus.Failed, RunKeys.Failed,
-                nameof(OperationCanceledException), 0);
-        }
-        catch (Exception error)
-        {
-            // The detail is the kind of failure rather than its message: what an unexpected
-            // exception has to say is for the log, and the log already has it.
-            return new RunResult(RunStatus.Failed, RunKeys.Failed, error.GetType().Name, 0);
-        }
-    }
-
-    /// <summary>
-    /// Looks at a background run without waiting for it: what it is doing or how it ended, and why
-    /// if it failed. The handle variable is brought up to date, so a macro that polls can read the
-    /// handle itself as well as these answers.
-    /// </summary>
-    private Signal RunStatusCheck(ExecutableStep step, int depth)
-    {
-        var handle = ReadValue(step, "runHandle");
-        if (!handle.IsRecord || handle.Field(FieldNames.Id) is not { } identifier)
-        {
-            throw new StepFailure(RunKeys.NoSuchRun, handle.AsText());
-        }
-
-        var id = identifier.AsText();
-        var status = handle.Field(FieldNames.Status)?.AsText() ?? string.Empty;
-        var error = handle.Field(FieldNames.Error)?.AsText() ?? string.Empty;
-        var child = _children.FirstOrDefault(candidate =>
-            string.Equals(candidate.Handle, id, StringComparison.Ordinal));
-        if (child is not null)
-        {
-            var current = HandleValue(child);
-            if (Variables.Local.Contains(child.HandleName))
-            {
-                Variables.Local.Set(child.HandleName, current);
-            }
-
-            status = current.Field(FieldNames.Status)?.AsText() ?? status;
-            error = current.Field(FieldNames.Error)?.AsText() ?? error;
-        }
-        else if (status == RunHandleStatus.Running || status.Length == 0)
-        {
-            // The run is no longer in this macro's table: it was waited for already, or the handle
-            // belongs to another run. A snapshot that still says "running" would be a lie.
-            throw new StepFailure(RunKeys.NoSuchRun, id);
-        }
-
-        Give(step, "status", Value.FromText(status));
-        Give(step, "running", Value.FromBool(status == RunHandleStatus.Running));
-        Give(step, "error", Value.FromText(error));
-        return Signal.Normal;
-    }
-    /// <summary>
-    /// Asks one background run to stop and waits for it to agree. A run that cannot stop within the
-    /// wait's clock is reported as still running rather than being called over: the macro may catch
-    /// that, and the run is still in the table of runs it can cancel or wait for again.
-    /// </summary>
-    private async Task<Signal> CancelOtherMacro(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        var child = FindChild(ReadValue(step, "runHandle"));
-        child.Stop.Cancel();
-
-        RunResult result;
-        try
-        {
-            result = await EndingOf(child, token);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested
-                                                && !_runToken.IsCancellationRequested)
-        {
-            throw new StepFailure(RunKeys.ChildStillRunning, child.Macro);
-        }
-
-        Finish(child);
-        Give(step, "stopped", Value.FromBool(result.Status is RunStatus.Stopped));
-        Log(LogLevel.Info, depth, step.Type, LogKeys.CancelledRun, child.Macro);
-        return Signal.Normal;
-    }
-
-    /// <summary>
-    /// Waits for every background run in a list and takes back each one's results. The call that
-    /// started a run chose the names its results go under, so a list of handles is enough to say
-    /// where every result lands.
-    /// </summary>
-    private async Task<Signal> WaitAllMacros(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
-        if (children.Count == 0)
-        {
-            // Waiting for every run in an empty list is not "all of them are done"; it is a macro
-            // that named no runs, which the sibling waitAny reports the same way.
-            throw new StepFailure(RunKeys.NoRunsToWait);
-        }
-
-        var results = await Task.WhenAll(children.Select(child => EndingOf(child, token)));
-
-        // Every ending is looked at before any result is written: a list that failed partway
-        // through hands back none of its answers rather than the ones it happened to reach first.
-        // Nothing is finished until that check is over, because a failed list must leave the runs
-        // that did finish in the handle table: the caller can still wait for them one by one.
-        for (var index = 0; index < children.Count; index++)
-        {
-            var child = children[index];
-            var result = results[index];
-            if (result.Status is RunStatus.Failed)
-            {
-                TellHandles(children);
-                throw new StepFailure(result.Key, result.Detail);
-            }
-
-            if (result.Status is RunStatus.Stopped)
-            {
-                TellHandles(children);
-                throw new StepFailure(RunKeys.ChildStopped, child.Macro);
-            }
-
-            CheckResults(child.Signature, child.Wanted, child.Store.Local);
-        }
-
-        foreach (var child in children)
-        {
-            Take(child.Wanted, child.Store.Local);
-        }
-
-        foreach (var child in children)
-        {
-            Finish(child);
-        }
-
-        Give(step, "count", Value.FromNumber(children.Count));
-        return Signal.Normal;
-    }
-
-    /// <summary>
-    /// Waits for the first run in a list to finish, takes back the results its call asked for, and
-    /// says which run it was. The other runs keep going: a macro may wait for the next one later.
-    /// </summary>
-    private async Task<Signal> WaitAnyMacro(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
-        if (children.Count == 0)
-        {
-            throw new StepFailure(RunKeys.NoRunsToWait);
-        }
-
-        var tasks = children.Select(child => EndingOf(child, token)).ToArray();
-        var first = await Task.WhenAny(tasks).WaitAsync(token);
-        var index = Array.FindIndex(tasks, task => ReferenceEquals(task, first));
-        var child = children[index];
-        var result = await first;
-
-        if (result.Status is RunStatus.Failed)
-        {
-            TellHandle(child);
-            throw new StepFailure(result.Key, result.Detail);
-        }
-
-        if (result.Status is RunStatus.Stopped)
-        {
-            TellHandle(child);
-            throw new StepFailure(RunKeys.ChildStopped, child.Macro);
-        }
-
-        CheckResults(child.Signature, child.Wanted, child.Store.Local);
-        Take(child.Wanted, child.Store.Local);
-        Give(step, "handle", HandleValue(child));
-        Give(step, "index", Value.FromNumber(index + 1));
-        Finish(child);
-        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
-        return Signal.Normal;
-    }
-    /// <summary>
-    /// The run a handle names, or a refusal: a handle from another macro, a handle already waited
-    /// for, or something that is not a handle at all is not a run this macro can act on.
-    /// </summary>
-    private ChildRun FindChild(Value handle)
-    {
-        if (!handle.IsRecord || handle.Field(FieldNames.Id) is not { } id)
-        {
-            throw new StepFailure(RunKeys.NoSuchRun, handle.AsText());
-        }
-
-        var child = _children.FirstOrDefault(candidate =>
-            string.Equals(candidate.Handle, id.AsText(), StringComparison.Ordinal));
-        return child ?? throw new StepFailure(RunKeys.NoSuchRun, id.AsText());
-    }
-
-    /// <summary>
-    /// Writes a run's handle back saying how it ended, without letting go of the run. A wait that
-    /// fails still leaves the caller able to read the handle afterwards — that is the point of
-    /// keeping the run in the table — but a handle that still says "running" would be a lie about a
-    /// run that is over.
-    /// </summary>
-    private void TellHandle(ChildRun child)
-    {
-        if (Variables.Local.Contains(child.HandleName))
-        {
-            Variables.Local.Set(child.HandleName, HandleValue(child));
-        }
-    }
-
-    private void TellHandles(IEnumerable<ChildRun> children)
-    {
-        foreach (var child in children)
-        {
-            TellHandle(child);
-        }
-    }
-
-    /// <summary>
-    /// Takes a finished run out of the table of runs this macro is owed, writes its handle back
-    /// with how it ended — so reading the variable later says more than "running" — and lets go of
-    /// the token that stopped it.
-    /// </summary>
-    private void Finish(ChildRun child, bool writeHandle = true)
-    {
-        if (!_children.Remove(child))
-        {
-            return;
-        }
-
-        child.Stop.Dispose();
-        if (writeHandle && Variables.Local.Contains(child.HandleName))
-        {
-            Variables.Local.Set(child.HandleName, HandleValue(child));
-        }
-
-        ChildrenChanged?.Invoke();
-    }
-
-    /// <summary>
-    /// What a run's handle says now: which run it is, what macro it runs, whether it is running or
-    /// how it ended, the failure key if it failed, and the names its results will land under.
-    /// </summary>
-    private static Value HandleValue(ChildRun child)
-    {
-        // A task that ended by throwing or by being cancelled has no result to read: asking for one
-        // throws an AggregateException out of the middle of building a handle, which is the one way a
-        // run could fail without a key. It counts as failed, under the key every other unexplained
-        // failure uses.
-        var faulted = child.Task.IsFaulted || child.Task.IsCanceled;
-        var status = !child.Task.IsCompleted
-            ? RunHandleStatus.Running
-            : faulted
-                ? RunHandleStatus.Failed
-                : child.Task.Result.Status switch
-                {
-                    RunStatus.Failed => RunHandleStatus.Failed,
-                    RunStatus.Stopped => RunHandleStatus.Stopped,
-                    _ => RunHandleStatus.Done,
-                };
-
-        return Value.FromRecord(
-        [
-            (FieldNames.Id, Value.FromText(child.Handle)),
-            (FieldNames.Macro, Value.FromText(child.Macro)),
-            (FieldNames.Status, Value.FromText(status)),
-            (FieldNames.Error, Value.FromText(
-                !child.Task.IsCompleted ? string.Empty
-                : faulted ? RunKeys.Failed
-                : child.Task.Result.Key)),
-            (FieldNames.Results, Value.FromList(
-                [.. child.Wanted.Select(wanted => Value.FromText(wanted.Name))])),
-        ]);
-    }
 
     /// <summary>
     /// Fills the run's own table from the declaration before the first step. A top-level run has no
@@ -2293,18 +1819,6 @@ public sealed partial class MacroRunner
                 return await RunHold(step, depth, token, input: false);
             case "control.runMacro":
                 return await RunOtherMacro(step, depth, token);
-            case "control.startMacro":
-                return StartOtherMacro(step, depth);
-            case "control.waitMacro":
-                return await WaitOtherMacro(step, depth, token);
-            case "control.runStatus":
-                return RunStatusCheck(step, depth);
-            case "control.cancelMacro":
-                return await CancelOtherMacro(step, depth, token);
-            case "control.waitAll":
-                return await WaitAllMacros(step, depth, token);
-            case "control.waitAny":
-                return await WaitAnyMacro(step, depth, token);
             case "control.delay":
                 await Pause(Pace(Number(step, "ms")), token);
                 return Signal.Normal;

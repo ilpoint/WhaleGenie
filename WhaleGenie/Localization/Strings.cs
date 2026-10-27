@@ -798,8 +798,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ScriptInput"] = "This script says it sends keys or clicks itself. Input "
             + "the script sends directly does not go through the input door, so turn on \"Take turns "
             + "sending input\" on the other macro as well, or leave one of them stopped.",
-        ["Editor.Problem.MissingRunHandle"] = "This step needs a run handle, but its handle "
-            + "variable is not filled in.",
         ["Editor.Problem.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
         ["Editor.Problem.UndeclaredArgument"] =
             "\"{0}\" is not filled in by \"{1}\" as one of its arguments, so nothing reads it.",
@@ -1564,7 +1562,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.InputOwner"] = "Sending input: {0}",
         ["Run.InputOwnerNone"] = "Nobody else is sending input",
         ["Run.BrowserOwner"] = "Using the browser: {0}",
-        ["Run.Children"] = "Background runs: {0}",
         // What each armed trigger is waiting for, and when the thing it waits for was last looked at.
         ["Run.Triggers"] = "Triggers waiting to be wanted",
         ["Run.TriggersHint"] =
@@ -1627,7 +1624,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.KeysSent"] = "Sent {0} key combination(s).",
         ["Run.Failed"] = "The step failed.",
         ["Run.Timeout"] = "The step took longer than the {0} ms it was allowed.",
-        ["Run.TooManyRuns"] = "This macro already has {0} background runs going; wait for one to finish before starting another.",
         ["Run.Ask"] = "Step \"{0}\" failed. Choose what to do next.",
         ["Run.AskRetry"] = "Retry",
         ["Run.AskSkip"] = "Skip it",
@@ -1779,7 +1775,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingField"] = "\"{0}\" is required, and this step does not fill it in.",
         ["Run.BadOption"] = "\"{0}\" is not one of the answers this field allows.",
         ["Run.OutOfRange"] = "\"{0}\" is outside the range this field allows.",
-        ["Run.MissingHandle"] = "This step starts a background run but does not name a variable for its handle.",
         ["Run.WindowNotFound"] = "No window matches that rule: {0}",
         ["Run.WindowRecordField"] = "This window record has no {0} field, which is what the chosen way of matching reads. Choose another way of matching, give the record that field, or write field(window, \"…\") for the one you mean.",
         ["Run.BadWindowRule"] = "A window field must hold one captured window rule or a variable that holds one; what was written is not a rule: {0}",
@@ -1830,8 +1825,6 @@ public sealed class Strings : INotifyPropertyChanged
             + "first one as 1 ({0}).",
         ["Run.BrowserMissing"] = "The browsers the browser actions drive are not on this machine: {0}",
         ["Run.NoSuchProcess"] = "There is no such program running: {0}",
-        ["Run.NoRunsToWait"] = "The list of background runs to wait for is empty.",
-        ["Run.NoSuchRun"] = "There is no background run for handle {0}; it may already have been waited for, belong to another macro, or be misspelled.",
         ["Log.ProgramDetails"] = "Read what {0} ({1}) is.",
         ["Run.BrowserNotOpen"] = "No browser is open yet; open one before using the page.",
         ["Run.BrowserFailed"] = "The browser could not finish this step: {0}",
@@ -1891,7 +1884,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.Pasted"] = "Pressed the paste shortcut.",
         ["Run.ClipboardTimeout"] = "The clipboard did not change in time.",
         ["Run.ClipboardBusy"] = "Another program is holding the clipboard.",
-        ["Run.ChildStopped"] = "The background run \"{0}\" was stopped before it finished, so it handed back nothing.",
         ["Run.ClipboardWriteFailed"] = "The clipboard would not take the text.",
         ["Log.StartedProgram"] = "Started {0}, process id {1}.",
         ["Log.StartedRun"] = "Started \"{0}\" in the background; handle {1}.",
@@ -1970,17 +1962,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.DeviceFailed"] = "A component outside WhaleGenie failed: {0}",
         ["Log.Caught"] = "The attempt failed, so the catch steps are running.",
         ["Log.CleanupFailed"] = "The clean-up after a stop did not finish: {0}",
-        ["Run.ChildStillRunning"] = "The background run was asked to stop, and it has not said that it did. It is still running: cancel it again, or wait for it.",
         ["Log.CancelledRun"] = "The background run of “{0}” was asked to stop and is over.",
-        ["Editor.Problem.ResultBeforeWait"] = "\"{0}\" is a background run's result and has no value until that run is waited for: wait for it before reading it.",
-        ["Editor.Problem.MissingRunHandles"] = "This step was given no list of run handles, so there is nothing to wait for.",
         ["Editor.Problem.LoopVariableShadowed"] = "\"{0}\" is already used by a loop around this one, so the outer value is lost when this loop ends: give this loop's variable another name.",
         ["Editor.Problem.UnknownAction"] = "This step's action is not in the catalogue any more: delete the step, or pick the action again.",
         ["Editor.Problem.UnknownParameter"] = "\"{0}\" is not a field of this action any more: delete this entry.",
         ["Editor.Problem.PlaceAndNumbers"] = "\"{0}\" and the numbers beside it are both filled in: keep one way of saying where, the other is ignored.",
         ["Editor.Problem.DuplicateResultName"] = "Two results go by the same name \"{0}\": the later one overwrites the earlier.",
-        ["Editor.Problem.DuplicateRunHandle"] =
-            "A background run is already started under the name \"{0}\": the first one keeps running with nothing able to wait for it. Give each run its own name.",
         ["Editor.Problem.DuplicateResultKey"] = "The result \"{0}\" is requested more than once in this step: keep one row for it.",
         ["Editor.Problem.DuplicateArgument"] =
             "The argument \"{0}\" is filled in by more than one row: keep one row for it, so which value it gets is not left to guesswork.",
@@ -2071,8 +2058,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ExclusiveRowColumn"] = "A row of \"{0}\" names a place and gives its numbers; use one or the other.",
         ["Editor.Problem.MissingField"] = "\"{0}\" is required and this step leaves it empty.",
         ["Editor.Problem.BadOption"] = "\"{0}\" is not one of the answers \"{1}\" allows.",
-        ["Run.BrowserRunWhileHeld"] = "This background run works in the browser, and the step that started it is itself inside a browser dialog that holds the one page. Wait for the dialog to finish before starting it.",
-        ["Editor.Problem.BrowserRunWhileHeld"] = "This background run uses the browser while the step it sits in holds the browser's one page, so it would wait for good: start it after the dialog.",
         ["Log.Finally"] = "Running the clean-up steps.",
         ["Add.SystemReadOnly"] = "\"{0}\" is a system variable, which a macro can only read.",
         ["Add.GlobalMustExist"] =
@@ -2709,7 +2694,6 @@ public sealed class Strings : INotifyPropertyChanged
             + "两条宏同时跑时会轮流使用；其中一条切换标签页，另一条看到的页面也会变。",
         ["Editor.Problem.ScriptInput"] = "这个脚本声明会自己发键鼠。脚本直接发出的输入不经过互斥门，"
             + "要同时跑的另一个宏也得勾上「与别的宏互斥发输入」，或者让其中一条先停着。",
-        ["Editor.Problem.MissingRunHandle"] = "这一步要用运行句柄，但句柄变量名没有填。",
         ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
         ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
@@ -3752,7 +3736,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.InputOwner"] = "正在发输入：{0}",
         ["Run.InputOwnerNone"] = "现在没有别的宏在发输入",
         ["Run.BrowserOwner"] = "正在用浏览器：{0}",
-        ["Run.Children"] = "后台运行：{0}",
         ["Run.Triggers"] = "等触发的宏",
         ["Run.TriggersHint"] = "开着的宏里，靠定时去看的那几种各占一行：等的是什么、现在成不成立、上次去看是什么时候、"
             + "下次什么时候去看。窗口这一类另有机器在变化时先说一声，不等下一次去看。",
@@ -3811,7 +3794,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.KeysSent"] = "发出了 {0} 个组合键。",
         ["Run.Failed"] = "该步骤执行失败。",
         ["Run.Timeout"] = "该步骤的运行时间超过了允许的 {0} 毫秒。",
-        ["Run.TooManyRuns"] = "这个宏已经有 {0} 个后台运行在跑；先等一个结束再开新的。",
         ["Run.Ask"] = "步骤“{0}”执行失败，请选择接下来的处理方式。",
         ["Run.AskRetry"] = "重试",
         ["Run.AskSkip"] = "跳过这一步",
@@ -3992,8 +3974,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadPosition"] = "这不是列表里的位置：请写整数，第一个写 1（{0}）。",
         ["Run.BrowserMissing"] = "浏览器动作要用的浏览器还没装在这台机器上：{0}",
         ["Run.NoSuchProcess"] = "没有这个正在运行的程序：{0}",
-        ["Run.NoRunsToWait"] = "要等的后台运行列表是空的。",
-        ["Run.NoSuchRun"] = "找不到句柄 {0} 对应的后台运行；它可能已经等过、属于另一条宏，或者句柄写错了。",
         ["Log.ProgramDetails"] = "已读取 {0}（{1}）的信息。",
         ["Run.BrowserNotOpen"] = "还没有打开浏览器；用页面前先打开一个。",
         ["Run.BrowserFailed"] = "没能在浏览器里完成这一步：{0}",
@@ -4047,7 +4027,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.Pasted"] = "已发送粘贴快捷键。",
         ["Run.ClipboardTimeout"] = "剪贴板一直没有变化。",
         ["Run.ClipboardBusy"] = "另一个程序正占用剪贴板。",
-        ["Run.ChildStopped"] = "后台运行的“{0}”还没结束就被停止了，没有交回结果。",
         ["Run.ClipboardWriteFailed"] = "剪贴板没有接受这段文本。",
         ["Log.StartedProgram"] = "已启动 {0}，进程 id 为 {1}。",
         ["Log.StartedRun"] = "已在后台启动“{0}”，句柄为 {1}。",
@@ -4119,17 +4098,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.DeviceFailed"] = "鲸灵之外的组件出错：{0}",
         ["Log.Caught"] = "执行失败，转入捕获步骤。",
         ["Log.CleanupFailed"] = "停止之后的收尾没能做完：{0}",
-        ["Run.ChildStillRunning"] = "这次后台运行被要求停下，但它还没有说停好了。它仍在跑：可以再取消一次，或者等它结束。",
         ["Log.CancelledRun"] = "「{0}」的后台运行被取消，已经结束。",
-        ["Editor.Problem.ResultBeforeWait"] = "「{0}」是后台运行的结果，等到那次运行结束才有值：先等它结束再读。",
-        ["Editor.Problem.MissingRunHandles"] = "这一步没有给出一列运行句柄，也就没有可以等的运行。",
         ["Editor.Problem.LoopVariableShadowed"] = "「{0}」外层循环也在用，内层结束之后外层的值就没有了：给内层换一个名字。",
         ["Editor.Problem.UnknownAction"] = "这一步的动作已经不在目录里了：删掉这一步，或者重新选一个动作。",
         ["Editor.Problem.UnknownParameter"] = "「{0}」不是这个动作的字段（可能已经改名或删除）：删掉这一项。",
         ["Editor.Problem.PlaceAndNumbers"] = "「{0}」和旁边的数字都填了：只留一种写法，另一种会被忽略。",
         ["Editor.Problem.DuplicateResultName"] = "有两个结果用了同一个名字「{0}」：后一个会盖掉前一个。",
-        ["Editor.Problem.DuplicateRunHandle"] =
-            "已经有一个后台运行叫「{0}」了：先起的那个还在跑，却没人能等它。给它换一个名字。",
         ["Editor.Problem.DuplicateResultKey"] = "同一步里请求了两次结果「{0}」：只保留一行。",
         ["Editor.Problem.DuplicateArgument"] = "同一个形参「{0}」填了两行：只保留一行，传哪一个才不含糊。",
         ["Editor.Problem.BadResultName"] = "「{0}」不能当变量名读，这个结果无法写在它下面。",
@@ -4217,8 +4191,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ExclusiveRowColumn"] = "「{0}」的某一行既写了名字又写了四个数；两种写法只能选一种。",
         ["Editor.Problem.MissingField"] = "「{0}」是必填的，这一步没有填。",
         ["Editor.Problem.BadOption"] = "「{0}」不是「{1}」允许的选项。",
-        ["Run.BrowserRunWhileHeld"] = "这次后台运行要用浏览器，而启动它的步骤正待在一个按住那一页的浏览器对话框里。等对话框结束再启动它。",
-        ["Editor.Problem.BrowserRunWhileHeld"] = "这一步所在的位置正按着浏览器的那一页，再启动一个用浏览器的后台运行会一直等下去：等对话框结束再启动。",
         ["Log.Finally"] = "正在执行收尾步骤。",
         ["Add.SystemReadOnly"] = "“{0}”是系统变量，宏只能读取，不能修改。",
         ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在宏编辑器的变量中心创建。",
@@ -4230,8 +4202,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingField"] = "「{0}」是必填的，这一步没有填。",
         ["Run.BadOption"] = "「{0}」不是这一步允许的选项。",
         ["Run.OutOfRange"] = "「{0}」超出了这一步允许的范围。",
-        ["Run.MissingHandle"] = "这一步要开一个后台运行，但没有写运行句柄的变量名。",
-
         // What the built-in variables are called in Chinese: a short name to read, with the name a
         // formula writes beside it. The English half is the code name itself, so only Chinese is
         // written here; a macro's own variables have no name but the one their author gave them.

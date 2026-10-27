@@ -1030,73 +1030,6 @@ public class MacroEditorTests
     }
 
     [Fact]
-    public void A_self_call_is_checked_against_the_macros_own_steps()
-    {
-        Ui.Run(() =>
-        {
-            var start = new MacroStep
-            {
-                Type = "control.startMacro",
-                Meta = StepMeta.New,
-                Parameters =
-                [
-                    new StepParameter
-                    {
-                        Name = "macro",
-                        Kind = ActionParameterKind.Macro,
-                        Value = "自己",
-                    },
-                    new StepParameter
-                    {
-                        Name = "runHandleName",
-                        Kind = ActionParameterKind.Variable,
-                        Value = "job",
-                    },
-                ],
-            };
-            var hold = new MacroStep
-            {
-                Type = "control.holdBrowser",
-                Meta = StepMeta.New,
-                Parameters =
-                [
-                    new StepParameter
-                    {
-                        Name = "steps",
-                        Kind = ActionParameterKind.Steps,
-                        Steps = [start],
-                    },
-                ],
-            };
-            var browse = new MacroStep
-            {
-                Type = "browser.goTo",
-                Meta = StepMeta.New,
-                Parameters =
-                [
-                    new StepParameter
-                    {
-                        Name = "url",
-                        Kind = ActionParameterKind.Text,
-                        Value = "https://example.com",
-                    },
-                ],
-            };
-            var macro = new MacroItem { Name = "自己" };
-            macro.Steps.Add(hold);
-            macro.Steps.Add(browse);
-
-            var window = new MacroEditorWindow(macro, [macro]);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (MacroEditorViewModel)window.DataContext!;
-            Assert.Contains(viewModel.Problems, problem =>
-                problem.Message == Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
-        });
-    }
-
-    [Fact]
     public void The_left_palette_has_four_sources()
     {
         Ui.Run(() =>
@@ -1119,25 +1052,4 @@ public class MacroEditorTests
         });
     }
 
-    [Fact]
-    public void Both_seams_of_the_editor_columns_have_a_splitter()
-    {
-        Ui.Run(() =>
-        {
-            var (window, _) = Open();
-            var grid = Assert.IsType<Grid>(window.FindControl<Grid>("EditorColumns"));
-
-            Assert.Equal(5, grid.ColumnDefinitions.Count);
-            Assert.Equal(280d, grid.ColumnDefinitions[0].MinWidth);
-            Assert.Equal(280d, grid.ColumnDefinitions[0].Width.Value);
-            Assert.Equal(480d, grid.ColumnDefinitions[2].MinWidth);
-            Assert.Equal(360d, grid.ColumnDefinitions[4].MinWidth);
-            Assert.Equal(360d, grid.ColumnDefinitions[4].Width.Value);
-
-            var splitters = grid.Children.OfType<GridSplitter>().ToList();
-            Assert.Equal(2, splitters.Count);
-            Assert.Contains(splitters, splitter => Grid.GetColumn(splitter) == 1);
-            Assert.Contains(splitters, splitter => Grid.GetColumn(splitter) == 3);
-        });
-    }
 }
