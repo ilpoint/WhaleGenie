@@ -2770,7 +2770,7 @@ public partial class MacroEditorWindow : Window
         // A block whose one list is empty is one target from its title to its closing line, the
         // gaps between those rows included: the rows are separate items, and a pointer in a gap
         // used to fall through to "before the block" for the row below it.
-        if (!_draggingSteps)
+        // Whether the drag came from the palette or from a row, an empty body is one place to put it.
         {
             var emptyBand = visible
                 .Where(candidate => EmptySingleList(candidate.Row.Step))
