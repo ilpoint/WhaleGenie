@@ -1317,6 +1317,61 @@ public class ActionDialogTests
 
         public UiTable ReadTable(UiQuery query, int limit) => UiTable.Empty;
     }
+    /// <summary>
+    /// A step that hands a result over writes a variable of that name, and the macro's list of
+    /// variables includes it — the step being edited is one of the macro's steps. Opening the dialog
+    /// on that step used to tell the name was taken by another variable, which is the step calling
+    /// itself another variable.
+    /// </summary>
+    [Fact]
+    public void Editing_a_step_does_not_call_its_own_result_taken()
+    {
+        Ui.Run(() =>
+        {
+            var handles = new List<VariableChoice>
+            {
+                new() { Name = "video", Scope = VariableScope.Local },
+            };
+            var step = new MacroStep
+            {
+                Id = "ev01",
+                Type = "browser.evaluate",
+                Parameters =
+                [
+                    new StepParameter { Name = "script", Kind = ActionParameterKind.Text, Value = "() => 1" },
+                    new StepParameter
+                    {
+                        Name = "returns",
+                        Kind = ActionParameterKind.Returns,
+                        Rows =
+                        [
+                            new StepParameterRow
+                            {
+                                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                                {
+                                    ["key"] = "result",
+                                    ["name"] = "video",
+                                },
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            var window = new ActionEditorWindow(step, ActionCatalog.Definitions, handles);
+            window.Show();
+            var form = (AddActionViewModel)window.DataContext!;
+
+            var row = form.ReturnsRows.Single(candidate => candidate.Key == "result");
+            Assert.True(row.Ticked);
+            Assert.Equal("video", row.Name);
+            Assert.False(row.IsNameTaken);
+            Assert.Empty(row.NameWarning);
+
+            window.Close();
+        });
+    }
+
     [Fact]
     public void A_vision_step_opens_with_the_position_it_finds_ticked()
     {

@@ -262,6 +262,13 @@ public partial class AddActionViewModel : ViewModelBase
     private string _editingId = string.Empty;
 
     /// <summary>
+    /// The names the step being edited already writes, which are its own results. They are in the
+    /// macro's variable list like any other, and a result that is being edited would otherwise be
+    /// told it is taken by itself.
+    /// </summary>
+    private readonly HashSet<string> _ownNames = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// True while the step being written is not in the list yet. Its name is minted before the
     /// dialog opens so the fields that create variables can carry it, and it is only for such a
     /// step that those names follow the note: a variable a macro already uses keeps its name.
@@ -1338,6 +1345,20 @@ public partial class AddActionViewModel : ViewModelBase
         // The step opens on the page that was changed, so the reason it behaves unusually is the
         // first thing on screen rather than something to go looking for.
         OpenFirstPage();
+
+        // Its own results are not "another variable": they are the ones this dialog is naming, and
+        // they were being counted as taken because the macro's list of variables includes the step
+        // being edited.
+        _ownNames.Clear();
+        if (ReturnsField is { } returns)
+        {
+            foreach (var row in returns.ReturnsRows.Where(row => row.ToRow() is not null))
+            {
+                _ownNames.Add(row.Name.Trim());
+            }
+
+            SuggestReturnNames();
+        }
     }
 
     private void BuildParameters(ActionDefinition? definition)
@@ -2315,8 +2336,12 @@ public partial class AddActionViewModel : ViewModelBase
             return;
         }
 
+        // The step's own results are left out: a name this dialog is about to write is not one
+        // something else is using.
         returns.SettleReturns(MetaComment, _editingId,
-            [.. CollectVariables().Select(choice => choice.Name)]);
+            [.. CollectVariables()
+                .Select(choice => choice.Name)
+                .Where(name => !_ownNames.Contains(name.Trim()))]);
     }
 
     /// <summary>The note is part of the name, so the name has to keep up with it.</summary>
