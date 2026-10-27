@@ -1350,7 +1350,7 @@ internal static class ActionStrings
         ["input.keyPress.repeat.hint"] = "这个键一共按几下，从 1 起，默认 1。连着按几下时，两次之间停多久由"
             + "「重复间隔」说。",
         ["input.keyPress.intervalMs.label"] = "间隔",
-        ["input.keyPress.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即一下接一下地按。",
+        ["input.keyPress.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即连续按下。",
 
         ["input.keyDown.name"] = "按下按键",
         ["input.keyDown.desc"] = "保持按下某个键，直到对应的“松开按键”步骤。",
@@ -1471,9 +1471,9 @@ internal static class ActionStrings
         ["input.mouseClick.repeat.label"] = "重复次数",
         ["input.mouseClick.repeat.hint"] = "一共点几下，从 1 起，默认 1。点几下时两次之间停多久由「间隔」说。",
         ["input.mouseClick.intervalMs.label"] = "间隔",
-        ["input.mouseClick.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即一下接一下地点。",
+        ["input.mouseClick.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即连续点击。",
         ["input.mouseClick.holdMs.label"] = "按住时长",
-        ["input.mouseClick.holdMs.hint"] = "按下之后保持多久才松开，单位是毫秒，默认 0，即普通的一下快按。对需要"
+        ["input.mouseClick.holdMs.hint"] = "按下之后保持多久才松开，单位是毫秒，默认 0，即普通的快速按下。对需要"
             + "长按才响应的按钮调大。",
         ["input.mouseClick.variance.label"] = "落点随机范围",
         ["input.mouseClick.variance.hint"] =
@@ -2787,7 +2787,7 @@ internal static class ActionStrings
         ["browser.waitForLoad.loadState.option.idle"] = "网络空闲",
 
         ["browser.scroll.name"] = "滚动页面",
-        ["browser.scroll.desc"] = "把页面滚动一下，让屏幕外的东西露出或加载出来。",
+        ["browser.scroll.desc"] = "滚动页面，使屏幕外的内容显示或加载。",
         ["browser.scroll.pageSelector.label"] = "选择器",
         ["browser.scroll.pageSelector.hint"] = PageTargetHint + "要把哪个元素滚到看得见，写法与「点击元素」相同；"
             + "只有「滚到元素」这一档要用它。一行都不写，也就是默认，滚的是页面本身，往下滚一屏。",
@@ -2834,18 +2834,18 @@ internal static class ActionStrings
         ["browser.dialog.body.hint"] = "让对话框弹出来的那些步骤，例如点击那个会提问的按钮。它们之所以写在盒子"
             + "里，是因为对话框没人回答时页面就停在那里：触发它的那一步要等到被回答之后才会返回。",
 
-        ["browser.evaluate.name"] = "在页面里跑脚本",
-        ["browser.evaluate.desc"] = "在页面里跑一小段脚本，并把它交回的结果拿出来：字符串原样交回，"
-            + "数字、真假、列表与记录写成 JSON，所以把结果交给下一步（例如浏览器打开）时不用去引号。",
+        ["browser.evaluate.name"] = "执行 JS 脚本",
+        ["browser.evaluate.desc"] = "在页面里执行一段 JavaScript，取回它的返回值。字符串原样返回；"
+            + "数字、真假、列表与记录按 JSON 返回，可直接交给下一步（例如「浏览器打开」）。",
         ["browser.evaluate.script.label"] = "脚本",
-        ["browser.evaluate.script.hint"] = "要跑的脚本，写成页面会调用的一段函数，例如 "
-            + "() => { return document.title; }。它在页面自己里面跑，所以页面读得到的东西它都读得到；"
-            + "用 return 交回什么，这一步的结果就是什么。上面这些动作都没覆盖到的事情由它兜底，代价是这个宏"
-            + "依赖页面自己的实现。写 {{变量名}} 的地方会在运行前换成那个变量的值。",
+        ["browser.evaluate.script.hint"] = "交给页面执行的脚本，写成函数，例如 () => document.title。"
+            + "脚本在页面上下文中运行，可访问页面内的全局对象；return 的值就是这一步的结果。"
+            + "其他动作没有覆盖的操作由它完成，代价是宏依赖页面自身的实现。"
+            + "写 {{变量名}} 的位置在运行前替换为该变量的值。",
         ["browser.evaluate.script.default"] =
-            "// 脚本交回什么，这一步就交出什么。\n"
-            + "// return document.title; 读页面自己写的名字。\n"
-            + "// return { rows: 3, first: '甲' }; 交回一条记录，结果里也还是一条记录。\n"
+            "// return 的值就是这一步的结果。\n"
+            + "// return document.title; 读取页面标题。\n"
+            + "// return { rows: 3, first: '甲' }; 返回一条记录，结果中仍是记录。\n"
             + "return document.querySelectorAll('a').length;\n",
 
         ["browser.upload.name"] = "上传文件",
@@ -2940,7 +2940,7 @@ internal static class ActionStrings
         ["script.python.sendsInput.hint"] = "脚本自己会按键或点击时打开。它只用于设计期提示："
             + "脚本直接发出的输入鲸灵看不见，互斥发输入的门也拦不住它。默认关闭。",
         ["script.pip.name"] = "安装 PIP 包",
-        ["script.pip.desc"] = "看一下要用的 Python 包在不在，缺的下下来，好让 Python 脚本能 import 它们。",
+        ["script.pip.desc"] = "检查需要的 Python 包是否已安装，缺失的下载下来，使 Python 脚本能够 import 它们。",
         ["script.pip.packages.label"] = "包",
         ["script.pip.packages.hint"] = "Python 脚本要用到的包，一行一个，写法与 pip 一致：一个包名，"
             + "或者包名后面跟两个等号与版本号。以 # 开头的行会被跳过。包装在鲸灵自己的目录里，"
@@ -3022,7 +3022,7 @@ internal static class ActionStrings
         ["script.ahk.sendsInput.hint"] = "脚本自己会按键或点击时打开。它只用于设计期提示："
             + "脚本直接发出的输入鲸灵看不见，互斥发输入的门也拦不住它。默认关闭。",
         ["script.nuget.name"] = "下载 NuGet 包",
-        ["script.nuget.desc"] = "看一下要用的 NuGet 包在不在，缺的连同它们自己依赖的包一起下下来，"
+        ["script.nuget.desc"] = "检查需要的 NuGet 包是否已安装，缺失的连同其依赖包一起下载，"
             + "好让 C# 脚本能编译着用。",
         ["script.nuget.packages.label"] = "包",
         ["script.nuget.packages.hint"] = "C# 脚本要用到的包，一行一个：一个包名，或者包名后面隔一个空格跟上版本号。"
@@ -3578,8 +3578,8 @@ internal static class ActionStrings
 
         // browser.evaluate
         ["browser.evaluate.return.result.label"] = "结果",
-        ["browser.evaluate.return.result.hint"] = "脚本交回的东西，按 JSON 写出来：文字带引号，数字还是数字，"
-            + "记录和列表保持原样，用 field() 取其中的一项。脚本什么都没交回时这一项是空的。",
+        ["browser.evaluate.return.result.hint"] = "脚本的返回值。字符串原样；数字、真假、列表与记录按 JSON。"
+            + "记录用 field() 取其中一项。脚本没有返回值时为空。",
         ["browser.evaluate.returns.label"] = "要留下的结果",
         ["browser.evaluate.returns.hint"] = ReturnsHintText,
 
