@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -160,13 +161,11 @@ public class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
 
-            Assert.True(viewModel.IsVariablesPage);
             Assert.False(viewModel.HasSteps);
             Assert.False(viewModel.CanStart);
-            Assert.NotEmpty(viewModel.SystemVariables);
+            Assert.Empty(viewModel.Variables);
 
             Assert.False(Find<Border>(window, "RunToolbar").IsVisible);
-            Assert.False(Find<Border>(window, "PageTabs").IsVisible);
             Assert.True(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
             window.Close();
@@ -174,7 +173,7 @@ public class RunDebugTests
     }
 
     [Fact]
-    public void Opened_on_a_macro_it_shows_the_steps_and_can_switch_to_the_variables()
+    public void Opened_on_a_macro_it_shows_the_steps_and_the_watch_list()
     {
         Ui.Run(() =>
         {
@@ -184,7 +183,6 @@ public class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
 
-            Assert.True(viewModel.IsDebugPage);
             Assert.True(viewModel.HasSteps);
 
             // 装着步骤开着也不跑：谁想先看一眼、先下个断点，窗口不该已经动手了。
@@ -196,14 +194,81 @@ public class RunDebugTests
             Assert.True(Find<Border>(window, "RunToolbar").IsVisible);
             Assert.False(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
-            viewModel.SelectPageCommand.Execute("Variables");
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The watch list is about the macro, not about how far the run has got: every variable the
+    /// macro creates or reads is listed from the moment it is loaded, with its type, and the value
+    /// stays empty until something writes it.
+    /// </summary>
+    [Fact]
+    public void The_watch_list_names_the_variables_before_the_run_reaches_them()
+    {
+        Ui.RunAsync<bool>(async () =>
+        {
+            var set = Count("total", "7");
+            var other = Count("other", "1");
+            StepIds.Settle([set, other]);
+
+            var window = new RunWindow([set, other]);
+            window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            Assert.True(viewModel.IsVariablesPage);
-            Assert.False(viewModel.IsDebugPage);
+            var viewModel = (RunViewModel)window.DataContext!;
 
-            viewModel.SelectPageCommand.Execute("Debug");
-            Assert.True(viewModel.IsDebugPage);
+            // Before the run reaches it: the row is there, with nothing in it yet.
+            var before = viewModel.Variables.First(variable => variable.Name == "total");
+            Assert.Equal(string.Empty, before.Value);
+            Assert.Equal(Strings.Get("Variable.Scope.Local"), before.Scope);
+
+            viewModel.RunCommand.Execute(null);
+            var done = await Until(() => !viewModel.IsBusy);
+            Dispatcher.UIThread.RunJobs();
+
+            // After the run wrote it: the same row, with the value and the type it ended up holding.
+            var after = viewModel.Variables.First(variable => variable.Name == "total");
+            Assert.Equal("7", after.Value);
+            Assert.Equal(Strings.Get("Variable.Type.number"), after.LocalType);
+            window.Close();
+            return done;
+        });
+    }
+
+    /// <summary>Every step row carries the step's own name, which is what a breakpoint and a log line call it.</summary>
+    [Fact]
+    public void A_step_row_says_which_step_it_is()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var detail = RunViewModel.Detail(new[] { set }.ToExecutable()[0]);
+
+            Assert.StartsWith(set.Id, detail, StringComparison.Ordinal);
+            Assert.Contains("control.setVariable", detail, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// The two halves and the two halves of the right column are dragged against each other, and
+    /// each says how small it may get so neither can be dragged out of sight.
+    /// </summary>
+    [Fact]
+    public void The_debug_half_has_splitters_that_keep_both_sides_visible()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RunWindow(Steps("probe"));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var side = Find<GridSplitter>(window, "RunSplitter");
+            var inside = Find<GridSplitter>(window, "WatchSplitter");
+            Assert.Equal(GridResizeDirection.Columns, side.ResizeDirection);
+            Assert.Equal(GridResizeDirection.Rows, inside.ResizeDirection);
 
             window.Close();
         });
@@ -1024,20 +1089,13 @@ public class RunDebugTests
             ClickCopy(window, button => button.DataContext is WatchedVariable { Name: "total" });
             var watched = clipboard.Text;
 
-            // 变量那一页的行同样如此：先翻到那一页，再选「在用」这一栏。
-            viewModel.SelectPageCommand.Execute("Variables");
-            viewModel.SelectTabCommand.Execute("Current");
-            Dispatcher.UIThread.RunJobs();
-            ClickCopy(window, button => button.DataContext is VariableDefinition { Name: "total" });
-            var fromPage = clipboard.Text;
-
             var lines = string.Join(Environment.NewLine,
                 viewModel.Lines.Select(line => $"{line.Time}  {line.Text}"));
-            var row = viewModel.CurrentVariables.First(variable => variable.Name == "total");
+            var row = viewModel.Variables.First(variable => variable.Name == "total");
 
             window.Close();
             return (Done: done, Shown: shown, Log: log, Lines: lines, Watched: watched,
-                FromPage: fromPage, RowValue: row.CurrentValue);
+                FromPage: watched, RowValue: row.Value);
         });
 
         Assert.True(answer.Done, "这个宏该跑完");

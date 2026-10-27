@@ -174,6 +174,14 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        // A press on the buttons of the hotkey row is the user cancelling or clearing, not a
+        // mouse button to record. The handler runs on the way down, before the button sees the
+        // click, so swallowing it here left the capture impossible to stop with the mouse.
+        if (IsHotkeyButton(e.Source))
+        {
+            return;
+        }
+
         var button = e.GetCurrentPoint(this).Properties.PointerUpdateKind switch
         {
             PointerUpdateKind.LeftButtonPressed => HookMouseButton.Left,
@@ -190,6 +198,27 @@ public partial class SettingsWindow : Window
 
         _viewModel.CaptureMenuLauncher(KeyNames.MouseName(pressed));
         e.Handled = true;
+    }
+
+    /// <summary>Whether a press landed on one of the buttons that set, cancel or clear a hotkey.</summary>
+    private static bool IsHotkeyButton(object? source)
+    {
+        var names = new[]
+        {
+            "CaptureSystemHotkeyButton", "ClearSystemHotkeyButton",
+            "CaptureMenuLauncherButton", "ClearMenuLauncherButton",
+        };
+
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Button button && button.Name is { } name
+                && names.Contains(name, StringComparer.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnPreviewPointerWheel(object? sender, PointerWheelEventArgs e)

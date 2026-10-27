@@ -80,13 +80,11 @@ public class VariableWarningTests
     [Fact]
     public void The_read_only_lines_are_written_in_red()
     {
-        // The dialog that refuses to store into one, and the panel that lists them.
+        // The dialog that refuses to write into one says so in red. The run-and-debug window no
+        // longer lists the variables a macro may not change: it shows the watch list of the macro
+        // in front of it, and editing a variable belongs to the variable center.
         AssertRed(Path.Combine("WhaleGenie", "Views", "ActionEditorView.axaml"),
             "Text=\"{Binding ValidationMessage}\"");
-
-        // The lines that list the variables a macro may not change live in the run-and-debug window.
-        AssertRed(Path.Combine("WhaleGenie", "Views", "RunWindow.axaml"),
-            "Variable.SystemHint");
     }
 
     /// <summary>

@@ -316,20 +316,6 @@
                 </Grid>
             </Border>
 
-            <!-- ===================== Which half is showing ===================== -->
-            <Border Grid.Row="2" Name="PageTabs"
-                    Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10" Padding="8,6"
-                    IsVisible="{Binding HasSteps}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Button Classes="Tab" Classes.active="{Binding IsDebugPage}"
-                            Command="{Binding SelectPageCommand}" CommandParameter="Debug"
-                            Content="{Binding [Run.Page.Debug], Source={x:Static loc:Strings.Current}}" />
-                    <Button Classes="Tab" Classes.active="{Binding IsVariablesPage}"
-                            Command="{Binding SelectPageCommand}" CommandParameter="Variables"
-                            Content="{Binding [Run.Page.Variables], Source={x:Static loc:Strings.Current}}" />
-                </StackPanel>
-            </Border>
-
             <!-- Opened from the button on its own there is nothing to debug, and this is how a
                  macro gets in: pick one and start it, which is what the card's own menu does with
                  the macro it was opened on. -->
@@ -357,11 +343,10 @@
             </StackPanel>
 
             <!-- ===================== Steps, variables and log ===================== -->
-            <Grid Grid.Row="3" ColumnDefinitions="340,*" RowDefinitions="Auto,*"
-                  Margin="14,0,14,0" IsVisible="{Binding IsDebugPage}">
+            <Grid Grid.Row="3" RowDefinitions="Auto,*" Margin="14,0,14,0">
                 <!-- A direct run has no caller to fill the declaration in, so the values it is
                      asked for are put here before the run starts. A trigger supplies none. -->
-                <Border Grid.Row="0" Grid.ColumnSpan="2" Name="RunArgumentsPanel"
+                <Border Grid.Row="0" Name="RunArgumentsPanel"
                         Classes="Panel" Padding="12,10" Margin="0,0,0,10"
                         IsVisible="{Binding HasArguments}">
                     <StackPanel Spacing="8">
@@ -397,7 +382,8 @@
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Row="1" Classes="Panel">
+                <Grid Grid.Row="1" ColumnDefinitions="340,6,*">
+                <Border Grid.Column="0" Classes="Panel" MinWidth="240">
                     <Grid RowDefinitions="Auto,*">
                         <TextBlock Classes="SectionHeader"
                                    Text="{Binding [Run.Steps], Source={x:Static loc:Strings.Current}}" />
@@ -554,26 +540,40 @@
                     </Grid>
                 </Border>
 
-                <Grid Grid.Row="1" Grid.Column="1" Margin="12,0,0,0" RowDefinitions="Auto,*,Auto,Auto,Auto,1.2*">
+                <GridSplitter Grid.Column="1" Name="RunSplitter" ResizeDirection="Columns"
+                              Background="Transparent" MinWidth="6" />
+                <Grid Grid.Column="2" Margin="12,0,0,0"
+                      RowDefinitions="Auto,2*,6,Auto,Auto,Auto,1*">
                     <TextBlock Classes="SectionHeader"
                                Text="{Binding [Run.Variables], Source={x:Static loc:Strings.Current}}" />
-                    <Border Grid.Row="1" Classes="Panel" Padding="12,10">
+                    <Border Grid.Row="1" Classes="Panel" Padding="12,10" MinHeight="110">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
                                 <TextBlock Classes="Muted"
                                            IsVisible="{Binding !HasVariables}"
                                            Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
+                                <Grid ColumnDefinitions="130,54,72,*,Auto" Margin="0,0,0,4"
+                                      IsVisible="{Binding HasVariables}">
+                                    <TextBlock Classes="ColumnHeader" Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Grid.Column="1" Classes="ColumnHeader" Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Grid.Column="2" Classes="ColumnHeader" Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Grid.Column="3" Classes="ColumnHeader" Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
+                                </Grid>
                                 <ItemsControl ItemsSource="{Binding Variables}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:WatchedVariable">
-                                            <Grid ColumnDefinitions="150,60,*,Auto" Margin="0,0,0,3">
-                                                <TextBlock Text="{Binding Display}" FontSize="12" Foreground="#BFE3BF" />
+                                            <Grid ColumnDefinitions="130,54,72,*,Auto" Margin="0,0,0,3"
+                                                  ToolTip.Tip="{Binding Display}">
+                                                <TextBlock Text="{Binding Display}" FontSize="12" Foreground="#BFE3BF"
+                                                           TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
                                                            Foreground="#D6C08A" />
-                                                <SelectableTextBlock Grid.Column="2" Text="{Binding Value}"
+                                                <TextBlock Grid.Column="2" Text="{Binding LocalType}" FontSize="11.5"
+                                                           Foreground="{DynamicResource AppMuted}" />
+                                                <SelectableTextBlock Grid.Column="3" Text="{Binding Value}"
                                                                      FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                                      TextWrapping="Wrap" />
-                                                <Button Grid.Column="3" Classes="CopyButton" Margin="8,0,0,0"
+                                                <Button Grid.Column="4" Classes="CopyButton" Margin="8,0,0,0"
                                                         Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
                                                         Click="OnCopyValueClicked" />
                                             </Grid>
@@ -609,13 +609,16 @@
                         </ScrollViewer>
                     </Border>
 
+                    <GridSplitter Grid.Row="2" Name="WatchSplitter" ResizeDirection="Rows"
+                                  Background="Transparent" MinHeight="6" />
+
                     <!-- What the armed triggers are waiting for. It is beside the log because
                          "my macro did not run" is answered by this list and by nothing else. -->
-                    <TextBlock Grid.Row="2" Classes="SectionHeader" Margin="0,12,0,8"
+                    <TextBlock Grid.Row="3" Classes="SectionHeader" Margin="0,12,0,8"
                                IsVisible="{Binding HasTriggers}"
                                ToolTip.Tip="{Binding [Run.TriggersHint], Source={x:Static loc:Strings.Current}}"
                                Text="{Binding [Run.Triggers], Source={x:Static loc:Strings.Current}}" />
-                    <Border Grid.Row="3" Classes="Panel" Padding="12,8" MaxHeight="110"
+                    <Border Grid.Row="4" Classes="Panel" Padding="12,8" MaxHeight="110"
                             IsVisible="{Binding HasTriggers}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Triggers}">
@@ -632,7 +635,7 @@
 
                     <!-- The whole log at once, for the same reason a row has its own button: what is
                          written here is usually wanted somewhere else. -->
-                    <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,*" Margin="0,12,0,8">
+                    <Grid Grid.Row="5" ColumnDefinitions="Auto,Auto,*" Margin="0,12,0,8">
                         <TextBlock Classes="SectionHeader" Margin="0,0,0,0" VerticalAlignment="Center"
                                    Text="{Binding [Run.Log], Source={x:Static loc:Strings.Current}}" />
                         <Button Grid.Column="1" Classes="CopyButton" Margin="10,0,0,0" Height="22"
@@ -640,7 +643,7 @@
                                 Content="{Binding [Run.CopyLog], Source={x:Static loc:Strings.Current}}"
                                 Click="OnCopyLogClicked" />
                     </Grid>
-                    <Border Grid.Row="5" Classes="Panel" Padding="12,10">
+                    <Border Grid.Row="6" Classes="Panel" Padding="12,10" MinHeight="110">
                         <ScrollViewer Name="LogScroll" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Lines}">
                                 <ItemsControl.ItemTemplate>
@@ -658,242 +661,8 @@
                         </ScrollViewer>
                     </Border>
                 </Grid>
+                </Grid>
             </Grid>
-
-            <!-- ===================== Variables ===================== -->
-            <!-- The other half of the window: which variables exist, and the shared ones' own
-                 fields. A macro may read them and change a global one; creating one is done here. -->
-            <ScrollViewer Grid.Row="3" Padding="18,0,18,10" VerticalScrollBarVisibility="Auto"
-                          IsVisible="{Binding IsVariablesPage}">
-                <StackPanel>
-                    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button Classes="Tab" Classes.active="{Binding IsCurrentTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="Current"
-                                        Content="{Binding [Variable.Tab.Current], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Tab" Classes.active="{Binding IsLocalTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="Local"
-                                        Content="{Binding [Variable.Tab.Local], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Tab" Classes.active="{Binding IsGlobalTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="Global"
-                                        Content="{Binding [Variable.Tab.Global], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Tab" Classes.active="{Binding IsSystemTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="System"
-                                        Content="{Binding [Variable.Tab.System], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-
-                            <Button Grid.Column="2" Classes="FlatButton" Height="28" Padding="12,0"
-                                    VerticalAlignment="Center"
-                                    Content="{Binding [Variable.Refresh], Source={x:Static loc:Strings.Current}}"
-                                    Command="{Binding RefreshCommand}" />
-                        </Grid>
-                    </Border>
-
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,4,0,0"
-                               Text="{Binding [Variable.Note], Source={x:Static loc:Strings.Current}}" />
-
-                    <!-- ===================== Variables in use ===================== -->
-                    <StackPanel IsVisible="{Binding IsCurrentTab}">
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
-                            <TextBlock Classes="Muted" TextWrapping="Wrap" VerticalAlignment="Center"
-                                       Text="{Binding [Variable.CurrentHint], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                                      Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                      IsChecked="{Binding ShowSystemVariables}"
-                                      Content="{Binding [Variable.ShowSystem], Source={x:Static loc:Strings.Current}}" />
-                        </Grid>
-                        <TextBlock Classes="Muted" Margin="0,10,0,0" TextWrapping="Wrap"
-                                   Text="{Binding [Variable.NoneUsed], Source={x:Static loc:Strings.Current}}"
-                                   IsVisible="{Binding !HasCurrentVariables}" />
-                        <Grid ColumnDefinitions="170,64,110,150,*,Auto" Margin="0,10,0,0">
-                            <TextBlock Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="1" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="2" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.UsedBy], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="3" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="4" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding CurrentVariables}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="models:VariableDefinition">
-                                    <Border Classes="VarRow">
-                                        <Grid ColumnDefinitions="170,64,110,150,*,Auto">
-                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
-                                                       FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
-                                            <Border Grid.Column="1" Background="{DynamicResource AppDock}" CornerRadius="3"
-                                                    Padding="6,2" HorizontalAlignment="Left"
-                                                    VerticalAlignment="Top">
-                                                <TextBlock Text="{Binding LocalScope}" Foreground="#D6C08A"
-                                                           FontSize="11" />
-                                            </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding LocalOwner}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
-                                            <SelectableTextBlock Grid.Column="3" Text="{Binding CurrentValue}"
-                                                                 Foreground="#E4C48A" FontFamily="Consolas"
-                                                                 FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="4" Text="{Binding LocalDescription}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
-                                            <Button Grid.Column="5" Classes="CopyButton" Margin="8,0,0,0"
-                                                    VerticalAlignment="Top"
-                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                    Click="OnCopyValueClicked" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- ===================== Local variables ===================== -->
-                    <StackPanel IsVisible="{Binding IsLocalTab}">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,12,0,0"
-                                   Text="{Binding [Variable.LocalsHint], Source={x:Static loc:Strings.Current}}" />
-
-                        <TextBlock Classes="Muted" Margin="0,10,0,0" TextWrapping="Wrap"
-                                   Text="{Binding [Variable.NoLocals], Source={x:Static loc:Strings.Current}}"
-                                   IsVisible="{Binding !HasLocalVariables}" />
-
-                        <ItemsControl ItemsSource="{Binding LocalVariables}" Margin="0,10,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:MacroVariableGroup">
-                                    <StackPanel Margin="0,0,0,10">
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,0,0,5">
-                                            <TextBlock Text="{Binding MacroName}" Foreground="{DynamicResource AppText}"
-                                                       FontSize="12.5" FontWeight="SemiBold" />
-                                            <Border Background="{DynamicResource AppDock}" CornerRadius="3" Padding="6,2">
-                                                <TextBlock Foreground="#D6C08A" FontSize="11"
-                                                           Text="{Binding [Variable.Scope.Local], Source={x:Static loc:Strings.Current}}" />
-                                            </Border>
-                                        </StackPanel>
-                                        <ItemsControl ItemsSource="{Binding Variables}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="models:VariableDefinition">
-                                                    <Border Classes="VarRow">
-                                                        <Grid ColumnDefinitions="230,110,*,Auto">
-                                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
-                                                                       FontFamily="Consolas" FontSize="12"
-                                                                       TextWrapping="Wrap" />
-                                                            <SelectableTextBlock Grid.Column="1"
-                                                                                 Text="{Binding CurrentValue}"
-                                                                                 Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                                                                 TextWrapping="Wrap" />
-                                                            <TextBlock Grid.Column="2" Text="{Binding LocalDescription}"
-                                                                       Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                                                       TextWrapping="Wrap" />
-                                                            <Button Grid.Column="3" Classes="CopyButton"
-                                                                    Margin="8,0,0,0" VerticalAlignment="Top"
-                                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                                    Click="OnCopyValueClicked" />
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- ===================== Shared variables ===================== -->
-                    <StackPanel IsVisible="{Binding IsGlobalTab}">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,12,0,0"
-                                   Text="{Binding [Variable.GlobalsHint], Source={x:Static loc:Strings.Current}}" />
-
-                        <ItemsControl ItemsSource="{Binding Globals}" Margin="0,10,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:RunGlobalVariable">
-                                    <Border Classes="VarRow">
-                                        <Grid ColumnDefinitions="190,100,150,*,110,Auto" ColumnSpacing="8">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Display}" FontFamily="Consolas"
-                                                           Foreground="#BFE3BF" TextWrapping="Wrap" />
-                                                <TextBlock Classes="Muted" Text="{Binding Description}"
-                                                           TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding LocalType}"
-                                                       VerticalAlignment="Top" Foreground="{DynamicResource AppMuted}" />
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Classes="ColumnHeader"
-                                                           Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
-                                                <SelectableTextBlock Text="{Binding CurrentValue}"
-                                                                     TextWrapping="Wrap"
-                                                                     Foreground="{DynamicResource AppText}" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="3">
-                                                <TextBlock Classes="ColumnHeader"
-                                                           Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}" />
-                                                <SelectableTextBlock Text="{Binding DefaultValue}"
-                                                                     TextWrapping="Wrap"
-                                                                     Foreground="{DynamicResource AppMuted}" />
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="4" Text="{Binding PersistenceText}"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource AppMuted}" />
-                                            <Button Grid.Column="5" Classes="CopyButton"
-                                                    VerticalAlignment="Top"
-                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                    Click="OnCopyValueClicked" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <TextBlock Classes="Muted" Margin="0,8,0,0"
-                                   Text="{Binding [Variable.NoGlobals], Source={x:Static loc:Strings.Current}}"
-                                   IsVisible="{Binding !HasGlobals}" />
-
-                    </StackPanel>
-
-                    <!-- ===================== System variables ===================== -->
-                    <StackPanel IsVisible="{Binding IsSystemTab}">
-                        <!-- Read-only is the one thing to know about these, and it is easy to try to
-                             edit them anyway, so the line says so in red rather than in passing. -->
-                        <TextBlock TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#E06C75"
-                                   FontWeight="SemiBold"
-                                   Text="{Binding [Variable.SystemHint], Source={x:Static loc:Strings.Current}}" />
-                        <Grid ColumnDefinitions="210,70,170,*,Auto" Margin="0,10,0,0">
-                            <TextBlock Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="1" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="2" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="3" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding SystemVariables}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="models:VariableDefinition">
-                                    <Border Classes="VarRow">
-                                        <Grid ColumnDefinitions="210,70,170,*,Auto">
-                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
-                                                       FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="1" Text="{Binding LocalType}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" />
-                                            <SelectableTextBlock Grid.Column="2" Text="{Binding CurrentValue}"
-                                                                 Foreground="#E4C48A" FontFamily="Consolas"
-                                                                 FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="3" Text="{Binding LocalDescription}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
-                                            <Button Grid.Column="4" Classes="CopyButton" Margin="8,0,0,0"
-                                                    VerticalAlignment="Top"
-                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                    Click="OnCopyValueClicked" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
 
             <!-- ===================== Question ===================== -->
             <Border Grid.Row="4" Background="{DynamicResource AppAccentSoft}" BorderBrush="{DynamicResource AppLabel}" BorderThickness="1"

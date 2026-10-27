@@ -278,11 +278,21 @@ public sealed record RunLineViewModel(string Time, LogLevel Level, Thickness Ind
     };
 }
 
-/// <summary>One variable the run can see.</summary>
-public sealed record WatchedVariable(string Name, string Scope, string Value)
+/// <summary>
+/// One variable the macro uses, as the watch list shows it: its name, where it lives, what it holds
+/// and what it holds right now. It is listed from the moment the macro is loaded, so the list says
+/// what the run works with rather than only what it has reached.
+/// </summary>
+public sealed record WatchedVariable(string Name, string Scope, string Type, string Value)
 {
     /// <summary>How it is named on the panel: the Chinese name beside the code name where it has one.</summary>
     public string Display => VariableCatalog.Display(Name, false);
+
+    /// <summary>
+    /// What it holds, as one word of the interface language. A variable nothing has written yet has
+    /// no type to show, and a dash says that rather than leaving the column looking broken.
+    /// </summary>
+    public string LocalType => Type.Length == 0 ? "—" : Strings.Get($"Variable.Type.{Type}", Type);
 }
 
 /// <summary>
@@ -1480,18 +1490,27 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             .Select(parameter => $"{parameter.Name} = {parameter.Text.Trim()}")
             .ToList();
 
-        var text = parts.Count == 0 ? step.Type : $"{step.Type} · {string.Join(", ", parts)}";
+        // The step's own name goes first: it is what a breakpoint, a failure key and the log call
+        // this step by, so the row has to say it too.
+        var written = parts.Count == 0 ? step.Type : $"{step.Type} · {string.Join(", ", parts)}";
+        var text = step.Id.Length == 0 ? written : $"{step.Id} · {written}";
         return text.Length <= 90 ? text : text[..87] + "\u2026";
     }
 
     private void RefreshVariables()
     {
         Variables.Clear();
-        // Only what this macro touches: a macro that never reads the clock should not have
-        // the clock sitting in its watch list.
-        var rows = _variables.Flatten()
-            .Where(pair => _watched.Contains(pair.Key))
-            .Select(pair => new WatchedVariable(pair.Key, ScopeOf(pair.Key), pair.Value.AsText()))
+
+        // Every variable the macro uses is listed from the start, whether or not a step has reached
+        // it: a watch list that grows one row at a time answers "what has run", not "what does this
+        // macro work with". The value is empty until something writes it.
+        var live = _variables.Flatten().ToDictionary(pair => pair.Key, pair => pair.Value,
+            StringComparer.OrdinalIgnoreCase);
+        var rows = _choices
+            .Where(choice => _watched.Contains(choice.Name))
+            .Select(choice => new WatchedVariable(choice.Name, ScopeLabel(choice.Scope),
+                TypeOf(choice.Type, live.GetValueOrDefault(choice.Name)),
+                live.TryGetValue(choice.Name, out var held) ? held.AsText() : string.Empty))
             .OrderBy(row => Rank(row.Name))
             .ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase);
 
@@ -1539,6 +1558,36 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         : _variables.Global.Contains(name)
             ? Strings.Get("Variable.Scope.Global")
             : Strings.Get("Variable.Scope.System");
+
+    /// <summary>Where a variable lives, as the one word the watch list shows for it.</summary>
+    private static string ScopeLabel(VariableScope scope) => scope switch
+    {
+        VariableScope.Local => Strings.Get("Variable.Scope.Local"),
+        VariableScope.Global => Strings.Get("Variable.Scope.Global"),
+        _ => Strings.Get("Variable.Scope.System"),
+    };
+
+    /// <summary>
+    /// What a watched variable holds, in the catalogue's own words. A variable a step creates says
+    /// nothing about its type until something is written, so the value that is there answers
+    /// instead; with neither, the type is left blank rather than guessed.
+    /// </summary>
+    private static string TypeOf(string declared, Value? held)
+    {
+        if (declared.Length > 0)
+        {
+            return declared;
+        }
+
+        return held switch
+        {
+            null => string.Empty,
+            { IsList: true } => "list",
+            { IsRecord: true } => "record",
+            { IsNumber: true } => "number",
+            _ => "text",
+        };
+    }
 
     /// <summary>
     /// The names worth watching: everything the macro creates for itself, plus everything it

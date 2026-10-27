@@ -344,8 +344,10 @@ public class GlobalVariablesTests
     [Fact]
     public void Run_debug_reads_globals_while_the_variable_center_owns_the_editor()
     {
+        // The debug window shows the variables the macro in front of it uses, and nothing else:
+        // creating or editing a global belongs to the variable center, not to a run.
         var run = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
-        Assert.Contains("vm:RunGlobalVariable", run, System.StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Variables}\"", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("AddGlobalCommand", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("RemoveGlobalCommand", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("NewPersistValue", run, System.StringComparison.Ordinal);
