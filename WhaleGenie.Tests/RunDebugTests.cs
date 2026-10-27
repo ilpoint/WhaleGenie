@@ -266,10 +266,10 @@ public class RunDebugTests
             Assert.Single(child.Guides);
 
             // The guide is drawn, not only described: a row inside the loop carries one line cell
-            // that is 14 wide and as tall as the row it marks.
+            // that is 22 wide and as tall as the row it marks.
             var guide = window.GetVisualDescendants().OfType<Border>()
                 .First(border => border.DataContext is int);
-            Assert.Equal(14, guide.Bounds.Width);
+            Assert.Equal(22, guide.Bounds.Width);
             Assert.True(guide.Bounds.Height > 0);
 
             window.Close();
