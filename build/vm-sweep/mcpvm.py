@@ -5,6 +5,7 @@ is the SSH connection that is already open: a local port forwards to the VM's lo
 calls go through it. Nothing is exposed on the network.
 """
 
+import base64
 import http.client
 import json
 import os
@@ -142,6 +143,23 @@ class Mcp:
                 parts.append(f"[image {block.get('mimeType')} {len(block.get('data', ''))} chars base64]")
         failed = result.get("isError") is True
         return not failed, "\n".join(parts)
+
+    def call_image(self, name, arguments=None):
+        """The image an answer carries, as bytes, plus the text beside it."""
+        self.next_id += 1
+        reply = self._post({
+            "jsonrpc": "2.0", "id": self.next_id, "method": "tools/call",
+            "params": {"name": name, "arguments": arguments or {}},
+        })
+        result = reply.get("result", {})
+        image = None
+        text = ""
+        for block in result.get("content", []):
+            if block.get("type") == "image":
+                image = base64.b64decode(block.get("data", ""))
+            elif block.get("type") == "text":
+                text = block.get("text", "")
+        return image, text
 
     def tools(self):
         self.next_id += 1
