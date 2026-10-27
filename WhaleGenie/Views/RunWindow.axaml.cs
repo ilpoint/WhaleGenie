@@ -104,6 +104,29 @@ public partial class RunWindow : Window
             closeButton.Click += (_, _) => Close();
         }
 
+        // A macro that drives another program is watched with that program in front, so this window
+        // is pinned like the editor's: the run stays in sight while the work happens behind it.
+        var pinButton = this.FindControl<Button>("PinButton");
+        if (pinButton is not null)
+        {
+            pinButton.Click += (_, _) =>
+            {
+                Topmost = !Topmost;
+                UpdateTitleBarButtons();
+            };
+        }
+
+        var maximizeButton = this.FindControl<Button>("MaximizeButton");
+        if (maximizeButton is not null)
+        {
+            maximizeButton.Click += (_, _) =>
+                WindowState = WindowState == WindowState.Maximized
+                    ? WindowState.Normal
+                    : WindowState.Maximized;
+        }
+
+        UpdateTitleBarButtons();
+
         // A run keeps going while its window is out of the way, so this one is put away on its own
         // and brought back from the taskbar when the log is wanted again.
         var minimizeButton = this.FindControl<Button>("MinimizeButton");
@@ -218,6 +241,42 @@ public partial class RunWindow : Window
     /// buttons at once, so which of them it is follows from where the run is — carrying on is what
     /// it means once something has stopped it.
     /// </summary>
+    /// <summary>Keeps the pin and the maximize button saying what pressing them will do.</summary>
+    private void UpdateTitleBarButtons()
+    {
+        if (this.FindControl<Button>("PinButton") is { } pin)
+        {
+            pin.Classes.Set("pinned", Topmost);
+            ToolTip.SetTip(pin, Strings.Get(Topmost ? "Common.Unpin" : "Common.Pin"));
+        }
+
+        if (this.FindControl<IconView>("PinIcon") is { } pinIcon)
+        {
+            pinIcon.Data = Topmost ? AppIcons.PinOff : AppIcons.Pin;
+        }
+
+        var maximized = WindowState == WindowState.Maximized;
+        if (this.FindControl<Button>("MaximizeButton") is { } maximize)
+        {
+            ToolTip.SetTip(maximize, Strings.Get(maximized ? "Common.Restore" : "Common.Maximize"));
+        }
+
+        if (this.FindControl<IconView>("MaximizeIcon") is { } maximizeIcon)
+        {
+            maximizeIcon.Data = maximized ? AppIcons.Restore : AppIcons.Maximize;
+        }
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty)
+        {
+            UpdateTitleBarButtons();
+        }
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);

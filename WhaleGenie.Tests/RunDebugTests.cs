@@ -270,6 +270,13 @@ public class RunDebugTests
             Assert.Equal(GridResizeDirection.Columns, side.ResizeDirection);
             Assert.Equal(GridResizeDirection.Rows, inside.ResizeDirection);
 
+            // The minimum belongs to the column the splitter sizes, not to the panel inside it: a
+            // MinWidth on the panel was never consulted, which is how the steps column was made
+            // narrow enough to lose its text.
+            var columns = Assert.IsType<Grid>(side.Parent).ColumnDefinitions;
+            Assert.True(columns[0].MinWidth >= 200);
+            Assert.True(columns[2].MinWidth >= 200);
+
             window.Close();
         });
     }
