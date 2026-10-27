@@ -29,6 +29,20 @@ public partial class BreakpointWindow : Window
         viewModel.Finished += () => Close(viewModel);
     }
 
+    /// <summary>The builder the action form opens for a condition, opened on the same expression.</summary>
+    private async void OnOpenExpressionBuilder(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not BreakpointViewModel form)
+        {
+            return;
+        }
+
+        if (await ExpressionBuilderWindow.ShowFor(this, form.Expression, form.Choices) is { } built)
+        {
+            form.Expression = built;
+        }
+    }
+
     /// <summary>Escape leaves the breakpoint as it was; Enter keeps what was written.</summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {

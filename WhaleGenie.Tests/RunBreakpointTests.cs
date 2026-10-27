@@ -37,9 +37,8 @@ public class RunBreakpointTests
             var panel = window.OwnedWindows.OfType<BreakpointWindow>().Single();
             var form = (BreakpointViewModel)panel.DataContext!;
             Assert.Contains("n", form.Variables);
+            Assert.Contains("$n", form.ExpressionSuggestions);
 
-            form.ChosenVariable = "n";
-            Assert.Equal("$n", form.Expression);
             form.Expression = "$n > 3";
             form.HitTimes = 2;
             form.SaveCommand.Execute(null);

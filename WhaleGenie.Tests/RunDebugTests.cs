@@ -351,9 +351,13 @@ public class RunDebugTests
         });
     }
 
-    /// <summary>The little panel: an inserted name goes into the expression, and the count is kept.</summary>
+    /// <summary>
+    /// The panel writes its condition the way every other condition field does: the names and the
+    /// functions complete as they are typed, and the line under the box says what it reads or what is
+    /// wrong with it.
+    /// </summary>
     [Fact]
-    public void The_breakpoint_panel_writes_what_the_person_picked()
+    public void The_breakpoint_panel_reads_its_expression_and_keeps_the_count()
     {
         Ui.Run(() =>
         {
@@ -366,14 +370,23 @@ public class RunDebugTests
                 HitTimes = 4,
             };
 
-            panel.ChosenVariable = "total";
-            Assert.Equal("$total", panel.Expression);
+            Assert.Contains("$total", panel.ExpressionSuggestions);
+            Assert.Contains(panel.ExpressionSuggestions,
+                suggestion => suggestion.EndsWith("(", StringComparison.Ordinal));
+
+            panel.Expression = "$total >";
+            Assert.True(panel.ShowExpressionError);
+            Assert.False(panel.ShowExpressionSuccess);
+
+            panel.Expression = "$total > 3";
+            Assert.False(panel.ShowExpressionError);
+            Assert.True(panel.ShowExpressionSuccess);
 
             panel.SaveCommand.Execute(null);
             Assert.Equal(BreakpointViewModel.Ending.Save, panel.How);
             Assert.NotNull(panel.Rule);
             Assert.Equal(4, panel.Rule!.HitTimes);
-            Assert.Equal("$total", panel.Rule.Expression);
+            Assert.Equal("$total > 3", panel.Rule.Expression);
         });
     }
 

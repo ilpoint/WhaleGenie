@@ -41,14 +41,26 @@
             <StackPanel Spacing="6">
                 <TextBlock Classes="Field"
                            Text="{Binding [Run.BreakpointWhenLabel], Source={x:Static loc:Strings.Current}}" />
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox Name="ExpressionBox" Text="{Binding Expression}" FontSize="12.5"
-                             Watermark="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}" />
-                    <ComboBox Grid.Column="1" Name="VariablePicker" MinWidth="130" FontSize="12"
-                              ItemsSource="{Binding Variables}"
-                              SelectedItem="{Binding ChosenVariable}"
-                              PlaceholderText="{Binding [Run.BreakpointInsertVariable], Source={x:Static loc:Strings.Current}}" />
+                <!-- The same box the action form uses for a condition: names and functions complete
+                     as they are typed, and the builder stands beside it. -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <AutoCompleteBox Name="ExpressionBox" Classes="VarInput" Text="{Binding Expression}"
+                                     ItemsSource="{Binding ExpressionSuggestions}"
+                                     MinimumPrefixLength="1" FilterMode="Contains"
+                                     FontSize="12.5"
+                                     Watermark="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            Name="BuildExpressionButton"
+                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenExpressionBuilder" />
                 </Grid>
+                <TextBlock Classes="Muted" Margin="2,2,0,0" Foreground="#E06C75"
+                           Text="{Binding ExpressionMessage}"
+                           IsVisible="{Binding ShowExpressionError}" />
+                <TextBlock Classes="Muted" Margin="2,2,0,0" Foreground="#7FC97F"
+                           Text="{Binding ExpressionMessage}"
+                           IsVisible="{Binding ShowExpressionSuccess}" />
                 <TextBlock Classes="Muted"
                            Text="{Binding [Run.BreakpointExpressionHint], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
