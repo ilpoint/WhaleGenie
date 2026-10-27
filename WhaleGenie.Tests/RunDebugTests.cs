@@ -265,6 +265,119 @@ public class RunDebugTests
     }
 
     /// <summary>
+    /// A breakpoint can wait for an arrival: the first two times past it the run goes on, the third
+    /// time it stops, which is what debugging the eighty-seventh pass of a loop asks for.
+    /// </summary>
+    [Fact]
+    public void A_breakpoint_can_stop_on_a_given_arrival()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            viewModel.SetBreakpointRule(row, new BreakpointRule { HitTimes = 3 });
+
+            Assert.False(viewModel.StopsHere(row.Id));
+            Assert.False(viewModel.StopsHere(row.Id));
+            Assert.True(viewModel.StopsHere(row.Id));
+            Assert.True(viewModel.StopsHere(row.Id));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A condition nobody can work out is not a reason to stop: the run goes on and the log says what
+    /// the question was, where a breakpoint that stops at random is worse than one that does not.
+    /// </summary>
+    [Fact]
+    public void A_condition_that_cannot_be_read_does_not_stop_the_run()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = "$nowhere == 1" });
+
+            Assert.False(viewModel.StopsHere(row.Id));
+            Assert.Contains(viewModel.Lines, line => line.Text.Contains("断点", StringComparison.Ordinal));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A rule that asks nothing is the same breakpoint as one set without a panel: it stops every
+    /// time and the row says nothing about a condition.
+    /// </summary>
+    [Fact]
+    public void A_rule_that_asks_nothing_leaves_the_row_without_a_note()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            viewModel.SetBreakpointRule(row, new BreakpointRule { HitTimes = 1 });
+
+            Assert.True(row.HasBreakpoint);
+            Assert.Equal(string.Empty, row.ConditionNote);
+            Assert.Null(viewModel.BreakpointRuleOf(row.Id));
+
+            viewModel.SetBreakpointRule(row, new BreakpointRule { HitTimes = 2 });
+            Assert.Equal(Strings.Format("Run.BreakpointNoteHits", 2), row.ConditionNote);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>The little panel: an inserted name goes into the expression, and the count is kept.</summary>
+    [Fact]
+    public void The_breakpoint_panel_writes_what_the_person_picked()
+    {
+        Ui.Run(() =>
+        {
+            var choices = new List<VariableChoice>
+            {
+                new() { Name = "total", Scope = VariableScope.Local },
+            };
+            var panel = new BreakpointViewModel(null, choices)
+            {
+                HitTimes = 4,
+            };
+
+            panel.ChosenVariable = "total";
+            Assert.Equal("$total", panel.Expression);
+
+            panel.SaveCommand.Execute(null);
+            Assert.Equal(BreakpointViewModel.Ending.Save, panel.How);
+            Assert.NotNull(panel.Rule);
+            Assert.Equal(4, panel.Rule!.HitTimes);
+            Assert.Equal("$total", panel.Rule.Expression);
+        });
+    }
+
+    /// <summary>
     /// The note an action carries is written under the step, the same one the editor shows: it is
     /// where the person who wrote the macro says why the step is there.
     /// </summary>
@@ -687,7 +800,7 @@ public class RunDebugTests
             StepIds.Settle([sets, guarded]);
             var viewModel = new RunViewModel([sets, guarded], NullDeviceLayer.Instance);
             var row = viewModel.Steps.First(step => step.Id == guarded.Id);
-            viewModel.ConditionBreakpoint(row, GreaterThan("$n", "3"));
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = "$n > 3" });
 
             viewModel.RunCommand.Execute(null);
             var wentPast = await Until(() => !viewModel.IsBusy);
@@ -702,7 +815,7 @@ public class RunDebugTests
             StepIds.Settle([setsAgain, held]);
             var second = new RunViewModel([setsAgain, held], NullDeviceLayer.Instance);
             var stopped = second.Steps.First(step => step.Id == held.Id);
-            second.ConditionBreakpoint(stopped, GreaterThan("$n", "0"));
+            second.SetBreakpointRule(stopped, new BreakpointRule { Expression = "$n > 0" });
 
             second.RunCommand.Execute(null);
             var paused = await Until(() => second.IsPaused);
@@ -723,7 +836,7 @@ public class RunDebugTests
         Assert.False(answer.notYet, "the run went past the breakpoint it should have stopped at");
         Assert.True(answer.Stopped);
         Assert.True(answer.has);
-        Assert.Contains("3", answer.note, System.StringComparison.Ordinal);
+        Assert.Contains("$n > 3", answer.note, System.StringComparison.Ordinal);
     }
 
     /// <summary>

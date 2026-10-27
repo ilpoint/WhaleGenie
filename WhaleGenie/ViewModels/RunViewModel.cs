@@ -317,12 +317,9 @@ public partial class RunStepViewModel : ObservableObject
     /// Keeps what the step's breakpoint waits for, so the row says why a run may go past it: a
     /// breakpoint with a condition is not the same promise as one without.
     /// </summary>
-    public void Waits(MacroStep? condition)
+    public void Waits(BreakpointRule? rule)
     {
-        ConditionNote = condition is null
-            ? string.Empty
-            : Strings.Format("Run.BreakpointWhen",
-                RunViewModel.Detail(new[] { condition }.ToExecutable()[0]));
+        ConditionNote = rule is null || rule.Always ? string.Empty : rule.Note;
     }
 }
 
@@ -542,12 +539,14 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private readonly HashSet<string> _breakpoints = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The condition each breakpoint waits for, for the ones that have one: a breakpoint with a
-    /// condition is a question about the values in play, and it stops the run only when the answer
-    /// is yes. A breakpoint without an entry here always stops.
+    /// What each breakpoint waits for: how many arrivals count, and an expression that has to hold.
+    /// A breakpoint with no entry here stops the moment the run reaches it.
     /// </summary>
-    private readonly Dictionary<string, MacroStep> _breakpointConditions =
+    private readonly Dictionary<string, BreakpointRule> _breakpointRules =
         new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How many times the run has arrived at each breakpoint since it started.</summary>
+    private readonly Dictionary<string, int> _breakpointHits = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// True while the step in front of the run is to be left out: what "skip this step once" sets,
@@ -717,7 +716,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _watched = VariablesUsed(source);
 
         _breakpoints.Clear();
-        _breakpointConditions.Clear();
+        _breakpointRules.Clear();
+        _breakpointHits.Clear();
         Steps.Clear();
         Lines.Clear();
         ShowStepOutcomes = false;
@@ -1073,46 +1073,71 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         {
             _breakpoints.Remove(row.Id);
 
-            // A breakpoint that is gone has nothing left to wait for: a condition kept behind it
-            // would turn up again on the next breakpoint put on the same step.
-            _breakpointConditions.Remove(row.Id);
+            // A breakpoint that is gone has nothing left to wait for: a rule kept behind it would
+            // turn up again on the next breakpoint put on the same step.
+            _breakpointRules.Remove(row.Id);
+            _breakpointHits.Remove(row.Id);
             row.Waits(null);
         }
     }
 
     /// <summary>
-    /// Gives a step's breakpoint a condition to wait for, turning the breakpoint on with it: a
-    /// condition is what a breakpoint is about, and setting one on a step that has no breakpoint
-    /// means the user wants that step to stop when the condition holds.
+    /// Gives a step's breakpoint what to wait for, turning the breakpoint on with it: how many
+    /// arrivals count and an expression that has to hold are both about the breakpoint, and setting
+    /// either on a step that has no breakpoint means the step should stop when they say so.
     /// </summary>
-    public void ConditionBreakpoint(RunStepViewModel? row, MacroStep condition)
+    public void SetBreakpointRule(RunStepViewModel? row, BreakpointRule rule)
     {
         if (row is null)
         {
             return;
+        }
+
+        _breakpointHits.Remove(row.Id);
+        if (rule.Always)
+        {
+            _breakpointRules.Remove(row.Id);
+        }
+        else
+        {
+            _breakpointRules[row.Id] = rule;
         }
 
         _breakpoints.Add(row.Id);
-        _breakpointConditions[row.Id] = condition;
         row.HasBreakpoint = true;
-        row.Waits(condition);
+        row.Waits(rule);
     }
 
     /// <summary>Puts a breakpoint back to stopping every time it is reached.</summary>
-    public void ClearBreakpointCondition(RunStepViewModel? row)
+    public void ClearBreakpointRule(RunStepViewModel? row)
     {
         if (row is null)
         {
             return;
         }
 
-        _breakpointConditions.Remove(row.Id);
+        _breakpointRules.Remove(row.Id);
+        _breakpointHits.Remove(row.Id);
         row.Waits(null);
     }
 
-    /// <summary>The condition a step's breakpoint waits for, or null while it always stops.</summary>
-    public MacroStep? BreakpointCondition(string stepId)
-        => _breakpointConditions.TryGetValue(stepId, out var condition) ? condition : null;
+    /// <summary>What a step's breakpoint waits for, or null while it stops every time.</summary>
+    public BreakpointRule? BreakpointRuleOf(string stepId)
+        => _breakpointRules.TryGetValue(stepId, out var rule) ? rule : null;
+
+    /// <summary>
+    /// A condition written in the panel, as the one step the engine asks its questions with. The
+    /// `if` action is where a condition already lives, so a condition written here reads exactly the
+    /// way one written in the macro does.
+    /// </summary>
+    private static ExecutableStep ConditionStep(string expression) => new()
+    {
+        Type = "control.if",
+        Parameters =
+        [
+            new ExecutableParameter { Name = "condition", Text = expression.Trim() },
+        ],
+    };
 
     /// <summary>
     /// The names a breakpoint's condition may use: the same ones the macro's own fields are offered,
@@ -1262,28 +1287,45 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// cannot be worked out at all stops the run too and says so in the log, because a breakpoint
     /// nobody can read is not the same thing as a breakpoint that has not been reached.
     /// </summary>
-    private bool StopsHere(string stepId)
+    internal bool StopsHere(string stepId)
     {
         if (!_breakpoints.Contains(stepId))
         {
             return false;
         }
 
-        if (BreakpointCondition(stepId) is not { } condition)
+        var rule = BreakpointRuleOf(stepId);
+        var arrived = _breakpointHits[stepId] = _breakpointHits.GetValueOrDefault(stepId) + 1;
+        if (rule is null)
         {
             return true;
         }
 
-        var answer = MacroRunner.AskCondition(new[] { condition }.ToExecutable()[0], _variables,
+        // The count is kept whether or not the expression holds: "the third time the run passes
+        // here and the value is 5" means the third arrival, not the third match.
+        if (rule.WaitsForHits && arrived < rule.HitTimes)
+        {
+            return false;
+        }
+
+        if (!rule.WaitsForExpression)
+        {
+            return true;
+        }
+
+        var answer = MacroRunner.AskCondition(ConditionStep(rule.Expression), _variables,
             _devices, _macros);
         if (answer.Key.Length == 0)
         {
             return answer.Holds;
         }
 
+        // A condition nobody can work out is not a reason to stop the run: a breakpoint that stops
+        // at random is worse than one that says it could not read its own question and stays out of
+        // the way.
         Write(Strings.Format("Run.BreakpointUnreadable",
             answer.Detail.Length == 0 ? Strings.Get(answer.Key) : Strings.Format(answer.Key, answer.Detail)));
-        return true;
+        return false;
     }
 
     /// <summary>Writes one line into the log that did not come from the run itself.</summary>

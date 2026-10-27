@@ -377,29 +377,26 @@ public partial class RunWindow : Window
                 viewModel.ToggleBreakpointCommand.Execute(row);
                 break;
             case "condition":
-                var dialog = new ActionEditorWindow(
-                    viewModel.BreakpointCondition(row.Id),
-                    ActionCatalog.ForKeys(["control.if"]), viewModel.Choices,
-                    null, null, ImageAssets.FolderFor(null))
+                // A small panel of its own, not the action editor: a condition is a question about
+                // the run, and asking somebody to build an `if` step to write it was the reason
+                // nobody used this.
+                var panel = await BreakpointWindow.EditAsync(this, viewModel.BreakpointRuleOf(row.Id),
+                    viewModel.Choices);
+                if (panel is null || panel.How is BreakpointViewModel.Ending.Cancel)
                 {
-                    // The condition is tried out on the devices the run is on: a picture taken for
-                    // its own sake then lands in the program's own folder, which is the one place
-                    // the window knows of.
-                    Devices = viewModel.Devices,
-                };
-                // The window itself is waited on rather than the modal loop it is shown in: a picker
-                // hides it while it is out, and a hidden modal window is answered with nothing
-                // before the condition is finished. See ActionEditorWindow.Answer.
-                _ = dialog.ShowDialogOver<MacroStep?>(this);
-                var written = await dialog.Answer;
-                if (written is { } condition)
-                {
-                    viewModel.ConditionBreakpoint(row, condition);
+                    break;
                 }
 
+                if (panel.How is BreakpointViewModel.Ending.Clear || panel.Rule is null)
+                {
+                    viewModel.ClearBreakpointRule(row);
+                    break;
+                }
+
+                viewModel.SetBreakpointRule(row, panel.Rule);
                 break;
             case "clear":
-                viewModel.ClearBreakpointCondition(row);
+                viewModel.ClearBreakpointRule(row);
                 break;
         }
     }

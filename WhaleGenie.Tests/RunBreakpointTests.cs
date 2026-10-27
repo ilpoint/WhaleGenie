@@ -32,44 +32,46 @@ public class RunBreakpointTests
 
             Click(window, row, "condition");
 
-            // The form is the editor's ordinary if form: its condition field is the one expression
-            // a breakpoint asks before the step it belongs to runs.
-            var dialog = window.OwnedWindows.OfType<ActionEditorWindow>().Single();
-            var form = (AddActionViewModel)dialog.DataContext!;
-            Assert.All(form.AvailableActions,
-                action => Assert.Equal("control.if", action.Key));
+            // The panel is the breakpoint's own: one expression, one count, and the names the run
+            // knows offered beside it. It is not the action editor, which is what it used to be.
+            var panel = window.OwnedWindows.OfType<BreakpointWindow>().Single();
+            var form = (BreakpointViewModel)panel.DataContext!;
+            Assert.Contains("n", form.Variables);
 
-            form.SelectAction("control.if");
-            Dispatcher.UIThread.RunJobs();
-            form.Parameters.First(parameter => parameter.Definition.Name == "condition").Text = "$n > 3";
-            Assert.True(form.CanSave, form.ValidationMessage);
+            form.ChosenVariable = "n";
+            Assert.Equal("$n", form.Expression);
+            form.Expression = "$n > 3";
+            form.HitTimes = 2;
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();
 
-            // The dialog is gone and the step's dot is on: setting a condition on a step that had
+            // The panel is gone and the step's dot is on: setting a condition on a step that had
             // no breakpoint means "stop here when this holds".
-            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
+            Assert.Empty(window.OwnedWindows.OfType<BreakpointWindow>());
             Assert.True(row.HasBreakpoint);
-            Assert.Equal("control.if", viewModel.BreakpointCondition(row.Id)!.Type);
+            var rule = viewModel.BreakpointRuleOf(row.Id)!;
+            Assert.Equal("$n > 3", rule.Expression);
+            Assert.Equal(2, rule.HitTimes);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
             Assert.Contains("$n > 3", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("2", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.True(row.HasCondition);
 
-            // Opening it again shows what was written rather than a blank form.
+            // Opening it again shows what was written rather than a blank panel.
             Click(window, row, "condition");
-            var again = (AddActionViewModel)window.OwnedWindows.OfType<ActionEditorWindow>().Single().DataContext!;
-            Assert.Equal("control.if", again.SelectedDefinition!.Key);
-            Assert.Equal("$n > 3", again.Parameters
-                .First(parameter => parameter.Definition.Name == "condition").Text);
+            var again = (BreakpointViewModel)window.OwnedWindows.OfType<BreakpointWindow>().Single()
+                .DataContext!;
+            Assert.Equal("$n > 3", again.Expression);
+            Assert.Equal(2, again.HitTimes);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
             // Clearing the condition leaves the breakpoint standing: it is back to stopping every
             // time it is reached.
             Click(window, row, "clear");
-            Assert.Null(viewModel.BreakpointCondition(row.Id));
+            Assert.Null(viewModel.BreakpointRuleOf(row.Id));
             Assert.True(row.HasBreakpoint);
             Assert.False(row.HasCondition);
 

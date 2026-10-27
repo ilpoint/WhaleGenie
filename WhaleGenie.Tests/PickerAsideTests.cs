@@ -303,14 +303,18 @@ public class PickerAsideTests
     [Fact]
     public void The_action_window_is_waited_on_rather_than_its_modal_loop()
     {
-        foreach (var name in new[] { "MacroEditorWindow.axaml.cs", "RunWindow.axaml.cs" })
-        {
-            var source = Source(name);
+        // The action editor is opened from the macro editor, and it carries pickers: its Answer is
+        // what is awaited, because a hidden modal window answers nothing.
+        var editor = Source("MacroEditorWindow.axaml.cs");
+        Assert.Contains("await dialog.Answer", editor, StringComparison.Ordinal);
+        Assert.DoesNotContain("await dialog.ShowDialogOver<MacroStep?>", editor,
+            StringComparison.Ordinal);
 
-            Assert.Contains("await dialog.Answer", source, StringComparison.Ordinal);
-            Assert.DoesNotContain("await dialog.ShowDialogOver<MacroStep?>", source,
-                StringComparison.Ordinal);
-        }
+        // The run window no longer opens that editor: a breakpoint's condition is written in a panel
+        // of its own, which carries no picker and can be waited on like any small dialog.
+        var run = Source("RunWindow.axaml.cs");
+        Assert.DoesNotContain("ShowDialogOver<MacroStep?>", run, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ActionEditorWindow(", run, StringComparison.Ordinal);
     }
 
     /// <summary>
