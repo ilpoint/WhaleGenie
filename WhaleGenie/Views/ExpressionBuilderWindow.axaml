@@ -314,7 +314,7 @@
                                                       ToolTip.Tip="{Binding LabelHint}" />
                                             <ComboBox Classes="Cell" Width="150"
                                                       ItemsSource="{Binding Choices}"
-                                                      SelectedItem="{Binding ChoiceValue}"
+                                                      SelectedItem="{Binding ChosenWord}"
                                                       PlaceholderText="{Binding HoleHint}"
                                                       IsVisible="{Binding IsChoice}" />
                                             <Border Classes="Chip" IsVisible="{Binding ShowsToken}">

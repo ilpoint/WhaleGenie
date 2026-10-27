@@ -51,12 +51,12 @@ public class ExpressionBuilderTreeTests
             // The first argument is a variable that was already there, so it stays what it is.
             Assert.False(slots[0].IsTyped);
             Assert.True(slots[1].IsChoice);
-            Assert.Contains("contains", slots[1].Choices);
+            Assert.Contains(slots[1].Choices, word => word.Word == "contains");
             Assert.False(slots[1].IsTextBox);
             Assert.True(slots[3].IsFlag);
             Assert.True(slots[3].FlagValue);
 
-            slots[1].ChoiceValue = "regex";
+            slots[1].ChosenWord = slots[1].Choices.First(word => word.Word == "regex");
             slots[3].FlagValue = false;
 
             Assert.Contains("regex", builder.Preview, System.StringComparison.Ordinal);

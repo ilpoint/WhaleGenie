@@ -121,6 +121,8 @@ internal static class ArgumentLibrary
             ["comparison"] = ("Comparison",
                 "Contains, startsWith, endsWith, equals or regex, or a number comparison: >, >=, <, <=, = or !=."),
             ["needle"] = ("Wanted", "The text or number to compare against."),
+            ["compare.needle"] = ("Wanted",
+                "The text or number to compare against. With the regex way, this is the pattern."),
             ["multiline"] = ("Regex by line",
                 "True to let ^ and $ stand for the start and end of every line."),
             ["record"] = ("Record", "The record to read a field from."),

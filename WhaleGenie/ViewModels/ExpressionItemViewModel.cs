@@ -227,8 +227,23 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>True for a line that is one of a few words.</summary>
     public bool IsChoice => IsTyped && Slot?.Kind is ExpressionParameterKind.Choice;
 
-    /// <summary>The words that may be picked here, or nothing when this is not a choice.</summary>
-    public IReadOnlyList<string> Choices => Slot?.Choices ?? [];
+    /// <summary>The words that may be picked here, each shown in the reader's language.</summary>
+    public IReadOnlyList<ChoiceWord> Choices => [.. (Slot?.Choices ?? [])
+        .Select(word => new ChoiceWord(word, Strings.Get($"Expr.Compare.{word}", word)))];
+
+    /// <summary>The word picked here, held as the pair the box shows rather than as its text.</summary>
+    public ChoiceWord? ChosenWord
+    {
+        get => Choices.FirstOrDefault(word =>
+            string.Equals(word.Word, _literal, StringComparison.Ordinal));
+        set => ChoiceValue = value?.Word;
+    }
+
+    /// <summary>One word a comparison may hold, with the language's name for it beside the word itself.</summary>
+    public sealed record ChoiceWord(string Word, string Label)
+    {
+        public override string ToString() => Label;
+    }
 
     /// <summary>True for the lines written by typing, which is everything that is not ticked or picked.</summary>
     public bool IsTextBox => IsTyped && Slot?.Kind is not (ExpressionParameterKind.Flag
@@ -272,8 +287,10 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsChoice));
         OnPropertyChanged(nameof(IsTextBox));
         OnPropertyChanged(nameof(Choices));
+        OnPropertyChanged(nameof(ChosenWord));
         OnPropertyChanged(nameof(FlagValue));
         OnPropertyChanged(nameof(ChoiceValue));
+        OnPropertyChanged(nameof(ChosenWord));
     }
 
     /// <summary>True for the pieces that are filled by typing in their own line.</summary>
@@ -456,5 +473,6 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsTextBox));
         OnPropertyChanged(nameof(FlagValue));
         OnPropertyChanged(nameof(ChoiceValue));
+        OnPropertyChanged(nameof(ChosenWord));
     }
 }

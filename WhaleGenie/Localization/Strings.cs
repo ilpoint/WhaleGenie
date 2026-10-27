@@ -1268,6 +1268,18 @@ public sealed class Strings : INotifyPropertyChanged
             + "a place as well. Brackets are not typed here: the shape of the tree decides them.",
         ["ExprBuilder.Tree.CannotRead"] = "What is written on the other page is not a formula "
             + "yet, so there is nothing to show here. Write it there, and come back.",
+        // The words a comparison may hold, as the box beside the word says them.
+        ["Expr.Compare.contains"] = "contains",
+        ["Expr.Compare.startsWith"] = "starts with",
+        ["Expr.Compare.endsWith"] = "ends with",
+        ["Expr.Compare.equals"] = "is exactly",
+        ["Expr.Compare.regex"] = "matches regex",
+        ["Expr.Compare.>"] = "greater than",
+        ["Expr.Compare.>="] = "greater or equal",
+        ["Expr.Compare.<"] = "less than",
+        ["Expr.Compare.<="] = "less or equal",
+        ["Expr.Compare.="] = "equals",
+        ["Expr.Compare.!="] = "not equal",
         ["ExprBuilder.Tree.Hole"] = "Number or text",
         ["ExprBuilder.Tree.Picked"] = "Picked: {0}",
         ["ExprBuilder.Tree.Nothing"] = "Nothing written yet: OK leaves the value empty.",
@@ -3355,6 +3367,18 @@ public sealed class Strings : INotifyPropertyChanged
         // What each function is called in Chinese, which is the name a reader who does not read the
         // code name by heart reaches for. Short enough to sit on a button beside the code name; the
         // English half is the code name itself, so only the Chinese is written here.
+        // 比较方式下拉里的词：左边是写进公式的那个词，这边是它在这一页上的中文。
+        ["Expr.Compare.contains"] = "包含",
+        ["Expr.Compare.startsWith"] = "开头是",
+        ["Expr.Compare.endsWith"] = "结尾是",
+        ["Expr.Compare.equals"] = "完全相同",
+        ["Expr.Compare.regex"] = "正则匹配",
+        ["Expr.Compare.>"] = "大于",
+        ["Expr.Compare.>="] = "大于或等于",
+        ["Expr.Compare.<"] = "小于",
+        ["Expr.Compare.<="] = "小于或等于",
+        ["Expr.Compare.="] = "等于",
+        ["Expr.Compare.!="] = "不等于",
         ["Expr.FnName.upper"] = "转大写",
         ["Expr.FnName.lower"] = "转小写",
         ["Expr.FnName.trim"] = "去两端空格",
@@ -3366,6 +3390,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Expr.FnName.join"] = "拼接列表",
         ["Expr.FnName.contains"] = "包含",
         ["Expr.FnName.compare"] = "比较",
+        ["Expr.Arg.compare.needle.hint"] = "要比对的文字或数字；比较方式选「正则匹配」时，这里填正则表达式。",
         ["Expr.FnName.startsWith"] = "判断开头",
         ["Expr.FnName.endsWith"] = "判断结尾",
         ["Expr.FnName.indexOf"] = "查找位置",
