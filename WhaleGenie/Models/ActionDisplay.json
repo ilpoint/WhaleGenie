@@ -17338,7 +17338,7 @@
   {
     "Key": "browser.evaluate",
     "DisplayName": "Run Script In The Page",
-    "Description": "Runs a short script inside the page and hands back what it returned.",
+    "Description": "Run a short script inside the page and take back what it returns. A string comes back as it is; a number, flag, list or record comes back as JSON, so passing the result to a step such as Go to needs no unquoting.",
     "Parameters": [
       {
         "Name": "script",

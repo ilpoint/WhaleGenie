@@ -2835,7 +2835,8 @@ internal static class ActionStrings
             + "里，是因为对话框没人回答时页面就停在那里：触发它的那一步要等到被回答之后才会返回。",
 
         ["browser.evaluate.name"] = "在页面里跑脚本",
-        ["browser.evaluate.desc"] = "在页面里跑一小段脚本，并把它交回的结果拿出来。",
+        ["browser.evaluate.desc"] = "在页面里跑一小段脚本，并把它交回的结果拿出来：字符串原样交回，"
+            + "数字、真假、列表与记录写成 JSON，所以把结果交给下一步（例如浏览器打开）时不用去引号。",
         ["browser.evaluate.script.label"] = "脚本",
         ["browser.evaluate.script.hint"] = "要跑的脚本，写成页面会调用的一段函数，例如 "
             + "() => { return document.title; }。它在页面自己里面跑，所以页面读得到的东西它都读得到；"
