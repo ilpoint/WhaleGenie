@@ -2781,12 +2781,17 @@ public partial class MacroEditorWindow : Window
                 .FirstOrDefault();
             if (emptyBand is not null)
             {
-                var first = emptyBand.OrderBy(candidate => candidate.Row.RowIndex).First();
-                _dropSlot = first.Row.RowIndex;
-                _dropMarkerY = first.Top;
-                _dropMarkerIndent = (first.Row.Depth + 1) * 18;
+                // The band stands for "inside this block", the same thing the middle of a filled
+                // block means: slot -1 with the block named. Landing it on the block's own row
+                // instead put the action before the block, which looked like a drop that did not
+                // take. The marker is drawn where the body begins, so the band sits inside.
+                var body = emptyBand.OrderBy(candidate => candidate.Row.RowIndex).First();
+                var title = emptyBand.FirstOrDefault(candidate => candidate.Row.IsHead);
+                _dropInto = body.Row.Step;
+                _dropSlot = -1;
+                _dropMarkerY = title.Top;
+                _dropMarkerIndent = (title.Row.Depth + 1) * 18;
                 _dropHintKey = "Editor.DropIntoEmptyList";
-                _dropInto = null;
                 EvaluateDrop(_dropSlot, _dropInto, actionKey);
                 ShowDropMarker();
                 return;

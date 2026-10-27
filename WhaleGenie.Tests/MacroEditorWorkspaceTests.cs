@@ -549,6 +549,55 @@ public class MacroEditorWorkspaceTests
         });
     }
 
+    /// <summary>
+    /// Dropping into an empty body has to land inside it: the band says "inside this block", the
+    /// form opens, and saving puts the action in the body rather than in front of the loop.
+    /// </summary>
+    [Fact]
+    public void Dropping_on_an_empty_body_puts_the_action_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var loop = Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps });
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsFoot: true });
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.delay").Transfer();
+
+            DragAt(list, DragDrop.DropEvent, transfer, new Point(60, (top + bottom) / 2));
+            Dispatcher.UIThread.RunJobs();
+
+            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
+            var form = (AddActionViewModel)action.DataContext!;
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var saved = Assert.Single(editor.Steps);
+            var body = saved.StepLists.Single().Steps;
+            Assert.Single(body);
+            Assert.Equal("control.delay", body[0].Type);
+
+            window.Close();
+        });
+    }
+
     [Fact]
     public void An_empty_block_body_is_a_single_drop_target()
     {
