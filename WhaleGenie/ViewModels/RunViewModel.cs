@@ -111,8 +111,54 @@ public partial class RunStepViewModel : ObservableObject
     /// <summary>True for a step that holds steps of its own: a group, a loop, a branch.</summary>
     public bool IsContainer { get; init; }
 
-    /// <summary>The mark in front of a container, so a folded-looking row still says it has a body.</summary>
-    public string Marker => IsContainer ? "▾" : string.Empty;
+    /// <summary>The step this one sits inside, or nothing for a step at the top of the macro.</summary>
+    public RunStepViewModel? Parent { get; set; }
+
+    /// <summary>The steps this one holds, in the order they run.</summary>
+    public List<RunStepViewModel> Children { get; } = [];
+
+    /// <summary>True while the steps inside this one are shown.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Marker))]
+    public partial bool IsExpanded { get; set; } = true;
+
+    /// <summary>True when nothing above this step is folded away.</summary>
+    [ObservableProperty]
+    public partial bool IsShown { get; set; } = true;
+
+    /// <summary>The mark in front of a container: folded or open, it says the row holds steps.</summary>
+    public string Marker => IsContainer ? (IsExpanded ? "▾" : "▸") : string.Empty;
+
+    /// <summary>What the action is for, in the catalogue's own words.</summary>
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>The action's own key, which is what the file and the log call it by.</summary>
+    public string ActionKey { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The bubble over the row: the whole note the step carries and what the action does, which is
+    /// more than the row has room for.
+    /// </summary>
+    public string Tooltip
+    {
+        get
+        {
+            var lines = new List<string> { Label };
+            if (Description.Length > 0)
+            {
+                lines.Add(Description);
+            }
+
+            if (Comment.Length > 0)
+            {
+                lines.Add($"备注：{Comment}");
+            }
+
+            lines.Add(Detail);
+            lines.Add(string.Join(" · ", new[] { Id, ActionKey }.Where(part => part.Length > 0)));
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
 
     /// <summary>The note the step carries, or empty when it carries none.</summary>
     public string Comment { get; init; } = string.Empty;
@@ -1460,6 +1506,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 if (row.IsCurrent)
                 {
                     current = row;
+                    RevealAncestors(row);
                 }
             }
 
@@ -1474,29 +1521,81 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         gate?.TrySetResult(true);
     }
 
-    private void Build(IReadOnlyList<ExecutableStep> steps, int depth)
+    private void Build(IReadOnlyList<ExecutableStep> steps, int depth, RunStepViewModel? parent = null)
     {
         foreach (var step in steps)
         {
-            Steps.Add(new RunStepViewModel
+            var row = new RunStepViewModel
             {
                 Id = step.Id,
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
+                Description = ActionCatalog.Find(step.Type)?.LocalDescription ?? string.Empty,
+                ActionKey = step.Type,
                 Depth = depth,
                 IsContainer = HoldsSteps(step),
                 Comment = step.Meta.Comment.Trim(),
                 CanBreak = true,
-            });
+                Parent = parent,
+            };
 
-            Build(step.Children("steps"), depth + 1);
-            Build(step.Children("then"), depth + 1);
-            Build(step.Children("else"), depth + 1);
-            Build(step.Children("body"), depth + 1);
-            Build(step.Children("catch"), depth + 1);
-            Build(step.Children("finally"), depth + 1);
-            Build(step.Children("conditions"), depth + 1);
+            Steps.Add(row);
+            parent?.Children.Add(row);
+
+            Build(step.Children("steps"), depth + 1, row);
+            Build(step.Children("then"), depth + 1, row);
+            Build(step.Children("else"), depth + 1, row);
+            Build(step.Children("body"), depth + 1, row);
+            Build(step.Children("catch"), depth + 1, row);
+            Build(step.Children("finally"), depth + 1, row);
+            Build(step.Children("conditions"), depth + 1, row);
         }
+    }
+
+    /// <summary>
+    /// Shows or hides the steps inside one row. The list is flat, so folding is a decision about
+    /// every row underneath: one that has a folded step above it is not shown, however deep it is.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleFold(RunStepViewModel? row)
+    {
+        if (row is null || !row.IsContainer)
+        {
+            return;
+        }
+
+        row.IsExpanded = !row.IsExpanded;
+        RefreshShown();
+    }
+
+    /// <summary>Works out which rows are on screen from the folds above them.</summary>
+    private void RefreshShown()
+    {
+        foreach (var row in Steps)
+        {
+            var shown = true;
+            for (var above = row.Parent; above is not null; above = above.Parent)
+            {
+                if (!above.IsExpanded)
+                {
+                    shown = false;
+                    break;
+                }
+            }
+
+            row.IsShown = shown;
+        }
+    }
+
+    /// <summary>Opens the folds above a step, so the row the run is standing in can be seen.</summary>
+    private void RevealAncestors(RunStepViewModel row)
+    {
+        for (var above = row.Parent; above is not null; above = above.Parent)
+        {
+            above.IsExpanded = true;
+        }
+
+        RefreshShown();
     }
 
     /// <summary>Whether a step holds steps of its own, in any of the lists a block can have.</summary>
@@ -1511,15 +1610,29 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     internal static string Detail(ExecutableStep step)
     {
+        // The fields are named the way the action's form names them: a row saying "url = ..." next
+        // to a form saying "网址" makes the reader match two vocabularies for one field.
+        var labels = ActionCatalog.Find(step.Type)?.Parameters
+            .ToDictionary(parameter => parameter.Name, parameter => parameter.LocalLabel,
+                StringComparer.OrdinalIgnoreCase);
+
         var parts = step.Parameters
             .Where(parameter => parameter.Text.Trim().Length > 0)
-            .Select(parameter => $"{parameter.Name} = {parameter.Text.Trim()}")
+            .Select(parameter => $"{(labels?.GetValueOrDefault(parameter.Name) ?? parameter.Name)}" +
+                                 $" = {parameter.Text.Trim()}")
             .ToList();
 
         // The step's own name goes first: it is what a breakpoint, a failure key and the log call
         // this step by, so the row has to say it too.
-        var written = parts.Count == 0 ? step.Type : $"{step.Type} · {string.Join(", ", parts)}";
+        // The row is written in the reader's words throughout: the action's own key is in the
+        // bubble, where somebody looking for it can find it without reading it on every row.
+        var written = string.Join(", ", parts);
         var text = step.Id.Length == 0 ? written : $"{step.Id} · {written}";
+        if (text.Length == 0)
+        {
+            return step.Type;
+        }
+
         return text.Length <= 90 ? text : text[..87] + "\u2026";
     }
 

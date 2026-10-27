@@ -225,6 +225,79 @@ public class RunDebugTests
     }
 
     /// <summary>
+    /// Folding a group hides what is inside it and nothing else; opening it brings the steps back,
+    /// however deep they sit.
+    /// </summary>
+    [Fact]
+    public void Folding_a_group_hides_the_steps_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var inner = new MacroStep
+            {
+                Type = "control.delay",
+                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "1" }],
+            };
+            var loop = new MacroStep
+            {
+                Type = "control.repeat",
+                Parameters =
+                [
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                    new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [inner] },
+                ],
+            };
+            StepIds.Settle([loop, inner]);
+
+            var window = new RunWindow([loop]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var holder = viewModel.Steps[0];
+            var child = viewModel.Steps[1];
+            Assert.True(child.IsShown);
+            Assert.Equal("▾", holder.Marker);
+
+            viewModel.ToggleFoldCommand.Execute(holder);
+            Assert.False(holder.IsExpanded);
+            Assert.False(child.IsShown);
+            Assert.Equal("▸", holder.Marker);
+
+            viewModel.ToggleFoldCommand.Execute(holder);
+            Assert.True(child.IsShown);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The row names its fields the way the action's form does, and its bubble carries what the
+    /// editor shows in full: what the action does and the note written under the step.
+    /// </summary>
+    [Fact]
+    public void A_step_row_uses_the_forms_words_and_explains_itself_in_a_bubble()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            set.Meta = new StepMeta { Comment = "记下这一轮的总数" };
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var row = ((RunViewModel)window.DataContext!).Steps.First();
+            Assert.Contains("变量名 = total", row.Detail, StringComparison.Ordinal);
+            Assert.Contains("备注：记下这一轮的总数", row.Tooltip, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(row.Description));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
     /// The list is flat, so a step inside a loop is told how deep it sits and drawn under a guide
     /// line for each level; the step that holds it says so with a mark of its own.
     /// </summary>
@@ -326,7 +399,7 @@ public class RunDebugTests
             var detail = RunViewModel.Detail(new[] { set }.ToExecutable()[0]);
 
             Assert.StartsWith(set.Id, detail, StringComparison.Ordinal);
-            Assert.Contains("control.setVariable", detail, StringComparison.Ordinal);
+            Assert.Contains("变量名 = total", detail, StringComparison.Ordinal);
         });
     }
 
@@ -525,9 +598,9 @@ public class RunDebugTests
             return written;
         });
 
-        // The step, how it ended and what it worked out — under the engine's own name for it,
-        // because nobody ticked it.
-        Assert.Contains(answer, text => text.Contains("data.base64Encode", System.StringComparison.Ordinal));
+        // The step, how it ended and what it worked out. The row is written in the reader's words,
+        // the same ones the palette uses; the action's own key is in the row's bubble.
+        Assert.Contains(answer, text => text.Contains("Base64 编码", System.StringComparison.Ordinal));
         Assert.Contains(WhaleGenie.Localization.Strings.Get("Run.OutcomeOk"), answer);
         Assert.Contains("encoded", answer);
         Assert.Contains("aGVsbG8=", answer);

@@ -201,11 +201,35 @@
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Margin" Value="0,0,0,4" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+        </Style>
+        <Style Selector="Border.RunRow:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Border.RunRow.current">
             <Setter Property="Background" Value="#3A2A16" />
             <Setter Property="BorderBrush" Value="#C8A165" />
+        </Style>
+
+        <Style Selector="TextBlock.StepLabel">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#E4E4E4" />
+        </Style>
+        <Style Selector="TextBlock.StepLabel.container">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#F2E4C8" />
+        </Style>
+
+        <Style Selector="Button.Fold">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="Foreground" Value="#D6C08A" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
 
         <Style Selector="Button.Breakpoint">
@@ -458,7 +482,12 @@
                                 <ItemsControl Name="StepList" ItemsSource="{Binding Steps}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
-                                            <Border Classes="RunRow" Classes.current="{Binding IsCurrent}">
+                                            <Border Classes="RunRow" Classes.current="{Binding IsCurrent}"
+                                                    IsVisible="{Binding IsShown}">
+                                                <ToolTip.Tip>
+                                                    <TextBlock Text="{Binding Tooltip}" TextWrapping="Wrap"
+                                                               MaxWidth="460" FontSize="12" />
+                                                </ToolTip.Tip>
                                                 <!-- The breakpoint's three things are asked for on the
                                                      row itself: the dot on the left is 16 pixels, and
                                                      a menu only it carries is a menu most people
@@ -501,18 +530,19 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Border Width="22" BorderThickness="1,0,0,0"
-                                                                        BorderBrush="#4C4C4C" />
+                                                                        BorderBrush="{DynamicResource AppControl}" />
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
                                                     <StackPanel Grid.Column="2" Margin="2,0,0,0">
-                                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                                            <TextBlock Text="{Binding Marker}" FontSize="10"
-                                                                       VerticalAlignment="Center"
-                                                                       Foreground="#D6C08A"
-                                                                       IsVisible="{Binding IsContainer}" />
-                                                            <TextBlock Text="{Binding Label}" FontSize="12"
-                                                                       Foreground="#E4E4E4" />
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <Button Classes="Fold" Content="{Binding Marker}"
+                                                                    VerticalAlignment="Center"
+                                                                    IsVisible="{Binding IsContainer}"
+                                                                    Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleFoldCommand}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <TextBlock Text="{Binding Label}" Classes="StepLabel"
+                                                                       Classes.container="{Binding IsContainer}" />
                                                         </StackPanel>
                                                         <TextBlock Text="{Binding Detail}" Classes="Muted"
                                                                    TextWrapping="Wrap" />
