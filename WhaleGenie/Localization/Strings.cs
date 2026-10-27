@@ -2254,8 +2254,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionHeightHint"] = "这一处有多高，单位像素：从上边界量到下边界。",
         ["Add.RegionOrVariable"] = "或者：一个变量",
         ["Add.RegionOrVariableHint"] = "不写四个数，改由一个变量说明看哪里：装着截图动作留下的"
-            + "图片的变量，会在那张图里找；装着 x,y,宽,高 的变量，按它写的位置看。这一格填上"
-            + "东西，四个数就清空。",
+            + "图片的变量，会在那张图里查找；装着 x,y,宽,高 的变量，按它写的位置查看。此格填写"
+            + "内容后，四个数字即被清空。",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.EmptyReachesTheEdge"] = "此字段留空表示延伸到参照区域的边缘。",
@@ -2289,12 +2289,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ImageMoveDownHint"] = "把这张图往后挪一位，用在另一张更应该先认的时候。",
         ["Add.ImageRemove"] = "删除",
         ["Add.ImageRemoveHint"] = "把这张图从列表里去掉。",
-        ["Add.ImageEmpty"] = "还没有参考图；列表空着就没有可找的东西。",
+        ["Add.ImageEmpty"] = "还没有参考图；列表为空时没有可查找的目标。",
         ["Add.KeyRunAdd"] = "再加一个组合",
         ["Add.KeyRunRemove"] = "删除",
         ["Add.KeyRunRemoveHint"] = "把这一次按键从序列里去掉。",
-        ["Add.KeyRunKeyHint"] = "在屏幕上摆出来的键盘上点出这个组合的按键；点一下就是把这一键"
-            + "接到已有的键后面。",
+        ["Add.KeyRunKeyHint"] = "在屏幕上显示的键盘上单击此组合的按键；每单击一次，该键即追加到"
+            + "已有按键之后。",
         ["Add.KeyRunHold"] = "按住",
         ["Add.KeyRunHoldHint"] = "这一次按住多久，留空就用整个序列的按住时长。",
         ["Add.KeyRunGap"] = "间隔",
@@ -2304,7 +2304,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.KeyRunPress"] = "序列的第 {0} 次按键",
         ["Add.RunStep"] = "运行",
         ["Add.Running"] = "正在运行…",
-        ["Add.RunStepHint"] = "按现在写的样子把这一步跑一次。要看屏幕的动作只找不点，"
+        ["Add.RunStepHint"] = "按当前写法执行一次这一步。需要查看屏幕的动作只查找、不点击，"
             + "找到什么直接显示出来。运行期间鲸灵自己的窗口全部收起来，这一步就不会看见它们。",
         ["Add.RanStep"] = "已运行 {0}。",
         ["Add.RunPowerTitle"] = "运行这一步",
@@ -2366,19 +2366,19 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Outcome.Capture"] = "这就是这一步抓下来的画面。",
         ["Look.Outcome.Pixel"] = "这是所看像素周围的样子。",
         ["Look.Needed"] = "　需要 {0}。",
-        ["Run.NotALookingStep"] = "这一步不看屏幕，没有可以试找的东西。",
+        ["Run.NotALookingStep"] = "这一步不查看屏幕，没有可试找的目标。",
         ["Run.OpenLook"] = "看这一步看到了什么",
 
         // ------------------------------------------------ 按键与手柄控件
         ["Add.OpenKeyPadHint"] = "在屏幕上摆出来的键盘上点选按键。",
         ["Add.ChooseKey"] = "选择按键",
         ["Add.ChooseKeys"] = "选择按键组合",
-        ["Add.CaptureKeyHint"] = "点一下，再按键盘上这一个键，直接填进这里；再点一次取消。组合键请用「组合键」动作。",
-        ["Add.CaptureComboHint"] = "点一下，然后依次按下组合里的每一个键，每按一次就加一个键；要一起按住的键就一起按。再点一次这个按钮，或者按 Esc，结束。",
+        ["Add.CaptureKeyHint"] = "单击此处，再按下键盘上的这个键，即填入此处；再次单击取消。组合键请使用「组合键」动作。",
+        ["Add.CaptureComboHint"] = "单击此处，然后依次按下组合中的每一个键，每按一次添加一个键；需要同时按住的键一起按下。再次单击此按钮或按 Esc 结束。",
         ["Add.SetCombination"] = "设置组合键",
         ["Add.PressKey"] = "请按一个键…",
         ["Add.StopKeyCapture"] = "停止捕获",
-        ["Add.CaptureKeyRunHint"] = "点一下开始，依次按下这一拍的每一个键，每按一次就加一个键；要一起按住的键就一起按。再点一次这个按钮，或者按 Esc，结束。",
+        ["Add.CaptureKeyRunHint"] = "单击开始，依次按下这一轮中的每一个键，每按一次添加一个键；需要同时按住的键一起按下。再次单击此按钮或按 Esc 结束。",
         ["Add.OpenGamepad"] = "虚拟手柄",
         ["Add.OpenGamepadHint"] = "在屏幕上摆出来的手柄上点选控件。",
         ["KeyPad.Title"] = "虚拟键盘",
@@ -2409,7 +2409,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.WindowPreview.Front"] = "匹配内容留空：取最前面那个窗口。",
         ["Add.WindowPreview.Every"] = "匹配内容留空：列出所有窗口。",
         ["Add.WindowPreview.Variable"] =
-            "字段里写着变量，它是什么要等宏跑起来才知道，这里按字面看。",
+            "字段中写有变量，其取值要等宏运行后确定，这里按字面显示。",
         ["Add.WindowPreview.Unreadable"] = "现在读不到窗口列表。",
         ["WindowRule.Title"] = "获取窗口",
         ["WindowRule.CaptureHint"] = "先点击要用的窗口，再按 F1；拾取期间 F1 不会交给别的程序。按 Esc 取消。",
@@ -2475,8 +2475,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickElementHint"] = "把鼠标移到屏幕上的控件并点击，即可写入它的选择器。",
         ["Add.PickBrowserElement"] = "在页面里拾取…",
         ["Add.PickBrowserElementHint"] =
-            "在宏已经打开的那份页面上拾取；没有打开时就按这一步的地址与档案开一份出来。点一下要用的元素："
-            + "最稳的那条说法写到这里，其余的说法列在按钮旁边，点一下就追成字段的下一行。",
+            "在宏已打开的页面上拾取；未打开时按这一步的地址与配置新开一份。单击要使用的元素："
+            + "最稳妥的定位写法写入此处，其余写法列在按钮旁，单击即追加为字段的下一行。",
         ["Add.TestElement"] = "测试",
         ["Add.TestElementHint"] = "在屏幕上高亮这个元素，不用运行宏就能看看有没有选对。",
         ["Add.TestElementEmpty"] = "先拾取或者填写选择器。",
@@ -2485,7 +2485,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.TestPageElementFound"] = "框出的是字段第 {0} 行；这一条在页面上匹配 {1} 处。",
 
         // 拾取时页面给出的几种说法。是哪一种和匹配几处一样重要：测试号跟得上改版，标签路径跟不上。
-        ["Add.BrowserWayMore"] = "这个元素还有这些说法，点一下追成字段的下一行：",
+        ["Add.BrowserWayMore"] = "该元素还有以下定位写法，单击即追加为字段的下一行：",
         ["Add.BrowserWayAdd"] = "把这个说法追成字段的下一行。",
         ["Add.BrowserWay"] = "{0} · 匹配 {1} 处",
         ["Add.BrowserWay.DataAttribute"] = "测试属性",
@@ -2523,7 +2523,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NarrowRemove"] = "删除",
         ["Add.NarrowRemoveHint"] = "把这条限定从列表里删掉。",
         ["Add.NarrowPick"] = "拾取",
-        ["Add.NarrowPickHint"] = "在页面上点一下元素，把这一行填上：认文字的行填它显示的文字，认元素的"
+        ["Add.NarrowPickHint"] = "在页面上单击元素以填写此行：按文字识别时填它显示的文字，按元素识别时填"
             + "行填它的选择器。",
         ["Add.NarrowPickNoWords"] = "点到的元素上没有文字可填。请自己写要含有的文字，或换一种限定。",
         ["Add.NarrowLook"] = "看",
@@ -2536,7 +2536,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "驱动级），好在目标窗口里看一眼对不对。按之前对话框会让开。",
         ["Add.TestGamepadHint"] = "真的驱动一次虚拟手柄，随后再松开。要看见效果，游戏得在前台。",
         ["Add.TestFieldEmpty"] = "先填一个值再测。",
-        ["Add.BrowserPickBanner"] = "先在浏览器里打开要操作的页面，再点一下要用的元素；按 Esc 放弃。",
+        ["Add.BrowserPickBanner"] = "先在浏览器中打开要操作的页面，再单击要使用的元素；按 Esc 放弃。",
         ["Add.BrowserPickFailed"] = "没能打开页面，或者没能从页面上拾取到元素。",
         ["Element.Title"] = "拾取元素",
         ["Element.Empty"] = "这里没有可拾取的控件，请换一个位置重试。",
@@ -2548,7 +2548,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PickedColor"] = "已取色：{0}",
         ["Editor.PickFailed"] = "无法读取该位置的屏幕颜色。",
         ["Editor.RecordActions"] = "录制动作",
-        ["Editor.RunningTogether"] = "与别的宏一起跑时",
+        ["Editor.RunningTogether"] = "与其他宏同时运行时",
         ["Editor.ExclusiveInput"] = "与别的宏互斥发输入",
         ["Editor.ExclusiveInputNote"] = "与同样勾上的宏共用一道输入门：只有发键鼠的步骤去取门，"
             + "一次放一步，两条宏因此轮流推进、每一步都完整。两条宏同时往同一个窗口发键鼠时勾上；"
@@ -2638,7 +2638,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Tip.SetKey"] = "选择启动这个宏的按键、组合键或手柄按键",
         ["Editor.Tip.Save"] = "保存这个宏并关闭编辑器",
         ["Editor.RunDebug"] = "运行调试",
-        ["Editor.Tip.RunDebug"] = "把这里的步骤装进运行与调试窗口并停在那儿，不用先保存；要在那个窗口里按「运行」才跑。",
+        ["Editor.Tip.RunDebug"] = "把这里的步骤装入运行与调试窗口并停在该处，无需先保存；需在该窗口中按「运行」才会执行。",
         ["Editor.Tip.Record"] = "开始或停止录制屏幕上的操作（Ctrl + F10）",
         ["Editor.UnsavedMessage"] = "这个宏有尚未保存的修改。",
         ["Editor.Discard"] = "放弃修改",
@@ -2689,11 +2689,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.RenameVariableMessage"] = "把 {0} 改名，并更新当前宏里能确定的引用。",
         ["Editor.Problem.LoopIndexOutsideLoop"] = "循环轮次只在循环体里有效；写在这里读到的是空的。",
         ["Editor.Problem.NoMacro"] = "这一步没有选要执行的宏。",
-        ["Editor.Problem.SharedInput"] = "这个项目里还有别的宏也会发键鼠；两个同时跑时输入会互相插队。可能一起跑的话，两边都勾上「与别的宏互斥发输入」。",
+        ["Editor.Problem.SharedInput"] = "本项目还有其他宏会发送键鼠输入；两者同时运行时输入会相互插入。可能同时运行时，请两边都勾选「与别的宏互斥发输入」。",
         ["Editor.Problem.SharedBrowser"] = "这个项目里还有别的宏也用浏览器。整个程序只有一份浏览器与当前页，"
-            + "两条宏同时跑时会轮流使用；其中一条切换标签页，另一条看到的页面也会变。",
+            + "两条宏同时运行时会轮流使用；其中一条切换标签页，另一条看到的页面也会随之改变。",
         ["Editor.Problem.ScriptInput"] = "这个脚本声明会自己发键鼠。脚本直接发出的输入不经过互斥门，"
-            + "要同时跑的另一个宏也得勾上「与别的宏互斥发输入」，或者让其中一条先停着。",
+            + "要同时运行的另一条宏也须勾选「与别的宏互斥发输入」，或让其中一条先停止。",
         ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
         ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
@@ -2967,7 +2967,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.BlockStepsInList"] = "子步骤在编辑器的步骤列表里拖入和排序；此窗口只编辑这一块自己的设置。",
         ["Add.AddStepToBlock"] = "拖入子步骤",
         ["Add.ExpressionValid"] = "表达式有效",
-        ["Add.ExpressionWhenRun"] = "这一段读得通；算出来是什么，要等跑起来才知道。",
+        ["Add.ExpressionWhenRun"] = "这一段可以解读；其计算结果要等运行后才能确定。",
         ["Add.ExpressionResult"] = "= {0}",
         ["Add.FormulaNumber"] = "此框为表达式；清空或输入普通数字后恢复数字输入。",
         ["Add.FormulaMilliseconds"] = "表达式按毫秒计算。",
@@ -2979,7 +2979,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RecentlyUsed"] = "最近使用",
         ["Add.GameSection"] = "游戏常用",
         ["Add.GameSectionNote"] = "写游戏宏用得最多的几组：画面能看到什么、上面写着什么、"
-            + "手上要做什么，以及游戏周边的那些东西。",
+            + "手上正在做什么，以及游戏周边的内容。",
         ["Add.FurtherSection"] = "进阶",
         ["Add.FurtherSectionNote"] = "其余几组：别的程序里的窗口、网页、剪贴板和文件。",
         ["Add.Blocks"] = "流程块",
@@ -3098,10 +3098,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.System"] = "鲸灵自带",
         ["VarWall.SystemHint"] = "鲸灵自己提供的：日期、鼠标位置、剪贴板这些。",
         ["VarWall.StepResult"] = "步骤结局",
-        ["VarWall.StepResultHint"] = "某一步跑完的结局：ok / failed / skipped。",
+        ["VarWall.StepResultHint"] = "某一步执行完毕的结果：ok / failed / skipped。",
         ["VarWall.Pick"] = "鼠标停在按钮上就能看见那个变量是什么。",
         ["VarWall.Empty"] = "这一类现在还没有变量，点上面别的按钮看看。",
-        ["VarWall.Outcome"] = "这一步跑完的结局：ok / failed / skipped。",
+        ["VarWall.Outcome"] = "这一步执行完毕的结果：ok / failed / skipped。",
         ["VarWall.Error"] = "这一步为什么失败，写的是鲸灵自己给这个失败起的名字；没有失败时是空的。",
         ["VarWall.UsedBy"] = "用到它的步骤：",
         ["VarWall.JumpHint"] = "在步骤列表里找到这一步",
@@ -3127,7 +3127,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.Tab.Text"] = "手写",
         ["ExprBuilder.Tree.Help"] = "点一个位置把它选中，再点右边的变量、函数或运算符；变量与函数也能拖到位置上。"
             + "这里不写括号，括号由树的形状决定。",
-        ["ExprBuilder.Tree.CannotRead"] = "另一页上写的东西现在还不是一条算式，这里没有什么可以显示。"
+        ["ExprBuilder.Tree.CannotRead"] = "另一页上写的内容目前还不是一条算式，此处没有可显示的内容。"
             + "先在那一页改好，再回来。",
         ["ExprBuilder.Tree.Hole"] = "数字或文字",
         ["ExprBuilder.Tree.Picked"] = "当前选中：{0}",
@@ -3141,9 +3141,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.Tree.DropArgument"] = "去掉最后一个参数",
         ["ExprBuilder.Values"] = "插入一个值",
         ["ExprBuilder.Value.Number"] = "数字",
-        ["ExprBuilder.Value.NumberHint"] = "这一格里写的东西按数字读。",
+        ["ExprBuilder.Value.NumberHint"] = "此格中写的内容按数字读取。",
         ["ExprBuilder.Value.Text"] = "文字",
-        ["ExprBuilder.Value.TextHint"] = "这一格里写的东西按文字读，即使它看上去像数字。",
+        ["ExprBuilder.Value.TextHint"] = "此格中写的内容按文字读取，即使它看上去像数字。",
         ["ExprBuilder.Value.True"] = "真",
         ["ExprBuilder.Value.TrueHint"] = "真（true），条件读到它算成立。",
         ["ExprBuilder.Value.False"] = "假",
@@ -3639,8 +3639,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Package.BadDeclaration"] = "宏「{0}」的声明「{1}」不能用来调用：先修正形参或结果，再保存。",
 
         // ---------------------------------------------------------------- recovery
-        ["Recover.Title"] = "发现上次没保存的东西",
-        ["Recover.Message"] = "上次鲸灵是带着下面这些还没保存的东西停下的：\n\n{0}\n\n要把它们找回来吗？",
+        ["Recover.Title"] = "发现上次未保存的内容",
+        ["Recover.Message"] = "上次鲸灵停止运行时，以下内容尚未保存：\n\n{0}\n\n是否恢复这些内容？",
         ["Recover.Project"] = "- 宏列表（{0} 个宏）",
         ["Recover.Editor"] = "- 宏编辑器里那个还没保存的宏",
         ["Recover.Restore"] = "恢复",
@@ -3714,13 +3714,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Continue"] = "继续",
         ["Run.SkipStep"] = "跳过这一步（这一次）",
         ["Run.Stop"] = "停止",
-        ["Run.RunTip"] = "从这个宏的第一步开始跑。快捷键 F5。",
-        ["Run.ContinueTip"] = "从停下的那一步接着往下跑。快捷键 F5。",
+        ["Run.RunTip"] = "从该宏的第一步开始运行。快捷键 F5。",
+        ["Run.ContinueTip"] = "从停止的那一步继续向下运行。快捷键 F5。",
         ["Run.StepTip"] = "只做下一步，做完再停住。快捷键 F10。",
         ["Run.StopTip"] = "停止这次运行。快捷键 Shift+F5。",
-        ["Run.BreakpointDot"] = "点一下在这里下断点，再点一下取消；右键这一行可以给它设条件。",
+        ["Run.BreakpointDot"] = "单击此处设置断点，再次单击取消；右键该行可为其设置条件。",
         ["Run.Close"] = "关闭",
-        ["Run.Minimize"] = "最小化。宏照常往下跑，窗口从任务栏拿回来。",
+        ["Run.Minimize"] = "最小化。宏照常继续运行，窗口可从任务栏恢复。",
         ["Run.Steps"] = "步骤",
         ["Run.Log"] = "运行日志",
         ["Run.CopyLog"] = "复制日志",
@@ -3819,7 +3819,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoDriverLibrary"] = "驱动级输入找不到自带虚拟 USB 设备的库（libVIIPER.dll）："
             + "重新完整解压一次发布包。",
         ["Run.NoDriverServer"] = "驱动级输入没能把它的服务端和设备装到这台机器上：关掉别的正在驱动"
-            + "虚拟设备的程序（另一个鲸灵，或者自己跑着的 VIIPER 服务端）再试一次。",
+            + "虚拟设备的程序（另一个鲸灵，或正在运行的 VIIPER 服务端）后再试一次。",
         ["Run.NoDriverAttached"] = "驱动级输入没有送达这台机器：送它的是虚拟键鼠，机器没有认领它们。"
             + "确认 usbip-win2 驱动装好了，并关掉其它正在使用虚拟设备的程序。",
         ["Run.NoDriverKey"] = "虚拟键盘没有这个键：{0}",
@@ -3863,11 +3863,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ImageNotFound"] = "始终没有找到参考图片：{0}",
         ["Log.ClickedImage"] = "已点击匹配位置 {0},{1}",
         ["Log.Detected"] = "检测到 {0}。",
-        ["Log.DetectedNothing"] = "{0} 里没有检测到东西，这一步没有交出位置。",
+        ["Log.DetectedNothing"] = "{0} 中没有检测到对象，这一步没有交出位置。",
         ["Run.DetectNotFound"] = "始终没有检测到：{0}",
         ["Log.ClickedObject"] = "已点击 {0}，位置 {1}",
         ["Run.MissingModel"] = "模型文件读不出来：{0}",
-        ["Run.BadModel"] = "这个模型跑不起来：{0}",
+        ["Run.BadModel"] = "该模型无法运行：{0}",
         ["Run.BadModelShape"] = "这个模型答出的形状读不了：{0}",
         ["Run.UnknownLabel"] = "标签文件里没有这个类：{0}",
         ["Run.MissingImage"] = "参考图片读不出来：{0}",
@@ -3979,7 +3979,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BrowserFailed"] = "没能在浏览器里完成这一步：{0}",
         ["Run.BrowserNotFound"] = "页面上没有这一步要找的那个元素。试过：{0}",
         ["Run.BrowserTooFew"] = "页面上的元素没有「第几个命中」要的那么多，等于没找到。试过：{0}",
-        ["Run.BrowserNoSelector"] = "这一步没说要页面上的哪个元素：请写选择器，或在页面上点一下那个元素。",
+        ["Run.BrowserNoSelector"] = "这一步没有指定页面上的元素：请填写选择器，或在页面上单击该元素。",
         ["Run.BrowserNoAttribute"] = "这一步要读元素的属性，但没说是哪个属性：请填上属性名，例如 href、src。",
         ["Run.BrowserBadProfile"] = "浏览器档案不能叫这个名字：{0}",
         ["Run.BrowserBadFilter"] = "这一步的限定条件读不出来：{0}",
@@ -3996,9 +3996,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.BrowserScrolled"] = "页面已滚动。",
         ["Log.BrowserDownloaded"] = "页面交出的文件已存为 {0}。",
         ["Log.BrowserAnswered"] = "已回答页面的对话框：{0}",
-        ["Run.BrowserNoDialog"] = "没有等到对话框：盒子里的步骤没有让页面问话，也就没有可回答的东西。",
-        ["Log.BrowserEvaluated"] = "已在页面里跑完脚本，它交回 {0} 个字符。",
-        ["Run.BrowserNoScript"] = "这一步没有填写要在页面里跑的脚本。",
+        ["Run.BrowserNoDialog"] = "没有等到对话框：其中的步骤没有让页面提问，因此没有可回答的内容。",
+        ["Log.BrowserEvaluated"] = "已在页面中执行完脚本，返回 {0} 个字符。",
+        ["Run.BrowserNoScript"] = "这一步没有填写要在页面中执行的脚本。",
         ["Log.BrowserTab"] = "已切换到 {0} 这个标签页。",
         ["Log.ClosedTab"] = "已关闭这个标签页。",
         ["Run.BrowserNoTab"] = "没有可以切过去的标签页：浏览器里没有一个匹配 {0}。",
@@ -4235,7 +4235,7 @@ public sealed class Strings : INotifyPropertyChanged
 
         // system variable descriptions
         ["Variable.sys.loopIndex.desc"] = "当前循环体执行到第几轮，只在循环体内部可见。",
-        ["Variable.sys.macroName.desc"] = "正在跑的这个宏的名字，子宏里读到的是子宏自己的名字。",
+        ["Variable.sys.macroName.desc"] = "正在运行的宏的名字，子宏中读到的是子宏自身的名字。",
         ["Variable.sys.macroFolder.desc"] = "文件动作写相对路径时，从哪个文件夹算起。",
         ["Variable.sys.activeWindow.desc"] = "当前在最前面的那个窗口的标题。",
         ["Variable.sys.activeProcess.desc"] = "最前面那个窗口属于哪个程序（不带 .exe）。",

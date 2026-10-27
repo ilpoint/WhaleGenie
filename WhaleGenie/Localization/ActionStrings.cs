@@ -99,7 +99,7 @@ internal static class ActionStrings
     private const string LookPollHint =
         "等待期间多久看一次屏幕，单位毫秒，0–60000。留空表示按屏幕刷新一次的时间来看："
         + "60 赫兹的屏 16 毫秒一次，240 赫兹的屏 4 毫秒一次，也就是每隔一次刷新看一回；"
-        + "填 0 表示上一次看完了立刻再看。等得起就调大，省下的是机器的开销；要看的东西一闪而过就调小。";
+        + "填 0 表示上一次查看完成后立即再次查看。可以等待时调大，以节省机器开销；观察对象变化很快时调小。";
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
@@ -193,7 +193,7 @@ internal static class ActionStrings
     /// the pictures the step goes with.
     /// </summary>
     private const string ImageSetHint =
-        "上面列出的几张参考图，这一步认哪一张。默认“认出的第一张”，是同一个东西有两套画法时的用法；"
+        "上面列出的几张参考图，这一步认哪一张。默认“认出的第一张”，是同一对象有两套画法时的用法；"
         + "“最像的那一张”把每一张都比一遍，取分数最高的一张，用来在两张相像的图标里挑更像的一张；"
         + "“每一张都要”要求这几张同时都在，缺一张就当没找到，这一步只对整套都在的画面动手。"
         + "交回命中时以列在第一张的那张为准，“第几个命中”也在这张里数。";
@@ -330,9 +330,9 @@ internal static class ActionStrings
     /// so the file written here is the one the step runs, and it is read once and kept.
     /// </summary>
     private const string DetectModelHint =
-        "这一步要跑的模型文件，用户自己准备的 YOLOv8 或 YOLO11 检测模型（.onnx）。鲸灵不带模型，"
-        + "写在这里的就是这一步用的那个；第一次跑到这一步时读一次，之后一直留着（同时最多留 3 个）。"
-        + "要认别的东西，或者换成在自己数据上训出来的模型就改这里。";
+        "这一步要使用的模型文件，用户自己准备的 YOLOv8 或 YOLO11 检测模型（.onnx）。鲸灵不带模型，"
+        + "写在这里的就是这一步用的那个；第一次执行到这一步时读取一次，之后一直留着（同时最多留 3 个）。"
+        + "要识别其他对象，或改用在自己数据上训练出的模型，修改此项。";
 
     /// <summary>The hint the detection steps share for the file that names the model's classes.</summary>
     private const string DetectLabelFileHint =
@@ -346,19 +346,19 @@ internal static class ActionStrings
 
     /// <summary>The hint the detection steps share for how sure the model has to be.</summary>
     private const string DetectConfidenceHint =
-        "模型的把握到多少才算数，写成 0 到 100 的百分数，默认 25。有把握的东西认不出来就调低，"
-        + "老认到不存在的东西就调高。模型的把握与图片相似度不是一回事：模型很有把握的框一般在 80 上下。";
+        "模型的把握到多少才算数，写成 0 到 100 的百分数，默认 25。有把握的对象识别不到就调低，"
+        + "经常识别到不存在的对象就调高。模型的把握与图片相似度不是一回事：模型很有把握的框一般在 80 上下。";
 
     /// <summary>The hint the detection steps share for the square the model reads.</summary>
     private const string DetectInputSizeHint =
         "画面缩放并补边成的正方形边长，单位像素，默认 640，即导出时没指定尺寸的模型要的那一个。"
-        + "模型是按别的尺寸导出的（320、480、1280）时改成那个数，否则会读错或直接跑不起来。";
+        + "模型是按别的尺寸导出的（320、480、1280）时改成那个数，否则会读错或无法执行。";
 
     /// <summary>The hint the detection steps share for how much two boxes may lie over each other.</summary>
     private const string DetectOverlapHint =
         "同一类的两个框重叠超过多少就不再留较不把握的那个，写成 0 到 100 的百分数，默认 45。"
-        + "模型对同一个东西常常给出好几个框，这个数就是只留一个。挤在一起的东西（人群）调高，"
-        + "同一个东西被认出两次就调低。";
+        + "模型对同一对象常给出多个框，这个数就是只留一个。密集排列的对象（人群）调高，"
+        + "同一对象被识别两次就调低。";
 
     /// <summary>
     /// The hint the detection steps share for their hit record: the same parts as any other hit, and
@@ -436,7 +436,7 @@ internal static class ActionStrings
         ["control.delay.ms.hint"] = "等待多久，单位是毫秒，默认 1000。随机等待写成 random(400, 1200)。",
 
         ["control.repeat.name"] = "重复",
-        ["control.repeat.desc"] = "把子步骤重复执行固定次数。已经知道要跑几遍时用它。",
+        ["control.repeat.desc"] = "把子步骤重复执行固定次数。已知重复次数时使用。",
         ["control.repeat.times.label"] = "次数",
         ["control.repeat.times.hint"] = "重复执行的次数，从 1 起，默认 10。",
         ["control.repeat.intervalMs.label"] = "间隔",
@@ -668,7 +668,7 @@ internal static class ActionStrings
         ["control.input.return.text.hint"] = "对方写下的内容。对方取消、或者没有人在场可问时为空。",
 
         ["control.runMacro.name"] = "执行子宏",
-        ["control.runMacro.desc"] = "调用一个子宏（别的宏或这个宏自己的子宏），效果相当于把它的步骤写在这里，等它跑完。"
+        ["control.runMacro.desc"] = "调用一个子宏（别的宏或这个宏自己的子宏），效果相当于把它的步骤写在此处，并等待执行完毕。"
             + "子宏使用自己的一套变量：这一步按它声明的形参逐个填值，再勾选要取回的结果。",
         ["control.runMacro.macro.label"] = "子宏",
         ["control.runMacro.macro.hint"] = "要调用哪一个：本项目的宏，或这个宏自己的子宏都在下拉里。"
@@ -680,7 +680,7 @@ internal static class ActionStrings
         ["control.runMacro.returns.label"] = "要带回的结果",
         ["control.runMacro.returns.hint"] = "勾上子宏声明过、这一步要取回的结果："
             + "每勾一行就得到一个本宏变量，名字可以在这一行里改。没勾就什么都不带回来。"
-            + "这一步等它跑完，所以结果写完就能读。",
+            + "这一步等待执行完毕，因此结果写完后即可读取。",
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
         ["file.readText.desc"] = "把文本文件读入变量。",
@@ -825,7 +825,7 @@ internal static class ActionStrings
         ["file.listFiles.pattern.hint"] = "要收集哪些文件，例如 *.txt。可以使用通配符，也可以用分号一次写多个，"
             + "例如 *.txt; report?.xlsx。默认留空，表示所有文件。",
         ["file.listFiles.recurse.label"] = "包含子文件夹",
-        ["file.listFiles.recurse.hint"] = "连上面那个文件夹里的子文件夹一起找，默认关：只列那一个文件夹里的东西。",
+        ["file.listFiles.recurse.hint"] = "连上面那个文件夹里的子文件夹一起找，默认关：只列出该文件夹内的内容。",
         ["file.listFiles.sortBy.label"] = "排序依据",
         ["file.listFiles.sortBy.hint"] = "按哪一项给文件排序，默认按名称。排在一起的文件（例如同样大小）再按名称排，"
             + "所以同一个文件夹每次列出来的顺序都相同。",
@@ -1019,7 +1019,7 @@ internal static class ActionStrings
         ["data.hash.dataText.label"] = "文本",
         ["data.hash.dataText.hint"] = "要算校验和的文本，按 UTF-8 处理。按一个值读取，变量或表达式都可以写成它。",
         ["data.hash.path.label"] = "文件",
-        ["data.hash.path.hint"] = "要算校验和的文件。按块读取，所以文件多大都不影响这一步跑不跑得成。",
+        ["data.hash.path.hint"] = "要算校验和的文件。按块读取，所以文件大小不影响这一步能否执行。",
 
         // ---------------------------------------------------------------- clipboard
         ["clipboard.writeText.name"] = "复制到剪贴板",
@@ -1221,8 +1221,8 @@ internal static class ActionStrings
         ["system.sound.name"] = "提示音",
         ["system.sound.desc"] = "播放系统自带的一种提示音。",
         ["system.sound.sound.label"] = "播放",
-        ["system.sound.sound.hint"] = "播放哪一种系统提示音，默认「默认提示音」。宏跑完或者中途出错时，可以用它发出声音，"
-            + "不必在屏幕上留东西。具体是什么声音跟着系统的声音设置走：已经静音的机器没有声音，"
+        ["system.sound.sound.hint"] = "播放哪一种系统提示音，默认「默认提示音」。宏执行完毕或中途出错时，可以用它发出声音，"
+            + "不必在屏幕上留下内容。具体是什么声音跟着系统的声音设置走：已经静音的机器没有声音，"
             + "这一步照样算完成；机器上没有声音设备时这一步会失败并说明原因。",
         ["system.sound.sound.option.default"] = "默认提示音",
         ["system.sound.sound.option.information"] = "信息",
@@ -1426,7 +1426,7 @@ internal static class ActionStrings
         ["input.mouseMove.y.label"] = "Y",
         ["input.mouseMove.y.hint"] = "目标位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseMove.place.label"] = "位置",
-        ["input.mouseMove.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["input.mouseMove.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
         ["input.mouseMove.durationMs.label"] = "用时",
         ["input.mouseMove.durationMs.hint"] = "从指针当前所在处走到目标位置用多久，单位是毫秒，默认 0，即瞬间"
             + "到达。",
@@ -1467,7 +1467,7 @@ internal static class ActionStrings
         ["input.mouseClick.y.label"] = "Y",
         ["input.mouseClick.y.hint"] = "点击位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseClick.place.label"] = "位置",
-        ["input.mouseClick.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["input.mouseClick.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
         ["input.mouseClick.repeat.label"] = "重复次数",
         ["input.mouseClick.repeat.hint"] = "一共点几下，从 1 起，默认 1。点几下时两次之间停多久由「间隔」说。",
         ["input.mouseClick.intervalMs.label"] = "间隔",
@@ -1479,7 +1479,7 @@ internal static class ActionStrings
         ["input.mouseClick.variance.hint"] =
             "实际落点与上面写的坐标最多相差多少个像素，默认 0，即正好点在写的位置上。填了数就每次都"
             + "在这个范围内随机取一点，连着点不会落在同一个像素上。数字要小到整个范围仍落在被点的"
-            + "东西里面。",
+            + "对象内部。",
         ["input.mouseClick.moveBack.label"] = "点完把指针移回原处",
         ["input.mouseClick.moveBack.hint"] =
             "点完之后把指针移回点击之前的位置，鼠标就留在用户自己放的地方，默认关。后台模式下屏幕上指针本来"
@@ -1497,7 +1497,7 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.y.label"] = "Y",
         ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseDoubleClick.place.label"] = "位置",
-        ["input.mouseDoubleClick.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["input.mouseDoubleClick.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
         ["input.mouseDoubleClick.repeat.label"] = "重复次数",
         ["input.mouseDoubleClick.repeat.hint"] = "连着双击几次，从 1 起，默认 1，即一次双击。",
         ["input.mouseDoubleClick.intervalMs.label"] = "间隔",
@@ -1523,7 +1523,7 @@ internal static class ActionStrings
         ["input.mouseDown.y.label"] = "Y",
         ["input.mouseDown.y.hint"] = "按下位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseDown.place.label"] = "位置",
-        ["input.mouseDown.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["input.mouseDown.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
 
         ["input.mouseUp.name"] = "松开鼠标",
         ["input.mouseUp.desc"] = "松开当前处于按住状态的鼠标按键。",
@@ -1537,7 +1537,7 @@ internal static class ActionStrings
         ["input.mouseUp.y.label"] = "Y",
         ["input.mouseUp.y.hint"] = "松开位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseUp.place.label"] = "位置",
-        ["input.mouseUp.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["input.mouseUp.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
 
         ["input.mouseScroll.name"] = "鼠标滚轮",
         ["input.mouseScroll.desc"] = "滚动鼠标滚轮。",
@@ -1559,7 +1559,7 @@ internal static class ActionStrings
         ["input.mouseScroll.y.label"] = "Y",
         ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标，按这一步的输入方式量起，单位是像素，默认 0。",
         ["input.mouseScroll.place.label"] = "位置",
-        ["input.mouseScroll.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["input.mouseScroll.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
         ["input.mouseScroll.useCursor.label"] = AtPointerLabel,
         ["input.mouseScroll.useCursor.hint"] = AtPointerHint,
         ["input.mouseScroll.repeat.label"] = "重复次数",
@@ -1591,7 +1591,7 @@ internal static class ActionStrings
         ["input.mouseDrag.settleMs.label"] = "到终点先停",
         ["input.mouseDrag.settleMs.hint"] =
             "拖到终点后、松开鼠标键之前先按住不动这么多毫秒，默认 0，即一到就松。要拖进格子里的"
-            + "东西，只有指针在格子上停过一下才会被放进去；一到就松会变成从上面滑过去。",
+            + "对象；只有指针在格子上停留过才会被放入；到达后立即松开会被视为从上方滑过。",
         ["input.mouseDrag.dragSteps.label"] = "移动步数",
         ["input.mouseDrag.dragSteps.hint"] = "拖拽过程中发出的中间移动事件数量，从 1 起，默认 20。步数越多，指针"
             + "走出的路径画得越细。",
@@ -2000,7 +2000,7 @@ internal static class ActionStrings
 
         ["vision.waitDetect.name"] = "等待检测到物体",
         ["vision.waitDetect.desc"] =
-            "等到 YOLO 模型在屏幕的一块区域里认出东西为止，最多等到步骤设置里的「超时」；"
+            "等到 YOLO 模型在屏幕的一块区域里识别到对象为止，最多等到步骤设置里的「超时」；"
             + "到点这一步算失败。",
         ["vision.waitDetect.model.label"] = "模型文件",
         ["vision.waitDetect.model.hint"] = DetectModelHint,
@@ -2089,7 +2089,7 @@ internal static class ActionStrings
         ["vision.clickDetect.variance.label"] = "落点随机范围",
         ["vision.clickDetect.variance.hint"] =
             "落点与框中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
-            + "随机取一点。数字要小到整个范围仍落在被点的东西里面。",
+            + "随机取一点。数字要小到整个范围仍落在被点的对象内部。",
         ["vision.clickDetect.confirmMs.label"] = "落手前再确认",
         ["vision.clickDetect.confirmMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
@@ -2181,7 +2181,7 @@ internal static class ActionStrings
         ["vision.clickImage.variance.hint"] =
             "落点与匹配中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
             + "随机取一点，连着点两次不会落在同一个像素上。宽按钮上用它避免看起来像机器点的；"
-            + "数字要小到整个范围仍落在被点的东西里面。",
+            + "数字要小到整个范围仍落在被点的对象内部。",
         ["vision.clickImage.confirmMs.label"] = "落手前再确认",
         ["vision.clickImage.confirmMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
@@ -2197,7 +2197,7 @@ internal static class ActionStrings
         ["vision.getPixel.y.label"] = "Y",
         ["vision.getPixel.y.hint"] = "取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.getPixel.place.label"] = "位置",
-        ["vision.getPixel.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["vision.getPixel.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
 
         ["vision.pixelMatches.name"] = "像素是否符合",
         ["vision.pixelMatches.desc"] = "只读取一次像素，并判断它是否在容差内符合指定颜色。",
@@ -2233,7 +2233,7 @@ internal static class ActionStrings
         ["vision.waitColor.y.label"] = "Y",
         ["vision.waitColor.y.hint"] = "监视点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.waitColor.place.label"] = "位置",
-        ["vision.waitColor.place.hint"] = "一条说明位置的记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素；上一步刚找到的东西就在这里用时填它。填了记录，旁边两格数字不参与，也不再写进宏文件。",
+        ["vision.waitColor.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
         ["vision.waitColor.color.label"] = "颜色",
         ["vision.waitColor.color.hint"] = "像素需要显示的颜色，按 #RRGGBB 写，默认 #000000。用放大镜取色时，取到的那一点同时写进 X、Y。",
         ["vision.waitColor.tolerance.label"] = "容差 %",
@@ -2521,7 +2521,7 @@ internal static class ActionStrings
         ["browser.open.name"] = "打开浏览器",
         ["browser.open.desc"] = "启动浏览器并打开一个网址。",
         ["browser.open.browser.label"] = "浏览器",
-        ["browser.open.browser.hint"] = "驱动哪个浏览器，默认 Edge。Edge 是 Windows 自带的，不用装任何东西；"
+        ["browser.open.browser.hint"] = "驱动哪个浏览器，默认 Edge。Edge 是 Windows 自带的，无需安装其他组件；"
             + "Chrome 和 Playwright 自己下载的那几个内核，机器上没有时会给出安装命令。",
         ["browser.open.browser.option.edge"] = "Edge（Windows 自带）",
         ["browser.open.browser.option.chrome"] = "Chrome",
@@ -2552,14 +2552,14 @@ internal static class ActionStrings
             + "选择器像 CSS，也能按文字找：「text=登录」认的是显示这段文字的元素。",
         ["browser.click.clickHow.label"] = "怎么点",
         ["browser.click.clickHow.hint"] = "怎么点这个元素。左键单击是默认，接下来要去别处或按下按钮时用它；"
-            + "左键双击用在点一下就变成输入框的地方，例如表格里的一行；右键单击弹出页面自己的菜单，"
-            + "菜单里的东西只有它能打开。",
+            + "左键双击用在单击后即变为输入框的位置，例如表格里的一行；右键单击弹出页面自己的菜单，"
+            + "菜单中的项目只能由它打开。",
         ["browser.click.clickHow.option.single"] = "左键单击",
         ["browser.click.clickHow.option.double"] = "左键双击",
         ["browser.click.clickHow.option.right"] = "右键单击",
         ["browser.click.force.label"] = "硬点",
         ["browser.click.force.hint"] = "元素被挡住、被禁用或还在移动时也点下去。默认不勾选，也建议不勾："
-            + "页面挡住不让点的按钮，多半是这一步点下去也达不到作者想要的结果。页面用一层看不见的东西盖住"
+            + "页面挡住不让点的按钮，多半是这一步点下去也达不到作者想要的结果。页面用一层不可见元素遮盖"
             + "自己的按钮时，才需要勾上它。",
         ["browser.click.matchIndex.label"] = "第几个命中",
         ["browser.click.narrow.label"] = "限定",
@@ -2702,7 +2702,7 @@ internal static class ActionStrings
         ["browser.hover.desc"] = "把指针移到某个元素上并停在那里。",
         ["browser.hover.pageSelector.label"] = "选择器",
         ["browser.hover.pageSelector.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
-            + "菜单、提示框、整排按钮都是这么出现的；这一步不点击任何东西。",
+            + "菜单、提示框、整排按钮都是这么出现的；这一步不点击任何元素。",
         ["browser.hover.matchIndex.label"] = "第几个命中",
         ["browser.hover.narrow.label"] = "限定",
         ["browser.hover.narrow.hint"] = "要把指针移上去的那个元素" + NarrowHint,
@@ -2779,9 +2779,9 @@ internal static class ActionStrings
         ["browser.waitForLoad.desc"] = "等到页面加载到指定的那一步。",
         ["browser.waitForLoad.loadState.label"] = "等到",
         ["browser.waitForLoad.loadState.hint"] = "等到页面加载的哪一步。「加载完成」是默认，一次把内容全部画出来"
-            + "的页面就停在这里；「文档就绪」是页面自己的脚本已经跑过、文字已经在那里的时候，图片和样式表还没"
+            + "的页面就停在这里；「文档就绪」是页面自身的脚本已执行完毕、文字已经在那里的时候，图片和样式表还没"
             + "到，只要文字时它更快；「网络空闲」是页面自己发起的请求都已经回来的时候，一次取一点的页面要用它，"
-            + "它也是三档里最慢的，因为它要等到页面不再要东西为止。",
+            + "它也是三档里最慢的，因为它要等到页面不再请求资源为止。",
         ["browser.waitForLoad.loadState.option.ready"] = "文档就绪",
         ["browser.waitForLoad.loadState.option.loaded"] = "加载完成",
         ["browser.waitForLoad.loadState.option.idle"] = "网络空闲",
@@ -2794,7 +2794,7 @@ internal static class ActionStrings
         ["browser.scroll.scrollHow.label"] = "怎么滚",
         ["browser.scroll.scrollHow.hint"] = "页面往哪儿滚。「往下滚一屏」是默认，一次一点加内容的页面就靠它一条条"
             + "走完；「滚到元素」要用上面那格写选择器，图片或数据等到快滚到才加载的页面靠它把内容要出来；"
-            + "「到页面底部」是一下子跳到底，一直在往下加内容的页面要连用好几次；「到页面顶部」用于接下来"
+            + "「到页面底部」直接跳到页面末尾，一直在往下加内容的页面要连用好几次；「到页面顶部」用于接下来"
             + "从头读一遍页面的步骤。",
         ["browser.scroll.scrollHow.option.screen"] = "往下滚一屏",
         ["browser.scroll.scrollHow.option.element"] = "滚到元素",
@@ -2809,8 +2809,8 @@ internal static class ActionStrings
         ["browser.download.desc"] = "把页面接下来交出的文件保存到磁盘上。",
         ["browser.download.pageSelector.label"] = "选择器",
         ["browser.download.pageSelector.hint"] = PageTargetHint + "点哪个元素开始下载，写法与「点击元素」相同，"
-            + "这一步替你把这一下点了。一行都不写，也就是默认，等的是页面接下来自己开始的下载，"
-            + "页面自己判断某个东西是文件时要用这一档。",
+            + "这一步代替你完成这次点击。一行都不写，也就是默认，等的是页面接下来自己开始的下载，"
+            + "页面自身判断某个资源为文件时使用这一档。",
         ["browser.download.folder.label"] = "保存到",
         ["browser.download.folder.hint"] = "文件存到哪个文件夹；留空就是宏文件所在的那个文件夹。按一个值读取，"
             + "变量或表达式都可以写成它。同名的文件会被覆盖，与别的程序里保存一次一样。",
@@ -2866,7 +2866,7 @@ internal static class ActionStrings
         ["script.run.desc"] = "运行一段命令、批处理、PowerShell 或 AutoHotkey 脚本，也可以交给机器上别的程序运行。",
         ["script.run.kind.label"] = "脚本类型",
         ["script.run.kind.hint"] = "这一段脚本交给谁运行。三种命令写法都先把正文写成批处理文件再交给 cmd.exe："
-            + "第一种在命令跑完后把窗口留着，好让人看输出；第二种在命令跑完时把窗口关掉；第三种不显示窗口。"
+            + "第一种在命令执行完毕后保留窗口，以便查看输出；第二种在命令执行完毕时关闭窗口；第三种不显示窗口。"
             + "两种文件类型与 PowerShell、AutoHotkey 都不显示窗口；自选程序用于机器上装的其他解释器。默认 PowerShell。",
         ["script.run.kind.option.cmdKeep"] = "CMD命令(完成保留窗口)",
         ["script.run.kind.option.cmdClose"] = "CMD命令(完成后关闭窗口)",
@@ -2893,14 +2893,14 @@ internal static class ActionStrings
         ["script.run.script.hint"] = "脚本正文，交给上面那个程序运行。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；"
             + "脚本打印出来的内容在能回收的那几种类型上回到「输出」里。",
         ["script.run.scriptSource.label"] = "脚本来源",
-        ["script.run.scriptSource.hint"] = "这一步跑什么：写在下面的一段脚本，还是这台机器上已有的一个脚本文件。"
+        ["script.run.scriptSource.hint"] = "这一步执行什么：写在下面的一段脚本，还是这台机器上已有的一个脚本文件。"
             + "选文件时那个文件就地运行，它旁边读什么、里面 include 什么、它自己的目录是哪里都不变，"
             + "里面的 {{变量名}} 也不会替换。默认「写在下面」。",
         ["script.run.scriptSource.option.text"] = "写在下面",
         ["script.run.scriptSource.option.file"] = "一个脚本文件",
         ["script.run.scriptFile.label"] = "脚本文件",
         ["script.run.scriptFile.hint"] = "要运行的那个脚本文件，写它现在所在的位置；谁运行它由上面的「脚本类型」说了算，"
-            + "不再看文件自己的后缀。写相对路径时从宏文件所在的目录算起。要跑的是别人一直在维护的脚本、"
+            + "不再看文件自己的后缀。写相对路径时从宏文件所在的目录算起。要执行的是他人维护的脚本、"
             + "或者太长不方便写进步骤里的脚本时用它。",
         ["script.run.scriptArguments.label"] = "参数",
         ["script.run.scriptArguments.hint"] = "附加在脚本命令行后面的参数，其中的 {{变量名}} 也会替换成变量的值。默认留空，表示不传参数。",
@@ -2914,7 +2914,7 @@ internal static class ActionStrings
         ["script.python.script.label"] = "脚本",
         ["script.python.script.hint"] = "脚本本身。脚本打印的内容会逐行写进运行日志；运行期间宏就在它旁边："
             + "WhaleGenie.GetProperty(\"名字\") 读一个宏变量，SetProperty(\"名字\", 值) 写一个，"
-            + "StepExecute(\"标识\") 跑本宏里的某一步，Print(文字) 往运行日志写一行，"
+            + "StepExecute(\"标识\") 执行本宏中的某一步，Print(文字) 往运行日志写一行，"
             + "SetResult(值) 交回这一步要留下的结果。",
         ["script.python.script.default"] =
             "# 读一个宏变量的值\n"
@@ -2954,7 +2954,7 @@ internal static class ActionStrings
         ["script.csharp.script.hint"] = "脚本本身。它在鲸灵自己的子进程里编译并运行，"
             + "所以脚本对自己做什么都伤不到宏；运行期间宏就在它旁边：__InjectedServices.DynamicObject 就是宏，"
             + "GetProperty(\"名字\") 读一个宏变量，SetProperty(\"名字\", 值) 写一个，"
-            + "StepExecute(\"标识\") 跑本宏里的某一步，SetResult(值) 交回这一步要留下的结果，"
+            + "StepExecute(\"标识\") 执行本宏中的某一步，SetResult(值) 交回这一步要留下的结果，"
             + "Console.WriteLine 写的内容逐行进运行日志。",
         ["script.csharp.script.default"] = """
             using System;
@@ -2996,7 +2996,7 @@ internal static class ActionStrings
         ["script.ahk.script.label"] = "脚本",
         ["script.ahk.script.hint"] = "脚本本身，按 AutoHotkey v2 写。脚本打印的内容会逐行写进运行日志；"
             + "运行期间宏就在它旁边：GetProperty(\"名字\") 读一个宏变量，SetProperty(\"名字\", 值) 写一个，"
-            + "StepExecute(\"标识\") 跑本宏里的某一步，Print(文字) 往运行日志写一行，"
+            + "StepExecute(\"标识\") 执行本宏中的某一步，Print(文字) 往运行日志写一行，"
             + "SetResult(值) 交回这一步要留下的结果。宏里的列表与记录在这边是它们的 JSON 文字。",
         ["script.ahk.script.default"] =
             "; 读一个宏变量的值\n"
@@ -3027,7 +3027,7 @@ internal static class ActionStrings
         ["script.nuget.packages.label"] = "包",
         ["script.nuget.packages.hint"] = "C# 脚本要用到的包，一行一个：一个包名，或者包名后面隔一个空格跟上版本号。"
             + "只写包名取最新的稳定版。以 # 开头的行会被跳过。包下在鲸灵自己的目录里，"
-            + "连带它们依赖的包，每个 C# 脚本都按这个目录里的东西编译。",
+            + "连带它们依赖的包，每个 C# 脚本都按此目录中的内容编译。",
 
         // ---------------------------------------------------------------- condition
         ["vision.capture.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
@@ -3196,7 +3196,7 @@ internal static class ActionStrings
         ["control.repeat.returns.label"] = "要留下的结果",
         ["control.repeat.returns.hint"] = ReturnsHintText,
         ["control.repeat.return.ended.label"] = "结束原因",
-        ["control.repeat.return.ended.hint"] = "每一轮都跑完时为 count，用 break 提前离开时为 break。",
+        ["control.repeat.return.ended.hint"] = "每一轮都执行完毕时为 count，用 break 提前离开时为 break。",
 
         // control.forEach
         ["control.forEach.returns.label"] = "要留下的结果",
@@ -3586,10 +3586,10 @@ internal static class ActionStrings
         // script.run
         ["script.run.return.output.label"] = "输出",
         ["script.run.return.output.hint"] = "脚本打印的内容，去掉了前后的空行。只有不显示窗口的类型收得到；"
-            + "在窗口里跑的命令把输出写在那个窗口上，这一项是空的。",
+            + "在窗口中执行的命令将输出写到该窗口，这一项是空的。",
         ["script.run.return.error.label"] = "错误消息",
         ["script.run.return.error.hint"] = "脚本在错误输出上写的内容，或解释器自己报的错。脚本正常结束时为空；"
-            + "在窗口里跑的命令没有地方写给它，这一项也是空的。",
+            + "在窗口中执行的命令没有可写入的位置，这一项也是空的。",
         ["script.run.return.success.label"] = "是否执行成功",
         ["script.run.return.success.hint"] = "脚本以退出码 0 结束为真，否则为假。退出码不是 0 时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
@@ -3602,9 +3602,9 @@ internal static class ActionStrings
             + "数字、文字、真假、列表，或者一条带字段的记录。脚本没交过就是空的。",
         ["script.python.return.error.label"] = "错误消息",
         ["script.python.return.error.hint"] = "脚本在错误输出上写的内容，Python 报的错就写在这里，"
-            + "带着出错的行号。脚本顺利跑完时为空。",
+            + "带着出错的行号。脚本顺利执行完毕时为空。",
         ["script.python.return.success.label"] = "是否执行成功",
-        ["script.python.return.success.hint"] = "脚本没有出错并跑完为真，否则为假。脚本失败时这一步也会判失败，"
+        ["script.python.return.success.hint"] = "脚本无错误并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
         ["script.python.returns.label"] = "要留下的结果",
         ["script.python.returns.hint"] = ReturnsHintText,
@@ -3625,9 +3625,9 @@ internal static class ActionStrings
             + "数字、文字、真假、列表，或者一条带字段的记录。脚本没交过就是空的。",
         ["script.csharp.return.error.label"] = "错误消息",
         ["script.csharp.return.error.hint"] = "脚本编译不过时编译器说的话，或者运行中出的错，"
-            + "都带着出错的行号。脚本顺利跑完时为空。",
+            + "都带着出错的行号。脚本顺利执行完毕时为空。",
         ["script.csharp.return.success.label"] = "是否执行成功",
-        ["script.csharp.return.success.hint"] = "脚本编译通过并跑完为真，否则为假。脚本失败时这一步也会判失败，"
+        ["script.csharp.return.success.hint"] = "脚本编译通过并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
         ["script.csharp.returns.label"] = "要留下的结果",
         ["script.csharp.returns.hint"] = ReturnsHintText,
@@ -3638,9 +3638,9 @@ internal static class ActionStrings
             + "或者一条带字段的记录。脚本没交过就是空的。",
         ["script.ahk.return.error.label"] = "错误消息",
         ["script.ahk.return.error.hint"] = "脚本在错误输出上写的内容，AutoHotkey 报的错就写在这里，"
-            + "带着出错的行号。脚本顺利跑完时为空。",
+            + "带着出错的行号。脚本顺利执行完毕时为空。",
         ["script.ahk.return.success.label"] = "是否执行成功",
-        ["script.ahk.return.success.hint"] = "脚本没有出错并跑完为真，否则为假。脚本失败时这一步也会判失败，"
+        ["script.ahk.return.success.hint"] = "脚本无错误并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
         ["script.ahk.returns.label"] = "要留下的结果",
         ["script.ahk.returns.hint"] = ReturnsHintText,
