@@ -277,7 +277,7 @@ HTTP POST /mcp
 同一个 `McpServerHost` 被两种启动方式共用：
 
 - **有窗口**：`McpServerViewModel` 的开关打开服务，同时用浮层上的两个开关授权"直接控制"与"运行宏"。
-- **无窗口**：`whalegenie --mcp`，`App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`。
+- **无窗口**：`whalegenie --mcp`，`App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`。没有浮层可点，所以两个权限只能从命令行给：`--allow-control` 与 `--allow-run`；两个都不写就是只读（列宏、读屏幕、报状态都行，发输入与跑宏一律拒绝）。
 
 能力并不等价：无窗口模式**没有**触发器、没有恢复快照、没有托盘，而且两个权限开关没人能打开——`McpControl.Allowed` / `AllowsRun` 唯一的写方是浮层。所以无窗口时 `whalegenie_mouse_*` 与 `whalegenie_run_macro` 永久被拒。这是当前的设计，不是遗漏，但值得在文档和提示里说清（见「债务」第 11 条）。
 
@@ -378,8 +378,8 @@ HTTP POST /mcp
 
 ### 值得单独一轮
 
-1. **无窗口 MCP 的权限缺口**（9.1）。现在这一路技术上不可用、文档里也没说。要么给 `--mcp` 一个
-   `--allow-control` / `--allow-run`，要么把"这一路只能读"写死在服务说明与手册里。二选一，别停在这。
+1. ~~**无窗口 MCP 的权限缺口**~~ 已补：`--mcp` 现在收 `--allow-control` 与 `--allow-run` 两个开关，
+   默认只读；不写就是"这一路只能读"，写了的才是授权。
 2. **`BuildMacro()` 的产出没有逐字段对账。** 3437 行的 `MacroEditorViewModel` 把编辑态翻译成
    `MacroItem`，端到端只有一条用例（`The_macro_the_editor_ends_with_is_read_from_the_window`，验到名字）。
    值得一条"编一段 → 存 → 读回 → 相等"的用例：便宜，且字段漏写会立刻现形。

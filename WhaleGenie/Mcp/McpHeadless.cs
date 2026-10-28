@@ -24,6 +24,12 @@ internal static class McpHeadless
         var services = AppServices.Build(windowed: false);
         var project = services.GetRequiredService<MainViewModel>();
 
+        // A windowless run has no flyout to flip, so the two permissions it was started with are the
+        // ones it has. Without the flags it stays read-only, which is the same default the window
+        // starts on — the difference is that here nobody can change it.
+        McpControl.Allowed = options.AllowControl;
+        McpControl.AllowsRun = options.AllowRun;
+
         if (Setup(desktop, project, options) is { } failure)
         {
             Console.Error.WriteLine($"whalegenie: {failure}");

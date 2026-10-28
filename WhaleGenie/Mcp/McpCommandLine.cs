@@ -5,7 +5,8 @@ using System.IO;
 namespace WhaleGenie.Mcp;
 
 /// <summary>What a run without a window was asked to serve.</summary>
-internal sealed record McpHostOptions(int Port, string? PackagePath, string? NewFolder);
+internal sealed record McpHostOptions(int Port, string? PackagePath, string? NewFolder,
+    bool AllowControl, bool AllowRun);
 
 /// <summary>What a doctor run was asked to look at.</summary>
 internal sealed record McpDoctorOptions(
@@ -23,7 +24,10 @@ internal static class McpCommandLine
 
     internal static string Usage => """
         whalegenie --mcp [--port N] [--open FILE.wgmacro] [--new FOLDER]
-          Serves MCP without a window until Ctrl+C.
+                       [--allow-control] [--allow-run]
+          Serves MCP without a window until Ctrl+C. Without the last two, the server can only
+          read: it lists macros, reads the screen and reports state, but sends no input and runs
+          no macro, because there is no window to ask about them.
         whalegenie --mcp-doctor (--url URL | --spawn) [--open FILE.wgmacro] [--report FILE] [--write] [--strict]
           Checks an MCP server and prints what it found.
         """;
@@ -41,6 +45,8 @@ internal static class McpCommandLine
         var port = 0;
         string? open = null;
         string? folder = null;
+        var allowControl = false;
+        var allowRun = false;
         error = string.Empty;
 
         for (var index = 1; index < args.Length; index++)
@@ -73,6 +79,12 @@ internal static class McpCommandLine
                     }
 
                     break;
+                case "--allow-control":
+                    allowControl = true;
+                    break;
+                case "--allow-run":
+                    allowRun = true;
+                    break;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;
@@ -86,7 +98,7 @@ internal static class McpCommandLine
         }
 
         return new McpHostOptions(port, open is null ? null : Path.GetFullPath(open),
-            folder is null ? null : Path.GetFullPath(folder));
+            folder is null ? null : Path.GetFullPath(folder), allowControl, allowRun);
     }
 
     /// <summary>The doctor command, or null with a reason.</summary>

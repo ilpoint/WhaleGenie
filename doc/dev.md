@@ -20,7 +20,7 @@ pwsh build/site.ps1                              # 拼出介绍页 _site
 
 ```powershell
 dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report TestResults/mcp-after.md
-dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停
+dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停（只读；加 --allow-control / --allow-run 才授权）
 ```
 
 **换一台机器验证真实输入**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录
@@ -274,7 +274,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   取（出错的行在最后），不再静默截断。
 - 失败日志按文件名认（`McpFailureLogs`，只认 `failure-*.log` 且必须在日志目录里）：日志目录里还有服务器
   自己的调用记录，按"最新一个 .log"取会读到审计文件。
-- 无界面入口：`WhaleGenie.exe --mcp [--port N] [--open 包] [--new 文件夹]` 在 `App.Headless` 里以
+- 无界面入口：`WhaleGenie.exe --mcp [--port N] [--open 包] [--new 文件夹] [--allow-control] [--allow-run]` 在 `App.Headless` 里以
   `ShutdownMode.OnExplicitShutdown` 起 Avalonia 但不建窗口（`MainViewModel` 与设备层都要那个线程），
   只做 `PersistentVariables.Initialize` 与 `CaptureSetup.Load`，不装虚拟键鼠、不预热 OCR；stdout 只写
   一行 `endpoint=…` 给人以外的程序读。参数解析在 `McpCommandLine`。
