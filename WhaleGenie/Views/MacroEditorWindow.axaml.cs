@@ -25,31 +25,19 @@ namespace WhaleGenie.Views;
 
 public partial class MacroEditorWindow : Window
 {
+    /// <summary>What this editor is working on: the project, the macro, the lifted ones, the pages.</summary>
+    private readonly MacroEditorSession _session;
+
     private readonly MacroEditorViewModel _rootViewModel;
     private MacroEditorViewModel _viewModel;
     private readonly ActionPaletteViewModel _palette = new();
-    private readonly ObservableCollection<MacroDocumentPageViewModel> _documents = [];
-    private readonly Dictionary<MacroEditorViewModel, string> _lastEditorNames = [];
     private IReadOnlyList<PublicMacroEntry> _publicMacros = [];
     private string? _publicMacroLoadError;
     private bool _switchingDocuments;
     private MacroDocumentPageViewModel? _pageBeforeTabClose;
-    private PendingSubMacro? _pendingSubMacro;
-    private readonly List<MacroItem> _project;
 
-    /// <summary>
-    /// Macros the editor made while it was open, which is what a lift leaves behind: they join the
-    /// project when the macro that calls them is saved, because until then the call is not saved
-    /// either.
-    /// </summary>
-    private readonly List<MacroItem> _lifted = [];
 
-    /// <summary>The macro being edited, kept apart from the rest of the project so a call it makes
-    /// can be told from a call to another macro.</summary>
-    private readonly MacroItem? _editing;
 
-    /// <summary>Where a picture taken from the screen is put, so it travels with the package.</summary>
-    private readonly string _assetFolder;
 
     /// <summary>
     /// The layer the trials and runs started from here use, handed in by the window this was
@@ -188,15 +176,15 @@ public partial class MacroEditorWindow : Window
     {
         InitializeComponent();
 
-        _project = [.. project ?? (existing is null ? [] : [existing])];
-        _editing = existing;
-        _assetFolder = ImageAssets.FolderFor(packagePath);
+        _session = new MacroEditorSession(existing,
+            [.. project ?? (existing is null ? [] : [existing])],
+            ImageAssets.FolderFor(packagePath));
         _devices = devices;
         _rootViewModel = new MacroEditorViewModel();
         _rootViewModel.SystemReader = new SystemVariableReader(Layer);
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;
-        _rootViewModel.Documents = _documents;
+        _rootViewModel.Documents = _session.Documents;
         _recovery = new RecoveryWriter(WriteRecovery);
 
         // The window trigger lists the windows its rule picks out right now, and the frames on the
@@ -223,12 +211,12 @@ public partial class MacroEditorWindow : Window
         }
         else
         {
-            _rootViewModel.UseDefaultName(_project.Select(macro => macro.Name));
+            _rootViewModel.UseDefaultName(_session.Project.Select(macro => macro.Name));
         }
 
         BuildDocumentPages();
 
-        _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _project);
+        _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _session.Project);
         if (existing is not null)
         {
             _viewModel.LoadDraftProjectSettings(existing);
@@ -555,7 +543,7 @@ public partial class MacroEditorWindow : Window
     }
 
     private IReadOnlyList<MacroItem> ProjectMacrosForVariableEdits()
-        => [.. _project,
+        => [.. _session.Project,
             .. _documentPages.Select(page => page.Editor.BuildMacro())];
 
     private void ApplyGlobalVariableDrafts(IReadOnlyList<VariableDefinitionDraft> drafts,
@@ -639,21 +627,18 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    private sealed record PendingSubMacro(MacroEditorViewModel Editor,
-        MacroDocumentPageViewModel Page);
-
     private void BuildDocumentPages()
     {
-        _documents.Clear();
+        _session.Documents.Clear();
         _documentPages.Clear();
         var current = new MacroDocumentPageViewModel(_rootViewModel, isCurrent: true);
-        _documents.Add(current);
+        _session.Documents.Add(current);
         _documentPages.Add(current);
 
         var children = _rootViewModel.SubMacros.ToList();
         _rootViewModel.SubMacros.Clear();
         AddChildPages(children);
-        _rootViewModel.Documents = _documents;
+        _rootViewModel.Documents = _session.Documents;
         SettleDocumentIds();
         RefreshDocuments();
         SelectDocument(current);
@@ -672,12 +657,12 @@ public partial class MacroEditorWindow : Window
                 editor.Windows = devices.Windows;
             }
 
-            editor.Documents = _documents;
+            editor.Documents = _session.Documents;
             editor.LoadFrom(child);
             editor.SubMacros.Clear();
             WatchChildEditor(editor);
             var page = new MacroDocumentPageViewModel(editor, isCurrent: false, child);
-            _documents.Add(page);
+            _session.Documents.Add(page);
             _documentPages.Add(page);
             AddChildPages(nested);
         }
@@ -686,7 +671,7 @@ public partial class MacroEditorWindow : Window
     private void AddBlankSubMacro()
     {
         var editor = new MacroEditorViewModel { IsSubMacro = true };
-        editor.Documents = _documents;
+        editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {
             editor.Windows = devices.Windows;
@@ -705,8 +690,8 @@ public partial class MacroEditorWindow : Window
 
     private async void CopyProjectMacroAsSub()
     {
-        var candidates = _project
-            .Where(macro => !ReferenceEquals(macro, _editing))
+        var candidates = _session.Project
+            .Where(macro => !ReferenceEquals(macro, _session.Editing))
             .ToList();
         if (await MenuMacroPickerWindow.ShowAsync(this, candidates,
                 Strings.Get("Editor.PickSubMacro"),
@@ -724,7 +709,7 @@ public partial class MacroEditorWindow : Window
     private void AddExistingSubMacro(MacroItem macro)
     {
         var editor = new MacroEditorViewModel { IsSubMacro = true };
-        editor.Documents = _documents;
+        editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {
             editor.Windows = devices.Windows;
@@ -746,8 +731,8 @@ public partial class MacroEditorWindow : Window
     private void AddChildPage(MacroEditorViewModel editor, MacroItem? source)
     {
         var page = new MacroDocumentPageViewModel(editor, isCurrent: false, source);
-        editor.Documents = _documents;
-        _documents.Add(page);
+        editor.Documents = _session.Documents;
+        _session.Documents.Add(page);
         _documentPages.Add(page);
     }
 
@@ -758,7 +743,7 @@ public partial class MacroEditorWindow : Window
     {
         var names = _documentPages
             .Select(page => page.Editor.Name.Trim())
-            .Concat(_project.Select(macro => macro.Name.Trim()))
+            .Concat(_session.Project.Select(macro => macro.Name.Trim()))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var stem = basis.Trim();
         if (stem.Length == 0)
@@ -784,7 +769,7 @@ public partial class MacroEditorWindow : Window
     private void WatchChildEditor(MacroEditorViewModel editor)
     {
         editor.SystemReader = new SystemVariableReader(Layer);
-        _lastEditorNames[editor] = editor.Name;
+        _session.EditorNames[editor] = editor.Name;
         editor.CloseRequested += _ => SaveAll(closeAfterSave: false);
         editor.AddStepRequested += OnAddStepRequested;
         editor.EditStepRequested += OnEditStepRequested;
@@ -810,9 +795,9 @@ public partial class MacroEditorWindow : Window
 
             if (args.PropertyName == nameof(MacroEditorViewModel.Name))
             {
-                var oldName = _lastEditorNames.GetValueOrDefault(editor, string.Empty);
+                var oldName = _session.EditorNames.GetValueOrDefault(editor, string.Empty);
                 var newName = editor.Name.Trim();
-                _lastEditorNames[editor] = editor.Name;
+                _session.EditorNames[editor] = editor.Name;
                 if (oldName.Length > 0 && newName.Length > 0
                     && !string.Equals(oldName, newName, StringComparison.Ordinal))
                 {
@@ -853,8 +838,8 @@ public partial class MacroEditorWindow : Window
 
     private void RefreshProjectCallables()
     {
-        var projectCalls = _project
-            .Where(macro => !ReferenceEquals(macro, _editing))
+        var projectCalls = _session.Project
+            .Where(macro => !ReferenceEquals(macro, _session.Editing))
             .Select(macro => macro.Callable)
             .ToList();
         var sharedChildren = _documentPages
@@ -931,7 +916,7 @@ public partial class MacroEditorWindow : Window
         {
             _viewModel = page.Editor;
             DataContext = page.Editor;
-            _viewModel.Documents = _documents;
+            _viewModel.Documents = _session.Documents;
             var tabs = this.FindControl<ListBox>("DocumentTabs");
             if (tabs is not null)
             {
@@ -957,9 +942,9 @@ public partial class MacroEditorWindow : Window
                     StringComparison.OrdinalIgnoreCase)));
         if (page is not null)
         {
-            if (!_documents.Contains(page))
+            if (!_session.Documents.Contains(page))
             {
-                _documents.Add(page);
+                _session.Documents.Add(page);
             }
 
             SelectDocument(page);
@@ -995,7 +980,7 @@ public partial class MacroEditorWindow : Window
         _pageBeforeTabClose = null;
         var closingActive = ReferenceEquals(active, page);
 
-        _documents.Remove(page);
+        _session.Documents.Remove(page);
         SelectDocument(closingActive ? _documentPages[0] : active ?? _documentPages[0]);
         RefreshDocuments();
     }
@@ -1042,7 +1027,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        _documents.Remove(page);
+        _session.Documents.Remove(page);
         _documentPages.Remove(page);
         SelectDocument(_documentPages[0]);
         _rootViewModel.IsDirty = true;
@@ -1779,7 +1764,7 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private bool OtherMacroReaches(Func<string, bool> direct)
     {
-        var macros = _project.ToList();
+        var macros = _session.Project.ToList();
 
         bool Walk(MacroStep step, HashSet<string> walking)
         {
@@ -1820,7 +1805,7 @@ public partial class MacroEditorWindow : Window
         }
 
         return macros
-            .Where(macro => !ReferenceEquals(macro, _editing))
+            .Where(macro => !ReferenceEquals(macro, _session.Editing))
             .SelectMany(macro => macro.Steps)
             .Any(step => Walk(step, new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
     }
@@ -1831,8 +1816,8 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private void OnMacroLifted(MacroItem macro)
     {
-        _lifted.Add(macro);
-        _project.Add(macro);
+        _session.Lifted.Add(macro);
+        _session.Project.Add(macro);
         RefreshProjectCallables();
     }
 
@@ -1842,7 +1827,7 @@ public partial class MacroEditorWindow : Window
     {
         var editingPage = _viewModel;
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
-            MacroCalls(), presetKey, _assetFolder, _viewModel.StepChoices(),
+            MacroCalls(), presetKey, _session.AssetFolder, _viewModel.StepChoices(),
             editing?.Id ?? _viewModel.NewStepId())
         {
             Devices = Layer,
@@ -1868,7 +1853,7 @@ public partial class MacroEditorWindow : Window
         DataContext = editingPage;
         if (step is null)
         {
-            _pendingSubMacro = null;
+            _session.Pending = null;
             _viewModel.ClearPendingInsertion();
             return null;
         }
@@ -1879,8 +1864,8 @@ public partial class MacroEditorWindow : Window
             return step;
         }
 
-        var pending = _pendingSubMacro;
-        _pendingSubMacro = null;
+        var pending = _session.Pending;
+        _session.Pending = null;
         _viewModel = editingPage;
         DataContext = editingPage;
         var refusal = _viewModel.AddStepHere(step);
@@ -1890,7 +1875,7 @@ public partial class MacroEditorWindow : Window
             && string.Equals(step.Text("macro").Trim(), pending.Editor.Name,
                 StringComparison.OrdinalIgnoreCase))
         {
-            _documents.Add(pending.Page);
+            _session.Documents.Add(pending.Page);
             _documentPages.Add(pending.Page);
             SettleDocumentIds();
             _rootViewModel.IsDirty = true;
@@ -1999,7 +1984,7 @@ public partial class MacroEditorWindow : Window
     private IReadOnlyList<MacroCallable> MacroCalls()
     {
         var calls = new List<MacroCallable>();
-        foreach (var macro in _project.Where(macro => !ReferenceEquals(macro, _editing)))
+        foreach (var macro in _session.Project.Where(macro => !ReferenceEquals(macro, _session.Editing)))
         {
             if (macro.Name.Length > 0
                 && !calls.Any(call => string.Equals(call.Name, macro.Name,
@@ -2046,7 +2031,7 @@ public partial class MacroEditorWindow : Window
         var entries = new List<(string Name, IReadOnlyList<ExecutableStep> Steps,
             MacroSignature Signature, bool ExclusiveInput)>();
 
-        foreach (var macro in _project.Where(macro => !ReferenceEquals(macro, _editing)))
+        foreach (var macro in _session.Project.Where(macro => !ReferenceEquals(macro, _session.Editing)))
         {
             if (macro.Name.Length > 0)
             {
@@ -2171,7 +2156,7 @@ public partial class MacroEditorWindow : Window
     /// of what the session produced, so the project takes it along with the edited macro.
     /// </summary>
     internal IReadOnlyList<MacroItem> LiftedMacros
-        => [.. _lifted.Where(macro => _viewModel.Steps.Any(step => Calls(step, macro.Name)))];
+        => [.. _session.Lifted.Where(macro => _viewModel.Steps.Any(step => Calls(step, macro.Name)))];
 
     /// <summary>True when this step, or any step inside it, calls the named macro.</summary>
     private static bool Calls(MacroStep step, string name)
@@ -2225,7 +2210,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        RecoveryStore.SaveEditor(BuildRootSnapshot(), _editing?.Name ?? string.Empty);
+        RecoveryStore.SaveEditor(BuildRootSnapshot(), _session.Editing?.Name ?? string.Empty);
         _editorInRecovery = true;
     }
 
@@ -2967,7 +2952,7 @@ public partial class MacroEditorWindow : Window
         }
 
         string? macroName = null;
-        _pendingSubMacro = null;
+        _session.Pending = null;
         if (payload.Kind == ActionPaletteCardKind.SubMacro)
         {
             // A submacro no longer has to be open in a page of its own to be called: it is in the
@@ -3015,7 +3000,7 @@ public partial class MacroEditorWindow : Window
             return null;
         }
 
-        var copy = PublicMacroLibrary.CopyToProject(entry, _assetFolder);
+        var copy = PublicMacroLibrary.CopyToProject(entry, _session.AssetFolder);
         copy.Name = UniqueSubMacroName(entry.Macro.Name);
         var editor = new MacroEditorViewModel { IsSubMacro = true };
         if (_devices is { } devices)
@@ -3023,13 +3008,13 @@ public partial class MacroEditorWindow : Window
             editor.Windows = devices.Windows;
         }
 
-        editor.Documents = _documents;
+        editor.Documents = _session.Documents;
         editor.LoadFrom(copy);
         editor.SubMacros.Clear();
         editor.IsDirty = true;
         WatchChildEditor(editor);
         var page = new MacroDocumentPageViewModel(editor, isCurrent: false, copy);
-        _pendingSubMacro = new PendingSubMacro(editor, page);
+        _session.Pending = new PendingSubMacro(editor, page);
         return editor.Name;
     }
 
