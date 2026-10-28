@@ -40,7 +40,7 @@
 
 验收：`LayeringTests` 仍然绿（组合根之外仍不许 `new` 平台实现）；`--mcp-doctor --spawn` 仍然 37 条全过；测试能注入替身而不必改构造调用。
 
-## 阶段 3：引擎内聚（P1）
+## 阶段 3：引擎内聚（P1）　✅ 已完成（`6315cc3`、`ca1351d`、`ad11459`）
 
 1. **运行器装配收成一处**：`RunViewModel`、`MacroTriggerService`、`McpRunTools` 三处逐行相同的装配换成一个 `RunFactory`（放进阶段 2 的容器）。
 2. **重试判断合一**：`RunAttempts` 里 signal 分支与 catch 分支的两段判断合成一个 `Outcome`，再决定重试/跳过/停止。
