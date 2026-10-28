@@ -68,7 +68,6 @@ public sealed class McpPrompts
           find_elements, process_list, clipboard_read, read_picture.
         - driving (needs the direct-control switch): mouse_move, mouse_click, mouse_scroll,
           mouse_drag, key, type_text, window_activate, window_move, window_close, clipboard_write.
-        - the range window: range_state, range_reset.
         Before apply, call preview_apply when the person is deciding: it names the macros that would
         come, go or change, the steps that differ and the global declarations that move.
         """;

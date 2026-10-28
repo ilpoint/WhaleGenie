@@ -23,47 +23,13 @@ dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report Test
 dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停
 ```
 
-受控靶场：起一个窗口，控件位置与颜色固定，MCP 客户端可以在里面试动作：
+**换一台机器验证真实输入**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录
+落在会话 0，那里没有桌面——窗口建得出来但没人看得见，`SendInput` 也到不了，输入类动作会静默地什么都不做。
 
-```
-dotnet run --project WhaleGenie -c Release -- --mcp --range --port 3917
-```
-
-端到端跑一遍靶场（会开一个真窗口、真的点一下它自己的按钮）：
-
-```
-dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --range --report TestResults/mcp-range.md
-```
-
-九项：窗口在哪、把它提到前面、写一个点按钮的宏、跑它、读回按了几下、复位、三条边界各被拒绝一次。
-
-它会多打一行 `range=<窗口句柄>`，`whalegenie_range_state` / `whalegenie_range_reset` 读它、把它复位。
-没有 `--range` 的进程里这两个工具按 `RangeNotAvailable` 拒绝。
-
-边界在工具这一层执行（`WhaleGenie/Range/RangePolicy.cs` 与 `McpControlTools.Drive` 的前置判定）：坐标必须
-落在窗口里、窗口句柄只认靶场那个、跑宏时不放脚本/结束进程/关机、文件只能写进靶场目录、单次运行 60 秒封顶。
-拒绝码是 `Range.*`，每条都写审计。窗口位置另存一份纯数字（`RangeWindow.Where`），别的线程读它不必碰界面。
-
-**换一台机器验证**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录落在
-会话 0，那里没有桌面——窗口建得出来但没人看得见，SendInput 也到不了，靶场会一直报 presses 为 0。
-在没有图形登录的机器上，先建一个交互式计划任务再运行：
-
-```
-schtasks /Create /TN WhaleGenieRange /TR C:\wg\run.bat /SC ONCE /ST 23:59 /IT /F
-schtasks /Run /TN WhaleGenieRange
-```
-
-`run.bat` 里写 `WhaleGenie.exe --mcp-doctor --spawn --range --report C:\wg\mcp-range.md > C:\wg\range.log 2>&1`，
-跑完看 `range.log`。这样验证过 Windows 10 22H2 / .NET 10 / 1280×1024 的虚拟机：
-[TestResults/mcp-range-vm.md](../TestResults/mcp-range-vm.md) 九项全过，presses 从 0 到 1。
-
-**靶场检查需要能把窗口提到前台**：`range.front` 会核对靶场是不是真的在最前面（`window_activate` 的
-`activated` 与 `requested` 是两件事），提不上来就不点——点给别人的窗口比不点更糟——并把 `range.draft` /
-`range.run` / `range.effect` / `range.reset` 记成跳过，报告里写清是谁占了前台。一块被别人占着的桌面
-（比如停在虚拟机的连接窗口上）会让这项检查变红，这时的红是真话，不是阀门坏了。
-
-客户端那一面由 `build/vm-sweep/` 量：28 个场景，每个都读一个数（`presses`、输入框里的字、色块颜色、
-每步算出的值），用法见那里的 README。
+这一档以前有一个 `--range` 靶场窗口可以拿读数核对（按了几下、输入框里是什么、色块什么颜色）。它已经从产品
+里移走了：那些读数只在验证这一层有意义，而验证过之后，留在发布包里的就是一个谁都用不到的窗口。同一个窗口
+现在住在测试工程里（`WhaleGenie.Tests/RangeWindow.cs`，用例 `RangeWindowTests`），`dotnet test` 跑得到，
+但它跑在无头会话里，不会真的往桌面上发一次点击。真实输入、抓屏取色因此回到「手动」，见下面那张表。
 
 量动作契约，把矩阵写到指定文件（不给变量就只在测试里算，不落盘）：
 
@@ -574,7 +540,7 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、页面归属、返回值页、触发器比对、卡片显示、文案完整性与文档对账，宏包往返，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
 | 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过）；`WHALEGENIE_REAL_NUGET=1` 时额外下载真实包并验证编译和运行 |
-| 靶场 | `WhaleGenie.Tests/RangeWindowTests.cs` | 靶场窗口的控件位置与自报的地方一致、复位把按下的次数清掉、两个工具在有窗/无窗两态下的回答与拒绝 |
+| 靶场窗口 | `WhaleGenie.Tests/RangeWindowTests.cs` | 窗口的控件位置与自报的地方一致、复位把按下的次数清掉。它只说这个窗口还成形，不说输入送到了桌面——那一档在下面的「手动」里 |
 | 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及驱动级输入：真机装一次 usbip-win2 驱动，勾上/不勾「启动时先把虚拟键鼠装上机器」各跑一次运行，键鼠四种动作（点击、打字、拖拽、滚轮）与手柄各来一次，退出程序后看设备管理器里虚拟设备是不是没了；三种屏幕拾取器（框选区域、取色放大镜、元素拾取）各进出一次：打开时鲸灵自己的窗口（含问话的那个对话框）都不在屏幕上，拾取器一开就拿到焦点、Esc 与回车与右键当场有效，拾完窗口按原状回来——其中一次在添加动作窗口里拾，看它自己也回来（它是编辑器的属主窗口，收起时跟着编辑器一起走）；框选器打开时屏幕是原样、指针看得见（底图定格在那一刻），一拖出框才框外压暗、框内照原样，框选之后截一张，图片里没有鲸灵自己的窗口；识别结果与偏移拾取窗口的标题栏都能拖着走（标题栏拖动是手动那一档，无头会话里只验到接没接线）；YOLO 检测的三步各跑一次（自备一份公开的 yolov8n.onnx 与类名表）：检测物体一次看框落在东西上、等待检测到物体在一段限时里等到与等到超时各一次、点击检测到的物体看落点在框中心加上偏移，并记下一次检测的耗时；脚本动作的三种窗口模式各跑一次（窗口留着/关着/不显示）、批处理、PowerShell 与 AutoHotkey 各一次，AutoHotkey 那一条还要在一台没装它的机器上看一次报错；Python 脚本与安装 PIP 包各一次（装的包能 import），C# 脚本与下载 NuGet 包各一次（装的包能编译进脚本），断网时看两个依赖动作各报什么；表达式编辑器里把变量、函数与树上已有的一支拖到位置上（拖到空位＝填入、拖到已有的一段＝换掉、拖自己的一支进自己的后代＝不理会、拖到窗口外＝取消，落点要跟着亮；1080×720 下四段分区与「翻译结果」一行排得下、滚动正常，函数卡片按分类 dock 只剩一组、颜色六个组两两不同、悬停气泡出得来，深嵌套公式的那句人话读起来顺） |
 
 界面用例走的是 Avalonia 自己的输入管线，不是系统里的鼠标与按键：真的注入按键、真的抓屏取色这类事情在

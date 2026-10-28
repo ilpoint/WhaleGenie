@@ -35,23 +35,7 @@ internal static class McpHeadless
             Stop(desktop, project);
         };
 
-        if (options.Range)
-        {
-            var range = new Range.RangeWindow();
-            range.Closed += (_, _) => Stop(desktop, project);
-            range.Show();
-
-            // In front of whatever was there: a range nobody can click is a range that answers
-            // "the step worked" while the count stays at nothing.
-            range.Activate();
-
-            // A range run exists to be tried on, and the person asked for it by starting it this
-            // way: both switches are on for its lifetime, and the edges are what keeps it honest.
-            McpControl.Allowed = true;
-            McpControl.AllowsRun = true;
-        }
-
-        _ = ServeAsync(desktop, project, options.Port, options.Range);
+        _ = ServeAsync(desktop, project, options.Port);
     }
 
     /// <summary>
@@ -88,7 +72,7 @@ internal static class McpHeadless
     }
 
     private static async Task ServeAsync(IClassicDesktopStyleApplicationLifetime desktop,
-        MainViewModel project, int port, bool range)
+        MainViewModel project, int port)
     {
         try
         {
@@ -97,13 +81,6 @@ internal static class McpHeadless
             // One line for a program, one for a person: a doctor reads stdout and nothing else, so
             // anything else written there would have to be understood by it.
             Console.Out.WriteLine($"endpoint={project.Mcp.Endpoint}");
-            if (range)
-            {
-                // The window's own handle, so a client that was started by something else can be
-                // pointed straight at the place it is allowed to touch.
-                Console.Out.WriteLine($"range={Range.RangeWindow.Current?.TryGetPlatformHandle()?.Handle ?? 0}");
-            }
-
             Console.Out.Flush();
             Console.Error.WriteLine($"whalegenie: MCP on {project.Mcp.Endpoint}; Ctrl+C stops it");
         }

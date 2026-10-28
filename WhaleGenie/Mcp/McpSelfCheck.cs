@@ -71,7 +71,6 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
         "whalegenie_find_elements", "whalegenie_window_info", "whalegenie_clipboard_read",
         "whalegenie_clipboard_write", "whalegenie_process_list", "whalegenie_read_picture",
         "whalegenie_run_macro", "whalegenie_stop_macro", "whalegenie_run_status",
-        "whalegenie_range_state", "whalegenie_range_reset",
     ];
 
     private readonly McpSelfCheckOptions _options = options ?? new McpSelfCheckOptions();
@@ -823,9 +822,8 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
     }
 
     /// <summary>
-    /// Whether the two permissions really are off when nobody turned them on, and whether a run
-    /// without a range says so. A server that quietly allowed either would be a hole the person did
-    /// not open.
+    /// Whether the two permissions really are off when nobody turned them on. A server that quietly
+    /// allowed either would be a hole the person did not open.
     /// </summary>
     private async Task DoorsAsync(CancellationToken token)
     {
@@ -844,12 +842,6 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
         var runOff = Refused(run, McpErrors.RunNotAllowed);
         Add("gate.run_off", runOff ? McpCheckResult.Pass : McpCheckResult.Fail,
             runOff ? "running a macro is refused until the person allows it" : run.Text);
-
-        var range = await InvokeAsync("whalegenie_range_state",
-            new Dictionary<string, object?>(StringComparer.Ordinal), token).ConfigureAwait(false);
-        var noRange = Refused(range, McpErrors.RangeNotAvailable);
-        Add("range.absent", noRange ? McpCheckResult.Pass : McpCheckResult.Missing,
-            noRange ? "this server has no range window and says so" : range.Text);
     }
 
     private async Task GateAsync(CancellationToken token)

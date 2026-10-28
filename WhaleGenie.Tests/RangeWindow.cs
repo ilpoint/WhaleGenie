@@ -5,23 +5,24 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
-using WhaleGenie.Core.Devices;
 
-namespace WhaleGenie.Range;
+namespace WhaleGenie.Tests;
 
 /// <summary>
 /// A target to try things on: one window whose controls sit at fixed places and whose colour is
-/// always the same, so a client can say "click at (60, 58) and the count goes up by one" instead of
-/// hoping the desktop happens to look like something. It is a place to be wrong in, not a feature.
+/// always the same, so a check can say "click at (60, 58) and the count goes up by one" instead of
+/// hoping the desktop happens to look like something.
 /// </summary>
 /// <remarks>
-/// Every control carries an automation id, because the point of the window is to be found again by a
-/// selector. The numbers in <see cref="Facts"/> are where the controls sit inside the window; a
-/// client that reads them can aim at a control without reading a picture first.
+/// It lives in the checks rather than in the program. A target with fixed coordinates is how the
+/// device layer is exercised end to end — a fake input device proves the call was made, only a real
+/// window proves it arrived — and that is a job for a test, not something a person who installed
+/// WhaleGenie should find in the package. Every control still carries an automation id, because
+/// being found by a selector is half of what the window is for.
 /// </remarks>
 public sealed class RangeWindow : Window
 {
-    /// <summary>The window a range run opened, or null when this run is not a range.</summary>
+    /// <summary>The window a check opened, or null when none is open.</summary>
     public static RangeWindow? Current { get; private set; }
 
     /// <summary>
@@ -53,12 +54,12 @@ public sealed class RangeWindow : Window
         CanResize = false;
 
         // No frame, so the window's own position is the corner of the part a control sits in: a
-        // client that reads (x, y) and clicks there lands where it meant to.
+        // check that reads (x, y) and clicks there lands where it meant to.
         WindowDecorations = WindowDecorations.None;
 
         // The window keeps its own colours rather than the application's: a dark theme would draw
-        // white letters on this light background, which is a range a person cannot read while a
-        // client clicks it.
+        // white letters on this light background, which is a target nobody can read while it is
+        // being clicked.
         Background = new SolidColorBrush(Color.Parse("#F4F6F8"));
         Foreground = new SolidColorBrush(Color.Parse("#1F2937"));
 
@@ -101,7 +102,7 @@ public sealed class RangeWindow : Window
         Render();
     }
 
-    /// <summary>The window becomes the range as it opens, and stops being one as it closes.</summary>
+    /// <summary>The window becomes the target as it opens, and stops being one as it closes.</summary>
     protected override void OnOpened(EventArgs e)
     {
         Current = this;
@@ -143,7 +144,7 @@ public sealed class RangeWindow : Window
     /// <summary>Whether the box is ticked.</summary>
     public bool Flag => _flag.IsChecked == true;
 
-    /// <summary>Everything the window shows, so a client can compare a run's effect with what it did.</summary>
+    /// <summary>Everything the window shows, so a check can compare a run's effect with what it did.</summary>
     public object Facts()
     {
         return new
@@ -155,7 +156,6 @@ public sealed class RangeWindow : Window
             y = Position.Y,
             width = (int)ClientSize.Width,
             height = (int)ClientSize.Height,
-            folder = RangePolicy.Folder,
             presses = Presses,
             dangerPresses = DangerPresses,
             text = Field,
@@ -183,7 +183,7 @@ public sealed class RangeWindow : Window
         Render();
     }
 
-    /// <summary>Where one control sits inside the window, and where that is on the screen.</summary>
+    /// <summary>Where one control sits inside the window.</summary>
     private static object Target(string id, int x, int y, int width, int height) => new
     {
         id,
@@ -235,3 +235,6 @@ public sealed class RangeWindow : Window
         return control;
     }
 }
+
+/// <summary>Where a target window is, in screen pixels, and which handle it has.</summary>
+public sealed record RangeBounds(long Handle, int X, int Y, int Width, int Height);

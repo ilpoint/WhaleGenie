@@ -128,7 +128,6 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             new McpTools(drafts, live),
             new McpControlTools(),
             new McpRunTools(project, drafts),
-            new McpRangeTools(),
         ];
 
         var tools = new List<McpServerTool>();

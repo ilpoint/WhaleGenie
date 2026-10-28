@@ -5,13 +5,11 @@ using System.IO;
 namespace WhaleGenie.Mcp;
 
 /// <summary>What a run without a window was asked to serve.</summary>
-internal sealed record McpHostOptions(
-    int Port, string? PackagePath, string? NewFolder, bool Range = false);
+internal sealed record McpHostOptions(int Port, string? PackagePath, string? NewFolder);
 
 /// <summary>What a doctor run was asked to look at.</summary>
 internal sealed record McpDoctorOptions(
-    string? Url, bool Spawn, string? PackagePath, string? Report, bool Write, bool Strict,
-    bool Range = false);
+    string? Url, bool Spawn, string? PackagePath, string? Report, bool Write, bool Strict);
 
 /// <summary>
 /// The two command lines beside the window. They are read before Avalonia exists, so they use
@@ -24,13 +22,10 @@ internal static class McpCommandLine
     internal const string DoctorFlag = "--mcp-doctor";
 
     internal static string Usage => """
-        whalegenie --mcp [--port N] [--open FILE.wgmacro] [--new FOLDER] [--range]
-          Serves MCP without a window until Ctrl+C. --range also opens the range window a
-          client can try things on.
-        whalegenie --mcp-doctor (--url URL | --spawn) [--open FILE.wgmacro] [--report FILE] [--write] [--strict] [--range]
-          Checks an MCP server and prints what it found. With --spawn and --range it starts a range
-          run and checks the whole loop: write a macro, run it, read the window back, reset, and try
-          the edges.
+        whalegenie --mcp [--port N] [--open FILE.wgmacro] [--new FOLDER]
+          Serves MCP without a window until Ctrl+C.
+        whalegenie --mcp-doctor (--url URL | --spawn) [--open FILE.wgmacro] [--report FILE] [--write] [--strict]
+          Checks an MCP server and prints what it found.
         """;
 
     internal static bool HostAsked(string[] args) => args.Length > 0 && args[0] == HostFlag;
@@ -46,7 +41,6 @@ internal static class McpCommandLine
         var port = 0;
         string? open = null;
         string? folder = null;
-        var range = false;
         error = string.Empty;
 
         for (var index = 1; index < args.Length; index++)
@@ -79,9 +73,6 @@ internal static class McpCommandLine
                     }
 
                     break;
-                case "--range":
-                    range = true;
-                    break;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;
@@ -95,7 +86,7 @@ internal static class McpCommandLine
         }
 
         return new McpHostOptions(port, open is null ? null : Path.GetFullPath(open),
-            folder is null ? null : Path.GetFullPath(folder), range);
+            folder is null ? null : Path.GetFullPath(folder));
     }
 
     /// <summary>The doctor command, or null with a reason.</summary>
@@ -107,7 +98,6 @@ internal static class McpCommandLine
         var spawn = false;
         var write = false;
         var strict = false;
-        var range = false;
         error = string.Empty;
 
         for (var index = 1; index < args.Length; index++)
@@ -149,9 +139,6 @@ internal static class McpCommandLine
                 case "--strict":
                     strict = true;
                     break;
-                case "--range":
-                    range = true;
-                    break;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;
@@ -175,8 +162,7 @@ internal static class McpCommandLine
             open is null ? null : Path.GetFullPath(open),
             report is null ? null : Path.GetFullPath(report),
             write,
-            strict,
-            range);
+            strict);
     }
 
     private static bool Next(string[] args, ref int index, out string value)
