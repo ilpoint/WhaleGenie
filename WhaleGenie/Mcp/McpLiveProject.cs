@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -67,7 +66,10 @@ public sealed class McpLiveProject(MainViewModel project)
             return project.Revision;
         });
 
-    /// <summary>Writes the project's current package, keeping a copy of the old file.</summary>
+    /// <summary>
+    /// Writes the project's current package. The old file is kept as .bak by the package writer
+    /// itself, so this path and the window's own Save behave the same way.
+    /// </summary>
     public async Task<string> SaveAsync()
         => await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -77,11 +79,6 @@ public sealed class McpLiveProject(MainViewModel project)
                 throw new McpFailure(McpErrors.NoPackagePath,
                     "The project has no package path yet, so there is nothing to save to.",
                     "Ask the person to save the project once in WhaleGenie, or to choose a location when MCP starts.");
-            }
-
-            if (File.Exists(path))
-            {
-                File.Copy(path, path + ".bak", true);
             }
 
             project.SavePackage(path);

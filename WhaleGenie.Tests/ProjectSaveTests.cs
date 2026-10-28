@@ -37,6 +37,41 @@ public class ProjectSaveTests
         Assert.False(viewModel.HasUnsavedChanges);
     }
 
+    /// <summary>
+    /// Every save keeps the file it replaced as .bak. The window's own Save goes through the package
+    /// writer just as the MCP tool does, so this is the one place that has to remember — a save that
+    /// turns out to be wrong is the one mistake nobody can undo from inside the program.
+    /// </summary>
+    [Fact]
+    public void Every_save_keeps_the_file_it_replaced()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+            var first = new MainViewModel();
+            first.AddMacro(new MacroItem { Name = "login" });
+            first.SavePackage(path);
+
+            // Nothing was replaced yet, so there is nothing to keep.
+            Assert.False(File.Exists(path + ".bak"));
+
+            var second = new MainViewModel();
+            second.AddMacro(new MacroItem { Name = "logout" });
+            second.SavePackage(path);
+
+            // What is kept is the package that was there before, not the one just written.
+            var kept = MacroPackage.Load(path + ".bak");
+            Assert.Contains(kept.Macros, macro => macro.Name == "login");
+            Assert.DoesNotContain(kept.Macros, macro => macro.Name == "logout");
+            Assert.Contains(MacroPackage.Load(path).Macros, macro => macro.Name == "logout");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
     [Fact]
     public void Arming_a_macro_is_a_change_because_the_package_holds_it()
     {

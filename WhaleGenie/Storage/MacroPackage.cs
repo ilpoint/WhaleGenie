@@ -101,6 +101,15 @@ public static class MacroPackage
                 SaveInto(archive, fullPath, macros, triggers, globals, appVersion);
             }
 
+            // The package being replaced is kept beside it as .bak. A save that turns out to be wrong
+            // is the one mistake nobody can undo from inside the program, and the copy costs a single
+            // file write. Every path that saves — the window's own Ctrl+S and the MCP tool alike —
+            // comes through here, so none of them can forget it.
+            if (File.Exists(fullPath))
+            {
+                File.Copy(fullPath, fullPath + ".bak", true);
+            }
+
             File.Move(temporary, fullPath, true);
         }
         catch
