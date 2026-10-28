@@ -199,8 +199,7 @@ public class PickerAsideTests
             Task<ElementPickerWindow.Pick?> picked;
             try
             {
-                picked = ElementPickerWindow.PickAsync(asking,
-                    new ChecksDevices { Screen = screen, Ui = ui, Hook = hook });
+                picked = ElementPickerWindow.PickAsync(asking, screen, hook, ui);
             }
             finally
             {

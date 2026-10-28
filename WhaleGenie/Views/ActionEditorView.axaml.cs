@@ -585,7 +585,8 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await PointPickerWindow.PickAsync(HostWindow!, Devices, viewModel.CoordinateWindow())
+        if (await PointPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, Devices.Ui,
+            Devices.Hook, viewModel.CoordinateWindow())
             is { } point)
         {
             viewModel.ApplyCursorPosition(point.X, point.Y);
@@ -1746,7 +1747,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ElementPickerWindow.PickAsync(HostWindow!, Devices) is not { } picked)
+        if (await ElementPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Hook, Devices.Ui) is not { } picked)
         {
             return;
         }

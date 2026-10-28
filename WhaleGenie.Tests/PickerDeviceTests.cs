@@ -57,7 +57,7 @@ public class PickerDeviceTests
         {
             var machine = new Machine { Cursor = new ScreenPoint(1000, 500), Element = Save };
 
-            var window = new ElementPickerWindow(new ChecksDevices { Screen = machine, Ui = machine });
+            var window = new ElementPickerWindow(machine, NullDeviceLayer.Instance.Hook, machine);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 

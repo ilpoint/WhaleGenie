@@ -26,7 +26,9 @@ public sealed class PointPickerWindow : Window
     private static readonly HookKey F1 = KeyNames.Resolve("F1") ?? default;
     private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
 
-    private readonly IDeviceLayer _devices;
+    private readonly IScreenDevice _screen;
+    private readonly IWindowDevice _windows;
+    private readonly IUiDevice _ui;
     private readonly WindowRule? _target;
     private readonly IInputHook? _hookSource;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
@@ -66,11 +68,19 @@ public sealed class PointPickerWindow : Window
     private bool _swallowEscapeUp;
     private ScreenPoint? _pendingPoint;
 
-    internal PointPickerWindow(IDeviceLayer devices, WindowRule? target)
+    /// <summary>
+    /// The crosshair over just what it reads: the screen it draws from, the windows it measures
+    /// against and the element under the pointer. Taking those four rather than the whole device
+    /// layer says what this picker needs.
+    /// </summary>
+    internal PointPickerWindow(IScreenDevice screen, IWindowDevice windows, IUiDevice ui,
+        IInputHook hook, WindowRule? target)
     {
-        _devices = devices;
+        _screen = screen;
+        _windows = windows;
+        _ui = ui;
         _target = target;
-        _hookSource = devices.Hook;
+        _hookSource = hook;
 
         Title = Strings.Get("PointPicker.Title");
         WindowDecorations = WindowDecorations.None;
@@ -115,11 +125,11 @@ public sealed class PointPickerWindow : Window
 
     internal ScreenPoint? Chosen { get; private set; }
 
-    public static async Task<ScreenPoint?> PickAsync(Window owner, IDeviceLayer devices,
-        WindowRule? target = null)
+    public static async Task<ScreenPoint?> PickAsync(Window owner, IScreenDevice screen,
+        IWindowDevice windows, IUiDevice ui, IInputHook hook, WindowRule? target = null)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new PointPickerWindow(devices, target).TakeAsync();
+        return await new PointPickerWindow(screen, windows, ui, hook, target).TakeAsync();
     }
 
     internal async Task<ScreenPoint?> TakeAsync()
@@ -170,7 +180,7 @@ public sealed class PointPickerWindow : Window
         ImageFrame frame;
         try
         {
-            frame = _devices.Screen.Capture(origin.X, origin.Y, size.Width, size.Height);
+            frame = _screen.Capture(origin.X, origin.Y, size.Width, size.Height);
         }
         catch (Exception)
         {
@@ -227,7 +237,7 @@ public sealed class PointPickerWindow : Window
             return (new PixelPoint(left, top), new ScreenSize(right - left, bottom - top));
         }
 
-        var desk = _devices.Screen.Desktop.Bounds;
+        var desk = _screen.Desktop.Bounds;
         return (new PixelPoint(desk.Left, desk.Top), new ScreenSize(desk.Width, desk.Height));
     }
 
@@ -271,7 +281,7 @@ public sealed class PointPickerWindow : Window
             return;
         }
 
-        var at = _devices.Screen.Cursor;
+        var at = _screen.Cursor;
         _insideClient = false;
         _targetLost = false;
         _window = null;
@@ -281,7 +291,7 @@ public sealed class PointPickerWindow : Window
         {
             try
             {
-                _window = _devices.Windows.Find(rule.MatchValue, rule.Reading.Match,
+                _window = _windows.Find(rule.MatchValue, rule.Reading.Match,
                     rule.Reading.Compare, rule.Options);
             }
             catch (Exception)
@@ -293,8 +303,8 @@ public sealed class PointPickerWindow : Window
             {
                 try
                 {
-                    client = new ClientArea(_devices.Windows.ClientOrigin(window.Handle),
-                        _devices.Windows.ClientSize(window.Handle));
+                    client = new ClientArea(_windows.ClientOrigin(window.Handle),
+                        _windows.ClientSize(window.Handle));
                     _insideClient = client.Value.Contains(at);
                 }
                 catch (Exception)
@@ -343,7 +353,7 @@ public sealed class PointPickerWindow : Window
         UiElementInfo? info;
         try
         {
-            info = _devices.Ui.ElementAt(at.X, at.Y);
+            info = _ui.ElementAt(at.X, at.Y);
         }
         catch (Exception)
         {
@@ -505,7 +515,7 @@ public sealed class PointPickerWindow : Window
             e.Suppress = true;
             _swallowF1Up = true;
             _pendingPoint = _target is null || _insideClient
-                ? _devices.Screen.Cursor
+                ? _screen.Cursor
                 : null;
         }
         else if (e.Key == Escape)

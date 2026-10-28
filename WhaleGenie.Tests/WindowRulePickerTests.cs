@@ -131,7 +131,7 @@ public class WindowRulePickerTests
             var screen = new ScreenAt(new ScreenPoint(50, 60));
             var windows = new WindowsForChecks().Add(9, "Game", "game", "GameClass").ClientAt(9, 10, 20);
             var devices = new ChecksDevices { Screen = screen, Windows = windows, Hook = hook };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
@@ -174,7 +174,7 @@ public class WindowRulePickerTests
                 Ui = new UiAt(new UiElementInfo("Open", "open", "Button", "Button",
                     new ScreenPoint(40, 50), new ScreenSize(12, 12), "Game")),
             };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
@@ -208,7 +208,7 @@ public class WindowRulePickerTests
             var windows = new WindowsForChecks().Add(9, "Game", "game", "GameClass")
                 .ClientAt(9, 10, 20);
             var devices = new ChecksDevices { Screen = screen, Windows = windows, Hook = hook };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
@@ -256,7 +256,7 @@ public class WindowRulePickerTests
             var windows = new WindowsForChecks().Add(9, "Game", "game", "GameClass")
                 .ClientAt(9, 10, 20);
             var devices = new ChecksDevices { Screen = screen, Windows = windows, Hook = hook };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
