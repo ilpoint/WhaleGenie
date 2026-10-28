@@ -446,20 +446,6 @@ public static class VariableChoices
                     Origin = VariableOrigin.StepOutput,
                     Uses = UsesOf(uses, MacroRunner.OutcomeName(step.Id)),
                 });
-
-                // Why it failed sits beside how it ended, under the same step: a macro that treats
-                // one failure differently from another asks this one.
-                rows.Add(new VariableChoice
-                {
-                    Name = MacroRunner.ErrorName(step.Id),
-                    Scope = VariableScope.Local,
-                    Type = "text",
-                    Description = Strings.Get("VarWall.Error"),
-                    Source = step.PickerLabel,
-                    IsStepResult = true,
-                    Origin = VariableOrigin.StepOutput,
-                    Uses = UsesOf(uses, MacroRunner.ErrorName(step.Id)),
-                });
             }
         }
     }

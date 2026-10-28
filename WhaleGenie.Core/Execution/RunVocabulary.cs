@@ -8,7 +8,7 @@ namespace WhaleGenie.Core.Execution;
 /// <summary>
 /// The three vocabularies a run writes: failure keys the macro can branch on, log keys that word a
 /// line of the run log, and the status keys a whole run ends with. Keeping them apart is what makes
-/// <c>step.&lt;id&gt;.error</c> a stable answer rather than a sentence.
+/// <c>caught.key</c> a stable answer rather than a sentence.
 /// </summary>
 public static class RunVocabulary
 {

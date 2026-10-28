@@ -1013,7 +1013,6 @@ public class MacroCheckTests
     [InlineData("sys.loopIndex")]
     [InlineData("sys.anything")]
     [InlineData("step.abcd.outcome")]
-    [InlineData("step.abcd.error")]
     public void A_variable_using_a_name_the_run_keeps_is_reported(string name)
     {
         var step = Set(name, "1");

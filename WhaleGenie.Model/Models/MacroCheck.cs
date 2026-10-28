@@ -1604,7 +1604,6 @@ public static class MacroCheck
         foreach (var step in Every(steps).Where(step => step.Id.Length > 0))
         {
             defined.Add(MacroRunner.OutcomeName(step.Id));
-            defined.Add(MacroRunner.ErrorName(step.Id));
         }
 
         return defined;

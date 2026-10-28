@@ -644,22 +644,16 @@ public sealed partial class MacroRunner
     /// <summary>The other end of an outcome's name.</summary>
     private const string OutcomeSuffix = ".outcome";
 
-    /// <summary>The other end of a failure's name, answered by the same step id.</summary>
-    private const string ErrorSuffix = ".error";
-
     /// <summary>
     /// Where the outcome of the step with this name is written. Anything that lists the run's own
     /// values asks here rather than spelling the name out a second time.
     /// </summary>
+    /// <remarks>
+    /// One value per step, not two: how it ended is what a macro branches on, and the reason it
+    /// failed is only ever read inside a <c>try</c>, where <see cref="CaughtKeyName"/> already holds
+    /// it. A second name for every step would double a list that is already one row per step.
+    /// </remarks>
     public static string OutcomeName(string stepId) => OutcomePrefix + stepId + OutcomeSuffix;
-
-    /// <summary>
-    /// Where the reason a step failed is written, in the same shape and under the same id as its
-    /// outcome: <c>k3f9</c> is answered by <c>step.k3f9.error</c>. It carries the engine's own name
-    /// for the failure rather than the words on screen, so a macro that branches on the reason
-    /// reads the same thing whatever language the interface is in.
-    /// </summary>
-    public static string ErrorName(string stepId) => OutcomePrefix + stepId + ErrorSuffix;
 
     /// <summary>
     /// The failure key a catch block reads, set when the block is entered and put back when it is
@@ -672,15 +666,13 @@ public sealed partial class MacroRunner
     public const string CaughtDetailName = "caught.detail";
 
     /// <summary>
-    /// True when a value is one of the names the run keeps about a step — how it ended, and why
-    /// when it did not — rather than something the macro made for itself. A macro of any length
-    /// leaves these behind for every step, so a list that showed them all mixed in with the macro's
-    /// own values would be mostly these.
+    /// True when a value is one of the names the run keeps about a step — how it ended — rather than
+    /// something the macro made for itself. A macro of any length leaves one behind for every step,
+    /// so a list that showed them all mixed in with the macro's own values would be mostly these.
     /// </summary>
     public static bool IsRunStepName(string name)
         => name.StartsWith(OutcomePrefix, StringComparison.Ordinal)
-           && (name.EndsWith(OutcomeSuffix, StringComparison.Ordinal)
-               || name.EndsWith(ErrorSuffix, StringComparison.Ordinal));
+           && name.EndsWith(OutcomeSuffix, StringComparison.Ordinal);
 
     /// <summary>This step did what it was asked to.</summary>
     private const string OutcomeOk = "ok";
@@ -715,10 +707,9 @@ public sealed partial class MacroRunner
 
     /// <summary>
     /// Writes down how one step ended and, when it did not work, why — for the conditions written
-    /// after it. A step that worked or was left out says nothing about a reason: what the run did
-    /// not fail at is not a failure to branch on.
+    /// after it.
     /// </summary>
-    private void WriteOutcome(ExecutableStep step, string outcome, StepFailure? failure = null)
+    private void WriteOutcome(ExecutableStep step, string outcome)
     {
         // A step without a name cannot be pointed at, so there is nothing to write. The editor
         // gives every step one; this is for a macro built by hand around the engine.
@@ -728,7 +719,6 @@ public sealed partial class MacroRunner
         }
 
         Variables.Set(OutcomeName(step.Id), Value.FromText(outcome));
-        Variables.Set(ErrorName(step.Id), Value.FromText(failure?.Key ?? string.Empty));
     }
 
     /// <summary>What the failure rule decided for one step.</summary>
@@ -1562,7 +1552,7 @@ public sealed partial class MacroRunner
     private Signal StepFailed(ExecutableStep step, Decision decided, double elapsedMs,
         IReadOnlyList<StepAttempt> attempts)
     {
-        WriteOutcome(step, OutcomeFailed, _failure);
+        WriteOutcome(step, OutcomeFailed);
         Report(step, OutcomeFailed, elapsedMs, _failure, Worked(), attempts);
         return decided switch
         {

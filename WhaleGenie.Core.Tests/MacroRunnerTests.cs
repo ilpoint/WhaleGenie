@@ -926,7 +926,7 @@ public class MacroRunnerTests
         Assert.True(result.Succeeded);
         Assert.Equal("1", store.Local.Values["after"].AsText());
         Assert.False(store.TryGet("never", out _));
-        Assert.Equal(RunKeys.RegexTimeout, store.Local.Values["step.rx01.error"].AsText());
+        Assert.Equal("failed", store.Local.Values["step.rx01.outcome"].AsText());
     }
 
     [Fact]
@@ -2442,7 +2442,6 @@ public class MacroRunnerTests
         Assert.Equal("Run.StepFailedByMacro", result.Key);
         Assert.Equal("boom", result.Detail);
         Assert.False(store.TryGet("afterRethrow", out _));
-        Assert.Equal("Run.StepFailedByMacro", store.Local.Values["step.rrrr.error"].AsText());
     }
 
     [Fact]

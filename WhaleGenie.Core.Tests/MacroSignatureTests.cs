@@ -92,7 +92,6 @@ public class MacroSignatureTests
     [InlineData("sys.date")]
     [InlineData("sys.macroName")]
     [InlineData("step.abcd.outcome")]
-    [InlineData("step.abcd.error")]
     public void A_name_the_run_keeps_is_refused(string name)
     {
         var problem = Assert.Single(Signature(new MacroArgument(name, string.Empty, false)).Problems());

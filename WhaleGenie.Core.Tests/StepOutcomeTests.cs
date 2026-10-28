@@ -78,9 +78,6 @@ public class StepOutcomeTests
     private static string Outcome(VariableStore store, string id)
         => store.Local.Values[$"step.{id}.outcome"].AsText();
 
-    private static string Error(VariableStore store, string id)
-        => store.Local.Values[$"step.{id}.error"].AsText();
-
     [Fact]
     public async Task A_step_that_does_its_work_reads_ok()
     {
@@ -187,7 +184,7 @@ public class StepOutcomeTests
     }
 
     [Fact]
-    public async Task A_step_the_macro_calls_failed_reads_failed_with_its_own_reason()
+    public async Task A_step_the_macro_calls_failed_reads_failed()
     {
         var store = await RunAsync(
         [
@@ -196,7 +193,6 @@ public class StepOutcomeTests
         ]);
 
         Assert.Equal("failed", Outcome(store, "aaaa"));
-        Assert.Equal("Run.StepFailedByMacro", Error(store, "aaaa"));
         Assert.Equal("skipped", Outcome(store, "bbbb"));
     }
 
@@ -292,7 +288,7 @@ public class StepOutcomeTests
         [
             Step("control.try", "aaaa",
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", "$step.bbbb.error"))),
+                Body("catch", Set("cccc", "seen", "$caught.key"))),
         ]);
 
         Assert.Equal("failed", Outcome(store, "bbbb"));
@@ -332,12 +328,12 @@ public class StepOutcomeTests
         ]);
 
         Assert.False(store.TryGet("step..outcome", out _));
-        Assert.False(store.TryGet("step..error", out _));
+        Assert.False(store.TryGet("step..outcome", out _));
         Assert.Equal("1", store.Local.Values["n"].AsText());
     }
 
     [Fact]
-    public async Task Why_a_step_failed_is_written_down_under_it_and_nowhere_else()
+    public async Task Why_a_step_failed_is_not_a_second_variable()
     {
         var store = await RunAsync(
         [
@@ -345,26 +341,11 @@ public class StepOutcomeTests
             Set("bbbb", "n", "1"),
         ]);
 
-        // A key rather than the words on screen, so the macro reads the same thing whatever
-        // language the interface is in.
-        Assert.Equal("Run.NoDevice", Error(store, "aaaa"));
-
-        // A step that worked has nothing to say about a reason.
-        Assert.Equal(string.Empty, Error(store, "bbbb"));
+        // One value per step. The reason is only readable inside a try, as caught.key — a second
+        // name for every step would double a list that is already one row per step.
+        Assert.Equal("failed", Outcome(store, "aaaa"));
+        Assert.False(store.TryGet("step.aaaa.error", out _));
         Assert.Equal("ok", Outcome(store, "bbbb"));
-    }
-
-    [Fact]
-    public async Task The_steps_that_did_not_run_leave_an_empty_reason_behind()
-    {
-        var store = await RunAsync(
-        [
-            Step("control.stop", "aaaa"),
-            Set("bbbb", "n", "1"),
-        ]);
-
-        Assert.Equal(string.Empty, Error(store, "aaaa"));
-        Assert.Equal(string.Empty, Error(store, "bbbb"));
     }
 
     [Fact]
