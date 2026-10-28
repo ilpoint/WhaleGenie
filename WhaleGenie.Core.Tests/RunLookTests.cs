@@ -818,11 +818,20 @@ public class RunLookTests
 
         Assert.Null(outcome.Look);
         Assert.Equal("Run.NotALookingStep", outcome.Key);
-        Assert.True(MacroRunner.CanLook("vision.findImage"));
-        Assert.True(MacroRunner.CanLook("vision.detect"));
-        Assert.True(MacroRunner.CanLook("vision.waitDetect"));
-        Assert.True(MacroRunner.CanLook("vision.clickDetect"));
-        Assert.False(MacroRunner.CanLook("clipboard.writeImage"));
+
+        // The answer is the catalogue's, not a second list kept beside it: that list had drifted, and
+        // three steps the catalogue says look at the screen were told they do not.
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            Assert.Equal(action.LooksAtScreen, MacroRunner.CanLook(action.Key));
+
+            if (action.LooksAtScreen)
+            {
+                // Saying a step can be tried is a promise the trial has to keep.
+                Assert.NotEqual(RunKeys.NotALookingStep,
+                    MacroRunner.LookOnce(Step(action.Key), Screen()).Key);
+            }
+        }
     }
 
     /// <summary>

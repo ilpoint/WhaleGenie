@@ -307,12 +307,13 @@ public sealed partial class MacroRunner
     /// be tried out on its own. It is what the dialog offers "try looking" for, and the only thing
     /// <see cref="LookOnce"/> will look at the screen for.
     /// </summary>
-    public static bool CanLook(string stepType) => stepType is
-        "vision.findImage" or "vision.waitImage" or "vision.clickImage"
-        or "vision.detect" or "vision.waitDetect" or "vision.clickDetect"
-        or "vision.findColor" or "vision.waitColor" or "vision.getPixel"
-        or "vision.capture" or "vision.captureWindow"
-        or "ocr.recognize" or "ocr.findText" or "ocr.clickText";
+    /// <summary>
+    /// Whether a trial can look at the screen for this kind of step. It is read off the catalogue
+    /// rather than kept as a list here: the list that used to live here had drifted, and a step the
+    /// catalogue says looks at the screen was told it does not.
+    /// </summary>
+    public static bool CanLook(string stepType)
+        => ActionSemanticsCatalog.Find(stepType)?.LooksAtScreen == true;
 
     /// <summary>
     /// Looks at the screen the way a step would and hands back what it saw, without doing anything
@@ -460,6 +461,28 @@ public sealed partial class MacroRunner
                 {
                     var (point, window) = Spot(step);
                     SawPixel(step, point, PixelAt(step, point, window).ToHex(), window);
+                });
+                break;
+
+            case "vision.pixelMatches":
+                // The verdict lands in a variable, and a trial writes nothing: what a person needs
+                // to judge the comparison is the colour that is there now.
+                Watching(() =>
+                {
+                    var (point, window) = Spot(step);
+                    SawPixel(step, point, PixelAt(step, point, window).ToHex(), window);
+                });
+                break;
+
+            case "vision.waitStable":
+                // Whether something has stopped moving is only answered by time passing, so one look
+                // shows what is on the screen and leaves the waiting to a run.
+                Watching(() =>
+                {
+                    if (SearchAreas(step).FirstOrDefault() is { Frame: { } frame, Origin: { } origin })
+                    {
+                        Took(step, (frame, origin));
+                    }
                 });
                 break;
 
