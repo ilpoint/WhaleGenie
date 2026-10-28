@@ -48,7 +48,7 @@
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      MinimumPrefixLength="1" FilterMode="Contains"
                                      FontSize="12.5"
-                                     Watermark="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}" />
+                                     PlaceholderText="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
                             Name="BuildExpressionButton"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"

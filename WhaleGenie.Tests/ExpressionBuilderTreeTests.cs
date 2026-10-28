@@ -97,12 +97,12 @@ public class ExpressionBuilderTreeTests
     }
 
     /// <summary>
-    /// What the formula comes to sits beside the palette, in two columns under it, rather than under
-    /// the tree: the tree keeps the height of the page instead of sharing it with a panel that is
-    /// about the formula rather than about the place the formula is built.
+    /// The window is split into the two walls the page is built from and the page itself: names,
+    /// values and operators along the bottom of the tree they are dragged onto, functions along the
+    /// bottom of the right column, and what the page has to say at the top right.
     /// </summary>
     [Fact]
-    public void The_formula_reads_beside_the_palette_and_not_under_the_tree()
+    public void The_cards_sit_along_the_bottom_of_the_page_and_the_notes_at_the_top_right()
     {
         Ui.Run(() =>
         {
@@ -112,19 +112,23 @@ public class ExpressionBuilderTreeTests
             Dispatcher.UIThread.RunJobs();
 
             var tree = window.FindControl<ItemsControl>("TreeRows")!;
-            var panel = window.FindControl<Border>("FormulaPanel")!;
+            var build = window.FindControl<Border>("BuildPanel")!;
+            var hint = window.FindControl<StackPanel>("HintBlock")!;
+            var formula = window.FindControl<Border>("FormulaPanel")!;
+            var functions = window.FindControl<Border>("FunctionPanel")!;
 
-            var treeRight = tree.TranslatePoint(new Point(0, 0), window)!.Value.X
-                + tree.Bounds.Width;
-            var panelLeft = panel.TranslatePoint(new Point(0, 0), window)!.Value.X;
-            Assert.True(panelLeft > treeRight);
+            var treeBottom = tree.TranslatePoint(new Point(0, 0), window)!.Value.Y + tree.Bounds.Height;
+            var buildTop = build.TranslatePoint(new Point(0, 0), window)!.Value.Y;
+            Assert.True(buildTop >= treeBottom - 0.5);
 
-            // And it is under the palette, which is its neighbour in the same column.
-            var palette = panel.Parent is Grid column
-                ? column.Children.OfType<Border>().First(border => !ReferenceEquals(border, panel))
-                : null;
-            Assert.NotNull(palette);
-            Assert.True(panel.Bounds.Y >= palette!.Bounds.Bottom - 0.5);
+            // The two walls are one on each side, both under the page.
+            var buildLeft = build.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            var functionLeft = functions.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.True(functionLeft > buildLeft + build.Bounds.Width);
+
+            // What the page has to say is above the function wall, and the hint above that.
+            Assert.True(hint.Bounds.Y < formula.Bounds.Y);
+            Assert.True(formula.Bounds.Y < functions.Bounds.Y);
 
             window.Close();
         });
