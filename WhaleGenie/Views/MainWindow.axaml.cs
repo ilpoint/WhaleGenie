@@ -1779,52 +1779,23 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// MCP's save tool needs a package path. If this project has none yet, ask before starting the
-    /// server: choosing a location saves the project, "open anyway" starts MCP so a draft can still
-    /// be written, and cancelling leaves MCP off.
-    /// </summary>
-    internal async Task<bool> EnsureProjectSavedForMcpAsync()
-    {
-        if (DataContext is not MainViewModel viewModel)
-        {
-            return false;
-        }
-
-        if (viewModel.CurrentPath is { Length: > 0 })
-        {
-            return true;
-        }
-
-        var choice = await ConfirmDialog.ShowAsync(this,
-            Strings.Get("Mcp.SaveTitle"),
-            Strings.Get("Mcp.SaveMessage"),
-            Strings.Get("Mcp.SaveChoose"),
-            Strings.Get("Mcp.OpenAnyway"));
-
-        if (choice == ConfirmChoice.Primary)
-        {
-            return await SaveAsAsync(viewModel);
-        }
-
-        return choice == ConfirmChoice.Secondary;
-    }
-
-    /// <summary>
-    /// Copies a client config that points at the address the switch just opened. The endpoint is
-    /// the only thing the external client needs: this server deliberately has no token.
+    /// Copies the block a client's configuration file wants: this program's path and the flag that
+    /// makes it speak MCP. The client starts the process itself, so there is no address to paste.
     /// </summary>
     private async void OnCopyMcpConfig(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel { Mcp.Endpoint.Length: > 0 } viewModel
-            || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        if (DataContext is not MainViewModel viewModel)
         {
             return;
         }
 
-        var config = $"{{\n  \"mcpServers\": {{\n    \"whalegenie\": {{\n"
-            + $"      \"type\": \"http\",\n      \"url\": \"{viewModel.Mcp.Endpoint}\"\n"
-            + "    }\n  }\n}\n";
-        await clipboard.SetTextAsync(config);
+        if (!viewModel.Mcp.CanCopy || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        {
+            viewModel.Mcp.ShowNoProgram();
+            return;
+        }
+
+        await clipboard.SetTextAsync(viewModel.Mcp.Config);
         viewModel.Mcp.ShowCopied();
     }
 

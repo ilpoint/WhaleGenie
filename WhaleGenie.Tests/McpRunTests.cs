@@ -26,9 +26,8 @@ public class McpRunTests
         Ui.RunAsync(async () =>
         {
             McpControl.AllowsRun = false;
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             await Put(client, draft, """{"name":"安静","steps":[]}""");
@@ -49,7 +48,7 @@ public class McpRunTests
             Assert.True(stillOff.IsError);
             McpControl.Allowed = false;
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -66,9 +65,8 @@ public class McpRunTests
             McpControl.AllowsRun = true;
             try
             {
-                await using var host = new McpServerHost(new MainViewModel());
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(new MainViewModel());
+                await using var client = await loop.ConnectAsync();
 
                 var draft = await Draft(client);
                 var put = await Put(client, draft, """
@@ -105,7 +103,7 @@ public class McpRunTests
                 Assert.Contains(runs.GetProperty("runs").EnumerateArray(),
                     run => run.GetProperty("source").GetString() == "mcp");
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -125,9 +123,8 @@ public class McpRunTests
             McpControl.AllowsRun = true;
             try
             {
-                await using var host = new McpServerHost(new MainViewModel());
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(new MainViewModel());
+                await using var client = await loop.ConnectAsync();
 
                 var draft = await Draft(client);
                 await Put(client, draft, """
@@ -169,7 +166,7 @@ public class McpRunTests
                     firstResult.Content.OfType<TextContentBlock>().First().Text).RootElement;
                 Assert.Equal("Stopped", finished.GetProperty("status").GetString());
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -186,15 +183,14 @@ public class McpRunTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var answer = await client.CallToolAsync("whalegenie_stop_macro",
                 new Dictionary<string, object?>());
             Assert.True(answer.IsError);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -212,9 +208,8 @@ public class McpRunTests
             McpControl.AllowsRun = true;
             try
             {
-                await using var host = new McpServerHost(new MainViewModel());
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(new MainViewModel());
+                await using var client = await loop.ConnectAsync();
 
                 var draft = await Draft(client);
                 var put = await Put(client, draft, """
@@ -253,7 +248,7 @@ public class McpRunTests
                 Assert.Equal("Completed", byQualifiedName.GetProperty("status").GetString());
                 Assert.Equal(2, byQualifiedName.GetProperty("steps").GetInt32());
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -284,13 +279,4 @@ public class McpRunTests
         return text;
     }
 
-    private static async Task<McpClient> ConnectAsync(string endpoint)
-    {
-        var transport = new HttpClientTransport(new HttpClientTransportOptions
-        {
-            Endpoint = new Uri(endpoint),
-            TransportMode = HttpTransportMode.StreamableHttp,
-        });
-        return await McpClient.CreateAsync(transport);
-    }
 }

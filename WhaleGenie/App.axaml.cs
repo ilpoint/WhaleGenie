@@ -101,8 +101,6 @@ public partial class App : Application
         var window = services.GetRequiredService<MainWindow>();
         var viewModel = (MainViewModel)window.DataContext!;
 
-        viewModel.Mcp.EnsureSaved = window.EnsureProjectSavedForMcpAsync;
-
         desktop.MainWindow = window;
 
         // From here on, the window is put out of the way rather than closed, and the icon in the
@@ -122,20 +120,6 @@ public partial class App : Application
         {
             PersistentVariables.Flush();
             window.Tray?.Dispose();
-
-            // The MCP server owns a Kestrel socket; it has to be gone before the process is. This
-            // event runs on the UI thread, and an MCP request can be waiting for that same thread
-            // while Kestrel drains it. Blocking here on the UI thread deadlocks the exit, which is
-            // exactly what left a windowless WhaleGenie process behind. Stop on a worker, wait only
-            // briefly, and let Program.Run's final exit cover a host that still has not let go.
-            try
-            {
-                Task.Run(() => viewModel.Mcp.StopAsync()).Wait(TimeSpan.FromSeconds(3));
-            }
-            catch
-            {
-                // The host has stopped or is unreachable; the process is leaving anyway.
-            }
 
             // The trigger service the container owns watches the machine through the device layer,
             // so it has to stop before that layer is let go. It is disposed here, and the device

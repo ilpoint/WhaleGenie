@@ -307,29 +307,6 @@ public class McpControlTests : IDisposable
         Assert.Equal(new PixelColor(127, 127, 127), grey[0, 0]);
     }
 
-    [Fact]
-    public void The_direct_control_switch_follows_the_server()
-    {
-        Ui.RunAsync(async () =>
-        {
-            McpControl.Allowed = false;
-            var viewModel = new MainViewModel();
-            Assert.False(viewModel.Mcp.AllowControl);
-
-            await viewModel.Mcp.ToggleCommand.ExecuteAsync(null);
-            Assert.True(viewModel.Mcp.IsRunning);
-
-            viewModel.Mcp.ToggleControlCommand.Execute(null);
-            Assert.True(viewModel.Mcp.AllowControl);
-            Assert.True(McpControl.Allowed);
-
-            await viewModel.Mcp.ToggleCommand.ExecuteAsync(null);
-            Assert.False(viewModel.Mcp.AllowControl);
-            Assert.False(McpControl.Allowed);
-            return true;
-        });
-    }
-
     /// <summary>
     /// The control at a point is not only what it is: what it holds and whether it can be used are
     /// the two things a step has to check after typing into it.

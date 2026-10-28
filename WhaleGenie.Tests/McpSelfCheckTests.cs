@@ -32,13 +32,12 @@ public class McpSelfCheckTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 var report = await new McpSelfCheck(client, new McpSelfCheckOptions
                 {
-                    Endpoint = host.Endpoint,
+                    Where = loop.Label,
                     AllowApply = true,
                     AllowSave = true,
                 }).RunAsync();
@@ -71,7 +70,7 @@ public class McpSelfCheckTests
                 Assert.Contains("| check | result | detail |", report.ToMarkdown(), StringComparison.Ordinal);
                 Assert.Contains("| metric | value |", report.ToMarkdown(), StringComparison.Ordinal);
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -96,14 +95,13 @@ public class McpSelfCheckTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 // The six probes need the apply path, because one of the six is a second apply.
                 var report = await new McpSelfCheck(client, new McpSelfCheckOptions
                 {
-                    Endpoint = host.Endpoint,
+                    Where = loop.Label,
                     AllowApply = true,
                 }).RunAsync();
 
@@ -117,7 +115,7 @@ public class McpSelfCheckTests
                     Assert.True(check.Result != McpCheckResult.Fail, $"{name}: {check.Detail}");
                 }
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -153,13 +151,12 @@ public class McpSelfCheckTests
                 McpControl.Allowed = true;
                 McpControl.AllowsRun = true;
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 var report = await new McpSelfCheck(client, new McpSelfCheckOptions
                 {
-                    Endpoint = host.Endpoint,
+                    Where = loop.Label,
                     AllowApply = true,
                     AllowSave = true,
                 }).RunAsync();
@@ -178,7 +175,7 @@ public class McpSelfCheckTests
                 Assert.DoesNotContain(report.Checks,
                     check => check.Name.EndsWith("_off", StringComparison.Ordinal));
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -191,37 +188,26 @@ public class McpSelfCheckTests
         });
     }
 
+    /// <summary>
+    /// The one goodbye a stdio server gets is the client closing its end of the pipe. That has to end
+    /// the session rather than leave the host waiting: this run exists only for that client.
+    /// </summary>
     [Fact]
-    public void The_self_check_reports_a_server_that_is_gone_instead_of_throwing()
+    public void Closing_the_pipe_ends_the_session()
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
-            var endpoint = host.Endpoint;
-            await host.StopAsync();
+            var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
-            var report = await new McpSelfCheck(client, new McpSelfCheckOptions
-            {
-                Endpoint = endpoint,
-                CallTimeout = TimeSpan.FromSeconds(5),
-            }).RunAsync();
-
-            Assert.False(report.Passed);
-            Assert.NotEmpty(report.Checks);
-            Assert.All(report.Checks, check => Assert.False(string.IsNullOrWhiteSpace(check.Detail)));
-            Assert.Contains("fail", report.ToMarkdown(), StringComparison.Ordinal);
+            loop.CloseClientEnd();
+            var ended = loop.Host.WaitForShutdownAsync();
+            var finished = await Task.WhenAny(ended, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.Same(ended, finished);
+            await loop.DisposeAsync();
             return true;
         });
     }
-
-    private static async Task<McpClient> ConnectAsync(string endpoint)
-        => await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions
-        {
-            Endpoint = new Uri(endpoint),
-            TransportMode = HttpTransportMode.StreamableHttp,
-        }));
 
     private static string Scratch()
     {

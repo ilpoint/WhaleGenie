@@ -2,34 +2,30 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Mcp;
 
 /// <summary>
-/// The local HTTP MCP server. It exists only while the MCP switch is on, binds one loopback port
-/// and has no token: it is a helper on this machine, not a service for the network.
+/// The MCP server, speaking over the two streams it is handed: standard input and output when the
+/// program is started by a client, a loopback pair of in-memory pipes in a check. There is no port
+/// and no listener — a client owns the pipe, launches this program, and closes the pipe to end it.
+/// That is what keeps a local helper local: nothing starts listening unless somebody asked.
 /// </summary>
 public sealed class McpServerHost : IAsyncDisposable, IDisposable
 {
     private readonly MainViewModel _project;
     private readonly IServiceProvider _services;
     private readonly bool _ownsServices;
-    private WebApplication? _app;
-    private string _endpoint = string.Empty;
+    private IHost? _host;
+    private Task? _session;
 
     /// <summary>
     /// A server over a project, wiring up the few things it needs itself. This is the constructor a
@@ -51,53 +47,68 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
         _ownsServices = ownsServices;
     }
 
-    /// <summary>The address an MCP client connects to, or empty while the server is stopped.</summary>
-    public string Endpoint => _endpoint;
+    public bool IsRunning => _host is not null;
 
-    public bool IsRunning => _app is not null;
-
-    public async Task StartAsync(int preferredPort = 3917)
+    /// <summary>
+    /// Starts speaking over <paramref name="input"/> and <paramref name="output"/>. A one-session
+    /// server runs for as long as the session does, so starting it cannot be awaited: the caller has
+    /// a client to create, and the client would be waiting for a server that is waiting for it to
+    /// say something. This hands back as soon as the graph is built and the session is under way.
+    /// </summary>
+    public void Start(Stream input, Stream output)
     {
-        if (_app is not null)
+        if (_host is not null)
         {
             return;
         }
 
-        WebApplication app;
-        try
+        var host = Build(input, output);
+        _host = host;
+        _session = host.StartAsync();
+    }
+
+    /// <summary>
+    /// Completes when the client closed its end of the pipe or the server was asked to stop — the
+    /// one signal a stdio server has that nobody is listening any more. A server that failed to
+    /// start says so here rather than at the moment it was handed the streams.
+    /// </summary>
+    public async Task WaitForShutdownAsync()
+    {
+        if (_session is { } session)
         {
-            app = await StartOnAsync(preferredPort);
-        }
-        catch (IOException)
-        {
-            // The preferred port is taken by something else. The system can pick one instead; the
-            // window shows the address it got.
-            app = await StartOnAsync(0);
+            await session.ConfigureAwait(false);
         }
 
-        // The address has to be the one the listener is really holding. Asking for port 0 and then
-        // reporting port 0 would hand out a client config that nobody can connect to.
-        var address = AddressOf(app);
-        if (address.Length == 0)
+        if (_host is { } host)
         {
-            await StopAppAsync(app);
-            throw new InvalidOperationException("The MCP server started but reported no address.");
+            await host.WaitForShutdownAsync().ConfigureAwait(false);
         }
-
-        _app = app;
-        _endpoint = address.TrimEnd('/') + "/mcp";
     }
 
     public async Task StopAsync()
     {
-        if (_app is not { } app)
+        if (_host is not { } host)
         {
             return;
         }
 
-        _app = null;
-        _endpoint = string.Empty;
-        await StopAppAsync(app);
+        _host = null;
+        await StopHostAsync(host).ConfigureAwait(false);
+
+        // The session task ends with the host; observing it here keeps a stopped server from
+        // surfacing as an unobserved task exception later.
+        if (_session is { } session)
+        {
+            _session = null;
+            try
+            {
+                await session.ConfigureAwait(false);
+            }
+            catch
+            {
+                // A session that ended because it was stopped has nothing to report.
+            }
+        }
     }
 
     /// <summary>
@@ -124,39 +135,31 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
         }
     }
 
-    private static string AddressOf(WebApplication app)
-        => app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()
-            ?.Addresses.FirstOrDefault(address =>
-                address.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-        ?? app.Urls.FirstOrDefault()
-        ?? string.Empty;
-
-    private static async Task StopAppAsync(WebApplication app)
+    private static async Task StopHostAsync(IHost host)
     {
-        // A connected MCP client can keep a stream open, and a graceful stop would wait for it.
-        // The server belongs to this process, so two seconds is enough to let requests finish and
-        // then the socket is closed; the process must not stay alive because a client went quiet.
+        // A client that went quiet still holds the pipe open. Two seconds lets the session finish
+        // what it was doing; the process must not stay alive because somebody's editor crashed.
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         try
         {
-            await app.StopAsync(timeout.Token);
+            await host.StopAsync(timeout.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // The listener and its client streams are disposed below.
+            // The streams and the session are disposed below either way.
         }
         catch
         {
-            // A stop that failed still has to release the socket; the process is leaving.
+            // A stop that failed still has to release the session; the process is leaving.
         }
 
         try
         {
-            await app.DisposeAsync();
+            host.Dispose();
         }
         catch
         {
-            // Nothing else can be done with a host that failed to release its own socket.
+            // Nothing else can be done with a host that failed to release its own session.
         }
     }
 
@@ -193,46 +196,34 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
         return tools;
     }
 
-    private async Task<WebApplication> StartOnAsync(int port)
+    private IHost Build(Stream input, Stream output)
     {
         // The draft store and the bridge to the project belong to the run rather than to this
         // server: a tool and the window have to see the same drafts, and the project is one object.
         var drafts = _services.GetRequiredService<McpDraftStore>();
         var live = _services.GetRequiredService<McpLiveProject>();
 
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        // A plain builder, not the console one: this host must not install a console lifetime that
+        // handles Ctrl+C and ends the process, because it is not the process — the window or the
+        // command line that owns these streams is. It also must not print: on these streams stdout
+        // is the protocol, and a log line there reads as a malformed message.
+        var builder = new HostBuilder();
+        builder.ConfigureServices((_, services) =>
         {
-            Args = [],
-            ContentRootPath = AppContext.BaseDirectory,
+            services.Configure<HostOptions>(options =>
+                options.ShutdownTimeout = TimeSpan.FromSeconds(2));
+            services.AddSingleton(drafts);
+            services.AddSingleton(live);
+            services.AddSingleton(_project);
+            services.AddLogging(logging => logging.ClearProviders());
+            services
+                .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)
+                .WithStreamServerTransport(input, output)
+                .WithTools(Tools())
+                .WithResources<McpResources>()
+                .WithPrompts<McpPrompts>();
         });
 
-        var loopback = IPAddress.Loopback.ToString();
-        builder.WebHost.UseUrls($"http://{loopback}:{port}");
-        builder.Configuration["AllowedHosts"] = $"{loopback};localhost";
-        builder.Logging.ClearProviders();
-        builder.Services.Configure<HostOptions>(options =>
-            options.ShutdownTimeout = TimeSpan.FromSeconds(2));
-        builder.Services.AddSingleton(drafts);
-        builder.Services.AddSingleton(live);
-        builder.Services.AddSingleton(_project);
-        builder.Services
-            .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)
-            .WithHttpTransport(options => options.Stateless = true)
-            .WithTools(Tools())
-            .WithResources<McpResources>()
-            .WithPrompts<McpPrompts>();
-
-        var app = builder.Build();
-        app.MapMcp("/mcp");
-        try
-        {
-            await app.StartAsync();
-            return app;
-        }
-        catch
-        {
-            await app.DisposeAsync();
-            throw;
-        }
+        return builder.Build();
     }
 }

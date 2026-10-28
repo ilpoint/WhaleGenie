@@ -2,19 +2,19 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 
 namespace WhaleGenie.Mcp;
 
 /// <summary>
 /// Checks a WhaleGenie MCP server from outside and prints what it found. It runs before Avalonia
-/// exists and never touches a project of its own: either it connects to a server somebody started,
-/// or it starts one on a copy of a package and kills it afterwards. The exit code is the answer a
-/// script reads; the markdown is the answer a person reads.
+/// exists and never touches a project of its own: it starts a server on a copy of a package, speaks
+/// to it down the pipe it owns, and kills it afterwards. The exit code is the answer a script reads;
+/// the markdown is the answer a person reads.
 ///
 /// This is a developer's command, like the script host, so its words are English and it does not
 /// go through the interface's string table.
@@ -65,52 +65,47 @@ internal static class McpDoctor
         string? folder = null;
         try
         {
-            string endpoint;
-            if (options.Spawn)
+            var started = Spawn(options);
+            if (started is null)
             {
-                var started = Spawn(options);
-                if (started is null)
-                {
-                    return 4;
-                }
-
-                child = started.Process;
-                folder = started.Folder;
-                if (await WaitForEndpointAsync(started.Process, started.Log, deadline.Token)
-                        .ConfigureAwait(false) is not { } reported)
-                {
-                    return 4;
-                }
-
-                endpoint = reported;
-            }
-            else
-            {
-                endpoint = options.Url!;
+                return 4;
             }
 
-            await using var transport = new HttpClientTransport(new HttpClientTransportOptions
+            child = started.Process;
+            folder = started.Folder;
+
+            // The child's own stdin and stdout are the pipe — the same transport a client gets, so
+            // the check exercises the arrangement the program is actually used in. Nothing is read
+            // from that pipe but the protocol: an address line on stdout would now be a message.
+            var transport = new StreamClientTransport(
+                child.StandardInput.BaseStream, child.StandardOutput.BaseStream, null);
+
+            using var connect = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
+            connect.CancelAfter(Startup);
+
+            McpClient client;
+            try
             {
-                Endpoint = new Uri(endpoint),
-                TransportMode = HttpTransportMode.StreamableHttp,
-                ConnectionTimeout = TimeSpan.FromSeconds(15),
-            }, Direct(), ownsHttpClient: true);
-            await using var client = await McpClient.CreateAsync(transport,
-                cancellationToken: deadline.Token).ConfigureAwait(false);
+                client = await McpClient.CreateAsync(transport, cancellationToken: connect.Token)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                Console.Error.WriteLine($"whalegenie: the server did not answer: {error.Message}");
+                Explain(started);
+                return 4;
+            }
 
-            // Writing is only ever done to a copy this command made, so a check that started its
-            // own server gets the whole loop; one pointed at a server somebody is using does not
-            // write unless it was asked to.
-            var write = options.Write || options.Spawn;
+            await using var session = client;
 
-            // The surface is checked rather than one answer: the tools are there, an invalid macro is
-            // refused, a valid one is applied and read back, and both permission switches are off
-            // until the person turns them on.
+            // The check always starts the server it looks at, and that server always gets a copy of
+            // the package, so applying and saving are safe: a doctor that rewrote the person's
+            // package would be the very thing it is meant to catch.
             var report = await new McpSelfCheck(client, new McpSelfCheckOptions
             {
-                Endpoint = endpoint,
-                AllowApply = write,
-                AllowSave = write,
+                Where = "stdio",
+                AllowApply = true,
+                AllowSave = true,
             }).RunAsync(deadline.Token).ConfigureAwait(false);
 
             if (report is null)
@@ -146,16 +141,15 @@ internal static class McpDoctor
 
     /// <summary>
     /// Starts this program without a window over a throwaway copy of a package. The copy is the
-    /// point: the check applies and saves, and a doctor that rewrote the person's package would be
-    /// the very thing it is meant to catch.
+    /// point: the check applies and saves, and that must not land in anything of the person's.
     /// </summary>
     private static Spawned? Spawn(McpDoctorOptions options)
     {
-        var executable = Self();
+        var executable = McpProgram.Executable;
         if (executable.Length == 0)
         {
             Console.Error.WriteLine(
-                "whalegenie: cannot find WhaleGenie.exe beside this program; use --url instead.");
+                "whalegenie: cannot find WhaleGenie.exe beside this program, so there is no server to start.");
             return null;
         }
 
@@ -165,13 +159,12 @@ internal static class McpDoctor
         var start = new ProcessStartInfo(executable)
         {
             UseShellExecute = false,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
         start.ArgumentList.Add("--mcp");
-        start.ArgumentList.Add("--port");
-        start.ArgumentList.Add("0");
 
         if (options.PackagePath is { } package)
         {
@@ -206,63 +199,21 @@ internal static class McpDoctor
         }
 
         var log = new StringBuilder();
-        _ = DrainAsync(process, log);
-        return new Spawned(process, folder, log);
+        var drained = DrainAsync(process, log);
+        return new Spawned(process, folder, log, drained);
     }
 
-    /// <summary>
-    /// Waits for the one line the child writes when it is ready. Anything else it says is kept, so
-    /// a child that died can explain itself instead of only going quiet.
-    /// </summary>
-    private static async Task<string?> WaitForEndpointAsync(Process process, StringBuilder log,
-        CancellationToken token)
+    /// <summary>What the child said on its own error stream, for a check that could not talk to it.</summary>
+    private static void Explain(Spawned started)
     {
-        var limit = DateTime.UtcNow + Startup;
-        while (true)
+        started.Drained.Wait(TimeSpan.FromSeconds(2));
+        lock (started.Log)
         {
-            var left = limit - DateTime.UtcNow;
-            if (left <= TimeSpan.Zero)
+            if (started.Log.Length > 0)
             {
-                break;
-            }
-
-            string? line;
-            try
-            {
-                line = await process.StandardOutput.ReadLineAsync().WaitAsync(left, token)
-                    .ConfigureAwait(false);
-            }
-            catch (TimeoutException)
-            {
-                break;
-            }
-            catch (Exception error) when (error is IOException or InvalidOperationException
-                or ObjectDisposedException)
-            {
-                break;
-            }
-
-            if (line is null)
-            {
-                break;
-            }
-
-            if (line.StartsWith("endpoint=", StringComparison.Ordinal))
-            {
-                return line["endpoint=".Length..].Trim();
+                Console.Error.WriteLine(started.Log.ToString());
             }
         }
-
-        Console.Error.WriteLine("whalegenie: the server did not report an address in time.");
-        lock (log)
-        {
-            if (log.Length > 0)
-            {
-                Console.Error.WriteLine(log.ToString());
-            }
-        }
-
-        return null;
     }
 
     /// <summary>Keeps the child's error stream moving: a full pipe would stop it mid-sentence.</summary>
@@ -283,36 +234,6 @@ internal static class McpDoctor
         {
             // The child is gone; whatever it said is already in the log.
         }
-    }
-
-    /// <summary>
-    /// The client this command talks through. It never uses a proxy: the server is a helper on this
-    /// machine, and a machine that sets HTTP_PROXY for the internet would otherwise have its own
-    /// loopback request handed to that proxy — which answers "502" instead of "connection refused",
-    /// sending whoever reads it after the wrong problem entirely.
-    /// </summary>
-    private static HttpClient Direct() => new(new SocketsHttpHandler
-    {
-        UseProxy = false,
-        ConnectTimeout = TimeSpan.FromSeconds(10),
-    })
-    {
-        Timeout = Timeout.InfiniteTimeSpan,
-    };
-
-    /// <summary>This program's own executable, the one a child is started from.</summary>
-    private static string Self()
-    {
-        var running = Environment.ProcessPath;
-        if (running is { Length: > 0 }
-            && Path.GetFileNameWithoutExtension(running)
-                .Equals("WhaleGenie", StringComparison.OrdinalIgnoreCase))
-        {
-            return running;
-        }
-
-        var beside = Path.Combine(AppContext.BaseDirectory, "WhaleGenie.exe");
-        return File.Exists(beside) ? beside : string.Empty;
     }
 
     private static void Kill(Process? process)
@@ -354,5 +275,5 @@ internal static class McpDoctor
         }
     }
 
-    private sealed record Spawned(Process Process, string Folder, StringBuilder Log);
+    private sealed record Spawned(Process Process, string Folder, StringBuilder Log, Task Drained);
 }

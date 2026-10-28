@@ -20,7 +20,7 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 - `WhaleGenie.Core`：执行引擎。动作语义目录、变量、表达式，以及所有真正碰机器的设备。不感知界面。
 - `WhaleGenie.Model`：宏的文件模型与文案，`.wgmacro` 的读写也在里面（`Storage/MacroPackage.cs`）。
   只有两个引用（Core 与 `CommunityToolkit.Mvvm`）——加一条就是拆错了。
-- `WhaleGenie`：界面与 MCP 宿主。窗口、视图模型、触发器、工具。
+- `WhaleGenie`：界面与 MCP 服务器。窗口、视图模型、触发器、工具。
 - `WhaleGenie.GraphicsCapture`：只从 Windows 拿像素，不认识引擎的类型。
 
 引擎里不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、

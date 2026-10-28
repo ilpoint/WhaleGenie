@@ -19,8 +19,8 @@ pwsh build/site.ps1                              # 拼出介绍页 _site
 量 MCP 的易用性，不必点界面：
 
 ```powershell
-dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report TestResults/mcp-after.md   # 报告是本机快照，不进仓库
-dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停（只读；加 --allow-control / --allow-run 才授权）
+dotnet run --project WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md   # 自己拉起子进程量一遍；报告是本机快照，不进仓库
+dotnet run --project WhaleGenie -c Release -- --mcp     # 走标准输入输出；Ctrl+C 或客户端关管道就停（只读；加 --allow-control / --allow-run 才授权）
 ```
 
 **换一台机器验证真实输入**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录
@@ -163,7 +163,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 | `Avalonia.Controls.ColorPicker` | 界面：设置里的自定义主题用它做 HSV 色板、滑块与十六进制输入；只有界面引用，引擎不认，也不影响宏文件格式。MIT，Fluent 主题样式从包里的 `Themes/Fluent/Fluent.xaml` 引入 |
 | `Lucide.Avalonia` 0.2.27 | 界面：所有动作分类、工具栏、窗口按钮与菜单图标由 `LucideIconKind` 渲染；`IconView` 只做旧属性名到 Lucide `Kind`、`Foreground`、`StrokeWidth` 的映射。包按 MIT 授权，图形来自 ISC 授权的 Lucide |
-| `ModelContextProtocol.AspNetCore` | 界面：主界面 MCP 开关启动的本机 HTTP 服务器。它只监听环回地址，不设令牌；工具读写当前项目草稿与运行日志，还能看屏幕、窗口与 UI 元素，并在浮层自己的「允许直接控制」开关下发送键鼠与窗口操作，在「允许 AI 运行宏」开关下一次运行一条宏（读回每一步的结果）。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，工具的传输与发现由 SDK 管 |
+| `ModelContextProtocol` | 界面：MCP 服务器本身。它没有端口、不监听任何东西，说的是客户端启动这个进程后给的那条标准输入输出；工具读写当前项目草稿与运行日志，还能看屏幕、窗口与 UI 元素，在 `--allow-control` 下发送键鼠与窗口操作，在 `--allow-run` 下一次运行一条宏（读回每一步的结果）。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，传输与发现由 SDK 管 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
 和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
@@ -171,7 +171,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 ## MCP 服务器
 
 主界面「运行调试」左边的 MCP 按钮只负责打开浮层；浮层里的开关才启停 `McpServerHost`：一个只绑定
-`127.0.0.1` 的 ASP.NET Core HTTP 服务，路径 `/mcp`，**没有令牌**。协议面（资源、体检、审计的定位）见
+一个**说 stdio 的子进程**：客户端启动它，JSON-RPC 走标准输入输出，管道关闭即退出。不监听端口，因此也没有令牌。协议面（资源、体检、审计的定位）见
 `doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；这里只写改它时要守的规矩。
 
 **四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠与窗口）、运行宏。后两组各由一档开关把守，默认关、
@@ -216,12 +216,11 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 **审计**　`McpAudit` 往 `logs/mcp-<日期>.log` 一行一次调用，**只记改了东西或动了机器的**；`type_text` 只记
 字数不记内容。失败日志按文件名认（`failure-*.log`），不能取"最新一个 .log"——那个可能是审计文件。
 
-**无窗口与体检**　`--mcp [--port N] [--open 包] [--new 文件夹] [--allow-control] [--allow-run]` 起服务，
-stdout 只写一行 `endpoint=…`；`--mcp-doctor (--url … | --spawn) [--report …] [--write] [--strict]` 以客户端
-身份量一遍，退出码 0 全过 / 1 有 fail / 2 参数或包有问题 / 3 连不上 / 4 子进程没报出地址。体检会先读
-`project_status` 里的两档权限再验：关着就期待被拒，开着就期待放行——对着带 `--allow-control` 的服务端跑，
-它不会把「本来就该放行」报成 fail。两者都只是入口，
-不得借此让核心依赖 MCP。
+**无窗口与体检**　`--mcp [--open 包] [--new 文件夹] [--allow-control] [--allow-run]` 起服务，
+stdout 是协议本身，一行别的都不能写（`McpHeadless` 只说一句到 stderr）；`--mcp-doctor [--report …]
+[--strict]` 自己拉起一个子进程、接上它的管道量一遍，退出码 0 全过 / 1 有 fail / 2 参数或包有问题 / 3 说不上话
+/ 4 子进程起不来。体检会先读 `project_status` 里的两档权限再验：关着就期待被拒，开着就期待放行——对着带
+`--allow-control` 起的进程跑，它不会把「本来就该放行」报成 fail。两者都只是入口，不得借此让核心依赖 MCP。
 
 **改它的固定四步**　改 → 量（动作矩阵与体检各跑一次）→ 比（两份报告对着看）→ 提交。量不出差别就不要说
 "更顺了"；矩阵里多出来的缺夹具与不可达也不算通过。
@@ -592,7 +591,7 @@ git tag v0.01
 git push origin v0.01
 ```
 
-标签推上去之后，工作流会打两个包——一个要机器上有 .NET 桌面运行时与 ASP.NET Core 运行时，一个
+标签推上去之后，工作流会打两个包——一个要机器上有 .NET 10 桌面运行时，一个
 自己带着运行环境——自动建好 Release 并把两个包挂上去。标签名同时决定了压缩包的名字和 exe 里的
 版本号，所以只有一处要改；想在网页上发也行：Actions → Release → Run workflow，填一个版本号。
 
@@ -603,7 +602,7 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时与 ASP.NET Core 运行时 | 116 MB / 299 MB | 体积最小；已经装过运行环境 |
+| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 116 MB / 299 MB（换 stdio 前的数） | 体积最小；已经装过运行环境 |
 | `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 191 MB / 474 MB | 换机器、给别人，什么都不用装 |
 
 体积是本地这么量出来的：跑一次 `build/package.ps1`，`Expand-Archive` 解开两个 zip，再用

@@ -41,7 +41,7 @@
 | --- | --- | --- | --- |
 | `WhaleGenie` | Avalonia 界面、应用层（包、触发器、恢复、变量桥接）、MCP 宿主与全部工具 | Core、Model | 不反向依赖任何测试工程 |
 | `WhaleGenie.Model` | 宏与步骤、触发器、变量声明、动作展示清单与两份文案表 | Core、CommunityToolkit.Mvvm | Avalonia、应用层（`Runtime`） |
-| `WhaleGenie.Core` | 运行器、步骤与动作目录、表达式、变量、设备契约、录制翻译 | GraphicsCapture | Avalonia、ASP.NET Core、MCP、AI 库（有测试守着） |
+| `WhaleGenie.Core` | 运行器、步骤与动作目录、表达式、变量、设备契约、录制翻译 | GraphicsCapture | Avalonia、MCP、AI 库（有测试守着） |
 | `WhaleGenie.GraphicsCapture` | 用 Desktop Duplication 与 Windows.Graphics.Capture 取一帧 | Vortice.Direct3D11/DXGI | Core、界面，任何与宏有关的概念 |
 | `WhaleGenie.Tests` | 界面层与 MCP 的用例，跑在 Avalonia 无头会话里 | WhaleGenie | — |
 | `WhaleGenie.Core.Tests` | 引擎每条动作的用例，跑在替身设备层上 | Core | — |
@@ -91,7 +91,7 @@
 ### 4.2 MCP 客户端写一条宏
 
 ```
-HTTP POST /mcp
+stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
   → McpTolerantTool.InvokeAsync          先看参数形状，形状不对就回 BadJson
   → McpTools.Apply                       工具层，只做参数与答案
   → Dispatcher（第 1 跳）
@@ -283,12 +283,17 @@ HTTP POST /mcp
 
 ### 9.1 两种运行形态
 
-同一个 `McpServerHost` 被两种启动方式共用：
+**只有一种形态：客户端启动的子进程，走 stdio。** `whalegenie --mcp [--allow-control] [--allow-run]`，
+`App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`；`McpServerHost` 在一个
+通用宿主里把工具、资源、提示词装好，用 `WithStreamServerTransport` 接上这个进程的标准输入输出。
+客户端关掉管道，会话就结束，进程跟着退出。
 
-- **有窗口**：`McpServerViewModel` 的开关打开服务，同时用浮层上的两个开关授权"直接控制"与"运行宏"。
-- **无窗口**：`whalegenie --mcp`，`App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`。没有浮层可点，所以两个权限只能从命令行给：`--allow-control` 与 `--allow-run`；两个都不写就是只读（列宏、读屏幕、报状态都行，发输入与跑宏一律拒绝）。
+没有第二种形态是有意的：一个在跑的窗口没法把管道交给别人，所以"窗口里开个服务器"这件事本身就要求
+监听端口。本地工具不该为此开一个。窗口里的 MCP 按钮因此改成给一段**客户端配置**（`McpServerViewModel`
+只生成那段 JSON），不再是开关。
 
-能力并不等价：无窗口模式**没有**触发器、没有恢复快照、没有托盘。两个权限也没有可点的地方——`McpControl.Allowed` / `AllowsRun` 的写方只有两处：浮层（有窗口时）与 `McpHeadless.Start`（把命令行选项写进去）。不写开关就是只读，写了的才发输入、跑宏。
+两个权限写在启动参数里：`McpControl.Allowed` / `AllowsRun` 的唯一写方是 `McpHeadless.Start`，不写就是
+只读（列宏、读屏幕、报状态都行，发输入与跑宏一律拒绝）。授权只对这一次启动有效——进程没了就没了。
 
 ### 9.2 工具
 
@@ -336,7 +341,7 @@ HTTP POST /mcp
 
 - **界面线程**：所有 ViewModel、`MainViewModel` 的项目状态、`IDeviceLayer` 的构造。MCP 的每一次读写都要 `Dispatcher.UIThread.InvokeAsync` 进来。
 - **钩子线程**：全局键鼠回调、触发器判定。只做判断与派发，不碰界面。
-- **线程池**：一次运行（`Task.Run`），MCP 的 Kestrel 请求，OCR 预热。
+- **线程池**：一次运行（`Task.Run`），MCP 的会话循环（读管道、调用工具），OCR 预热。
 - **互斥**：`InputGate`/`BrowserGate`（同一台机器不能被两个宏同时操作）、`McpControl`（一次只跑一条宏）。
 
 退出有一条硬规则（写在 `App.axaml.cs` 的注释里）：**不许在界面线程上同步等 MCP 停止**——MCP 请求可能正等着界面线程，两边会永久互等，留下一个无窗口进程。

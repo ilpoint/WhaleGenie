@@ -30,7 +30,8 @@ internal sealed record McpCall(
 /// </summary>
 internal sealed class McpSelfCheckReport
 {
-    public string Endpoint { get; init; } = string.Empty;
+    /// <summary>What was checked, named in the heading: "stdio", the only transport there is.</summary>
+    public string Where { get; init; } = string.Empty;
 
     /// <summary>What this run was, named in the heading of the report it writes.</summary>
     public string Title { get; init; } = "self-check";
@@ -54,7 +55,7 @@ internal sealed class McpSelfCheckReport
     public string ToMarkdown()
     {
         var text = new StringBuilder();
-        text.Append("## WhaleGenie MCP ").Append(Title).Append(" — ").Append(Endpoint).Append(" — ")
+        text.Append("## WhaleGenie MCP ").Append(Title).Append(" — ").Append(Where).Append(" — ")
             .Append(At.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
             .Append('\n');
         text.Append('\n');

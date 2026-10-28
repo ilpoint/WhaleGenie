@@ -47,7 +47,7 @@ public partial class MainViewModel : ViewModelBase
     /// the server needs the project and the project shows the switch, so one of the two has to be
     /// lazy — and this is the cheaper side to make lazy.
     /// </summary>
-    public McpServerViewModel Mcp => _mcp ??= _makeMcp?.Invoke(this) ?? new McpServerViewModel(this);
+    public McpServerViewModel Mcp => _mcp ??= _makeMcp?.Invoke(this) ?? new McpServerViewModel();
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;

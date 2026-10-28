@@ -287,87 +287,47 @@
 
             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
                 <Button Classes="LabeledToolButton" Name="McpButton"
-                        Classes.Active="{Binding Mcp.IsRunning}"
+                        Classes.Active="{Binding Mcp.CanCopy}"
                         Click="OnMcpClicked"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.McpHint], Source={x:Static loc:Strings.Current}}">
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedRight">
                             <Border Background="{DynamicResource AppSurface}" CornerRadius="6"
-                                    Padding="12" Width="360">
+                                    Padding="12" Width="420">
                                 <StackPanel Spacing="8">
                                     <TextBlock FontSize="13" FontWeight="SemiBold"
                                                Foreground="{DynamicResource AppText}"
                                                Text="{Binding [Mcp.Title], Source={x:Static loc:Strings.Current}}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
-                                                   VerticalAlignment="Center"
-                                                   Text="{Binding [Mcp.Enable], Source={x:Static loc:Strings.Current}}" />
-                                        <ToggleSwitch Name="McpToggle"
-                                                      IsChecked="{Binding Mcp.IsRunning, Mode=OneWay}"
-                                                      Command="{Binding Mcp.ToggleCommand}"
-                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
-                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
-                                                IsEnabled="{Binding Mcp.IsRunning}">
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
-                                                   VerticalAlignment="Center"
-                                                   Text="{Binding [Mcp.Control], Source={x:Static loc:Strings.Current}}" />
-                                        <ToggleSwitch Name="McpControlToggle"
-                                                      IsChecked="{Binding Mcp.AllowControl, Mode=OneWay}"
-                                                      Command="{Binding Mcp.ToggleControlCommand}"
-                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
-                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
+                                    <!-- No switch and no address: a client starts this program and
+                                         owns the pipe, so what a person needs here is the block to
+                                         paste, not a server this window cannot provide. -->
                                     <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.ControlHint], Source={x:Static loc:Strings.Current}}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
-                                                IsEnabled="{Binding Mcp.IsRunning}">
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                               Text="{Binding [Mcp.Intro], Source={x:Static loc:Strings.Current}}" />
+                                    <Border Background="{DynamicResource AppField}" CornerRadius="5"
+                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                            Padding="10,8">
+                                        <SelectableTextBlock FontFamily="Consolas,Menlo,monospace"
+                                                             FontSize="11.5"
+                                                             Foreground="{DynamicResource AppText}"
+                                                             TextWrapping="Wrap"
+                                                             Text="{Binding Mcp.Config}" />
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <Button Classes="FlatButton" Height="28" Padding="10,0"
+                                                Click="OnCopyMcpConfig"
+                                                Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                    VerticalAlignment="Center"
-                                                   Text="{Binding [Mcp.Run], Source={x:Static loc:Strings.Current}}" />
-                                        <ToggleSwitch Name="McpRunToggle"
-                                                      IsChecked="{Binding Mcp.AllowRun, Mode=OneWay}"
-                                                      Command="{Binding Mcp.ToggleRunCommand}"
-                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
-                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
+                                                   Text="{Binding Mcp.Status}" />
                                     </StackPanel>
                                     <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.RunHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
-                                               Text="{Binding Mcp.Status}" />
-                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                        <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
-                                                   VerticalAlignment="Center"
-                                                   Text="{Binding [Mcp.Port], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Grid.Column="1" Width="110" Height="30"
-                                                         Value="{Binding Mcp.Port}"
-                                                         Minimum="1024" Maximum="65535" Increment="1"
-                                                         FormatString="0"
-                                                         IsEnabled="{Binding !Mcp.IsRunning}" />
-                                    </Grid>
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.PortHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               Text="{Binding [Mcp.Endpoint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontFamily="Consolas" FontSize="11.5"
-                                               Foreground="{DynamicResource AppText}"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding Mcp.Endpoint}" />
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.Note], Source={x:Static loc:Strings.Current}}" />
-                                    <Button Classes="FlatButton" Height="28" Padding="10,0"
-                                            HorizontalAlignment="Left"
-                                            Click="OnCopyMcpConfig"
-                                            Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               TextWrapping="Wrap" Margin="0,-4,0,0"
                                                Text="{Binding [Mcp.CopyConfigHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding [Mcp.PermissionsNote], Source={x:Static loc:Strings.Current}}" />
                                     <!-- What the client did to this machine is a question the person
                                          asks afterwards, so the record is one click away rather than
                                          something to go looking for in a folder. -->

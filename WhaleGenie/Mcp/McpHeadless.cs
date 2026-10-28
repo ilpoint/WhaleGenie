@@ -39,15 +39,17 @@ internal static class McpHeadless
             return;
         }
 
+        var serving = new Serving(new McpServerHost(project, services), services, project);
+
         Console.CancelKeyPress += (_, keys) =>
         {
-            // The runtime would end the process here, which would leave the listener to be reaped
-            // with it. Asking for a stop instead is what makes Ctrl+C feel like closing the switch.
+            // The runtime would end the process here, which would leave the session to be reaped
+            // with it. Asking for a stop instead is what makes Ctrl+C feel like closing the pipe.
             keys.Cancel = true;
-            Stop(desktop, project, services);
+            Leave(desktop, serving);
         };
 
-        _ = ServeAsync(desktop, project, options.Port);
+        _ = ServeAsync(desktop, serving);
     }
 
     /// <summary>
@@ -83,23 +85,40 @@ internal static class McpHeadless
         }
     }
 
-    private static async Task ServeAsync(IClassicDesktopStyleApplicationLifetime desktop,
-        MainViewModel project, int port)
+    /// <summary>
+    /// Speaks over the process's own stdin and stdout, which is the pipe the client owns. Nothing is
+    /// written to stdout by us: on these two streams stdout is the protocol, and a stray line there
+    /// is a message the client cannot read. The one thing worth saying goes to stderr.
+    /// </summary>
+    private static async Task ServeAsync(IClassicDesktopStyleApplicationLifetime desktop, Serving serving)
     {
         try
         {
-            await project.Mcp.StartHeadlessAsync(port);
-
-            // One line for a program, one for a person: a doctor reads stdout and nothing else, so
-            // anything else written there would have to be understood by it.
-            Console.Out.WriteLine($"endpoint={project.Mcp.Endpoint}");
-            Console.Out.Flush();
-            Console.Error.WriteLine($"whalegenie: MCP on {project.Mcp.Endpoint}; Ctrl+C stops it");
+            serving.Host.Start(Console.OpenStandardInput(), Console.OpenStandardOutput());
+            Console.Error.WriteLine("whalegenie: MCP on stdin/stdout; closing the pipe stops it");
         }
         catch (Exception error)
         {
             Console.Error.WriteLine($"whalegenie: the MCP server did not start: {error.Message}");
             Later(desktop, 3);
+            return;
+        }
+
+        try
+        {
+            // The client closing its end is the only "goodbye" a stdio server gets.
+            await serving.Host.WaitForShutdownAsync();
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine($"whalegenie: the MCP server stopped: {error.Message}");
+            Later(desktop, 3);
+            return;
+        }
+
+        if (!serving.Leaving)
+        {
+            Leave(desktop, serving);
         }
     }
 
@@ -111,16 +130,22 @@ internal static class McpHeadless
     private static void Later(IClassicDesktopStyleApplicationLifetime desktop, int code)
         => Dispatcher.UIThread.Post(() => desktop.TryShutdown(code));
 
-    private static void Stop(IClassicDesktopStyleApplicationLifetime desktop, MainViewModel project,
-        IServiceProvider services)
+    private static void Leave(IClassicDesktopStyleApplicationLifetime desktop, Serving serving)
     {
-        // Never wait for the interface thread from here: an MCP request can be waiting for that
-        // same thread while this handler runs, and the two would hold each other forever.
+        if (serving.Leaving)
+        {
+            return;
+        }
+
+        serving.Leaving = true;
+
+        // Never wait for the interface thread from here: a tool call can be waiting for that same
+        // thread while this runs, and the two would hold each other forever.
         _ = Task.Run(async () =>
         {
             try
             {
-                await project.Mcp.StopAsync();
+                await serving.Host.StopAsync();
             }
             catch
             {
@@ -140,10 +165,22 @@ internal static class McpHeadless
 
             // The container goes last: it holds the server that was just stopped, and disposing it
             // any earlier would take the two apart in the wrong order.
-            if (services is IDisposable owned)
+            if (serving.Services is IDisposable owned)
             {
                 owned.Dispose();
             }
         });
+    }
+
+    /// <summary>What one windowless run holds while it serves: the session, its container, its project.</summary>
+    private sealed class Serving(McpServerHost host, IServiceProvider services, MainViewModel project)
+    {
+        public McpServerHost Host { get; } = host;
+
+        public IServiceProvider Services { get; } = services;
+
+        public MainViewModel Project { get; } = project;
+
+        public bool Leaving { get; set; }
     }
 }

@@ -24,8 +24,9 @@ internal static class AppServices
     /// <summary>A run with a window on top of it, which is the ordinary way the program is started.</summary>
     internal static ServiceProvider Build(bool windowed = true)
     {
-        var services = Wiring(sp => new MainViewModel(project =>
-            new McpServerViewModel(project, () => sp.GetRequiredService<McpServerHost>())));
+        // The MCP page is a recipe now, not a server: the program no longer listens on anything,
+        // so nothing in the container has to be built for it.
+        var services = Wiring(_ => new MainViewModel(_ => new McpServerViewModel()));
 
         if (windowed)
         {

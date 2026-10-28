@@ -97,10 +97,8 @@ public static class LocalSettings
         => Write(model => model.DriverAttachAtStart = value);
 
     /// <summary>The port the local MCP server asks for; 3917 unless the person changed it.</summary>
-    public static int LoadMcpPort() => Read().McpPort;
 
     /// <summary>Stores the MCP port. The server falls back to a free port if it is taken.</summary>
-    public static void StoreMcpPort(int port) => Write(model => model.McpPort = port);
 
     /// <summary>
     /// How this machine reads a picture of a window. Automatic by default, which is the order the
@@ -177,8 +175,6 @@ public static class LocalSettings
         public bool PreloadOcr { get; set; }
 
         public bool DriverAttachAtStart { get; set; }
-
-        public int McpPort { get; set; } = 3917;
 
         public string CaptureWindow { get; set; } = string.Empty;
 

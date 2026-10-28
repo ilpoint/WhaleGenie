@@ -16,7 +16,8 @@ namespace WhaleGenie.Mcp;
 /// <summary>What a self-check run is allowed to do, and how long one tool call may take.</summary>
 internal sealed class McpSelfCheckOptions
 {
-    public string Endpoint { get; init; } = string.Empty;
+    /// <summary>What the report calls the thing that was checked: this transport is "stdio".</summary>
+    public string Where { get; init; } = string.Empty;
 
     /// <summary>Whether the run may write a draft into the project. Off for a server someone is
     /// using; on when the check owns a throwaway copy of a package.</summary>
@@ -74,7 +75,7 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
     ];
 
     private readonly McpSelfCheckOptions _options = options ?? new McpSelfCheckOptions();
-    private readonly McpSelfCheckReport _report = new() { Endpoint = options?.Endpoint ?? string.Empty };
+    private readonly McpSelfCheckReport _report = new() { Where = options?.Where ?? string.Empty };
     private readonly Dictionary<string, string[]> _parameters = new(StringComparer.Ordinal);
     private readonly List<string> _drafts = [];
     private HashSet<string> _tools = new(StringComparer.Ordinal);

@@ -31,15 +31,9 @@ public class McpServerTests
         Ui.RunAsync(async () =>
         {
             var viewModel = new MainViewModel();
-            await using var host = new McpServerHost(viewModel);
-            await host.StartAsync();
+            await using var loop = McpLoopback.Start(viewModel);
 
-            var transport = new HttpClientTransport(new HttpClientTransportOptions
-            {
-                Endpoint = new Uri(host.Endpoint),
-                TransportMode = HttpTransportMode.StreamableHttp,
-            });
-            await using var client = await McpClient.CreateAsync(transport);
+            await using var client = await loop.ConnectAsync();
             var tools = await client.ListToolsAsync();
 
             Assert.Contains(tools, tool => tool.Name == "whalegenie_open_project");
@@ -97,8 +91,8 @@ public class McpServerTests
                 .First().Text;
 
             Assert.Contains("macroCount", text, StringComparison.Ordinal);
-            await host.StopAsync();
-            Assert.False(host.IsRunning);
+            await loop.StopAsync();
+            Assert.False(loop.Host.IsRunning);
             return true;
         });
     }
@@ -108,15 +102,9 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
+            await using var loop = McpLoopback.Start(new MainViewModel());
 
-            var transport = new HttpClientTransport(new HttpClientTransportOptions
-            {
-                Endpoint = new Uri(host.Endpoint),
-                TransportMode = HttpTransportMode.StreamableHttp,
-            });
-            await using var client = await McpClient.CreateAsync(transport);
+            await using var client = await loop.ConnectAsync();
             var action = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
                 new Dictionary<string, object?> { ["key"] = "window.move" }));
             var parameters = action.RootElement.GetProperty("parameters").EnumerateArray().ToArray();
@@ -146,30 +134,40 @@ public class McpServerTests
                 new Dictionary<string, object?> { ["key"] = "control.case" }));
             Assert.True(branch.RootElement.GetProperty("hidden").GetBoolean());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
 
+    /// <summary>
+    /// The window hands over a recipe, not a switch: a client starts this program and owns the pipe,
+    /// so what a person needs is the block to paste. The switches that used to live here could only
+    /// have served a server this window does not run.
+    /// </summary>
     [Fact]
-    public void The_main_window_has_an_mcp_switch_and_a_flyout()
+    public void The_main_window_offers_the_client_config_instead_of_a_switch()
     {
         Ui.Run(() =>
         {
-            var window = new MainWindow { DataContext = new MainViewModel() };
+            var viewModel = new MainViewModel();
+            var window = new MainWindow { DataContext = viewModel };
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
             var button = window.FindControl<Button>("McpButton");
             Assert.NotNull(button);
             Assert.Null(button!.Command);
-            var flyout = Assert.IsType<Flyout>(button.Flyout);
-            Assert.NotNull(flyout.Content);
-            Assert.NotNull(window.FindControl<TextBlock>("VersionText"));
+            Assert.NotNull(Assert.IsType<Flyout>(button.Flyout).Content);
 
-            // The server's own switch, and the direct-control switch beside it.
-            Assert.NotNull(window.FindControl<ToggleSwitch>("McpToggle"));
-            Assert.NotNull(window.FindControl<ToggleSwitch>("McpControlToggle"));
+            // What the client has to be told: this program, and the flag that makes it speak MCP.
+            Assert.Contains("\"mcpServers\"", viewModel.Mcp.Config, StringComparison.Ordinal);
+            Assert.Contains("\"--mcp\"", viewModel.Mcp.Config, StringComparison.Ordinal);
+            Assert.EndsWith("WhaleGenie.exe", viewModel.Mcp.Executable,
+                StringComparison.OrdinalIgnoreCase);
+
+            // And the switches are gone with the server they used to drive.
+            Assert.Null(window.FindControl<ToggleSwitch>("McpToggle"));
+            Assert.Null(window.FindControl<ToggleSwitch>("McpControlToggle"));
             window.Close();
         });
     }
@@ -189,14 +187,8 @@ public class McpServerTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                var transport = new HttpClientTransport(new HttpClientTransportOptions
-                {
-                    Endpoint = new Uri(host.Endpoint),
-                    TransportMode = HttpTransportMode.StreamableHttp,
-                });
-                await using var client = await McpClient.CreateAsync(transport);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 var actions = await Call(client, "whalegenie_list_actions",
                     new Dictionary<string, object?> { ["query"] = "delay", ["limit"] = 5 });
@@ -221,69 +213,13 @@ public class McpServerTests
 
                 await Call(client, "whalegenie_save_project", new Dictionary<string, object?>());
                 Assert.True(File.Exists(path + ".bak"));
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
                 Directory.Delete(folder, true);
             }
 
-            return true;
-        });
-    }
-
-    [Fact]
-    public void The_switch_starts_and_stops_the_server()
-    {
-        Ui.RunAsync(async () =>
-        {
-            var viewModel = new MainViewModel();
-            await viewModel.Mcp.ToggleCommand.ExecuteAsync(null);
-
-            Assert.True(viewModel.Mcp.IsRunning);
-            Assert.False(string.IsNullOrWhiteSpace(viewModel.Mcp.Endpoint));
-
-            await viewModel.Mcp.ToggleCommand.ExecuteAsync(null);
-            Assert.False(viewModel.Mcp.IsRunning);
-            Assert.Equal(string.Empty, viewModel.Mcp.Endpoint);
-            return true;
-        });
-    }
-
-    [Fact]
-    public void The_mcp_port_is_kept_between_runs()
-    {
-        var original = LocalSettings.FilePath;
-        var folder = Path.Combine(Path.GetTempPath(), "wg-mcp-port-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
-        try
-        {
-            LocalSettings.FilePath = Path.Combine(folder, "settings.json");
-            var first = new MainViewModel();
-            first.Mcp.Port = 4123;
-
-            var second = new MainViewModel();
-            Assert.Equal(4123, second.Mcp.Port);
-        }
-        finally
-        {
-            LocalSettings.FilePath = original;
-            Directory.Delete(folder, true);
-        }
-    }
-
-    [Fact]
-    public void The_switch_waits_for_the_save_question()
-    {
-        Ui.RunAsync(async () =>
-        {
-            var viewModel = new MainViewModel();
-            viewModel.Mcp.EnsureSaved = () => Task.FromResult(false);
-
-            await viewModel.Mcp.ToggleCommand.ExecuteAsync(null);
-
-            Assert.False(viewModel.Mcp.IsRunning);
-            Assert.Equal(Strings.Get("Mcp.NeedSave"), viewModel.Mcp.Status);
             return true;
         });
     }
@@ -301,14 +237,8 @@ public class McpServerTests
             capture.Finish(new WhaleGenie.Core.Execution.RunResult(
                 WhaleGenie.Core.Execution.RunStatus.Completed, string.Empty, string.Empty, 1), "完成");
 
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            var transport = new HttpClientTransport(new HttpClientTransportOptions
-            {
-                Endpoint = new Uri(host.Endpoint),
-                TransportMode = HttpTransportMode.StreamableHttp,
-            });
-            await using var client = await McpClient.CreateAsync(transport);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var runs = JsonDocument.Parse(await Call(client, "whalegenie_list_runs",
                 new Dictionary<string, object?> { ["limit"] = 5 }));
@@ -319,7 +249,7 @@ public class McpServerTests
                 new Dictionary<string, object?>()));
             Assert.Equal("完成", log.RootElement.GetProperty("lines")[0]
                 .GetProperty("text").GetString());
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -329,9 +259,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var tools = await client.ListToolsAsync();
             Assert.All(tools, tool =>
@@ -349,7 +278,7 @@ public class McpServerTests
             Assert.Equal("object", put.JsonSchema.GetProperty("properties").GetProperty("macro")
                 .GetProperty("type").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -369,9 +298,8 @@ public class McpServerTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
                     new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
@@ -399,7 +327,7 @@ public class McpServerTests
                 Assert.True(forced.IsError != true);
                 Assert.Contains(viewModel.Macros, macro => macro.Name == "错的");
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -425,9 +353,8 @@ public class McpServerTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
                 var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
                     new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
 
@@ -698,7 +625,7 @@ public class McpServerTests
                     })).RootElement;
                 Assert.True(echoed.TryGetProperty("macro", out _));
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -724,9 +651,8 @@ public class McpServerTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
                 var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
                     new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
 
@@ -794,7 +720,7 @@ public class McpServerTests
                     new Dictionary<string, object?> { ["draftId"] = draft })).RootElement;
                 Assert.True(validated.GetProperty("ok").GetBoolean(), validated.GetRawText());
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -815,9 +741,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var uris = (await client.ListResourcesAsync()).Select(resource => resource.Uri).ToList();
             Assert.Contains(uris, uri => uri.Contains("actions", StringComparison.Ordinal));
@@ -838,7 +763,7 @@ public class McpServerTests
                 .Select(content => content.Text));
             Assert.Contains("control.delay", details, StringComparison.Ordinal);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -853,9 +778,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             var written = JsonDocument.Parse(await Wrote(client, "whalegenie_put_macro",
@@ -896,7 +820,7 @@ public class McpServerTests
                 steps[0].GetProperty("id").GetString());
             Assert.Equal("0", steps[0].GetProperty("path").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -911,9 +835,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             await Wrote(client, "whalegenie_put_macro", new Dictionary<string, object?>
@@ -934,7 +857,7 @@ public class McpServerTests
             Assert.Contains(error.GetProperty("candidates").EnumerateArray(),
                 candidate => candidate.GetString() == "登录");
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -948,12 +871,6 @@ public class McpServerTests
         return JsonDocument.Parse(text).RootElement;
     }
 
-    private static async Task<McpClient> ConnectAsync(string endpoint)
-        => await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions
-        {
-            Endpoint = new Uri(endpoint),
-            TransportMode = HttpTransportMode.StreamableHttp,
-        }));
 
     /// <summary>
     /// What a step says it does to the machine, so a client can tell a click from a read before it
@@ -964,9 +881,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var click = JsonDocument.Parse(await Call(client, "whalegenie_get_action",
                 new Dictionary<string, object?> { ["key"] = "input.mouseClick" })).RootElement;
@@ -984,7 +900,7 @@ public class McpServerTests
             Assert.True(wait.GetProperty("waits").GetBoolean());
             Assert.Equal("Step", wait.GetProperty("timeoutSource").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -998,9 +914,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var answer = await client.CallToolAsync("whalegenie_get_action",
                 new Dictionary<string, object?> { ["key"] = "control.delai" });
@@ -1012,7 +927,7 @@ public class McpServerTests
                 .Select(candidate => candidate.GetString()).ToList();
             Assert.Contains("control.delay", candidates);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1026,9 +941,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var answer = await client.CallToolAsync("whalegenie_discard",
                 new Dictionary<string, object?> { ["draftId"] = "nope1234" });
@@ -1037,7 +951,7 @@ public class McpServerTests
                 .RootElement.GetProperty("error");
             Assert.Equal("DraftNotFound", error.GetProperty("code").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1064,9 +978,8 @@ public class McpServerTests
             capture.Finish(new WhaleGenie.Core.Execution.RunResult(
                 WhaleGenie.Core.Execution.RunStatus.Completed, string.Empty, string.Empty, 600), "完成");
 
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var log = JsonDocument.Parse(await Call(client, "whalegenie_get_run_log",
                 new Dictionary<string, object?> { ["tail"] = 10 })).RootElement;
@@ -1078,7 +991,7 @@ public class McpServerTests
             Assert.Equal("590", lines[0].GetProperty("text").GetString());
             Assert.Equal("599", lines[^1].GetProperty("text").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1092,9 +1005,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
@@ -1133,7 +1045,7 @@ public class McpServerTests
                 });
             Assert.True(missing.IsError);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1147,9 +1059,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             await Call(client, "whalegenie_set_globals", new Dictionary<string, object?>
@@ -1168,7 +1079,7 @@ public class McpServerTests
             Assert.Equal("number", one.GetProperty("type").GetString());
             Assert.Equal("1", one.GetProperty("default").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1179,9 +1090,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             foreach (var name in new[] { "甲", "乙", "丙" })
@@ -1209,7 +1119,7 @@ public class McpServerTests
             Assert.Equal(1, last.GetProperty("macros").GetArrayLength());
             Assert.False(last.GetProperty("hasMore").GetBoolean());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1220,9 +1130,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
@@ -1245,7 +1154,7 @@ public class McpServerTests
             Assert.False(small.TryGetProperty("outline", out _));
             Assert.Equal(1, small.GetProperty("changed").GetArrayLength());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1259,9 +1168,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
@@ -1300,7 +1208,7 @@ public class McpServerTests
             Assert.Equal(2, step.GetProperty("retryCount").GetInt32());
             Assert.Equal("continue", step.GetProperty("onError").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1314,9 +1222,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
@@ -1355,7 +1262,7 @@ public class McpServerTests
                 });
             Assert.True(refused.IsError);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1369,9 +1276,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
@@ -1415,7 +1321,7 @@ public class McpServerTests
                 });
             Assert.True(refused.IsError);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1429,9 +1335,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
@@ -1469,7 +1374,7 @@ public class McpServerTests
             Assert.Equal(1, rows.GetArrayLength());
             Assert.Equal("数量", rows[0].GetProperty("name").GetString());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1483,9 +1388,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
@@ -1534,7 +1438,7 @@ public class McpServerTests
                 })).RootElement;
             Assert.Equal(0, gone.GetProperty("triggers").GetArrayLength());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1548,9 +1452,8 @@ public class McpServerTests
     {
         Ui.RunAsync(async () =>
         {
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var draft = await Draft(client);
             var put = JsonDocument.Parse(await Call(client, "whalegenie_put_macro",
@@ -1613,7 +1516,7 @@ public class McpServerTests
             Assert.Contains("submacro", missing.Content.OfType<TextContentBlock>().First().Text,
                 StringComparison.OrdinalIgnoreCase);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1645,9 +1548,8 @@ public class McpServerTests
         Ui.RunAsync(async () =>
         {
             RunLogStore.Forget();
-            await using var host = new McpServerHost(new MainViewModel());
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
 
             var log = JsonDocument.Parse(await Call(client, "whalegenie_get_run_log",
                 new Dictionary<string, object?>())).RootElement;
@@ -1662,7 +1564,7 @@ public class McpServerTests
                 new Dictionary<string, object?> { ["runId"] = "nope" });
             Assert.Contains("NoSuchRun", missing, StringComparison.Ordinal);
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }
@@ -1688,9 +1590,8 @@ public class McpServerTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
                     new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
@@ -1715,7 +1616,7 @@ public class McpServerTests
                 Assert.Contains("\"globals\"", wrapped, StringComparison.Ordinal);
                 Assert.Contains("list", wrapped, StringComparison.Ordinal);
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -1760,9 +1661,8 @@ public class McpServerTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                await using var host = new McpServerHost(viewModel);
-                await host.StartAsync();
-                await using var client = await ConnectAsync(host.Endpoint);
+                await using var loop = McpLoopback.Start(viewModel);
+                await using var client = await loop.ConnectAsync();
 
                 var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
                     new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
@@ -1807,7 +1707,7 @@ public class McpServerTests
                 Assert.Contains("ms", stepChange.GetProperty("parameters").EnumerateArray()
                     .Select(name => name.GetString()));
 
-                await host.StopAsync();
+                await loop.StopAsync();
             }
             finally
             {
@@ -1830,9 +1730,8 @@ public class McpServerTests
             var viewModel = new MainViewModel();
             viewModel.AddMacro(new MacroItem { Name = "原宏" });
 
-            await using var host = new McpServerHost(viewModel);
-            await host.StartAsync();
-            await using var client = await ConnectAsync(host.Endpoint);
+            await using var loop = McpLoopback.Start(viewModel);
+            await using var client = await loop.ConnectAsync();
 
             var first = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
                 new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
@@ -1854,7 +1753,7 @@ public class McpServerTests
             Assert.Equal(1, JsonDocument.Parse(await Call(client, "whalegenie_list_drafts",
                 new Dictionary<string, object?>())).RootElement.GetProperty("total").GetInt32());
 
-            await host.StopAsync();
+            await loop.StopAsync();
             return true;
         });
     }

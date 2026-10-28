@@ -65,12 +65,13 @@
 
   <ItemGroup>
     <!--
-      The MCP server is a local HTTP endpoint hosted by this same program. ASP.NET Core supplies
-      Kestrel and the endpoint the SDK maps; the SDK supplies the protocol and tool discovery.
-      Nothing of this reaches WhaleGenie.Core: the engine stays free of network and AI.
+      The MCP server speaks over the pipe a client gives it: stdin and stdout, which is what a local
+      helper should use. No Kestrel, no port, no listener waiting for something on the network —
+      ASP.NET Core is not referenced here at all. The SDK supplies the protocol, the transport over
+      a pair of streams, and tool discovery. Nothing of this reaches WhaleGenie.Core.
     -->
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup>
