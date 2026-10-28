@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Execution;
 using WhaleGenie.ViewModels;
 
@@ -18,11 +19,15 @@ internal static class McpHeadless
 {
     internal static void Start(IClassicDesktopStyleApplicationLifetime desktop, McpHostOptions options)
     {
-        var project = new MainViewModel();
+        // A windowless run builds the same graph the windowed one does, minus the window: the tools,
+        // the draft store and the project are the objects a window would have used.
+        var services = AppServices.Build(windowed: false);
+        var project = services.GetRequiredService<MainViewModel>();
 
         if (Setup(desktop, project, options) is { } failure)
         {
             Console.Error.WriteLine($"whalegenie: {failure}");
+            services.Dispose();
             Later(desktop, 2);
             return;
         }
@@ -32,7 +37,7 @@ internal static class McpHeadless
             // The runtime would end the process here, which would leave the listener to be reaped
             // with it. Asking for a stop instead is what makes Ctrl+C feel like closing the switch.
             keys.Cancel = true;
-            Stop(desktop, project);
+            Stop(desktop, project, services);
         };
 
         _ = ServeAsync(desktop, project, options.Port);
@@ -99,7 +104,8 @@ internal static class McpHeadless
     private static void Later(IClassicDesktopStyleApplicationLifetime desktop, int code)
         => Dispatcher.UIThread.Post(() => desktop.TryShutdown(code));
 
-    private static void Stop(IClassicDesktopStyleApplicationLifetime desktop, MainViewModel project)
+    private static void Stop(IClassicDesktopStyleApplicationLifetime desktop, MainViewModel project,
+        IServiceProvider services)
     {
         // Never wait for the interface thread from here: an MCP request can be waiting for that
         // same thread while this handler runs, and the two would hold each other forever.
@@ -124,6 +130,13 @@ internal static class McpHeadless
             }
 
             await Dispatcher.UIThread.InvokeAsync(() => desktop.TryShutdown(0));
+
+            // The container goes last: it holds the server that was just stopped, and disposing it
+            // any earlier would take the two apart in the wrong order.
+            if (services is IDisposable owned)
+            {
+                owned.Dispose();
+            }
         });
     }
 }

@@ -12,9 +12,12 @@ namespace WhaleGenie.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    public MainViewModel()
+    private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
+    private McpServerViewModel? _mcp;
+
+    public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null)
     {
-        Mcp = new McpServerViewModel(this);
+        _makeMcp = mcp;
         SelectedDock = LocalSettings.LoadDockPage();
         Macros.CollectionChanged += (_, _) =>
         {
@@ -39,8 +42,12 @@ public partial class MainViewModel : ViewModelBase
         };
     }
 
-    /// <summary>The local MCP server switch and the address it hands to an MCP client.</summary>
-    public McpServerViewModel Mcp { get; }
+    /// <summary>
+    /// The local MCP server switch and the address it hands to an MCP client. Built on first use:
+    /// the server needs the project and the project shows the switch, so one of the two has to be
+    /// lazy — and this is the cheaper side to make lazy.
+    /// </summary>
+    public McpServerViewModel Mcp => _mcp ??= _makeMcp?.Invoke(this) ?? new McpServerViewModel(this);
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;

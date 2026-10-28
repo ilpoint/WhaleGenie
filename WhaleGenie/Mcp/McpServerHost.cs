@@ -23,10 +23,33 @@ namespace WhaleGenie.Mcp;
 /// The local HTTP MCP server. It exists only while the MCP switch is on, binds one loopback port
 /// and has no token: it is a helper on this machine, not a service for the network.
 /// </summary>
-public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
+public sealed class McpServerHost : IAsyncDisposable
 {
+    private readonly MainViewModel _project;
+    private readonly IServiceProvider _services;
+    private readonly bool _ownsServices;
     private WebApplication? _app;
     private string _endpoint = string.Empty;
+
+    /// <summary>
+    /// A server over a project, wiring up the few things it needs itself. This is the constructor a
+    /// check uses: it hands in a project and gets the same object graph the program builds.
+    /// </summary>
+    public McpServerHost(MainViewModel project)
+        : this(project, AppServices.Minimal(project), ownsServices: true)
+    {
+    }
+
+    /// <summary>
+    /// A server that takes what it needs from the run's own container, so a tool and the window
+    /// share one draft store rather than one each.
+    /// </summary>
+    internal McpServerHost(MainViewModel project, IServiceProvider services, bool ownsServices = false)
+    {
+        _project = project;
+        _services = services;
+        _ownsServices = ownsServices;
+    }
 
     /// <summary>The address an MCP client connects to, or empty while the server is stopped.</summary>
     public string Endpoint => _endpoint;
@@ -77,7 +100,14 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
         await StopAppAsync(app);
     }
 
-    public async ValueTask DisposeAsync() => await StopAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        if (_ownsServices && _services is IDisposable services)
+        {
+            services.Dispose();
+        }
+    }
 
     private static string AddressOf(WebApplication app)
         => app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()
@@ -117,17 +147,17 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
 
     /// <summary>
     /// Every tool this server offers, each wrapped so a wrongly shaped argument is answered with a
-    /// coded refusal instead of the runtime's message about the call failing. The tools are built
-    /// here rather than picked up by type so the wrapper cannot be forgotten when one is added.
+    /// coded refusal instead of the runtime's message about the call failing. The owners come from
+    /// the run's container, so a new tool class is registered once instead of being listed here as
+    /// well — a list would go stale without saying anything.
     /// </summary>
-    private static IReadOnlyList<McpServerTool> Tools(
-        MainViewModel project, McpDraftStore drafts, McpLiveProject live)
+    private IReadOnlyList<McpServerTool> Tools()
     {
         object[] owners =
         [
-            new McpTools(drafts, live),
-            new McpControlTools(),
-            new McpRunTools(project, drafts),
+            _services.GetRequiredService<McpTools>(),
+            _services.GetRequiredService<McpControlTools>(),
+            _services.GetRequiredService<McpRunTools>(),
         ];
 
         var tools = new List<McpServerTool>();
@@ -150,8 +180,10 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
 
     private async Task<WebApplication> StartOnAsync(int port)
     {
-        var drafts = new McpDraftStore();
-        var live = new McpLiveProject(project);
+        // The draft store and the bridge to the project belong to the run rather than to this
+        // server: a tool and the window have to see the same drafts, and the project is one object.
+        var drafts = _services.GetRequiredService<McpDraftStore>();
+        var live = _services.GetRequiredService<McpLiveProject>();
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -167,11 +199,11 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
             options.ShutdownTimeout = TimeSpan.FromSeconds(2));
         builder.Services.AddSingleton(drafts);
         builder.Services.AddSingleton(live);
-        builder.Services.AddSingleton(project);
+        builder.Services.AddSingleton(_project);
         builder.Services
             .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)
             .WithHttpTransport(options => options.Stateless = true)
-            .WithTools(Tools(project, drafts, live))
+            .WithTools(Tools())
             .WithResources<McpResources>()
             .WithPrompts<McpPrompts>();
 

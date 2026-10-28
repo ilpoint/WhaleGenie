@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -95,11 +96,10 @@ public partial class App : Application
 
     private static void ShowWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        var viewModel = new MainViewModel();
-        var window = new MainWindow
-        {
-            DataContext = viewModel,
-        };
+        var services = AppServices.Build();
+        var window = services.GetRequiredService<MainWindow>();
+        var viewModel = (MainViewModel)window.DataContext!;
+
         viewModel.Mcp.EnsureSaved = window.EnsureProjectSavedForMcpAsync;
 
         desktop.MainWindow = window;
@@ -148,6 +148,10 @@ public partial class App : Application
                 // virtual keyboard and mouse off the machine. Left behind, those devices are what
                 // makes the pointer stutter after the window has gone.
             }
+
+            // The container goes last: it is what built the server and the tools, and disposing it
+            // before the device layer would take the two apart in the wrong order.
+            services.Dispose();
         };
     }
 }

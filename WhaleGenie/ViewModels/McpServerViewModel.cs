@@ -15,7 +15,8 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class McpServerViewModel : ViewModelBase
 {
-    private readonly McpServerHost _host;
+    private readonly Func<McpServerHost> _makeHost;
+    private McpServerHost? _host;
     private bool _running;
     private bool _busy;
     private bool _allowControl;
@@ -25,11 +26,18 @@ public partial class McpServerViewModel : ViewModelBase
     private string _endpoint = string.Empty;
     private int _port;
 
-    public McpServerViewModel(MainViewModel project)
+    public McpServerViewModel(MainViewModel project, Func<McpServerHost>? host = null)
     {
-        _host = new McpServerHost(project);
+        _makeHost = host ?? (() => new McpServerHost(project));
         _port = Math.Clamp(LocalSettings.LoadMcpPort(), 1024, 65535);
     }
+
+    /// <summary>
+    /// The server, built the first time it is needed. Not in the constructor because the server
+    /// takes the project and the project shows this switch: building both at once is a cycle, and
+    /// leaving this side lazy is what breaks it.
+    /// </summary>
+    private McpServerHost Host => _host ??= _makeHost();
 
     /// <summary>The port the next start asks for. It is disabled while the server is running.</summary>
     public int Port
@@ -172,7 +180,7 @@ public partial class McpServerViewModel : ViewModelBase
             if (IsRunning)
             {
                 Status = Strings.Get("Mcp.Stopping");
-                await _host.StopAsync();
+                await Host.StopAsync();
                 IsRunning = false;
                 AllowControl = false;
                 AllowRun = false;
@@ -195,7 +203,7 @@ public partial class McpServerViewModel : ViewModelBase
             Status = Strings.Format("Mcp.StartFailed", error.Message);
             try
             {
-                await _host.StopAsync();
+                await Host.StopAsync();
             }
             catch
             {
@@ -225,9 +233,9 @@ public partial class McpServerViewModel : ViewModelBase
     internal async Task StartHeadlessAsync(int port)
     {
         Status = Strings.Get("Mcp.Starting");
-        await _host.StartAsync(port);
-        Endpoint = _host.Endpoint;
-        IsRunning = _host.IsRunning;
+        await Host.StartAsync(port);
+        Endpoint = Host.Endpoint;
+        IsRunning = Host.IsRunning;
         Status = Strings.Get("Mcp.On");
     }
 
@@ -236,7 +244,7 @@ public partial class McpServerViewModel : ViewModelBase
     {
         try
         {
-            await _host.StopAsync();
+            await Host.StopAsync();
         }
         finally
         {
