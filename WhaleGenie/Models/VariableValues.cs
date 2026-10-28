@@ -4,7 +4,7 @@ using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>
 /// Reads a declared variable value with the same value language as action fields. Expressions are

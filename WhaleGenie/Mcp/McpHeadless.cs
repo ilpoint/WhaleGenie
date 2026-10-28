@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 

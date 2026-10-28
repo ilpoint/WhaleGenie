@@ -1255,7 +1255,7 @@
                      </ItemsPanelTemplate>
                  </ItemsControl.ItemsPanel>
                  <ItemsControl.ItemTemplate>
-                     <DataTemplate x:DataType="models:MacroAction">
+                     <DataTemplate x:DataType="vm:MacroAction">
                         <Button Classes="PaletteButton" Classes.primary="{Binding IsPrimary}"
                                ToolTip.Tip="{Binding Label}"
                                ToolTip.ShowOnDisabled="True"

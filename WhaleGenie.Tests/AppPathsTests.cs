@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;

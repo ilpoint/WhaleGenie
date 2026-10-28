@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.ViewModels;

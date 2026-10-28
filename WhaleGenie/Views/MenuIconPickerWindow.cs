@@ -13,6 +13,8 @@ using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
+using WhaleGenie.ViewModels;
+
 namespace WhaleGenie.Views;
 
 /// <summary>Chooses any Lucide icon or a PNG/JPEG/BMP image for a menu cell.</summary>

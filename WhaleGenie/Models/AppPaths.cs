@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>
 /// Where WhaleGenie keeps the things that belong to the copy of it that is running. They sit beside

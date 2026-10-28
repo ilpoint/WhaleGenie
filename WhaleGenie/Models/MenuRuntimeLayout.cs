@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using WhaleGenie.Models;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>One runnable or editable cell resolved from the project's menu trigger entries.</summary>
 public sealed record MenuRuntimeCell(

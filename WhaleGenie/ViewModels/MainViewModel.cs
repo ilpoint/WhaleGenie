@@ -369,7 +369,7 @@ public partial class MainViewModel : ViewModelBase
         // The values a macro wrote last time live outside the package. They are put back once the
         // declarations are known, which is what makes a reopened project start with them; doing it
         // here rather than at each caller is what keeps a path from forgetting it.
-        Runtime.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        PersistentVariables.ApplyTo(VariableCatalog.Globals);
     }
 
     /// <summary>
@@ -450,7 +450,7 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
-        Runtime.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        PersistentVariables.ApplyTo(VariableCatalog.Globals);
 
         MarkDirty();
     }

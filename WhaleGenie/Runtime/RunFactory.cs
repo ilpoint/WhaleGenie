@@ -3,6 +3,8 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
 
+using WhaleGenie.Models;
+
 namespace WhaleGenie.Runtime;
 
 /// <summary>

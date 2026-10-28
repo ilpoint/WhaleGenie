@@ -208,7 +208,7 @@ public partial class SettingsViewModel : ViewModelBase
                 return Strings.Get("Settings.MenuLauncherConflict");
             }
 
-            var menuProblems = Project.Triggers.MenuProblems([.. Project.Macros]);
+            var menuProblems = Project.Triggers.MenuProblems([.. Project.Macros], MenuIconCatalog.Knows);
             if (menuProblems.Count > 0)
             {
                 return menuProblems[0];

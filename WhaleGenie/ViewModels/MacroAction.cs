@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lucide.Avalonia;
 
-namespace WhaleGenie.Models;
+namespace WhaleGenie.ViewModels;
 
 /// <summary>A single step inside a macro, or an entry in the action palette.</summary>
 public partial class MacroAction : ObservableObject, Localization.ILanguageAware

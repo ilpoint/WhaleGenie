@@ -1,6 +1,6 @@
 using WhaleGenie.Core.Variables;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>
 /// The one table of global values this program uses. Every run — a trigger, the editor's own run,

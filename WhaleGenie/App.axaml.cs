@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;

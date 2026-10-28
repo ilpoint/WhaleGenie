@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 
+using WhaleGenie.Models;
+
 namespace WhaleGenie.Runtime;
 
 /// <summary>Writes failures that happen outside a macro step, where no run log can hold them.</summary>

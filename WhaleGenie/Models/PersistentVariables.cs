@@ -9,7 +9,7 @@ using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>
 /// Values of global variables the person asked to keep on this machine. They are keyed by name,

@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Views;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>The one definition of the characters a typed-string entry can hold and end with.</summary>
 public static class HotstringCharacters
