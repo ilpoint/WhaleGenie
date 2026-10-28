@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 

@@ -4,7 +4,9 @@ using System.Linq;
 using Avalonia.Input;
 using WhaleGenie.Core.Execution;
 
-namespace WhaleGenie.Models;
+using WhaleGenie.Models;
+
+namespace WhaleGenie.ViewModels;
 
 /// <summary>One field a record variable can hand to a scalar parameter.</summary>
 public sealed record VariableDragField(string Name, ActionReturnType Type);

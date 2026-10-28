@@ -4,7 +4,9 @@ using Avalonia;
 using Avalonia.Media;
 using WhaleGenie.Localization;
 
-namespace WhaleGenie.Models;
+using WhaleGenie.Models;
+
+namespace WhaleGenie.ViewModels;
 
 /// <summary>What one row of the step list stands for.</summary>
 public enum StepRowKind

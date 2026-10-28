@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 
-namespace WhaleGenie.Models;
+using WhaleGenie.Models;
+
+namespace WhaleGenie.ViewModels;
 
 public enum VariableDropStatus
 {
