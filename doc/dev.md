@@ -105,8 +105,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
 拾取器、是否发输入、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
-提示与页面归属（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
-这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
+提示与页面归属（`WhaleGenie.Model/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
+这份清单里：它们在 `WhaleGenie.Model/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
 `IconView` 包装 `Lucide.Avalonia` 的 `LucideIcon`，把旧属性名映射到 `Kind`、`Foreground` 与
 `StrokeWidth`，并把布局的 `Width`、`Height` 同步到 Lucide 的 `Size`，避免旧界面的小图标按 24 像素
 画布裁剪。菜单格子的 `Builtin` 引用只保存 `MenuIconCatalog` 中的稳定键，选择器再映射到常见
@@ -261,7 +261,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   自己那条路径写过**、**目录里的每个动作都有分支**（隐藏动作除外，`control.case` 由父步骤读）、**每条分支
   都在目录里**。失败信息逐条给 `动作 → 方法: 声明了结果 "键"`。
   这条台账也保证删掉一个动作时不会留下“声明了结果却没人写”的半截目录。
-- 目录合约（C4）：`WhaleGenie/Models/ActionContract.cs` 的 `ActionContract.Check(语义, 展示)` 一次列出缺动作、
+- 目录合约（C4）：`WhaleGenie.Model/Models/ActionContract.cs` 的 `ActionContract.Check(语义, 展示)` 一次列出缺动作、
   多动作、重名（两份各自查）、缺参数、多参数、未知控件种类 `UnknownKind`、缺结果、多结果，每条 `Kind 动作.字段`。
   `ActionCatalog` 的静态构造先跑它，**全部报完再抛一句**（以前是遇到第一个就抛）。`ActionCatalog.Display`
   把展示事实按合约形状暴露出来，测试因此能在不启动窗口的情况下核对两份**出厂**文件。
@@ -357,7 +357,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 两边都为空就写空数组，没在调用的宏因此不会多出什么。同一个声明在代码里有两份读法：引擎读的是
 `WhaleGenie.Core/Execution/MacroSignature.cs` 里的 `MacroSignature`（名字、默认值、是否必填、类型），
-编辑器与设计期检查读的是 `WhaleGenie/Models/MacroCallable.cs` 里的 `MacroCallable`（多一列说明，
+编辑器与设计期检查读的是 `WhaleGenie.Model/Models/MacroCallable.cs` 里的 `MacroCallable`（多一列说明，
 调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写，形参与结果各带一个 `ActionReturnType`：
 调用处按它说明要的是什么，设计期按它标出明显不符的值。
 

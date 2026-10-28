@@ -14,7 +14,11 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 滚轮、手柄按键、像素颜色、窗口或进程的出现触发它。游戏宏是第一批用途，办公向的文件、数据与网页能力同样
 是一等公民。
 
-- `WhaleGenie.Core` 是执行引擎，不感知界面：动作语义目录、变量、表达式与所有直接操作机器的设备；宏包文件模型与 `.wgmacro` 读写目前仍在界面层（`WhaleGenie/Storage`），下沉与否见 `doc/dev.md`。
+- `WhaleGenie.Core` 是执行引擎，不感知界面：动作语义目录、变量、表达式与所有直接操作机器的设备。
+- `WhaleGenie.Model` 是宏的文件模型与文案：宏、步骤、触发器、变量声明，以及它们要说的那句话。
+  不引用 Avalonia，也不引用应用层——`WhaleGenie.Model.csproj` 只有两个引用（Core 与
+  `CommunityToolkit.Mvvm`），加一条就是拆错了。`.wgmacro` 的读写仍在界面层（`WhaleGenie/Storage`），
+  下沉与否见 `doc/dev.md`。
   `WhaleGenie` 是界面：窗口、视图模型、文案、触发器；`WhaleGenie.GraphicsCapture` 只负责从 Windows 拿到
   像素（四种取法见「画面获取」），它不认识引擎的类型，只交出 `ScreenGrab` 与 `CaptureWay`。
 - 引擎中不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、
@@ -68,7 +72,7 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 判断标准有三条：
 **用户能不能把这件事表达出来；已经说出来的行为是否与实现一致；多条宏同时跑时是否仍然正确**。本文件的设计
 约定是目标；当前实现事实（如动作展示清单在
-`WhaleGenie/Models/ActionDisplay.json`，引擎语义目录在 `WhaleGenie.Core/Execution/ActionSemantics.json`）
+`WhaleGenie.Model/Models/ActionDisplay.json`，引擎语义目录在 `WhaleGenie.Core/Execution/ActionSemantics.json`）
 以 `doc/dev.md` 为准。画面从哪来、怎么取见「画面获取」，单位成本见 `doc/performance.md`。
 
 ## 设计约定

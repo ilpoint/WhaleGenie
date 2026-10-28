@@ -16,25 +16,31 @@
 2. **宏操作的是真机器，不是假机器**，所以"怎么操作"必须能被替换成替身——否则引擎的每一条用例都要真的点一下桌面。
 3. **AI 会改用户的宏**，所以写入要经过草稿、校验、预览，且每次调用要留审计。
 
-## 二、四个工程与依赖方向
+## 二、五个工程与依赖方向
 
 ```
         WhaleGenie（界面 + 应用层 + MCP 宿主）
-                 │
-                 ▼
-        WhaleGenie.Core（引擎 + 设备契约 + 表达式 + 录制）
-                 │
-                 ▼
-        WhaleGenie.GraphicsCapture（D3D/DXGI 取画面，叶子）
+             │            │
+             ▼            ▼
+   WhaleGenie.Model   WhaleGenie.Core（引擎 + 设备契约 + 表达式 + 录制）
+   （宏、步骤、触发器、      │
+    变量、文案）            ▼
+             │      WhaleGenie.GraphicsCapture（D3D/DXGI 取画面，叶子）
+             └──────────────► Core
 
-  测试：WhaleGenie.Tests → WhaleGenie
+  测试：WhaleGenie.Tests → WhaleGenie（间接拿到 Model）
         WhaleGenie.Core.Tests → WhaleGenie.Core
         WhaleGenie.GraphicsCapture.Tests → GraphicsCapture
 ```
 
+`WhaleGenie.Model` 存在是为了"宏格式不只被这个界面用"：它只引用 `WhaleGenie.Core` 与
+`CommunityToolkit.Mvvm`，不认识 Avalonia，也不认识应用层。一个命令行工具要读写 `.wgmacro`，
+引这两个工程就够。
+
 | 工程 | 是什么 | 依赖 | 明确不依赖 |
 | --- | --- | --- | --- |
-| `WhaleGenie` | Avalonia 界面、应用层（包、触发器、恢复、变量桥接）、MCP 宿主与全部工具 | Core | 不反向依赖任何测试工程 |
+| `WhaleGenie` | Avalonia 界面、应用层（包、触发器、恢复、变量桥接）、MCP 宿主与全部工具 | Core、Model | 不反向依赖任何测试工程 |
+| `WhaleGenie.Model` | 宏与步骤、触发器、变量声明、动作展示清单与两份文案表 | Core、CommunityToolkit.Mvvm | Avalonia、应用层（`Runtime`） |
 | `WhaleGenie.Core` | 运行器、步骤与动作目录、表达式、变量、设备契约、录制翻译 | GraphicsCapture | Avalonia、ASP.NET Core、MCP、AI 库（有测试守着） |
 | `WhaleGenie.GraphicsCapture` | 用 Desktop Duplication 与 Windows.Graphics.Capture 取一帧 | Vortice.Direct3D11/DXGI | Core、界面，任何与宏有关的概念 |
 | `WhaleGenie.Tests` | 界面层与 MCP 的用例，跑在 Avalonia 无头会话里 | WhaleGenie | — |
@@ -58,7 +64,7 @@
 
 ### 共享的领域模型放在哪
 
-`WhaleGenie/Models/`（31 文件 8377 行）不是"界面模型"，而是**全域共享的领域层**：`MacroItem`、`MacroStep`、`ProjectTriggers`、`MacroCheck`、动作定义。界面、持久化、MCP、应用层同时引用它。
+`WhaleGenie.Model/Models/`（32 文件 8520 行）不是"界面模型"，而是**全域共享的领域层**：`MacroItem`、`MacroStep`、`ProjectTriggers`、`MacroCheck`、动作定义。界面、持久化、MCP、应用层同时引用它。它住在自己的工程里，只依赖 Core 与 CommunityToolkit.Mvvm。
 
 这是这套架构里最需要说清楚的一处：它**名义上在界面工程里，实际上是领域层**。好处是移动少、类型少一层映射；代价是 `Storage` 与 `Mcp` 想用它就必须连同 Avalonia 一起编译，"只测领域规则"这件事做不成——`MacroCheck.Inspect`（1083 行的校验方法）因此只能在无头会话里跑。
 
@@ -137,7 +143,7 @@ HTTP POST /mcp
 
 ### 5.2 步骤有两个形态
 
-- `MacroStep`（`WhaleGenie/Models/`）：编辑态。带 `ActionDefinition`、显示名、子列表、行数据、`StepMeta`。
+- `MacroStep`（`WhaleGenie.Model/Models/`）：编辑态。带 `ActionDefinition`、显示名、子列表、行数据、`StepMeta`。
 - `ExecutableStep`（`Core/Execution/`）：运行态。只有 `Type`、`Id`、`Meta`、`Parameters`（文本/抖动/子步骤/行）。
 - 转换点唯一：`WhaleGenie/Runtime/MacroStepConverter.ToExecutable()`。有损，且**每次运行都重建**。
 
@@ -398,7 +404,7 @@ HTTP POST /mcp
 ### 一个结构事实（不是债，但决定了很多事）
 
 7. **宏的文件模型住在界面工程。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
-   `WhaleGenie/Models`（8.7k 行），而 `WhaleGenie.Core` 不认识它们——引擎只认 `ExecutableStep`，
+   `WhaleGenie.Model/Models`（8.7k 行），而 `WhaleGenie.Core` 不认识它们——引擎只认 `ExecutableStep`，
    转换点唯一（`MacroStepConverter`）且每次运行都重建。
 
    好处是引擎能独立测试（`Core.Tests` 不引界面）。代价是**任何宏的非 UI 用法都必须在界面工程里**：
@@ -413,10 +419,12 @@ HTTP POST /mcp
 
 | 位置 | 文件 / 行数 | 一句话 |
 | --- | ---: | --- |
-| `WhaleGenie/Localization/` | 9 / 9061 | 两份手写文案表 + 语言刷新 |
+| `WhaleGenie.Model/Localization/` | 5 / 8572 | 两份手写文案表 + 语言枚举 + 表达式文本 |
+| `WhaleGenie.Model/Models/` | 32 / 8520 | 全域共享的领域层（宏、触发器、校验） |
+| `WhaleGenie/Localization/` | 4 / 506 | 本机设置与语言刷新，贴着界面 |
 | `WhaleGenie/Views/` | 78 / 27389 | 33 个窗口、4 个 UserControl，后置代码占一半 |
 | `WhaleGenie/ViewModels/` | 48 / 18662 | 五个大 VM 占 61%，其余是行/选项载体 |
-| `WhaleGenie/Models/` | 32 / 8483 | 全域共享的领域层（宏、触发器、校验） |
+| `WhaleGenie.Model/Models/` | 32 / 8483 | 全域共享的领域层（宏、触发器、校验） |
 | `WhaleGenie/Mcp/` | 23 / 7647 | 工具、草稿、资源、体检、审计 |
 | `WhaleGenie/Runtime/` | 37 / 4696 | 触发器、录制翻译、运行宿主、变量桥接、包与恢复 |
 | `WhaleGenie/Storage/` | 6 / 1707 | 包格式、图片资产、恢复快照 |
