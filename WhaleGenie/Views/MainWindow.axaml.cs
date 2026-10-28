@@ -85,7 +85,7 @@ public partial class MainWindow : Window
 
     private readonly HashSet<string> _globalHeld = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
-    private readonly TriggerRuntimeSnapshotStore _runtimeTriggers = new();
+    private TriggerRuntime? _runtime;
     private GlobalHotkeyPlan _globalHotkeyPlan = GlobalHotkeyPlan.Empty;
 
     /// <summary>Set by the tray once the answer to the leaving question is "go".</summary>
@@ -133,7 +133,24 @@ public partial class MainWindow : Window
     internal Func<RecoveryContents, Task<ConfirmChoice>> AskToRecover { get; set; }
 
     public MainWindow()
+        : this(null)
     {
+    }
+
+    /// <summary>
+    /// The triggers, built when something first needs them. A window that is only read for its
+    /// bindings should not put a key hook on the machine; the program hands in the one the container
+    /// built, so opening the window never builds a second.
+    /// </summary>
+    private TriggerRuntime Runtime => _runtime ??= new TriggerRuntime(SharedDevices.Current);
+
+    /// <summary>
+    /// The window over the run's own triggers. The program hands in the one the container built, so
+    /// the service that starts a run is the same one the window shows the state of.
+    /// </summary>
+    internal MainWindow(TriggerRuntime? runtime)
+    {
+        _runtime = runtime;
         InitializeComponent();
 
         AskToSaveProject = () => ConfirmDialog.ShowAsync(this,
@@ -384,7 +401,7 @@ public partial class MainWindow : Window
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
         PublishRuntimeState(viewModel);
-        _triggers = new MacroTriggerService(() => _runtimeTriggers.Current, SharedDevices.Current);
+        _triggers = Runtime.Triggers;
         _triggers.Ask = AskAboutFailedStep;
         _triggers.AskUser = AskWhatTheMacroWantsToKnow;
         _triggers.StatusChanged += OnTriggerStatusChanged;
@@ -469,7 +486,7 @@ public partial class MainWindow : Window
 
     private void PublishRuntimeState(MainViewModel viewModel)
     {
-        _runtimeTriggers.Publish(viewModel.Triggers, [.. viewModel.Macros]);
+        Runtime.Publish(viewModel.Triggers, [.. viewModel.Macros]);
         Volatile.Write(ref _globalHotkeyPlan, GlobalHotkeyPlan.From(viewModel));
     }
 
@@ -1317,7 +1334,11 @@ public partial class MainWindow : Window
         }
 
         _triggers.StatusChanged -= OnTriggerStatusChanged;
-        _triggers.Dispose();
+
+        // The container owns the service, so this only stops it: the window that shows what a
+        // trigger did is going away, and nothing should keep triggering behind it.
+        _triggers.IsEnabled = false;
+        _triggers.StopAll();
         _triggers = null;
     }
 

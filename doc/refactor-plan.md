@@ -66,6 +66,8 @@
 
    一个诚实的结论：**现有测试不会因此变简单**——`ChecksDevices` 本来就是整个层，现在只是取几个属性。收益在两个地方：读构造函数就知道这个窗口要什么，新写替身时只需实现那几个接口。推广时按"每个窗口实际用了哪几个 `_devices.X`"逐个改，不要一次全动；下一个可以做 `PointPickerWindow`（屏幕 + 窗口 + UIA）。
 2. **视图搬业务**：`MainWindow` 的触发器与恢复、`MacroEditorWindow` 的文档与录制、`ActionEditorView` 的试运行，一处一处搬到应用层服务（阶段 2 的容器正好用来拿）。
+
+   **第一块已搬（触发器）**：`TriggerRuntime` 持有 `MacroTriggerService` 和它读的那份快照，注册进容器，`MainWindow` 从构造进来。窗口里留下的只有它才能做的事：失败步骤要问的那两个对话框、触发器条目要开的菜单、以及关窗时把它停掉（释放归容器）。测试与无窗口路径仍然 `new MainWindow()`，触发器用到时才建——一个只读绑定的窗口不该往机器上挂钩子。
 3. **项目状态合并**：全局变量从静态 `VariableCatalog.Globals` 变成项目状态的一部分（或 `IGlobalVariables` 注入），让 `McpLiveProject.Snapshot()` 不必一半实例一半静态。
 
    **做了装载收口，没做注入。** 三个入口（打开、导入、恢复）各自 Clear + Add + `PersistentVariables.ApplyTo`，抽成 `LoadSharedVariables(globals, replace)`，并加了一条"打开另一个项目时旧变量不残留"。注入没做：94 处访问、17 个文件，而 `VariableCatalog` 的静态方法（`IsGlobal` / `FindGlobal` / `NamesFor`）还被 `MacroCheck` 这类静态类用着，改成注入要连带改那些签名。收益是概念纯度——程序一次只开一个项目，静态就是"当前项目那一份"，行为上没有差别。等真要支持多项目或并行测试隔离时再做。

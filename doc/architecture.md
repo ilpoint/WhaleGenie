@@ -218,7 +218,7 @@ HTTP POST /mcp
 | 状态 | 谁持有 | 例子 |
 | --- | --- | --- |
 | 项目文档态 | `MainViewModel`（439 行） | `Macros`、`VisibleMacros`、`Triggers`、`CurrentPath`、`IsDirty`、`Revision` |
-| 运行期态 | `MainWindow` 的字段 | `_triggers`（触发器服务）、`_surfaces`（浮动界面）、`_recovery` |
+| 运行期态 | 窗口字段与 `TriggerRuntime` | `_surfaces`（浮动界面）、`_recovery`；触发器服务来自容器里的 `TriggerRuntime` |
 | 编辑态 | `MacroEditorWindow` 的字段 + `MacroEditorViewModel` 的副本 | `_documents`（子宏页）、`_lifted`（抬起中的片段）、`_interfaceLayouts` |
 
 `MainViewModel` 不是上帝对象——它只有 2 个命令，做的是"项目文档状态"。真正的上帝对象是 `MacroEditorViewModel`（3438 行）与 `MacroEditorWindow.axaml.cs`（3104 行），而且**两者共享同一份职责**：VM 造宏、窗口拼最终对象；VM 抛 `MacroLifted`、窗口接住塞进自己的文档表。

@@ -32,7 +32,7 @@ internal static class AppServices
             // The window is built here rather than in App so that "who gets which project" is
             // answered in one place: the view model it shows is the same instance the MCP server
             // reads.
-            services.AddSingleton(sp => new MainWindow
+            services.AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>())
             {
                 DataContext = sp.GetRequiredService<MainViewModel>(),
             });
@@ -62,6 +62,10 @@ internal static class AppServices
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<McpLiveProject>();
         services.AddSingleton<McpTools>();
+
+        // The triggers are the window's in practice, but not in principle: they are a service that
+        // outlives one window and is stopped and released with the run.
+        services.AddSingleton<TriggerRuntime>();
 
         // The two tool sets that touch the machine take the layer through a function rather than an
         // instance: a run that never asks for a device never builds one.
