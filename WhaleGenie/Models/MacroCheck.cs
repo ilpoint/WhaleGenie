@@ -19,7 +19,22 @@ namespace WhaleGenie.Models;
 /// A client that has to say "this is the same problem as last time" cannot do it by comparing
 /// sentences, because they are translated.
 /// </summary>
-public sealed record MacroProblem(MacroStep Step, string Code, string Message);
+public sealed record MacroProblem(
+    MacroStep Step, string Code, string Message, MacroProblemSeverity Severity);
+
+/// <summary>
+/// How much a problem matters. There are only two answers on purpose: a step either cannot work, or
+/// it is worth reading before a run. Anything finer would be a judgement the check is not in a
+/// position to make.
+/// </summary>
+public enum MacroProblemSeverity
+{
+    /// <summary>Fails the moment the step runs, with no way for the author to have meant it.</summary>
+    Blocking,
+
+    /// <summary>Worth reading before a run, but a macro may be written this way on purpose.</summary>
+    Hint,
+}
 
 /// <summary>
 /// Reads a macro the way the engine would and reports what cannot work, while the user is still
@@ -31,6 +46,37 @@ public static class MacroCheck
 {
     /// <summary>The formula function that reads one field of a record, as the reader spells it.</summary>
     private const string FieldFunction = "field";
+
+    /// <summary>
+    /// The step problems that stop a macro from working at all. Everything else is a hint: a shadowed
+    /// loop variable, two macros that both send input, a variable nothing has defined yet — all of
+    /// them can be deliberate, and the person writing the macro may know something the check does not.
+    /// The two consumers used to disagree about this: the editor drew every problem as a hint while
+    /// the MCP side refused to apply any of them.
+    /// </summary>
+    private static readonly HashSet<string> Blocking = new(StringComparer.Ordinal)
+    {
+        // The step names something this build does not have, or leaves a required field empty.
+        "UnknownAction", "UnknownParameter", "MissingField", "MissingCondition", "BadOption",
+        "NoPlace", "PlaceAndNumbers", "WindowBounds",
+
+        // A formula or a record the engine cannot read.
+        "BadExpression", "UnknownField", "NotARecord", "RecordWhereNumber", "RecordInText",
+
+        // A child list whose rows do not fit its columns.
+        "UnknownRowColumn", "MissingRowColumn", "ExclusiveRowColumn",
+
+        // A call whose arguments or results do not fit the macro being called.
+        "MacroNotFound", "NoMacro", "MissingArgument", "UndeclaredArgument", "DuplicateArgument",
+        "ArgumentType", "GivenWithValue", "BadResultName", "DuplicateResultKey",
+        "DuplicateResultName", "UndeclaredResult", "UndeclaredActionResult", "BadUserFailureKey",
+
+        // A name the engine will refuse to write, or a loop that names a counter it is not inside.
+        "ReservedVariable", "GlobalMustExist", "LoopIndexOutsideLoop",
+
+        // A step standing where the engine will not take it, or a jump out of a loop it is not in.
+        "WrongStepKind", "CaseOutsideSwitch", "HiddenStep", "BreakOutsideLoop", "ContinueOutsideLoop",
+    };
 
     private static bool CallsMacro(MacroStep step)
         => step.Definition?.Semantics.SignatureSource is ActionSignatureSource.CalledMacro;
@@ -1440,7 +1486,8 @@ public static class MacroCheck
             if (!problems.Any(problem => problem.Step == step && problem.Code == code
                 && problem.Message == message))
             {
-                problems.Add(new MacroProblem(step, code, message));
+                problems.Add(new MacroProblem(step, code, message,
+                    Blocking.Contains(code) ? MacroProblemSeverity.Blocking : MacroProblemSeverity.Hint));
             }
         }
     }

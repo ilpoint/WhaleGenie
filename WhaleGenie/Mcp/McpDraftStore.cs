@@ -313,9 +313,14 @@ public sealed class McpDraftStore
 
             foreach (var problem in MacroCheck.Inspect(macro.Steps, macro.Callable, callables))
             {
-                blocking.Add(new McpProblem(macro.Name,
+                // The editor draws both kinds on the step; only the ones that cannot work stops an
+                // apply. A draft carrying a hint is a draft somebody may still be halfway through
+                // writing, and refusing it would teach the client to fight the check.
+                var written = new McpProblem(macro.Name,
                     problem.Step.Id.Length > 0 ? problem.Step.Id : null,
-                    problem.Code, problem.Message));
+                    problem.Code, problem.Message);
+
+                (problem.Severity == MacroProblemSeverity.Blocking ? blocking : hints).Add(written);
             }
         }
 
