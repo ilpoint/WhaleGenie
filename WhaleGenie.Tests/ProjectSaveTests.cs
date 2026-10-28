@@ -72,6 +72,55 @@ public class ProjectSaveTests
         }
     }
 
+    /// <summary>
+    /// Opening a package replaces the shared variables instead of merging into whatever the last
+    /// project left behind. Two projects that both declare `count` would otherwise end up with two
+    /// of them, and one of the two would quietly become unreachable.
+    /// </summary>
+    [Fact]
+    public void Opening_another_project_replaces_the_shared_variables()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var first = Path.Combine(folder, "first" + MacroPackage.Extension);
+            var second = Path.Combine(folder, "second" + MacroPackage.Extension);
+
+            var a = new MainViewModel();
+            a.AddMacro(new MacroItem { Name = "one" });
+            VariableCatalog.Globals.Clear();
+            VariableCatalog.Globals.Add(new VariableDefinition
+            {
+                Name = "fromFirst",
+                Scope = VariableScope.Global,
+            });
+            a.SavePackage(first);
+
+            var b = new MainViewModel();
+            b.AddMacro(new MacroItem { Name = "two" });
+            VariableCatalog.Globals.Clear();
+            b.SavePackage(second);
+
+            // The state the program is in after the first project was open: its variable sits in the
+            // catalog while the second project is the one about to be opened.
+            VariableCatalog.Globals.Add(new VariableDefinition
+            {
+                Name = "fromFirst",
+                Scope = VariableScope.Global,
+            });
+
+            var opened = new MainViewModel();
+            opened.OpenPackage(second);
+
+            Assert.DoesNotContain(VariableCatalog.Globals, variable => variable.Name == "fromFirst");
+        }
+        finally
+        {
+            VariableCatalog.Globals.Clear();
+            Directory.Delete(folder, true);
+        }
+    }
+
     [Fact]
     public void Arming_a_macro_is_a_change_because_the_package_holds_it()
     {

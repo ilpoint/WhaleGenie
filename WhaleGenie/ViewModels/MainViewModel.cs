@@ -313,12 +313,7 @@ public partial class MainViewModel : ViewModelBase
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Attach([.. Macros]);
 
-        VariableCatalog.Globals.Clear();
-        foreach (var global in contents.Globals)
-        {
-            VariableCatalog.Globals.Add(global);
-        }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        LoadSharedVariables(contents.Globals, replace: true);
 
         CurrentPath = path;
         IsDirty = false;
@@ -346,13 +341,34 @@ public partial class MainViewModel : ViewModelBase
 
         Triggers.MergeMenuFrom(contents.Triggers, contents.Macros);
 
-        foreach (var global in contents.Globals)
+        LoadSharedVariables(contents.Globals, replace: false);
+    }
+
+    /// <summary>
+    /// Puts a package's shared variables into the catalog. Replace takes the current list away
+    /// first, which is what opening a project means; add keeps what is there and only brings in the
+    /// names the project does not have yet, which is what importing a package means.
+    /// </summary>
+    private static void LoadSharedVariables(IReadOnlyList<VariableDefinition> globals, bool replace)
+    {
+        if (replace)
         {
-            if (!VariableCatalog.IsGlobal(global.Name))
-            {
-                VariableCatalog.Globals.Add(global);
-            }
+            VariableCatalog.Globals.Clear();
         }
+
+        foreach (var global in globals)
+        {
+            if (!replace && VariableCatalog.IsGlobal(global.Name))
+            {
+                continue;
+            }
+
+            VariableCatalog.Globals.Add(global);
+        }
+
+        // The values a macro wrote last time live outside the package. They are put back once the
+        // declarations are known, which is what makes a reopened project start with them; doing it
+        // here rather than at each caller is what keeps a path from forgetting it.
         Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
     }
 
@@ -371,12 +387,7 @@ public partial class MainViewModel : ViewModelBase
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Attach([.. Macros]);
 
-        VariableCatalog.Globals.Clear();
-        foreach (var global in contents.Globals)
-        {
-            VariableCatalog.Globals.Add(global);
-        }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        LoadSharedVariables(contents.Globals, replace: true);
 
         CurrentPath = contents.PackagePath;
         MarkDirty();

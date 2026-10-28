@@ -63,6 +63,8 @@
 1. **设备接口按消费者收窄**：构造函数只接真正用到的窄接口（`IScreenDevice`、`IWindowDevice`…），聚合接口留给组合根。替身随之变瘦（`FakeDeviceLayer` 1534 行会自己掉下来）。
 2. **视图搬业务**：`MainWindow` 的触发器与恢复、`MacroEditorWindow` 的文档与录制、`ActionEditorView` 的试运行，一处一处搬到应用层服务（阶段 2 的容器正好用来拿）。
 3. **项目状态合并**：全局变量从静态 `VariableCatalog.Globals` 变成项目状态的一部分（或 `IGlobalVariables` 注入），让 `McpLiveProject.Snapshot()` 不必一半实例一半静态。
+
+   **做了装载收口，没做注入。** 三个入口（打开、导入、恢复）各自 Clear + Add + `PersistentVariables.ApplyTo`，抽成 `LoadSharedVariables(globals, replace)`，并加了一条"打开另一个项目时旧变量不残留"。注入没做：94 处访问、17 个文件，而 `VariableCatalog` 的静态方法（`IsGlobal` / `FindGlobal` / `NamesFor`）还被 `MacroCheck` 这类静态类用着，改成注入要连带改那些签名。收益是概念纯度——程序一次只开一个项目，静态就是"当前项目那一份"，行为上没有差别。等真要支持多项目或并行测试隔离时再做。
 4. **`Execution` 改名**：应用层那个改 `WhaleGenie.App`，一次性机械改，看栈追踪不再分不清。
 
 验收：每个小项独立提交；`FakeDeviceLayer` 行数持续下降；窗口类不再创建服务。

@@ -389,7 +389,7 @@ HTTP POST /mcp
 
 10. **设备接口过宽。** `IDeviceLayer` 20 个属性、`NullDeviceLayer.Refusal` 实现 17 个接口、`FakeDeviceLayer` 1534 行、`PlaywrightBrowserDevice` 2075 行——同一根因的四个投影。建议不是"拆接口"，而是**先按消费者收窄**：让每个构造函数只接它真正用到的那个窄接口（`IScreenDevice`、`IWindowDevice`…），聚合接口留给组合根。这样替身可以按需实现，`FakeDeviceLayer` 会自己瘦下来。阶段 2 的容器是它的前置：先有集中的组装，才谈得上按消费者收窄构造函数。
 11. **视图做业务。** `MainWindow`（2118 行）创建触发器服务、管恢复、管托盘；`MacroEditorWindow`（3104 行）管子宏文档、录制、键位捕获；`ActionEditorView`（2109 行）直接调 `MacroRunner.LookOnce` 做试运行。这是最大的理解成本来源，也是最难改的一处——建议顺手改（碰到哪个窗口就把哪块搬出去），不要专门开一轮。
-12. **项目状态被劈成两半。** `Macros`/`Triggers` 在 `MainViewModel` 实例上，全局变量在静态 `VariableCatalog.Globals` 上。MCP 的 `McpLiveProject.Snapshot()` 因此一半从实例读、一半从静态读，无窗口与有窗口靠进程内静态隐式共享。修法：把全局变量也变成项目状态的一部分（或显式注入一个 `IGlobalVariables`）。
+12. **项目状态被劈成两半。** `Macros`/`Triggers` 在 `MainViewModel` 实例上，全局变量在静态 `VariableCatalog.Globals` 上。MCP 的 `McpLiveProject.Snapshot()` 因此一半从实例读、一半从静态读，无窗口与有窗口靠进程内静态隐式共享。**已经收口的是装载**：打开、导入、恢复三个入口合成 `LoadSharedVariables(globals, replace)`，并有"换一个项目后旧变量不残留"的用例。**没做的是注入**：改成注入要动 94 处访问和 `VariableCatalog` 的静态签名（`MacroCheck` 这样的静态类也在用），而这个程序一次只开一个项目——静态就是"当前项目的那一份"。要支持多项目或并行测试隔离时再谈。
 13. **无窗口 MCP 的权限缺口**（第 9.1 节）。要么在 `--mcp` 上给一个显式参数（`--allow-control` / `--allow-run`），要么在服务说明与手册里把"这一路只能读"写死。现在是"技术上不可用、文档里没说"。
 
 ### 一句话的取舍
