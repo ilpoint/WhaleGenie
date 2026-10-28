@@ -237,7 +237,7 @@ HTTP POST /mcp
 2. 构造器直接持有父 VM；
 3. 静态单例广播（`SharedVariables.Current.Changed`、`VariableCatalog.GlobalsChanged`、`Strings.Current.LanguageChanged`）。
 
-没有 DI 容器，没有消息总线。VM 由 View 现场 `new`——这也是"没有 VM 树"的原因：层级关系由窗口创建顺序决定，而不是由组合决定。
+没有消息总线，通信靠上面三种。也还没有 DI 容器：VM 由 View 现场 `new`，层级关系由窗口创建顺序决定而不是由组合决定，于是"谁能拿到什么"散在几十个构造调用里——这是阶段 2 要改掉的事，见 `doc/refactor-plan.md`。
 
 ### 7.4 文案表
 
@@ -360,14 +360,15 @@ HTTP POST /mcp
 
 1. **包格式不向后兼容。** `FormatVersion` 严格等于 20。开发阶段没有真实用户数据，保留双读会让每个字段都长出两条读法。
 2. **文案是两份手写字典，不是资源文件 + 生成器。** 要能逐条读、逐条改，并由测试对账。
-3. **没有 DI 容器，没有消息总线。** VM 由窗口 `new` 出来，通信靠事件与显式回调。引入容器换来的间接层，在一个单人维护的桌面程序里不划算。
-4. **无窗口 MCP 没有权限开关。** 没人能授权，所以键鼠与运行工具在那一路里恒被拒绝。这是保守的默认，不是漏洞。
-5. **`WhaleGenie.Core` 里放着几个只服务界面的东西**：`StepMeta.ToJson`（文件格式）、`ActionParameterSemantics` 里的编辑器事实、`MacroRunner.LookOnce`（对话框的"试一下"）。挪走的收益不抵一次大改。
-6. **MCP 传输是无状态的 HTTP**，因此没有资源订阅推送、没有会话级状态。
+3. **无窗口 MCP 没有权限开关。** 没人能授权，所以键鼠与运行工具在那一路里恒被拒绝。这是保守的默认，不是漏洞。
+4. **`WhaleGenie.Core` 里放着几个只服务界面的东西**：`StepMeta.ToJson`（文件格式）、`ActionParameterSemantics` 里的编辑器事实、`MacroRunner.LookOnce`（对话框的"试一下"）。挪走的收益不抵一次大改。
+5. **MCP 传输是无状态的 HTTP**，因此没有资源订阅推送、没有会话级状态。
+
+**不在这一列里的**：依赖注入不是取舍，是欠着的（阶段 2）。原先把它写成"有意的取舍"是错的——.NET 项目的依赖由容器组装是常规做法，手工 `new` 省下的只是配置，代价是依赖关系散落在每个构造调用里。
 
 ## 十四、债务与建议顺序
 
-按"会不会出事"排，不按"改起来爽不爽"排。
+按"会不会出事"排，不按"改起来爽不爽"排。怎么做、按什么顺序做，见 [`refactor-plan.md`](refactor-plan.md)：阶段 1 对应下面 P0，阶段 3 对应 P1，阶段 4 对应 P2；阶段 2（依赖注入）不在这张表里，因为它是结构改动，要单独占一轮全量验证。
 
 ### P0：会出错，或会丢数据
 
@@ -386,7 +387,7 @@ HTTP POST /mcp
 
 ### P2：结构性的，成本高、回报慢
 
-10. **设备接口过宽。** `IDeviceLayer` 20 个属性、`NullDeviceLayer.Refusal` 实现 17 个接口、`FakeDeviceLayer` 1534 行、`PlaywrightBrowserDevice` 2075 行——同一根因的四个投影。建议不是"拆接口"，而是**先按消费者收窄**：让每个构造函数只接它真正用到的那个窄接口（`IScreenDevice`、`IWindowDevice`…），聚合接口留给组合根。这样替身可以按需实现，`FakeDeviceLayer` 会自己瘦下来。
+10. **设备接口过宽。** `IDeviceLayer` 20 个属性、`NullDeviceLayer.Refusal` 实现 17 个接口、`FakeDeviceLayer` 1534 行、`PlaywrightBrowserDevice` 2075 行——同一根因的四个投影。建议不是"拆接口"，而是**先按消费者收窄**：让每个构造函数只接它真正用到的那个窄接口（`IScreenDevice`、`IWindowDevice`…），聚合接口留给组合根。这样替身可以按需实现，`FakeDeviceLayer` 会自己瘦下来。阶段 2 的容器是它的前置：先有集中的组装，才谈得上按消费者收窄构造函数。
 11. **视图做业务。** `MainWindow`（2118 行）创建触发器服务、管恢复、管托盘；`MacroEditorWindow`（3104 行）管子宏文档、录制、键位捕获；`ActionEditorView`（2109 行）直接调 `MacroRunner.LookOnce` 做试运行。这是最大的理解成本来源，也是最难改的一处——建议顺手改（碰到哪个窗口就把哪块搬出去），不要专门开一轮。
 12. **项目状态被劈成两半。** `Macros`/`Triggers` 在 `MainViewModel` 实例上，全局变量在静态 `VariableCatalog.Globals` 上。MCP 的 `McpLiveProject.Snapshot()` 因此一半从实例读、一半从静态读，无窗口与有窗口靠进程内静态隐式共享。修法：把全局变量也变成项目状态的一部分（或显式注入一个 `IGlobalVariables`）。
 13. **无窗口 MCP 的权限缺口**（第 9.1 节）。要么在 `--mcp` 上给一个显式参数（`--allow-control` / `--allow-run`），要么在服务说明与手册里把"这一路只能读"写死。现在是"技术上不可用、文档里没说"。
