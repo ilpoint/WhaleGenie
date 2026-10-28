@@ -11,7 +11,7 @@ public sealed class VariableCenterViewModel : ViewModelBase
 
     public string Help => Strings.Get("Editor.VariableCenterHint");
 
-    public VariableWallViewModel Wall { get; } = new();
+    public VariableWallViewModel Wall { get; } = new() { ShowsDetails = false };
 
     public VariableCenterViewModel()
     {

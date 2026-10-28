@@ -83,6 +83,13 @@ public partial class VariableWallViewModel : ViewModelBase
     [ObservableProperty]
     public partial double ListMaxHeight { get; set; } = 196;
 
+    /// <summary>
+    /// Whether the panel under the buttons is there at all. A picker keeps it: the step names in it
+    /// are buttons that jump to the step. Beside the macro it is turned off — the same words are one
+    /// hover away, and the band it takes comes straight out of the list.
+    /// </summary>
+    public bool ShowsDetails { get; init; } = true;
+
     /// <summary>The group whose variables are on show.</summary>
     public VariableGroup Filter => SelectedFilter?.Group ?? VariableGroup.All;
 

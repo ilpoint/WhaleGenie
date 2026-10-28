@@ -35,6 +35,13 @@
             <Setter Property="Width" Value="8" />
             <Setter Property="MinWidth" Value="8" />
         </Style>
+
+        <!-- The group chips, a touch smaller than the same dock in the expression builder: this one
+             shares a 360-pixel column with the wall under it and has five names to fit on a line. -->
+        <Style Selector="ListBox.VariableFilters ListBoxItem">
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Margin" Value="0,0,3,3" />
+        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
@@ -42,18 +49,23 @@
                  PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
 
         <!-- Which group of variables is on show: painted like a switch rather than a menu, because
-             the list under it changes as soon as one is pressed. -->
-        <ListBox Grid.Row="1" Classes="Dock" ItemsSource="{Binding Filters}"
+             the list under it changes as soon as one is pressed. It stays on one line — a second
+             line of chips costs the list a whole row of variables and reads as a break between the
+             wall and what it is filtered by. English names are the short ones, because "Local
+             variables" is what made the row wrap; the hint on each says the rest. -->
+        <ListBox Grid.Row="1" Name="VariableGroups" Classes="Dock VariableFilters" ItemsSource="{Binding Filters}"
                  SelectedItem="{Binding SelectedFilter}" SelectionMode="Single"
-                 Background="Transparent" BorderThickness="0" Padding="0">
+                 Background="Transparent" BorderThickness="0" Padding="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
+                    <StackPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:VariableFilter">
-                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource AppText}"
+                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource AppText}"
                                ToolTip.Tip="{Binding Hint}" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -114,6 +126,7 @@
              lost, the space comes back, and the card returns under the pointer — a bubble that
              flickers for as long as the pointer stays put. Overflow scrolls inside this box. -->
         <ScrollViewer Grid.Row="3" Name="VariableDetails" Height="72"
+                      IsVisible="{Binding ShowsDetails}"
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="4">

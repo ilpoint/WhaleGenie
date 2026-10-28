@@ -92,6 +92,15 @@ public sealed class VariableChoice
             }
 
             lines.Add(Details);
+
+            // Which steps read it belongs here rather than in a line of its own under the wall: the
+            // answer is a sentence about this one variable, and the wall has a row less to give it.
+            if (Uses.Count > 0)
+            {
+                lines.Add(Strings.Get("VarWall.UsedBy") + " " + string.Join(
+                    Strings.Get("Common.ListSeparator"), Uses.Select(use => use.Label)));
+            }
+
             return string.Join("\n", lines);
         }
     }
