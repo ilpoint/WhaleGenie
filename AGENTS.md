@@ -7,8 +7,7 @@
 **用户看到的行为以它为准**；`doc/dev.md` 给改这个仓库的人（命令、工程结构、依赖、测试分层、发布）；
 `doc/architecture.md` 讲工程划分、依赖方向、主链路与债务；`doc/roadmap.md` 只写还没做的事；
 `doc/mcp-usability.md` 是一次自检的指标与遗留项；这份文件讲规范与必须守住的约定。
-`doc/refactor-plan.md` 与 `doc/editor-mvvm-plan.md` 是两份已完成计划的记录，不再维护——判断理由已收进
-`doc/architecture.md` 第十四章。改过什么在 git 里，不在此重复。
+改过什么在 git 里，不在此重复；重构留下的、还会约束后续改动的判断在 `doc/roadmap.md` 的「上一轮留下的约束」。
 
 ## 定位
 

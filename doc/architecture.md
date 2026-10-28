@@ -235,7 +235,7 @@ HTTP POST /mcp
 | 运行期态 | 窗口字段与 `TriggerRuntime` | `_surfaces`（浮动界面）、`_recovery`；触发器服务来自容器里的 `TriggerRuntime` |
 | 编辑态 | `MacroEditorSession` + 窗口的 UI 字段 | `Documents`（子宏页）、`Lifted`（抬起中的片段）、`Recording`（正在录的那次）；窗口只留拖动、落点、摘页这类 UI 状态 |
 
-`MainViewModel` 不是上帝对象——它只有 2 个命令，做的是"项目文档状态"。最大的两个文件是 `MacroEditorViewModel`（3437 行）与 `MacroEditorWindow.axaml.cs`（3035 行）。它们的分工是"VM 造宏、窗口拼最终对象"，而那个"拼"只有 8 行：`BuildRootSnapshot` 把子宏页塞进 root 再调 `BuildMacro()`。体量在两边各自的交互细节上，不在职责重叠上——`editor-mvvm-plan.md` 里记着这个判断是怎么改过来的。
+`MainViewModel` 不是上帝对象——它只有 2 个命令，做的是"项目文档状态"。最大的两个文件是 `MacroEditorViewModel`（3437 行）与 `MacroEditorWindow.axaml.cs`（3035 行）。它们的分工是"VM 造宏、窗口拼最终对象"，而那个"拼"只有 8 行：`BuildRootSnapshot` 把子宏页塞进 root 再调 `BuildMacro()`。体量在两边各自的交互细节上，不在职责重叠上。这个判断改过来两次：先当成「480 行的合成该搬」，读下来只有 8 行；再当成「三块职责能各搬一块」，读下来文档页整个围着那个 `ListBox` 转。
 
 ### 7.2 MVVM 的实际边界
 
@@ -382,33 +382,28 @@ HTTP POST /mcp
 
 ## 十四、债务与建议
 
-清债计划（`refactor-plan.md`）的五个阶段、编辑器状态归位与录制两步（`editor-mvvm-plan.md`）都已落地；
-2026-10-29 又拆出 `WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去。
-剩下的分三类：值得做的、做过判断不做的、以及一个不算债但必须知道的结构事实。
+清债的五个阶段、编辑器状态归位与录制两步都已落地（改动与当时的判断在 git 里），2026-10-29 又拆出
+`WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去。剩下的分三类：值得做的、做过判断不做的、以及一个
+不算债但必须知道的结构事实。
 
 ### 值得单独一轮
 
 1. **`FakeDeviceLayer` 1535 行**（在 `DeviceActionTests.cs` 尾部）。它宽是因为 `IDeviceLayer` 宽；
    窄接口推广到更多消费者之后它会自己瘦下来。现在动只是把一个宽替身拆成几个窄替身。
 
-### 前两条已经清掉
-
-- **无窗口 MCP 的权限缺口** → `--mcp` 收 `--allow-control` 与 `--allow-run`，默认只读。
-- **`BuildMacro()` 的产出没有逐字段对账** → `What_the_editor_builds_survives_a_package`：编两段
-  （含一个装着子步骤的 `control.sequence`）→ 保存 → 进包 → 读回 → 比 JSON。
-
 ### 做过判断，不打算做
 
-4. **编辑器剩下的两步 MVVM**（键位捕获合并、窗口压到只绑定）。理由写在 `editor-mvvm-plan.md`：
-   两套捕获的"单个修饰键"语义不同，合并要加分支；剩下 130 个方法平均 24 行，都是 UI。
-5. **`Core` 里几件只服务界面的东西**（`StepMeta.ToJson`、`MacroRunner.LookOnce`、编辑器事实）。
+2. **编辑器剩下的两步 MVVM**（键位捕获合并、窗口压到只绑定）。两套捕获的"单个修饰键"语义不同
+   （窗口那边"按下单个 Ctrl 就是一种绑定"，编辑器那边不是），合并要加分支；剩下 130 个方法平均 24 行，
+   都是 UI——拖动、落点、滚动本来就该在窗口里。
+3. **`Core` 里几件只服务界面的东西**（`StepMeta.ToJson`、`MacroRunner.LookOnce`、编辑器事实）。
    挪走要动引擎契约，收益不抵一次大改。
-6. **静态单例**（`SharedVariables.Current`、`VariableCatalog.Globals`、`Strings.Current`）。进程级，
+4. **静态单例**（`SharedVariables.Current`、`VariableCatalog.Globals`、`Strings.Current`）。进程级，
    测试间共享，靠禁用并行兜着。程序一次只开一个项目，静态就是"那一个"。
 
 ### 一个结构事实（不是债，但决定了很多事）
 
-7. **引擎不认识宏的文件模型。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
+5. **引擎不认识宏的文件模型。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
    `WhaleGenie.Model/Models`（8.5k 行），而 `WhaleGenie.Core` 只认 `ExecutableStep`，转换点唯一
    （`MacroStepConverter`）且每次运行都重建。
 
