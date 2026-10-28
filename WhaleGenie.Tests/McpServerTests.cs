@@ -1529,6 +1529,39 @@ public class McpServerTests
         => JsonDocument.Parse(await Call(client, "whalegenie_open_project",
             new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
 
+    /// <summary>
+    /// Reading the log before anything has run is the state a session starts in, not a mistake: the
+    /// answer is empty and says so, so a client does not treat its first look at the log as an error
+    /// to retry or branch on. An id that names no run is still refused, and still says which.
+    /// </summary>
+    [Fact]
+    public void The_run_log_read_before_anything_has_run_is_empty_rather_than_an_error()
+    {
+        Ui.RunAsync(async () =>
+        {
+            RunLogStore.Forget();
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var log = JsonDocument.Parse(await Call(client, "whalegenie_get_run_log",
+                new Dictionary<string, object?>())).RootElement;
+
+            Assert.Equal(0, log.GetProperty("totalLines").GetInt32());
+            Assert.Equal(0, log.GetProperty("returned").GetInt32());
+            Assert.False(log.GetProperty("truncated").GetBoolean());
+            Assert.Empty(log.GetProperty("lines").EnumerateArray());
+            Assert.Contains("No run", log.GetProperty("note").GetString(), StringComparison.Ordinal);
+
+            var missing = await Call(client, "whalegenie_get_run_log",
+                new Dictionary<string, object?> { ["runId"] = "nope" });
+            Assert.Contains("NoSuchRun", missing, StringComparison.Ordinal);
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
     private static async Task<string> Call(McpClient client, string name,
         Dictionary<string, object?> arguments)
     {

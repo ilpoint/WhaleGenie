@@ -223,7 +223,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_get_macro", ReadOnly = true,
             Title = "Read one macro"),
-     Description("Returns one macro as the JSON the WhaleGenie package stores.")]
+     Description("Returns one macro as the JSON the package stores, triggers included: the same shape whalegenie_put_macro accepts. When only one step's parameters are wanted, whalegenie_get_step reads that step alone instead of the whole macro.")]
     public Task<CallToolResult> GetMacro(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
@@ -530,7 +530,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_list_runs", ReadOnly = true,
             Title = "List the last runs"),
-     Description("Lists the last runs WhaleGenie performed, newest first, with the total. Running itself is done by the person, not by MCP.")]
+     Description("Lists the last runs WhaleGenie performed, newest first, with the total. A run comes from the person pressing Run, from a trigger, or from whalegenie_run_macro.")]
     public Task<CallToolResult> ListRuns(
         [Description("How many runs to return, 1 to 20.")] int limit = 10)
     {
@@ -551,14 +551,33 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("The run id from whalegenie_list_runs; empty means the latest run.")] string? runId = null,
         [Description("How many lines to return, counted from the end: the last ones are where a run goes wrong. 500 at most.")] int tail = 500)
     {
-        var run = string.IsNullOrWhiteSpace(runId)
-            ? RunLogStore.Latest()
-            : RunLogStore.Find(runId);
+        var asked = (runId ?? string.Empty).Trim();
+        var run = asked.Length == 0 ? RunLogStore.Latest() : RunLogStore.Find(asked);
+        if (run is null && asked.Length == 0)
+        {
+            // Nothing has run yet is the state a new session starts in, not a mistake: an empty
+            // answer with the same fields says so, so a client can read the log before anything has
+            // happened instead of treating its first look as an error to retry or branch on.
+            return Task.FromResult(McpErrors.Ok(new
+            {
+                totalLines = 0,
+                returned = 0,
+                truncated = false,
+                fromLine = 0,
+                lines = Array.Empty<object>(),
+                outcomes = Array.Empty<object>(),
+                note = "No run has been recorded yet. whalegenie_run_macro runs one (it needs the run "
+                    + "switch in the MCP flyout), or the person presses Run in WhaleGenie; read this "
+                    + "again afterwards.",
+            }));
+        }
+
         if (run is null)
         {
-            return Task.FromResult(McpErrors.Fail(McpErrors.NoSuchRun, "There is no such run.",
-                "Call whalegenie_list_runs first; it lists what the person has run.",
-                retryable: true));
+            return Task.FromResult(McpErrors.Fail(McpErrors.NoSuchRun,
+                $"There is no run \"{asked}\".",
+                "Call whalegenie_list_runs first; it lists what the person has run, newest first.",
+                retryable: true, details: new { runId = asked }));
         }
 
         var lines = run.Lines.Select(line => new

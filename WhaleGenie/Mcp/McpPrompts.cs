@@ -54,7 +54,8 @@ public sealed class McpPrompts
         whalegenie_window_activate, whalegenie_window_move, whalegenie_window_close) only work
         while the person has turned on "Allow direct control" in the WhaleGenie MCP flyout; when
         they are refused with DirectControlOff, ask the person to turn it on rather than trying
-        another way. Driving the machine is still not running the macro: the person presses Run.
+        another way. Driving the machine is not the same as running a macro: whalegenie_run_macro is
+        the tool for that, and it has a switch of its own.
         """;
 
     [McpServerPrompt(Name = "whalegenie_write_macro",

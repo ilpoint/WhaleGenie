@@ -191,6 +191,19 @@ public static class RunLogStore
         }
     }
 
+    /// <summary>
+    /// Forgets every run this process has kept, which is what a check needs when it is about the
+    /// state before anything has run. What the runs wrote stays in the log folder; only the store the
+    /// MCP tools read is emptied.
+    /// </summary>
+    internal static void Forget()
+    {
+        lock (Gate)
+        {
+            Captures.Clear();
+        }
+    }
+
     public static RunLogSnapshot? Find(string id)
     {
         lock (Gate)
