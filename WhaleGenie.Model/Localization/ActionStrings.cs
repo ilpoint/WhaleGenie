@@ -416,13 +416,13 @@ internal static class ActionStrings
         ["control.sequence.label.hint"] = "可选，步骤列表里显示的名称；留空就显示这个动作的名字。",
         ["control.sequence.steps.label"] = "子步骤",
         ["control.sequence.steps.hint"] = "收在这个分组里的子步骤，块内按顺序执行。",
-        ["control.holdInput.name"] = "按住输入门",
+        ["control.holdInput.name"] = "独占输入",
         ["control.holdInput.desc"] = "这一段里的键鼠连着发完，别的勾了互斥的宏不会插进来。",
         ["control.holdInput.label.label"] = "名称",
         ["control.holdInput.label.hint"] = "可选，步骤列表里显示的名称；留空就显示这个动作的名字。",
         ["control.holdInput.steps.label"] = "子步骤",
         ["control.holdInput.steps.hint"] = "这一段里连续发键鼠的步骤。",
-        ["control.holdBrowser.name"] = "按住浏览器",
+        ["control.holdBrowser.name"] = "独占浏览器",
         ["control.holdBrowser.desc"] = "这一段里的页面步骤连着做完，别的宏不会切走标签页。",
         ["control.holdBrowser.label.label"] = "名称",
         ["control.holdBrowser.label.hint"] = "可选，步骤列表里显示的名称；留空就显示这个动作的名字。",
@@ -1234,7 +1234,7 @@ internal static class ActionStrings
         ["system.notify.heading.label"] = "标题",
         ["system.notify.heading.hint"] = "通知的标题。默认留空，此时用程序自己的名字做标题。",
         ["system.notify.notificationText.label"] = "内容",
-        ["system.notify.notificationText.hint"] = "通知要说的话。其中的变量会照别处一样替换成变量的值，所以宏可以直接报告它刚做了什么。",
+        ["system.notify.notificationText.hint"] = "通知的正文。其中的变量按与别处相同的规则替换成值，宏因此可以直接报告它刚做了什么。",
         ["system.notify.notificationKind.label"] = "类型",
         ["system.notify.notificationKind.hint"] = "这条通知算哪一类，默认「提醒」。机器关闭了通知时它什么都不显示，这一步照样算完成。",
         ["system.notify.notificationKind.option.information"] = "提醒",
@@ -2092,9 +2092,9 @@ internal static class ActionStrings
             + "随机取一点。数字要小到整个范围仍落在被点的对象内部。",
         ["vision.clickDetect.confirmMs.label"] = "落手前再确认",
         ["vision.clickDetect.confirmMs.hint"] =
-            "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
-            + "看一眼，这次仍认得才点；这次认不得按没找到处理。第二次查看只查一次、不再等，"
-            + "所以画面已经变过就直接算没找到。",
+            "点之前先等这么多毫秒再确认一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久"
+            + "再确认，仍认得才点；认不得按没找到处理。第二次查看只查一次、不再等，所以画面"
+            + "已经变过就直接算没找到。",
         ["vision.clickDetect.return.match.label"] = HitRecordLabel,
         ["vision.clickDetect.return.match.hint"] = HitRecordHintDetect,
         ["vision.clickDetect.return.every.label"] = EveryHitLabel,
@@ -2184,9 +2184,9 @@ internal static class ActionStrings
             + "数字要小到整个范围仍落在被点的对象内部。",
         ["vision.clickImage.confirmMs.label"] = "落手前再确认",
         ["vision.clickImage.confirmMs.hint"] =
-            "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
-            + "看一眼，这次仍认得才点；这次认不得按没找到处理。用于按钮一闪而过、或者画面其实"
-            + "已经翻过去的情况。第二次查看只查一次、不再等，所以画面已经变过就直接算没找到。",
+            "点之前先等这么多毫秒再确认一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久"
+            + "再确认，仍认得才点；认不得按没找到处理。用于按钮一闪而过、或者画面其实已经翻过去"
+            + "的情况。第二次查看只查一次、不再等，所以画面已经变过就直接算没找到。",
         ["vision.clickImage.button.label"] = "按键",
         ["vision.clickImage.button.hint"] = MouseButtonHint,
 
@@ -2455,10 +2455,10 @@ internal static class ActionStrings
             + "等一个输入框出现再看它里面写着什么，一条步骤就够了，读到的就是让等待结束的那一个。",
 
         ["uia.select.name"] = "选择列表项",
-        ["uia.select.desc"] = "在下拉框、列表或选项卡里选中一项。",
+        ["uia.select.desc"] = "在下拉框、列表或标签页里选中一项。",
         ["uia.select.window.label"] = WindowMatchTextLabel,
         ["uia.select.uiSelector.label"] = "选择器",
-        ["uia.select.uiSelector.hint"] = "下拉框、列表或选项卡的选择器。" + SelectorPickHint,
+        ["uia.select.uiSelector.hint"] = "下拉框、列表或标签页的选择器。" + SelectorPickHint,
         ["uia.select.matchIndex.label"] = "第几个命中",
         ["uia.select.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.select.item.label"] = "选项文字",
@@ -3572,7 +3572,7 @@ internal static class ActionStrings
 
         // browser.dialog
         ["browser.dialog.return.message.label"] = "说了什么",
-        ["browser.dialog.return.message.hint"] = "被回答的那个对话框说的话，例如页面在继续之前问的那一句。",
+        ["browser.dialog.return.message.hint"] = "被回答的对话框的文本，例如页面在继续之前给出的提示。",
         ["browser.dialog.returns.label"] = "要留下的结果",
         ["browser.dialog.returns.hint"] = ReturnsHintText,
 
@@ -3624,7 +3624,7 @@ internal static class ActionStrings
         ["script.csharp.return.value.hint"] = "脚本用 WhaleGenie.SetResult 交回的那个值，原样保留："
             + "数字、文字、真假、列表，或者一条带字段的记录。脚本没交过就是空的。",
         ["script.csharp.return.error.label"] = "错误消息",
-        ["script.csharp.return.error.hint"] = "脚本编译不过时编译器说的话，或者运行中出的错，"
+        ["script.csharp.return.error.hint"] = "编译失败时的编译器输出，或者运行中出现的错误，"
             + "都带着出错的行号。脚本顺利执行完毕时为空。",
         ["script.csharp.return.success.label"] = "是否执行成功",
         ["script.csharp.return.success.hint"] = "脚本编译通过并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"

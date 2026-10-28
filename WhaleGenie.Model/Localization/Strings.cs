@@ -2177,7 +2177,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.Feedback"] = "反馈",
         ["Main.GetStarted"] = "快速上手",
         ["Main.About"] = "关于",
-        ["Main.AboutText"] = "DeepSeek 帮忙写的小助手，所以是鲸灵啦。\n\n把键盘、鼠标、屏幕和窗口上的"
+        ["Main.AboutText"] = "由 DeepSeek 协助开发。\n\n把键盘、鼠标、屏幕和窗口上的"
             + "操作编成一步步的宏，用热键、鼠标按键、滚轮，或屏幕上某个像素的颜色触发它。\n\n"
             + "本程序按 AGPL-3.0 授权，条款原文见程序目录下的 LICENSE.txt，版权署名见同目录的 NOTICE。\n\n"
             + "版本 {0}\n图标：像素风的鲸鱼 emoji 由 Emojiall 创作，采用 CC BY 4.0 协议，已缩放修改。",
@@ -2611,9 +2611,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.RecordActions"] = "录制动作",
         ["Editor.RunningTogether"] = "与其他宏同时运行时",
         ["Editor.ExclusiveInput"] = "与别的宏互斥发输入",
-        ["Editor.ExclusiveInputNote"] = "与同样勾上的宏共用一道输入门：只有发键鼠的步骤去取门，"
+        ["Editor.ExclusiveInputNote"] = "与同样勾选的宏共用同一道输入互斥：只有发键鼠的步骤参与排队，"
             + "一次放一步，两条宏因此轮流推进、每一步都完整。两条宏同时往同一个窗口发键鼠时勾上；"
-            + "要让一整段都不被打断，把这一段放进「按住输入门」。读屏幕、识别与等窗口不取门。默认不勾。",
+            + "要让一整段都不被打断，把这一段放进「独占输入」。读屏幕、识别与等窗口不参与排队。默认不勾。",
         ["Editor.PositionCapture"] = "鼠标位置记录方式：",
         ["Editor.MouseMovement"] = "鼠标移动",
         ["Editor.MouseButtons"] = "鼠标按键",
@@ -2758,7 +2758,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.SharedInput"] = "本项目还有其他宏会发送键鼠输入；两者同时运行时输入会相互插入。可能同时运行时，请两边都勾选「与别的宏互斥发输入」。",
         ["Editor.Problem.SharedBrowser"] = "这个项目里还有别的宏也用浏览器。整个程序只有一份浏览器与当前页，"
             + "两条宏同时运行时会轮流使用；其中一条切换标签页，另一条看到的页面也会随之改变。",
-        ["Editor.Problem.ScriptInput"] = "这个脚本声明会自己发键鼠。脚本直接发出的输入不经过互斥门，"
+        ["Editor.Problem.ScriptInput"] = "这个脚本声明会自己发键鼠。脚本直接发出的输入不经过输入互斥，"
             + "要同时运行的另一条宏也须勾选「与别的宏互斥发输入」，或让其中一条先停止。",
         ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
@@ -3708,8 +3708,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Capture.desktopDuplication"] = "桌面复制（DXGI）",
         ["Settings.Capture.gdi"] = "桌面（GDI）",
         ["Settings.PreloadOcr"] = "启动时在后台预加载文字识别",
-        ["Settings.PreloadOcrHint"] = "加载模型要一点时间，不预加载的话就由第一步读取文字的步骤来等。默认关闭："
-            + "模型会一直占着内存，直到程序退出。",
+        ["Settings.PreloadOcrHint"] = "加载模型需要时间；不预加载时，这次等待落在第一步读取文字的步骤上。"
+            + "默认关闭，因为模型会一直占着内存，直到程序退出。",
         ["Settings.Driver"] = "驱动级输入",
         ["Settings.DriverReady"] = "usbip-win2 驱动已安装，驱动级输入可以用。",
         ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",
