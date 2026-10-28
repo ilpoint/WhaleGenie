@@ -4,7 +4,7 @@
 
 它不重复另外几份文件的内容：`README.md` 讲这是什么程序，`doc/manual.md` 讲用户怎么用，`doc/dev.md` 讲怎么开发与验证，`AGENTS.md` 讲改代码的约定。这里讲结构。
 
-> 数字都是量过的（2026-10 这一版）：三个产品工程约 4.2 万行、369 个 `.cs` / `.axaml` 文件；界面层 1409 条用例、引擎层 1461 条、画面获取 34 条。
+> 数字都是量过的（2026-10-29 这一版）：四个产品工程约 11.9 万行、375 个 `.cs` / `.axaml` 文件；界面层 1415 条用例、引擎层 1462 条、画面获取 34 条。
 
 ## 一、这是什么
 
@@ -16,26 +16,26 @@
 2. **宏操作的是真机器，不是假机器**，所以"怎么操作"必须能被替换成替身——否则引擎的每一条用例都要真的点一下桌面。
 3. **AI 会改用户的宏**，所以写入要经过草稿、校验、预览，且每次调用要留审计。
 
-## 二、五个工程与依赖方向
+## 二、四个工程与依赖方向
 
 ```
-        WhaleGenie（界面 + 应用层 + MCP 宿主）
-             │            │
-             ▼            ▼
-   WhaleGenie.Model   WhaleGenie.Core（引擎 + 设备契约 + 表达式 + 录制）
-   （宏、步骤、触发器、      │
-    变量、文案）            ▼
-             │      WhaleGenie.GraphicsCapture（D3D/DXGI 取画面，叶子）
-             └──────────────► Core
+  WhaleGenie（界面 + 应用层 + MCP 宿主）
+      ├──► WhaleGenie.Model（宏、步骤、触发器、变量、文案、包格式）
+      │         └──► WhaleGenie.Core（引擎 + 设备契约 + 表达式 + 录制）
+      └──► WhaleGenie.Core
+                       └──► WhaleGenie.GraphicsCapture（D3D/DXGI 取画面，叶子）
 
-  测试：WhaleGenie.Tests → WhaleGenie（间接拿到 Model）
+  测试：WhaleGenie.Tests → WhaleGenie（间接拿到 Model 与 Core）
         WhaleGenie.Core.Tests → WhaleGenie.Core
         WhaleGenie.GraphicsCapture.Tests → GraphicsCapture
 ```
 
 `WhaleGenie.Model` 存在是为了"宏格式不只被这个界面用"：它只引用 `WhaleGenie.Core` 与
 `CommunityToolkit.Mvvm`，不认识 Avalonia，也不认识应用层。一个命令行工具要读写 `.wgmacro`，
-引这两个工程就够。
+引这两个工程就够——这件事验过：仓库外一个只引用 `WhaleGenie.Model` 的控制台程序存了一条宏、
+读了回来，全程没有界面。
+
+不过仓库里**还没有**这样的工具：没有 CLI 工程、没有命令。能力齐了，入口没建。
 
 | 工程 | 是什么 | 依赖 | 明确不依赖 |
 | --- | --- | --- | --- |
@@ -45,6 +45,7 @@
 | `WhaleGenie.GraphicsCapture` | 用 Desktop Duplication 与 Windows.Graphics.Capture 取一帧 | Vortice.Direct3D11/DXGI | Core、界面，任何与宏有关的概念 |
 | `WhaleGenie.Tests` | 界面层与 MCP 的用例，跑在 Avalonia 无头会话里 | WhaleGenie | — |
 | `WhaleGenie.Core.Tests` | 引擎每条动作的用例，跑在替身设备层上 | Core | — |
+| `WhaleGenie.GraphicsCapture.Tests` | 四种取画面方式各取一帧 | GraphicsCapture | — |
 
 `WhaleGenie.GraphicsCapture` 单独成工程的理由写在它的 csproj 里：把 D3D/DXGI 挡在引擎之外，而且它不随包发原生库（Direct3D 由 Windows 提供）。它是唯一一个"不认识宏"的工程。
 
@@ -78,7 +79,7 @@
 热键/计划/窗口事件/手动点运行
   → MacroTriggerService.Fire / RunViewModel.RunAsync
   → MacroStep.ToExecutable()            每个 MacroStep 变成 ExecutableStep（有损：丢掉编辑态）
-  → new MacroRunner(devices, host, …)   ← 装配在这一层手工完成（三处各写一遍，见「债务」）
+  → RunFactory.Create(RunRequest)       手动运行、触发器、MCP 三处入口共用一份装配
   → MacroRunner.RunAsync → RunSteps → RunStep → RunAttempts → Execute
   → Dispatch*(step)                     13 个分部按动作族分派到 IDeviceLayer
   → IDeviceLayer.Xxx                    Windows 实现，真的发输入 / 读屏幕
@@ -116,7 +117,7 @@ HTTP POST /mcp
   → MacroEditorViewModel.AppendSteps → MarkDirty → RecoveryStore
 ```
 
-录制在 Core 里只走到 `RecordedAction`：因为 `MacroStep` 属于应用层，最后一步的映射只能在外面。这不是疏忽，是"引擎不认识动作目录里那些给编辑器看的字段"的代价。
+录制在 Core 里只走到 `RecordedAction`：因为 `MacroStep` 属于模型工程，最后一步的映射只能在外面。这不是疏忽，是"引擎不认识动作目录里那些给编辑器看的字段"的代价。
 
 ## 五、引擎（WhaleGenie.Core）
 
@@ -126,8 +127,8 @@ HTTP POST /mcp
 
 | 文件 | 负责 | 行数 |
 | --- | --- | ---: |
-| `MacroRunner.cs` | 会话状态、`RunAsync`、单步与重试、控制流、条件求值、变量写回、日志 | 3075 |
-| `MacroRunner.Input.cs` | 键鼠、手柄、窗口内坐标换算 | 1412 |
+| `MacroRunner.cs` | 会话状态、`RunAsync`、单步与重试、控制流、条件求值、变量写回、日志 | 3090 |
+| `MacroRunner.Input.cs` | 键鼠、手柄、窗口内坐标换算 | 1435 |
 | `MacroRunner.Files.cs` | 文件与数据动作 | 1133 |
 | `MacroRunner.Detection.cs` | 找图找色、模板与 YOLO 检测 | 1034 |
 | `MacroRunner.Vision.cs` | 截图与像素 | 914 |
@@ -141,7 +142,7 @@ HTTP POST /mcp
 | `MacroRunner.Clipboard.cs` | 剪贴板 | 236 |
 | `MacroRunner.Reading.cs` | `ReadValue` / `ReadText` / `ReadModeOf` 等取值规则 | 230 |
 
-分部是按**动作族**切的，不是按职责切的。所以共用原语落在"谁先需要谁那里"：`Give` 在 Window，`Pause` 在 Script，`Gate` 在 Detection，`CanLook`/`SeeOnce` 在 Input。按文件名找代码会找错三次（这是已知问题，见「债务」）。
+分部是按**动作族**切的，不是按职责切的。所以共用原语落在"谁先需要谁那里"：`Give` 在 Window，`Pause` 在 Script，`Gate` 在 Detection，`CanLook`/`SeeOnce` 在 Input。按文件名找代码会找错三次。这是按动作族切的代价：改成按职责切要重排 14 个文件与全部调用点，不值。
 
 ### 5.2 步骤有两个形态
 
@@ -155,11 +156,11 @@ HTTP POST /mcp
 
 `ActionSemantics.json`（170 条，编译进 Core）声明每个动作的类别、参数名与读法、默认值、可见性、会不会发输入/看屏幕/等待、子列表、表格列、返回值。它是**唯一声明**，但执行并不由它驱动：
 
-- 分派是 13 个分部里 217 个 `case "input.click"` 这样的字面量 switch；
-- `CanLook`（试运行"能不能看"）是一份手抄的 14 项清单；
-- `SeeOnce`（试运行真的看一次）是另一份 switch。
+- 分派是 13 个分部里 219 个 `case "input.click"` 这样的字面量 switch；
+- `CanLook`（试运行"能不能看"）读目录的 `LooksAtScreen`，有 `RunLookTests` 逐条对账；
+- `SeeOnce`（试运行真的看一次）是另一份 switch，只靠人工与目录对齐。
 
-三份真相之间没有编译期约束。目前 `CanLook` 与目录里 `looksAtScreen=true` 的 17 项已经不一致（少了三条），表现为试运行说"这不是看屏幕的动作"，而目录说它会。
+两份真相之间没有编译期约束。`CanLook` 那一份已经收口（改为读目录，测试逐条对账），剩下的 `SeeOnce` 是手写 switch，`default` 什么都不做：目录里新加一个 `LooksAtScreen` 为真的动作，试运行会说"能看"，却什么都看不到，直到有人记得往里加一条。目前两边都正好 17 项。
 
 ### 5.4 控制流与作用域
 
@@ -169,7 +170,7 @@ HTTP POST /mcp
 
 ### 5.5 失败、重试、等待
 
-- 失败有两条通道：异常 `StepFailure` 与信号 `Signal.Failed`。两条都要在 `RunAttempts` 里处理，目前**同一段重试判断写了两遍**。
+- 失败有两条通道：异常 `StepFailure` 与信号 `Signal.Failed`。两条都要在 `RunAttempts` 里处理，现在合成一处：局部函数 `RetryOrStop` 同时接两条。早先写了两份，改重试规则要改两次，漏一处就成了"抛出来的失败会重试、信号回来的不会"。
 - 重试预算按步（`Meta.TimeoutMs`），退避由 `StepMeta.RetryDelayFor` 决定；剩余预算不够起一次尝试时不再重试。
 - 等待统一走 `WaitForFlagAsync`，`DelayScale` 缩放**等待**但不缩放**超时**（放弃的时间不因慢放而变长）。
 - 失败策略 `StepErrorAction`（重试/跳过/停止/下一轮）由 `Decide`/`Ask` 翻成 `Decision`；无人值守时 `SilentRunHost.Ask` 直接给"停止"——"没人回答就失败"这条策略藏在默认实现里。
@@ -191,13 +192,13 @@ HTTP POST /mcp
 
 ## 六、设备层
 
-### 6.1 十二个接口 + 一个聚合
+### 6.1 十四个接口 + 一个聚合
 
-`Core/Devices/IDeviceLayer.cs`（1707 行，单文件）装下了全部契约：
+`Core/Devices/IDeviceLayer.cs`（1707 行）装下了其中十二个契约（`IGamepadDevice` 在 `GamepadInput.cs`、`IScriptDevice` 在 `ScriptTypes.cs`），加聚合 `IDeviceLayer`：
 
 `IInputDevice`、`IScreenDevice`、`IVisionDevice`、`IOcrDevice`、`IDetectorDevice`、`IUiDevice`、`IFileDevice`、`IClipboardDevice`、`IProcessDevice`、`ISystemDevice`、`IBrowserDevice`、`IWindowDevice`，加聚合 `IDeviceLayer`（1 个方法 + 20 个属性）。同一个文件里还有数据形状（`PageTarget`、`PickResult`、`ProcessDetails`）与空对象 `NullDeviceLayer`。
 
-按接口用是对的，但聚合接口把 20 个不相干的设备塞给了每一个消费者：注入点里有 21 处拿 `IDeviceLayer`，没有一处用到 5 个以上属性。
+按接口用是对的，但聚合接口把 20 个不相干的设备塞给了每一个消费者：界面工程里有 14 个文件拿 `IDeviceLayer`。五个拾取器已经改成只接它们真正用到的那几个接口（`IScreenDevice` / `IWindowDevice` / `IUiDevice` / `IInputHook`），`MacroEditorWindow` 仍拿整层——它确实什么都用。
 
 ### 6.2 平台实现
 
@@ -220,7 +221,7 @@ HTTP POST /mcp
 
 ### 6.4 替身
 
-测试里有两套：`WhaleGenie.Tests/ChecksDevices.cs`（只真实现窗口，其余回落 `NullDeviceLayer`，输入/屏幕/剪贴板/UIA 可替换）与 `WhaleGenie.Core.Tests` 里的 `FakeDeviceLayer`（**1534 行，一个类实现 15 个接口**）。后者的规模就是"接口过宽"最直接的物证：宽接口的维护成本最终落在测试上。
+测试里有两套：`WhaleGenie.Tests/ChecksDevices.cs`（只真实现窗口，其余回落 `NullDeviceLayer`，输入/屏幕/剪贴板/UIA 可替换）与 `WhaleGenie.Core.Tests` 里的 `FakeDeviceLayer`（**1535 行，一个类实现 15 个接口**）。后者的规模就是"接口过宽"最直接的物证：宽接口的维护成本最终落在测试上。
 
 浏览器、脚本、检测这几族在界面测试里基本"一律拒绝"，所以它们的用例只能起真件（`BrowserActionTests` 真的开一个不显示窗口的 Edge）。
 
@@ -230,7 +231,7 @@ HTTP POST /mcp
 
 | 状态 | 谁持有 | 例子 |
 | --- | --- | --- |
-| 项目文档态 | `MainViewModel`（439 行） | `Macros`、`VisibleMacros`、`Triggers`、`CurrentPath`、`IsDirty`、`Revision` |
+| 项目文档态 | `MainViewModel`（457 行） | `Macros`、`VisibleMacros`、`Triggers`、`CurrentPath`、`IsDirty`、`Revision` |
 | 运行期态 | 窗口字段与 `TriggerRuntime` | `_surfaces`（浮动界面）、`_recovery`；触发器服务来自容器里的 `TriggerRuntime` |
 | 编辑态 | `MacroEditorSession` + 窗口的 UI 字段 | `Documents`（子宏页）、`Lifted`（抬起中的片段）、`Recording`（正在录的那次）；窗口只留拖动、落点、摘页这类 UI 状态 |
 
@@ -240,7 +241,7 @@ HTTP POST /mcp
 
 数据绑定这一层成立：全部 `.axaml` 用 `x:DataType` 编译绑定，98 个 `[RelayCommand]` 源生成命令，`Strings` 用索引器绑定。
 
-流程这一层不成立：XAML 里 118 个 `Click="OnXxx"`、82 处 `.Click +=`、128 处 `FindControl<>`；`Views/*.axaml.cs` 共 13210 行，占界面层的一半。窗口自己做的事剩下：写恢复快照、调 `MacroRunner.LookOnce` 做试运行并隐藏/恢复自身、拖动与落点判定。触发器服务（`TriggerRuntime`）与录制会话（`RecordingSession`）已经搬出去了。
+流程这一层不成立：XAML 里 162 个 `Click="OnXxx"`、55 处 `.Click +=`、126 处 `FindControl<>`；`Views/*.axaml.cs` 共 13211 行，占界面层的一半。窗口自己做的事剩下：写恢复快照、调 `MacroRunner.LookOnce` 做试运行并隐藏/恢复自身、拖动与落点判定。触发器服务（`TriggerRuntime`）与录制会话（`RecordingSession`）已经搬出去了。
 
 ### 7.3 通信方式
 
@@ -254,7 +255,7 @@ HTTP POST /mcp
 
 ### 7.4 文案表
 
-`WhaleGenie/Localization/Strings.cs`（4391 行）是**手写的两份字典**（英文 + 中文），`ActionStrings.cs`（4009 行）是动作的中文文案。没有生成器；`LocalizationTests` 检查键是否齐全、手册是否同步。切换语言时 `RefreshLanguage()` 抛 `PropertyChanged("")` 让所有绑定重读。
+`WhaleGenie.Model/Localization/Strings.cs`（4408 行）是**手写的两份字典**（英文 + 中文），`ActionStrings.cs`（4009 行）是动作的中文文案。没有生成器；`LocalizationTests` 检查键是否齐全、手册是否同步。切换语言时 `RefreshLanguage()` 抛 `PropertyChanged("")` 让所有绑定重读。
 
 界面层近五分之一的体量在这里。这是有意的：文案要能逐条读、逐条改、逐条对账，生成器会把"这句话该怎么说"变成"这个键在哪"。
 
@@ -274,7 +275,7 @@ HTTP POST /mcp
 | --- | --- | --- |
 | 设置（主题、OCR 预热、驱动自启、取画面方式） | 程序目录 `settings.json`（`LocalSettings`） | 设置窗口 |
 | 全局变量的**值** | `%LocalAppData%\WhaleGenie\persistent-variables.json`（`PersistentVariables`） | 运行器写入 |
-| 崩溃恢复快照 | 程序目录 `recovery.json`（`RecoveryStore`，3 秒去抖） | 两个窗口各写自己那半 |
+| 崩溃恢复快照 | 程序目录 `recovery.json`（`RecoveryStore` 存，`RecoveryWriter` 按 3 秒去抖写） | 两个窗口各写自己那半 |
 
 全局变量的**声明**在包里，**值**在用户目录：同一个声明在不同项目里共享同一个值，这是设计（同名即同值）。
 
@@ -287,7 +288,7 @@ HTTP POST /mcp
 - **有窗口**：`McpServerViewModel` 的开关打开服务，同时用浮层上的两个开关授权"直接控制"与"运行宏"。
 - **无窗口**：`whalegenie --mcp`，`App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`。没有浮层可点，所以两个权限只能从命令行给：`--allow-control` 与 `--allow-run`；两个都不写就是只读（列宏、读屏幕、报状态都行，发输入与跑宏一律拒绝）。
 
-能力并不等价：无窗口模式**没有**触发器、没有恢复快照、没有托盘，而且两个权限开关没人能打开——`McpControl.Allowed` / `AllowsRun` 唯一的写方是浮层。所以无窗口时 `whalegenie_mouse_*` 与 `whalegenie_run_macro` 永久被拒。这是当前的设计，不是遗漏，但值得在文档和提示里说清（见「债务」第 11 条）。
+能力并不等价：无窗口模式**没有**触发器、没有恢复快照、没有托盘。两个权限也没有可点的地方——`McpControl.Allowed` / `AllowsRun` 的写方只有两处：浮层（有窗口时）与 `McpHeadless.Start`（把命令行选项写进去）。不写开关就是只读，写了的才发输入、跑宏。
 
 ### 9.2 工具
 
@@ -319,7 +320,7 @@ HTTP POST /mcp
 
 ## 十、触发器
 
-`WhaleGenie/Runtime/MacroTriggerService.cs`（1808 行）一个类管 8 种触发：热键、颜色、热字串、计划、文件、进程、窗口、空闲。`Interface` 与 `Menu` 两种不在这里，由浮动界面与菜单直接跑。
+`WhaleGenie/Runtime/MacroTriggerService.cs`（1811 行）一个类管 8 种触发：热键、颜色、热字串、计划、文件、进程、窗口、空闲。`Interface` 与 `Menu` 两种不在这里，由浮动界面与菜单直接跑。
 
 输入是全局键鼠钩子（`IDeviceLayer.Hook`）、OS 窗口事件，加三个定时器（轮询 60ms、进程 30ms、手柄 30ms）。它**不依赖任何 ViewModel**，只有 `Func<…>` 与事件，是四个外围里唯一单向依赖的。但它自己有一个竞态点：每次触发都按名字线性查找宏，快照失败时 `catch` 后返回空。
 
@@ -327,7 +328,7 @@ HTTP POST /mcp
 
 `Core/Recording/`（5 文件 824 行）：`IInputRecorder` → `RecordedInput` → `RecordingTranslator`（去抖、合并、识别双击与拖拽）→ `RecordedAction`（16 种）。阈值集中在 `RecordingOptions`（14 个），由编辑器的"录制选项"供给。
 
-最后一步（`RecordedAction` → `MacroStep`）在应用层的 `RecordingStepBuilder`，因为 `MacroStep` 属于应用层。
+最后一步（`RecordedAction` → `MacroStep`）在应用层的 `RecordingStepBuilder`，因为 `MacroStep` 属于模型工程。
 
 ## 十二、横切
 
@@ -373,7 +374,7 @@ HTTP POST /mcp
 
 1. **包格式不向后兼容。** `FormatVersion` 严格等于 20。开发阶段没有真实用户数据，保留双读会让每个字段都长出两条读法。
 2. **文案是两份手写字典，不是资源文件 + 生成器。** 要能逐条读、逐条改，并由测试对账。
-3. **无窗口 MCP 没有权限开关。** 没人能授权，所以键鼠与运行工具在那一路里恒被拒绝。这是保守的默认，不是漏洞。
+3. **无窗口 MCP 默认只读，授权只能在命令行给。** 有窗口时是浮层上的两个开关；没有窗口就没有可点的地方，所以 `--allow-control` / `--allow-run` 是唯一入口。默认拒绝是有意的：一条命令就在后台起一个能操作机器的服务，不该是静默的。
 4. **`WhaleGenie.Core` 里放着几个只服务界面的东西**：`StepMeta.ToJson`（文件格式）、`ActionParameterSemantics` 里的编辑器事实、`MacroRunner.LookOnce`（对话框的"试一下"）。挪走的收益不抵一次大改。
 5. **MCP 传输是无状态的 HTTP**，因此没有资源订阅推送、没有会话级状态。
 
@@ -381,18 +382,20 @@ HTTP POST /mcp
 
 ## 十四、债务与建议
 
-清债计划（`refactor-plan.md`）的五个阶段、编辑器的前两步（`editor-mvvm-plan.md`）都已落地。
+清债计划（`refactor-plan.md`）的五个阶段、编辑器状态归位与录制两步（`editor-mvvm-plan.md`）都已落地；
+2026-10-29 又拆出 `WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去。
 剩下的分三类：值得做的、做过判断不做的、以及一个不算债但必须知道的结构事实。
 
 ### 值得单独一轮
 
-1. ~~**无窗口 MCP 的权限缺口**~~ 已补：`--mcp` 现在收 `--allow-control` 与 `--allow-run` 两个开关，
-   默认只读；不写就是"这一路只能读"，写了的才是授权。
-2. **`BuildMacro()` 的产出没有逐字段对账。** 3437 行的 `MacroEditorViewModel` 把编辑态翻译成
-   `MacroItem`，端到端只有一条用例（`The_macro_the_editor_ends_with_is_read_from_the_window`，验到名字）。
-   值得一条"编一段 → 存 → 读回 → 相等"的用例：便宜，且字段漏写会立刻现形。
-3. **`FakeDeviceLayer` 1534 行。** 它宽是因为 `IDeviceLayer` 宽；窄接口推广到更多消费者之后它会自己
-   瘦下来。现在动只是把一个宽替身拆成几个窄替身。
+1. **`FakeDeviceLayer` 1535 行**（在 `DeviceActionTests.cs` 尾部）。它宽是因为 `IDeviceLayer` 宽；
+   窄接口推广到更多消费者之后它会自己瘦下来。现在动只是把一个宽替身拆成几个窄替身。
+
+### 前两条已经清掉
+
+- **无窗口 MCP 的权限缺口** → `--mcp` 收 `--allow-control` 与 `--allow-run`，默认只读。
+- **`BuildMacro()` 的产出没有逐字段对账** → `What_the_editor_builds_survives_a_package`：编两段
+  （含一个装着子步骤的 `control.sequence`）→ 保存 → 进包 → 读回 → 比 JSON。
 
 ### 做过判断，不打算做
 
@@ -418,17 +421,16 @@ HTTP POST /mcp
 
 ## 附：文件规模地图
 
-定位代码时先看这张表（数字是 2026-10 的）：
+定位代码时先看这张表（数字是 2026-10-29 的）：
 
 | 位置 | 文件 / 行数 | 一句话 |
 | --- | ---: | --- |
 | `WhaleGenie.Model/Localization/` | 5 / 8572 | 两份手写文案表 + 语言枚举 + 表达式文本 |
 | `WhaleGenie.Model/Models/` | 32 / 8520 | 全域共享的领域层（宏、触发器、校验） |
 | `WhaleGenie/Localization/` | 4 / 506 | 本机设置与语言刷新，贴着界面 |
-| `WhaleGenie/Views/` | 78 / 27389 | 33 个窗口、4 个 UserControl，后置代码占一半 |
-| `WhaleGenie/ViewModels/` | 48 / 18662 | 五个大 VM 占 61%，其余是行/选项载体 |
-| `WhaleGenie.Model/Models/` | 32 / 8520 | 全域共享的领域层（宏、触发器、校验） |
-| `WhaleGenie/Mcp/` | 23 / 7647 | 工具、草稿、资源、体检、审计 |
+| `WhaleGenie/Views/` | 78 / 27403 | 20 个窗口、3 个 UserControl，后置代码占一半 |
+| `WhaleGenie/ViewModels/` | 54 / 19245 | 五个大 VM 占 61%，其余是行/选项载体 |
+| `WhaleGenie/Mcp/` | 23 / 7682 | 工具、草稿、资源、体检、审计 |
 | `WhaleGenie/Runtime/` | 31 / 4100 | 触发器、录制翻译、运行宿主、变量桥接 |
 | `WhaleGenie.Model/Storage/` | 2 / 681 | 包格式（`MacroPackage`）与相对路径（`MacroPaths`） |
 | `WhaleGenie/Storage/` | 4 / 1025 | 图片资产、公共宏库、恢复快照 |
