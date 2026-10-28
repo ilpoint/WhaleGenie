@@ -945,6 +945,31 @@ public class ExpressionBuilderTreeTests
     }
 
     /// <summary>
+    /// An empty box under a function says what that argument wants, rather than the same "a number or
+    /// a piece of text" on every line: the box standing for a regular expression has to say so.
+    /// </summary>
+    [Fact]
+    public void An_empty_argument_says_what_goes_in_it()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var builder = Empty("a");
+            Land(builder, "var:a");
+            Land(builder, "fn:match");
+
+            Assert.Equal("match($a, ▢)", builder.Preview);
+            Assert.Equal(Strings.Get("Expr.Arg.pattern.put"), builder.Rows[2].HoleHint);
+
+            // A place that is nobody's argument keeps the plain word: an operand of `+` may be
+            // either kind of thing.
+            var sum = Empty("a");
+            Land(sum, "var:a");
+            Land(sum, "op:" + Operator(sum, "+").Token);
+            Assert.Equal(Strings.Get("ExprBuilder.Tree.Hole"), sum.Rows[2].HoleHint);
+        }));
+    }
+
+    /// <summary>
     /// An operator and a plain value are placed the way everything else is: by being dragged onto the
     /// line they belong to. Without that, a page that only places by dragging would have no way to
     /// put a <c>+</c> or a <c>true</c> into a formula at all.

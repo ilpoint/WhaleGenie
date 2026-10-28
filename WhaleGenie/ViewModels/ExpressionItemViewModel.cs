@@ -162,6 +162,9 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>The name the signature uses, and the line saying what goes in it.</summary>
     public string LabelHint { get; internal set; } = string.Empty;
 
+    /// <summary>The function this line is an argument of, or empty for any line that is not one.</summary>
+    private string _call = string.Empty;
+
     /// <summary>True while this line is the one the next click from the palette goes into.</summary>
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
@@ -267,13 +270,14 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     }
 
     /// <summary>Tells the line which argument it stands for, and forgets the guess it made before.</summary>
-    internal void Stands(ExpressionParameter? slot)
+    internal void Stands(string call, ExpressionParameter? slot)
     {
-        if (ReferenceEquals(Slot, slot))
+        if (ReferenceEquals(Slot, slot) && string.Equals(_call, call, StringComparison.Ordinal))
         {
             return;
         }
 
+        _call = call;
         Slot = slot;
 
         // Only a line that is filled by typing can change its mind here. A variable, a call or an
@@ -288,6 +292,7 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsTextBox));
         OnPropertyChanged(nameof(Choices));
         OnPropertyChanged(nameof(ChosenWord));
+        OnPropertyChanged(nameof(HoleHint));
         OnPropertyChanged(nameof(FlagValue));
         OnPropertyChanged(nameof(ChoiceValue));
         OnPropertyChanged(nameof(ChosenWord));
@@ -347,8 +352,15 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         ? "ExprBuilder.Tree.DropItem"
         : "ExprBuilder.Tree.DropArgument");
 
-    /// <summary>What an empty place says, which is the one thing there is to say about it.</summary>
-    public string HoleHint => Strings.Get("ExprBuilder.Tree.Hole");
+    /// <summary>
+    /// What an empty place says. Under a function it says what goes in that argument — the box that
+    /// stands for a regular expression has to say so, not "a number or a piece of text", which is the
+    /// same sentence every other box used to carry.
+    /// </summary>
+    public string HoleHint => Slot is { } slot
+        && ExpressionText.PlaceholderSaid(_call, slot) is { Length: > 0 } said
+            ? said
+            : Strings.Get("ExprBuilder.Tree.Hole");
 
     /// <summary>The piece as the engine's own tree, which is what turns it back into a formula.</summary>
     public ExpressionNode ToNode() => Kind switch

@@ -1006,9 +1006,11 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
             // Which argument this line is decides how it is edited: a yes or no is ticked, a
             // comparison is picked from its words, everything else is typed.
-            child.Stands(node.Kind == ExpressionItemKind.Call && node.Parameters.Count > 0
-                ? node.Parameters[Math.Min(index, node.Parameters.Count - 1)]
-                : null);
+            child.Stands(
+                node.Kind == ExpressionItemKind.Call ? node.Name : string.Empty,
+                node.Kind == ExpressionItemKind.Call && node.Parameters.Count > 0
+                    ? node.Parameters[Math.Min(index, node.Parameters.Count - 1)]
+                    : null);
 
             Walk(child, depth + 1);
         }

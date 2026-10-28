@@ -116,6 +116,15 @@ public static class ExpressionText
             Strings.Get($"Expr.Arg.{parameter.Name}.hint", parameter.Hint));
 
     /// <summary>
+    /// What a box standing for an argument says while it is empty: the short form of what goes in it,
+    /// so the box for a regular expression is not carrying the same sentence as the box for a name.
+    /// Nothing written for this argument leaves it to the caller's own word.
+    /// </summary>
+    public static string PlaceholderSaid(string function, ExpressionParameter parameter)
+        => Strings.Get($"Expr.Arg.{function}.{parameter.Name}.put",
+            Strings.Get($"Expr.Arg.{parameter.Name}.put", parameter.Hint));
+
+    /// <summary>
     /// The name the signature spells out and one line saying what goes in it, which is what a line
     /// filled in with nothing but a sentence is missing.
     /// </summary>
