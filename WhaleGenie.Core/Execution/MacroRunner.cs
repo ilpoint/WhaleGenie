@@ -34,7 +34,11 @@ public sealed partial class MacroRunner
     // and the device layer. One run: _host, _devices, _macros, _looks, Variables, _log, _steps,
     // _frames, _references, _looked and _runToken. One step: _failure, _worked, _saw,
     // _read, _takenWindow, _takenMethod, _heldKeys, _heldButtons, _gamepadUsed and _browserHolds.
-    // The family methods live beside this file in MacroRunner.<Family>.cs.
+    // The family methods live beside this file in MacroRunner.<Family>.cs. A method that more than
+    // one family uses stayed in the file that first needed it, so before assuming a family file
+    // holds only its own steps: Give (the argument reader every family reads through) is in
+    // .Window.cs, Pause and WaitForFlagAsync in .Script.cs, Gate (the capture throttle) in
+    // .Detection.cs, and the trial look (CanLook / LookOnce / SeeOnce) in .Input.cs.
 
     private readonly IRunHost _host;
     private readonly IDeviceLayer _devices;
@@ -1342,6 +1346,31 @@ public sealed partial class MacroRunner
                 Elapsed(startedStep), attempts);
         }
 
+        // A step fails two ways: a block whose child failed comes back as a signal, a step that
+        // failed itself throws. What happens next is the same either way — retry while the count
+        // allows, then let the step's own rule decide — so it is written once. Two copies meant a
+        // change to the retry rule had to be made twice, and half a change reads as "a failure that
+        // is thrown retries and a failure that is signalled does not".
+        async Task<Signal?> RetryOrStop(ExecutableStep failed, int attempt,
+            CancellationToken stopToken)
+        {
+            var decided = attempt < failed.Meta.RetryCount
+                ? Decision.Retry
+                : await Decide(failed, stopToken);
+            if (decided is not Decision.Retry)
+            {
+                return StepFailed(failed, decided, Elapsed(startedStep), attempts);
+            }
+
+            if (!await WaitBeforeRetry(failed, attempt, Remaining(), attemptToken, stopToken))
+            {
+                return await Spent(failed, stopToken);
+            }
+
+            Log(LogLevel.Warn, depth, failed.Type, LogKeys.Retry, attempt + 1);
+            return null;
+        }
+
         for (var attempt = 0; ; attempt++)
         {
             // A result is this attempt's answer: one this attempt does not write reads as
@@ -1374,21 +1403,13 @@ public sealed partial class MacroRunner
                     _failure = failure;
                     attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran: false));
 
-                    var decided = attempt < step.Meta.RetryCount
-                        ? Decision.Retry
-                        : await Decide(step, token);
-                    if (decided is Decision.Retry)
+                    var stopped = await RetryOrStop(step, attempt, token);
+                    if (stopped is { } stop)
                     {
-                        if (!await WaitBeforeRetry(step, attempt, Remaining(), attemptToken, token))
-                        {
-                            return await Spent(step, token);
-                        }
-
-                        Log(LogLevel.Warn, depth, step.Type, LogKeys.Retry, attempt + 1);
-                        continue;
+                        return stop;
                     }
 
-                    return StepFailed(step, decided, Elapsed(startedStep), attempts);
+                    continue;
                 }
 
                 attempts.Add(Took(attempt + 1, started, OutcomeOk, null, overran: false));
@@ -1418,21 +1439,15 @@ public sealed partial class MacroRunner
                 _failure = failure;
                 Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
 
-                var decided = attempt < step.Meta.RetryCount
-                    ? Decision.Retry
-                    : await Decide(step, token);
-                if (decided is Decision.Retry)
+                // What a thrown failure does next is the same as what a signalled one does; the
+                // answer comes back from one place.
+                var stopped = await RetryOrStop(step, attempt, token);
+                if (stopped is { } stop)
                 {
-                    if (!await WaitBeforeRetry(step, attempt, Remaining(), attemptToken, token))
-                    {
-                        return await Spent(step, token);
-                    }
-
-                    Log(LogLevel.Warn, depth, step.Type, LogKeys.Retry, attempt + 1);
-                    continue;
+                    return stop;
                 }
 
-                return StepFailed(step, decided, Elapsed(startedStep), attempts);
+                continue;
             }
         }
     }
