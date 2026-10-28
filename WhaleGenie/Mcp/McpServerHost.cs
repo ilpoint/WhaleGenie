@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -12,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.AspNetCore;
+using ModelContextProtocol.Server;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Mcp;
@@ -112,6 +115,40 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Every tool this server offers, each wrapped so a wrongly shaped argument is answered with a
+    /// coded refusal instead of the runtime's message about the call failing. The tools are built
+    /// here rather than picked up by type so the wrapper cannot be forgotten when one is added.
+    /// </summary>
+    private static IReadOnlyList<McpServerTool> Tools(
+        MainViewModel project, McpDraftStore drafts, McpLiveProject live)
+    {
+        object[] owners =
+        [
+            new McpTools(drafts, live),
+            new McpControlTools(),
+            new McpRunTools(project, drafts),
+            new McpRangeTools(),
+        ];
+
+        var tools = new List<McpServerTool>();
+        foreach (var owner in owners)
+        {
+            foreach (var method in owner.GetType().GetMethods(
+                         BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                if (method.GetCustomAttribute<McpServerToolAttribute>() is null)
+                {
+                    continue;
+                }
+
+                tools.Add(new McpTolerantTool(McpServerTool.Create(method, owner, null)));
+            }
+        }
+
+        return tools;
+    }
+
     private async Task<WebApplication> StartOnAsync(int port)
     {
         var drafts = new McpDraftStore();
@@ -135,10 +172,7 @@ public sealed class McpServerHost(MainViewModel project) : IAsyncDisposable
         builder.Services
             .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)
             .WithHttpTransport(options => options.Stateless = true)
-            .WithTools<McpTools>()
-            .WithTools<McpControlTools>()
-            .WithTools<McpRunTools>()
-            .WithTools<McpRangeTools>()
+            .WithTools(Tools(project, drafts, live))
             .WithResources<McpResources>()
             .WithPrompts<McpPrompts>();
 

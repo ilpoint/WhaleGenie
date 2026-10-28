@@ -1562,6 +1562,198 @@ public class McpServerTests
         });
     }
 
+    /// <summary>
+    /// A parameter that has to be an object or a list arrives as text often enough to matter — a
+    /// client quoting the macro, or wrapping the array in an object. The schema stays strict, and the
+    /// answer names the argument, what arrived and what to send instead, rather than the runtime's
+    /// "An error occurred invoking".
+    /// </summary>
+    [Fact]
+    public void An_argument_of_the_wrong_shape_is_refused_by_name()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "wg-mcp-shape-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var path = Path.Combine(folder, "project.wgmacro");
+                var viewModel = new MainViewModel();
+                viewModel.AddMacro(new MacroItem { Name = "原宏" });
+                viewModel.CurrentPath = path;
+                viewModel.SavePackage(path);
+
+                await using var host = new McpServerHost(viewModel);
+                await host.StartAsync();
+                await using var client = await ConnectAsync(host.Endpoint);
+
+                var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
+                    new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
+
+                // The macro as text, which is how a double-encoded macro arrives.
+                var quoted = await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = "{\"name\":\"AI宏\",\"steps\":[]}",
+                });
+                Assert.Contains("BadJson", quoted, StringComparison.Ordinal);
+                Assert.Contains("\"macro\"", quoted, StringComparison.Ordinal);
+                Assert.Contains("text", quoted, StringComparison.Ordinal);
+
+                // The declarations as one object instead of a list of them.
+                var wrapped = await Call(client, "whalegenie_set_globals", new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["globals"] = new { name = "总数" },
+                });
+                Assert.Contains("BadJson", wrapped, StringComparison.Ordinal);
+                Assert.Contains("\"globals\"", wrapped, StringComparison.Ordinal);
+                Assert.Contains("list", wrapped, StringComparison.Ordinal);
+
+                await host.StopAsync();
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// Applying writes into the open project, so a client and the person want to see what would change
+    /// before it does: which macros come, go or change, which of their steps, and which globals move.
+    /// </summary>
+    [Fact]
+    public void A_draft_says_what_applying_it_would_change()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "wg-mcp-preview-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var path = Path.Combine(folder, "project.wgmacro");
+                var viewModel = new MainViewModel();
+                var existing = new MacroItem { Name = "原宏" };
+                existing.Steps.Add(new MacroStep
+                {
+                    Id = "aa11",
+                    Type = "control.delay",
+                    Parameters =
+                    [
+                        new StepParameter
+                        {
+                            Name = "ms",
+                            Kind = ActionParameterKind.Number,
+                            Value = "1000",
+                        },
+                    ],
+                });
+                viewModel.AddMacro(existing);
+                viewModel.CurrentPath = path;
+                viewModel.SavePackage(path);
+
+                await using var host = new McpServerHost(viewModel);
+                await host.StartAsync();
+                await using var client = await ConnectAsync(host.Endpoint);
+
+                var draft = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
+                    new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
+
+                // A draft nobody has edited has nothing to say.
+                var empty = JsonDocument.Parse(await Call(client, "whalegenie_preview_apply",
+                    new Dictionary<string, object?> { ["draftId"] = draft })).RootElement;
+                Assert.Empty(empty.GetProperty("macros").EnumerateArray());
+                Assert.Empty(empty.GetProperty("globals").EnumerateArray());
+
+                // A macro that is not in the project yet is an addition.
+                await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse(
+                        """{"name":"新宏","steps":[{"type":"control.delay","params":{"ms":1000}}]}"""),
+                });
+
+                var added = JsonDocument.Parse(await Call(client, "whalegenie_preview_apply",
+                    new Dictionary<string, object?> { ["draftId"] = draft })).RootElement;
+                Assert.Equal("added", added.GetProperty("macros").EnumerateArray()
+                    .Single(macro => macro.GetProperty("name").GetString() == "新宏")
+                    .GetProperty("change").GetString());
+                Assert.Equal(1, added.GetProperty("totals").GetProperty("added").GetInt32());
+
+                // A step of a macro that was already there, saying something different.
+                await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse(
+                        """{"name":"原宏","steps":[{"id":"aa11","type":"control.delay","params":{"ms":2500}}]}"""),
+                });
+
+                var changed = JsonDocument.Parse(await Call(client, "whalegenie_preview_apply",
+                    new Dictionary<string, object?> { ["draftId"] = draft })).RootElement;
+                var macro = changed.GetProperty("macros").EnumerateArray()
+                    .Single(entry => entry.GetProperty("name").GetString() == "原宏");
+                Assert.Equal("changed", macro.GetProperty("change").GetString());
+
+                var stepChange = macro.GetProperty("changedSteps").EnumerateArray().Single();
+                Assert.Equal("aa11", stepChange.GetProperty("step").GetProperty("id").GetString());
+                Assert.Contains("ms", stepChange.GetProperty("parameters").EnumerateArray()
+                    .Select(name => name.GetString()));
+
+                await host.StopAsync();
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// The drafts the server is holding, listed with the id to use and whether they have been applied:
+    /// the answer to "what is still pending" that used to require remembering the id.
+    /// </summary>
+    [Fact]
+    public void The_drafts_that_are_open_are_listed()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var viewModel = new MainViewModel();
+            viewModel.AddMacro(new MacroItem { Name = "原宏" });
+
+            await using var host = new McpServerHost(viewModel);
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var first = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
+                new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
+            var second = JsonDocument.Parse(await Call(client, "whalegenie_open_project",
+                new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;
+
+            var listed = JsonDocument.Parse(await Call(client, "whalegenie_list_drafts",
+                new Dictionary<string, object?>())).RootElement;
+            Assert.Equal(2, listed.GetProperty("total").GetInt32());
+            var ids = listed.GetProperty("drafts").EnumerateArray()
+                .Select(draft => draft.GetProperty("draftId").GetString()).ToList();
+            Assert.Contains(first, ids);
+            Assert.Contains(second, ids);
+            Assert.All(listed.GetProperty("drafts").EnumerateArray(),
+                draft => Assert.False(draft.GetProperty("applied").GetBoolean()));
+
+            await Call(client, "whalegenie_discard",
+                new Dictionary<string, object?> { ["draftId"] = first });
+            Assert.Equal(1, JsonDocument.Parse(await Call(client, "whalegenie_list_drafts",
+                new Dictionary<string, object?>())).RootElement.GetProperty("total").GetInt32());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
     private static async Task<string> Call(McpClient client, string name,
         Dictionary<string, object?> arguments)
     {

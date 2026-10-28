@@ -150,6 +150,32 @@
 `server.instructions` 里同一处也有一句「Driving the machine is still not running the macro: the person
 presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 
+## 第六轮：动手之前先看得见，发错形状有人接
+
+这一轮加了两件「人在旁边」要用的东西，和一处协议边界上的兜底。
+
+| 加了什么 | 为什么 |
+| --- | --- |
+| `whalegenie_list_drafts`（草稿箱） | 草稿只在内存里，关掉服务就没了；以前要记得 id 才能回头找。现在列出还开着的那几张：id、取自哪个包、什么时候取的、几个宏、是否已 apply |
+| `whalegenie_preview_apply` | `apply` 直接写进打开的项目，写坏了要人回滚。现在先问一句「会动什么」：哪些宏会新增 / 删除 / 修改，改的那几个是哪几步（按步骤 id，与 outline / patch 同一个 id）、哪几个参数变了，哪些全局声明会动；顺带把 `validate` 的结论一并给出 |
+| 服务说明里的工具地图 | 50 个工具在客户端里是一长串。说明末尾按「草稿 / 读 / 写 / 目录 / 运行 / 看 / 动 / 靶场」分组列出名字，AI 不用从名字猜 |
+| 参数形状的容错层 | `inputSchema` 保持严格（`"type": "object"` 仍是 `"type": "object"`），但参数真的不是那个形状时，在工具被调用之前回一个 `BadJson`：写明哪个参数、来的是什么、该发什么 |
+
+容错层是这一轮唯一需要动服务端结构的地方：工具不再靠 `WithTools<T>()` 按类型反射注册，而是由
+`McpServerHost.Tools(...)` 逐个建出来再套一层 `McpTolerantTool`——它保留原工具的 `ProtocolTool`
+（所以 schema 一个字节都没变），只在 `InvokeAsync` 前看一眼 `arguments`。体检里那条 `reject.bad_json`
+因此从「An error occurred invoking 'whalegenie_put_macro'.」变成了：
+
+```
+{"error":{"code":"BadJson","message":"whalegenie_put_macro takes an object for macro, but it arrived
+ as text.","hint":"Send the object itself rather than text that holds it.
+ whalegenie_macro_template shows the shape macro wants.",...}}
+```
+
+做这一层时踩到一个自己造成的坑：可省略的参数在 schema 里写成 `"type": ["string", "null"]`，
+对它直接 `GetString()` 会抛——于是每一次带字符串参数的调用都会变成「调用失败」，正好是这一层要
+避免的事。现在只读 `ValueKind == String` 的 `type`。
+
 ## 这一轮之后的数字
 
 上表的数字来自 M2 那一次。把「AI 能不能自己写对、自己看见、自己跑、在哪儿跑」这一轮做完之后，
@@ -157,11 +183,12 @@ presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 
 | 项 | M2 那次 | 现在 |
 | --- | ---: | ---: |
-| 工具数 | 35 | 48 |
+| 工具数 | 35 | 50（多草稿箱与预览两件） |
 | 体检条目 | 33 | 36（多了两档开关与靶场缺席三条） |
 | 资源 | 2 | 3（多 `whalegenie://action-matrix`） |
 | 一次典型写宏的调用 | 9 | 9（同一段脚本，没有变重） |
-| 请求 / 响应字节 | 480 / 6017 | 480 / 6532（多的是描述字段） |
+| 请求 / 响应字节 | 480 / 6017 | 480 / 6532（多的是描述字段；两件新工具不进这段脚本） |
+| 服务说明字符数 | 未量 | 4452（多的是那张工具地图） |
 | 说自己带分页字段的列表 | 3 / 4 | 4 / 4（运行日志在没跑过宏时也给 `totalLines`） |
 | 改一个参数的请求字节 | 125 | 125 |
 | 整宏重发的字节 | 1914 | 1914 |

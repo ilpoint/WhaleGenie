@@ -42,6 +42,9 @@ public sealed class McpDraft
 
     public string Id { get; } = Guid.NewGuid().ToString("N")[..8];
 
+    /// <summary>When the draft was taken, which is what tells two drafts of one project apart.</summary>
+    public DateTimeOffset CreatedAt { get; } = DateTimeOffset.Now;
+
     public McpProjectSnapshot Basis { get; }
 
     public List<MacroItem> Macros { get; }
@@ -245,6 +248,15 @@ public sealed class McpDraftStore
         lock (_gate)
         {
             return _drafts.Remove(id);
+        }
+    }
+
+    /// <summary>Every draft still open, newest first: the list a person reads to see what is pending.</summary>
+    public IReadOnlyList<McpDraft> All()
+    {
+        lock (_gate)
+        {
+            return [.. _drafts.Values.OrderByDescending(draft => draft.CreatedAt)];
         }
     }
 

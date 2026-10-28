@@ -203,7 +203,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   `Dispatcher.UIThread.InvokeAsync` 回到界面线程。`MainViewModel.Revision` 在每次 `MarkDirty` 时
   增加；草稿 `apply` 前对不上就拒绝，避免覆盖人在界面里的修改。
 - `McpDraftStore` 只改内存草稿；`apply` 才替换 `MainViewModel` 的宏与全局变量，`save_project` 才
-  调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。
+  调 `MainViewModel.SavePackage`，先复制 `.wgmacro.bak`。草稿记着自己的创建时间，`whalegenie_list_drafts`
+  列出还开着的那几张（「草稿箱」）；`whalegenie_preview_apply` 用 `McpPreview` 把草稿与它取样的
+  项目比一遍——宏按名字、步骤按 id（与 outline / patch 同一个 id）——所以在 `apply` 之前就能说出
+  哪些宏会来、会走、会变，变的那几个是哪几步、哪几个参数，以及哪些全局声明会动。
 - `ActionKnowledge` 把 `ActionCatalog` 压平成 MCP 可见的参数/返回值；不暴露图标或控件。动作带
   `Hidden`，参数带 `ChildKeys`，所以外部作者能看出隐藏动作与每个子步骤列表接受的键。参数还带
   `Fields`（记录内部字段名）、`Unit`、`EmptyMeans`、`Minimum` 与 `Maximum`，窗口规则字段直接取自
@@ -237,6 +240,11 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   作为首选端口，被占用则回退到系统分配端口，浮层显示实际地址。
 - `RunLogStore`（`WhaleGenie/Execution/RunLogStore.cs`）保留最近 20 次运行的日志与步骤结局：
   `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
+- 工具由 `McpServerHost.Tools(...)` 逐个建出来，并套上 `McpTolerantTool`：`inputSchema` 保持严格
+  （对象就是 `"type": "object"`），但参数真的不是那个形状时（例如客户端把宏当字符串发），在工具
+  被调用之前就回一个 `BadJson`，写明是哪个参数、来的是什么、该发什么——否则只会得到 SDK 的
+  「An error occurred invoking ...」。注意 `"type": ["string", "null"]` 这种可省略参数的写法：读
+  `type` 前必须确认它是字符串，否则这一步自己就会把每次调用弄崩。
 - 工具名以 `whalegenie_` 开头；列表、读宏、写宏、校验、apply、save、运行日志各一组，外加视觉与
   直接控制一组（见下）。没有 `run_macro` / `debug_macro` 工具。
 - 发现与形状：`whalegenie_list_actions` 返回一页 `{total, offset, limit, hasMore, categories, actions}`，

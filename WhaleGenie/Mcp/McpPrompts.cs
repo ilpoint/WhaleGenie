@@ -56,6 +56,21 @@ public sealed class McpPrompts
         they are refused with DirectControlOff, ask the person to turn it on rather than trying
         another way. Driving the machine is not the same as running a macro: whalegenie_run_macro is
         the tool for that, and it has a switch of its own.
+        The tools, by what they are for. Every name below starts with whalegenie_:
+        - the draft: project_status, open_project, list_drafts (what is still pending), preview_apply
+          (what applying would change, before it writes), apply, save_project, discard.
+        - reading it: list_macros, get_macro, get_step, get_macro_signature, get_globals, validate.
+        - writing it: put_macro, patch_macro, delete_macro, set_globals.
+        - the catalogue: list_actions, get_actions, get_action, macro_template, instructions.
+        - running: run_macro, stop_macro, run_status, list_runs, get_run_log,
+          get_last_failure_log.
+        - looking: capture_screen, pixel_at, cursor, list_windows, window_info, element_at,
+          find_elements, process_list, clipboard_read, read_picture.
+        - driving (needs the direct-control switch): mouse_move, mouse_click, mouse_scroll,
+          mouse_drag, key, type_text, window_activate, window_move, window_close, clipboard_write.
+        - the range window: range_state, range_reset.
+        Before apply, call preview_apply when the person is deciding: it names the macros that would
+        come, go or change, the steps that differ and the global declarations that move.
         """;
 
     [McpServerPrompt(Name = "whalegenie_write_macro",

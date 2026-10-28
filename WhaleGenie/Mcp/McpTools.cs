@@ -131,6 +131,28 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             });
         });
 
+    [McpServerTool(Name = "whalegenie_list_drafts", ReadOnly = true,
+            Title = "List the drafts that are open"),
+     Description("Lists the drafts this server is holding: the id, the project each was taken from, when it was taken, how many macros it holds and whether it has been applied. A draft is dropped when the server stops or when it is discarded, so this is the answer to \"what is still pending\".")]
+    public Task<CallToolResult> ListDrafts()
+        => McpErrors.RunAsync(async () =>
+        {
+            var open = drafts.All();
+            return McpErrors.Ok(new
+            {
+                total = open.Count,
+                drafts = await Ui(() => open.Select(draft => new
+                {
+                    draftId = draft.Id,
+                    path = draft.Basis.Path,
+                    revision = draft.Basis.Revision,
+                    taken = draft.CreatedAt,
+                    macros = draft.MacroSnapshot().Count,
+                    applied = draft.Applied,
+                }).ToList()),
+            });
+        });
+
     [McpServerTool(Name = "whalegenie_read_picture", ReadOnly = true,
             Title = "Read a picture a macro saved"),
      Description("Returns a PNG that a step saved, as an image. Only files inside the project folder or the log folder are read: this is for looking at what a capture step produced, not for reading any file on the machine.")]
@@ -442,6 +464,32 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("The draft id.")] string draftId)
         => McpErrors.RunAsync(async () => McpErrors.Ok(
             Shape(await Ui(() => McpDraftStore.Validate(drafts.Get(draftId))))));
+
+    [McpServerTool(Name = "whalegenie_preview_apply", ReadOnly = true,
+            Title = "See what apply would change"),
+     Description("Says what whalegenie_apply would change, before anything is written: macros that appear, disappear or change (and for a changed one the steps that came, went, moved, or no longer say the same thing), plus the global declarations that move. The validation verdict comes with it, so one call answers whether this draft is worth applying.")]
+    public Task<CallToolResult> PreviewApply(
+        [Description("The draft id.")] string draftId)
+        => McpErrors.RunAsync(async () =>
+        {
+            var draft = drafts.Get(draftId);
+            var validation = await Ui(() => McpDraftStore.Validate(draft));
+            var preview = await Ui(() => McpPreview.Of(draft));
+            return McpErrors.Ok(new
+            {
+                draftId = draft.Id,
+                path = draft.Basis.Path,
+                revision = draft.Basis.Revision,
+                applied = draft.Applied,
+                ok = validation.Ok && validation.Blocking.Count == 0,
+                blocking = validation.Blocking.Count,
+                hints = validation.Hints.Count,
+                problems = validation.Blocking.Take(5),
+                preview.Totals,
+                preview.Macros,
+                preview.Globals,
+            });
+        });
 
     [McpServerTool(Name = "whalegenie_apply", Destructive = true,
             Title = "Apply a draft to the project"),
