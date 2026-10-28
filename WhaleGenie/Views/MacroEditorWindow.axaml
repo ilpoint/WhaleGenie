@@ -1325,7 +1325,7 @@
                            </ContextMenu>
                        </ListBox.ContextMenu>
                        <ListBox.ItemTemplate>
-                           <DataTemplate x:DataType="models:StepRow">
+                           <DataTemplate x:DataType="vm:StepRow">
                               <Panel>
                                   <!-- A step, indented by how deep it sits. A block carries a
                                        fold arrow, so what is inside it can be put away. -->
