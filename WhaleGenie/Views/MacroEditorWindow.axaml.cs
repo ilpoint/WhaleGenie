@@ -98,7 +98,7 @@ public partial class MacroEditorWindow : Window
     private readonly List<Key> _swallowReleases = [];
 
     /// <summary>The input hook, up only while a recording is in progress.</summary>
-    private IInputRecorder? _recorder;
+
 
     /// <summary>
     /// The controller, read while the editor is waiting for a binding. Windows has no word for a
@@ -111,8 +111,6 @@ public partial class MacroEditorWindow : Window
     private DispatcherTimer? _padTimer;
 
     /// <summary>What the hook has captured so far, in the order it happened.</summary>
-    private readonly List<RecordedInput> _captured = [];
-    private readonly object _captureLock = new();
     private DispatcherTimer? _recordTimer;
 
     /// <summary>Clears the "what the last pick caught" line a moment after it is shown.</summary>
@@ -2376,33 +2374,11 @@ public partial class MacroEditorWindow : Window
 
     private void StartRecorder()
     {
-        if (_recorder is not null)
-        {
-            return;
-        }
-
-        lock (_captureLock)
-        {
-            _captured.Clear();
-        }
-
         // The recorder comes from the device layer, so a layer handed in by a check records what
         // the check plays into it rather than what a real keyboard is doing.
-        var recorder = Layer.CreateRecorder();
-        recorder.Captured += OnCaptured;
-        recorder.StopRequested += OnRecorderStopRequested;
-        recorder.IgnoreInjected = _viewModel.RecordIgnoreInjected;
-        recorder.RecordController = _viewModel.RecordGamepadButtons;
-
-        try
+        if (!_session.Recording.Start(Layer, _viewModel.RecordIgnoreInjected,
+                _viewModel.RecordGamepadButtons, OnRecorderStopRequested))
         {
-            recorder.Start();
-        }
-        catch (Exception)
-        {
-            recorder.Captured -= OnCaptured;
-            recorder.StopRequested -= OnRecorderStopRequested;
-            recorder.Dispose();
             _viewModel.StopRecording();
             _ = ConfirmDialog.ShowAsync(this,
                 Strings.Get("Editor.RecordActions"),
@@ -2412,7 +2388,6 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        _recorder = recorder;
         StartRecordTimer();
 
         // Out of the way, so the work being recorded is not itself recorded as clicks on the
@@ -2422,34 +2397,16 @@ public partial class MacroEditorWindow : Window
 
     private void StopRecorder(bool announceEmpty = true)
     {
-        var recorder = _recorder;
-        _recorder = null;
-
         _recordTimer?.Stop();
         _recordTimer = null;
 
-        if (recorder is null)
+        if (!_session.Recording.IsRecording)
         {
             return;
         }
 
-        recorder.Captured -= OnCaptured;
-        recorder.StopRequested -= OnRecorderStopRequested;
-        recorder.Stop();
-        recorder.Dispose();
-
-        List<RecordedInput> captured;
-        lock (_captureLock)
-        {
-            captured = [.. _captured];
-            _captured.Clear();
-        }
-
-        IReadOnlyList<MacroStep> steps = captured.Count == 0
-            ? []
-            : RecordingTranslator.Translate(captured, RecordingChoices()).ToSteps();
-
-        _viewModel.AppendSteps(steps);
+        var outcome = _session.Recording.Stop(RecordingChoices());
+        _viewModel.AppendSteps(outcome.Steps);
 
         if (WindowState == WindowState.Minimized)
         {
@@ -2460,21 +2417,13 @@ public partial class MacroEditorWindow : Window
 
         // Nothing at all is worth explaining: input another program sends is left out on
         // purpose, so a recording over a remote session or through another tool looks empty.
-        if (announceEmpty && !_closing && captured.Count == 0)
+        if (announceEmpty && !_closing && outcome.Captured == 0)
         {
             _ = ConfirmDialog.ShowAsync(this,
                 Strings.Get("Editor.RecordActions"),
                 Strings.Get("Editor.RecordEmpty"),
                 Strings.Get("Common.Ok"),
                 showCancel: false);
-        }
-    }
-
-    private void OnCaptured(RecordedInput input)
-    {
-        lock (_captureLock)
-        {
-            _captured.Add(input);
         }
     }
 
@@ -2501,10 +2450,7 @@ public partial class MacroEditorWindow : Window
         _recordTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _recordTimer.Tick += (_, _) =>
         {
-            lock (_captureLock)
-            {
-                _viewModel.ReportRecordedEvents(_captured.Count);
-            }
+            _viewModel.ReportRecordedEvents(_session.Recording.Captured);
         };
         _recordTimer.Start();
     }

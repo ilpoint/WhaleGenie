@@ -41,23 +41,28 @@ internal sealed class MacroEditorSession
 
 验收：全量测试全绿（这条改动理想情况下一条用例都不用改）；`git diff` 里除字段声明与引用外没有别的。
 
-## 阶段 2：保存合成搬进 session
+## 阶段 2：保存合成 —— 查过之后不做
 
-`BuildRootSnapshot`（窗口约 480 行的文档合成）搬成 `session.BuildSnapshot()`。它现在要读 `_viewModel`、`_documents`、`_lifted`、`_editing` —— 除 `_viewModel`（当前页）外都已经在 session 里，作为参数传进去。
+原先写的是"`BuildRootSnapshot`（约 480 行的文档合成）搬成 `session.BuildSnapshot()`"。实际它是 8 行：
 
-验收：`SaveAll` 的用例全绿；`MacroEditorWindow` 里不再出现 `_lifted` 与合成细节。
+```csharp
+_rootViewModel.SubMacros.Clear();
+foreach (var page in _documentPages.Where(page => !page.IsCurrent))
+    _rootViewModel.SubMacros.Add(page.Editor.BuildMacro());
+return _rootViewModel.BuildMacro();
+```
 
-## 阶段 3：录制会话搬进 session
+合成的手艺在 `MacroEditorViewModel.BuildMacro()` 里，本来就在 VM。搬这 8 行只多一层调用。那个 480 行是把文档页管理那一片看成它了——**先读代码再估工作量**，这是第二次栽在同一件事上。
+
+## 阶段 3：录制会话搬进 session　✅ 已完成
 
 `StartRecorder`/`StopRecorder` 与它们的状态（正在录、选项、累计时间）搬成 session 的一部分，`IDeviceLayer` 从 session 拿。
 
 验收：录制用例全绿；窗口里只剩"按钮按下时告诉 session"。
 
-## 阶段 4：键位捕获抽成一处
+## 阶段 4：键位捕获 —— 先不动
 
-`MacroEditorWindow` 与 `ActionEditorView` 各有一套和弦捕获（`_captureModifiers` + `_swallowReleases` + 按键判定），逻辑几乎同构。抽成一个 `ChordCapture` 组件，两处共用。
-
-验收：两边的绑定用例全绿；重复的那 300 行只剩一份。
+两套捕获形似神不同：`ActionEditorView` 往一个字段或一行里填值，`MacroEditorWindow` 认的是一个独立绑定；单个修饰键的语义也不一样（窗口那一侧"按下单个 Ctrl 就是一种绑定"，编辑器那一侧不是）。合并会被迫在里面加"这次是哪一种"的分支，比两份各自清楚更难读。等真出现第三种捕获时再谈。
 
 ## 阶段 5（可选）：窗口只剩绑定
 

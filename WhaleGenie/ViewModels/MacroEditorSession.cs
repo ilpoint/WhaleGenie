@@ -51,6 +51,9 @@ internal sealed class MacroEditorSession
 
     /// <summary>A sub-macro that has been lifted and is waiting to become a page of its own.</summary>
     public PendingSubMacro? Pending { get; set; }
+
+    /// <summary>The recording in progress, or the last one that has not been stopped yet.</summary>
+    public RecordingSession Recording { get; } = new();
 }
 
 /// <summary>A lifted sub-macro together with the page that is about to show it.</summary>
