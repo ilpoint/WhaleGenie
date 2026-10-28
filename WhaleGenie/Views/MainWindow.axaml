@@ -155,21 +155,21 @@
                 <Button Classes="TitleBarButton" Name="ThemeButton"
                         ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
                         Click="OnToggleTheme">
-                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Sun}" />
+                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Sun}" />
                 </Button>                <Button Classes="TitleBarButton" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
-                    <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Pin}" />
+                    <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="HelpButton" Content="?" FontWeight="Bold"
                         FontSize="13"
                         ToolTip.Tip="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                         Click="OnAboutClicked" />
                 <Button Classes="TitleBarButton" Name="MinimizeButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -182,56 +182,56 @@
                     <MenuItem Header="{Binding [Main.OpenProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Folder}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Folder}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.SaveProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnSaveProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Save}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Save}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.SaveProjectAs], Source={x:Static loc:Strings.Current}}"
                               Click="OnSaveProjectAsClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.FilePlus}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FilePlus}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.ImportProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnImportProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Download}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Download}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenCurrentLocation], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenLocationClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Search}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Search}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.ReloadCurrent], Source={x:Static loc:Strings.Current}}"
                               Click="OnReloadCurrentClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Reload}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenDirectory], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenDirectoryClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.FolderOpen}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FolderOpen}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.CloseAll], Source={x:Static loc:Strings.Current}}"
                               Click="OnCloseAllClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Trash}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator />
                     <MenuItem Header="{Binding [Main.Exit], Source={x:Static loc:Strings.Current}}"
                               Click="OnExitClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
@@ -241,37 +241,37 @@
                     <MenuItem Header="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}"
                               Click="OnSettingsClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Settings}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.WhatsNew], Source={x:Static loc:Strings.Current}}"
                               Click="OnWhatsNewClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Sparkle}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Sparkle}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Updates], Source={x:Static loc:Strings.Current}}"
                               Click="OnUpdatesClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Reload}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Feedback], Source={x:Static loc:Strings.Current}}"
                               Click="OnFeedbackClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Message}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Message}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.GetStarted], Source={x:Static loc:Strings.Current}}"
                               Click="OnGetStartedClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.QuestionMark}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.QuestionMark}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                               Click="OnAboutClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Info}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Info}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
@@ -383,7 +383,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}"
                                         StrokeThickness="1.4" FitToBounds="True"
-                                        Data="{x:Static models:AppIcons.Sparkle}" />
+                                        Data="{x:Static vm:AppIcons.Sparkle}" />
                         <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
                                    VerticalAlignment="Center"
                                    Text="{Binding [Main.Mcp], Source={x:Static loc:Strings.Current}}" />
@@ -393,14 +393,14 @@
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
                         <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"
                                    Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
                 <Button Classes="ToolButton" Name="SettingsButton"
                         ToolTip.Tip="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Settings}" />
+                    <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -483,17 +483,17 @@
                                         <Button Name="MacroRunDebugButton" Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDebugMacroClicked">
-                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
+                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
                                         </Button>
                                         <Button Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnEditMacroClicked">
-                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Pencil}" />
+                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Pencil}" />
                                         </Button>
                                         <Button Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDeleteMacroClicked">
-                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Trash}" />
+                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -506,7 +506,7 @@
                                         <Border Grid.Column="0" Background="{DynamicResource AppHover}" CornerRadius="4"
                                                 Width="28" Height="28" VerticalAlignment="Center">
                                             <Panel>
-                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GridFour}" />
+                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GridFour}" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
@@ -558,8 +558,8 @@
                     </StackPanel>
                     <Border BorderBrush="White" BorderThickness="2" CornerRadius="6" Padding="5,3" VerticalAlignment="Center">
                         <Panel Width="14" Height="14">
-                            <views:IconView Width="14" Height="14" IsVisible="{Binding !IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Play}" />
-                            <views:IconView Width="14" Height="14" IsVisible="{Binding IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Pause}" />
+                            <views:IconView Width="14" Height="14" IsVisible="{Binding !IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Play}" />
+                            <views:IconView Width="14" Height="14" IsVisible="{Binding IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Pause}" />
                         </Panel>
                     </Border>
                 </StackPanel>
@@ -573,7 +573,7 @@
                     <!-- Same outlined badge as the run button beside it, so the two read as a pair. -->
                     <Border BorderBrush="White" BorderThickness="2" CornerRadius="6" Padding="5,3"
                             VerticalAlignment="Center">
-                        <views:IconView Width="14" Height="14" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Plus}" />
+                        <views:IconView Width="14" Height="14" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Plus}" />
                     </Border>
                 </StackPanel>
             </Button>

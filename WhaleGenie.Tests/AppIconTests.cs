@@ -60,7 +60,7 @@ public class AppIconTests
     {
         foreach (var category in Enum.GetValues<ActionCategory>())
         {
-            Assert.NotNull(ActionCatalog.IconFor(category));
+            Assert.NotNull(ActionCategoryPresentation.IconFor(category));
         }
     }
 

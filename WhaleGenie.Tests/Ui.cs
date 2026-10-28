@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia.Headless;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 // The headless session is one thread carrying one Avalonia application. Two test classes that
 // start at the same time race to set that up, and the one that loses is told its own dispatcher

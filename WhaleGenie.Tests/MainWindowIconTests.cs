@@ -1,3 +1,5 @@
+using WhaleGenie.ViewModels;
+
 namespace WhaleGenie.Tests;
 
 /// <summary>
@@ -28,11 +30,11 @@ public class MainWindowIconTests
         var editor = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
             "MacroEditorWindow.axaml"));
 
-        Assert.Contains("models:AppIcons.BugPlay",
+        Assert.Contains("vm:AppIcons.BugPlay",
             Block(main, "Name=\"RunDebugButton\""), StringComparison.Ordinal);
-        Assert.Contains("models:AppIcons.BugPlay",
+        Assert.Contains("vm:AppIcons.BugPlay",
             Block(main, "Name=\"MacroRunDebugButton\""), StringComparison.Ordinal);
-        Assert.Contains("models:AppIcons.BugPlay",
+        Assert.Contains("vm:AppIcons.BugPlay",
             Block(editor, "Name=\"RunDebugButton\""), StringComparison.Ordinal);
     }
 

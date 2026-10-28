@@ -110,7 +110,7 @@
                     Margin="8,0" VerticalAlignment="Center">
                 <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
                                 StrokeThickness="1.2" FitToBounds="True"
-                                Data="{x:Static models:AppIcons.X}" />
+                                Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
 

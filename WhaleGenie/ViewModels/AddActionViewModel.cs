@@ -1118,7 +1118,7 @@ public partial class AddActionViewModel : ViewModelBase
 
         if (blocks.Count > 0)
         {
-            Group(BlockGroup, Strings.Get("Add.Blocks"), ActionCatalog.IconFor(ActionCategory.Control),
+            Group(BlockGroup, Strings.Get("Add.Blocks"), ActionCategoryPresentation.IconFor(ActionCategory.Control),
                 blocks, searching || _openedGroups.Contains(BlockGroup), Strings.Get("Add.BlocksNote"));
         }
 
@@ -1158,7 +1158,7 @@ public partial class AddActionViewModel : ViewModelBase
         void Category(ActionCategory category, IReadOnlyList<ActionDefinition> actions, bool open)
         {
             var key = category.ToString();
-            Group(key, CategoryName(category), ActionCatalog.IconFor(category), actions,
+            Group(key, CategoryName(category), ActionCategoryPresentation.IconFor(category), actions,
                 open || _openedGroups.Contains(key));
         }
     }

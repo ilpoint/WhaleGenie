@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
+        xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -118,7 +119,7 @@
                     <!-- Putting this one away leaves the screen behind it free, which is how what was
                          found is compared with what is really there. -->
                     <Button Classes="TitleBarButton" Name="MinimizeButton" Click="OnMinimize">
-                        <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
+                        <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                     </Button>
                     <Button Classes="TitleBarButton" Content="✕"
                         Click="OnClose" />

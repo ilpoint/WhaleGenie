@@ -21,6 +21,8 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
+using WhaleGenie.ViewModels;
+
 namespace WhaleGenie.Views;
 
 /// <summary>One editable or runnable position on a common or context page.</summary>

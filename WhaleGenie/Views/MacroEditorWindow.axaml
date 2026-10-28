@@ -560,21 +560,21 @@
                         ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="PinIcon" Width="11" Height="11"
                                     Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
-                                    FitToBounds="True" Data="{x:Static models:AppIcons.Pin}" />
+                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="MaximizeButton"
                         ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="MaximizeIcon" Width="10" Height="10"
                                     Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
-                                    FitToBounds="True" Data="{x:Static models:AppIcons.Maximize}" />
+                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                 </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton"
                         ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -594,7 +594,7 @@
                 <Button Grid.Row="1" Classes="FlatButton" Height="34" Margin="4,2,4,4"
                         Click="OnShowRecording">
                     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Record}" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
                         <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -644,7 +644,7 @@
                                 <views:IconView Width="15" Height="15"
                                                 Stroke="{DynamicResource AppTextStrong}"
                                                 StrokeThickness="1.4" FitToBounds="True"
-                                                Data="{x:Static models:AppIcons.Settings}" />
+                                                Data="{x:Static vm:AppIcons.Settings}" />
                                 <TextBlock Grid.Column="1" Name="MacroSettingsTitle"
                                            VerticalAlignment="Center"
                                            FontSize="13" FontWeight="SemiBold"
@@ -707,7 +707,7 @@
                                                                             Stroke="{DynamicResource AppText}"
                                                                             StrokeThickness="1.3"
                                                                             FitToBounds="True"
-                                                                            Data="{x:Static models:AppIcons.X}" />
+                                                                            Data="{x:Static vm:AppIcons.X}" />
                                                         </Button>
                                                     </Grid>
                                                 </Border>
@@ -724,14 +724,14 @@
                                                                 Stroke="{DynamicResource AppText}"
                                                                 StrokeThickness="1.4"
                                                                 FitToBounds="True"
-                                                                Data="{x:Static models:AppIcons.Plus}" />
+                                                                Data="{x:Static vm:AppIcons.Plus}" />
                                                 <TextBlock VerticalAlignment="Center"
                                                            Text="{Binding [Editor.AddTrigger], Source={x:Static loc:Strings.Current}}" />
                                                 <views:IconView Width="10" Height="10"
                                                                 Stroke="{DynamicResource AppMuted}"
                                                                 StrokeThickness="1.3"
                                                                 FitToBounds="True"
-                                                                Data="{x:Static models:AppIcons.ChevronDown}" />
+                                                                Data="{x:Static vm:AppIcons.ChevronDown}" />
                                             </StackPanel>
                                         </Button.Content>
                                         <Button.Flyout>
@@ -859,7 +859,7 @@
                                                 Width="38" Height="33" Padding="0"
                                                 ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickColorClicked">
-                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static models:AppIcons.Dropper}" />
+                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
                                         </Button>
                                     </Grid>
 
@@ -1189,7 +1189,7 @@
                                     <views:IconView Width="13" Height="13"
                                                     Stroke="{DynamicResource AppText}"
                                                     StrokeThickness="1.3" FitToBounds="True"
-                                                    Data="{x:Static models:AppIcons.Save}" />
+                                                    Data="{x:Static vm:AppIcons.Save}" />
                                     <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Button>
@@ -1200,7 +1200,7 @@
                                     <views:IconView Width="13" Height="13"
                                                     Stroke="{DynamicResource AppText}"
                                                     StrokeThickness="1.3" FitToBounds="True"
-                                                    Data="{x:Static models:AppIcons.BugPlay}" />
+                                                    Data="{x:Static vm:AppIcons.BugPlay}" />
                                     <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Button>
@@ -1229,7 +1229,7 @@
                             <views:IconView Grid.Column="1" Width="12" Height="12"
                                             IsVisible="{Binding HasProblem}"
                                             Stroke="#E06C75" StrokeThickness="1.4"
-                                            Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                            Data="{x:Static vm:AppIcons.WarningTriangle}" />
                             <Button Grid.Column="2" Name="CloseDocumentButton"
                                     Classes="TabCloseButton"
                                     IsVisible="{Binding !IsCurrent}"
@@ -1239,7 +1239,7 @@
                                 <views:IconView Width="9" Height="9"
                                                 Stroke="{DynamicResource AppMuted}"
                                                 StrokeThickness="1.3" FitToBounds="True"
-                                                Data="{x:Static models:AppIcons.X}" />
+                                                Data="{x:Static vm:AppIcons.X}" />
                             </Button>
                         </Grid>
                     </DataTemplate>
@@ -1386,7 +1386,7 @@
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
                                                               FitToBounds="True"
-                                                              Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                                              Data="{x:Static vm:AppIcons.WarningTriangle}" />
                                           </Border>
                                       </StackPanel>
                                   </Border>
@@ -1409,7 +1409,7 @@
                                                                   Stroke="{DynamicResource AppText}"
                                                                   StrokeThickness="1.6"
                                                                   FitToBounds="True"
-                                                  Data="{x:Static models:AppIcons.ArrowDown}" />
+                                                  Data="{x:Static vm:AppIcons.ArrowDown}" />
                                                   <TextBlock Text="{Binding AddLabel}"
                                                              VerticalAlignment="Center" />
                                               </StackPanel>
@@ -1482,7 +1482,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Cursor}" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Cursor}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1497,7 +1497,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Mouse}" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Mouse}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1512,7 +1512,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Keyboard}" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Keyboard}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1527,7 +1527,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Clock}" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Clock}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1542,7 +1542,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GameController}" />
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GameController}" />
                                                     <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
@@ -1559,7 +1559,7 @@
                                             <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                         Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
                                                 <!-- Funnel: input from elsewhere is filtered out -->
-                                                <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Filter}" />
+                                                <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Filter}" />
                                                 <TextBlock FontSize="12.5" VerticalAlignment="Center"
                                                            Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
                                             </StackPanel>

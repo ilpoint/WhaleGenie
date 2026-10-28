@@ -144,25 +144,6 @@ public static class ActionCatalog
     public static IReadOnlyList<ActionDefinition> ForKeys(IReadOnlyList<string> keys)
         => [.. keys.Select(Find).OfType<ActionDefinition>()];
 
-    /// <summary>Line-art icon shared by every action of a category.</summary>
-    public static Lucide.Avalonia.LucideIconKind? IconFor(ActionCategory category) => category switch
-    {
-        ActionCategory.Control => AppIcons.Workflow,
-        ActionCategory.File => AppIcons.File,
-        ActionCategory.Data => AppIcons.Variable,
-        ActionCategory.Clipboard => AppIcons.Clipboard,
-        ActionCategory.Process => AppIcons.Cpu,
-        ActionCategory.System => AppIcons.Settings,
-        ActionCategory.Window => AppIcons.AppWindow,
-        ActionCategory.Input => AppIcons.Keyboard,
-        ActionCategory.Vision => AppIcons.Eye,
-        ActionCategory.Ocr => AppIcons.TextScan,
-        ActionCategory.Uia => AppIcons.CursorClick,
-        ActionCategory.Browser => AppIcons.Browser,
-        ActionCategory.Script => AppIcons.Code,
-        _ => null,
-    };
-
     private static IReadOnlyList<DisplayAction> LoadDisplay()
     {
         using var stream = typeof(ActionCatalog).Assembly.GetManifestResourceStream(DisplayResource)

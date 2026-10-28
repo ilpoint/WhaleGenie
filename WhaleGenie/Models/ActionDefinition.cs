@@ -508,8 +508,6 @@ public class ActionDefinition
     /// </summary>
     public bool Retired => Semantics.Retired;
 
-    /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
-    public Lucide.Avalonia.LucideIconKind? Icon => ActionCatalog.IconFor(Category);
 
     /// <summary>
     /// The step timeout a step of this action starts out with, in milliseconds, or 0 for an action

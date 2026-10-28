@@ -115,7 +115,7 @@
                     ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
                 <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
                                 StrokeThickness="1.2" FitToBounds="True"
-                                Data="{x:Static models:AppIcons.X}" />
+                                Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
 
@@ -161,7 +161,7 @@
                                                    FitToBounds="True"
                                                    IsVisible="{Binding HasProblem}"
                                                    ToolTip.Tip="{Binding [GlobalVariables.HasProblemHint], Source={x:Static loc:Strings.Current}}"
-                                                   Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                                   Data="{x:Static vm:AppIcons.WarningTriangle}" />
                                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
                                                FontFamily="Consolas" TextWrapping="Wrap" />
                                     <StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Right">

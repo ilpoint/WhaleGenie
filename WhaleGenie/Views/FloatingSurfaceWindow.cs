@@ -13,6 +13,8 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
+using WhaleGenie.ViewModels;
+
 namespace WhaleGenie.Views;
 
 /// <summary>

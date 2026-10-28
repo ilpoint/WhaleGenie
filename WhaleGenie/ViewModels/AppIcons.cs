@@ -1,6 +1,6 @@
 using Lucide.Avalonia;
 
-namespace WhaleGenie.Models;
+namespace WhaleGenie.ViewModels;
 
 /// <summary>
 /// Semantic names used by the interface, mapped to the Lucide icon set. Keeping the names here

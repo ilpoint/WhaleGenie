@@ -311,23 +311,23 @@
                             ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="PinIcon" Width="11" Height="11"
                                         Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
-                                        FitToBounds="True" Data="{x:Static models:AppIcons.Pin}" />
+                                        FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                     </Button>
                     <!-- A run carries on while its window is out of the way, which is what watching
                          the macro work in the program it drives takes. -->
                     <Button Classes="TitleBarButton" Name="MinimizeButton"
                             ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
+                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                     </Button>
                     <Button Classes="TitleBarButton" Name="MaximizeButton"
                             ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="MaximizeIcon" Width="10" Height="10"
                                         Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
-                                        FitToBounds="True" Data="{x:Static models:AppIcons.Maximize}" />
+                                        FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                     </Button>
                     <Button Classes="TitleBarButton" Name="CloseButton"
                             ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                     </Button>
                 </StackPanel>
             </Grid>
