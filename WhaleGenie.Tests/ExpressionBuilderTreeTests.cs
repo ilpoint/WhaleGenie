@@ -121,6 +121,17 @@ public class ExpressionBuilderTreeTests
             var buildTop = build.TranslatePoint(new Point(0, 0), window)!.Value.Y;
             Assert.True(buildTop >= treeBottom - 0.5);
 
+            // The wall under the tree is two halves rather than one column with half of it empty:
+            // operators and values on the left, the names they are made of on the right.
+            var left = window.FindControl<ScrollViewer>("BuildLeft")!;
+            var right = window.FindControl<ScrollViewer>("BuildRight")!;
+            Assert.True(left.Bounds.Width > 200, $"the left half is {left.Bounds.Width:0} wide");
+            Assert.Equal(left.Bounds.Width, right.Bounds.Width, 0);
+
+            var leftAt = left.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            var rightAt = right.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.True(rightAt > leftAt + left.Bounds.Width);
+
             // The two walls are one on each side, both under the page.
             var buildLeft = build.TranslatePoint(new Point(0, 0), window)!.Value.X;
             var functionLeft = functions.TranslatePoint(new Point(0, 0), window)!.Value.X;

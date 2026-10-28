@@ -364,55 +364,60 @@
                 <!-- The cards that build a formula: names, plain values and operators, along the
                      bottom of the page they are dragged onto, which leaves the tree the full height
                      of the window. -->
-                <Border Grid.Row="3" Name="BuildPanel" Classes="Panel" Margin="0,10,0,0" MaxHeight="320">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
-                            <!-- An operator is dragged onto the line it should wrap; a click only
-                                 says so. -->
-                            <ItemsControl ItemsSource="{Binding TreeOperators}"
-                                          IsVisible="{Binding IsTreePage}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:TreeOperator">
-                                        <Button Classes="Card" Content="{Binding Token}"
-                                                ToolTip.Tip="{Binding Hint}" Click="OnWrapWithOperator" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <!-- The operators read as a wall of cards that wrap, and each one says what
-                                 it does on hover. A list with a description beside every button would
-                                 push the variable wall below the fold. -->
-                            <StackPanel IsVisible="{Binding IsTreePage}">
-                                <Border Classes="Divider" />
-                                <TextBlock Classes="FieldLabel" Text="{Binding ValuesHeader}" />
-                                <ItemsControl ItemsSource="{Binding Values}">
+                <Border Grid.Row="3" Name="BuildPanel" Classes="Panel" Margin="0,10,0,0" MaxHeight="260">
+                    <Grid ColumnDefinitions="*,16,*">
+                        <!-- What is written into a formula: operators, and the plain values they can
+                             be applied to. -->
+                        <ScrollViewer Grid.Column="0" Name="BuildLeft" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
+                                <!-- An operator is dragged onto the line it should wrap; a click only
+                                     says so. -->
+                                <ItemsControl ItemsSource="{Binding TreeOperators}"
+                                              IsVisible="{Binding IsTreePage}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <WrapPanel Orientation="Horizontal" />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:ValueChoice">
-                                            <Button Classes="Card" Content="{Binding Label}"
-                                                    ToolTip.Tip="{Binding Hint}" Click="OnPickValue" />
+                                        <DataTemplate x:DataType="vm:TreeOperator">
+                                            <Button Classes="Card" Content="{Binding Token}"
+                                                    ToolTip.Tip="{Binding Hint}" Click="OnWrapWithOperator" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                            </StackPanel>
 
-                            <Border Classes="Divider" />
-                            <TextBlock Classes="FieldLabel" Text="{Binding VariablesHeader}" />
-                            <!-- The variables read as the same wall of buttons the picker beside a
-                                 field shows, and hovering one says what it is. -->
-                            <views:VariableWall DataContext="{Binding Wall}" />
-                        </StackPanel>
-                    </ScrollViewer>
+                                <StackPanel IsVisible="{Binding IsTreePage}">
+                                    <Border Classes="Divider" />
+                                    <TextBlock Classes="FieldLabel" Text="{Binding ValuesHeader}" />
+                                    <ItemsControl ItemsSource="{Binding Values}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ValueChoice">
+                                                <Button Classes="Card" Content="{Binding Label}"
+                                                        ToolTip.Tip="{Binding Hint}" Click="OnPickValue" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- And the names they can be made of, on the other half. -->
+                        <ScrollViewer Grid.Column="2" Name="BuildRight" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel" Text="{Binding VariablesHeader}" />
+                                <!-- The variables read as the same wall of buttons the picker beside
+                                     a field shows, and hovering one says what it is. -->
+                                <views:VariableWall DataContext="{Binding Wall}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
             </Grid>
 
