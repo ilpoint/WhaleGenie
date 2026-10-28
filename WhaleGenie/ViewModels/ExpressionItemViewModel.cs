@@ -326,6 +326,12 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>How far this line is moved to the right, one step for each level above it.</summary>
     public Thickness Indent => new(Depth * Step, 0, 0, 0);
 
+    /// <summary>
+    /// How wide the box is. The whole formula gets a wide one — it is the one line that may hold all
+    /// of it — and the lines inside it keep to a width that leaves room for the arguments beside it.
+    /// </summary>
+    public double CellWidth => Parent is null ? 320 : 150;
+
     /// <summary>True while another argument or item may be added under this piece.</summary>
     public bool CanAddChild => Kind switch
     {
@@ -355,12 +361,13 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>
     /// What an empty place says. Under a function it says what goes in that argument — the box that
     /// stands for a regular expression has to say so, not "a number or a piece of text", which is the
-    /// same sentence every other box used to carry.
+    /// same sentence every other box used to carry. The whole formula, with nothing in it yet, shows
+    /// what a formula looks like rather than a word about one operand of it.
     /// </summary>
     public string HoleHint => Slot is { } slot
         && ExpressionText.PlaceholderSaid(_call, slot) is { Length: > 0 } said
             ? said
-            : Strings.Get("ExprBuilder.Tree.Hole");
+            : Strings.Get(Parent is null ? "ExprBuilder.Tree.Whole" : "ExprBuilder.Tree.Hole");
 
     /// <summary>The piece as the engine's own tree, which is what turns it back into a formula.</summary>
     public ExpressionNode ToNode() => Kind switch

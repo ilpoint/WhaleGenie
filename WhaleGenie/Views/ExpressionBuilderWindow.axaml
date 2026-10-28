@@ -303,7 +303,7 @@
                                                        Text="{Binding Label}"
                                                        IsVisible="{Binding HasLabel}"
                                                        ToolTip.Tip="{Binding LabelHint}" />
-                                            <TextBox Classes="Cell" Width="150"
+                                            <TextBox Classes="Cell" Width="{Binding CellWidth}"
                                                      Text="{Binding Literal}"
                                                      PlaceholderText="{Binding HoleHint}"
                                                      IsVisible="{Binding IsTextBox}" />
@@ -313,7 +313,7 @@
                                             <CheckBox IsVisible="{Binding IsFlag}"
                                                       IsChecked="{Binding FlagValue}"
                                                       ToolTip.Tip="{Binding LabelHint}" />
-                                            <ComboBox Classes="Cell" Width="150"
+                                            <ComboBox Classes="Cell" Width="{Binding CellWidth}"
                                                       ItemsSource="{Binding Choices}"
                                                       SelectedItem="{Binding ChosenWord}"
                                                       PlaceholderText="{Binding HoleHint}"

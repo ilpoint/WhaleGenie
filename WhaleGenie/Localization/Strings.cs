@@ -1262,7 +1262,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.Placeholder"] = "$count + 1",
         ["ExprBuilder.Tab.Tree"] = "Structure",
         ["ExprBuilder.Tab.Text"] = "Text",
-        ["ExprBuilder.Tree.Help"] = "Drag a card from the right onto the line it belongs to: an "
+        ["ExprBuilder.Tree.Help"] = "Drag a card onto the line it belongs to: an "
             + "empty place is filled, a line is wrapped, replaced or taken as a function's first "
             + "argument. A click places nothing. Brackets are not typed here: the shape of the tree "
             + "decides them.",
@@ -1293,6 +1293,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.NothingPicked"] = "Nothing is picked. Dragging decides where a piece goes; clicking a line picks it, and Delete removes it.",
         ["ExprBuilder.Tree.Hole"] = "Number or text",
         ["ExprBuilder.Tree.Picked"] = "Picked: {0}",
+        ["ExprBuilder.Tree.Whole"] = "a formula, such as $a + 1",
         ["ExprBuilder.Tree.Nothing"] = "Nothing written yet: OK leaves the value empty.",
         ["ExprBuilder.Tree.ToFill"] = "Still to fill in: {0}",
         ["ExprBuilder.Tree.Preview"] = "The formula",
@@ -3171,7 +3172,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.Placeholder"] = "$count + 1",
         ["ExprBuilder.Tab.Tree"] = "结构",
         ["ExprBuilder.Tab.Text"] = "手写",
-        ["ExprBuilder.Tree.Help"] = "把右边的卡片拖到它该在的那一行上：空位被填上，已有的一段被包住、替换，或成为函数的"
+        ["ExprBuilder.Tree.Help"] = "把卡片拖到它该在的那一行上：空位被填上，已有的一段被包住、替换，或成为函数的"
             + "第一个参数。点一下不会放进任何东西。这里不写括号，括号由树的形状决定。",
         ["ExprBuilder.Tree.CannotRead"] = "另一页上写的内容目前还不是一条算式，此处没有可显示的内容。"
             + "先在那一页改好，再回来。",
@@ -3188,6 +3189,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.NothingPicked"] = "还没有选中任何一段。位置由拖拽决定；点一行会选中它，按 Delete 可以删除这一段。",
         ["ExprBuilder.Tree.Hole"] = "数字或文字",
         ["ExprBuilder.Tree.Picked"] = "当前选中：{0}",
+        ["ExprBuilder.Tree.Whole"] = "一条公式，如 $a + 1",
         ["ExprBuilder.Tree.Nothing"] = "还什么都没写：确认就是把这个值留空。",
         ["ExprBuilder.Tree.ToFill"] = "还有 {0} 处没填",
         ["ExprBuilder.Tree.Preview"] = "生成出来的公式",

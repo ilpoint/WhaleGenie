@@ -953,6 +953,12 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
+            // The whole formula, empty, is described as a formula rather than as one operand of one.
+            var blank = Builder(string.Empty);
+            Assert.Equal(Strings.Get("ExprBuilder.Tree.Whole"), blank.Rows[0].HoleHint);
+            Assert.NotEqual(Strings.Get("ExprBuilder.Tree.Hole"), blank.Rows[0].HoleHint);
+            Assert.True(blank.Rows[0].CellWidth > 150);
+
             var builder = Empty("a");
             Land(builder, "var:a");
             Land(builder, "fn:match");
