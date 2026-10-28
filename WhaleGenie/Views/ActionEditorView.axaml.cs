@@ -527,7 +527,7 @@ public partial class ActionEditorView : UserControl
 
         if (viewModel.SelectedKey == "input.mouseDrag")
         {
-            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices, bounds) is { } drag)
+            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices.Screen, Devices.Windows, bounds) is { } drag)
             {
                 viewModel.ApplyDrag(drag.StartX, drag.StartY, drag.EndX, drag.EndY);
             }
@@ -535,7 +535,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds);
+        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -561,7 +561,7 @@ public partial class ActionEditorView : UserControl
 
         var initial = new RegionPickerWindow.Region(target.Location.X, target.Location.Y,
             target.Size.Width, target.Size.Height);
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, null, target.Handle)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial, null, target.Handle)
             is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -661,7 +661,7 @@ public partial class ActionEditorView : UserControl
                     target.Width, target.Height);
             }
 
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder,
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows, viewModel.AssetFolder,
                     bounds)
                 is { Length: > 0 } picture)
             {
@@ -787,7 +787,7 @@ public partial class ActionEditorView : UserControl
             bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
         }
 
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds) is { } picked)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }
@@ -1649,7 +1649,7 @@ public partial class ActionEditorView : UserControl
                     target.Width, target.Height);
             }
 
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder,
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows, viewModel.AssetFolder,
                     bounds)
                 is { Length: > 0 } picture)
             {

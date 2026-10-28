@@ -62,9 +62,11 @@
 
 1. **设备接口按消费者收窄**：构造函数只接真正用到的窄接口（`IScreenDevice`、`IWindowDevice`…），聚合接口留给组合根。替身随之变瘦（`FakeDeviceLayer` 1534 行会自己掉下来）。
 
-   **四个拾取器已经收窄**：`WindowRuleWindow`（窗口 + 钩子）、`ColorPickerWindow`（屏幕 + 输入 + 钩子）、`PointPickerWindow`（屏幕 + 窗口 + UIA + 钩子）、`ElementPickerWindow`（屏幕 + 钩子 + UIA）；`PickAsync` 一并收窄，调用点写 `Devices.Windows` / `Devices.Screen` 这样。
+   **五个拾取器已经收窄**：`WindowRuleWindow`（窗口 + 钩子）、`ColorPickerWindow`（屏幕 + 输入 + 钩子）、`PointPickerWindow`（屏幕 + 窗口 + UIA + 钩子）、`ElementPickerWindow`（屏幕 + 钩子 + UIA）、`RegionPickerWindow`（屏幕 + 窗口）；`PickAsync` 一并收窄，调用点写 `Devices.Windows` / `Devices.Screen` 这样。
 
-   一个诚实的结论：**现有测试不会因此变简单**——`ChecksDevices` 本来就是整个层，现在只是取几个属性。收益在两个地方：读构造函数就知道这个窗口要什么，新写替身时只需实现那几个接口。剩下的是 `RegionPickerWindow`、`LookWindow` 与 `MacroEditorWindow`：前两个照做，`MacroEditorWindow` 用的设备最多，等它自己的职责搬完再收。
+   一个诚实的结论：**现有测试不会因此变简单**——`ChecksDevices` 本来就是整个层，现在只是取几个属性。收益在两个地方：读构造函数就知道这个窗口要什么，新写替身时只需实现那几个接口。
+
+   两个收不了的：`LookWindow` 把整个层交给 `MacroRunner.LookOnce`（引擎的试运行契约要的就是整层），除非先给 `LookOnce` 换一个窄参数；`MacroEditorWindow` 用的设备最多，等它自己的职责搬完再收。
 2. **视图搬业务**：`MainWindow` 的触发器与恢复、`MacroEditorWindow` 的文档与录制、`ActionEditorView` 的试运行，一处一处搬到应用层服务（阶段 2 的容器正好用来拿）。
 
    **第一块已搬（触发器）**：`TriggerRuntime` 持有 `MacroTriggerService` 和它读的那份快照，注册进容器，`MainWindow` 从构造进来。窗口里留下的只有它才能做的事：失败步骤要问的那两个对话框、触发器条目要开的菜单、以及关窗时把它停掉（释放归容器）。测试与无窗口路径仍然 `new MainWindow()`，触发器用到时才建——一个只读绑定的窗口不该往机器上挂钩子。

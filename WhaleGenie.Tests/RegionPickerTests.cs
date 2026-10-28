@@ -63,7 +63,7 @@ public class RegionPickerTests
         Ui.Run(() =>
         {
             var bounds = new RegionPickerWindow.Region(10, 20, 100, 80);
-            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() },
+            var window = new RegionPickerWindow(new Desk(), new ChecksDevices().Windows,
                 null, bounds);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -94,7 +94,7 @@ public class RegionPickerTests
         Ui.Run(() =>
         {
             var bounds = new RegionPickerWindow.Region(10, 20, 100, 80);
-            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() },
+            var window = new RegionPickerWindow(new Desk(), new ChecksDevices().Windows,
                 new RegionPickerWindow.Region(0, 0, 50, 50), bounds);
             _ = window.TakeAsync();
             Dispatcher.UIThread.RunJobs();
@@ -168,7 +168,7 @@ public class RegionPickerTests
         Ui.Run(() =>
         {
             var machine = new Desk();
-            var window = new RegionPickerWindow(new ChecksDevices { Screen = machine });
+            var window = new RegionPickerWindow(machine, new ChecksDevices().Windows);
 
             // What every entry point into this picker does first: the desk is taken down as a
             // picture — before the window goes up, or the picture would be the picker itself.
@@ -228,7 +228,7 @@ public class RegionPickerTests
     {
         Ui.Run(() =>
         {
-            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() });
+            var window = new RegionPickerWindow(new Desk(), new ChecksDevices().Windows);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -252,7 +252,7 @@ public class RegionPickerTests
     {
         Ui.Run(() =>
         {
-            var window = new RegionPickerWindow(new ChecksDevices { Screen = new Desk() },
+            var window = new RegionPickerWindow(new Desk(), new ChecksDevices().Windows,
                 arrow: true);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -417,7 +417,7 @@ public class RegionPickerTests
                 .Place(9, 10, 20, 100, 80);
             var devices = new ChecksDevices { Screen = new Desk(), Windows = windows };
             var initial = new RegionPickerWindow.Region(10, 20, 100, 80);
-            var window = new RegionPickerWindow(devices, initial, null, liveWindow: 9);
+            var window = new RegionPickerWindow(devices.Screen, devices.Windows, initial, null, liveWindow: 9);
             _ = window.TakeAsync();
             Dispatcher.UIThread.RunJobs();
 

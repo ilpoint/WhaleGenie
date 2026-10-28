@@ -233,7 +233,7 @@ public class PickerAsideTests
     {
         var (region, away, stillAway, back) = Ui.RunAsync(async () =>
         {
-            var picker = new RegionPickerWindow(new ChecksDevices { Screen = new ScreenForChecks() });
+            var picker = new RegionPickerWindow(new ScreenForChecks(), new ChecksDevices().Windows);
             var editor = OnScreen(new Window());
             var asking = OnScreen(new Window());
 

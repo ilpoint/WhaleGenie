@@ -71,7 +71,7 @@ public partial class RegionPickerWindow : Window
         SouthWest,
     }
 
-    private readonly IDeviceLayer _devices;
+    private readonly IWindowDevice _windows;
     private readonly IScreenDevice _screen;
     private readonly Region? _initial;
     private readonly Region? _bounds;
@@ -124,7 +124,7 @@ public partial class RegionPickerWindow : Window
     private bool _done;
 
     public RegionPickerWindow()
-        : this(SharedDevices.Current, null, null)
+        : this(SharedDevices.Current.Screen, SharedDevices.Current.Windows, null, null)
     {
     }
 
@@ -132,11 +132,11 @@ public partial class RegionPickerWindow : Window
     /// The picker over the desk the device layer describes, which is what a check hands over when it
     /// wants a rectangle drawn against a desk of its own.
     /// </summary>
-    internal RegionPickerWindow(IDeviceLayer devices, Region? initial = null, Region? bounds = null,
-        long liveWindow = 0, bool arrow = false)
+    internal RegionPickerWindow(IScreenDevice screen, IWindowDevice windows, Region? initial = null,
+        Region? bounds = null, long liveWindow = 0, bool arrow = false)
     {
-        _devices = devices;
-        _screen = devices.Screen;
+        _screen = screen;
+        _windows = windows;
         _initial = initial;
         _bounds = bounds is { Width: > 0, Height: > 0 } ? bounds : null;
         _arrow = arrow;
@@ -253,25 +253,26 @@ public partial class RegionPickerWindow : Window
     /// Every window this program has goes out of the way first, the window that asked included: the
     /// region being picked is usually behind one of them.
     /// </summary>
-    public static async Task<Region?> PickAsync(Window owner, IDeviceLayer devices)
-        => await PickAsync(owner, devices, null, null);
+    public static async Task<Region?> PickAsync(Window owner, IScreenDevice screen,
+        IWindowDevice windows)
+        => await PickAsync(owner, screen, windows, null, null);
 
-    public static async Task<Region?> PickAsync(Window owner, IDeviceLayer devices, Region? initial,
-        Region? bounds = null, long liveWindow = 0)
+    public static async Task<Region?> PickAsync(Window owner, IScreenDevice screen,
+        IWindowDevice windows, Region? initial, Region? bounds = null, long liveWindow = 0)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new RegionPickerWindow(devices, initial, bounds, liveWindow).TakeAsync();
+        return await new RegionPickerWindow(screen, windows, initial, bounds, liveWindow).TakeAsync();
     }
 
     /// <summary>
     /// The picker that draws a direction rather than a rectangle, reporting the start and end in the
     /// order the pointer visited them.
     /// </summary>
-    public static async Task<DragSpan?> PickDragAsync(Window owner, IDeviceLayer devices,
-        Region? bounds = null)
+    public static async Task<DragSpan?> PickDragAsync(Window owner, IScreenDevice screen,
+        IWindowDevice windows, Region? bounds = null)
     {
         using var aside = AppWindows.StepAside(owner);
-        var picker = new RegionPickerWindow(devices, null, bounds, arrow: true);
+        var picker = new RegionPickerWindow(screen, windows, null, bounds, arrow: true);
         _ = await picker.TakeAsync();
         return picker.ConfirmedDrag;
     }
@@ -281,12 +282,12 @@ public partial class RegionPickerWindow : Window
     /// for is a reference picture, and the windows stay away until that picture has been taken: a
     /// window put back in front of where the rectangle was drawn would be in the picture.
     /// </summary>
-    public static async Task<string?> CaptureAsync(Window owner, IDeviceLayer devices, string folder,
-        Region? bounds = null)
+    public static async Task<string?> CaptureAsync(Window owner, IScreenDevice screen,
+        IWindowDevice windows, string folder, Region? bounds = null)
     {
         using var aside = AppWindows.StepAside(owner);
 
-        if (await new RegionPickerWindow(devices, null, bounds).TakeAsync() is not { } region)
+        if (await new RegionPickerWindow(screen, windows, null, bounds).TakeAsync() is not { } region)
         {
             return null;
         }
@@ -296,7 +297,7 @@ public partial class RegionPickerWindow : Window
         // picker's own overlay out of the picture.
         ScreenComposed.Wait();
 
-        return ImageAssets.Capture(devices.Screen, region.X, region.Y, region.Width, region.Height, folder);
+        return ImageAssets.Capture(screen, region.X, region.Y, region.Width, region.Height, folder);
     }
 
     /// <summary>
@@ -896,7 +897,7 @@ public partial class RegionPickerWindow : Window
 
         try
         {
-            if (_devices.Windows.Move(_liveWindow, region.X, region.Y, region.Width, region.Height))
+            if (_windows.Move(_liveWindow, region.X, region.Y, region.Width, region.Height))
             {
                 _liveAt = region;
             }
@@ -1011,7 +1012,7 @@ public partial class RegionPickerWindow : Window
 
         try
         {
-            _devices.Windows.Move(_liveWindow, original.X, original.Y, original.Width,
+            _windows.Move(_liveWindow, original.X, original.Y, original.Width,
                 original.Height);
         }
         catch (Exception)

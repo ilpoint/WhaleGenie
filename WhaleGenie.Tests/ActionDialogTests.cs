@@ -1479,9 +1479,9 @@ public class ActionDialogTests
         var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
             "ActionEditorView.axaml.cs"));
 
-        Assert.Contains("RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds)", code,
+        Assert.Contains("RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds)", code,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("RegionPickerWindow.PickAsync(HostWindow!, Devices, bounds, bounds)", code,
+        Assert.DoesNotContain("RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, bounds, bounds)", code,
             StringComparison.Ordinal);
     }
 
@@ -1493,7 +1493,7 @@ public class ActionDialogTests
             "ActionEditorView.axaml.cs"));
 
         Assert.Contains(
-            "RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, null, target.Handle)",
+            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial, null, target.Handle)",
             code, StringComparison.Ordinal);
     }
 
