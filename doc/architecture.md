@@ -237,7 +237,7 @@ HTTP POST /mcp
 2. 构造器直接持有父 VM；
 3. 静态单例广播（`SharedVariables.Current.Changed`、`VariableCatalog.GlobalsChanged`、`Strings.Current.LanguageChanged`）。
 
-没有消息总线，通信靠上面三种。也还没有 DI 容器：VM 由 View 现场 `new`，层级关系由窗口创建顺序决定而不是由组合决定，于是"谁能拿到什么"散在几十个构造调用里——这是阶段 2 要改掉的事，见 `doc/refactor-plan.md`。
+没有消息总线，通信靠上面三种。依赖由容器组装：`AppServices` 是唯一的组合根，设备层、项目、草稿箱、MCP 服务与三套工具都从那里解析。子窗口与触发器服务暂时仍由窗口创建——那是阶段 4 的活。
 
 ### 7.4 文案表
 
@@ -364,7 +364,7 @@ HTTP POST /mcp
 4. **`WhaleGenie.Core` 里放着几个只服务界面的东西**：`StepMeta.ToJson`（文件格式）、`ActionParameterSemantics` 里的编辑器事实、`MacroRunner.LookOnce`（对话框的"试一下"）。挪走的收益不抵一次大改。
 5. **MCP 传输是无状态的 HTTP**，因此没有资源订阅推送、没有会话级状态。
 
-**不在这一列里的**：依赖注入不是取舍，是欠着的（阶段 2）。原先把它写成"有意的取舍"是错的——.NET 项目的依赖由容器组装是常规做法，手工 `new` 省下的只是配置，代价是依赖关系散落在每个构造调用里。
+**原先写错的**：依赖注入曾经被列在这里，写成"有意的取舍"。那是错的——.NET 项目的依赖由容器组装是常规做法，手工 `new` 省下的只是配置。阶段 2 已经把它落地：`AppServices` 是唯一的组合根，`App.axaml.cs` 与无窗口入口共用同一份注册。
 
 ## 十四、债务与建议顺序
 
