@@ -88,7 +88,7 @@ Shift 切换大小写和上档符号，预览里用 `␠`、`⇥`、`⏎` 显示
 | `assets/` | 宏与菜单格子用到的图片，引用写作 `assets/<文件名>` |
 | `nodes/<编号>-<slug>.json` | 每个宏的步骤树（slug 由宏名生成） |
 
-读写都在 `WhaleGenie/Storage/MacroPackage.cs`：打开时把 `assets/` 解到磁盘并在步骤里改写成绝对路径，
+读写都在 `WhaleGenie.Model/Storage/MacroPackage.cs`：打开时把 `assets/` 解到磁盘并在步骤里改写成绝对路径，
 保存时再把用到的图片收进包里。
 
 ## 拾取器

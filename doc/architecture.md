@@ -66,7 +66,9 @@
 
 `WhaleGenie.Model/Models/`（32 文件 8520 行）不是"界面模型"，而是**全域共享的领域层**：`MacroItem`、`MacroStep`、`ProjectTriggers`、`MacroCheck`、动作定义。界面、持久化、MCP、应用层同时引用它。它住在自己的工程里，只依赖 Core 与 CommunityToolkit.Mvvm。
 
-这是这套架构里最需要说清楚的一处：它**名义上在界面工程里，实际上是领域层**。好处是移动少、类型少一层映射；代价是 `Storage` 与 `Mcp` 想用它就必须连同 Avalonia 一起编译，"只测领域规则"这件事做不成——`MacroCheck.Inspect`（1083 行的校验方法）因此只能在无头会话里跑。
+拆出 `WhaleGenie.Model` 之前，这一处最需要解释：它"名义上在界面工程里，实际上是领域层"，代价是任何要用它的东西都得连同 Avalonia 一起编译。现在这条代价没有了——模型、文案、`.wgmacro` 的读写（`WhaleGenie.Model/Storage/`，`MacroPackage` 与 `MacroPaths`）都在一个不引用界面的工程里，`MacroCheck.Inspect`（1083 行的校验方法）也就能在没有会话的情况下跑。
+
+代价换了个方向：模型看不见界面，所以"只有界面才知道"的事实要由界面注入——`Strings.LoadLanguage` / `SaveLanguage`（谁选的、存在哪）与 `MenuProblems(macros, knowsIcon)`（这个构建里有哪些图标）都是为这个留的口子。两处都是委托，不是引用。
 
 ## 四、一次操作的路径
 
@@ -260,7 +262,7 @@ HTTP POST /mcp
 
 ### 8.1 包格式
 
-`.wgmacro` 是一个 zip：`manifest.json`（版本、全局变量声明、触发器）、`README.md`、`nodes/NN-slug.json`（每个宏一份）、`assets/`（图片）。读写全在 `WhaleGenie/Storage/MacroPackage.cs`。
+`.wgmacro` 是一个 zip：`manifest.json`（版本、全局变量声明、触发器）、`README.md`、`nodes/NN-slug.json`（每个宏一份）、`assets/`（图片）。读写全在 `WhaleGenie.Model/Storage/MacroPackage.cs`——在模型工程里，所以一个命令行工具引 Model 与 Core 就能存读包，不需要界面。
 
 写入是原子的：先写 `.tmp` 再 `File.Move(..., true)`。`FormatVersion` 是 20，`Load` 要求**严格相等**，没有迁移路径——因为开发阶段不保留兼容（见「有意的取舍」）。
 
@@ -403,15 +405,16 @@ HTTP POST /mcp
 
 ### 一个结构事实（不是债，但决定了很多事）
 
-7. **宏的文件模型住在界面工程。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
-   `WhaleGenie.Model/Models`（8.7k 行），而 `WhaleGenie.Core` 不认识它们——引擎只认 `ExecutableStep`，
-   转换点唯一（`MacroStepConverter`）且每次运行都重建。
+7. **引擎不认识宏的文件模型。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
+   `WhaleGenie.Model/Models`（8.5k 行），而 `WhaleGenie.Core` 只认 `ExecutableStep`，转换点唯一
+   （`MacroStepConverter`）且每次运行都重建。
 
-   好处是引擎能独立测试（`Core.Tests` 不引界面）。代价是**任何宏的非 UI 用法都必须在界面工程里**：
-   包的读写（`Storage`）、公共宏库、MCP 的 `McpLiveProject` 都是。想做无界面工具或独立 CLI，
-   第一块要动的就是它。
+   这是有意的，不是没搬完：引擎能独立测试（`Core.Tests` 不引 Model，1461 条用例跑一分多钟）。代价是
+   引擎里拿不到"这条宏叫什么、声明有没有问题"——要那些，得先转换，或者由调用方在进入引擎之前判断。
 
-   现在不动：那等于重排 8.7k 行与全部转换，而收益要等"真的有第二个入口"时才兑现。
+   这条边界的实际影响现在只剩一处：**界面工程里还留着的包相关代码**是位图（`ImageAssets`）、恢复快照
+   （`RecoveryStore` / `RecoveryWriter`，带 Dispatcher）与公共宏库——它们都不是"读写一个包"的必需品。
+   要做无界面的工具，`WhaleGenie.Model` + `WhaleGenie.Core` 这两个工程已经够用。
 
 ## 附：文件规模地图
 
@@ -424,10 +427,11 @@ HTTP POST /mcp
 | `WhaleGenie/Localization/` | 4 / 506 | 本机设置与语言刷新，贴着界面 |
 | `WhaleGenie/Views/` | 78 / 27389 | 33 个窗口、4 个 UserControl，后置代码占一半 |
 | `WhaleGenie/ViewModels/` | 48 / 18662 | 五个大 VM 占 61%，其余是行/选项载体 |
-| `WhaleGenie.Model/Models/` | 32 / 8483 | 全域共享的领域层（宏、触发器、校验） |
+| `WhaleGenie.Model/Models/` | 32 / 8520 | 全域共享的领域层（宏、触发器、校验） |
 | `WhaleGenie/Mcp/` | 23 / 7647 | 工具、草稿、资源、体检、审计 |
-| `WhaleGenie/Runtime/` | 37 / 4696 | 触发器、录制翻译、运行宿主、变量桥接、包与恢复 |
-| `WhaleGenie/Storage/` | 6 / 1707 | 包格式、图片资产、恢复快照 |
+| `WhaleGenie/Runtime/` | 31 / 4100 | 触发器、录制翻译、运行宿主、变量桥接 |
+| `WhaleGenie.Model/Storage/` | 2 / 681 | 包格式（`MacroPackage`）与相对路径（`MacroPaths`） |
+| `WhaleGenie/Storage/` | 4 / 1025 | 图片资产、公共宏库、恢复快照 |
 | `WhaleGenie.Core/Execution/` | 27 / 14038 | 运行器与 13 个分部、动作目录、键表 |
 | `WhaleGenie.Core/Devices/` | 25 / 5311 | 契约 + 空对象；`Platform/` 另有 48 文件 14558 行 |
 | `WhaleGenie.Core/Expressions/` | 8 / 3068 | 语法树、求值、函数库 |

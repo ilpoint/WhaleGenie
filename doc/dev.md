@@ -126,7 +126,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 | 项目 | 职责 |
 | --- | --- |
-| `WhaleGenie.Core` | 执行引擎。变量、表达式、执行语义、动作语义目录，以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程）。宏包文件模型与 `.wgmacro` 读写仍在界面层的 `WhaleGenie/Storage` |
+| `WhaleGenie.Core` | 执行引擎。变量、表达式、执行语义、动作语义目录，以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程）。宏包文件模型与 `.wgmacro` 读写在 `WhaleGenie.Model` |
+| `WhaleGenie.Model` | 宏的文件模型与文案：宏、步骤、触发器、变量声明、动作展示清单，以及 `.wgmacro` 的读写（`Storage/MacroPackage.cs`）。只依赖 `WhaleGenie.Core` 与 `CommunityToolkit.Mvvm`——不认识 Avalonia，也不认识应用层 |
 | `WhaleGenie.GraphicsCapture` | 从 Windows 拿像素：Graphics Capture、桌面复制（DXGI）、屏幕 GDI 与 PrintWindow 四种取法，以及会话缓存与选路。它不认识引擎的类型，引擎通过 `ProjectReference` 用它 |
 | `WhaleGenie` | 界面。窗口、视图模型、文案、触发器监听；动作展示清单在 `Models/ActionDisplay.json`，`ActionCatalog.cs` 只把它投影成标签、编辑器种类与页面归属；图标在 `Models/AppIcons.cs` |
 | `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面；动作行为、读法与输入路由在这里验。宏包往返在 `WhaleGenie.Tests` 里验，因为它读写的文件模型目前在界面层 |

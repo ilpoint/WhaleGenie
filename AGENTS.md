@@ -17,8 +17,8 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 - `WhaleGenie.Core` 是执行引擎，不感知界面：动作语义目录、变量、表达式与所有直接操作机器的设备。
 - `WhaleGenie.Model` 是宏的文件模型与文案：宏、步骤、触发器、变量声明，以及它们要说的那句话。
   不引用 Avalonia，也不引用应用层——`WhaleGenie.Model.csproj` 只有两个引用（Core 与
-  `CommunityToolkit.Mvvm`），加一条就是拆错了。`.wgmacro` 的读写仍在界面层（`WhaleGenie/Storage`），
-  下沉与否见 `doc/dev.md`。
+  `CommunityToolkit.Mvvm`），加一条就是拆错了。`.wgmacro` 的读写也在里面（`Storage/MacroPackage.cs`），所以一个命令行工具引 Model 与 Core 就能
+  存读包。留在界面工程的只有位图（`ImageAssets`）、恢复快照与公共宏库。
   `WhaleGenie` 是界面：窗口、视图模型、文案、触发器；`WhaleGenie.GraphicsCapture` 只负责从 Windows 拿到
   像素（四种取法见「画面获取」），它不认识引擎的类型，只交出 `ScreenGrab` 与 `CaptureWay`。
 - 引擎中不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、
