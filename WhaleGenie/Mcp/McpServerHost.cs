@@ -23,7 +23,7 @@ namespace WhaleGenie.Mcp;
 /// The local HTTP MCP server. It exists only while the MCP switch is on, binds one loopback port
 /// and has no token: it is a helper on this machine, not a service for the network.
 /// </summary>
-public sealed class McpServerHost : IAsyncDisposable
+public sealed class McpServerHost : IAsyncDisposable, IDisposable
 {
     private readonly MainViewModel _project;
     private readonly IServiceProvider _services;
@@ -98,6 +98,21 @@ public sealed class McpServerHost : IAsyncDisposable
         _app = null;
         _endpoint = string.Empty;
         await StopAppAsync(app);
+    }
+
+    /// <summary>
+    /// Stops the server without awaiting. The container disposes what it built synchronously, and a
+    /// singleton that answered only <see cref="IAsyncDisposable"/> would make that throw — and the
+    /// throw would cut the exit short before Program takes the virtual keyboard and mouse off the
+    /// machine, which is what leaves the pointer stuttering.
+    /// </summary>
+    public void Dispose()
+    {
+        StopAsync().GetAwaiter().GetResult();
+        if (_ownsServices && _services is IDisposable services)
+        {
+            services.Dispose();
+        }
     }
 
     public async ValueTask DisposeAsync()

@@ -136,6 +136,19 @@ public partial class App : Application
                 // The host has stopped or is unreachable; the process is leaving anyway.
             }
 
+            // The trigger service the container owns watches the machine through the device layer,
+            // so it has to stop before that layer is let go. It is disposed here, and the device
+            // layer after it, because that is the order the two depend on each other in.
+            try
+            {
+                services.Dispose();
+            }
+            catch
+            {
+                // A service that will not let go must not stop the exit before Program takes the
+                // virtual keyboard and mouse off the machine.
+            }
+
             // The program owns the device layer every window ran on, so this is where the models it
             // loaded and the capture sessions it opened are let go.
             try
@@ -148,10 +161,6 @@ public partial class App : Application
                 // virtual keyboard and mouse off the machine. Left behind, those devices are what
                 // makes the pointer stutter after the window has gone.
             }
-
-            // The container goes last: it is what built the server and the tools, and disposing it
-            // before the device layer would take the two apart in the wrong order.
-            services.Dispose();
         };
     }
 }
