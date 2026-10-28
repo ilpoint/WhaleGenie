@@ -37,7 +37,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="8">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
         <TextBox Grid.Row="0" Name="VariableSearch" Text="{Binding SearchText}"
                  PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
 
@@ -90,6 +90,7 @@
                                                Foreground="#D6C08A" />
                                 </Border>
                             </StackPanel>
+                            <ToolTip.Placement>Right</ToolTip.Placement>
                             <ToolTip.Tip>
                                 <Border MaxWidth="380" MaxHeight="260"
                                         Background="{DynamicResource AppSurface}"
@@ -107,31 +108,41 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <TextBlock Grid.Row="3" Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
-                   Foreground="{DynamicResource AppMuted}" MinHeight="32" MaxHeight="60" />
+        <!-- What the one under the pointer is, and which steps read it. It has a height of its own
+             rather than growing into the list above: a panel whose size depends on hover steals
+             rows from the list, the cards reflow, the pointer ends up somewhere else, the hover is
+             lost, the space comes back, and the card returns under the pointer — a bubble that
+             flickers for as long as the pointer stays put. Overflow scrolls inside this box. -->
+        <ScrollViewer Grid.Row="3" Name="VariableDetails" Height="72"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
+                           Foreground="{DynamicResource AppMuted}" />
 
-        <!-- Which steps read the one under the pointer. A name on a button says nothing about who
-             wants it, and this is the line that answers it; pressing one asks the place the wall
-             stands in to show that step. -->
-        <StackPanel Grid.Row="4" Spacing="4" IsVisible="{Binding HasUses}">
-            <TextBlock FontSize="11.5" Foreground="#8A8A8A"
-                       Text="{Binding [VarWall.UsedBy], Source={x:Static loc:Strings.Current}}" />
-            <ItemsControl ItemsSource="{Binding Uses}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:VariableUse">
-                        <Button Classes="VarButton" Height="24" FontSize="11.5" Margin="0,0,6,6"
-                                Content="{Binding Label}"
-                                ToolTip.Tip="{Binding [VarWall.JumpHint], Source={x:Static loc:Strings.Current}}"
-                                Command="{Binding $parent[ItemsControl].((vm:VariableWallViewModel)DataContext).JumpCommand}"
-                                CommandParameter="{Binding}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
+                <!-- Pressing one of those steps asks the place the wall stands in to show it. -->
+                <StackPanel Spacing="4" IsVisible="{Binding HasUses}">
+                    <TextBlock FontSize="11.5" Foreground="#8A8A8A"
+                               Text="{Binding [VarWall.UsedBy], Source={x:Static loc:Strings.Current}}" />
+                    <ItemsControl ItemsSource="{Binding Uses}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:VariableUse">
+                                <Button Classes="VarButton" Height="24" FontSize="11.5"
+                                        Margin="0,0,6,6"
+                                        Content="{Binding Label}"
+                                        ToolTip.Tip="{Binding [VarWall.JumpHint], Source={x:Static loc:Strings.Current}}"
+                                        Command="{Binding $parent[ItemsControl].((vm:VariableWallViewModel)DataContext).JumpCommand}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>
