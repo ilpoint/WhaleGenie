@@ -45,8 +45,14 @@
 1. **运行器装配收成一处**：`RunViewModel`、`MacroTriggerService`、`McpRunTools` 三处逐行相同的装配换成一个 `RunFactory`（放进阶段 2 的容器）。
 2. **重试判断合一**：`RunAttempts` 里 signal 分支与 catch 分支的两段判断合成一个 `Outcome`，再决定重试/跳过/停止。
 3. **共用原语归位**：`Give`（Window）、`Pause`/`WaitForFlagAsync`（Script）、`Gate`（Detection）、`CanLook`/`SeeOnce`（Input）提到 `MacroRunner.Support.cs`，按族切分的文件只放本族的东西。
+
+   **实际做的是注释，不是搬迁。** 搬到一起是纯装饰：不改变行为，却会切断 `git blame`（以后查"这行为什么这样写"要跳文件）。真正的痛点是"按文件名找代码会找错三次"，所以改成在类开头写明这几处的实际位置。真要搬，等哪个方法自然要改时顺带挪。
 4. **`Inspect` 拆分**：1083 行的单方法按检查族拆成小类，45 个裸 code 提成常量（与 `RunKeys` 同样的待遇）。
+
+   **只做了常量那一半。** `MacroProblemCode` 让 45 个 code 与 `Blocking` 集合的拼写由编译器对上——上一轮就因为漏了元组里的五个，体检红在 `reject.child_keys`。拆分没做：`Inspect` 内部已经是一串按族命名的局部函数（`CheckCondition`、`CheckPlacement`、`CheckUserFailureKey`…），拆成方法要穿过十几个被捕获的状态，收益不抵风险。它结构上是"一个调度方法 + 按族分开的检查"，不是泥球。
 5. **动作分派与目录对齐**：先加一条"目录声明的动作必须被某个 `case` 覆盖"的用例，把 217 个字面量钉在编译期与测试之间；重写分派留到以后。
+
+   **已经有了。** `Core.Tests/Bench` 的 `Every_action_runs_and_matches_its_declaration` 把目录里每一条都合成一步真的跑一遍，没被任何 `case` 接住的动作会以 `Run.Unsupported` 结束、判成失败。所以这条守卫早就在，缺的只是"重写分派"本身——那留到以后。
 
 验收：引擎层 1461 条用例全绿；重试与跳过行为有专门用例（现在没有，因为两处写的时候没人能同时看到）。
 

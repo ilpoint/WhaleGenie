@@ -57,25 +57,25 @@ public static class MacroCheck
     private static readonly HashSet<string> Blocking = new(StringComparer.Ordinal)
     {
         // The step names something this build does not have, or leaves a required field empty.
-        "UnknownAction", "UnknownParameter", "MissingField", "MissingCondition", "BadOption",
-        "NoPlace", "PlaceAndNumbers", "WindowBounds",
+        MacroProblemCode.UnknownAction, MacroProblemCode.UnknownParameter, MacroProblemCode.MissingField, MacroProblemCode.MissingCondition, MacroProblemCode.BadOption,
+        MacroProblemCode.NoPlace, MacroProblemCode.PlaceAndNumbers, MacroProblemCode.WindowBounds,
 
         // A formula or a record the engine cannot read.
-        "BadExpression", "UnknownField", "NotARecord", "RecordWhereNumber", "RecordInText",
+        MacroProblemCode.BadExpression, MacroProblemCode.UnknownField, MacroProblemCode.NotARecord, MacroProblemCode.RecordWhereNumber, MacroProblemCode.RecordInText,
 
         // A child list whose rows do not fit its columns.
-        "UnknownRowColumn", "MissingRowColumn", "ExclusiveRowColumn",
+        MacroProblemCode.UnknownRowColumn, MacroProblemCode.MissingRowColumn, MacroProblemCode.ExclusiveRowColumn,
 
         // A call whose arguments or results do not fit the macro being called.
-        "MacroNotFound", "NoMacro", "MissingArgument", "UndeclaredArgument", "DuplicateArgument",
-        "ArgumentType", "GivenWithValue", "BadResultName", "DuplicateResultKey",
-        "DuplicateResultName", "UndeclaredResult", "UndeclaredActionResult", "BadUserFailureKey",
+        MacroProblemCode.MacroNotFound, MacroProblemCode.NoMacro, MacroProblemCode.MissingArgument, MacroProblemCode.UndeclaredArgument, MacroProblemCode.DuplicateArgument,
+        MacroProblemCode.ArgumentType, MacroProblemCode.GivenWithValue, MacroProblemCode.BadResultName, MacroProblemCode.DuplicateResultKey,
+        MacroProblemCode.DuplicateResultName, MacroProblemCode.UndeclaredResult, MacroProblemCode.UndeclaredActionResult, MacroProblemCode.BadUserFailureKey,
 
         // A name the engine will refuse to write, or a loop that names a counter it is not inside.
-        "ReservedVariable", "GlobalMustExist", "LoopIndexOutsideLoop",
+        MacroProblemCode.ReservedVariable, MacroProblemCode.GlobalMustExist, MacroProblemCode.LoopIndexOutsideLoop,
 
         // A step standing where the engine will not take it, or a jump out of a loop it is not in.
-        "WrongStepKind", "CaseOutsideSwitch", "HiddenStep", "BreakOutsideLoop", "ContinueOutsideLoop",
+        MacroProblemCode.WrongStepKind, MacroProblemCode.CaseOutsideSwitch, MacroProblemCode.HiddenStep, MacroProblemCode.BreakOutsideLoop, MacroProblemCode.ContinueOutsideLoop,
     };
 
     private static bool CallsMacro(MacroStep step)
@@ -521,7 +521,7 @@ public static class MacroCheck
             {
                 if (Reaches(step, MacroRunner.SendsInput, walking))
                 {
-                    Add(step, "SharedInput", Strings.Get("Editor.Problem.SharedInput"));
+                    Add(step, MacroProblemCode.SharedInput, Strings.Get("Editor.Problem.SharedInput"));
                     return;
                 }
             }
@@ -542,7 +542,7 @@ public static class MacroCheck
             {
                 if (Reaches(step, MacroRunner.UsesBrowser, walking))
                 {
-                    Add(step, "SharedBrowser", Strings.Get("Editor.Problem.SharedBrowser"));
+                    Add(step, MacroProblemCode.SharedBrowser, Strings.Get("Editor.Problem.SharedBrowser"));
                     return;
                 }
             }
@@ -587,7 +587,7 @@ public static class MacroCheck
                 {
                     if (loopNames.Contains(name))
                     {
-                        Add(step, "LoopVariableShadowed", Strings.Format("Editor.Problem.LoopVariableShadowed", name));
+                        Add(step, MacroProblemCode.LoopVariableShadowed, Strings.Format("Editor.Problem.LoopVariableShadowed", name));
                     }
                 }
 
@@ -628,9 +628,9 @@ public static class MacroCheck
                         Strings.Format("Editor.Problem.WrongStepKind",
                             StepPlacement.AllowedSummary(restricted))),
                 StepPlacementProblem.HiddenStep when step.Type == "control.case" =>
-                    ("CaseOutsideSwitch", Strings.Get("Editor.Problem.CaseOutsideSwitch")),
+                    (MacroProblemCode.CaseOutsideSwitch, Strings.Get("Editor.Problem.CaseOutsideSwitch")),
                 StepPlacementProblem.HiddenStep =>
-                    ("HiddenStep", Strings.Format("Editor.Problem.HiddenStep", step.DisplayName)),
+                    (MacroProblemCode.HiddenStep, Strings.Format("Editor.Problem.HiddenStep", step.DisplayName)),
                 _ => (string.Empty, string.Empty),
             };
             if (message.Length > 0)
@@ -648,7 +648,7 @@ public static class MacroCheck
 
             if (string.IsNullOrWhiteSpace(step.Text("condition")))
             {
-                Add(step, "MissingCondition", Strings.Get("Editor.Problem.MissingCondition"));
+                Add(step, MacroProblemCode.MissingCondition, Strings.Get("Editor.Problem.MissingCondition"));
             }
         }
 
@@ -662,7 +662,7 @@ public static class MacroCheck
             var key = step.Text("failureKey").Trim();
             if (key.Length > 0 && !UserFailureKeys.IsValid(key))
             {
-                Add(step, "BadUserFailureKey", Strings.Format("Editor.Problem.BadUserFailureKey", key));
+                Add(step, MacroProblemCode.BadUserFailureKey, Strings.Format("Editor.Problem.BadUserFailureKey", key));
             }
         }
 
@@ -677,7 +677,7 @@ public static class MacroCheck
             };
             if (name is { Length: > 0 } && !VariableCatalog.IsGlobal(name))
             {
-                Add(step, "GlobalMustExist", Strings.Format("Editor.Problem.GlobalMustExist", name));
+                Add(step, MacroProblemCode.GlobalMustExist, Strings.Format("Editor.Problem.GlobalMustExist", name));
             }
         }
 
@@ -689,7 +689,7 @@ public static class MacroCheck
             if (declared is not null
                 && string.Equals(declared.Value, "true", StringComparison.OrdinalIgnoreCase))
             {
-                Add(step, "ScriptInput", Strings.Get("Editor.Problem.ScriptInput"));
+                Add(step, MacroProblemCode.ScriptInput, Strings.Get("Editor.Problem.ScriptInput"));
             }
         }
 
@@ -697,7 +697,7 @@ public static class MacroCheck
         {
             if (step.Definition is not { } definition)
             {
-                Add(step, "UnknownAction", Strings.Get("Editor.Problem.UnknownAction"));
+                Add(step, MacroProblemCode.UnknownAction, Strings.Get("Editor.Problem.UnknownAction"));
                 return;
             }
 
@@ -705,7 +705,7 @@ public static class MacroCheck
             {
                 if (!definition.Parameters.Any(known => known.Name == parameter.Name))
                 {
-                    Add(step, "UnknownParameter", Strings.Format("Editor.Problem.UnknownParameter", parameter.Name));
+                    Add(step, MacroProblemCode.UnknownParameter, Strings.Format("Editor.Problem.UnknownParameter", parameter.Name));
                 }
             }
         }
@@ -730,7 +730,7 @@ public static class MacroCheck
                     && parameter.Semantics.MissingKey is not RunKeys.MissingCondition
                     && !(CallsMacro(step) && parameter.Name == FieldNames.Macro))
                 {
-                    Add(step, "MissingField", Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
+                    Add(step, MacroProblemCode.MissingField, Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
                 }
             }
         }
@@ -759,7 +759,7 @@ public static class MacroCheck
                 if (written.Length > 0
                     && !parameter.Semantics.Options.Contains(written, StringComparer.Ordinal))
                 {
-                    Add(step, "BadOption", Strings.Format("Editor.Problem.BadOption",
+                    Add(step, MacroProblemCode.BadOption, Strings.Format("Editor.Problem.BadOption",
                         parameter.LocalLabel, written));
                 }
             }
@@ -796,7 +796,7 @@ public static class MacroCheck
                         if (!definition.Semantics.Columns.Any(known =>
                                 string.Equals(known.Name, column, StringComparison.OrdinalIgnoreCase)))
                         {
-                            Add(step, "UnknownRowColumn", Strings.Format("Editor.Problem.UnknownRowColumn",
+                            Add(step, MacroProblemCode.UnknownRowColumn, Strings.Format("Editor.Problem.UnknownRowColumn",
                                 definition.LocalLabel, column));
                         }
                     }
@@ -804,7 +804,7 @@ public static class MacroCheck
                     if (string.Equals(definition.Semantics.Name, "region", StringComparison.Ordinal)
                         && RegionHasBoth(row))
                     {
-                        Add(step, "ExclusiveRowColumn", Strings.Format("Editor.Problem.ExclusiveRowColumn",
+                        Add(step, MacroProblemCode.ExclusiveRowColumn, Strings.Format("Editor.Problem.ExclusiveRowColumn",
                             definition.LocalLabel));
                     }
                     foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
@@ -812,7 +812,7 @@ public static class MacroCheck
                         if (!row.Columns.TryGetValue(column.Name, out var value)
                             || string.IsNullOrWhiteSpace(value))
                         {
-                            Add(step, "MissingRowColumn", Strings.Format("Editor.Problem.MissingRowColumn",
+                            Add(step, MacroProblemCode.MissingRowColumn, Strings.Format("Editor.Problem.MissingRowColumn",
                                 definition.LocalLabel, column.Name));
                         }
                     }
@@ -837,7 +837,7 @@ public static class MacroCheck
                 {
                     if (!seen.Add(name))
                     {
-                        Add(step, "DuplicateResultName", Strings.Format("Editor.Problem.DuplicateResultName", name));
+                        Add(step, MacroProblemCode.DuplicateResultName, Strings.Format("Editor.Problem.DuplicateResultName", name));
                     }
                 }
             }
@@ -864,19 +864,19 @@ public static class MacroCheck
                 {
                     if (!VariableText.IsName(name))
                     {
-                        Add(step, "BadResultName", Strings.Format("Editor.Problem.BadResultName", name));
+                        Add(step, MacroProblemCode.BadResultName, Strings.Format("Editor.Problem.BadResultName", name));
                     }
 
                     if (key.Length > 0 && !keys.Add(key))
                     {
-                        Add(step, "DuplicateResultKey", Strings.Format("Editor.Problem.DuplicateResultKey", key));
+                        Add(step, MacroProblemCode.DuplicateResultKey, Strings.Format("Editor.Problem.DuplicateResultKey", key));
                     }
 
                     if (key.Length > 0
                         && definition.Semantics.SignatureSource is ActionSignatureSource.Own
                         && definition.Semantics.Return(key) is null)
                     {
-                        Add(step, "UndeclaredActionResult", Strings.Format("Editor.Problem.UndeclaredActionResult", key,
+                        Add(step, MacroProblemCode.UndeclaredActionResult, Strings.Format("Editor.Problem.UndeclaredActionResult", key,
                             definition.LocalName));
                     }
                 }
@@ -904,7 +904,7 @@ public static class MacroCheck
                     {
                         if (!Expression.TryParse(expression, out _, out var fault))
                         {
-                            Add(step, "BadExpression", Strings.Format("Editor.Problem.BadExpression",
+                            Add(step, MacroProblemCode.BadExpression, Strings.Format("Editor.Problem.BadExpression",
                                 fault?.Detail ?? expression));
                         }
                     }
@@ -925,7 +925,7 @@ public static class MacroCheck
 
                 if (!Expression.TryParse(written, out _, out var error))
                 {
-                    Add(step, "BadExpression", Strings.Format("Editor.Problem.BadExpression",
+                    Add(step, MacroProblemCode.BadExpression, Strings.Format("Editor.Problem.BadExpression",
                         error?.Detail ?? written));
                 }
             }
@@ -960,7 +960,7 @@ public static class MacroCheck
                 {
                     if (!results.Add(name))
                     {
-                        Add(step, "DuplicateResultName",
+                        Add(step, MacroProblemCode.DuplicateResultName,
                             Strings.Format("Editor.Problem.DuplicateResultName", name));
                     }
                 }
@@ -985,7 +985,7 @@ public static class MacroCheck
                 if (ReadsOf(step, parameter).Contains(VariableStore.LoopIndexName,
                         StringComparer.OrdinalIgnoreCase))
                 {
-                    Add(step, "LoopIndexOutsideLoop", Strings.Get("Editor.Problem.LoopIndexOutsideLoop"));
+                    Add(step, MacroProblemCode.LoopIndexOutsideLoop, Strings.Get("Editor.Problem.LoopIndexOutsideLoop"));
                     return;
                 }
             }
@@ -1006,8 +1006,8 @@ public static class MacroCheck
             }
 
             var (code, key) = step.Type == "control.break"
-                ? ("BreakOutsideLoop", "Editor.Problem.BreakOutsideLoop")
-                : ("ContinueOutsideLoop", "Editor.Problem.ContinueOutsideLoop");
+                ? (MacroProblemCode.BreakOutsideLoop, "Editor.Problem.BreakOutsideLoop")
+                : (MacroProblemCode.ContinueOutsideLoop, "Editor.Problem.ContinueOutsideLoop");
             Add(step, code, Strings.Get(key));
         }
 
@@ -1021,13 +1021,13 @@ public static class MacroCheck
             var name = step.Text("macro").Trim();
             if (name.Length == 0)
             {
-                Add(step, "NoMacro", Strings.Get("Editor.Problem.NoMacro"));
+                Add(step, MacroProblemCode.NoMacro, Strings.Get("Editor.Problem.NoMacro"));
                 return;
             }
 
             if (!reachable.TryGetValue(name, out var called))
             {
-                Add(step, "MacroNotFound", Strings.Format("Editor.Problem.MacroNotFound", name));
+                Add(step, MacroProblemCode.MacroNotFound, Strings.Format("Editor.Problem.MacroNotFound", name));
                 return;
             }
 
@@ -1043,7 +1043,7 @@ public static class MacroCheck
                 && string.Equals(called.Name.Trim(), ownName, StringComparison.OrdinalIgnoreCase)
                 && !guarded)
             {
-                Add(step, "UnguardedRecursion", Strings.Get("Editor.Problem.UnguardedRecursion"));
+                Add(step, MacroProblemCode.UnguardedRecursion, Strings.Get("Editor.Problem.UnguardedRecursion"));
             }
 
             foreach (var row in ArgumentRows(step))
@@ -1051,7 +1051,7 @@ public static class MacroCheck
                 var (passed, _, _) = Argument(row);
                 if (passed.Length > 0 && called.Parameter(passed) is null)
                 {
-                    Add(step, "UndeclaredArgument", Strings.Format("Editor.Problem.UndeclaredArgument", passed, name));
+                    Add(step, MacroProblemCode.UndeclaredArgument, Strings.Format("Editor.Problem.UndeclaredArgument", passed, name));
                 }
             }
 
@@ -1059,7 +1059,7 @@ public static class MacroCheck
             {
                 if (!called.Offers(result))
                 {
-                    Add(step, "UndeclaredResult", Strings.Format("Editor.Problem.UndeclaredResult", result, name));
+                    Add(step, MacroProblemCode.UndeclaredResult, Strings.Format("Editor.Problem.UndeclaredResult", result, name));
                 }
             }
         }
@@ -1085,7 +1085,7 @@ public static class MacroCheck
                 {
                     if (!defined.Contains(name))
                     {
-                        Add(step, "UndefinedVariable", Strings.Format("Editor.Problem.UndefinedVariable", name));
+                        Add(step, MacroProblemCode.UndefinedVariable, Strings.Format("Editor.Problem.UndefinedVariable", name));
                     }
                 }
             }
@@ -1110,7 +1110,7 @@ public static class MacroCheck
 
             if (step.Meta.RetryCount > 0 || bounded)
             {
-                Add(step, "WaitWithoutTimeout", Strings.Get("Editor.Problem.WaitWithoutTimeout"));
+                Add(step, MacroProblemCode.WaitWithoutTimeout, Strings.Get("Editor.Problem.WaitWithoutTimeout"));
             }
         }
 
@@ -1142,13 +1142,13 @@ public static class MacroCheck
                 var number = numbers.Any(name => step.Text(name).Trim().Length > 0);
                 if (written.Length == 0 && !number)
                 {
-                    Add(step, "NoPlace", Strings.Format("Editor.Problem.NoPlace", field.LocalLabel));
+                    Add(step, MacroProblemCode.NoPlace, Strings.Format("Editor.Problem.NoPlace", field.LocalLabel));
                 }
                 else if (written.Length > 0 && number)
                 {
                     // The record wins in the engine, so the numbers the author typed are not read
                     // at all. Saying so is better than letting the step look like it uses both.
-                    Add(step, "PlaceAndNumbers", Strings.Format("Editor.Problem.PlaceAndNumbers", field.LocalLabel));
+                    Add(step, MacroProblemCode.PlaceAndNumbers, Strings.Format("Editor.Problem.PlaceAndNumbers", field.LocalLabel));
                 }
             }
         }
@@ -1169,14 +1169,14 @@ public static class MacroCheck
                 .Any(name => step.Text(name).Trim().Length > 0);
             if (hasRect && hasSides)
             {
-                Add(step, "PlaceAndNumbers", Strings.Format("Editor.Problem.PlaceAndNumbers",
+                Add(step, MacroProblemCode.PlaceAndNumbers, Strings.Format("Editor.Problem.PlaceAndNumbers",
                     ActionCatalog.Find(step.Type)?.Parameters
                         .FirstOrDefault(parameter => parameter.Name == "rect")?.LocalLabel
                     ?? "rect"));
             }
             else if (!hasRect && !hasSides)
             {
-                Add(step, "WindowBounds", Strings.Get("Editor.Problem.WindowBounds"));
+                Add(step, MacroProblemCode.WindowBounds, Strings.Get("Editor.Problem.WindowBounds"));
             }
         }
 
@@ -1211,7 +1211,7 @@ public static class MacroCheck
                             continue;
                         }
 
-                        Add(step, "UnknownField", Strings.Format("Editor.Problem.UnknownField",
+                        Add(step, MacroProblemCode.UnknownField, Strings.Format("Editor.Problem.UnknownField",
                             name.Text, variable.Name, string.Join(", ", declared)));
                     }
                 }
@@ -1299,7 +1299,7 @@ public static class MacroCheck
                     if (definition.Shape == ActionValueShape.Number
                         && type == ActionReturnType.Record)
                     {
-                        Add(step, "RecordWhereNumber", Strings.Format("Editor.Problem.RecordWhereNumber",
+                        Add(step, MacroProblemCode.RecordWhereNumber, Strings.Format("Editor.Problem.RecordWhereNumber",
                             definition.LocalLabel));
                     }
                     else if (definition.Shape
@@ -1308,7 +1308,7 @@ public static class MacroCheck
                              && type != ActionReturnType.Record
                              && type != ActionReturnType.List)
                     {
-                        Add(step, "NotARecord", Strings.Format("Editor.Problem.NotARecord",
+                        Add(step, MacroProblemCode.NotARecord, Strings.Format("Editor.Problem.NotARecord",
                             definition.LocalLabel, name));
                     }
                 }
@@ -1329,7 +1329,7 @@ public static class MacroCheck
                     if (known.TryGetValue(referenced, out var kind)
                         && kind == ActionReturnType.Record)
                     {
-                        Add(step, "RecordInText", Strings.Format("Editor.Problem.RecordInText", referenced,
+                        Add(step, MacroProblemCode.RecordInText, Strings.Format("Editor.Problem.RecordInText", referenced,
                             definition.LocalLabel));
                     }
                 }
@@ -1373,14 +1373,14 @@ public static class MacroCheck
 
                 if (called.Parameter(passed) is null)
                 {
-                    Add(step, "UndeclaredArgument", Strings.Format("Editor.Problem.UndeclaredArgument", passed,
+                    Add(step, MacroProblemCode.UndeclaredArgument, Strings.Format("Editor.Problem.UndeclaredArgument", passed,
                         step.Text("macro").Trim()));
                     continue;
                 }
 
                 if (!filled.TryAdd(passed, (value, given)))
                 {
-                    Add(step, "DuplicateArgument", Strings.Format("Editor.Problem.DuplicateArgument", passed));
+                    Add(step, MacroProblemCode.DuplicateArgument, Strings.Format("Editor.Problem.DuplicateArgument", passed));
                 }
             }
 
@@ -1391,7 +1391,7 @@ public static class MacroCheck
                 {
                     if (declared.Required)
                     {
-                        Add(step, "MissingArgument", Strings.Format("Editor.Problem.MissingArgument", name,
+                        Add(step, MacroProblemCode.MissingArgument, Strings.Format("Editor.Problem.MissingArgument", name,
                             step.Text("macro").Trim()));
                     }
 
@@ -1400,7 +1400,7 @@ public static class MacroCheck
 
                 if (input.Given && input.Value.Length > 0)
                 {
-                    Add(step, "GivenWithValue", Strings.Format("Editor.Problem.GivenWithValue", name));
+                    Add(step, MacroProblemCode.GivenWithValue, Strings.Format("Editor.Problem.GivenWithValue", name));
                 }
 
                 if (input.Value.Length == 0)
@@ -1411,7 +1411,7 @@ public static class MacroCheck
                 if (ConstantValue(input.Value) is { } value
                     && !MacroValues.Fits(declared.Type, value))
                 {
-                    Add(step, "ArgumentType", Strings.Format("Editor.Problem.ArgumentType", name,
+                    Add(step, MacroProblemCode.ArgumentType, Strings.Format("Editor.Problem.ArgumentType", name,
                         Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
                     continue;
                 }
@@ -1423,7 +1423,7 @@ public static class MacroCheck
                     continue;
                 }
 
-                Add(step, "ArgumentType", Strings.Format("Editor.Problem.ArgumentType", name,
+                Add(step, MacroProblemCode.ArgumentType, Strings.Format("Editor.Problem.ArgumentType", name,
                     Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
             }
         }
@@ -1441,7 +1441,7 @@ public static class MacroCheck
                 .FirstOrDefault(parameter => parameter.Name == "otherwise")?.Steps.Count ?? 0;
             if (cases == 0 && otherwise == 0)
             {
-                Add(step, "EmptySwitch", Strings.Get("Editor.Problem.EmptySwitch"));
+                Add(step, MacroProblemCode.EmptySwitch, Strings.Get("Editor.Problem.EmptySwitch"));
             }
         }
 
@@ -1474,7 +1474,7 @@ public static class MacroCheck
                     && (name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
                         || MacroRunner.IsRunStepName(name)))
                 {
-                    Add(step, "ReservedVariable", Strings.Format("Editor.Problem.ReservedVariable", name));
+                    Add(step, MacroProblemCode.ReservedVariable, Strings.Format("Editor.Problem.ReservedVariable", name));
                 }
             }
         }
