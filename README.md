@@ -82,8 +82,8 @@ Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回�
 | [doc/manual.md](doc/manual.md) | 使用程序：宏包格式、拾取器、落点与落手、返回值、运行与调试、画面获取、CSV 与程序文件位置 |
 | [doc/dev.md](doc/dev.md) | 修改仓库：命令、工程结构、依赖、测试分层、性能测量、代码约定、提交与发布 |
 | [doc/architecture.md](doc/architecture.md) | 整体结构：四个工程与依赖方向、一次操作的路径、各子系统、有意的取舍、已知债务与建议顺序 |
-| [doc/refactor-plan.md](doc/refactor-plan.md) | 清债计划：五个阶段、每阶段改什么与怎么验收 |
-| [doc/editor-mvvm-plan.md](doc/editor-mvvm-plan.md) | 编辑器 MVVM 化：状态归位分五步，每步可独立停下 |
+| [doc/refactor-plan.md](doc/refactor-plan.md) | 清债的五个阶段（均已完成，留作判断记录，不再维护） |
+| [doc/editor-mvvm-plan.md](doc/editor-mvvm-plan.md) | 编辑器状态归位的五步（做了两步、撤回两步，留作判断记录） |
 | [doc/roadmap.md](doc/roadmap.md) | 后续计划：未完成阶段、可并行的零散项、明确不做的范围 |
 | [doc/performance.md](doc/performance.md)（[English](doc/performance.en.md)） | 单次画面读取的单位成本与测量方法 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与图标出处 |
