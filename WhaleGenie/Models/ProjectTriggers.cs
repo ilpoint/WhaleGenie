@@ -6,8 +6,8 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Models;
 
@@ -1113,7 +1113,7 @@ public sealed class ProjectTriggers
         EnsureMenuPages();
     }
 
-    public Execution.MenuRuntimeLayout BuildMenuLayout(WindowInfo? foreground,
+    public Runtime.MenuRuntimeLayout BuildMenuLayout(WindowInfo? foreground,
         IWindowDevice windows, IReadOnlyList<MacroItem> macros)
     {
         var byName = macros
@@ -1135,7 +1135,7 @@ public sealed class ProjectTriggers
                 .Select(group =>
                 {
                     var item = group.First();
-                    return new Execution.MenuRuntimeCell(
+                    return new Runtime.MenuRuntimeCell(
                         item.Entry.MenuRow,
                         item.Entry.MenuColumn,
                         item.Entry.MenuIcon,
@@ -1145,7 +1145,7 @@ public sealed class ProjectTriggers
                 .OrderBy(cell => cell.Row)
                 .ThenBy(cell => cell.Column)
                 .ToList();
-            return new Execution.MenuRuntimePage(page.Id, page.IsDefault,
+            return new Runtime.MenuRuntimePage(page.Id, page.IsDefault,
                 page.IsDefault
                     ? Strings.Get("Menu.DefaultContext")
                     : $"{page.Window.MatchValue} · {Strings.Get($"WindowRule.Short.{page.Window.How}", page.Window.How)}",
@@ -1186,7 +1186,7 @@ public sealed class ProjectTriggers
         {
             contextPages.Add(Page(DefaultContextMenuPage()));
         }
-        return new Execution.MenuRuntimeLayout(common, contextPages);
+        return new Runtime.MenuRuntimeLayout(common, contextPages);
     }
 
     public IReadOnlyList<string> MenuProblems(IReadOnlyList<MacroItem> macros)

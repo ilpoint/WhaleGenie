@@ -11,8 +11,8 @@ using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Mcp;
 

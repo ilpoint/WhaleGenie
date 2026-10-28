@@ -19,7 +19,7 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
   像素（四种取法见「画面获取」），它不认识引擎的类型，只交出 `ScreenGrab` 与 `CaptureWay`。
 - 引擎中不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、
   Viper、Vortice）：取值、事件与异常只在引擎里，界面只认引擎交出的接口（如 `IInputHook`）。连接口都由组合根
-  （`WhaleGenie/Execution/SharedDevices.cs` 与 `App.axaml.cs`）交出，屏幕、UIA、窗口表、录制器、钩子、驱动级
+  （`WhaleGenie/Runtime/SharedDevices.cs` 与 `App.axaml.cs`）交出，屏幕、UIA、窗口表、录制器、钩子、驱动级
   输入、检测与浏览器都挂在 `IDeviceLayer` 上；界面里不出现 `WhaleGenie.Core.Devices.Platform`，`LayeringTests`
   卡住这一条。全局钩子共用一条，处理器在钩子线程上就地执行、置 `Suppress` 即吞掉；手柄按 30 毫秒轮一次。
 

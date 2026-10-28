@@ -10,10 +10,10 @@ using Avalonia.Threading;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 

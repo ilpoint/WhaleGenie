@@ -7,8 +7,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.Mcp;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie;
 

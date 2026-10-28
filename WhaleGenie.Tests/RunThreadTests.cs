@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
 

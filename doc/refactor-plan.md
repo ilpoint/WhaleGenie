@@ -75,6 +75,8 @@
    **做了装载收口，没做注入。** 三个入口（打开、导入、恢复）各自 Clear + Add + `PersistentVariables.ApplyTo`，抽成 `LoadSharedVariables(globals, replace)`，并加了一条"打开另一个项目时旧变量不残留"。注入没做：94 处访问、17 个文件，而 `VariableCatalog` 的静态方法（`IsGlobal` / `FindGlobal` / `NamesFor`）还被 `MacroCheck` 这类静态类用着，改成注入要连带改那些签名。收益是概念纯度——程序一次只开一个项目，静态就是"当前项目那一份"，行为上没有差别。等真要支持多项目或并行测试隔离时再做。
 4. **`Execution` 改名**：应用层那个改 `WhaleGenie.App`，一次性机械改，看栈追踪不再分不清。
 
+   **已完成**：应用层的 `WhaleGenie/Execution` 改成 `WhaleGenie/Runtime`（命名空间同），引擎仍是 `WhaleGenie.Core.Execution`。目录用 `git mv` 移过去，历史不断。113 处引用、37 个文件的 namespace 一起换；编译时只漏了一处同命名空间下的短名 `Execution.MenuRuntimeLayout`（`ProjectTriggers.cs`），其余全被编译器抓出来了——这类机械改名靠编译器就够，不需要通读。
+
 验收：每个小项独立提交；`FakeDeviceLayer` 行数持续下降；窗口类不再创建服务。
 
 ## 顺序与判断

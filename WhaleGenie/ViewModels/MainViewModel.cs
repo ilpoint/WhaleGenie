@@ -4,9 +4,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.ViewModels;
 
@@ -369,7 +369,7 @@ public partial class MainViewModel : ViewModelBase
         // The values a macro wrote last time live outside the package. They are put back once the
         // declarations are known, which is what makes a reopened project start with them; doing it
         // here rather than at each caller is what keeps a path from forgetting it.
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        Runtime.PersistentVariables.ApplyTo(VariableCatalog.Globals);
     }
 
     /// <summary>
@@ -450,7 +450,7 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        Runtime.PersistentVariables.ApplyTo(VariableCatalog.Globals);
 
         MarkDirty();
     }

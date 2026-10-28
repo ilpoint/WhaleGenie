@@ -139,7 +139,7 @@ HTTP POST /mcp
 
 - `MacroStep`（`WhaleGenie/Models/`）：编辑态。带 `ActionDefinition`、显示名、子列表、行数据、`StepMeta`。
 - `ExecutableStep`（`Core/Execution/`）：运行态。只有 `Type`、`Id`、`Meta`、`Parameters`（文本/抖动/子步骤/行）。
-- 转换点唯一：`WhaleGenie/Execution/MacroStepConverter.ToExecutable()`。有损，且**每次运行都重建**。
+- 转换点唯一：`WhaleGenie/Runtime/MacroStepConverter.ToExecutable()`。有损，且**每次运行都重建**。
 
 `ExecutableStep` 不带语义快照，运行时反复用 `ActionSemanticsCatalog.Find(step.Type)` 查目录。
 
@@ -199,7 +199,7 @@ HTTP POST /mcp
 
 ### 6.3 组合根与生命周期
 
-`WhaleGenie/Execution/SharedDevices.cs` 持有一个 `WindowsDeviceLayer` 单例，`App.axaml.cs` 在启动时预热（虚拟键鼠、OCR 模型）、在退出时 `Release()`。`WindowsDeviceLayer` 内部 15 个 `Lazy<>`，彼此有依赖链（输入要用屏幕、UIA 借输入、脚本借进程）。
+`WhaleGenie/Runtime/SharedDevices.cs` 持有一个 `WindowsDeviceLayer` 单例，`App.axaml.cs` 在启动时预热（虚拟键鼠、OCR 模型）、在退出时 `Release()`。`WindowsDeviceLayer` 内部 15 个 `Lazy<>`，彼此有依赖链（输入要用屏幕、UIA 借输入、脚本借进程）。
 
 `IDeviceLayer` 不继承 `IDisposable`：`WindowsDeviceLayer.Dispose` 靠运行时 `IsValueCreated && is IDisposable` 逐个判断，钩子永不释放。
 
@@ -306,7 +306,7 @@ HTTP POST /mcp
 
 ## 十、触发器
 
-`WhaleGenie/Execution/MacroTriggerService.cs`（1808 行）一个类管 8 种触发：热键、颜色、热字串、计划、文件、进程、窗口、空闲。`Interface` 与 `Menu` 两种不在这里，由浮动界面与菜单直接跑。
+`WhaleGenie/Runtime/MacroTriggerService.cs`（1808 行）一个类管 8 种触发：热键、颜色、热字串、计划、文件、进程、窗口、空闲。`Interface` 与 `Menu` 两种不在这里，由浮动界面与菜单直接跑。
 
 输入是全局键鼠钩子（`IDeviceLayer.Hook`）、OS 窗口事件，加三个定时器（轮询 60ms、进程 30ms、手柄 30ms）。它**不依赖任何 ViewModel**，只有 `Func<…>` 与事件，是四个外围里唯一单向依赖的。但它自己有一个竞态点：每次触发都按名字线性查找宏，快照失败时 `catch` 后返回空。
 
@@ -383,7 +383,7 @@ HTTP POST /mcp
 6. **`MacroCheck.Inspect` 是单方法 1083 行**，内含几十个局部函数，45 个裸字符串 code 没有集中词表（对比 `RunKeys` 有 319 个常量）。修法：按检查族拆成小类，code 提成常量。
 7. **动作分派靠 217 个 `case` 字面量**，与目录没有编译期关联。加一个动作要改三处（目录、分派、测试）。这是这套设计里最贵的一处，但改动面极大——建议先给"目录声明的动作必须被某个 case 覆盖"加一条测试，而不是马上重写分派。
 8. **共用原语散落在按族切分的分部里**（`Give` 在 Window、`Pause` 在 Script、`Gate` 在 Detection）。修法：提一个 `MacroRunner.Support.cs`，或者至少在同族文件顶部写"这个文件里还有别的族在用"。
-9. **两个同名 `Execution` 目录**（`WhaleGenie.Core/Execution` 与 `WhaleGenie/Execution`），命名空间都叫 `…Execution`。看栈追踪时分不清是引擎还是应用层。修法：应用层那个改名 `WhaleGenie.App`（或 `Application`），一次性机械改。
+9. **~~两个同名 `Execution` 目录~~ 已解决。** 应用层那个改成了 `WhaleGenie/Runtime`（命名空间 `WhaleGenie.Runtime`），引擎仍是 `WhaleGenie.Core.Execution`。看栈追踪时分得清了。
 
 ### P2：结构性的，成本高、回报慢
 
@@ -407,7 +407,7 @@ HTTP POST /mcp
 | `WhaleGenie/ViewModels/` | 46 / 18433 | 五个大 VM 占 61%，其余是行/选项载体 |
 | `WhaleGenie/Models/` | 31 / 8377 | 全域共享的领域层（宏、触发器、校验） |
 | `WhaleGenie/Mcp/` | 23 / 7596 | 工具、草稿、资源、体检、审计 |
-| `WhaleGenie/Execution/` | 35 / 4592 | 触发器、录制翻译、运行宿主、变量桥接、包与恢复 |
+| `WhaleGenie/Runtime/` | 35 / 4592 | 触发器、录制翻译、运行宿主、变量桥接、包与恢复 |
 | `WhaleGenie/Storage/` | 6 / 1698 | 包格式、图片资产、恢复快照 |
 | `WhaleGenie.Core/Execution/` | 27 / 14000 | 运行器与 13 个分部、动作目录、键表 |
 | `WhaleGenie.Core/Devices/` | 25 / 5311 | 契约 + 空对象；`Platform/` 另有 48 文件 14558 行 |

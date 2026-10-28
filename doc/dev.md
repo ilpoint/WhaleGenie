@@ -204,7 +204,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
   「文件 → 退出鲸灵」或托盘退出；`Program.Run` 在桌面生命周期结束后再做 `Environment.Exit(0)` 兜底。
 - MCP 端口由 `LocalSettings.McpPort` 保存（默认 3917），浮层里的 `NumberBox` 只在停止时可用；启动时
   作为首选端口，被占用则回退到系统分配端口，浮层显示实际地址。
-- `RunLogStore`（`WhaleGenie/Execution/RunLogStore.cs`）保留最近 20 次运行的日志与步骤结局：
+- `RunLogStore`（`WhaleGenie/Runtime/RunLogStore.cs`）保留最近 20 次运行的日志与步骤结局：
   `RunViewModel` 与触发器的 `AskRunHost` 各写一份 capture；MCP 只读，不触发运行。
 - 工具由 `McpServerHost.Tools(...)` 逐个建出来，并套上 `McpTolerantTool`：`inputSchema` 保持严格
   （对象就是 `"type": "object"`），但参数真的不是那个形状时（例如客户端把宏当字符串发），在工具
@@ -673,7 +673,7 @@ NumLock 在 Windows 这边照样翻转指示灯，到了浏览器却报成 Pause
 - 动作窗口的「运行」与字段旁的测试同拾取器一套规矩：`AppWindows.StepAside` 收起全部窗口、`ScreenComposed.Wait()`
   等桌面重画，再读屏幕或发输入，结束时按原状回来。只最小化本窗口不够——属主编辑器还在它后面挡着要被试的那块画面。
 - 界面只认引擎交出的接口：屏幕、UIA、窗口表、录制器、全局钩子、驱动级输入与浏览器都由组合根
-  （`WhaleGenie/Execution/SharedDevices.cs` 与 `App.axaml.cs`）交来，窗口、视图模型与拾取器里不出现
+  （`WhaleGenie/Runtime/SharedDevices.cs` 与 `App.axaml.cs`）交来，窗口、视图模型与拾取器里不出现
   `WhaleGenie.Core.Devices.Platform`——`LayeringTests` 扫源码卡住这一条，替身设备层也就够驱动它们。
 - 字段名是文件格式：概念在前、角色在后；同一个名字只能有一种 `Kind`、一套选项与一套标签。新增参数前先搜
   同义名，宁可改旧名，也不再加一个近义词。记录里的字段名同样是文件格式，统一走 `FieldNames`。

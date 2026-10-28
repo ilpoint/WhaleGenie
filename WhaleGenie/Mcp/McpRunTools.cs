@@ -9,8 +9,8 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Mcp;

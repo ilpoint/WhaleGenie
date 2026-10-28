@@ -7,9 +7,9 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices.Platform;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
