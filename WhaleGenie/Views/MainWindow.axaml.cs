@@ -1789,7 +1789,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!viewModel.Mcp.CanCopy || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        if (viewModel.Mcp.Executable.Length == 0
+            || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
         {
             viewModel.Mcp.ShowNoProgram();
             return;

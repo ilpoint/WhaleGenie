@@ -42,9 +42,6 @@ public partial class McpServerViewModel : ViewModelBase
     /// <summary>This program's own path, which is what the client has to be told to start.</summary>
     public string Executable => McpProgram.Executable;
 
-    /// <summary>Whether there is a program to name. Off, the block would point at nothing.</summary>
-    public bool CanCopy => Executable.Length > 0;
-
     /// <summary>Where the block was copied, or why there is nothing to copy.</summary>
     public string Status
     {

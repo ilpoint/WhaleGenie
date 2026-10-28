@@ -286,8 +286,8 @@
             </StackPanel>
 
             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
+                <!-- No Active state: there is no server in this window to be on or off. -->
                 <Button Classes="LabeledToolButton" Name="McpButton"
-                        Classes.Active="{Binding Mcp.CanCopy}"
                         Click="OnMcpClicked"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.McpHint], Source={x:Static loc:Strings.Current}}">
