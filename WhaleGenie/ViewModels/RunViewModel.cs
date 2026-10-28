@@ -539,6 +539,21 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private readonly HashSet<string> _breakpoints = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// The ids of this macro's own steps. A called macro's steps go past the same host, and one of
+    /// its ids has no business making one of these look as though it had run.
+    /// </summary>
+    private readonly HashSet<string> _ownIds = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The steps the run has actually arrived at. Before it starts, every step is written as
+    /// "skipped" so a condition about one further down reads a word rather than nothing — which
+    /// means a step merely having a value says nothing about whether it ran. Single stepping made
+    /// that plain: the whole list said "skipped" at the first pause, including steps the run had
+    /// not reached and might never reach.
+    /// </summary>
+    private readonly HashSet<string> _reached = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// What each breakpoint waits for: how many arrivals count, and an expression that has to hold.
     /// A breakpoint with no entry here stops the moment the run reaches it.
     /// </summary>
@@ -718,6 +733,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _breakpoints.Clear();
         _breakpointRules.Clear();
         _breakpointHits.Clear();
+        _ownIds.Clear();
+        _reached.Clear();
         Steps.Clear();
         Lines.Clear();
         ShowStepOutcomes = false;
@@ -1189,6 +1206,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         IsAsking = false;
         IsAskingUser = false;
         CurrentId = null;
+        _reached.Clear();
 
         using var cancellation = new CancellationTokenSource();
         _cancellation = cancellation;
@@ -1252,6 +1270,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         WindowRead?.Invoke(null);
 
         CurrentId = step.Id;
+        if (_ownIds.Contains(step.Id))
+        {
+            _reached.Add(step.Id);
+        }
+
         RefreshVariables();
 
         if (!_stopAtNextStep && !StopsHere(step.Id))
@@ -1570,6 +1593,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     {
         foreach (var step in steps)
         {
+            if (step.Id.Length > 0)
+            {
+                _ownIds.Add(step.Id);
+            }
+
             var row = new RunStepViewModel
             {
                 Id = step.Id,
@@ -1718,6 +1746,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         foreach (var step in Steps)
         {
             if (step.Id.Length == 0)
+            {
+                continue;
+            }
+
+            // The step the run stands in front of has not been carried out yet, so it has nothing
+            // to report — even though a value for it was written before the run began.
+            if (!_reached.Contains(step.Id) || step.Id == CurrentId)
             {
                 continue;
             }
