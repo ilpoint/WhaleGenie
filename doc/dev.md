@@ -19,7 +19,7 @@ pwsh build/site.ps1                              # 拼出介绍页 _site
 量 MCP 的易用性，不必点界面：
 
 ```powershell
-dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report TestResults/mcp-after.md
+dotnet run --project WhaleGenie -c Release -- --mcp-doctor --spawn --report TestResults/mcp-after.md   # 报告是本机快照，不进仓库
 dotnet run --project WhaleGenie -c Release -- --mcp --port 3917     # 无窗口起服务，Ctrl+C 停（只读；加 --allow-control / --allow-run 才授权）
 ```
 

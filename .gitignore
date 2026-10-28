@@ -372,3 +372,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# 测试与体检的报告：--report / ACTION_MATRIX_REPORT 的落点，是某一次运行的快照，不进仓库
+TestResults/
