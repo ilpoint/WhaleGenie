@@ -199,7 +199,12 @@ HTTP POST /mcp
 
 ### 6.3 组合根与生命周期
 
-`WhaleGenie/Runtime/SharedDevices.cs` 持有一个 `WindowsDeviceLayer` 单例，`App.axaml.cs` 在启动时预热（虚拟键鼠、OCR 模型）、在退出时 `Release()`。`WindowsDeviceLayer` 内部 15 个 `Lazy<>`，彼此有依赖链（输入要用屏幕、UIA 借输入、脚本借进程）。
+组合根有两处，各管一件事：
+
+- `WhaleGenie/Runtime/SharedDevices.cs` 持有 `WindowsDeviceLayer` 那一个实例——设备在这层意义上只有一份。`App.axaml.cs` 在启动时预热（虚拟键鼠、OCR 模型）、在退出时 `Release()`。
+- `WhaleGenie/AppServices.cs` 是对象图的组合根：设备层、项目、草稿箱、触发器、MCP 服务与三套工具在那里注册，有窗口与无窗口两种起法共用同一份（`AGENTS.md` 第 12 条）。它把 `SharedDevices.Current` 注册成 `IDeviceLayer`，所以窗口、触发器与 MCP 拿到的是同一层。
+
+`WindowsDeviceLayer` 内部 15 个 `Lazy<>`，彼此有依赖链（输入要用屏幕、UIA 借输入、脚本借进程）。
 
 `IDeviceLayer` 不继承 `IDisposable`：`WindowsDeviceLayer.Dispose` 靠运行时 `IsValueCreated && is IDisposable` 逐个判断，钩子永不释放。
 
@@ -219,15 +224,15 @@ HTTP POST /mcp
 | --- | --- | --- |
 | 项目文档态 | `MainViewModel`（439 行） | `Macros`、`VisibleMacros`、`Triggers`、`CurrentPath`、`IsDirty`、`Revision` |
 | 运行期态 | 窗口字段与 `TriggerRuntime` | `_surfaces`（浮动界面）、`_recovery`；触发器服务来自容器里的 `TriggerRuntime` |
-| 编辑态 | `MacroEditorWindow` 的字段 + `MacroEditorViewModel` 的副本 | `_documents`（子宏页）、`_lifted`（抬起中的片段）、`_interfaceLayouts` |
+| 编辑态 | `MacroEditorSession` + 窗口的 UI 字段 | `Documents`（子宏页）、`Lifted`（抬起中的片段）、`Recording`（正在录的那次）；窗口只留拖动、落点、摘页这类 UI 状态 |
 
-`MainViewModel` 不是上帝对象——它只有 2 个命令，做的是"项目文档状态"。真正的上帝对象是 `MacroEditorViewModel`（3438 行）与 `MacroEditorWindow.axaml.cs`（3104 行），而且**两者共享同一份职责**：VM 造宏、窗口拼最终对象；VM 抛 `MacroLifted`、窗口接住塞进自己的文档表。
+`MainViewModel` 不是上帝对象——它只有 2 个命令，做的是"项目文档状态"。最大的两个文件是 `MacroEditorViewModel`（3437 行）与 `MacroEditorWindow.axaml.cs`（3035 行）。它们的分工是"VM 造宏、窗口拼最终对象"，而那个"拼"只有 8 行：`BuildRootSnapshot` 把子宏页塞进 root 再调 `BuildMacro()`。体量在两边各自的交互细节上，不在职责重叠上——`editor-mvvm-plan.md` 里记着这个判断是怎么改过来的。
 
 ### 7.2 MVVM 的实际边界
 
 数据绑定这一层成立：全部 `.axaml` 用 `x:DataType` 编译绑定，98 个 `[RelayCommand]` 源生成命令，`Strings` 用索引器绑定。
 
-流程这一层不成立：XAML 里 118 个 `Click="OnXxx"`、82 处 `.Click +=`、128 处 `FindControl<>`；`Views/*.axaml.cs` 共 13244 行，占界面层的一半。窗口自己做的事包括：创建触发器服务（`MainWindow.OnOpened`）、开录制会话、写恢复快照、调 `MacroRunner.LookOnce` 做试运行并隐藏/恢复自身。
+流程这一层不成立：XAML 里 118 个 `Click="OnXxx"`、82 处 `.Click +=`、128 处 `FindControl<>`；`Views/*.axaml.cs` 共 13210 行，占界面层的一半。窗口自己做的事剩下：写恢复快照、调 `MacroRunner.LookOnce` 做试运行并隐藏/恢复自身、拖动与落点判定。触发器服务（`TriggerRuntime`）与录制会话（`RecordingSession`）已经搬出去了。
 
 ### 7.3 通信方式
 
@@ -237,7 +242,7 @@ HTTP POST /mcp
 2. 构造器直接持有父 VM；
 3. 静态单例广播（`SharedVariables.Current.Changed`、`VariableCatalog.GlobalsChanged`、`Strings.Current.LanguageChanged`）。
 
-没有消息总线，通信靠上面三种。依赖由容器组装：`AppServices` 是唯一的组合根，设备层、项目、草稿箱、MCP 服务与三套工具都从那里解析。子窗口与触发器服务暂时仍由窗口创建——那是阶段 4 的活。
+没有消息总线，通信靠上面三种。依赖由容器组装：`AppServices` 是唯一的组合根，设备层、项目、草稿箱、触发器、MCP 服务与三套工具都从那里解析（`AGENTS.md` 第 12 条）。子窗口仍由打开它的窗口创建——它们带的是宏与项目这类参数，注册成工厂只是把一次 `new` 换成一次查表。
 
 ### 7.4 文案表
 
@@ -366,35 +371,41 @@ HTTP POST /mcp
 
 **原先写错的**：依赖注入曾经被列在这里，写成"有意的取舍"。那是错的——.NET 项目的依赖由容器组装是常规做法，手工 `new` 省下的只是配置。阶段 2 已经把它落地：`AppServices` 是唯一的组合根，`App.axaml.cs` 与无窗口入口共用同一份注册。
 
-## 十四、债务与建议顺序
+## 十四、债务与建议
 
-按"会不会出事"排，不按"改起来爽不爽"排。怎么做、按什么顺序做，见 [`refactor-plan.md`](refactor-plan.md)：阶段 1 对应下面 P0，阶段 3 对应 P1，阶段 4 对应 P2；阶段 2（依赖注入）不在这张表里，因为它是结构改动，要单独占一轮全量验证。
+清债计划（`refactor-plan.md`）的五个阶段、编辑器的前两步（`editor-mvvm-plan.md`）都已落地。
+剩下的分三类：值得做的、做过判断不做的、以及一个不算债但必须知道的结构事实。
 
-### P0：会出错，或会丢数据
+### 值得单独一轮
 
-1. **保存没有 `.bak`，只有 MCP 通道有。** `McpLiveProject.SaveAsync` 会先 `File.Copy(path, path + ".bak")`，而用户按 Ctrl+S 走的 `MainViewModel.SavePackage` **不做**。同一个动作，两条路径两种安全性。修法：把备份下沉到 `MacroPackage.Save`，一处生效。
-2. **校验的阻断/提示语义在两个消费者那里是相反的。** `MacroCheck.Inspect` 产出的 45 种问题只有代码没有 severity；编辑器把结果当"行上提示"（不阻止保存），`McpDraftStore.Validate` 把它们当 `blocking`（阻止 apply 整个草稿）。同一份数据两种判断，迟早出现"界面能存、AI 存不了"或反过来。修法：给 `MacroProblem` 加 severity，两处各自声明用哪一档。
-3. **`CanLook`/`SeeOnce` 与动作目录已经不一致**（目录里 17 条会看屏幕，清单里只有 14 条）。表现为"试一下"按钮对某些动作说"这不是看屏幕的动作"。修法：从 `ActionSemanticsCatalog` 生成这两份清单，删掉手抄。
+1. **无窗口 MCP 的权限缺口**（9.1）。现在这一路技术上不可用、文档里也没说。要么给 `--mcp` 一个
+   `--allow-control` / `--allow-run`，要么把"这一路只能读"写死在服务说明与手册里。二选一，别停在这。
+2. **`BuildMacro()` 的产出没有逐字段对账。** 3437 行的 `MacroEditorViewModel` 把编辑态翻译成
+   `MacroItem`，端到端只有一条用例（`The_macro_the_editor_ends_with_is_read_from_the_window`，验到名字）。
+   值得一条"编一段 → 存 → 读回 → 相等"的用例：便宜，且字段漏写会立刻现形。
+3. **`FakeDeviceLayer` 1534 行。** 它宽是因为 `IDeviceLayer` 宽；窄接口推广到更多消费者之后它会自己
+   瘦下来。现在动只是把一个宽替身拆成几个窄替身。
 
-### P1：改的时候容易改错
+### 做过判断，不打算做
 
-4. **重试逻辑写了两遍**（`RunAttempts` 的 signal 分支与 catch 分支）。改重试语义必须同时改两处，漏一处就是"异常重试、信号不重试"这种半截行为。修法：先把两条合成一个 `Outcome`，再判。
-5. **三个地方手工装配运行器**（`RunViewModel`、`MacroTriggerService`、`McpRunTools`），几乎逐行相同，只差 host 与初始参数。修法：一个 `RunFactory`。
-6. **`MacroCheck.Inspect` 是单方法 1083 行**，内含几十个局部函数，45 个裸字符串 code 没有集中词表（对比 `RunKeys` 有 319 个常量）。修法：按检查族拆成小类，code 提成常量。
-7. **动作分派靠 217 个 `case` 字面量**，与目录没有编译期关联。加一个动作要改三处（目录、分派、测试）。这是这套设计里最贵的一处，但改动面极大——建议先给"目录声明的动作必须被某个 case 覆盖"加一条测试，而不是马上重写分派。
-8. **共用原语散落在按族切分的分部里**（`Give` 在 Window、`Pause` 在 Script、`Gate` 在 Detection）。修法：提一个 `MacroRunner.Support.cs`，或者至少在同族文件顶部写"这个文件里还有别的族在用"。
-9. **~~两个同名 `Execution` 目录~~ 已解决。** 应用层那个改成了 `WhaleGenie/Runtime`（命名空间 `WhaleGenie.Runtime`），引擎仍是 `WhaleGenie.Core.Execution`。看栈追踪时分得清了。
+4. **编辑器剩下的两步 MVVM**（键位捕获合并、窗口压到只绑定）。理由写在 `editor-mvvm-plan.md`：
+   两套捕获的"单个修饰键"语义不同，合并要加分支；剩下 130 个方法平均 24 行，都是 UI。
+5. **`Core` 里几件只服务界面的东西**（`StepMeta.ToJson`、`MacroRunner.LookOnce`、编辑器事实）。
+   挪走要动引擎契约，收益不抵一次大改。
+6. **静态单例**（`SharedVariables.Current`、`VariableCatalog.Globals`、`Strings.Current`）。进程级，
+   测试间共享，靠禁用并行兜着。程序一次只开一个项目，静态就是"那一个"。
 
-### P2：结构性的，成本高、回报慢
+### 一个结构事实（不是债，但决定了很多事）
 
-10. **设备接口过宽。** `IDeviceLayer` 20 个属性、`NullDeviceLayer.Refusal` 实现 17 个接口、`FakeDeviceLayer` 1534 行、`PlaywrightBrowserDevice` 2075 行——同一根因的四个投影。**已经开始按消费者收窄**：`WindowRuleWindow` 只接窗口与钩子，`ColorPickerWindow` 只接屏幕、输入与钩子。注意收窄不会让现有测试变简单（`ChecksDevices` 本来就是整个层），它买到的是"构造函数说出这个窗口要什么"。继续时让每个构造函数只接它真正用到的窄接口，聚合接口留给组合根。
-11. **视图做业务。** `MainWindow`（2118 行）创建触发器服务、管恢复、管托盘；`MacroEditorWindow`（3104 行）管子宏文档、录制、键位捕获；`ActionEditorView`（2109 行）直接调 `MacroRunner.LookOnce` 做试运行。这是最大的理解成本来源，也是最难改的一处——建议顺手改（碰到哪个窗口就把哪块搬出去），不要专门开一轮。
-12. **项目状态被劈成两半。** `Macros`/`Triggers` 在 `MainViewModel` 实例上，全局变量在静态 `VariableCatalog.Globals` 上。MCP 的 `McpLiveProject.Snapshot()` 因此一半从实例读、一半从静态读，无窗口与有窗口靠进程内静态隐式共享。**已经收口的是装载**：打开、导入、恢复三个入口合成 `LoadSharedVariables(globals, replace)`，并有"换一个项目后旧变量不残留"的用例。**没做的是注入**：改成注入要动 94 处访问和 `VariableCatalog` 的静态签名（`MacroCheck` 这样的静态类也在用），而这个程序一次只开一个项目——静态就是"当前项目的那一份"。要支持多项目或并行测试隔离时再谈。
-13. **无窗口 MCP 的权限缺口**（第 9.1 节）。要么在 `--mcp` 上给一个显式参数（`--allow-control` / `--allow-run`），要么在服务说明与手册里把"这一路只能读"写死。现在是"技术上不可用、文档里没说"。
+7. **宏的文件模型住在界面工程。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
+   `WhaleGenie/Models`（8.7k 行），而 `WhaleGenie.Core` 不认识它们——引擎只认 `ExecutableStep`，
+   转换点唯一（`MacroStepConverter`）且每次运行都重建。
 
-### 一句话的取舍
+   好处是引擎能独立测试（`Core.Tests` 不引界面）。代价是**任何宏的非 UI 用法都必须在界面工程里**：
+   包的读写（`Storage`）、公共宏库、MCP 的 `McpLiveProject` 都是。想做无界面工具或独立 CLI，
+   第一块要动的就是它。
 
-如果只做三件：**1（备份）、2（校验语义）、3（动作清单与目录对齐）**。这三件都是"现在就可能出错"的，而且都不需要动结构。P2 那些看着更壮观，但收益要几年才兑现。
+   现在不动：那等于重排 8.7k 行与全部转换，而收益要等"真的有第二个入口"时才兑现。
 
 ## 附：文件规模地图
 
@@ -403,13 +414,13 @@ HTTP POST /mcp
 | 位置 | 文件 / 行数 | 一句话 |
 | --- | ---: | --- |
 | `WhaleGenie/Localization/` | 9 / 9061 | 两份手写文案表 + 语言刷新 |
-| `WhaleGenie/Views/` | 78 / 27412 | 33 个窗口、4 个 UserControl，后置代码占一半 |
-| `WhaleGenie/ViewModels/` | 46 / 18433 | 五个大 VM 占 61%，其余是行/选项载体 |
-| `WhaleGenie/Models/` | 31 / 8377 | 全域共享的领域层（宏、触发器、校验） |
-| `WhaleGenie/Mcp/` | 23 / 7596 | 工具、草稿、资源、体检、审计 |
-| `WhaleGenie/Runtime/` | 35 / 4592 | 触发器、录制翻译、运行宿主、变量桥接、包与恢复 |
-| `WhaleGenie/Storage/` | 6 / 1698 | 包格式、图片资产、恢复快照 |
-| `WhaleGenie.Core/Execution/` | 27 / 14000 | 运行器与 13 个分部、动作目录、键表 |
+| `WhaleGenie/Views/` | 78 / 27389 | 33 个窗口、4 个 UserControl，后置代码占一半 |
+| `WhaleGenie/ViewModels/` | 48 / 18662 | 五个大 VM 占 61%，其余是行/选项载体 |
+| `WhaleGenie/Models/` | 32 / 8483 | 全域共享的领域层（宏、触发器、校验） |
+| `WhaleGenie/Mcp/` | 23 / 7647 | 工具、草稿、资源、体检、审计 |
+| `WhaleGenie/Runtime/` | 37 / 4696 | 触发器、录制翻译、运行宿主、变量桥接、包与恢复 |
+| `WhaleGenie/Storage/` | 6 / 1707 | 包格式、图片资产、恢复快照 |
+| `WhaleGenie.Core/Execution/` | 27 / 14038 | 运行器与 13 个分部、动作目录、键表 |
 | `WhaleGenie.Core/Devices/` | 25 / 5311 | 契约 + 空对象；`Platform/` 另有 48 文件 14558 行 |
 | `WhaleGenie.Core/Expressions/` | 8 / 3068 | 语法树、求值、函数库 |
 | `WhaleGenie.GraphicsCapture/` | 14 / 2292 | D3D11/DXGI 取画面 |
