@@ -32,7 +32,7 @@ internal sealed class McpSelfCheckReport
 {
     public string Endpoint { get; init; } = string.Empty;
 
-    /// <summary>What this run was: the whole surface, or the range alone.</summary>
+    /// <summary>What this run was, named in the heading of the report it writes.</summary>
     public string Title { get; init; } = "self-check";
 
     public DateTimeOffset At { get; init; } = DateTimeOffset.Now;

@@ -128,6 +128,69 @@ public class McpSelfCheckTests
         });
     }
 
+    /// <summary>
+    /// A server started with the two permissions open is not a server with a hole in it. The check
+    /// has to read what the server says it allows and expect that, or it reports a failure that is
+    /// not one — and the read-only probe it would otherwise use is a real mouse move, which an
+    /// allowed server carries out while the report calls it broken.
+    /// </summary>
+    [Fact]
+    public void The_self_check_expects_the_permissions_the_server_reports()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var folder = Scratch();
+            var control = McpControl.Allowed;
+            var runs = McpControl.AllowsRun;
+            try
+            {
+                var path = Path.Combine(folder, "project.wgmacro");
+                var viewModel = new MainViewModel();
+                viewModel.AddMacro(new MacroItem { Name = "原宏" });
+                viewModel.CurrentPath = path;
+                viewModel.SavePackage(path);
+
+                McpControl.Allowed = true;
+                McpControl.AllowsRun = true;
+
+                await using var host = new McpServerHost(viewModel);
+                await host.StartAsync();
+                await using var client = await ConnectAsync(host.Endpoint);
+
+                var report = await new McpSelfCheck(client, new McpSelfCheckOptions
+                {
+                    Endpoint = host.Endpoint,
+                    AllowApply = true,
+                    AllowSave = true,
+                }).RunAsync();
+
+                Assert.True(report.Passed, string.Join("; ", report.Checks
+                    .Where(check => check.Result == McpCheckResult.Fail)
+                    .Select(check => $"{check.Name}: {check.Detail}")));
+
+                foreach (var name in new[] { "gate.control_on", "gate.run_on" })
+                {
+                    var check = report.Checks.Single(entry => entry.Name == name);
+                    Assert.True(check.Result == McpCheckResult.Pass, $"{name}: {check.Detail}");
+                }
+
+                // And the read-only pair is not reported against a server that is not read-only.
+                Assert.DoesNotContain(report.Checks,
+                    check => check.Name.EndsWith("_off", StringComparison.Ordinal));
+
+                await host.StopAsync();
+            }
+            finally
+            {
+                McpControl.Allowed = control;
+                McpControl.AllowsRun = runs;
+                Directory.Delete(folder, true);
+            }
+
+            return true;
+        });
+    }
+
     [Fact]
     public void The_self_check_reports_a_server_that_is_gone_instead_of_throwing()
     {

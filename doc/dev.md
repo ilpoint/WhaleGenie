@@ -218,7 +218,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 **无窗口与体检**　`--mcp [--port N] [--open 包] [--new 文件夹] [--allow-control] [--allow-run]` 起服务，
 stdout 只写一行 `endpoint=…`；`--mcp-doctor (--url … | --spawn) [--report …] [--write] [--strict]` 以客户端
-身份量一遍，退出码 0 全过 / 1 有 fail / 2 参数或包有问题 / 3 连不上 / 4 子进程没报出地址。两者都只是入口，
+身份量一遍，退出码 0 全过 / 1 有 fail / 2 参数或包有问题 / 3 连不上 / 4 子进程没报出地址。体检会先读
+`project_status` 里的两档权限再验：关着就期待被拒，开着就期待放行——对着带 `--allow-control` 的服务端跑，
+它不会把「本来就该放行」报成 fail。两者都只是入口，
 不得借此让核心依赖 MCP。
 
 **改它的固定四步**　改 → 量（动作矩阵与体检各跑一次）→ 比（两份报告对着看）→ 提交。量不出差别就不要说

@@ -231,6 +231,37 @@ presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 
 体检条目从 35 到 37；工具数没变——这一轮没有新工具，只有新页面。
 
+## 第八轮：体检先问开关
+
+关于键鼠与运行的那两条检查原来只会一种答案：**期待被拒**。可服务端现在能带 `--allow-control` /
+`--allow-run` 起来——那时它该被放行。旧检查对着这样的服务端跑，报的是
+
+```
+| gate.control_off | fail | {"x":1,"y":1,"durationMs":0,"cursor":{"x":1,"y":1}} |
+| gate.run_off     | fail | {"error":{"code":"NoSuchMacro",…}}                     |
+```
+
+`Result: fail, 29 pass, 2 fail`，退出码 1。两处都不对：一是把「本来就该放行」当成漏洞；二是那条探针
+**本身就是一次真实的鼠标移动**，服务端既然被允许，就真的把指针挪到了 (1,1)，报告却说它坏了。
+
+现在检查先读 `project_status` 里的 `control.allowed` / `control.runAllowed`，按服务端自己说的来验：
+
+| 权限 | 关着（默认） | 开着（`--allow-*`） |
+| --- | --- | --- |
+| 直接控制 | `gate.control_off`：`mouse_move` 必须被 `DirectControlOff` 拒 | `gate.control_on`：移到**指针现在所在的位置**——驱动走完一遍，桌面不动 |
+| 运行宏 | `gate.run_off`：`run_macro` 必须被 `RunNotAllowed` 拒 | `gate.run_on`：用一个不存在的名字，能走到查找就说明门开了，什么都没有真的跑 |
+
+同一个体检对两种服务端的结论：
+
+```
+只读      Result: pass, 37 pass, 0 fail, 0 missing, 0 skip
+带两权限  Result: pass, 31 pass, 0 fail, 0 missing, 4 skip   （不拥有项目的那几条照旧跳过）
+```
+
+2026-10-29 复量（`--mcp-doctor --spawn`）：37 条全过、48 个工具、3 个资源 2 个模板、2 个提示；服务说明
+4914 字符，典型脚本 480 / 6554 字节，补丁省 15.3 倍（125 字节对 1914）。工具、资源、检查条数与第七轮
+记的一致。
+
 ## 附二：动作矩阵
 
 工具这一面靠上面的检查量，动作那一面靠 `WhaleGenie.Core.Tests/Bench`：目录里的每个动作逐个按声明
