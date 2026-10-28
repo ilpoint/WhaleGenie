@@ -13,9 +13,26 @@ public sealed class Strings : INotifyPropertyChanged
 {
     private static readonly Strings Instance = new();
 
-    private Language _language = LocalSettings.Load();
+    private Language? _language;
+
+    /// <summary>
+    /// How the chosen language is read and written. The interface sets these before anything is
+    /// drawn; without them a run keeps the language its system speaks, which is what a check or a
+    /// command-line tool wants anyway.
+    /// </summary>
+    public static Func<Language>? LoadLanguage { get; set; }
+
+    /// <summary>Where a chosen language is kept. Null means "this run only".</summary>
+    public static Action<Language>? SaveLanguage { get; set; }
 
     public static Strings Current => Instance;
+
+    /// <summary>The language to use when nothing has been chosen: whatever Windows speaks.</summary>
+    private static Language SystemLanguage =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
+            .Equals("zh", StringComparison.OrdinalIgnoreCase)
+            ? Language.Chinese
+            : Language.English;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -24,7 +41,7 @@ public sealed class Strings : INotifyPropertyChanged
 
     public Language Language
     {
-        get => _language;
+        get => _language ??= LoadLanguage?.Invoke() ?? SystemLanguage;
         set
         {
             if (_language == value)
@@ -33,7 +50,7 @@ public sealed class Strings : INotifyPropertyChanged
             }
 
             _language = value;
-            LocalSettings.Store(value);
+            SaveLanguage?.Invoke(value);
 
             // An empty name means "everything on this source changed", which refreshes
             // every indexer binding in one go.
@@ -53,7 +70,7 @@ public sealed class Strings : INotifyPropertyChanged
     public static string Get(string key, string? fallback = null)
     {
         // Chrome text lives in this file, action text in ActionStrings; both are Chinese only.
-        if (Instance._language == Language.Chinese
+        if (Instance.Language == Language.Chinese
             && (Chinese.TryGetValue(key, out var chinese)
                 || ActionStrings.Chinese.TryGetValue(key, out chinese)))
         {

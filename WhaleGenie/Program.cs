@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Runtime;
 
@@ -27,6 +28,11 @@ sealed class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // The model layer remembers what language the person chose through these two, so it can stay
+        // free of the interface's settings file. Set before anything is drawn or said.
+        Strings.LoadLanguage = LocalSettings.Load;
+        Strings.SaveLanguage = LocalSettings.Store;
+
         AppDomain.CurrentDomain.UnhandledException += (_, error) =>
             AppDiagnostics.Record("process.unhandled",
                 error.ExceptionObject as Exception ?? new Exception(error.ExceptionObject?.ToString()));

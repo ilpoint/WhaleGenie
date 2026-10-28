@@ -16,6 +16,9 @@
   <Project Path="WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.Model/WhaleGenie.Model.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie/WhaleGenie.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--
+      模型与文案:宏、步骤、触发器、变量声明，以及它们要说的那句话。这里不认识 Avalonia，也不认识
+      应用层——一个命令行工具或另一个界面要用同一个宏格式，只需要这一个工程加引擎。
+      命名空间保持 WhaleGenie.Models 与 WhaleGenie.Localization 不变:搬家是为了让依赖方向变得
+      可行，不是为了给调用方制造一次改名。
+    -->
+    <RootNamespace>WhaleGenie</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      动作的展示清单:标签、提示与编辑器用的字段种类。它跟着模型走，因为模型读它来回答"这一步
+      叫什么"。引擎的语义目录不在这里，它在 WhaleGenie.Core。
+    -->
+    <EmbeddedResource Include="Models\ActionDisplay.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 界面工程用得到这里的 internal 类型，例如持久化变量的写入口。 -->
+    <InternalsVisibleTo Include="WhaleGenie" />
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+  </ItemGroup>
+</Project>
