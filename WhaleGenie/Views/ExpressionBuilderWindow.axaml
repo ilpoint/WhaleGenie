@@ -7,12 +7,12 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="720"
+        mc:Ignorable="d" d:DesignWidth="1140" d:DesignHeight="720"
         x:Class="WhaleGenie.Views.ExpressionBuilderWindow"
         x:DataType="vm:ExpressionBuilderViewModel"
         Title="WhaleGenie"
-        Width="1080" Height="720"
-        MinWidth="900" MinHeight="540"
+        Width="1140" Height="720"
+        MinWidth="960" MinHeight="540"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -93,13 +93,14 @@
             <Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
         </Style>
         <Style Selector="Button.Card:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
-        <!-- A function is a thing to click, not a colour swatch: it reads like the action buttons
-             in the macro editor, so the words stay dark and the group colour does not compete
+        <!-- A function is a thing to pick up and put down, not a colour swatch: it reads like the
+             action buttons in the macro editor, so the words stay dark and the group colour does not compete
              with them. -->
         <Style Selector="Button.FnCard">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
@@ -265,8 +266,8 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,18,400" Margin="16,12,16,0">
-            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto">
+        <Grid Grid.Row="1" ColumnDefinitions="*,18,450" Margin="16,12,16,0">
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
                     <Button Classes="Tab" Classes.on="{Binding IsTreePage}"
                             Content="{Binding TreeTab}" Click="OnShowTree" />
@@ -360,58 +361,29 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- What the formula comes to, said under it: what is picked, how the formula is
-                     written out, the same thing in plain Chinese, and whatever the page has to say
-                     about it. -->
-                <Border Grid.Row="3" Classes="Panel" Margin="0,10,0,0">
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Picked}"
-                                   IsVisible="{Binding IsTreePage}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap"
-                                   Text="{Binding TreePreviewHeader}"
-                                   IsVisible="{Binding IsTreePage}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppText}"
-                                   Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
-                        <!-- The formula said in plain Chinese, right under the formula it was read
-                             from: a reader who does not follow the formula can still check the logic
-                             against it. -->
-                        <TextBlock Name="SayingLine" Classes="Muted" TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AppInfo}" Text="{Binding Saying}"
-                                   IsVisible="{Binding ShowsSaying}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
-                                   IsVisible="{Binding ShowTreeNote}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
-                                   Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
-                                   Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
-                        <!-- What the page written out by hand has to say about the text: the structure
-                             page has said its own piece above, and two lines about the same formula
-                             would be one line too many. -->
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
-                                   Text="{Binding Message}" IsVisible="{Binding ShowError}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
-                                   Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
-                    </StackPanel>
-                </Border>
             </Grid>
 
+            <Grid Grid.Column="2" RowDefinitions="*,Auto">
             <!-- Everything that can be put into the formula, a section at a time: the sections keep
                  the same order from one visit to the next, so what is being looked for is found
                  where it was left. -->
-            <Border Grid.Column="2" Classes="Panel">
+            <Border Classes="Panel">
                 <Grid RowDefinitions="Auto,*">
                 <!-- A click with nothing picked says what to do instead of choosing for you. It sits
                      above the list rather than in it, so scrolling down to the functions cannot hide
                      the answer to the click that was just made. -->
-                <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="10,8,10,0"
-                           Foreground="{DynamicResource AppWarning}"
-                           Text="{Binding PaletteNotice}"
-                           IsVisible="{Binding HasPaletteNotice}" />
+                <StackPanel Margin="10,8,10,2" Spacing="3">
+                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppWarning}"
+                               Text="{Binding PaletteNotice}"
+                               IsVisible="{Binding HasPaletteNotice}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding PaletteHint}" />
+                </StackPanel>
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
-                        <!-- On the structure page an operator wraps what is picked; on the page written
-                             out by hand it is dropped in at the caret, exactly as it always was. -->
+                        <!-- An operator is dragged onto the line it should wrap; on the structure page
+                             a click only says so. -->
                         <ItemsControl ItemsSource="{Binding TreeOperators}"
                                       IsVisible="{Binding IsTreePage}">
                             <ItemsControl.ItemsPanel>
@@ -544,6 +516,48 @@
                 </ScrollViewer>
                 </Grid>
             </Border>
+
+            <!-- What the formula comes to, beside the palette and under it in its own two columns:
+                 what is picked and how the formula is written on the left, what it means and what the
+                 page has to say on the right. Under the structure it took a whole row of the page
+                 away from the tree, which is the thing being worked on. -->
+            <Border Grid.Row="1" Name="FormulaPanel" Classes="Panel" Margin="0,10,0,0">
+                <Grid ColumnDefinitions="*,14,*">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Picked}"
+                                       IsVisible="{Binding IsTreePage}" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                       Text="{Binding TreePreviewHeader}"
+                                       IsVisible="{Binding IsTreePage}" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppText}"
+                                       Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                        <StackPanel Spacing="4">
+                            <!-- The formula said in plain Chinese: a reader who does not follow the
+                                 formula can still check the logic against it. -->
+                            <TextBlock Name="SayingLine" Classes="Muted" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource AppInfo}" Text="{Binding Saying}"
+                                       IsVisible="{Binding ShowsSaying}" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
+                                       IsVisible="{Binding ShowTreeNote}" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
+                                       Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
+                                       Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
+                            <!-- What the page written out by hand has to say about the text. -->
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
+                                       Text="{Binding Message}" IsVisible="{Binding ShowError}" />
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
+                                       Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            </Grid>
         </Grid>
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="16,10,16,14">

@@ -42,54 +42,91 @@ public class ExpressionBuilderTreeTests
         => builder.Functions.First(choice => choice.Name == name);
 
     /// <summary>
-    /// A function's arguments are not six numbers to type: the comparison is one of its own words and
-    /// the flags are ticks, which is what makes compare() readable as the sentence it is.
+    /// Drops a card on the place that is picked, which is how the page is used: a piece is placed by
+    /// being let go over the line it belongs to. The first drop on an empty formula lands on its one
+    /// line, which is also the only place there is.
     /// </summary>
+    private static void Land(ExpressionBuilderViewModel builder, string payload)
+        => builder.Drop(builder.Selected ?? builder.Rows[0], payload);
+
+
     /// <summary>
-    /// A click with nothing picked changes nothing at all — not even a variable, which used to fall
-    /// back to the top of the formula and replace the whole thing. That fallback was the "a place is
-    /// always picked" that made a click look like it could insert anywhere.
+    /// A click on a card places nothing: a piece goes where it is let go, and a click has no such
+    /// place. The page answers with what to do instead, and the formula is exactly as it was —
+    /// including the case that used to replace the whole formula when nothing was picked.
     /// </summary>
     [Fact]
-    public void A_click_with_nothing_picked_leaves_the_formula_alone()
+    public void A_click_on_a_card_places_nothing()
     {
         Ui.Run(() =>
         {
-            var builder = Builder("$count + 1", "count");
-            Assert.Null(builder.Selected);
+            var builder = Builder("$count + 1", "count", "other");
 
-            builder.ChooseVariable("count");
-            Assert.Equal("$count + 1", builder.Preview);
-
-            builder.ChooseConstant("true");
-            builder.ChooseOperator(Operator(builder, "+"));
-            builder.ChooseFunction(Function(builder, "abs"));
-            builder.ChooseValue(builder.Values.First(choice => choice.Kind == ValueChoiceKind.Text));
-
+            builder.SayDrag();
             Assert.Equal("$count + 1", builder.Preview);
             Assert.True(builder.HasPaletteNotice);
+            Assert.Equal(Strings.Get("ExprBuilder.DragToPlace"), builder.PaletteNotice);
+
+            // A drop is the thing that works, and it takes the notice away with it. It lands on the
+            // line it was let go over, which here is the left operand.
+            builder.Drop(builder.Rows[1], "var:other");
+            Assert.Equal("$other + 1", builder.Preview);
+            Assert.False(builder.HasPaletteNotice);
         });
     }
 
     /// <summary>
-    /// An empty field is one place and no more, but it is still the user's place to pick: a click on
-    /// its own leaves it empty.
+    /// An empty formula is one place and no more, and a drop is what fills it: the click that used to
+    /// fall through to that one place leaves it empty.
     /// </summary>
     [Fact]
-    public void An_empty_field_needs_its_place_picked_before_a_click_fills_it()
+    public void An_empty_field_is_filled_by_a_drop_and_not_by_a_click()
     {
         Ui.Run(() =>
         {
             var builder = Builder(string.Empty, "count");
 
-            builder.ChooseVariable("count");
+            builder.SayDrag();
             Assert.Equal("▢", builder.Preview);
             Assert.True(builder.HasPaletteNotice);
 
-            builder.Select(builder.Rows[0]);
-            builder.ChooseVariable("count");
+            builder.Drop(builder.Rows[0], "var:count");
             Assert.Equal("$count", builder.Preview);
             Assert.False(builder.HasPaletteNotice);
+        });
+    }
+
+    /// <summary>
+    /// What the formula comes to sits beside the palette, in two columns under it, rather than under
+    /// the tree: the tree keeps the height of the page instead of sharing it with a panel that is
+    /// about the formula rather than about the place the formula is built.
+    /// </summary>
+    [Fact]
+    public void The_formula_reads_beside_the_palette_and_not_under_the_tree()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$count + 1", "count");
+            var window = new ExpressionBuilderWindow(builder);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var tree = window.FindControl<ItemsControl>("TreeRows")!;
+            var panel = window.FindControl<Border>("FormulaPanel")!;
+
+            var treeRight = tree.TranslatePoint(new Point(0, 0), window)!.Value.X
+                + tree.Bounds.Width;
+            var panelLeft = panel.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.True(panelLeft > treeRight);
+
+            // And it is under the palette, which is its neighbour in the same column.
+            var palette = panel.Parent is Grid column
+                ? column.Children.OfType<Border>().First(border => !ReferenceEquals(border, panel))
+                : null;
+            Assert.NotNull(palette);
+            Assert.True(panel.Bounds.Y >= palette!.Bounds.Bottom - 0.5);
+
+            window.Close();
         });
     }
 
@@ -148,26 +185,6 @@ public class ExpressionBuilderTreeTests
         });
     }
 
-    [Fact]
-    public void A_click_with_nothing_picked_says_what_to_do_instead_of_inserting()
-    {
-        Ui.Run(() =>
-        {
-            var builder = Builder("$count + 1", "count");
-            builder.ChooseFunction(Function(builder, "abs"));
-
-            Assert.Equal("$count + 1", builder.Preview);
-            Assert.True(builder.HasPaletteNotice);
-
-            // Picking a place first is all it takes.
-            builder.Select(builder.Rows.Last(row => row.IsTyped));
-            builder.ChooseFunction(Function(builder, "abs"));
-
-            Assert.Equal("$count + abs(1)", builder.Preview);
-            Assert.False(builder.HasPaletteNotice);
-        });
-    }
-
     /// <summary>
     /// The page written out by hand is a buffer: what is typed there changes nothing until it is
     /// built, so a formula dragged together cannot be lost to a stray keystroke.
@@ -198,6 +215,10 @@ public class ExpressionBuilderTreeTests
         });
     }
 
+    /// <summary>
+    /// A function's arguments are not six numbers to type: the comparison is one of its own words and
+    /// the flags are ticks, which is what makes compare() readable as the sentence it is.
+    /// </summary>
     [Fact]
     public void A_comparison_argument_is_picked_and_a_yes_or_no_is_ticked()
     {
@@ -294,18 +315,18 @@ public class ExpressionBuilderTreeTests
             Assert.Equal("1 +", builder.Expression);
 
             // Nothing can be built on it either: the palette must not change a tree nobody can see.
-            builder.ChooseVariable("count");
+            Land(builder, "var:count");
             Assert.DoesNotContain("$count", builder.Preview);
         });
     }
 
     [Fact]
-    public void Picking_a_place_and_clicking_a_variable_fills_it()
+    public void A_variable_dropped_on_the_picked_place_fills_it()
     {
         Ui.Run(() =>
         {
             var builder = Empty("count");
-            builder.ChooseVariable("count");
+            Land(builder, "var:count");
 
             Assert.Equal("$count", builder.Preview);
             Assert.Equal(ExpressionItemKind.Variable, Assert.Single(builder.Rows).Kind);
@@ -319,8 +340,8 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty("a", "b");
-            builder.ChooseVariable("a");
-            builder.ChooseOperator(Operator(builder, "+"));
+            Land(builder, "var:a");
+            Land(builder, "op:" + Operator(builder, "+").Token);
 
             // What was picked became the left operand, and the pick moved on to where the user
             // writes next: the place to fill in on the right.
@@ -328,7 +349,7 @@ public class ExpressionBuilderTreeTests
             Assert.True(builder.Selected!.IsHole);
             Assert.False(builder.CanConfirm);
 
-            builder.ChooseVariable("b");
+            Land(builder, "var:b");
             Assert.Equal("$a + $b", builder.Preview);
             Assert.True(builder.CanConfirm);
         });
@@ -340,8 +361,8 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty("a");
-            builder.ChooseVariable("a");
-            builder.ChooseOperator(Operator(builder, "not"));
+            Land(builder, "var:a");
+            Land(builder, "op:" + Operator(builder, "not").Token);
 
             Assert.Equal("not $a", builder.Preview);
             Assert.Equal(2, builder.Rows.Count);
@@ -354,8 +375,8 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty("name");
-            builder.ChooseVariable("name");
-            builder.ChooseFunction(Function(builder, "upper"));
+            Land(builder, "var:name");
+            Land(builder, "fn:upper");
 
             Assert.Equal("upper($name)", builder.Preview);
             Assert.Equal(ExpressionText.Heading(Function(builder, "upper").Function),
@@ -423,8 +444,8 @@ public class ExpressionBuilderTreeTests
             Assert.Equal(string.Empty, builder.Saying);
             Assert.False(builder.ShowsSaying);
 
-            builder.ChooseVariable("count");
-            builder.ChooseOperator(Operator(builder, "+"));
+            Land(builder, "var:count");
+            Land(builder, "op:" + Operator(builder, "+").Token);
             Assert.Equal(header + "count加上待填", builder.Saying);
             Assert.True(builder.ShowsSaying);
 
@@ -533,8 +554,8 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty("count");
-            builder.ChooseVariable("count");
-            builder.ChooseFunction(Function(builder, "if"));
+            Land(builder, "var:count");
+            Land(builder, "fn:if");
 
             Assert.Equal("if($count, ▢, ▢)", builder.Preview);
             Assert.True(builder.Selected!.IsHole);
@@ -550,8 +571,8 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty("count");
-            builder.ChooseVariable("count");
-            builder.ChooseFunction(Function(builder, "now"));
+            Land(builder, "var:count");
+            Land(builder, "fn:now");
 
             Assert.Equal("now()", builder.Preview);
             Assert.True(builder.CanConfirm);
@@ -564,7 +585,7 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty();
-            builder.ChooseFunction(Function(builder, "substring"));
+            Land(builder, "fn:substring");
 
             Assert.Equal("substring(▢, ▢)", builder.Preview);
             Assert.True(builder.Rows[0].CanAddChild);
@@ -584,8 +605,8 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty("a");
-            builder.ChooseVariable("a");
-            builder.ChooseOperator(Operator(builder, Strings.Get("ExprBuilder.Tree.List")));
+            Land(builder, "var:a");
+            Land(builder, "op:" + Operator(builder, Strings.Get("ExprBuilder.Tree.List")).Token);
 
             Assert.Equal("[$a]", builder.Preview);
             builder.AddChild(builder.Rows[0]);
@@ -648,7 +669,7 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() =>
         {
             var builder = Empty();
-            builder.ChooseFunction(Function(builder, "substring"));
+            Land(builder, "fn:substring");
             builder.AddChild(builder.Rows[0]);
             Assert.Equal(4, builder.Rows.Count);
 
@@ -919,6 +940,39 @@ public class ExpressionBuilderTreeTests
         });
     }
 
+    /// <summary>
+    /// An operator and a plain value are placed the way everything else is: by being dragged onto the
+    /// line they belong to. Without that, a page that only places by dragging would have no way to
+    /// put a <c>+</c> or a <c>true</c> into a formula at all.
+    /// </summary>
+    [Fact]
+    public void An_operator_and_a_value_are_placed_by_being_dragged()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Empty("a", "b");
+
+            builder.Drop(builder.Rows[0], "var:a");
+            builder.Drop(builder.Rows[0], "op:+");
+            Assert.Equal("$a + ▢", builder.Preview);
+
+            // The lines run root first, so the place at the end of the sum is the third line.
+            builder.Drop(builder.Rows[2], "var:b");
+            Assert.Equal("$a + $b", builder.Preview);
+
+            // A value card is dropped on the line it should stand in for: `true`, not a place to type.
+            var yes = builder.Values.First(choice => choice.Kind == ValueChoiceKind.Constant);
+            builder.Drop(builder.Rows[2], "val:" + builder.PayloadOf(yes));
+            Assert.Equal("$a + true", builder.Preview);
+
+            // A number card dropped on a place leaves it to be typed in, and says how it is read.
+            var number = builder.Values.First(choice => choice.Kind == ValueChoiceKind.Number);
+            builder.Drop(builder.Rows[2], "val:" + builder.PayloadOf(number));
+            Assert.Equal("$a + ▢", builder.Preview);
+            Assert.True(builder.Rows[2].IsTyped);
+        });
+    }
+
     /// <summary>Hands the window one of the drop events the platform would send, over a line.</summary>
     private static DragEventArgs Drag(Border line, RoutedEvent<DragEventArgs> what, DataTransfer transfer)
     {
@@ -958,6 +1012,16 @@ public class ExpressionBuilderTreeTests
             Assert.Equal("fn:upper", window.DragPayload(function));
             Assert.Equal("var:b", window.DragPayload(
                 variable.GetVisualDescendants().OfType<TextBlock>().First()));
+
+            // An operator and a plain value carry what they are the same way, so a drag from either
+            // is as good as a drag from the variable wall.
+            var op = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is TreeOperator { Token: "+" });
+            Assert.Equal("op:+", window.DragPayload(op));
+
+            var yes = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is ValueChoice { Kind: ValueChoiceKind.Constant });
+            Assert.Equal("val:" + builder.PayloadOf((ValueChoice)yes.DataContext!), window.DragPayload(yes));
 
             // A box is the pointer going in to type, and the little buttons a line carries are
             // themselves: neither is anything to drag.

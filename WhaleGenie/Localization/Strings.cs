@@ -1262,9 +1262,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.Placeholder"] = "$count + 1",
         ["ExprBuilder.Tab.Tree"] = "Structure",
         ["ExprBuilder.Tab.Text"] = "Text",
-        ["ExprBuilder.Tree.Help"] = "Click a place to pick it up, then click a variable, a "
-            + "function or an operator on the right; a variable or a function can be dragged onto "
-            + "a place as well. Brackets are not typed here: the shape of the tree decides them.",
+        ["ExprBuilder.Tree.Help"] = "Drag a card from the right onto the line it belongs to: an "
+            + "empty place is filled, a line is wrapped, replaced or taken as a function's first "
+            + "argument. A click places nothing. Brackets are not typed here: the shape of the tree "
+            + "decides them.",
         ["ExprBuilder.Tree.CannotRead"] = "What is written on the other page is not a formula "
             + "yet, so there is nothing to show here. Write it there, and come back.",
         // The words a comparison may hold, as the box beside the word says them.
@@ -1287,8 +1288,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.RebuildHint"] = "What is written here replaces the structure, and the structure page comes back in front.",
         ["ExprBuilder.WrittenReads"] = "This reads; press the button to build it.",
         ["ExprBuilder.CannotRead"] = "This cannot be read as a formula.",
-        ["ExprBuilder.PickFirst"] = "Pick a place in the structure first, or drag the piece onto it.",
-        ["ExprBuilder.NothingPicked"] = "Nothing is picked. Click the place in the structure the piece should go into, or drag the piece onto it.",
+        ["ExprBuilder.DragToPlace"] = "Where a piece goes is decided by where it lands: drag the card onto the piece it should wrap, fill or replace.",
+        ["ExprBuilder.DragHint"] = "Drag a card onto a line: an empty place is filled, a line that stands for something is replaced or wrapped.",
+        ["ExprBuilder.NothingPicked"] = "Nothing is picked. Dragging decides where a piece goes; clicking a line picks it, and Delete removes it.",
         ["ExprBuilder.Tree.Hole"] = "Number or text",
         ["ExprBuilder.Tree.Picked"] = "Picked: {0}",
         ["ExprBuilder.Tree.Nothing"] = "Nothing written yet: OK leaves the value empty.",
@@ -3169,8 +3171,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.Placeholder"] = "$count + 1",
         ["ExprBuilder.Tab.Tree"] = "结构",
         ["ExprBuilder.Tab.Text"] = "手写",
-        ["ExprBuilder.Tree.Help"] = "点一个位置把它选中，再点右边的变量、函数或运算符；变量与函数也能拖到位置上。"
-            + "这里不写括号，括号由树的形状决定。",
+        ["ExprBuilder.Tree.Help"] = "把右边的卡片拖到它该在的那一行上：空位被填上，已有的一段被包住、替换，或成为函数的"
+            + "第一个参数。点一下不会放进任何东西。这里不写括号，括号由树的形状决定。",
         ["ExprBuilder.Tree.CannotRead"] = "另一页上写的内容目前还不是一条算式，此处没有可显示的内容。"
             + "先在那一页改好，再回来。",
         ["ExprBuilder.ArityNone"] = "无参数",
@@ -3181,8 +3183,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["ExprBuilder.RebuildHint"] = "这里写的会替换现有结构，并按它重建后切回结构页。",
         ["ExprBuilder.WrittenReads"] = "这段读得通；按左边的按钮才会换成结构。",
         ["ExprBuilder.CannotRead"] = "这段读不成一条公式。",
-        ["ExprBuilder.PickFirst"] = "先在结构里选中一个位置，或者直接把这块拖到要放的地方。",
-        ["ExprBuilder.NothingPicked"] = "还没有选中位置。先点一下结构里要放的地方，或者直接把卡片拖过去。",
+        ["ExprBuilder.DragToPlace"] = "放到哪儿由松手的位置决定：把卡片拖到要被包住、填上或替换的那一段上。",
+        ["ExprBuilder.DragHint"] = "把卡片拖到某一行上：空位被填上，已有的一段被替换或被包住。",
+        ["ExprBuilder.NothingPicked"] = "还没有选中任何一段。位置由拖拽决定；点一行会选中它，按 Delete 可以删除这一段。",
         ["ExprBuilder.Tree.Hole"] = "数字或文字",
         ["ExprBuilder.Tree.Picked"] = "当前选中：{0}",
         ["ExprBuilder.Tree.Nothing"] = "还什么都没写：确认就是把这个值留空。",
