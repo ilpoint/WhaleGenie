@@ -1681,16 +1681,19 @@ public sealed class MacroTriggerService : IDisposable
 
             while (!token.IsCancellationRequested)
             {
-                var runner = new MacroRunner(
-                    MacroVariables.Seed(new SystemVariableReader(_devices), SharedVariables.Current),
-                    host, _devices,
-                    macro.DelayScale, library, capture)
+                var runner = RunFactory.Create(new RunRequest
                 {
-                    FailureLogFolder = AppPaths.Logs,
-                    RunName = macro.Name,
+                    Variables = MacroVariables.Seed(
+                        new SystemVariableReader(_devices), SharedVariables.Current),
+                    Host = host,
+                    Devices = _devices,
+                    Library = library,
+                    Name = macro.Name,
+                    Scale = macro.DelayScale,
+                    Looks = capture,
                     ExclusiveInput = macro.ExclusiveInput,
                     StartSignature = macro.Callable.Signature,
-                };
+                });
                 var result = await runner.RunAsync(steps, token);
                 last = result;
                 if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))

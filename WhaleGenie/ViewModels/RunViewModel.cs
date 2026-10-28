@@ -1199,16 +1199,19 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         try
         {
-            var runner = new MacroRunner(
-                _variables, new UiThreadRunHost(this), _devices, _delayScale, Library,
-                _capture is { } capture ? new RunLooks(capture, this) : this)
+            var runner = RunFactory.Create(new RunRequest
             {
-                FailureLogFolder = AppPaths.Logs,
-                RunName = Debugged,
+                Variables = _variables,
+                Host = new UiThreadRunHost(this),
+                Devices = _devices,
+                Library = Library,
+                Name = Debugged,
+                Scale = _delayScale,
+                Looks = _capture is { } capture ? new RunLooks(capture, this) : this,
                 ExclusiveInput = _exclusiveInput,
                 StartSignature = _callable?.Signature,
                 StartArguments = StartArguments(),
-            };
+            });
 
             // Off the interface thread: a step that talks to a device waits for it right there in
             // the same call, and a page that has not drawn the element yet is waited on for the

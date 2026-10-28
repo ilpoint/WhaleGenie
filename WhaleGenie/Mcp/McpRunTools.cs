@@ -124,15 +124,19 @@ public sealed class McpRunTools
             {
                 var devices = _devices();
                 var host = new AskRunHost(null, null, capture.Add);
-                var runner = new MacroRunner(
-                    MacroVariables.Seed(new SystemVariableReader(devices), SharedVariables.Current),
-                    host, devices, scale, library, capture)
+                var runner = RunFactory.Create(new RunRequest
                 {
-                    FailureLogFolder = AppPaths.Logs,
-                    RunName = runName,
+                    Variables = MacroVariables.Seed(
+                        new SystemVariableReader(devices), SharedVariables.Current),
+                    Host = host,
+                    Devices = devices,
+                    Library = library,
+                    Name = runName,
+                    Scale = scale,
+                    Looks = capture,
                     ExclusiveInput = exclusive,
                     StartSignature = signature,
-                };
+                });
 
                 var budget = Math.Clamp(timeoutMs, 1000, 3_600_000);
                 using var deadline = new CancellationTokenSource(budget);
