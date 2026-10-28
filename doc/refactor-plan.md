@@ -61,6 +61,10 @@
 这一阶段不专门开一轮，按"碰到哪改哪"推进，但方向定死：
 
 1. **设备接口按消费者收窄**：构造函数只接真正用到的窄接口（`IScreenDevice`、`IWindowDevice`…），聚合接口留给组合根。替身随之变瘦（`FakeDeviceLayer` 1534 行会自己掉下来）。
+
+   **试点做了两个**：`WindowRuleWindow` 只接窗口与钩子，`ColorPickerWindow` 只接屏幕、输入与钩子；`PickAsync` 一并收窄，调用点写 `Devices.Windows` / `Devices.Screen` 这样。
+
+   一个诚实的结论：**现有测试不会因此变简单**——`ChecksDevices` 本来就是整个层，现在只是取几个属性。收益在两个地方：读构造函数就知道这个窗口要什么，新写替身时只需实现那几个接口。推广时按"每个窗口实际用了哪几个 `_devices.X`"逐个改，不要一次全动；下一个可以做 `PointPickerWindow`（屏幕 + 窗口 + UIA）。
 2. **视图搬业务**：`MainWindow` 的触发器与恢复、`MacroEditorWindow` 的文档与录制、`ActionEditorView` 的试运行，一处一处搬到应用层服务（阶段 2 的容器正好用来拿）。
 3. **项目状态合并**：全局变量从静态 `VariableCatalog.Globals` 变成项目状态的一部分（或 `IGlobalVariables` 注入），让 `McpLiveProject.Snapshot()` 不必一半实例一半静态。
 

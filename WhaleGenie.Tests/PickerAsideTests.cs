@@ -147,11 +147,11 @@ public class PickerAsideTests
 
             var desk = AppWindows.Open;
             AppWindows.Open = () => [editor, asking];
+            var devices = new ChecksDevices { Screen = machine, Hook = hook };
             Task<ColorPickerWindow.Pick?> picked;
             try
             {
-                picked = ColorPickerWindow.PickAsync(asking,
-                    new ChecksDevices { Screen = machine, Hook = hook });
+                picked = ColorPickerWindow.PickAsync(asking, machine, devices.Input, hook);
             }
             finally
             {

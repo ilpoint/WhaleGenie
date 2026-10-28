@@ -237,7 +237,8 @@ public partial class SettingsWindow : Window
 
     private async Task AddMenuRuleAsync()
     {
-        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current) is { } rule)
+        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current.Windows,
+            SharedDevices.Current.Hook) is { } rule)
         {
             _viewModel.AddMenuRule(rule);
         }
@@ -251,7 +252,8 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current, row.Rule) is { } rule)
+        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current.Windows,
+            SharedDevices.Current.Hook, row.Rule) is { } rule)
         {
             _viewModel.UpdateMenuRule(row, rule);
         }

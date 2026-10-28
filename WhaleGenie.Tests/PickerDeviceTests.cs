@@ -35,7 +35,7 @@ public class PickerDeviceTests
                 Cursor = new ScreenPoint(120, 240),
             };
 
-            var window = new ColorPickerWindow(new ChecksDevices { Screen = machine, Input = machine });
+            var window = new ColorPickerWindow(machine, machine, NullDeviceLayer.Instance.Hook);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 

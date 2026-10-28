@@ -1660,7 +1660,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        var pick = await ColorPickerWindow.PickAsync(this, Layer);
+        var pick = await ColorPickerWindow.PickAsync(this, Layer.Screen, Layer.Input, Layer.Hook);
         Activate();
 
         if (pick is not { } picked)
@@ -1679,7 +1679,7 @@ public partial class MacroEditorWindow : Window
     /// <summary>Captures the window a window trigger should watch.</summary>
     private async void OnPickTriggerWindow(object? sender, RoutedEventArgs e)
     {
-        if (await WindowRuleWindow.PickAsync(this, Layer, _viewModel.WindowTarget) is { } rule)
+        if (await WindowRuleWindow.PickAsync(this, Layer.Windows, Layer.Hook, _viewModel.WindowTarget) is { } rule)
         {
             _viewModel.UseWindowTarget(rule);
         }

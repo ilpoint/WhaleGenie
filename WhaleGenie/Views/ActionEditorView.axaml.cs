@@ -978,7 +978,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ColorPickerWindow.PickAsync(HostWindow!, Devices) is not { } picked)
+        if (await ColorPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Input, Devices.Hook) is not { } picked)
         {
             return;
         }
@@ -1700,7 +1700,7 @@ public partial class ActionEditorView : UserControl
         }
 
         WindowRule.TryParse(parameter.Text, out var current);
-        if (await WindowRuleWindow.PickAsync(HostWindow!, Devices, current) is { } picked)
+        if (await WindowRuleWindow.PickAsync(HostWindow!, Devices.Windows, Devices.Hook, current) is { } picked)
         {
             parameter.ApplyWindowRule(picked);
         }

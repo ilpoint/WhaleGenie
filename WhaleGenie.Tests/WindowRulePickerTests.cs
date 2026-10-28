@@ -28,7 +28,7 @@ public class WindowRulePickerTests
             var hook = new KeyHook();
             var windows = new WindowsForChecks().Add(7, "Game", "game", "GameClass");
             var devices = new ChecksDevices { Windows = windows, Hook = hook };
-            var picker = new WindowRuleWindow(devices, null);
+            var picker = new WindowRuleWindow(devices.Windows, devices.Hook, null);
             try
             {
                 picker.Show();
@@ -69,7 +69,7 @@ public class WindowRulePickerTests
             var windows = new WindowsForChecks().Add(8, "WhaleGenie", own, "Window");
             var hook = new KeyHook();
             var devices = new ChecksDevices { Windows = windows, Hook = hook };
-            var picker = new WindowRuleWindow(devices, null);
+            var picker = new WindowRuleWindow(devices.Windows, devices.Hook, null);
             try
             {
                 picker.Show();
@@ -101,7 +101,7 @@ public class WindowRulePickerTests
         {
             var windows = new WindowsForChecks().Add(7, "Game", "game", "GameClass");
             var devices = new ChecksDevices { Windows = windows, Hook = new KeyHook() };
-            var picker = new WindowRuleWindow(devices,
+            var picker = new WindowRuleWindow(devices.Windows, devices.Hook,
                 new WindowRule(Title: "Game", Process: "game", ClassName: "GameClass",
                     Handle: 7, How: WindowHow.Handle));
             try

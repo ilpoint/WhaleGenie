@@ -28,10 +28,11 @@ public partial class ColorPickerWindow : Window
     /// <summary>How far from the pointer the magnifier sits, so it never covers its own target.</summary>
     private const int Offset = 28;
 
-    /// <summary>The devices the magnifier reads and nudges the pointer through.</summary>
-    private readonly IDeviceLayer _devices;
-
+    /// <summary>The screen the magnifier reads, the pointer it nudges, and the hook it listens on.</summary>
     private readonly IScreenDevice _screen;
+
+    private readonly WhaleGenie.Core.Devices.IInputDevice _input;
+    private readonly IInputHook _hookSource;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(40) };
 
     private Image? _preview;
@@ -65,18 +66,21 @@ public partial class ColorPickerWindow : Window
     public readonly record struct Pick(PixelColor Colour, ScreenPoint At);
 
     public ColorPickerWindow()
-        : this(SharedDevices.Current)
+        : this(SharedDevices.Current.Screen, SharedDevices.Current.Input, SharedDevices.Current.Hook)
     {
     }
 
     /// <summary>
-    /// The magnifier over the devices handed in, which is how a check drives it without a real
-    /// screen: the pixels, the pointer and the click all come from the same layer a run would use.
+    /// The magnifier over just what it reads: the screen it magnifies, the pointer it moves and the
+    /// key hook it listens on. Taking those three rather than the whole device layer says what this
+    /// window needs, and lets a stand-in be three things instead of twenty.
     /// </summary>
-    internal ColorPickerWindow(IDeviceLayer devices)
+    internal ColorPickerWindow(IScreenDevice screen,
+        WhaleGenie.Core.Devices.IInputDevice input, IInputHook hook)
     {
-        _devices = devices;
-        _screen = devices.Screen;
+        _screen = screen;
+        _input = input;
+        _hookSource = hook;
         InitializeComponent();
 
         Title = Strings.Get("Picker.Title");
@@ -99,10 +103,11 @@ public partial class ColorPickerWindow : Window
     /// steps out of the way for as long as the magnifier is up, and so does everything else this
     /// program has on the screen: the colour being looked for is usually behind one of them.
     /// </summary>
-    public static async Task<Pick?> PickAsync(Window owner, IDeviceLayer devices)
+    public static async Task<Pick?> PickAsync(Window owner, IScreenDevice screen,
+        WhaleGenie.Core.Devices.IInputDevice input, IInputHook hook)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new ColorPickerWindow(devices).TakeAsync();
+        return await new ColorPickerWindow(screen, input, hook).TakeAsync();
     }
 
     /// <summary>
@@ -330,7 +335,7 @@ public partial class ColorPickerWindow : Window
         // than moving anything.
         try
         {
-            _devices.Input.MoveMouse(point.X + dx, point.Y + dy, 0);
+            _input.MoveMouse(point.X + dx, point.Y + dy, 0);
         }
         catch (Exception)
         {
@@ -380,7 +385,7 @@ public partial class ColorPickerWindow : Window
     {
         try
         {
-            var hook = _devices.Hook;
+            var hook = _hookSource;
             hook.MouseDown += OnMouseDown;
             _hook = hook;
         }
