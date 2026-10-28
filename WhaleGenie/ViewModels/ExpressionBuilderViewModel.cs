@@ -305,10 +305,14 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>True while the line under the tree is worth showing in green.</summary>
     public bool ShowTreeOk => TreeMessageKind == TreeMessageKind.Ok && TreeMessage.Length > 0;
 
-    /// <summary>What is picked right now, said the way the formula would be written.</summary>
+    /// <summary>
+    /// What is picked right now, said the way the formula would be written. With nothing picked the
+    /// line says what to do about it, because "nothing picked" is the state a click from the palette
+    /// needs an answer for.
+    /// </summary>
     public string Picked => Selected is { } item
         ? Strings.Format("ExprBuilder.Tree.Picked", Language.Render(item.ToNode()))
-        : string.Empty;
+        : Strings.Get("ExprBuilder.NothingPicked");
 
     /// <summary>What is typed into the filter above the function list, empty to show them all.</summary>
     [ObservableProperty]
@@ -400,15 +404,6 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             return true;
         }
 
-        // An empty formula has one place and it is the top: there is nothing to pick, and refusing
-        // the click there would be refusing the only thing there is to do.
-        if (_root is { Kind: ExpressionItemKind.Hole, Children.Count: 0 })
-        {
-            Select(_root);
-            PaletteNotice = string.Empty;
-            return true;
-        }
-
         PaletteNotice = Strings.Get("ExprBuilder.PickFirst");
         return false;
     }
@@ -464,7 +459,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>Puts a variable the macro holds where the picked piece is.</summary>
     public void ChooseVariable(string name)
     {
-        if (TextUnreadable)
+        if (TextUnreadable || !HasTarget())
         {
             return;
         }
@@ -475,7 +470,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>Puts one of the words that stand for a value where the picked piece is.</summary>
     public void ChooseConstant(string word)
     {
-        if (TextUnreadable)
+        if (TextUnreadable || !HasTarget())
         {
             return;
         }
@@ -773,7 +768,13 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
     private void Fill(ExpressionItemViewModel item)
     {
-        var target = Selected ?? _root;
+        // Only a place that was picked: falling back to the top of the formula is what made a click
+        // look like it had chosen a place of its own, and it replaced the whole formula doing it.
+        if (Selected is not { } target)
+        {
+            return;
+        }
+
         Replace(target, item);
         Select(item);
         Redraw();
@@ -963,7 +964,11 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     private void Adopt(ExpressionItemViewModel root)
     {
         _root = root;
-        Selected = root;
+
+        // A tree that has just been read in is not a place the user picked: the next click from the
+        // palette would wrap its whole top, which is the "a structure appeared from nowhere" this
+        // page is meant to have stopped doing.
+        Selected = null;
         Redraw();
     }
 
@@ -983,18 +988,12 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
         // A piece that is no longer in the tree cannot stay picked, and nothing is picked in its
         // place: choosing a place is the user's job, and a click from the palette has to have a place
-        // that was chosen rather than one this redraw happened to land on.
+        // that was chosen rather than one this redraw happened to land on. An empty formula is no
+        // exception — it has one place, but picking it for the user is what made a click insert
+        // wherever the page happened to be looking.
         if (Selected is not null && !Holds(_root, Selected))
         {
             Selected = null;
-        }
-
-        // A formula with nothing in it has one place, and picking it costs nobody anything. The
-        // emptiness is read off the tree here rather than off the last redraw's answer, because the
-        // tree is what has just changed.
-        if (Selected is null && _root is { Kind: ExpressionItemKind.Hole, Children.Count: 0 })
-        {
-            Selected = _root;
         }
 
         Walk(_root, 0);

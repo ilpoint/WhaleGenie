@@ -27,6 +27,17 @@ public class ExpressionBuilderTreeTests
     private static ExpressionBuilderViewModel Builder(string expression, params string[] names)
         => new(expression, Variables(names));
 
+    /// <summary>
+    /// An empty field with its one place picked, which is what a click from the palette needs: the
+    /// page never picks a place on its own.
+    /// </summary>
+    private static ExpressionBuilderViewModel Empty(params string[] names)
+    {
+        var builder = Builder(string.Empty, names);
+        builder.Select(builder.Rows[0]);
+        return builder;
+    }
+
     private static ExpressionFunctionChoice Function(ExpressionBuilderViewModel builder, string name)
         => builder.Functions.First(choice => choice.Name == name);
 
@@ -34,6 +45,83 @@ public class ExpressionBuilderTreeTests
     /// A function's arguments are not six numbers to type: the comparison is one of its own words and
     /// the flags are ticks, which is what makes compare() readable as the sentence it is.
     /// </summary>
+    /// <summary>
+    /// A click with nothing picked changes nothing at all — not even a variable, which used to fall
+    /// back to the top of the formula and replace the whole thing. That fallback was the "a place is
+    /// always picked" that made a click look like it could insert anywhere.
+    /// </summary>
+    [Fact]
+    public void A_click_with_nothing_picked_leaves_the_formula_alone()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$count + 1", "count");
+            Assert.Null(builder.Selected);
+
+            builder.ChooseVariable("count");
+            Assert.Equal("$count + 1", builder.Preview);
+
+            builder.ChooseConstant("true");
+            builder.ChooseOperator(Operator(builder, "+"));
+            builder.ChooseFunction(Function(builder, "abs"));
+            builder.ChooseValue(builder.Values.First(choice => choice.Kind == ValueChoiceKind.Text));
+
+            Assert.Equal("$count + 1", builder.Preview);
+            Assert.True(builder.HasPaletteNotice);
+        });
+    }
+
+    /// <summary>
+    /// An empty field is one place and no more, but it is still the user's place to pick: a click on
+    /// its own leaves it empty.
+    /// </summary>
+    [Fact]
+    public void An_empty_field_needs_its_place_picked_before_a_click_fills_it()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder(string.Empty, "count");
+
+            builder.ChooseVariable("count");
+            Assert.Equal("▢", builder.Preview);
+            Assert.True(builder.HasPaletteNotice);
+
+            builder.Select(builder.Rows[0]);
+            builder.ChooseVariable("count");
+            Assert.Equal("$count", builder.Preview);
+            Assert.False(builder.HasPaletteNotice);
+        });
+    }
+
+    /// <summary>
+    /// The card keeps its own shape: it says the function's name and nothing else, and how many
+    /// places the function asks for is left to the bubble over it.
+    /// </summary>
+    [Fact]
+    public void A_card_shows_its_name_and_leaves_the_rest_to_the_bubble()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("1");
+            var window = new ExpressionBuilderWindow(builder);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var card = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is ExpressionFunctionChoice { Name: "abs" });
+            var choice = (ExpressionFunctionChoice)card.DataContext!;
+
+            var written = card.GetVisualDescendants().OfType<TextBlock>()
+                .Select(text => text.Text ?? string.Empty)
+                .ToList();
+            Assert.Equal([choice.Heading], written);
+
+            Assert.NotNull(ToolTip.GetTip(card));
+
+            window.Close();
+        });
+    }
+
     /// <summary>
     /// A click on a function card needs a place picked on purpose: on a formula that is already there
     /// nothing is picked when the page opens, so the click says what to do instead of wrapping
@@ -170,7 +258,11 @@ public class ExpressionBuilderTreeTests
 
             var only = Assert.Single(builder.Rows);
             Assert.True(only.IsHole);
-            Assert.True(only.IsSelected);
+
+            // Nothing is picked: a click from the palette needs a place chosen on purpose, and
+            // picking this one for the user is what used to make a click insert by itself.
+            Assert.False(only.IsSelected);
+            Assert.Null(builder.Selected);
             Assert.Equal(Strings.Get("ExprBuilder.Tree.Nothing"), builder.TreeMessage);
 
             // Nothing at all is not half a formula: closing the dialog on it clears the field, and
@@ -212,7 +304,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "count");
+            var builder = Empty("count");
             builder.ChooseVariable("count");
 
             Assert.Equal("$count", builder.Preview);
@@ -226,7 +318,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "a", "b");
+            var builder = Empty("a", "b");
             builder.ChooseVariable("a");
             builder.ChooseOperator(Operator(builder, "+"));
 
@@ -247,7 +339,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "a");
+            var builder = Empty("a");
             builder.ChooseVariable("a");
             builder.ChooseOperator(Operator(builder, "not"));
 
@@ -261,7 +353,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "name");
+            var builder = Empty("name");
             builder.ChooseVariable("name");
             builder.ChooseFunction(Function(builder, "upper"));
 
@@ -325,7 +417,7 @@ public class ExpressionBuilderTreeTests
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             var header = Strings.Get("Expr.Say.Header");
-            var builder = Builder(string.Empty, "count");
+            var builder = Empty("count");
 
             // Nothing written is nothing to read out, and neither is a place to fill in on its own.
             Assert.Equal(string.Empty, builder.Saying);
@@ -440,7 +532,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "count");
+            var builder = Empty("count");
             builder.ChooseVariable("count");
             builder.ChooseFunction(Function(builder, "if"));
 
@@ -457,7 +549,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "count");
+            var builder = Empty("count");
             builder.ChooseVariable("count");
             builder.ChooseFunction(Function(builder, "now"));
 
@@ -471,7 +563,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty);
+            var builder = Empty();
             builder.ChooseFunction(Function(builder, "substring"));
 
             Assert.Equal("substring(▢, ▢)", builder.Preview);
@@ -491,7 +583,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "a");
+            var builder = Empty("a");
             builder.ChooseVariable("a");
             builder.ChooseOperator(Operator(builder, Strings.Get("ExprBuilder.Tree.List")));
 
@@ -555,7 +647,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty);
+            var builder = Empty();
             builder.ChooseFunction(Function(builder, "substring"));
             builder.AddChild(builder.Rows[0]);
             Assert.Equal(4, builder.Rows.Count);
@@ -751,7 +843,7 @@ public class ExpressionBuilderTreeTests
     {
         Ui.Run(() =>
         {
-            var builder = Builder(string.Empty, "a");
+            var builder = Empty("a");
             var place = Assert.Single(builder.Rows);
 
             Assert.False(builder.CanLand(place, "nonsense"));

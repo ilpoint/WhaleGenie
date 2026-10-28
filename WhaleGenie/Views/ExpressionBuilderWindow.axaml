@@ -399,14 +399,17 @@
                  the same order from one visit to the next, so what is being looked for is found
                  where it was left. -->
             <Border Grid.Column="2" Classes="Panel">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <Grid RowDefinitions="Auto,*">
+                <!-- A click with nothing picked says what to do instead of choosing for you. It sits
+                     above the list rather than in it, so scrolling down to the functions cannot hide
+                     the answer to the click that was just made. -->
+                <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="10,8,10,0"
+                           Foreground="{DynamicResource AppWarning}"
+                           Text="{Binding PaletteNotice}"
+                           IsVisible="{Binding HasPaletteNotice}" />
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
-                        <!-- A click with nothing picked says what to do instead of choosing for you. -->
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,6"
-                                   Foreground="{DynamicResource AppWarning}"
-                                   Text="{Binding PaletteNotice}"
-                                   IsVisible="{Binding HasPaletteNotice}" />
                         <!-- On the structure page an operator wraps what is picked; on the page written
                              out by hand it is dropped in at the caret, exactly as it always was. -->
                         <ItemsControl ItemsSource="{Binding TreeOperators}"
@@ -495,15 +498,8 @@
                                     <Button Classes="Card FnCard"
                                             BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
                                             Click="OnInsertFunction">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Heading}"
-                                                       Foreground="{DynamicResource AppTextStrong}" />
-                                            <!-- How many places it asks for, so a function with three
-                                                 required and three optional ones says so before it is
-                                                 dropped into the formula. -->
-                                            <TextBlock Text="{Binding ArityNote}" FontSize="10.5"
-                                                       Foreground="{DynamicResource AppMuted}" />
-                                        </StackPanel>
+                                        <TextBlock Text="{Binding Heading}"
+                                                   Foreground="{DynamicResource AppTextStrong}" />
                                         <!-- What a card cannot say: how the call is written in the
                                              reader's own language, one line saying what it does, and one
                                              line for each argument it takes. -->
@@ -513,10 +509,13 @@
                                                            Foreground="{DynamicResource AppText}" />
                                                 <TextBlock Text="{Binding WrittenAs}" FontSize="12"
                                                            Foreground="{DynamicResource AppInfo}" TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Hint}" FontSize="12"
-                                                           Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                                                <!-- How many places it asks for: a function with three
+                                                     required and three optional ones says so here,
+                                                     before it is dropped into the formula. -->
                                                 <TextBlock Text="{Binding ArityNote}" FontSize="11.5"
                                                            Foreground="{DynamicResource AppInfo}" />
+                                                <TextBlock Text="{Binding Hint}" FontSize="12"
+                                                           Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
                                                 <ItemsControl ItemsSource="{Binding Arguments}"
                                                               Margin="0,2,0,0">
                                                     <ItemsControl.ItemTemplate>
@@ -543,6 +542,7 @@
                         </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
+                </Grid>
             </Border>
         </Grid>
 
