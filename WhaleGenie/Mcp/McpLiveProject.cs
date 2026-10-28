@@ -33,6 +33,14 @@ public sealed class McpLiveProject(MainViewModel project)
         => await Dispatcher.UIThread.InvokeAsync(Snapshot);
 
     /// <summary>
+    /// The snapshot and whether the project has unsaved changes, read in one turn of the interface
+    /// thread so the two belong to the same revision. A page that said "revision 7, unsaved" from two
+    /// separate reads could name a revision the dirty flag was never about.
+    /// </summary>
+    public async Task<(McpProjectSnapshot Snapshot, bool Dirty)> ReadAsync()
+        => await Dispatcher.UIThread.InvokeAsync(() => (Snapshot(), project.IsDirty));
+
+    /// <summary>
     /// Writes a draft back into the project, but only if the project has not moved since the
     /// snapshot. Returns the new revision.
     /// </summary>

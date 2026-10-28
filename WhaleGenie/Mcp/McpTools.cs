@@ -127,7 +127,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 draftId = draft.Id,
                 path = basis.Path,
                 revision = basis.Revision,
-                macros = basis.Macros.Select(Summary),
+                macros = basis.Macros.Select(McpOutline.Summary),
             });
         });
 
@@ -229,7 +229,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("How many to return, 1 to 200; 100 by default.")] int limit = 100)
         => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
         {
-            var all = drafts.Get(draftId).MacroSnapshot().Select(Summary).ToList();
+            var all = drafts.Get(draftId).MacroSnapshot().Select(McpOutline.Summary).ToList();
             var from = Math.Clamp(offset, 0, all.Count);
             var size = Math.Clamp(limit <= 0 ? 100 : limit, 1, 200);
             var page = all.Skip(from).Take(size).ToList();
@@ -336,7 +336,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             var draft = drafts.Get(draftId);
             var written = await Ui(() => draft.Put(macro));
             var validation = await Ui(() => McpDraftStore.Validate(draft));
-            var outline = await Ui(() => Outline(written));
+            var outline = await Ui(() => McpOutline.Of(written));
             return includeMacro
                 ? McpErrors.Ok(new
                 {
@@ -391,7 +391,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
             var written = await Ui(() => draft.Find(name)) ?? patched;
             var validation = await Ui(() => McpDraftStore.Validate(draft));
-            var outline = await Ui(() => Outline(written));
+            var outline = await Ui(() => McpOutline.Of(written));
             var changed = outcome.Touches
                 .Select(touch => new
                 {
@@ -777,43 +777,6 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         };
     }
 
-    /// <summary>
-    /// What the macro holds now, one line per step: its id, its action and where it sits. The path
-    /// is what an insert or a move names as its parent, so the next step can be placed without
-    /// reading the whole macro back. Submacros are left out: they are written with put_macro.
-    /// </summary>
-    /// <summary>
-    /// Every step of a macro, in the order it runs, with the macro each one belongs to. The submacros
-    /// are listed after the outer steps rather than inside them: they are separate documents, and a
-    /// path is only meaningful inside the macro it was read from.
-    /// </summary>
-    private static IReadOnlyList<object> Outline(MacroItem macro)
-        =>
-        [
-            .. Walk(macro.Steps, string.Empty, "main"),
-            .. macro.SubMacros.SelectMany(sub => Walk(sub.Steps, string.Empty, "sub:" + sub.Name)),
-        ];
-
-    private static IEnumerable<object> Walk(IReadOnlyList<MacroStep> steps, string prefix, string scope)
-    {
-        for (var at = 0; at < steps.Count; at++)
-        {
-            var step = steps[at];
-            var path = prefix.Length == 0
-                ? at.ToString(CultureInfo.InvariantCulture)
-                : $"{prefix}.{at.ToString(CultureInfo.InvariantCulture)}";
-            yield return new { id = step.Id, type = step.Type, path, macro = scope };
-
-            foreach (var parameter in step.StepLists)
-            {
-                foreach (var child in Walk(parameter.Steps, $"{path}.{parameter.Name}", scope))
-                {
-                    yield return child;
-                }
-            }
-        }
-    }
-
     /// <summary>Where a step sits: the step itself and the path an insert or a move would name.</summary>
     private static (MacroStep Step, string Path)? Find(IReadOnlyList<MacroStep> steps, string id, string prefix)
     {
@@ -877,32 +840,6 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
         changed.AddRange(before.Keys.Where(name => !after.ContainsKey(name)).Select(name => "-" + name));
         return changed;
-    }
-
-    /// <summary>
-    /// One macro in a list: what it is called, how long it is, and what a call to it would have to
-    /// know. The names are here rather than behind another call because picking which macro to call
-    /// is exactly when a client needs them — opening every macro to find out would be one call each.
-    /// </summary>
-    private static object Summary(MacroItem macro)
-    {
-        var call = macro.Callable;
-        return new
-        {
-            name = macro.Name,
-            steps = macro.Steps.Count,
-            arguments = CallableSignature.Arguments(call)
-                .Select(argument => new
-                {
-                    name = argument.Name,
-                    type = argument.Type.ToString(),
-                    required = argument.Required,
-                })
-                .ToList(),
-            results = CallableSignature.Results(call)
-                .Select(result => new { name = result.Name, type = result.Type.ToString() })
-                .ToList(),
-        };
     }
 
     private static object RunSummary(RunLogSnapshot run) => new

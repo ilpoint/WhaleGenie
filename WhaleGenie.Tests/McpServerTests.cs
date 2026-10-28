@@ -843,6 +843,111 @@ public class McpServerTests
         });
     }
 
+    /// <summary>
+    /// The project is one page a client can keep, and every macro on it names its own page. Reading
+    /// that page gives the same outline the tools give, so a client holding both can place a step
+    /// without reading the macro whole — which is the whole point of a page over an answer.
+    /// </summary>
+    [Fact]
+    public void The_project_reads_as_one_page_and_every_macro_names_its_own()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            var written = JsonDocument.Parse(await Wrote(client, "whalegenie_put_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["macro"] = JsonNode.Parse("""
+                        {"name":"登录","steps":[{"type":"control.delay","params":{"ms":"10"}}]}
+                        """),
+                })).RootElement;
+            await Wrote(client, "whalegenie_apply", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+            });
+
+            var status = JsonDocument.Parse(await Call(client, "whalegenie_project_status",
+                new Dictionary<string, object?>())).RootElement;
+            var project = await ReadPage(client, "whalegenie://project");
+
+            // The page is about the same revision the tool reports: that number is what makes
+            // keeping the page safe, so it may not be one the project has already left behind.
+            Assert.Equal(status.GetProperty("revision").GetInt32(),
+                project.GetProperty("revision").GetInt32());
+
+            var login = project.GetProperty("macros").EnumerateArray()
+                .Single(macro => macro.GetProperty("name").GetString() == "登录");
+            Assert.Equal(1, login.GetProperty("steps").GetInt32());
+
+            // Where the macro's own page is, escaped so a Chinese name survives being a path.
+            var uri = login.GetProperty("uri").GetString()!;
+            Assert.Equal(McpResources.MacroUri("登录"), uri);
+
+            var page = await ReadPage(client, uri);
+            Assert.Equal("登录", page.GetProperty("name").GetString());
+            var steps = page.GetProperty("outline").EnumerateArray().ToList();
+            Assert.Single(steps);
+            Assert.Equal(written.GetProperty("outline")[0].GetProperty("id").GetString(),
+                steps[0].GetProperty("id").GetString());
+            Assert.Equal("0", steps[0].GetProperty("path").GetString());
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// A page for a name the project does not have answers with the nearest names rather than
+    /// failing: the client asked about a macro it half-remembers, and a candidate list is the answer
+    /// to that question. A name that is only longer than the real one still finds it.
+    /// </summary>
+    [Fact]
+    public void A_macro_page_for_a_name_that_is_not_there_names_the_nearest_ones()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var host = new McpServerHost(new MainViewModel());
+            await host.StartAsync();
+            await using var client = await ConnectAsync(host.Endpoint);
+
+            var draft = await Draft(client);
+            await Wrote(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""
+                    {"name":"登录","steps":[{"type":"control.delay","params":{"ms":"10"}}]}
+                    """),
+            });
+            await Wrote(client, "whalegenie_apply", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+            });
+
+            var page = await ReadPage(client, McpResources.MacroUri("登录后台"));
+            var error = page.GetProperty("error");
+            Assert.Equal(McpErrors.NoSuchMacro, error.GetProperty("code").GetString());
+            Assert.Contains(error.GetProperty("candidates").EnumerateArray(),
+                candidate => candidate.GetString() == "登录");
+
+            await host.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>Reads one resource and parses it, which is what a client keeping a page would do.</summary>
+    private static async Task<JsonElement> ReadPage(McpClient client, string uri)
+    {
+        var read = await client.ReadResourceAsync(uri);
+        var text = string.Concat(read.Contents.OfType<TextResourceContents>()
+            .Select(content => content.Text));
+        return JsonDocument.Parse(text).RootElement;
+    }
+
     private static async Task<McpClient> ConnectAsync(string endpoint)
         => await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions
         {

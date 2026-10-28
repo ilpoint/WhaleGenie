@@ -68,6 +68,12 @@ public sealed class McpPrompts
           find_elements, process_list, clipboard_read, read_picture.
         - driving (needs the direct-control switch): mouse_move, mouse_click, mouse_scroll,
           mouse_drag, key, type_text, window_activate, window_move, window_close, clipboard_write.
+        - reading without a call: the project index and any one macro's outline are resources —
+          whalegenie://project (revision, macros, globals, triggers) and whalegenie://macros/{name}
+          (every step's id, action and path), beside whalegenie://actions and whalegenie://actions/{key}.
+          A resource can be kept rather than asked for again: the project page carries the revision,
+          so the same revision answers the same thing. Step parameters are not on the macro page —
+          call whalegenie_get_step for one step.
         Before apply, call preview_apply when the person is deciding: it names the macros that would
         come, go or change, the steps that differ and the global declarations that move.
         """;

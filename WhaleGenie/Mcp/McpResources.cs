@@ -13,16 +13,19 @@ using WhaleGenie.Models;
 namespace WhaleGenie.Mcp;
 
 /// <summary>
-/// The action catalogue as resources rather than answers. A client that can cache a resource reads it
-/// once and keeps it; the same catalogue asked for as a tool answer has to be asked for again at
-/// every turn, and a long macro is written over many turns.
+/// What a client may read and keep, rather than ask for again. The catalogue, the project and any
+/// one macro are pages here: a client that can cache a resource reads one once and works from it,
+/// while the same thing asked for as a tool answer has to be asked for at every turn — and a long
+/// macro is written over many turns.
 /// </summary>
 /// <remarks>
-/// The resources say what the tools say — both are read off the same catalogue — so a client may use
-/// either. The tools stay because a client that cannot read resources needs them.
+/// The resources say what the tools say, because both are read off the same objects, so a client may
+/// use either. The tools stay for a client that cannot read resources. Every project page carries
+/// the revision: within one revision the page does not change, which is what makes keeping it safe,
+/// and a page whose revision is behind is the signal to read it again.
 /// </remarks>
 [McpServerResourceType]
-public sealed class McpResources
+public sealed class McpResources(McpLiveProject live)
 {
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -125,4 +128,136 @@ public sealed class McpResources
                 },
             }, Json);
         });
+
+    /// <summary>
+    /// The open project as one page: how far along it is, the macros it holds, the globals they
+    /// read, and the triggers that start them. This is the page a client keeps instead of calling
+    /// <c>whalegenie_project_status</c> and <c>whalegenie_list_macros</c> every turn, and the page
+    /// that says which macro is worth reading next.
+    /// </summary>
+    [McpServerResource(UriTemplate = "whalegenie://project", Name = "The open project",
+        Title = "The open project", MimeType = "application/json")]
+    [Description("The project WhaleGenie has open: its revision, package path, every macro with its step count, arguments, results and trigger count, the global variables, and the triggers that start a macro. Read it once and keep it — the revision is the version of the page, so the same revision answers the same thing and a page behind the current revision is the signal to read it again. Each macro's own page is whalegenie://macros/{name}.")]
+    public async Task<string> Project()
+    {
+        var (snapshot, dirty) = await live.ReadAsync();
+
+        var macros = snapshot.Macros
+            .Select(macro => McpOutline.Entry(macro, MacroUri(macro.Name), TriggersOf(snapshot, macro.Name)))
+            .ToList();
+
+        var globals = snapshot.Globals
+            .Select(variable => new
+            {
+                name = variable.Name,
+                type = variable.Type.ToString(),
+                @default = variable.DefaultValue,
+                description = variable.Description,
+            })
+            .ToList();
+
+        var triggers = snapshot.Triggers.Entries
+            .Select(entry => new
+            {
+                kind = entry.Kind.ToString(),
+                macro = entry.MacroName,
+                summary = entry.Summary,
+            })
+            .ToList();
+
+        return JsonSerializer.Serialize(new
+        {
+            revision = snapshot.Revision,
+            path = snapshot.Path,
+            dirty,
+            macros,
+            globals,
+            triggers,
+        }, Json);
+    }
+
+    /// <summary>
+    /// One macro, as much as a client needs to change it without reading it whole: every step's id,
+    /// action and path, the submacros it holds, and what a call to it fills in and hands back.
+    /// </summary>
+    /// <remarks>
+    /// A step's parameters are not here. They are what <c>whalegenie_get_step</c> and
+    /// <c>whalegenie_get_macro</c> answer, and putting them on this page would make the page as large
+    /// as the macro it describes — which is the cost an outline exists to avoid.
+    /// </remarks>
+    [McpServerResource(UriTemplate = "whalegenie://macros/{name}", Name = "One macro",
+        Title = "One macro", MimeType = "application/json")]
+    [Description("One macro of the open project: its revision, its step count, every step as id / action / path / which macro it belongs to, the submacros it holds, and the arguments and results a call to it fills in and asks for. The path is what an insert or a move names as its parent. Step parameters are not here — use whalegenie_get_step for one step and whalegenie_get_macro for the whole document. An unknown name answers with the nearest names as candidates rather than failing.")]
+    public async Task<string> Macro(string name)
+    {
+        var snapshot = await live.SnapshotAsync();
+        var wanted = Unescaped(name);
+        var macro = snapshot.Macros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
+
+        if (macro is null)
+        {
+            var candidates = snapshot.Macros
+                .Select(candidate => candidate.Name)
+                .Where(candidate => candidate.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                    || wanted.Contains(candidate.Trim(), StringComparison.OrdinalIgnoreCase))
+                .Take(5)
+                .ToList();
+
+            return JsonSerializer.Serialize(new
+            {
+                error = new
+                {
+                    code = McpErrors.NoSuchMacro,
+                    message = $"There is no macro named \"{wanted}\".",
+                    hint = "Read whalegenie://project for every macro this project holds.",
+                    candidates,
+                },
+            }, Json);
+        }
+
+        return JsonSerializer.Serialize(new
+        {
+            name = macro.Name,
+            revision = snapshot.Revision,
+            steps = macro.Steps.Count,
+            outline = McpOutline.Of(macro),
+            subMacros = macro.SubMacros
+                .Select(sub => new { name = sub.Name, steps = sub.Steps.Count })
+                .ToList(),
+            arguments = McpOutline.Arguments(macro),
+            results = McpOutline.Results(macro),
+            triggers = snapshot.Triggers.Entries
+                .Where(entry => Same(entry.MacroName, macro.Name))
+                .Select(entry => new { kind = entry.Kind.ToString(), summary = entry.Summary })
+                .ToList(),
+        }, Json);
+    }
+
+    /// <summary>Where one macro's page lives, the name escaped so it survives being a path.</summary>
+    public static string MacroUri(string name) => "whalegenie://macros/" + Uri.EscapeDataString(name.Trim());
+
+    /// <summary>
+    /// The name a URI carried, undoing the escaping a URI needed. A name that was never escaped comes
+    /// back as it went in, so both forms reach the same macro.
+    /// </summary>
+    private static string Unescaped(string? name)
+    {
+        var text = (name ?? string.Empty).Trim();
+        try
+        {
+            return Uri.UnescapeDataString(text).Trim();
+        }
+        catch (UriFormatException)
+        {
+            return text;
+        }
+    }
+
+    private static int TriggersOf(McpProjectSnapshot snapshot, string macro)
+        => snapshot.Triggers.Entries.Count(entry => Same(entry.MacroName, macro));
+
+    private static bool Same(string? left, string? right)
+        => string.Equals((left ?? string.Empty).Trim(), (right ?? string.Empty).Trim(),
+            StringComparison.OrdinalIgnoreCase);
 }

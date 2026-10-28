@@ -197,6 +197,40 @@ presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 多出来的 11 个工具是：单步与全局变量、控件读值与按选择器找控件、窗口详情与剪贴板、进程表、读图片、
 运行三件（跑/停/查）。它们不是一次场景要用的，而是「AI 自己能不能定位问题」要用的。
 
+## 第七轮：项目与宏也读一次就够
+
+宏不是一轮读完的东西。以前每次要动它，客户端都得先 `list_macros` 看有哪些，再 `get_macro` 把整枝读出来
+——四十步的宏来回改五遍，同一段 JSON 就在上下文里搬了五遍。动作目录早就是资源了，项目与宏没有理由不是。
+
+| 资源 | 里面是什么 | 为什么是这个粒度 |
+| --- | --- | --- |
+| `whalegenie://project` | 版本号、包路径、是否未保存、每个宏的步数与参数 / 返回值 / 触发器数、全局变量、触发器表 | 一张页顶掉 `project_status` + `list_macros` 两次调用，还多给了「哪个宏值得读」 |
+| `whalegenie://macros/{name}` | 版本号、步数、每一步的 id / 动作 / 位置 / 属于哪个宏、子宏、参数与返回值、触发它的触发器 | 位置就是 insert 与 move 要的父路径，拿着它不必再读整条宏 |
+
+两条边界是刻意的：
+
+- **宏页不放每一步的参数。** 放了就等于把整条宏搬上资源，缓存省下的 token 又还回去了。参数是 `get_step`
+  （一步）与 `get_macro`（整枝）的事。
+- **靠版本号，不靠推送。** 传输是无会话的 HTTP，服务器发不出 `resources/updated`，所以 `initialize` 里也
+  没有声明 `subscribe`——探测确认过，能力里只有 `"resources":{}`。取而代之的是每张页都带 `revision`：
+  同一个号下内容不变，号变了才需要重读。这是把「什么时候失效」交给客户端判断，而不是让它等一个不会来的
+  通知。
+
+两处一并改了：`McpOutline` 把 outline 与 summary 从工具里抽出来，工具与资源读同一份，答案和页面就不会
+各说各的；`McpLiveProject.ReadAsync` 一次界面往返同时取快照与「有没有未保存」，免得页面上的版本号与
+未保存标记来自两个不同的 revision。
+
+体检加了两条，都在 `--mcp-doctor --spawn` 里：`resources.project` 核对项目页的版本号与 `project_status`
+报的是同一个，`resources.macro` 把项目里第一个宏读成自己的页并数出 outline 的步数。只读模式下项目里没有
+宏，那条记跳过而不是失败——没写过不代表坏了。
+
+```
+| resources.project | pass | the project page reads at revision 7, the same one status reports |
+| resources.macro   | pass | "MCP self check" reads as its own page, 4 steps in the outline    |
+```
+
+体检条目从 35 到 37；工具数没变——这一轮没有新工具，只有新页面。
+
 ## 附二：动作矩阵
 
 工具这一面靠上面的检查量，动作那一面靠 `WhaleGenie.Core.Tests/Bench`：目录声明的 176 个动作逐个按声明
