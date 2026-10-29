@@ -7,9 +7,12 @@
       实测跟着层 1 走（见 LayerOneTests），这里只给它们度量。
 
       四条硬规则，写之前先看：
-      1. 不写 `Margin`。纵向间距由父容器的 `Spacing` / `RowSpacing` 承担；例外只有 `GapSection`
-         与 `GapField` 两处，都是"没有能用 Spacing 的父容器"的情形（区块之间不相邻；标签与它管
-         着的控件之间隔着一层模板）。
+      1. **不写裸 `Margin`。** 结构间隙只用两个命名令牌：`GapSection`（区块之间，`0,0,0,12`）与
+         `GapField`（标签与它管着的控件之间，`0,0,0,8`）。两者都不能由父容器的 `Spacing` 承担：
+         区块之间不相邻，标签与控件之间隔着一层模板。**新增第三个 `Gap*` 之前，先说明为什么
+         `Spacing` 做不到。** 这条查的是"这个间隙有没有名字"，不是"有没有写 Margin"——
+         `Margin="2,4,0,0"` 之所以是病，不在于它是 Margin，而在于它是一个只在这一处成立的、
+         没有名字的决定。
          理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
       2. 不写裸值——"裸值"指十六进制与数字。颜色、字号、圆角、内边距四类一律引令牌；`Transparent`
          是语言常量、不是我们定的颜色，可以直接写（它没有值可漂移，也不参与对比度核算）。高度与宽度允许字面值，但只能出现在
@@ -37,6 +40,7 @@
       STATIC TextBlock.Body
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.Hint
+      STATIC Border.Section
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
       窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
@@ -170,5 +174,143 @@
     </Style>
     <Style Selector="Button.Chrome:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <!--
+      页签三档。选中态用 `.selected` 类表达而不是伪类：这些是 `Button` 不是 `ToggleButton`，
+      旧窗口本来就是用这个类标记当前页，换成伪类要先改调用点，而这一步只搬样式。
+
+      下划线与左侧那条竖线的粗细是族的度量（2px / 3px），与高度同一类，按字面写；颜色才是令牌。
+    -->
+    <Style Selector="Button.Tab.Root">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0,0,0,2" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Tab.Root:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.selected">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+    </Style>
+
+    <!-- 根页签的紧凑档：只改高度与字号，四态沿用 Root。`MinHeight` 而不是 `Height`，因为它要说几行。 -->
+    <Style Selector="Button.Tab.Root.Compact">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+    </Style>
+
+    <!-- 侧栏页签：选中时整行铺强调浅底，左侧一条竖线标位置。 -->
+    <Style Selector="Button.Tab.Side">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Tab.Side:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Side:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="Button.Tab.Side:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+    <Style Selector="Button.Tab.Side.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+    </Style>
+
+    <!-- 行内页签·实心：选中直接铺强调色，适合一排里只有一个当前项的地方。 -->
+    <Style Selector="Button.Tab.Inline.Solid">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Solid:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Solid:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Solid:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Solid.selected">
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+    </Style>
+
+    <!-- 行内页签·带框：靠描边站住，选中时底色抬到卡片色、文字转强调色，所以不跟强调底冲突。 -->
+    <Style Selector="Button.Tab.Inline.Boxed">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Boxed:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Boxed:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Boxed:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+    <Style Selector="Button.Tab.Inline.Boxed.selected">
+        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
+      区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
+      组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。
+    -->
+    <Style Selector="Border.Section">
+        <Setter Property="Padding" Value="{DynamicResource Space4}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="Margin" Value="{DynamicResource GapSection}" />
     </Style>
 </Styles>

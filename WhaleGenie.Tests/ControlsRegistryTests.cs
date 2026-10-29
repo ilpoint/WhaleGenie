@@ -40,8 +40,11 @@ public class ControlsRegistryTests
 
         Assert.NotEmpty(classes);
 
+        // A class that narrows another one (Button.Tab.Root.Compact) inherits its states, so a hover
+        // on any prefix of the name covers it. Only the prefixes that are themselves selector names
+        // count, which is what the sets above hold.
         var silent = classes
-            .Where(name => !hovering.Contains(name) && !registered.Contains(name))
+            .Where(name => !Covered(name, hovering) && !Covered(name, registered))
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToList();
         Assert.True(
@@ -118,6 +121,21 @@ public class ControlsRegistryTests
     /// Where this file's own path says the repository is: the checks run out of bin, where the
     /// dictionaries are copied but the repository layout is not.
     /// </summary>
+    /// <summary>Whether the name, or the class it narrows, is in the set.</summary>
+    private static bool Covered(string name, HashSet<string> names)
+    {
+        var parts = name.Split('.');
+        for (var length = parts.Length; length > 1; length--)
+        {
+            if (names.Contains(string.Join('.', parts.Take(length))))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static string RepositoryRoot([CallerFilePath] string here = "")
     {
         var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
