@@ -20,11 +20,6 @@
     </Design.DataContext>
 
     <Window.Styles>
-        <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="2,2,0,6" />
-        </Style>
         <Style Selector="ComboBox.LanguageSelect">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />

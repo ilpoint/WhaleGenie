@@ -37,25 +37,6 @@
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,0,0,10" />
-        </Style>
-        <Style Selector="TextBlock.GroupHeader">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,16,0,9" />
-        </Style>
-        <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="2,2,0,6" />
-        </Style>
         <!-- Line-art icon used beside each recordable action row -->
         <Style Selector="views|IconView.RecordIcon">
             <Setter Property="Width" Value="16" />
@@ -342,16 +323,6 @@
         </Style>
 
         <!-- Plain parameter input, without the spin buttons a NumericUpDown would add -->
-        <Style Selector="TextBox.ParamInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="8,6" />
-        </Style>
-
         <Style Selector="Button.KeyFieldButton">
             <Setter Property="Height" Value="34" />
             <Setter Property="Padding" Value="9,0" />
@@ -790,12 +761,12 @@
                                         <TextBlock Grid.Column="0" Classes="FieldLabel"
                                                    Text="{Binding [Editor.X], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" Margin="2,0,0,0" />
-                                        <TextBox Grid.Column="1" Classes="ParamInput"
+                                        <TextBox Grid.Column="1" Classes="Field"
                                                  Text="{Binding ColorPositionX}" />
                                         <TextBlock Grid.Column="2" Classes="FieldLabel"
                                                    Text="{Binding [Editor.Y], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
-                                        <TextBox Grid.Column="3" Classes="ParamInput"
+                                        <TextBox Grid.Column="3" Classes="Field"
                                                  Text="{Binding ColorPositionY}" />
                                     </Grid>
 
@@ -809,7 +780,7 @@
                                     <TextBlock Classes="FieldLabel" Margin="2,0,0,6"
                                                Text="{Binding [Editor.HexColor], Source={x:Static loc:Strings.Current}}" />
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                        <TextBox Name="HexColorInput" Classes="ParamInput"
+                                        <TextBox Name="HexColorInput" Classes="Field"
                                                  MinWidth="84" Text="{Binding HexColor}" />
                                         <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                                                 Background="{Binding HexColor, Converter={StaticResource HexBrush}}"
@@ -825,7 +796,7 @@
                                     <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                                Text="{Binding [Editor.ColorTolerance], Source={x:Static loc:Strings.Current}}" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBox Classes="ParamInput" Width="90" Text="{Binding ColorTolerance}" />
+                                        <TextBox Classes="Field" Width="90" Text="{Binding ColorTolerance}" />
                                         <TextBlock Text="%" FontSize="12.5" Foreground="{DynamicResource AppMuted}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
@@ -865,7 +836,7 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            IsVisible="{Binding !IsIntervalSchedule}"
                                            Text="{Binding [Editor.ScheduleTime], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" IsVisible="{Binding !IsIntervalSchedule}"
+                                <TextBox Classes="Field" IsVisible="{Binding !IsIntervalSchedule}"
                                          Text="{Binding ScheduleTime}"
                                          PlaceholderText="{Binding [Editor.ScheduleTimeHint], Source={x:Static loc:Strings.Current}}" />
 
@@ -877,7 +848,7 @@
                             <StackPanel IsVisible="{Binding IsFileTrigger}">
                                 <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                            Text="{Binding [Editor.WatchPath], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding WatchPath}"
+                                <TextBox Classes="Field" Text="{Binding WatchPath}"
                                          PlaceholderText="{Binding [Editor.WatchPathHint], Source={x:Static loc:Strings.Current}}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
@@ -888,7 +859,7 @@
                                 <!-- Only a watched folder has names inside it to filter and folders below it -->
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WatchFilter], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding WatchFilter}"
+                                <TextBox Classes="Field" Text="{Binding WatchFilter}"
                                          PlaceholderText="*" />
 
                                 <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
@@ -903,7 +874,7 @@
                             <StackPanel IsVisible="{Binding IsProcessTrigger}">
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.ProcessName], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding ProcessName}"
+                                <TextBox Classes="Field" Text="{Binding ProcessName}"
                                          PlaceholderText="{Binding [Editor.ProcessNameHint], Source={x:Static loc:Strings.Current}}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"

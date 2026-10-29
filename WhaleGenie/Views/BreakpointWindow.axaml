@@ -39,7 +39,7 @@
                 <!-- The same box the action form uses for a condition: names and functions complete
                      as they are typed, and the builder stands beside it. -->
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                    <AutoCompleteBox Name="ExpressionBox" Classes="VarInput" Text="{Binding Expression}"
+                    <AutoCompleteBox Name="ExpressionBox" Classes="Field" Text="{Binding Expression}"
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      MinimumPrefixLength="1" FilterMode="Contains"
                                      FontSize="12.5"

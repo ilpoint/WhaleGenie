@@ -18,18 +18,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="#E4E4E4" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-        </Style>
-
-        <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12" />
-        </Style>
-
         <Style Selector="Border.MarkRow">
             <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="5" />

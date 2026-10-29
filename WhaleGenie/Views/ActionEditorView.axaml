@@ -60,7 +60,7 @@
                                HorizontalAlignment="Stretch"
                                Value="{Binding Number}" />
 
-                <AutoCompleteBox Grid.Column="1" Classes="VarInput"
+                <AutoCompleteBox Grid.Column="1" Classes="Field"
                                  IsVisible="{Binding IsFormula}"
                                  ItemsSource="{Binding Suggestions}"
                                  Text="{Binding Text}"
@@ -90,7 +90,7 @@
                 </StackPanel>
 
                 <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                    <TextBox Classes="Field" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <!-- A path is the one value the machine can offer a list of. -->
                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
@@ -169,7 +169,7 @@
                      windows that are open right now. -->
                 <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                       ColumnSpacing="6">
-                    <AutoCompleteBox Classes="VarInput"
+                    <AutoCompleteBox Classes="Field"
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      Text="{Binding Text}"
                                      PlaceholderText="{Binding Placeholder}"
@@ -199,7 +199,7 @@
                 <!-- A UI Automation selector: written out by hand, or taken off the screen by
                      pointing at the control. -->
                 <Grid IsVisible="{Binding IsSelector}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                    <TextBox Classes="Field" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             Content="{Binding [Add.PickElement], Source={x:Static loc:Strings.Current}}"
@@ -217,7 +217,7 @@
                      first, and the other ways a pick found are offered under the box to add. -->
                 <StackPanel IsVisible="{Binding IsBrowserTarget}" Spacing="6">
                     <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                        <TextBox Classes="ParamInput" Text="{Binding Text}"
+                        <TextBox Classes="Field" Text="{Binding Text}"
                                  AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
                                  PlaceholderText="{Binding Placeholder}" />
                         <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
@@ -265,7 +265,7 @@
                      taller than one holding a sentence, because a program of a dozen lines is not
                      read through a window four lines high. -->
                 <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                    <TextBox Classes="Field" Text="{Binding Text}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              Height="{Binding MultilineHeight}"
                              PlaceholderText="{Binding Placeholder}" />
@@ -294,7 +294,7 @@
                                    FormatString="0.###"
                                    HorizontalAlignment="Stretch" />
 
-                    <AutoCompleteBox Grid.Column="0" Classes="VarInput"
+                    <AutoCompleteBox Grid.Column="0" Classes="Field"
                                      IsVisible="{Binding IsNumberFormula}"
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      Text="{Binding Text}"
@@ -367,7 +367,7 @@
                 <!-- Colour parameters open the screen magnifier, and may be a variable holding one. -->
                 <Grid IsVisible="{Binding IsColor}"
                       ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                    <TextBox Classes="Field" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                             Background="{Binding Text, Converter={StaticResource HexBrush}}"
@@ -392,7 +392,7 @@
                         <!-- A picture is a file or the picture an earlier Capture saved under a
                              name, so the names are offered over the box the same way they are over
                              any other box that takes one. -->
-                        <AutoCompleteBox Classes="VarInput"
+                        <AutoCompleteBox Classes="Field"
                                          ItemsSource="{Binding NameChoices}"
                                          Text="{Binding Text}"
                                          PlaceholderText="{Binding Placeholder}"
@@ -434,7 +434,7 @@
                                             BorderThickness="1" CornerRadius="4" Padding="2">
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                                     </Border>
-                                    <AutoCompleteBox Grid.Column="1" Classes="VarInput"
+                                    <AutoCompleteBox Grid.Column="1" Classes="Field"
                                                      ItemsSource="{Binding Suggestions}"
                                                      Text="{Binding Text}"
                                                      PlaceholderText="{Binding Placeholder}"
@@ -566,7 +566,7 @@
                                                    Margin="0,0,6,0"
                                                    Text="{Binding [Add.RegionOrVariable], Source={x:Static loc:Strings.Current}}"
                                                    ToolTip.Tip="{Binding VariableHint}" />
-                                        <TextBox Width="190" Classes="VarInput" Margin="0,0,6,0"
+                                        <TextBox Width="190" Classes="Field" Margin="0,0,6,0"
                                                  Text="{Binding OrVariable}"
                                                  PlaceholderText="{Binding VariablePlaceholder}"
                                                  ToolTip.Tip="{Binding VariableHint}" />
@@ -690,7 +690,7 @@
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
-                                        <TextBox Grid.Column="1" Classes="ParamInput"
+                                        <TextBox Grid.Column="1" Classes="Field"
                                                  IsVisible="{Binding NeedsValue}"
                                                  Text="{Binding Value}"
                                                  PlaceholderText="{Binding ValueHint}" />
@@ -782,7 +782,7 @@
                 </ComboBox>
 
                 <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                    <AutoCompleteBox Classes="VarInput"
+                    <AutoCompleteBox Classes="Field"
                                      ItemsSource="{Binding NameChoices}"
                                      Text="{Binding Text}"
                                      PlaceholderText="{Binding Placeholder}"
@@ -806,7 +806,7 @@
                     </StackPanel>
                 </Grid>
 
-                <AutoCompleteBox Classes="VarInput" IsVisible="{Binding IsMacro}"
+                <AutoCompleteBox Classes="Field" IsVisible="{Binding IsMacro}"
                                  ItemsSource="{Binding Macros}"
                                  Text="{Binding Text}"
                                  PlaceholderText="{Binding Placeholder}"
@@ -815,7 +815,7 @@
 
                 <StackPanel IsVisible="{Binding IsExpression}">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                        <AutoCompleteBox Classes="VarInput"
+                        <AutoCompleteBox Classes="Field"
                                          ItemsSource="{Binding ExpressionSuggestions}"
                                          Text="{Binding Text}"
                                          PlaceholderText="{Binding Placeholder}"
@@ -858,7 +858,7 @@
                               Content="{Binding [Add.CallArgumentGiven], Source={x:Static loc:Strings.Current}}"
                               ToolTip.Tip="{Binding [Add.CallArgumentGivenHint], Source={x:Static loc:Strings.Current}}" />
                 </Grid>
-                <TextBox Classes="ParamInput" Text="{Binding Value}" Margin="0,4,0,0"
+                <TextBox Classes="Field" Text="{Binding Value}" Margin="0,4,0,0"
                          IsEnabled="{Binding !Given}" />
                 <TextBlock Classes="Hint" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -879,7 +879,7 @@
                            TextWrapping="Wrap" Margin="26,3,0,0" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="26,6,0,0"
                       IsVisible="{Binding ShowsName}">
-                    <TextBox Classes="ParamInput" Text="{Binding Name}"
+                    <TextBox Classes="Field" Text="{Binding Name}"
                              IsEnabled="{Binding Ticked}" />
                     <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="9,0"
                             IsVisible="{Binding IsNameTaken}"
@@ -1020,28 +1020,8 @@
             <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
             <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
         </Style>
-        <Style Selector="TextBlock.GroupHeader">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,16,0,9" />
-        </Style>
-
         <!-- A heading that divides the picker in two, rather than a group of actions: it is read
              on the way past, so it is quieter and smaller than a group heading. -->
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="2,16,0,6" />
-        </Style>
-        <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="2,2,0,6" />
-        </Style>
-
         <!-- The mark on a field that is read as one value: small, and in the colour the interface
              already uses for a name it made itself. -->
         <Style Selector="TextBlock.FormulaMark">
@@ -1143,16 +1123,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
-        <Style Selector="TextBox.ParamInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="9,7" />
-        </Style>
-
         <Style Selector="Button.KeyFieldButton">
             <Setter Property="Height" Value="34" />
             <Setter Property="Padding" Value="9,0" />
@@ -1181,21 +1151,6 @@
         </Style>
 
         <!-- Variable name: free text with the known variables offered as suggestions. -->
-        <Style Selector="AutoCompleteBox.VarInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="9,7" />
-            <Setter Property="MinHeight" Value="34" />
-        </Style>
-        <Style Selector="AutoCompleteBox.VarInput TextBox">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-        </Style>
-
         <Style Selector="Button.AddButton">
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -1266,7 +1221,7 @@
 
                     <!-- The catalogue is well over a hundred actions, so it is read as a search box
                          over short groups rather than one long dropdown. -->
-                    <TextBox Grid.Row="1" Classes="ParamInput" Text="{Binding ActionSearch}"
+                    <TextBox Grid.Row="1" Classes="Field" Text="{Binding ActionSearch}"
                              AutomationProperties.Name="Search actions"
                              PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
 
@@ -1327,7 +1282,7 @@
                             <StackPanel Margin="0,0,0,12" IsVisible="{Binding HasSelection}">
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Add.StepComment], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding MetaComment}"
+                                <TextBox Classes="Field" Text="{Binding MetaComment}"
                                          PlaceholderText="{Binding [Add.StepCommentHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 

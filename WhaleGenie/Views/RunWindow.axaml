@@ -19,11 +19,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="#E4E4E4" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-        </Style>
         <Style Selector="TextBlock.ColumnHeader">
             <Setter Property="Foreground" Value="#8A8A8A" />
             <Setter Property="FontSize" Value="11" />
@@ -213,12 +208,6 @@
             <Setter Property="BorderBrush" Value="#E06C75" />
         </Style>
 
-        <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="14" />
-        </Style>
-
         <Style Selector="Button.LookThumb">
             <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -399,7 +388,7 @@
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="{Binding Label}" FontSize="12"
                                                        Foreground="{DynamicResource AppText}" />
-                                            <TextBox Classes="VarInput" Text="{Binding Value}" />
+                                            <TextBox Classes="Field" Text="{Binding Value}" />
                                             <CheckBox FontSize="11.5"
                                                       Foreground="{DynamicResource AppMuted}"
                                                       IsChecked="{Binding Given}"
