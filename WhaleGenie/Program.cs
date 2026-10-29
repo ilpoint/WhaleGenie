@@ -86,6 +86,16 @@ sealed class Program
             return RunHeadless();
         }
 
+        // One window, one program. A second launch is somebody double-clicking the icon while the
+        // window is already out of the way, so the window is asked to come back and this copy ends.
+        // The headless forms above are not part of that rule: a client may start as many servers as
+        // it has clients, and they are not windows.
+        if (!SingleInstance.TryAcquire())
+        {
+            SingleInstance.AskToComeBack();
+            return 0;
+        }
+
         Run(args);
         return 0;
     }

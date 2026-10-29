@@ -133,6 +133,13 @@ public partial class App : Application
         // from the notification area, and that is not the last run.
         window.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
 
+        // A second launch asks this one to come back instead of starting a copy of its own.
+        SingleInstance.Listen(() => Dispatcher.UIThread.Post(() =>
+        {
+            window.Tray?.ComeBack();
+            window.Activate();
+        }));
+
         desktop.Exit += (_, _) =>
         {
             PersistentVariables.Flush();
