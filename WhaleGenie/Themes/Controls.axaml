@@ -15,13 +15,28 @@
          是语言常量、不是我们定的颜色，可以直接写（它没有值可漂移，也不参与对比度核算）。高度与宽度允许字面值，但只能出现在
          本文件的族定义里、一族一次；`Views/` 里不给族成员写 `Height` / `Width`。
       3. `Opacity` 只允许 `CardOpacity` 那一个例外——它是内容状态，不是造色。
-      4. 每个自定义类恰好一条 `:pointerover`，且每类都要能被键盘走到。两处例外，都是"由层 1 承担"
-         而不是"漏掉"：外观四态交给层 1 的类（`Button.Secondary` 这一档）不再写 `:pointerover`——
-         写了就是把 `ButtonBackgroundPointerOver` 抄一遍，两个源必然走散；控件族的焦点环由模板的
-         `FocusAdorner` 给（层 1 的 `SystemControlFocusVisual*` 两个刷子），不另写 `:focus-visible`。
-         真正需要显式写 `:focus-visible` 的是自绘元素（`Border.Card.*`、`Ellipse.Dot`、
-         `GridSplitter.Split`）：它们不是控件、没有模板，必须 `Focusable="True"` + 同款
-         `FocusAdorner`，否则键盘走到那里就断了。
+      4. 每个自定义类**要么自己有一条 `:pointerover`，要么在下面「层 1 承担」清单里登记**。
+         两份都不在 = 漏写，`ControlsRegistryTests` 会红。登记不是免死金牌：登记进去的类必须能在
+         `FluentKeys.axaml` 里找到同族前缀的键（`Button.Secondary` → `Button*`），否则同样是红——
+         写一句登记、什么都不做、看着还合规，比漏写更难发现。
+         键盘：控件族不另写 `:focus-visible`，焦点环由模板的 `FocusAdorner` 给（层 1 的
+         `SystemControlFocusVisual*` 两个刷子）；**自绘元素**（`Border.Card.Thin`、
+         `Border.Card.Selectable`、`Ellipse.Dot`、`GridSplitter.Split`）不是控件、没有模板，必须
+         自己 `Focusable="True"` + 同款 `FocusAdorner`，否则键盘走到那里就断了。
+
+      两张清单（`ControlsRegistryTests` 读它们，一行一个"类型.类"）：
+
+      `LAYER1` 表示这一类的四态由 `FluentKeys.axaml` 的键给，这里只写度量。**必须带键家族前缀**
+      ——Fluent 的键不总是照控件名走（输入框的键叫 `TextControl*`，不叫 `TextBox*`），猜错的登记
+      等于什么都没登记。
+
+      `STATIC` 表示这一类根本没有交互状态（文本、纯容器），不是"漏了 `:pointerover`"。
+
+      LAYER1 Button.Secondary Button
+      STATIC TextBlock.Title
+      STATIC TextBlock.Body
+      STATIC TextBlock.FieldLabel
+      STATIC TextBlock.Hint
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
       窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
