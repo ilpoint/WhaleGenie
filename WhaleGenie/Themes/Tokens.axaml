@@ -26,7 +26,7 @@
             <!-- 文字 -->
             <Color x:Key="TextPrimaryColor">#F2F2F2</Color>
             <Color x:Key="TextSecondaryColor">#B8B8B8</Color>
-            <Color x:Key="TextTertiaryColor">#9E9E9E</Color>
+            <Color x:Key="TextTertiaryColor">#A8A8A8</Color>
             <Color x:Key="TextDisabledColor">#6E6E6E</Color>
             <Color x:Key="TextOnAccentColor">#FFFFFF</Color>
 
@@ -128,7 +128,7 @@
             <!-- 文字 -->
             <Color x:Key="TextPrimaryColor">#1B1815</Color>
             <Color x:Key="TextSecondaryColor">#4C4640</Color>
-            <Color x:Key="TextTertiaryColor">#6A6259</Color>
+            <Color x:Key="TextTertiaryColor">#676058</Color>
             <Color x:Key="TextDisabledColor">#A8A096</Color>
             <Color x:Key="TextOnAccentColor">#FFFFFF</Color>
 
