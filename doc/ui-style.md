@@ -249,6 +249,20 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 已知不存在的：`Border` 没有 `Foreground`——文字色由内层 `TextBlock` 给（写法见"容器"那节）。
 不要写成"注意确认载体有这个属性"：那与"注意别改尺寸"同类，读者会点头然后照旧；**"找不到"才会把格式逼到正确。**
 
+**第二个问题：这个取值能不能落进那个属性的一次赋值？** 属性存在，值也可能落不进去——
+
+- `Margin` 一次只接受**一个** `Thickness`，所以"上 `Space6` 下 `Space4`"（两个单值）写不进去：
+  要么合成一个复合令牌（`GapPageHeader` 就是这么来的），要么改用父容器的 `Spacing`；
+- `BorderThickness` 一次给**四个**数，所以"左边 2px、其余 0"能落进去（`3,0,0,0`），
+  而"只左边变色"落不进去——`BorderBrush` 只有一支。
+
+两个问题合起来才完整：**属性存在吗**（载体有没有它）、**值落得进去吗**（形状对不对）。
+问不出答案的那一格，就是写不成的那一格——这是"规则要能失败"在这里的具体形态。
+
+**修饰靠类叠加，不靠复制。** 用修饰类时 `Classes` 必须同时含父类——`Classes="Ghost Tiny"`，**不能只写 `Tiny`**。
+叠加才继承父类的态（`Button.Ghost:pointerover` 继续命中）；只写修饰名时父类那条选择器不匹配，
+症状是"看起来有样式、但不跟随父类改色"——又一种静默失效。**要一条用例**：窗口里凡用修饰类，`Classes` 含父类。
+
 每一族还要回答一句"**它的态会不会同现**"；会同现，就按裁定第 4 条拆通道，拆不了说明这是两个类。
 这一句不在表的任何一格里面，所以必须单独问。
 
@@ -393,7 +407,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 |---|---|---|---|---|
 | `TableView`（默认） | TableView | 行与单元格 padding 由 `DensityStyle=Compact` 给 | 行底 `SurfaceCard`、表头底 `SurfacePanel`、列头分隔 `BorderSubtle` | 层 1 `TableView*` 给行底与分隔线（**选中态有键、表头底无键**），表头底由**层 3 补** |
 | `StackPanel.Empty` | StackPanel | `Spacing` `Space2` · 上下 `Space8` | 图标 `TextTertiary` · 标题 `TextBlock.Title` · 说明 `TextBlock.Hint` | 层 3 |
-| `Ellipse.Dot` | Ellipse | 8×8 · 无边框 | `Fill` 由 `Classes` 给 `Success` / `Warning` / `Danger` / `Info` / `TextDisabled`，**不靠继承** | 层 3 |
+| `Ellipse.Dot` | Ellipse | 8×8 · 无边框 | `Fill` 由 `Classes` 给 `Success` / `Warning` / `Danger` / `Info` / `TextDisabled`，**不靠继承**。**用例**：加 `.Success` 后 `Fill` 为 `Success` **且 `Foreground` 未被设置**——`Foreground` 挂在 `Ellipse` 上是合法语法、静默无效，只有断言能拦 | 层 3 |
 | `Border.PickerScrim` | Border | 铺满 | `PickerScrim` | 层 3，**主题不变** |
 | `Border.PickerTarget` | Border | 铺满 | `PickerTargetScrim` | 层 3，**主题不变** |
 | `Border.Readout` | Border | `PadChip` · `RadiusControl` · 1px | `PickerReadout` · `TextPrimary` · `BorderControl` | 层 3，**主题不变** |
