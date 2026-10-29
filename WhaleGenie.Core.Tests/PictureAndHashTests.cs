@@ -81,7 +81,7 @@ public class PictureAndHashTests
     public async Task A_window_is_written_out_while_it_is_being_taken()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WhaleGenie.Core.Devices.WindowInfo(1, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WhaleGenie.Core.Devices.WindowInfo(1, "Notepad - notes.txt",
             new WhaleGenie.Core.Devices.ScreenPoint(1000, 500),
             new WhaleGenie.Core.Devices.ScreenSize(800, 600), false, false));
 

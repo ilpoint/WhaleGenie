@@ -281,8 +281,8 @@ internal static class ActionBench
             "检测在第三次才找到"),
         "window.waitFor" => Third(devices, () =>
         {
-            devices.WindowAppearsLater = "Bench";
-            devices.WindowAppearsAfter = 3;
+            devices.Window.AppearsLater = "Bench";
+            devices.Window.AppearsAfter = 3;
         }, "window", "窗口在第三次列窗口才出现"),
         _ => null,
     };
@@ -370,13 +370,8 @@ internal static class ActionBench
     /// </summary>
     private static FakeDeviceLayer Desk()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ElementText = "bench",
-            Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
-            CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
-            AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
-        };
+        var devices = new FakeDeviceLayer { Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")) };
+        devices.Ui.ElementText = "bench";
 
         devices.Screen.Cursor = new ScreenPoint(10, 10);
         devices.Screen.Pixel = new PixelColor(255, 255, 255);
@@ -401,11 +396,11 @@ internal static class ActionBench
         devices.Files.Folders.Add(BenchFixtures.Folder);
         devices.Files.Folders.Add(devices.Files.Resolve(BenchFixtures.Folder));
 
-        devices.Windows.Add(new WindowInfo(4242, "Bench", new ScreenPoint(100, 100),
+        devices.Window.Open.Add(new WindowInfo(4242, "Bench", new ScreenPoint(100, 100),
             new ScreenSize(640, 480), false, false));
-        devices.WindowFacts[4242] = (BenchFixtures.ProgramName, "Bench");
-        devices.ClientSizes[4242] = new ScreenSize(640, 480);
-        devices.Elements.Add(new UiElementInfo("Bench", "bench", "Button", "Bench",
+        devices.Window.Traits[4242] = (BenchFixtures.ProgramName, "Bench");
+        devices.Window.ClientSizes[4242] = new ScreenSize(640, 480);
+        devices.Ui.Elements.Add(new UiElementInfo("Bench", "bench", "Button", "Bench",
             new ScreenPoint(120, 120), new ScreenSize(80, 24), "Bench"));
         devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(200, 200), new ScreenSize(64, 64));
         devices.Vision.Matches.Add(new ImageMatch(0.95, new ScreenPoint(300, 300), new ScreenSize(64, 64)));

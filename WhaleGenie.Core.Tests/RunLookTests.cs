@@ -766,7 +766,7 @@ public class RunLookTests
     public async Task The_window_a_step_reads_is_said_before_the_picture_is_taken()
     {
         var devices = Screen();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
         var looks = new Watched();
 

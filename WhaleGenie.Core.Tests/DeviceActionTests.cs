@@ -565,7 +565,7 @@ public class DeviceActionTests
     public async Task Background_input_is_posted_at_the_window_it_names()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -592,9 +592,9 @@ public class DeviceActionTests
     public async Task Background_input_can_name_its_window_by_the_program()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "笔记 - 第 3 关", new ScreenPoint(0, 0),
+        devices.Window.Open.Add(new WindowInfo(4242, "笔记 - 第 3 关", new ScreenPoint(0, 0),
             new ScreenSize(100, 100), false, false));
-        devices.WindowFacts[4242] = ("notepad", "Notepad");
+        devices.Window.Traits[4242] = ("notepad", "Notepad");
 
         var (result, _, _) = await RunAsync(
         [
@@ -616,7 +616,7 @@ public class DeviceActionTests
     public async Task Background_input_with_a_pattern_it_cannot_read_stops_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -652,7 +652,7 @@ public class DeviceActionTests
     public async Task A_relative_move_has_no_background_mode()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -674,7 +674,7 @@ public class DeviceActionTests
     public async Task A_bent_relative_move_has_no_background_mode_either()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -1098,7 +1098,7 @@ public class DeviceActionTests
     private static FakeDeviceLayer WithAWindow()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad - notes.txt",
             new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
         return devices;
     }
@@ -1136,7 +1136,7 @@ public class DeviceActionTests
     public async Task A_point_can_be_measured_from_inside_the_window_border()
     {
         var devices = WithAWindow();
-        devices.ClientOrigins[1] = new ScreenPoint(1008, 531);
+        devices.Window.ClientOrigins[1] = new ScreenPoint(1008, 531);
 
         var (_, _, _) = await RunAsync(
         [
@@ -1400,7 +1400,7 @@ public class DeviceActionTests
             Param("anchorMode", "window"), Param("window", "Notepad"));
 
         await RunAsync([step], devices);
-        devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
+        devices.Window.Open[0] = devices.Window.Open[0] with { Location = new ScreenPoint(300, 400) };
         await RunAsync([step], devices);
 
         Assert.Equal(
@@ -1704,7 +1704,7 @@ public class DeviceActionTests
             Param("anchorMode", "window"), Param("window", "Notepad"));
 
         await RunAsync([step], devices);
-        devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
+        devices.Window.Open[0] = devices.Window.Open[0] with { Location = new ScreenPoint(300, 400) };
         await RunAsync([step], devices);
 
         Assert.Equal(
@@ -1732,7 +1732,7 @@ public class DeviceActionTests
     public async Task A_pixel_can_be_read_from_a_window_corner()
     {
         var devices = WithAWindow();
-        devices.ClientOrigins[1] = new ScreenPoint(1000, 520);
+        devices.Window.ClientOrigins[1] = new ScreenPoint(1000, 520);
 
         var (_, _, _) = await RunAsync(
         [
@@ -1968,9 +1968,9 @@ public class DeviceActionTests
     public async Task A_step_that_reads_the_screen_can_name_its_window_by_the_program()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "笔记 - 第 3 关", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(1, "笔记 - 第 3 关", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
 
         var (result, _, store) = await RunAsync(
@@ -2171,7 +2171,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Query_actions_report_false_without_failing()
     {
-        var imageDevices = new FakeDeviceLayer { ElementExists = false };
+        var imageDevices = new FakeDeviceLayer();
+        imageDevices.Ui.ElementExists = false;
         imageDevices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
         imageDevices.Vision.Match = null;
         imageDevices.Ocr.Spans = [];
@@ -2735,9 +2736,9 @@ public class DeviceActionTests
         int clientX = 108, int clientY = 81)
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(handle, title, new ScreenPoint(x, y),
+        devices.Window.Open.Add(new WindowInfo(handle, title, new ScreenPoint(x, y),
             new ScreenSize(width, height), false, false));
-        devices.ClientOrigins[handle] = new ScreenPoint(clientX, clientY);
+        devices.Window.ClientOrigins[handle] = new ScreenPoint(clientX, clientY);
         return devices;
     }
 
@@ -4201,8 +4202,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Looking_for_an_element_reports_true_or_false()
     {
-        var found = new FakeDeviceLayer { ElementExists = true };
-        var missing = new FakeDeviceLayer { ElementExists = false };
+        var found = new FakeDeviceLayer();
+        found.Ui.ElementExists = true;
+        var missing = new FakeDeviceLayer();
+        missing.Ui.ElementExists = false;
 
         ExecutableStep Exists() => Step("uia.exists",
             Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']"),
@@ -4219,7 +4222,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_an_element_carries_on_when_it_is_there()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
         var (result, _, _) = await RunAsync(
         [
             Within(2000, Step("uia.waitElement",
@@ -4240,8 +4244,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_an_element_hands_over_the_one_that_turned_up()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true, ElementText = "12 items" };
-        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
+        devices.Ui.ElementText = "12 items";
+        devices.Ui.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
 
         var (result, _, store) = await RunAsync(
@@ -4265,8 +4271,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_an_element_hands_over_one_record_about_it()
     {
-        var devices = new FakeDeviceLayer { ElementText = "12 items", ElementEnabled = false };
-        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementText = "12 items";
+        devices.Ui.ElementEnabled = false;
+        devices.Ui.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
 
         var (_, _, store) = await RunAsync(
@@ -4290,11 +4298,14 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_an_element_that_is_not_there_is_refused()
     {
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = false;
+
         var (result, _, store) = await RunAsync(
         [
             Step("uia.read", Param("window", ""), Param("uiSelector", "Text[name='Count']"),
                 Returns("element=found")),
-        ], new FakeDeviceLayer { ElementExists = false });
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ElementNotFound", result.Key);
@@ -4309,7 +4320,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Pressing_an_element_works_it_without_the_mouse()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.invoke", Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']")),
@@ -4326,10 +4338,13 @@ public class DeviceActionTests
     [Fact]
     public async Task Pressing_an_element_that_cannot_be_worked_that_way_is_refused()
     {
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementInvocable = false;
+
         var (result, _, _) = await RunAsync(
         [
             Step("uia.invoke", Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']")),
-        ], new FakeDeviceLayer { ElementInvocable = false });
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ElementNotInvocable", result.Key);
@@ -4339,7 +4354,7 @@ public class DeviceActionTests
     public async Task Finding_an_element_records_where_it_sits_and_which_window_it_is_in()
     {
         var devices = WithAWindow();
-        devices.Elements.Add(new UiElementInfo("Save", "saveButton", "Button", "ButtonClass",
+        devices.Ui.Elements.Add(new UiElementInfo("Save", "saveButton", "Button", "ButtonClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
 
         var (_, _, store) = await RunAsync(
@@ -4378,9 +4393,9 @@ public class DeviceActionTests
     public async Task Recording_every_element_notes_how_many_and_where()
     {
         var devices = new FakeDeviceLayer();
-        devices.Elements.Add(new UiElementInfo("Row 1", "row1", "ListItem", "ListBoxItem",
+        devices.Ui.Elements.Add(new UiElementInfo("Row 1", "row1", "ListItem", "ListBoxItem",
             new ScreenPoint(0, 100), new ScreenSize(200, 20), "Tasks"));
-        devices.Elements.Add(new UiElementInfo("Row 2", "row2", "ListItem", "ListBoxItem",
+        devices.Ui.Elements.Add(new UiElementInfo("Row 2", "row2", "ListItem", "ListBoxItem",
             new ScreenPoint(0, 120), new ScreenSize(200, 20), "Tasks"));
 
         var (_, _, store) = await RunAsync(
@@ -4451,7 +4466,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pick_that_finds_no_such_entry_fails_the_step()
     {
-        var devices = new FakeDeviceLayer { ItemSelectable = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ItemSelectable = false;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.select", Param("uiSelector", "ComboBox[automationId='rate']"),
@@ -4493,7 +4509,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Scrolling_into_view_a_step_of_a_list_that_will_not_scroll_fails()
     {
-        var devices = new FakeDeviceLayer { Scrollable = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.Scrollable = false;
         var (result, _, _) = await RunAsync(
         [Step("uia.scrollIntoView", Param("uiSelector", "ListItem[name='Row 9']"))], devices);
 
@@ -4505,8 +4522,8 @@ public class DeviceActionTests
     public async Task Reading_a_table_puts_the_rows_in_a_variable()
     {
         var devices = new FakeDeviceLayer();
-        devices.Table.Add(["Name", "Age"]);
-        devices.Table.Add(["Ann", "31"]);
+        devices.Ui.Table.Add(["Name", "Age"]);
+        devices.Ui.Table.Add(["Ann", "31"]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -4530,9 +4547,9 @@ public class DeviceActionTests
     public async Task Reading_a_table_stops_at_the_row_count_it_was_given()
     {
         var devices = new FakeDeviceLayer();
-        devices.Table.Add(["one"]);
-        devices.Table.Add(["two"]);
-        devices.Table.Add(["three"]);
+        devices.Ui.Table.Add(["one"]);
+        devices.Ui.Table.Add(["two"]);
+        devices.Ui.Table.Add(["three"]);
 
         var (_, _, store) = await RunAsync(
         [
@@ -4553,8 +4570,8 @@ public class DeviceActionTests
     public async Task Reading_a_table_keys_every_row_by_its_column_names()
     {
         var devices = new FakeDeviceLayer();
-        devices.Columns.AddRange(["Name", "Age"]);
-        devices.Table.Add(["Ann", "31"]);
+        devices.Ui.Columns.AddRange(["Name", "Age"]);
+        devices.Ui.Table.Add(["Ann", "31"]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -4581,8 +4598,8 @@ public class DeviceActionTests
     public async Task A_blank_or_repeated_column_name_takes_the_letter_of_its_place()
     {
         var devices = new FakeDeviceLayer();
-        devices.Columns.AddRange(["Name", "", "Name"]);
-        devices.Table.Add(["Ann", "31", "x"]);
+        devices.Ui.Columns.AddRange(["Name", "", "Name"]);
+        devices.Ui.Table.Add(["Ann", "31", "x"]);
 
         var (_, _, store) = await RunAsync(
         [
@@ -4600,7 +4617,7 @@ public class DeviceActionTests
     public async Task Measuring_from_a_control_is_not_one_of_the_coordinate_bases()
     {
         var devices = new FakeDeviceLayer();
-        devices.Elements.Add(new UiElementInfo("Panel", "panel", "Pane", "PaneClass",
+        devices.Ui.Elements.Add(new UiElementInfo("Panel", "panel", "Pane", "PaneClass",
             new ScreenPoint(200, 100), new ScreenSize(400, 300), "Tasks"));
 
         var (result, _, _) = await RunAsync(
@@ -4617,7 +4634,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Writing_into_an_element_carries_the_text_and_the_clear_flag()
     {
-        var devices = new FakeDeviceLayer { ElementWritable = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementWritable = true;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.setText", Param("window", ""), Param("uiSelector", "Edit[automationId='input']"),
@@ -4631,7 +4649,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_element_that_cannot_be_written_fails_the_step()
     {
-        var devices = new FakeDeviceLayer { ElementWritable = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementWritable = false;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.setText", Param("uiSelector", "Edit[name='Query']"), Param("valueText", "hello")),
@@ -4644,7 +4663,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Focusing_a_window_that_is_not_there_fails()
     {
-        var devices = new FakeDeviceLayer { WindowFocused = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.WindowFocused = false;
         var (result, _, _) = await RunAsync(
             [Step("uia.focusWindow", Param("window", "Nothing"))], devices);
 
@@ -4655,7 +4675,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_selector_reads_as_a_control_and_its_properties()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
         await RunAsync(
         [
             Step("uia.exists", Param("window", "Notepad"),
@@ -7410,7 +7431,7 @@ public class DeviceActionTests
     public async Task Checking_for_a_window_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(7, "Untitled - Notepad",
+        devices.Window.Open.Add(new WindowInfo(7, "Untitled - Notepad",
             new ScreenPoint(10, 20), new ScreenSize(300, 200), false, false));
         var (_, _, store) = await RunAsync(
         [
@@ -7425,11 +7446,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_window_keeps_its_title()
     {
-        var devices = new FakeDeviceLayer
-        {
-            WindowAppearsLater = "Untitled - Notepad",
-            WindowAppearsAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Window.AppearsLater = "Untitled - Notepad";
+        devices.Window.AppearsAfter = 1;
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("window.waitFor", Param("window", "notepad"),
@@ -7448,7 +7467,7 @@ public class DeviceActionTests
         var devices = WithAWindow();
         // The title is "Notepad - notes.txt", so neither of the other two names appears in it:
         // a match can only have come from the way the step asked for.
-        devices.WindowFacts[1] = ("notes-app", "WhaleGenieNotes");
+        devices.Window.Traits[1] = ("notes-app", "WhaleGenieNotes");
         var (_, _, store) = await RunAsync(
         [
             Step("window.exists", Param("window", "notes-app"), Param("how", "process"),
@@ -7490,7 +7509,7 @@ public class DeviceActionTests
     public async Task A_window_pattern_that_cannot_be_read_fails_the_step()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         var (result, _, _) = await RunAsync(
         [
             Step("window.exists", Param("window", "notes("), Param("how", "titleRegex"),
@@ -7504,7 +7523,7 @@ public class DeviceActionTests
     public async Task A_window_that_matches_by_nothing_is_not_found()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         var (_, _, store) = await RunAsync(
         [
             Step("window.exists", Param("window", "explorer"), Param("how", "process"),
@@ -7523,7 +7542,7 @@ public class DeviceActionTests
     public async Task A_programs_name_can_be_asked_for_exactly()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad-plus-plus", "Notepad");
+        devices.Window.Traits[1] = ("notepad-plus-plus", "Notepad");
 
         var (_, _, store) = await RunAsync(
         [
@@ -7544,10 +7563,10 @@ public class DeviceActionTests
     public async Task A_window_handle_chooses_one_of_two_identical_windows()
     {
         var devices = WithAWindow();
-        devices.Windows.Add(new WindowInfo(2, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(2, "Notepad - notes.txt",
             new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.WindowFacts[2] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Window.Traits[2] = ("notepad", "Notepad");
 
         var (_, _, store) = await RunAsync(
         [
@@ -7639,9 +7658,9 @@ public class DeviceActionTests
             ], elements);
 
             var (match, compare) = WindowHow.Read(how);
-            Assert.Equal(match, elements.LastQuery!.WindowMatch);
-            Assert.Equal(compare, elements.LastQuery.WindowCompare);
-            Assert.Equal(text, elements.LastQuery.WindowTitle);
+            Assert.Equal(match, elements.Ui.LastQuery!.WindowMatch);
+            Assert.Equal(compare, elements.Ui.LastQuery.WindowCompare);
+            Assert.Equal(text, elements.Ui.LastQuery.WindowTitle);
 
             // Bringing a window to the front is handed the same rule, so choosing the program or a
             // pattern there means what it means everywhere else.
@@ -7651,9 +7670,9 @@ public class DeviceActionTests
                 Step("uia.focusWindow", Param("window", text), Param("how", how)),
             ], focused);
 
-            Assert.Equal(match, focused.LastQuery!.WindowMatch);
-            Assert.Equal(compare, focused.LastQuery.WindowCompare);
-            Assert.Equal(text, focused.LastQuery.WindowTitle);
+            Assert.Equal(match, focused.Ui.LastQuery!.WindowMatch);
+            Assert.Equal(compare, focused.Ui.LastQuery.WindowCompare);
+            Assert.Equal(text, focused.Ui.LastQuery.WindowTitle);
         }
     }
 
@@ -7661,7 +7680,7 @@ public class DeviceActionTests
     private static FakeDeviceLayer Named()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         return devices;
     }
 
@@ -7700,9 +7719,9 @@ public class DeviceActionTests
     public async Task A_window_asked_for_by_name_is_shaped_like_one_from_a_listing()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
-        devices.WindowFacts[42] = ("notepad", "Notepad");
+        devices.Window.Traits[42] = ("notepad", "Notepad");
 
         var (result, _, store) = await RunAsync(
         [
@@ -7732,10 +7751,10 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)];
         devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
-        devices.WindowFacts[42] = ("notepad", "Notepad");
-        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+        devices.Window.Traits[42] = ("notepad", "Notepad");
+        devices.Ui.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
         devices.Processes.Running["notepad"] = [42];
 
@@ -7863,7 +7882,7 @@ public class DeviceActionTests
     public async Task A_window_record_says_the_middle_of_the_window_as_well_as_its_corner()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(7, 9),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(7, 9),
             new ScreenSize(301, 201), false, false));
 
         var (result, _, store) = await RunAsync(
@@ -7934,7 +7953,7 @@ public class DeviceActionTests
     public async Task Activating_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         var (result, _, _) = await RunAsync(
             [Step("window.activate", Param("window", "note"))], devices);
 
@@ -7946,7 +7965,7 @@ public class DeviceActionTests
     public async Task Maximizing_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync([Step("window.maximize", Param("window", "Notepad"))], devices);
 
         Assert.Contains("maximizeWindow 21", devices.Calls);
@@ -7956,7 +7975,7 @@ public class DeviceActionTests
     public async Task Minimizing_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync([Step("window.minimize", Param("window", "Notepad"))], devices);
 
         Assert.Contains("minimizeWindow 21", devices.Calls);
@@ -7966,7 +7985,7 @@ public class DeviceActionTests
     public async Task Moving_a_window_passes_the_place_and_the_size()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync(
         [
             Step("window.move", Param("window", "Notepad"), Param("x", "100"), Param("y", "50"),
@@ -7985,7 +8004,7 @@ public class DeviceActionTests
     public async Task Moving_a_window_can_change_only_what_the_step_says()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         await RunAsync(
@@ -8002,7 +8021,7 @@ public class DeviceActionTests
     public async Task A_window_move_with_no_bounds_leaves_the_window_alone()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         await RunAsync([Step("window.move", Param("window", "Notepad"))], devices);
@@ -8020,7 +8039,7 @@ public class DeviceActionTests
     public async Task A_window_can_be_moved_where_a_record_says()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -8044,7 +8063,7 @@ public class DeviceActionTests
     public async Task A_window_move_record_wins_over_numbers_beside_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -8067,7 +8086,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -8086,7 +8105,7 @@ public class DeviceActionTests
     public async Task Closing_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync([Step("window.close", Param("window", "Notepad"))], devices);
 
         Assert.Contains("closeWindow 21", devices.Calls);
@@ -8107,8 +8126,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_window_the_system_says_no_to_stops_the_step()
     {
-        var devices = new FakeDeviceLayer { WindowActionWorks = false };
-        devices.Windows.Add(new WindowInfo(5, "Locked", new ScreenPoint(), new ScreenSize(), false, false));
+        var devices = new FakeDeviceLayer();
+        devices.Window.ActionWorks = false;
+        devices.Window.Open.Add(new WindowInfo(5, "Locked", new ScreenPoint(), new ScreenSize(), false, false));
         var (result, _, _) = await RunAsync(
             [Step("window.restore", Param("window", "Locked"))], devices);
 
@@ -8126,9 +8146,9 @@ public class DeviceActionTests
     public async Task Listing_windows_names_every_window_even_when_titles_repeat()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(3, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(3, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
         var (_, _, store) = await RunAsync(
             [Step("window.list", Returns("windows=titles"))], devices);
 
@@ -8144,8 +8164,8 @@ public class DeviceActionTests
     public async Task An_empty_match_text_lists_every_window_and_names_the_front_one()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
 
         var (_, _, store) = await RunAsync(
         [
@@ -8207,12 +8227,12 @@ public class DeviceActionTests
     public async Task Listing_windows_can_say_what_each_one_is_and_where_it_sits()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(400, 30),
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(400, 30),
             new ScreenSize(240, 320), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.WindowFacts[2] = ("calc", "CalcFrame");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Window.Traits[2] = ("calc", "CalcFrame");
 
         var (result, _, store) = await RunAsync(
         [
@@ -8239,8 +8259,8 @@ public class DeviceActionTests
     public async Task Listing_windows_looks_nothing_up_that_the_step_does_not_keep()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Traits[1] = ("notepad", "Notepad");
 
         await RunAsync([Step("window.list")], devices);
 
@@ -8263,10 +8283,10 @@ public class DeviceActionTests
     public async Task A_listing_reads_no_program_or_class_until_it_is_told_to()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.WindowFacts[2] = ("calc", "CalcFrame");
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Window.Traits[2] = ("calc", "CalcFrame");
 
         var (result, _, store) = await RunAsync(
             [Step("window.list", Returns("windows=listed"))], devices);
@@ -8294,11 +8314,11 @@ public class DeviceActionTests
     public async Task Window_information_says_what_the_window_is_as_well_as_where_it_is()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
-        devices.WindowFacts[42] = ("notepad", "Notepad");
-        devices.ClientOrigins[42] = new ScreenPoint(14, 51);
-        devices.ClientSizes[42] = new ScreenSize(292, 160);
+        devices.Window.Traits[42] = ("notepad", "Notepad");
+        devices.Window.ClientOrigins[42] = new ScreenPoint(14, 51);
+        devices.Window.ClientSizes[42] = new ScreenSize(292, 160);
 
         var (result, _, store) = await RunAsync(
         [
@@ -8324,11 +8344,11 @@ public class DeviceActionTests
     public async Task Listing_windows_can_be_narrowed_down()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(3, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(3, "Notepad - notes.txt",
             new ScreenPoint(), new ScreenSize(), false, false));
-        devices.WindowFacts[2] = ("calc-app", "CalcFrame");
+        devices.Window.Traits[2] = ("calc-app", "CalcFrame");
 
         var (_, _, store) = await RunAsync(
         [
@@ -8366,7 +8386,7 @@ public class DeviceActionTests
     public async Task A_listing_whose_pattern_will_not_read_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
 
         var (result, _, _) = await RunAsync(
             [Step("window.list", Param("window", "notes("), Param("how", "titleRegex"))], devices);
@@ -10013,8 +10033,7 @@ internal sealed class TestInputHook : IInputHook
         }
     }
 }
-internal sealed class FakeDeviceLayer
-    : IDeviceLayer, IUiDevice, IWindowDevice, IBrowserDevice, IScriptDevice
+internal sealed class FakeDeviceLayer : IDeviceLayer, IBrowserDevice, IScriptDevice
 {
     /// <summary>
     /// What every device here shares: the one log of calls, and the two switches that make a device
@@ -10053,6 +10072,12 @@ internal sealed class FakeDeviceLayer
     /// <summary>The pretend controller.</summary>
     public FakeGamepad Gamepad { get; }
 
+    /// <summary>The pretend window list, and the commands that act on one of them.</summary>
+    public FakeWindow Window { get; }
+
+    /// <summary>The pretend UI Automation tree.</summary>
+    public FakeUi Ui { get; }
+
     /// <summary>Every call the engine made to any device, in the order it made them.</summary>
     public List<string> Calls => Desk.Calls;
 
@@ -10072,6 +10097,8 @@ internal sealed class FakeDeviceLayer
         Detector = new FakeDetector(Desk);
         Input = new FakeInput(Desk, Screen);
         Gamepad = new FakeGamepad(Desk);
+        Window = new FakeWindow(Desk);
+        Ui = new FakeUi(Desk);
         _router = new RecordingRouter(Input);
         _files = files ?? Files;
     }
@@ -10094,57 +10121,6 @@ internal sealed class FakeDeviceLayer
         get => Desk.Unavailable;
         set => Desk.Unavailable = value;
     }
-
-    /// <summary>Whether UI Automation should say the element is there.</summary>
-    public bool ElementExists { get; set; } = true;
-
-    /// <summary>
-    /// The last search the element device was handed, so a check can see the window rule the engine
-    /// read out of the step: which part of a window it is held against and how they are compared is
-    /// the device's business, and what the engine owes it is the rule as the fields stand.
-    /// </summary>
-    public UiQuery? LastQuery { get; private set; }
-
-    /// <summary>What a UI Automation search turns up, in the order it reports them.</summary>
-    public List<UiElementInfo> Elements { get; } = [];
-
-    /// <summary>What reading an element gives back.</summary>
-    public string? ElementText { get; set; }
-
-    /// <summary>Whether the element can be worked without the mouse.</summary>
-    public bool ElementInvocable { get; set; } = true;
-
-    /// <summary>Whether the element says it can be used.</summary>
-    public bool ElementEnabled { get; set; } = true;
-
-    /// <summary>Whether the element says it is on screen.</summary>
-    public bool ElementVisible { get; set; } = true;
-
-    /// <summary>Whether writing into an element is allowed.</summary>
-    public bool ElementWritable { get; set; } = true;
-
-    /// <summary>Whether the window can be brought to the front.</summary>
-    public bool WindowFocused { get; set; } = true;
-
-    /// <summary>The windows the fake reports as open.</summary>
-    public List<WindowInfo> Windows { get; } = [];
-
-    /// <summary>
-    /// The process and class names the fake windows answer to. A real device looks these up from
-    /// the machine, so a test that matches that way has to say what should come back.
-    /// </summary>
-    public Dictionary<long, (string Process, string ClassName)> WindowFacts { get; } = [];
-
-    /// <summary>Whether the next window operation reports that it worked.</summary>
-    public bool WindowActionWorks { get; set; } = true;
-
-    /// <summary>A window title that only shows up once the window list has been read a few times.</summary>
-    public string? WindowAppearsLater { get; set; }
-
-    /// <summary>How many reads happen before <see cref="WindowAppearsLater"/> shows up.</summary>
-    public int WindowAppearsAfter { get; set; } = 1;
-
-    private int _windowReads;
 
     IInputDevice IDeviceLayer.Input => Input;
 
@@ -10179,7 +10155,7 @@ internal sealed class FakeDeviceLayer
 
     IOcrDevice IDeviceLayer.Ocr => Ocr;
 
-    IUiDevice IDeviceLayer.Ui => this;
+    IUiDevice IDeviceLayer.Ui => Ui;
 
     /// <summary>
     /// The files on disk. Normally the fake keeps them in memory; a check that has to walk over a
@@ -10324,7 +10300,7 @@ internal sealed class FakeDeviceLayer
         return AutoHotkey;
     }
 
-    IWindowDevice IDeviceLayer.Windows => this;
+    IWindowDevice IDeviceLayer.Windows => Window;
 
     IBrowserDevice IDeviceLayer.Browser => this;
 
@@ -10570,279 +10546,11 @@ internal sealed class FakeDeviceLayer
         BrowserOpen = false;
     }
 
-    public bool Exists(UiQuery query, int timeoutMs)
-    {
-        LastQuery = query;
-        Note($"ui {query.ControlType}/{query.Name}/{query.AutomationId}");
-        return ElementExists;
-    }
-
-    /// <summary>The control the element picker would find under a place, which is what the picker
-    /// asks for; a check that is about the picker sets it.</summary>
-    public UiElementInfo? ElementUnderPointer { get; set; }
-
-    public UiElementInfo? ElementAt(int x, int y)
-    {
-        Note($"elementAt {x},{y}");
-        return ElementUnderPointer;
-    }
-
-    public bool Click(UiQuery query, string button)
-    {
-        Note($"clickElement {query.Name} #{query.Index} {button}");
-        return ElementExists;
-    }
-
-    public bool FocusWindow(UiQuery query)
-    {
-        LastQuery = query;
-        Note($"focus {query.WindowTitle}");
-        return WindowFocused;
-    }
-
-    public bool Invoke(UiQuery query)
-    {
-        Note($"invoke {query.Name} #{query.Index}");
-        return ElementInvocable;
-    }
-
-    public UiElementFacts? Facts(UiQuery query)
-    {
-        Note($"read {query.Name}");
-        if (!ElementExists)
-        {
-            return null;
-        }
-
-        var place = Elements.Count > 0 ? Elements[0] : null;
-        return new UiElementFacts(ElementEnabled, ElementVisible, ElementText ?? string.Empty,
-            place?.Name ?? string.Empty, place?.AutomationId ?? string.Empty,
-            place?.ControlType ?? string.Empty, place?.Location ?? default,
-            place?.Size ?? default);
-    }
-
-    public bool SetText(UiQuery query, string text, bool clearFirst)
-    {
-        Note($"fill {query.ControlType}/{query.AutomationId} {text} {clearFirst}");
-        return ElementWritable;
-    }
-
-    public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
-    {
-        Note($"findElements {query.ControlType}/{query.Name}/{query.AutomationId} #{query.Index} take {limit}");
-        return [.. Elements.Take(Math.Max(1, limit))];
-    }
-
-    /// <summary>What picking an entry of a drop-down or a list answers.</summary>
-    public bool ItemSelectable { get; set; } = true;
-
-    /// <summary>What turning a check box on, off or over answers.</summary>
-    public bool Checkable { get; set; } = true;
-
-    /// <summary>What opening or closing a node answers.</summary>
-    public bool Expandable { get; set; } = true;
-
-    /// <summary>What scrolling an element into view answers.</summary>
-    public bool Scrollable { get; set; } = true;
-
-    public bool Select(UiQuery query, string text, int itemIndex)
-    {
-        Note($"selectItem {query.ControlType}/{query.Name}/{query.AutomationId}#{query.Index} \"{text}\" {itemIndex}");
-        return ItemSelectable;
-    }
-
-    public bool SetChecked(UiQuery query, bool? state)
-    {
-        Note($"setChecked {query.Name} {state?.ToString() ?? "flip"}");
-        return Checkable;
-    }
-
-    public bool SetExpanded(UiQuery query, string action)
-    {
-        Note($"setExpanded {query.Name} {action}");
-        return Expandable;
-    }
-
-    public bool ScrollIntoView(UiQuery query)
-    {
-        Note($"scrollIntoView {query.Name}");
-        return Scrollable;
-    }
-
-    /// <summary>What reading a table answers: one array of cells per row.</summary>
-    public List<string[]> Table { get; } = [];
-
-    public UiTable ReadTable(UiQuery query, int limit)
-    {
-        Note($"readTable {query.Name}#{query.Index} take {limit}");
-        return new UiTable([.. Columns],
-            [.. Table.Take(Math.Max(1, limit)).Select(row => (IReadOnlyList<string>)row)]);
-    }
-
-    /// <summary>What reading a table answers about the names of its columns.</summary>
-    public List<string> Columns { get; } = [];
-
     /// <summary>The lines a stream holds, the way reading it a line at a time would find them.</summary>
     private static IEnumerable<string> Lines(string text)
         => text.Length == 0
             ? []
             : text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-
-    IReadOnlyList<WindowInfo> IWindowDevice.List()
-    {
-        Note("listWindows");
-        return [.. Windows];
-    }
-
-    WindowInfo? IWindowDevice.Find(string value, WindowMatch match, string compare,
-        TextCompareOptions options)
-    {
-        Note($"findWindow {value}");
-        _windowReads++;
-        if (WindowAppearsLater is not null
-            && _windowReads > WindowAppearsAfter
-            && Windows.All(window => window.Title != WindowAppearsLater))
-        {
-            Windows.Add(new WindowInfo(99, WindowAppearsLater,
-                new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
-        }
-
-        return Matching(value, match, compare, options: options).FirstOrDefault();
-    }
-
-    IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-        string compare, bool everyWhenEmpty, TextCompareOptions options)
-    {
-        Note($"filterWindows {value}");
-        return Matching(value, match, compare, everyWhenEmpty, options);
-    }
-
-    /// <summary>
-    /// The windows that answer to a value, in the order the fake lists them. A value nobody wrote
-    /// means the window in front, which is what a step that names none acts on; a step that lists
-    /// windows means every one of them by it.
-    /// </summary>
-    private List<WindowInfo> Matching(string value, WindowMatch match, string compare,
-        bool everyWhenEmpty = false, TextCompareOptions options = default)
-    {
-        var wanted = (value ?? string.Empty).Trim();
-        if (wanted.Length == 0)
-        {
-            return everyWhenEmpty || Windows.Count == 0 ? [.. Windows] : [Windows[0]];
-        }
-
-        return [.. Windows.Where(window => Answers(window, wanted, match, compare, options))];
-    }
-
-    /// <summary>
-    /// Whether a fake window answers to a value. A title is always there; the process name and the
-    /// class name have to be handed in through <see cref="WindowFacts"/>, the way the real device
-    /// has to look them up. How the two are held up against each other is the device's job, so it
-    /// is the same reading the real device does rather than a second one that could disagree.
-    /// </summary>
-    private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare,
-        TextCompareOptions options)
-    {
-        if (match is WindowMatch.Handle)
-        {
-            return long.TryParse(wanted, out var handle) && window.Handle == handle;
-        }
-
-        var text = match switch
-        {
-            WindowMatch.Process => Facts(window).Process,
-            WindowMatch.ClassName => Facts(window).ClassName,
-            _ => window.Title,
-        };
-
-        return WindowHow.Matches(text, wanted, compare, options);
-    }
-
-    private (string Process, string ClassName) Facts(WindowInfo window)
-        => WindowFacts.TryGetValue(window.Handle, out var facts)
-            ? facts
-            : (string.Empty, string.Empty);
-
-    string IWindowDevice.ProcessOf(long handle)
-    {
-        Note($"processOf {handle}");
-        return Windows.FirstOrDefault(window => window.Handle == handle) is { } window
-            ? Facts(window).Process
-            : string.Empty;
-    }
-
-    string IWindowDevice.ClassOf(long handle)
-    {
-        Note($"classOf {handle}");
-        return Windows.FirstOrDefault(window => window.Handle == handle) is { } window
-            ? Facts(window).ClassName
-            : string.Empty;
-    }
-
-    bool IWindowDevice.Activate(long handle)
-    {
-        Note($"activateWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Minimize(long handle)
-    {
-        Note($"minimizeWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Maximize(long handle)
-    {
-        Note($"maximizeWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Restore(long handle)
-    {
-        Note($"restoreWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Close(long handle)
-    {
-        Note($"closeWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Move(long handle, int x, int y, int width, int height)
-    {
-        Note($"moveWindow {handle} {x} {y} {width} {height}");
-        return WindowActionWorks;
-    }
-
-    /// <summary>
-    /// Where each window's client area starts, by handle. A handle that was not set up answers
-    /// the window's own corner, which is what a window with no border looks like.
-    /// </summary>
-    public Dictionary<long, ScreenPoint> ClientOrigins { get; } = [];
-
-    ScreenPoint IWindowDevice.ClientOrigin(long handle)
-    {
-        Note($"clientOrigin {handle}");
-        return ClientOrigins.TryGetValue(handle, out var origin)
-            ? origin
-            : Windows.FirstOrDefault(window => window.Handle == handle)?.Location ?? default;
-    }
-
-    /// <summary>
-    /// How big each window's client area is, by handle. A handle that was not set up answers the
-    /// window's own size, which is what a window with no border looks like.
-    /// </summary>
-    public Dictionary<long, ScreenSize> ClientSizes { get; } = [];
-
-    ScreenSize IWindowDevice.ClientSize(long handle)
-    {
-        Note($"clientSize {handle}");
-        var window = Windows.FirstOrDefault(candidate => candidate.Handle == handle);
-        return ClientSizes.TryGetValue(handle, out var size)
-            ? size
-            : window?.Size ?? default;
-    }
 
     /// <summary>
     /// Notes which route input was asked to take, then hands back the fake itself so the call
