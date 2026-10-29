@@ -282,6 +282,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected/on | disabled | focus | 归属 |
 |---|---|---|---|---|---|---|---|---|---|
 | `Button.Chrome` | Button | H24 · `PadChrome` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3（须压住层 1） |
+| `Button.Chrome.Icon` | Button | **30×24** · `Pad0` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3（图标钮是**固定方形**，不是文字钮的 padding 自适应——图标宽度本来就不同，靠 padding 会让一排钮参差不齐） |
 | `Button.Chrome.Labeled` | Button | H24 · `PadControl` · `RadiusControl` · `UiBody` | `Transparent` · `TextPrimary` · — | `OverlayHover` · — · — | `OverlayPressed` · — · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 |
 | `Button.Primary` | Button | H32 · `PadControlWide` · `RadiusControl` · `UiBody` 600 | `AccentFill` · `TextOnAccent` · — | `AccentFillHover` · `TextOnAccent` · — | `AccentFillPressed` · `TextOnAccent` · — | — | `SurfaceControl` · `TextDisabled` · — | 双色环 | 层 3 覆盖层 1 |
 | `Button.Secondary` | Button | H30 · `PadControl` · `RadiusControl` · `UiBody` · 1px | `SurfaceControl` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · `TextPrimary` · `BorderControl` | — | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | **层 1 给四态**；层 3 只补度量与 disabled 去色 |
@@ -365,6 +366,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `TextBlock.Body` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下边距无 | `TextSecondary` |
 | `TextBlock.FieldLabel.Strong` | TextBlock | `UiBodySize` 600 · `UiBodyLine` | `TextPrimary` |
 | `TextBlock.Hint` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `TextTertiary` |
+| `TextBlock.Note` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · **`TextWrapping=NoWrap`** | `TextTertiary`（单行附注：同一档字号与颜色，与 `Hint` 的差别只是不折行。判据：有句读或超过 20 字用 `Hint`，否则用 `Note`） |
 | `TextBlock.Problem` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `Warning` |
 | `TextBlock.ColumnHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` | `TextTertiary` |
 | `TextBlock.Code` | TextBlock / SelectableTextBlock | `UiCodeFont` · `UiBodySmallSize` · `FontFeatures=tnum` | `TextPrimary` |

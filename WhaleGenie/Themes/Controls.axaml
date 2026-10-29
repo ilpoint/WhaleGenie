@@ -89,6 +89,7 @@
       STATIC TextBlock.Hint
       STATIC TextBlock.PageHeader
       STATIC TextBlock.Problem
+      STATIC TextBlock.Note
       STATIC TextBlock.SectionHeader
       STATIC TextBlock.Title
       STATE Rejected
@@ -197,6 +198,28 @@
     </Style>
     <Style Selector="Button.Tile.Current /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
+      标题栏上的**图标**钮：固定 30×24、`Pad0`。图标宽度本来就不同（关窗 10、最小化 8），
+      靠 `PadChrome` 自适应会让一排按钮参差不齐——图标钮是固定方形，不是文字钮的那一族。
+    -->
+    <Style Selector="Button.Chrome.Icon">
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Chrome.Icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+    </Style>
+    <Style Selector="Button.Chrome.Icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
     </Style>
 
     <!-- 标题栏上带一个词的动作钮：与 `Chrome` 同高，只是左右内边距宽一档。 -->
@@ -427,6 +450,14 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- 单行附注：与 `Hint` 同字号同色，只是不折行。用 `ColumnHeader` 顶替会让附注看起来像表头（那是 600 字重）。 -->
+    <Style Selector="TextBlock.Note">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
 
     <Style Selector="TextBlock.Problem">
