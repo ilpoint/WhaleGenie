@@ -57,6 +57,9 @@
       STATIC TextBlock.Problem
       STATIC TextBlock.ColumnHeader
       STATIC TextBlock.Code
+      STATIC Border.PickerScrim
+      STATIC Border.PickerTarget
+      STATIC Border.Readout
       STATIC Border.Section
       STATIC Border.Tag
       STATIC Border.Badge
@@ -196,6 +199,31 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         <Setter Property="FontFeatures" Value="tnum" />
         <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <!--
+      拾取器的覆盖层。这一族的硬约束是**明暗同值、不跟随主题**：拾取器站着的时候，屏幕像素与它
+      画出来的遮罩必须是同一件事，遮罩一跟着明暗变，取到的颜色与截出来的图就跟着变。令牌那边已经
+      写在变体之外，用例钉住"切明暗后颜色相等"。
+
+      读数条的双色描边（外 `PickerEdgeDark` + 内 `PickerEdgeLight`）一层 `Border` 画不出来——
+      `Border` 只有一支 `BorderBrush`。按 `GridSplitter.Split` 的先例记成已知偏差：真要双色就得
+      在窗口里叠两个元素，那是结构改动，迁移时再议。
+    -->
+    <Style Selector="Border.PickerScrim">
+        <Setter Property="Background" Value="{DynamicResource PickerScrim}" />
+    </Style>
+
+    <Style Selector="Border.PickerTarget">
+        <Setter Property="Background" Value="{DynamicResource PickerTargetScrim}" />
+    </Style>
+
+    <Style Selector="Border.Readout">
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource PickerReadout}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
     </Style>
 
     <Style Selector="TextBlock.Body">
