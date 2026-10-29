@@ -51,6 +51,12 @@
       STATIC TextBlock.Body
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.Hint
+      STATIC TextBlock.PageHeader
+      STATIC TextBlock.GroupHeader
+      STATIC TextBlock.SectionHeader
+      STATIC TextBlock.Problem
+      STATIC TextBlock.ColumnHeader
+      STATIC TextBlock.Code
       STATIC Border.Section
       STATIC Border.Tag
       STATIC Border.Badge
@@ -124,6 +130,72 @@
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
         <Setter Property="Margin" Value="{DynamicResource GapField}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--
+      文本族的其余七类。层次靠字号与字重，不靠亮度——`FieldLabel.Strong` 就是替掉原来那套
+      "用更白的颜色表示强调"的做法。间距长在标题自己身上：上方与下方间隙不同，`Spacing` 给不了。
+
+      `SectionHeader` 是 11px 的单行短标签，所以必须 `NoWrap`：这一类唯一的使用禁忌就是让它换行。
+    -->
+    <Style Selector="TextBlock.PageHeader">
+        <Setter Property="FontSize" Value="{DynamicResource UiSubtitleSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiSubtitleLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="Margin" Value="{DynamicResource GapPageHeader}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.GroupHeader">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="Margin" Value="{DynamicResource GapGroupHeader}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.SectionHeader">
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiCaptionLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="Margin" Value="{DynamicResource GapSectionHeader}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style Selector="TextBlock.FieldLabel.Strong">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.Problem">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.ColumnHeader">
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiCaptionLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <!-- 等宽：数字要等比宽（`tnum`），否则表格里每行的小数点都会错开。 -->
+    <Style Selector="TextBlock.Code">
+        <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="FontFeatures" Value="tnum" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
 
     <Style Selector="TextBlock.Body">

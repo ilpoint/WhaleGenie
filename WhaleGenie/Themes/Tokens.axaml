@@ -285,6 +285,14 @@
       下面的内容不在同一个 `StackPanel` 里，没有 `Spacing` 可给。
     -->
     <Thickness x:Key="GapDivider">0,12,0,12</Thickness>
+    <!--
+      标题的三处间距，都同时有"上"和"下"，而且上大于下。父容器的 `Spacing` 只能给等值，
+      所以这三处只能长在标题自己身上——这也是"新增 `Gap*` 之前先说明为什么 `Spacing` 做不到"
+      那个规矩要的答案。
+    -->
+    <Thickness x:Key="GapPageHeader">0,24,0,16</Thickness>
+    <Thickness x:Key="GapGroupHeader">0,24,0,8</Thickness>
+    <Thickness x:Key="GapSectionHeader">0,16,0,4</Thickness>
 
     <CornerRadius x:Key="RadiusControl">4</CornerRadius>
     <CornerRadius x:Key="RadiusContainer">6</CornerRadius>
