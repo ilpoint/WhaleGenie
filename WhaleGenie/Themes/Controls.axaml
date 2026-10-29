@@ -27,6 +27,11 @@
          `Border.Card.Selectable`、`Ellipse.Dot`、`GridSplitter.Split`）不是控件、没有模板，必须
          自己 `Focusable="True"` + 同款 `FocusAdorner`，否则键盘走到那里就断了。
 
+      5. **态只改颜色，不改尺寸。** 需要更粗的边，静息态就把同样粗细的 `Transparent` 占上；
+         需要更大的内边距，静息态就留出来。态里改尺寸会让内容在切换的瞬间跳动，而跳动在截图里
+         看不出来——只有并排对比或录屏才看得见。判据：**"某个态改了尺寸"本身就是一个信号**，
+         要么静息态已经预留，要么这个态根本不该改尺寸。
+
       两张清单（`ControlsRegistryTests` 读它们，一行一个"类型.类"）：
 
       `LAYER1` 表示这一类的四态由 `FluentKeys.axaml` 的键给，这里只写度量。**必须带键家族前缀**
@@ -550,6 +555,15 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
+    <!--
+      选中态左侧有一条 2px 的指示条，所以**静息态就要把同样粗细的透明边框占上**：不占的话，选中
+      那一刻内容会右移 2px。位置跳动在截图里永远看不出来，只有并排对比才看得见。
+      规则见文件头第 5 条：态只改颜色，不改尺寸。
+    -->
+    <Style Selector="ListBox.List ListBoxItem /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
     <Style Selector="ListBox.List ListBoxItem:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
@@ -559,7 +573,6 @@
     <Style Selector="ListBox.List ListBoxItem:selected /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-        <Setter Property="BorderThickness" Value="2,0,0,0" />
     </Style>
     <Style Selector="ListBox.List ListBoxItem:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
@@ -621,7 +634,6 @@
     </Style>
     <Style Selector="ListBox.List.Bare ListBoxItem:selected /template/ ContentPresenter">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="ListBox.List.Bare ListBoxItem:disabled /template/ ContentPresenter">
         <Setter Property="Background" Value="Transparent" />
