@@ -170,13 +170,25 @@ public class ControlsRegistryTests
     [Fact]
     public void A_narrowed_class_is_used_with_the_classes_it_narrows()
     {
-        var classes = Selectors(Read("Controls.axaml"))
+        var xaml = Read("Controls.axaml");
+        var states = Entries(xaml, "STATE").Keys.Select(name => name.Split('.')[^1])
+            .ToHashSet(StringComparer.Ordinal);
+        var classes = Selectors(xaml)
             .Select(selector => selector.Split(':')[0].Split(' ')[0])
             .Where(selector => selector.Count(character => character == '.') > 1)
             .ToHashSet(StringComparer.Ordinal);
 
-        var usages = Regex.Matches(ReadFromViews(), @"Classes=""([^""]+)""")
-            .Select(match => match.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        // A usage is a *tag* that carries the class list, so the tag's own type has to be compared
+        // too: `Classes="Field"` on a TextBlock is not a use of `TextBox.Field`.
+        var usages = Regex.Matches(
+                ReadFromViews(),
+                @"<([A-Za-z][\w:.]*)((?:[^>""']|""[^""]*""|'[^']*')*)>")
+            .Select(match => (
+                Tag: match.Groups[1].Value,
+                Classes: Regex.Match(match.Groups[2].Value, @"Classes=""([^""]+)""") is { Success: true } classes
+                    ? classes.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    : []))
+            .Where(usage => usage.Classes.Length > 0)
             .ToList();
 
         foreach (var name in classes)
@@ -185,14 +197,29 @@ public class ControlsRegistryTests
             var leaf = steps[^1];
             var parents = steps.Skip(1).SkipLast(1).ToList();
 
-            foreach (var used in usages.Where(list => list.Contains(leaf, StringComparer.Ordinal)))
+            // Only elements that already speak our vocabulary are checked. A window that has its own
+            // `Classes="Cell"` is not using `TextBox.Field.Cell` at all — the names merely collide,
+            // and several windows do have local `Cell` / `Card` / `Field` classes. The limit of this
+            // check: once a window is migrated, an element left with only the leaf looks exactly like
+            // such a local class, so it cannot be caught here — only by comparing the two windows.
+            var type = steps[0];
+            var ours = classes
+                .Where(name => name.StartsWith(type + ".", StringComparison.Ordinal))
+                .Select(name => name.Split('.')[1])
+                .Where(name => !states.Contains(name))
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (var usage in usages.Where(usage =>
+                         usage.Tag == type
+                         && usage.Classes.Contains(leaf, StringComparer.Ordinal)
+                         && usage.Classes.Any(ours.Contains)))
             {
                 foreach (var parent in parents)
                 {
                     Assert.True(
-                        used.Contains(parent, StringComparer.Ordinal),
-                        $"{name} is used as Classes=\"{string.Join(' ', used)}\" without {parent}, "
-                        + "so the class is styled by nothing");
+                        usage.Classes.Contains(parent, StringComparer.Ordinal),
+                        $"{name} is used as <{usage.Tag} Classes=\"{string.Join(' ', usage.Classes)}\"/> "
+                        + $"without {parent}, so the class is styled by nothing");
                 }
             }
         }

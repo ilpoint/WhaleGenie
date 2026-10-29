@@ -50,6 +50,10 @@
       一件事。
 
       LAYER1 Button.Secondary Button
+      LAYER1 ToggleButton.Chip ToggleButton
+      LAYER1 TextBox.Field TextControl
+      LAYER1 ComboBox.Field ComboBox
+      LAYER1 AutoCompleteBox.Field TextControl
       STATIC Border.Badge
       STATIC Border.Badge.Danger
       STATIC Border.Badge.Info
@@ -72,6 +76,7 @@
       STATIC ListBox.List.Pill
       STATIC TextBlock.Body
       STATIC TextBlock.Code
+      STATIC TextBox.Code
       STATIC TextBlock.ColumnHeader
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.GroupHeader
@@ -108,6 +113,127 @@
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
         <Setter Property="Margin" Value="{DynamicResource GapField}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--
+      输入族。三件输入框的外观四态全部由层 1 的 `TextControl*` / `ComboBox*` / `AutoCompleteList*`
+      给（`LayerOneTests` 实测跟随），这里只给度量——**有类名、只是不写状态**，这两件事不一样：
+      没有类名，窗口里就没有东西可挂。
+
+      `TextBox.Code` 明说没有 hover：等宽代码块是只读的阅读区，指针压上去不该变。
+    -->
+    <Style Selector="TextBox.Field">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+    </Style>
+
+    <!-- 24 这一档必须留：公式行里用 30 会把整行撑高 6px。 -->
+    <Style Selector="TextBox.Field.Cell">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource PadCell}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+    </Style>
+
+    <Style Selector="ComboBox.Field">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+    </Style>
+
+    <!-- 自动补全里面也有一支 `TextBox`，它自带底与边框，不清掉就是双边框。 -->
+    <Style Selector="AutoCompleteBox.Field">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="AutoCompleteBox.Field TextBox">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="TextBox.Code">
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="MinHeight" Value="58" />
+        <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+    </Style>
+
+    <Style Selector="TextBox.Code.ReadOnly">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+
+    <!-- 输入框形状的按钮：它没有层 1 可借，所以四态自己写。 -->
+    <Style Selector="Button.Field">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Field:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+    </Style>
+    <Style Selector="Button.Field:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
+    </Style>
+    <Style Selector="Button.Field:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+
+    <!-- 芯片：四态由层 1 的 `ToggleButton*` 给，这里只覆盖"选中"那一档。 -->
+    <Style Selector="ToggleButton.Chip">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ToggleButton.Chip:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!-- 键位芯片：按下去要亮，所以四态自己写。 -->
+    <Style Selector="ToggleButton.Chip.Key">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.Chip.Key:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+    </Style>
+    <Style Selector="ToggleButton.Chip.Key:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+    </Style>
+    <Style Selector="ToggleButton.Chip.Key:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
 
     <!--
