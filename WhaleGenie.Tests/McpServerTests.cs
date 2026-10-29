@@ -168,11 +168,12 @@ public class McpServerTests
     }
 
     /// <summary>
-    /// The two switches write the arguments. They are the whole reason nobody has to type
-    /// <c>--allow-control</c> into a client's configuration by hand.
+    /// The two switches belong to the settings, not to the block. A served run reads them while it
+    /// runs, so a client that was set up once keeps working when one is flipped — and the block a
+    /// person copies never has to be copied a second time.
     /// </summary>
     [Fact]
-    public void The_switches_rewrite_the_block_they_sit_above()
+    public void The_switches_are_stored_and_leave_the_block_alone()
     {
         var folder = Path.Combine(Path.GetTempPath(), "wg-mcp-grants-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -184,20 +185,22 @@ public class McpServerTests
             var mcp = new McpServerViewModel();
             mcp.AllowControl = false;
             mcp.AllowRun = false;
-            Assert.DoesNotContain("--allow-control", mcp.Config, StringComparison.Ordinal);
-            Assert.DoesNotContain("--allow-run", mcp.Config, StringComparison.Ordinal);
+            var block = mcp.Config;
+            Assert.Contains("\"--mcp\"", block, StringComparison.Ordinal);
+            Assert.DoesNotContain("--allow-control", block, StringComparison.Ordinal);
+            Assert.DoesNotContain("--allow-run", block, StringComparison.Ordinal);
 
             mcp.AllowControl = true;
-            Assert.Contains("\"--allow-control\"", mcp.Config, StringComparison.Ordinal);
-            Assert.DoesNotContain("--allow-run", mcp.Config, StringComparison.Ordinal);
-
             mcp.AllowRun = true;
-            Assert.Contains("\"--allow-run\"", mcp.Config, StringComparison.Ordinal);
 
-            // 记住选择：下次打开这一页，配置块还是上次那一份。
+            // The block is what the client was told once; the switches are not in it.
+            Assert.Equal(block, mcp.Config);
+
+            // 记住选择：下次打开这一页，开关还是上次那两个，块还是同一块。
             var again = new McpServerViewModel();
             Assert.True(again.AllowControl);
             Assert.True(again.AllowRun);
+            Assert.Equal(block, again.Config);
         }
         finally
         {

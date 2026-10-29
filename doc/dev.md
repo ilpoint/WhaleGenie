@@ -20,7 +20,7 @@ pwsh build/site.ps1                              # 拼出介绍页 _site
 
 ```powershell
 dotnet run --project WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md   # 自己拉起子进程量一遍；报告是本机快照，不进仓库
-dotnet run --project WhaleGenie -c Release -- --mcp     # 走标准输入输出；Ctrl+C 或客户端关管道就停（只读；加 --allow-control / --allow-run 才授权）
+dotnet run --project WhaleGenie -c Release -- --mcp     # 走标准输入输出；Ctrl+C 或客户端关管道就停（权限来自 MCP 页的两个开关；--allow-control / --allow-run 是整轮强制）
 ```
 
 **换一台机器验证真实输入**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录
@@ -174,9 +174,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 一个**说 stdio 的子进程**：客户端启动它，JSON-RPC 走标准输入输出，管道关闭即退出。不监听端口，因此也没有令牌。协议面（资源、体检、审计的定位）见
 `doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；这里只写改它时要守的规矩。
 
-**四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠与窗口）、运行宏。后两组各由一档开关把守，默认关、
-服务器一停就复位：有窗口时是浮层上的两个开关，无窗口时只能从命令行给（`--allow-control` / `--allow-run`），
-不写就是只读。加新工具先想清楚它属于哪一组——忘了加守卫，它就成了无授权也能动的工具。
+**四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠与窗口）、运行宏。后两组各由一档开关把守，默认关。
+开关是 MCP 页写的 `settings.json` 字段，服务端**每次调用前**读回来（`McpGrants` → `McpControl`），所以改完
+下一次调用就生效、不用重启；`--allow-control` / `--allow-run` 只是整轮强制，给一次性配置和自检用，不写就是
+只读。加新工具先想清楚它属于哪一组——忘了加守卫，它就成了无授权也能动的工具。
 
 **桥与草稿**　`McpLiveProject` 是界面与 HTTP 线程之间唯一的桥：快照、apply、save 全部经
 `Dispatcher.UIThread.InvokeAsync` 回界面线程。`MainViewModel.Revision` 每次 `MarkDirty` 增加，草稿 `apply`

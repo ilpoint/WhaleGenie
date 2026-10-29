@@ -23,9 +23,12 @@ internal static class McpCommandLine
     internal static string Usage => """
         whalegenie --mcp [--open FILE.wgmacro] [--new FOLDER] [--allow-control] [--allow-run]
           Serves MCP over stdin and stdout. The client launches this program and owns the pipe; when
-          it closes, this exits. Without the last two flags the server can only read: it lists
-          macros, reads the screen and reports state, but sends no input and runs no macro, because
-          there is no window to ask about them.
+          it closes, this exits. What the client may do is decided by the two switches on the MCP
+          page, which this reads from the settings file before every call, so a switch flipped while
+          it runs is obeyed on the next call. The last two flags force a permission for the whole
+          run regardless of the page, for a client set up once and left alone. Without either, the
+          server can only read: it lists macros, reads the screen and reports state, but sends no
+          input and runs no macro.
         whalegenie --mcp-doctor [--open FILE.wgmacro] [--report FILE] [--write] [--strict]
           Starts a server of its own over a pipe and prints what it found.
         """;

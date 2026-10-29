@@ -14,9 +14,9 @@ namespace WhaleGenie.ViewModels;
 /// <summary>
 /// The MCP page in the main window. This program no longer serves MCP from inside itself: a client
 /// launches WhaleGenie with <c>--mcp</c> and talks down the pipe it owns, so there is no server here
-/// to switch on. The two switches that used to start one now decide what the client may do, and the
-/// block underneath is what a person pastes into that client's configuration — flipping a switch
-/// rewrites the block, so nobody has to type an argument by hand.
+/// to switch on. The two switches decide what the client may do, and the block underneath is what a
+/// person pastes into that client's configuration once — it does not carry the switches, because a
+/// served run reads them from the settings file before every call.
 /// </summary>
 public partial class McpServerViewModel : ViewModelBase
 {
@@ -36,8 +36,8 @@ public partial class McpServerViewModel : ViewModelBase
     public string Header => Strings.Get("Mcp.Title");
 
     /// <summary>
-    /// Whether the client may send keys, clicks and window commands. It is written into the block as
-    /// <c>--allow-control</c>; the grant itself takes effect when that client starts this program.
+    /// Whether the client may send keys, clicks and window commands. Stored in the settings file,
+    /// which is where a running server reads it from before every call.
     /// </summary>
     public bool AllowControl
     {
@@ -57,8 +57,9 @@ public partial class McpServerViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// The block to paste into a client's configuration file: this program, the flag that makes it
-    /// speak MCP, and whichever of the two permissions was switched on.
+    /// The block to paste into a client's configuration file: this program and the flag that makes
+    /// it speak MCP. Nothing about permissions is in it — those are the switches above, which the
+    /// served run reads while it is running.
     /// </summary>
     public string Config => JsonSerializer.Serialize(new
     {
@@ -117,27 +118,17 @@ public partial class McpServerViewModel : ViewModelBase
         OnPropertyChanged(nameof(Header));
     }
 
-    /// <summary>The arguments the block asks for: MCP itself, then whichever door was left open.</summary>
-    private IReadOnlyList<string> Arguments()
-    {
-        var args = new List<string> { "--mcp" };
-        if (AllowControl)
-        {
-            args.Add("--allow-control");
-        }
-
-        if (AllowRun)
-        {
-            args.Add("--allow-run");
-        }
-
-        return args;
-    }
+    /// <summary>
+    /// The arguments the block asks for. MCP itself and nothing else: the permissions a run works
+    /// under are the switches above, which it reads as it goes, so they are not baked into a command
+    /// line a client would have to be reconfigured to change.
+    /// </summary>
+    private static IReadOnlyList<string> Arguments() => ["--mcp"];
 
     /// <summary>
-    /// Flips one switch, remembers it, and rewrites the block. The text already in the clipboard
-    /// belongs to the old choice, so the block changing in front of the person is the honest signal
-    /// that this one has to be copied again.
+    /// Flips one switch and remembers it. The block does not change, and neither does the clipboard —
+    /// the client already running is the one this is meant to reach, and it reads the new answer
+    /// before its next call.
     /// </summary>
     private void Grant(string name, ref bool field, bool value)
     {
@@ -148,7 +139,6 @@ public partial class McpServerViewModel : ViewModelBase
 
         field = value;
         OnPropertyChanged(name);
-        OnPropertyChanged(nameof(Config));
         if (_loaded)
         {
             LocalSettings.StoreMcpGrants(_allowControl, _allowRun);
