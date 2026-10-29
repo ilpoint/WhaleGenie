@@ -14,10 +14,11 @@
       本文件是桥，不是设计。窗口改用新令牌之后整份删掉，判据是界面里再没有一处引用旧名字，
       自己跑这两行（`-o` 是数出现次数而不是行数，一行里有两处也算两处）：
 
-          grep -rho "DynamicResource App[A-Za-z]*" WhaleGenie/Views | wc -l         # 现在是 685，26 个文件
+          grep -rho "DynamicResource App[A-Za-z]*" WhaleGenie/Views | wc -l         # 现在是 675，25 个文件
           grep -rho "DynamicResource App[A-Za-z]*" WhaleGenie/App.axaml | wc -l     # 现在是 6
 
-      第一行覆盖二十三个窗口，第二行是 `App.axaml` 末尾 `ListBox.Dock` 与 `ToolTip` 那两条全局样式
+      第一行覆盖二十二个窗口（`ConfirmDialog` 已经迁完，不再引用旧名字），第二行是 `App.axaml` 末尾
+      `ListBox.Dock` 与 `ToolTip` 那两条全局样式
       （`AppDock` 出现两次）。两处都归零时删掉这个文件和 `App.axaml` 里对应的 `ResourceInclude`，
       不必留兼容层。写数字是为了让人一眼看出还差多远，写命令是因为数字会过期、命令不会。
     -->
