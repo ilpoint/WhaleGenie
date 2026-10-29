@@ -45,86 +45,45 @@
 
       `STATE` 表示这一类是**状态类**（选中、问题、占用），不自己定义四态，是所属类的修饰。
 
+      窄化类**不需要登记**：`Button.Tab.Root.Compact`、`TextBlock.FieldLabel.Strong` 这类靠前缀
+      规则由父类覆盖（守卫里 `Covered` 那段），登记反而会把"它有自己的四态"和"它继承父类"混成
+      一件事。
+
       LAYER1 Button.Secondary Button
-      STATE selected
-      STATIC TextBlock.Title
-      STATIC TextBlock.Body
-      STATIC TextBlock.FieldLabel
-      STATIC TextBlock.Hint
-      STATIC TextBlock.PageHeader
-      STATIC TextBlock.GroupHeader
-      STATIC TextBlock.SectionHeader
-      STATIC TextBlock.Problem
-      STATIC TextBlock.ColumnHeader
-      STATIC TextBlock.Code
+      STATIC Border.Badge
+      STATIC Border.Badge.Danger
+      STATIC Border.Badge.Info
+      STATIC Border.Badge.Success
+      STATIC Border.Badge.Warning
+      STATIC Border.Card
+      STATIC Border.Card.Target
+      STATIC Border.Card.Thin
+      STATIC Border.Divider
+      STATIC Border.Panel
       STATIC Border.PickerScrim
       STATIC Border.PickerTarget
       STATIC Border.Readout
       STATIC Border.Section
-      STATIC Border.Tag
-      STATIC Border.Badge
-      STATIC Border.Badge.Info
-      STATIC Border.Badge.Success
-      STATIC Border.Badge.Warning
-      STATIC Border.Badge.Danger
-      STATIC Border.Divider
-      STATIC Border.Panel
       STATIC Border.Sunken
-      STATIC Border.Card
-      STATIC Border.Card.Thin
-      STATIC Border.Card.Target
-      STATE chosen
-      STATE problem
-      STATE Rejected
+      STATIC Border.Tag
       STATIC ListBox.List
-      STATIC Border.Tag
-      STATIC Border.Badge
-      STATIC Border.Badge.Info
-      STATIC Border.Badge.Success
-      STATIC Border.Badge.Warning
-      STATIC Border.Badge.Danger
-      STATIC Border.Divider
-      STATIC Border.Panel
-      STATIC Border.Sunken
-      STATIC Border.Card
-      STATIC Border.Card.Thin
-      STATIC Border.Card.Target
-      STATE chosen
-      STATE problem
-      STATE Rejected
-      STATIC ListBox.List.Boxed
-      STATIC Border.Tag
-      STATIC Border.Badge
-      STATIC Border.Badge.Info
-      STATIC Border.Badge.Success
-      STATIC Border.Badge.Warning
-      STATIC Border.Badge.Danger
-      STATIC Border.Divider
-      STATIC Border.Panel
-      STATIC Border.Sunken
-      STATIC Border.Card
-      STATIC Border.Card.Thin
-      STATIC Border.Card.Target
-      STATE chosen
-      STATE problem
-      STATE Rejected
-      STATIC ListBox.List.Pill
-      STATIC Border.Tag
-      STATIC Border.Badge
-      STATIC Border.Badge.Info
-      STATIC Border.Badge.Success
-      STATIC Border.Badge.Warning
-      STATIC Border.Badge.Danger
-      STATIC Border.Divider
-      STATIC Border.Panel
-      STATIC Border.Sunken
-      STATIC Border.Card
-      STATIC Border.Card.Thin
-      STATIC Border.Card.Target
-      STATE chosen
-      STATE problem
-      STATE Rejected
       STATIC ListBox.List.Bare
+      STATIC ListBox.List.Boxed
+      STATIC ListBox.List.Pill
+      STATIC TextBlock.Body
+      STATIC TextBlock.Code
+      STATIC TextBlock.ColumnHeader
+      STATIC TextBlock.FieldLabel
+      STATIC TextBlock.GroupHeader
+      STATIC TextBlock.Hint
+      STATIC TextBlock.PageHeader
+      STATIC TextBlock.Problem
+      STATIC TextBlock.SectionHeader
+      STATIC TextBlock.Title
+      STATE Rejected
+      STATE chosen
+      STATE problem
+      STATE selected
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
       窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
