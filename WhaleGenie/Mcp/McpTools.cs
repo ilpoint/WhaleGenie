@@ -199,6 +199,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     "Capture a smaller region, or read it on the machine instead.");
             }
 
+            McpAudit.Note("whalegenie_read_picture", $"{Path.GetFileName(full)}, {bytes.Length} bytes");
             return new CallToolResult
             {
                 Content =
@@ -633,7 +634,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 lines = Array.Empty<object>(),
                 outcomes = Array.Empty<object>(),
                 note = "No run has been recorded yet. whalegenie_run_macro runs one (it needs the run "
-                    + "switch in the MCP flyout), or the person presses Run in WhaleGenie; read this "
+                    + "switch on WhaleGenie's MCP page), or the person presses Run in WhaleGenie; read this "
                     + "again afterwards.",
             }));
         }

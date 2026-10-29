@@ -43,7 +43,7 @@ public class McpRunTests : IDisposable
             var error = JsonDocument.Parse(answer.Content.OfType<TextContentBlock>().First().Text)
                 .RootElement.GetProperty("error");
             Assert.Equal("RunNotAllowed", error.GetProperty("code").GetString());
-            Assert.Contains("Allow AI to run macros", error.GetProperty("hint").GetString()!,
+            Assert.Contains("Allow the AI to run macros", error.GetProperty("hint").GetString()!,
                 StringComparison.Ordinal);
 
             // Direct control being on is not the same permission.

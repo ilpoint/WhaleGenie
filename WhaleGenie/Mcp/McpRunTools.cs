@@ -17,7 +17,7 @@ namespace WhaleGenie.Mcp;
 
 /// <summary>
 /// Running a macro on request, which is what lets a client check its own work instead of handing it
-/// over and hoping. Two things keep it from being a way around the person: the switch in the flyout
+/// over and hoping. Two things keep it from being a way around the person: the switch on the MCP page
 /// has to be on, and only one run happens at a time — a second call is refused rather than queued,
 /// because two runs of two macros on one machine is not something a client can reason about.
 /// </summary>
@@ -55,7 +55,7 @@ public sealed class McpRunTools
 
     [McpServerTool(Name = "whalegenie_run_macro", Destructive = true,
             Title = "Run a macro"),
-     Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow AI to run macros\" in the MCP flyout, which is a different switch from \"Allow direct control\"; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports.")]
+     Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow the AI to run macros\" on WhaleGenie's MCP page, which is a different switch from \"Allow direct control\"; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports.")]
     public Task<CallToolResult> RunMacro(
         [Description("The macro name, as whalegenie_list_macros shows it.")] string name,
         [Description("A draft id to run that draft's version instead of the project's.")] string? draftId = null,
@@ -67,7 +67,7 @@ public sealed class McpRunTools
                 McpAudit.Note("run_macro", "refused", McpErrors.RunNotAllowed);
                 return McpErrors.Fail(McpErrors.RunNotAllowed,
                     "Running a macro is not allowed right now, so nothing was run.",
-                    "Ask the person to turn on \"Allow AI to run macros\" in the WhaleGenie MCP flyout. It is a separate switch from \"Allow direct control\", and it goes off when the server stops.");
+                    "Ask the person to turn on \"Allow the AI to run macros\" on WhaleGenie's MCP page. It is a separate switch from \"Allow direct control\", and a running server reads it before every call, so nothing has to be restarted.");
             }
 
             var wanted = (name ?? string.Empty).Trim();

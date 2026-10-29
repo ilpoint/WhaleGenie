@@ -22,7 +22,7 @@ namespace WhaleGenie.Mcp;
 /// go through the same device layer a macro run goes through — the composition root's, never a
 /// Windows implementation of their own — so what the AI sees and does is exactly what a macro
 /// would see and do. The reading tools answer whenever the server is on; the tools that send
-/// input answer only while <see cref="McpControl.Allowed"/> is set, which is the flyout's own
+/// input answer only while <see cref="McpControl.Allowed"/> is set, which is the MCP page's own
 /// switch.
 /// </summary>
 /// <remarks>
@@ -88,6 +88,13 @@ public sealed class McpControlTools
 
             var frame = maxSide > 0 ? McpPictures.Scale(shot.Frame, maxSide) : shot.Frame;
             var scaled = frame.Width != shot.Frame.Width || frame.Height != shot.Frame.Height;
+
+            // Looking is not changing, but it is still worth a line: "what did it see" is the other
+            // half of the question this log answers, and a capture is the one look that takes a
+            // whole picture away.
+            McpAudit.Note("whalegenie_capture_screen",
+                windowHandle == 0 ? $"desktop {frame.Width}x{frame.Height}" : $"window {windowHandle}");
+
             return new CallToolResult
             {
                 Content =
@@ -565,7 +572,7 @@ public sealed class McpControlTools
             McpAudit.Note(tool, "refused", McpErrors.DirectControlOff);
             throw new McpFailure(McpErrors.DirectControlOff,
                 "Direct control is off, so nothing was sent to the machine.",
-                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
+                "Ask the person to turn on \"Allow direct control\" on WhaleGenie's MCP page, then call again." +
                 " Looking at the screen needs no switch.");
         }
 
