@@ -3,7 +3,7 @@ using WhaleGenie.Mcp;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// What <c>--mcp</c> was asked for. The two permissions are not here: they belong to the MCP page,
+/// What <c>--mcp</c> was asked for. The two permissions are not here: they belong to the MCP flyout,
 /// which a served run reads while it runs, so a command line that mentions one is refused rather
 /// than quietly ignored.
 /// </summary>

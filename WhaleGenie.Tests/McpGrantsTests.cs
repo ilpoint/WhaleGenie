@@ -63,7 +63,7 @@ public class McpGrantsTests : IDisposable
     public void A_run_with_nothing_stored_may_only_look()
     {
         // No settings file at all, and nothing to read it from: the state of a check, and of a
-        // machine that has never opened the MCP page.
+        // machine that has never opened the MCP flyout.
         File.Delete(_path);
         McpControl.Stored = null;
 

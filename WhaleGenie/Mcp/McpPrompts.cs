@@ -23,7 +23,7 @@ public sealed class McpPrompts
         whalegenie_run_macro runs one macro and answers with what every step worked out, which is
         how you check your own work: run the draft before applying it, compare the answers with what
         you meant, and change the step that did not do it. It needs the person to turn on "Allow AI
-        to run macros" on WhaleGenie's MCP page, which is a separate switch from "Allow direct control";
+        to run macros" in the WhaleGenie MCP flyout, which is a separate switch from "Allow direct control";
         when it is refused with RunNotAllowed, ask the person rather than working around it. One run
         at a time: a second call while one is going is refused with RunBusy.
         The catalogue holds around 180 actions. whalegenie_list_actions returns one page with
@@ -52,7 +52,7 @@ public sealed class McpPrompts
         send keys, clicks and window commands (whalegenie_mouse_move, whalegenie_mouse_click,
         whalegenie_mouse_scroll, whalegenie_mouse_drag, whalegenie_key, whalegenie_type_text,
         whalegenie_window_activate, whalegenie_window_move, whalegenie_window_close) only work
-        while the person has turned on "Allow direct control" on WhaleGenie's MCP page; when
+        while the person has turned on "Allow direct control" in the WhaleGenie MCP flyout; when
         they are refused with DirectControlOff, ask the person to turn it on rather than trying
         another way. Writing the project is behind that same switch: apply, save_project and
         put_image answer ProjectWriteOff while it is off, and a draft can still be opened, edited

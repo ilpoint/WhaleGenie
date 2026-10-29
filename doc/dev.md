@@ -20,7 +20,7 @@ pwsh build/site.ps1                              # 拼出介绍页 _site
 
 ```powershell
 dotnet run --project WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md   # 自己拉起子进程量一遍；报告是本机快照，不进仓库
-dotnet run --project WhaleGenie -c Release -- --mcp     # 走标准输入输出；Ctrl+C 或客户端关管道就停（权限来自 MCP 页的两个开关；--allow-control / --allow-run 是整轮强制）
+dotnet run --project WhaleGenie -c Release -- --mcp     # 走标准输入输出；Ctrl+C 或客户端关管道就停（权限来自 MCP 浮层里的两个开关，写在 settings.json；命令行上没有权限参数）
 ```
 
 **换一台机器验证真实输入**：把 Release 输出拷过去，用**交互式**会话跑，别用 SSH 直接跑。Windows 的 SSH 登录
@@ -170,23 +170,19 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 ## MCP 服务器
 
-主界面「运行调试」左边的 MCP 按钮只负责打开浮层；浮层里的开关才启停 `McpServerHost`：一个只绑定
-一个**说 stdio 的子进程**：客户端启动它，JSON-RPC 走标准输入输出，管道关闭即退出。不监听端口，因此也没有令牌。协议面（资源、体检、审计的定位）见
-`doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；这里只写改它时要守的规矩。
-
-**步骤标识撞了怎么办**　一个宏连同它的子宏里，步骤标识唯一：`StepIds.Settle` 遇到重复就给后来的一步发新
-标识，并把**那一步自己的**条件与表达式里的 `step.<旧>` 一起改写（只改这一步的子树：粘贴进来的一整块是
-一起搬的，原来那块的名字不能被改走）。改写只碰引擎按"引用"读的字段（`AcceptsVariables` + `WholeValue`），
-按字面读的字段原样留着。编辑器在步骤列表上方说明改了哪几个；MCP 的 `put_macro` / `patch_macro` 答案里
-带 `renamed: [{from,to}]`。
+主界面「运行调试」左边的 MCP 按钮打开一个浮层，里面只有两样东西：两个权限开关，和一段**客户端配置**。真正的
+服务器是另一个进程——客户端启动的一个**说 stdio 的子进程**，JSON-RPC 走标准输入输出，管道关闭即退出；
+不监听端口，因此也没有令牌。
+协议面（资源、体检、审计的定位）见 `doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；
+这里只写改它时要守的规矩。
 
 **四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠、窗口、写项目与存图片）、运行宏。后两组各由一档
 开关把守，默认关：`apply` / `save_project` / `put_image` 与键鼠同一档——能改这台机器才算能改这台机器上的文件。
-开关是 MCP 页写的 `settings.json` 字段，服务端**每次调用前**读回来（`McpGrants` → `McpControl`），所以改完
+开关是浮层写的 `settings.json` 字段，服务端**每次调用前**读回来（`McpGrants` → `McpControl`），所以改完
 下一次调用就生效、不用重启；命令行上没有第二份答案，文件里没开就是只读。加新工具先想清楚它属于哪一组——
 忘了加守卫，它就成了无授权也能动的工具。
 
-**桥与草稿**　`McpLiveProject` 是界面与 HTTP 线程之间唯一的桥：快照、apply、save 全部经
+**桥与草稿**　`McpLiveProject` 是界面与 MCP 会话之间唯一的桥：快照、apply、save 全部经
 `Dispatcher.UIThread.InvokeAsync` 回界面线程。`MainViewModel.Revision` 每次 `MarkDirty` 增加，草稿 `apply`
 前对不上就拒绝。`McpDraftStore` 只改内存草稿：`apply` 才替换项目的宏与全局变量，`save_project` 才写包
 （先复制 `.wgmacro.bak`），一份草稿只能 apply 一次。`whalegenie_preview_apply` 用 `McpPreview` 在 apply
@@ -221,8 +217,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 记录结构。`McpPrompts` 给两条默认提示词（写宏、调试），并用 `ServerInstructions` 给只显示服务说明的客户端
 一份简短版本。列表类返回一律带 `total` 与 `hasMore`；`get_run_log` 从末尾取并报 `truncated`，不静默截断。
 
-**审计**　`McpAudit` 往 `logs/mcp-<日期>.log` 一行一次调用，**只记改了东西或动了机器的**；`type_text` 只记
-字数不记内容。失败日志按文件名认（`failure-*.log`），不能取"最新一个 .log"——那个可能是审计文件。
+**审计**　`McpAudit` 往 `logs/mcp-<日期>.log` 一行一次调用，**只记改了东西、动了机器、或者拿走一整张图的**；
+`type_text` 只记字数不记内容。失败日志按文件名认（`failure-*.log`），不能取"最新一个 .log"——那个可能是审计文件。
 
 **无窗口与体检**　`--mcp [--open 包] [--new 文件夹]` 起服务（权限不在这条命令行上，见上一段的两个开关），
 stdout 是协议本身，一行别的都不能写（`McpHeadless` 只说一句到 stderr）；`--mcp-doctor [--report …]
@@ -323,6 +319,12 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 `origin { id, name, version }`；它们不进主窗口的宏列表，但编辑器与运行库会与父宏、项目宏一起扁平化。父宏、
 子宏与项目宏的可调用名忽略大小写后必须唯一。公共宏库是另一个原子写入的包，位置固定
 `library/public-macros.wgmacro`，独立格式版本 1；拖入时复制可调用内容并记录来源版本，之后不跟随来源更新。
+
+**步骤标识撞了怎么办**　一个宏连同它的子宏里，标识唯一：`StepIds.Settle` 遇到重复就给后到的那一步发新
+标识，并把**那一步自己的**条件与表达式里的 `step.<旧>` 一起改写。只改这一步的子树：粘贴进来的一整块是
+一起搬的，原来那块的名字不能被改走。改写只碰引擎按"引用"读的字段（`AcceptsVariables` + `WholeValue`），
+按字面读的字段原样留着（一个打字步骤打出 `step.abcd.outcome` 这几个字，就是这几个字）。编辑器在步骤列表
+上方说明改了哪几个、把宏标脏；MCP 的 `put_macro` / `patch_macro` 答案里带 `renamed: [{from,to}]`。
 
 **触发器**　`ProjectTriggers` 是触发入口的唯一真源，`TriggerKind` 十种：`key`、`color`、`interface`、
 `hotstring`、`menu`、`timer`、`file`、`process`、`window`、`idle`。编辑器把每条入口写成同一份 `TriggerEntry`

@@ -19,7 +19,7 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class McpRunTests : IDisposable
 {
-    /// <summary>The two switches, standing in for the MCP page's settings file.</summary>
+    /// <summary>The two switches, standing in for the MCP flyout's settings file.</summary>
     private readonly McpGate _gate = new();
 
     public void Dispose() => _gate.Dispose();

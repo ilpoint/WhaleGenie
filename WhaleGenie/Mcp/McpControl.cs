@@ -11,7 +11,7 @@ namespace WhaleGenie.Mcp;
 public static class McpControl
 {
     /// <summary>
-    /// The two switches as the MCP page stored them, asked afresh each time. There is no second
+    /// The two switches as the MCP flyout stored them, asked afresh each time. There is no second
     /// source: the page is the only writer, and a run that was given no settings file — a check, the
     /// self check — reads nothing and may only look.
     /// </summary>

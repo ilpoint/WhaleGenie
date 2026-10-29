@@ -97,7 +97,7 @@ public static class LocalSettings
         => Write(model => model.DriverAttachAtStart = value);
 
     /// <summary>
-    /// The two permissions the MCP page last put into a client's configuration. Remembered so the
+    /// The two permissions the MCP flyout last handed out. Remembered so the
     /// block a person copies next time is the one they meant, rather than a bare "read only" again.
     /// </summary>
     public static (bool Control, bool Run) LoadMcpGrants()

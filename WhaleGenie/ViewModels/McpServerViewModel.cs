@@ -12,7 +12,7 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// The MCP page in the main window. This program no longer serves MCP from inside itself: a client
+/// The MCP flyout in the main window. This program no longer serves MCP from inside itself: a client
 /// launches WhaleGenie with <c>--mcp</c> and talks down the pipe it owns, so there is no server here
 /// to switch on. The two switches decide what the client may do, and the block underneath is what a
 /// person pastes into that client's configuration once — it does not carry the switches, because a

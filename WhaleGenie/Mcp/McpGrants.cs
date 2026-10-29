@@ -3,7 +3,7 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Mcp;
 
 /// <summary>
-/// The two permissions as the MCP page last left them, read back from the settings file. A server
+/// The two permissions as the MCP flyout last left them, read back from the settings file. A server
 /// runs in its own process, launched by a client that never asks again, so the file is the only
 /// place the page and the server can meet: the page writes it, the server reads it whenever a call
 /// needs a grant.

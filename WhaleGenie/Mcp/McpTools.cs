@@ -634,7 +634,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 lines = Array.Empty<object>(),
                 outcomes = Array.Empty<object>(),
                 note = "No run has been recorded yet. whalegenie_run_macro runs one (it needs the run "
-                    + "switch on WhaleGenie's MCP page), or the person presses Run in WhaleGenie; read this "
+                    + "switch in the MCP flyout), or the person presses Run in WhaleGenie; read this "
                     + "again afterwards.",
             }));
         }
@@ -918,7 +918,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             ? null
             : McpErrors.Fail(McpErrors.ProjectWriteOff,
                 "Direct control is off, so the project was not written.",
-                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP page, then call again." +
+                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
                 " Opening, editing and validating a draft needs no switch.",
                 retryable: true);
 

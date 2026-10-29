@@ -22,7 +22,7 @@ namespace WhaleGenie.Mcp;
 /// go through the same device layer a macro run goes through — the composition root's, never a
 /// Windows implementation of their own — so what the AI sees and does is exactly what a macro
 /// would see and do. The reading tools answer whenever the server is on; the tools that send
-/// input answer only while <see cref="McpControl.Allowed"/> is set, which is the MCP page's own
+/// input answer only while <see cref="McpControl.Allowed"/> is set, which is the flyout's own
 /// switch.
 /// </summary>
 /// <remarks>
@@ -572,7 +572,7 @@ public sealed class McpControlTools
             McpAudit.Note(tool, "refused", McpErrors.DirectControlOff);
             throw new McpFailure(McpErrors.DirectControlOff,
                 "Direct control is off, so nothing was sent to the machine.",
-                "Ask the person to turn on \"Allow direct control\" on WhaleGenie's MCP page, then call again." +
+                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
                 " Looking at the screen needs no switch.");
         }
 

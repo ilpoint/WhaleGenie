@@ -4,7 +4,7 @@ using WhaleGenie.Mcp;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// Stands in for the MCP page's two switches, which the real program reads from its settings file.
+/// Stands in for the MCP flyout's two switches, which the real program reads from its settings file.
 /// A check sets them here instead of writing a file, so nothing a check does depends on, or disturbs,
 /// the choices of whoever is using WhaleGenie on this machine.
 /// </summary>
