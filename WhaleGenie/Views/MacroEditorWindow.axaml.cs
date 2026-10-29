@@ -750,7 +750,6 @@ public partial class MacroEditorWindow : Window
     private async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
     {
         var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : BuildRootSnapshot();
-        var kind = _viewModel.IsSubMacro ? MacroFileKind.SubMacro : MacroFileKind.Macro;
         var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
             macro.Name);
         if (path is null)
@@ -760,7 +759,7 @@ public partial class MacroEditorWindow : Window
 
         try
         {
-            MacroFile.Save(path, macro, kind, AppVersion.Text, _session.AssetFolder);
+            MacroPackage.Save(path, [macro], MacroBundle.UsedGlobals([macro]), AppVersion.Text);
         }
         catch (Exception error)
         {

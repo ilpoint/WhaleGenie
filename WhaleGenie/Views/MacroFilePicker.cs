@@ -7,19 +7,16 @@ using WhaleGenie.Storage;
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// The file dialogs a single macro travels through: one to find a <c>.wgm</c>, one to say where it
-/// goes. The three places that move a macro in or out of a file — the project list, the editor and
-/// the public library — ask the same two questions, so they ask them in one place.
+/// The file dialogs a macro travels through: one to find a package, one to say where one goes.
+/// Every place that moves macros in or out of a file asks the same two questions, so they ask them
+/// in one place. There is one kind of file: an export of a few macros is a package with those
+/// macros in it, and what the file is meant to become is decided when it is imported.
 /// </summary>
 internal static class MacroFilePicker
 {
-    /// <summary>
-    /// What the dialog calls this kind of file. A project package is a different file with a
-    /// different name, and neither dialog offers the other: importing one as the other would only
-    /// fail after the choice was made.
-    /// </summary>
+    /// <summary>What the dialog calls this kind of file.</summary>
     internal static FilePickerFileType Type
-        => new(Strings.Get("MacroFile.Filter")) { Patterns = [$"*{MacroFile.Extension}"] };
+        => new(Strings.Get("Package.Filter")) { Patterns = [$"*{MacroPackage.Extension}"] };
 
     /// <summary>The file a person picked, or null when they closed the dialog.</summary>
     internal static async Task<string?> PickAsync(TopLevel owner, string title)
@@ -40,8 +37,8 @@ internal static class MacroFilePicker
         var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = title,
-            SuggestedFileName = SafeName(name) + MacroFile.Extension,
-            DefaultExtension = MacroFile.Extension.TrimStart('.'),
+            SuggestedFileName = SafeName(name) + MacroPackage.Extension,
+            DefaultExtension = MacroPackage.Extension.TrimStart('.'),
             FileTypeChoices = [Type],
             ShowOverwritePrompt = true,
         });

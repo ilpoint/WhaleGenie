@@ -1565,18 +1565,50 @@ public partial class MainWindow : Window
     /// Writes one macro out as a file of its own. The pictures it looks for travel inside the file,
     /// so the person it is handed to does not have to be told what to copy as well.
     /// </summary>
+    /// <summary>
+    /// Exports from the file menu: the same window as the card's own menu, with nothing ticked, for
+    /// a person who wants to pick several macros rather than start from one of them.
+    /// </summary>
+    private async void OnExportMacrosClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            await ExportMacrosAsync(viewModel, []);
+        }
+    }
+
+    /// <summary>
+    /// Writes the macro a card was right-clicked on. The window opens with it ticked, because that
+    /// is what the click meant; the rest of the list is there for a change of mind.
+    /// </summary>
     private async void OnExportMacroClicked(object? sender, RoutedEventArgs e)
     {
         e.Handled = true;
 
-        if (sender is not Control { DataContext: MacroItem macro }
-            || DataContext is not MainViewModel viewModel)
+        if (sender is Control { DataContext: MacroItem macro }
+            && DataContext is MainViewModel viewModel)
+        {
+            await ExportMacrosAsync(viewModel, [macro]);
+        }
+    }
+
+    /// <summary>
+    /// Writes the chosen macros into a package: the macros with the submacros inside them, the
+    /// global variables they read, the trigger entries that start them and the pictures they look
+    /// for. A project's own macros are copied first, because writing a package rewrites the trigger
+    /// table of what it is handed.
+    /// </summary>
+    private async Task ExportMacrosAsync(MainViewModel viewModel, IReadOnlyList<MacroItem> preselected)
+    {
+        var selection = await MacroExportWindow.ShowAsync(this, viewModel.Macros, viewModel.Triggers,
+            preselected);
+        if (selection is null || selection.Count == 0)
         {
             return;
         }
 
         var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
-            macro.Name);
+            selection[0].Name);
         if (path is null)
         {
             return;
@@ -1584,8 +1616,9 @@ public partial class MainWindow : Window
 
         try
         {
-            MacroFile.Save(path, macro, MacroFileKind.Macro, AppVersion.Text,
-                ImageAssets.FolderFor(viewModel.CurrentPath));
+            MacroPackage.Save(path, MacroBundle.Copies(selection),
+                MacroBundle.Take(viewModel.Triggers, selection),
+                MacroBundle.UsedGlobals(selection), AppVersion.Text);
         }
         catch (Exception error)
         {
