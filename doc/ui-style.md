@@ -215,14 +215,32 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 `AccentText`），说的是同一件事的两个侧面，比只用其中一个更清楚；它没和谁抢通道，所以不违规。
 规则防的从来不是"用几个通道"，是"两个态抢同一处"。
 
+**拆不开时，把优先级写进选择器。** 同一通道上的两个态若无法分到不同通道，用 `:not(...)` 显式排除，
+不要靠书写顺序：
+
+```
+Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 底 */
+```
+
+理由：书写顺序是一种**隐式**优先级，改一次样式顺序就悄悄改了行为；`:not(...)` 是**显式**的，读的人一眼看到"这两个态
+互斥"，改顺序也不会坏。先拆通道，拆不开就显式排除。
+
 ## 组件族表
 
 状态格格式 `背景 · 前景 · 边框`。`—` = **该态不设 setter**（沿用默认值）。**`Button*` 与
 `ToggleButton*` 六个态必须写满**：层 1 已给这些控件的四态默认值，空一格就会露出 Fluent 的外观，
 不是"没有变化"。
 
+**表里每一格写的属性，必须能在该控件的属性表里找到。** 查得到就写；查不到就把这一格改成"由谁承担"。
+已知不存在的：`Border` 没有 `Foreground`——文字色由内层 `TextBlock` 给（写法见"容器"那节）。
+不要写成"注意确认载体有这个属性"：那与"注意别改尺寸"同类，读者会点头然后照旧；**"找不到"才会把格式逼到正确。**
+
 每一族还要回答一句"**它的态会不会同现**"；会同现，就按裁定第 4 条拆通道，拆不了说明这是两个类。
 这一句不在表的任何一格里面，所以必须单独问。
+
+只有**多态族**需要列出同现组合——带 `.selected` / `.problem` / `.chosen` / `.Current` / `.Occupied` 这类可叠加
+修饰的那几族（`Border.Card.Selectable`、`Border.Card.Thin`、`Button.Tile`、`ListBox.List ListBoxItem`）。
+**没有可叠加修饰的族，答"不同现"即可**，不必每族写一段。
 
 ### 按钮
 
@@ -262,16 +280,25 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | `Border.Panel` | Border | `Space4` · `RadiusContainer` | `SurfacePanel` · — · — | — | 层 3 |
 | `Border.Sunken` | Border | `Space4` · `RadiusContainer` · 1px | `SurfaceSunken` · — · `BorderSubtle` | — | 层 3 |
 | `Border.Card` | Border | `PadRow` · `RadiusControl` · 1px | `SurfaceCard` · — · `BorderSubtle` | — | 层 3 |
-| `Border.Card.Thin` | Border | `PadRow` · `RadiusControl` · 1px | 同 Card | `.selected` → `AccentSurface` · `AccentText` · —（**不设描边**）；`.chosen` → — · — · `Success` | 层 3 |
-| `Border.Card.Selectable` | Border | `PadRow` · `RadiusControl` · 1px | `SurfaceCard` · — · `BorderSubtle` | `:pointerover` → `SurfaceHover`；`.selected` → `AccentSurface` · `AccentText` · —（**不设描边**）；`.problem` → — · — · `Warning`（**整圈 1px**，不指定某条边） | 层 3 |
+| `Border.Card.Thin` | Border | `PadRow` · `RadiusControl` · 1px | 同 Card | `.selected` → `AccentSurface` · （文字自带） · —（**不设描边**）；`.chosen` → — · （文字自带） · `Success` | 层 3 |
+| `Border.Card.Selectable` | Border | `PadRow` · `RadiusControl` · 1px | `SurfaceCard` · （文字自带） · `BorderSubtle` | `:pointerover:not(.selected)` → `SurfaceHover`；`.selected` → `AccentSurface` · （文字自带） · —（**不设描边**）；`.problem` → — · （文字自带） · `Warning`（**整圈 1px**，不指定某条边） | 层 3 |
 | `Border.Card.Target` | Border | `PadRow` · `RadiusControl` · 2px | `AccentSurface` · — · `AccentFill` | `.Rejected` → `DangerSurface` · — · `Danger` | 层 3（**不透明**，不用 30% 透明） |
-| `Border.Tag` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfacePanel` · `TextSecondary` · `BorderSubtle` | 无 hover / pressed（只读） | 层 3 |
-| `Border.Badge` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` 600 | `XxxSurface` · `Xxx` · — | 无 | 层 3（档位由 H18 决定，不由字号规则决定） |
+| `Border.Tag` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfacePanel` · （文字自带） · `BorderSubtle` | 无 hover / pressed（只读；内层文字 `TextSecondary`） | 层 3 |
+| `Border.Badge` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` 600 | 只有几何，颜色由下面四个修饰给 | 无 | 层 3（档位由 H18 决定，不由字号规则决定） |
+| `Border.Badge.Info` | Border | 同 `Border.Badge` | `InfoSurface` · （文字自带） · — | 内层文字 `Info` | 层 3 |
+| `Border.Badge.Success` | Border | 同 `Border.Badge` | `SuccessSurface` · （文字自带） · — | 内层文字 `Success` | 层 3 |
+| `Border.Badge.Warning` | Border | 同 `Border.Badge` | `WarningSurface` · （文字自带） · — | 内层文字 `Warning` | 层 3 |
+| `Border.Badge.Danger` | Border | 同 `Border.Badge` | `DangerSurface` · （文字自带） · — | 内层文字 `Danger` | 层 3 |
 | `Border.Divider` | Border | 高 1px · 上下 `Space3` | `BorderSubtle` | — | 层 3 |
-| `GridSplitter.Split` | GridSplitter | 宽 6px | `Transparent` | hover 居中 2px `AccentFill`；可聚焦 | 层 3 |
+| `GridSplitter.Split` | GridSplitter | 宽 6px | `Transparent` | hover **整条** 6px `AccentFill`（不居中）；可聚焦。**已知偏差的原因不是属性缺失**：`GridSplitter` 有 `Background`，但**没有内容层**——居中那条 2px 线得靠子元素画，而它的模板里没有能放子元素的层。要严格居中就得加那一层，属结构改动 × 22 个窗口；真机若太扎眼，迁移时再议，**不为它造元素** | 层 3 |
 
 `Border.Card.Thin` / `.Selectable` / `.Target` 是**修饰**：只改状态，不改壳。判断一个新需求属于容器还是修饰，
 问"我要装东西时会不会想到它"——会，是容器；不会，是修饰。
+
+**`Border` 没有 `Foreground`。** 这几族的前景列写"（文字自带）"：文字的色由里面的 `TextBlock` 决定，不由
+`Border` 的类决定。需要让文字随 `Border` 的状态变（例如选中时转 `AccentText`），用**后代选择器**在同一个文件里写
+（`Border.Card.Selectable.selected TextBlock { Foreground: AccentText }`），**不要给 `Border` 设 `Foreground`**
+——那条 setter 会静默无效。这是 `dev.md` 第 4 条（颜色通道随载体）的同一族：属性名对、载体没有它。
 
 ### 列表
 
