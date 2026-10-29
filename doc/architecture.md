@@ -441,7 +441,7 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
    `WhaleGenie.Model/Models`（8.5k 行），而 `WhaleGenie.Core` 只认 `ExecutableStep`，转换点唯一
    （`MacroStepConverter`）且每次运行都重建。
 
-   这是有意的，不是没搬完：引擎能独立测试（`Core.Tests` 不引 Model，1461 条用例跑一分多钟）。代价是
+   这是有意的，不是没搬完：引擎能独立测试（`Core.Tests` 不引 Model，1460 条用例跑一分多钟）。代价是
    引擎里拿不到"这条宏叫什么、声明有没有问题"——要那些，得先转换，或者由调用方在进入引擎之前判断。
 
    这条边界的实际影响现在只剩一处：**界面工程里还留着的包相关代码**是位图（`ImageAssets`）、恢复快照
