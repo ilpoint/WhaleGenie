@@ -43,6 +43,9 @@
 
       `STATIC` 表示这一类根本没有交互状态（文本、纯容器），不是"漏了 `:pointerover`"。
 
+      `VARIANT` 是**变体词**：`Success` / `Warning` 这类颜色档位。它们和状态词一样可以被剥离，
+      但**不进 `STATE`**——通用词进 `STATE` 会把别的族从检查范围里滤掉（`STATE Dot.Success` 那次）。
+
       `STATE` 表示这一类是**状态类**（选中、问题、占用），不自己定义四态，是所属类的修饰。
 
       窄化类**不需要登记**：`Button.Tab.Root.Compact`、`TextBlock.FieldLabel.Strong` 这类靠前缀
@@ -90,6 +93,11 @@
       STATE Rejected
       STATE chosen
       STATE problem
+      VARIANT Success
+      VARIANT Warning
+      VARIANT Danger
+      VARIANT Info
+      VARIANT Disabled
       STATE selected
       STATE Occupied
       STATE Current

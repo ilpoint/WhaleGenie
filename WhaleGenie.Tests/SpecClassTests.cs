@@ -8,19 +8,34 @@ using System.Text.RegularExpressions;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// The spec is the list of classes; the style file is the implementation of it. The two are only
-/// worth anything while they agree, and they agree by hand today — a class named in the table and
-/// never written is invisible until somebody goes looking, which is what happened once already
-/// (sixteen classes were missing and nobody noticed for two rounds).
+/// The spec is the list of classes; the style file is the implementation of it. They only stay in
+/// agreement by being compared, and the comparison has to be automatic: sixteen classes were once
+/// named in the table and never written, and it took two review rounds to notice.
 ///
-/// So the two lists are compared here. Only the component tables are read: the "裁定" sections quote
-/// class names as examples, and taking those would make the spec agree with itself rather than with
-/// the styles.
+/// Three things are checked. Nothing the spec names is missing; nothing is styled that the spec never
+/// names, once the states and colour variants written on top of a named class are stripped; and the
+/// words that may be stripped are a fixed list, checked against the file's own registry — without
+/// that last one the second check would let any invented class through, because every extra segment
+/// could just be called a state.
 /// </summary>
 public class SpecClassTests
 {
+    /// <summary>
+    /// The only words allowed to sit on top of a class the spec names. Both halves are declared in
+    /// the style file's header as well; <see cref="The_vocabulary_matches_the_registry"/> keeps the
+    /// two copies honest.
+    /// </summary>
+    private static readonly HashSet<string> Vocabulary = new(StringComparer.Ordinal)
+    {
+        // States: things a control is, not colours it can be.
+        "selected", "chosen", "problem", "Rejected", "Occupied", "Current",
+
+        // Variants: colour tiers a family offers.
+        "Success", "Warning", "Danger", "Info", "Disabled",
+    };
+
     [Fact]
-    public void Every_class_the_spec_names_has_a_style()
+    public void Nothing_the_spec_names_is_missing()
     {
         var missing = SpecClasses().Except(StyledNames(), StringComparer.Ordinal)
             .OrderBy(name => name, StringComparer.Ordinal)
@@ -31,37 +46,60 @@ public class SpecClassTests
             "these classes are in the spec but not in Controls.axaml: " + string.Join(", ", missing));
     }
 
-    /// <summary>
-    /// The other direction: a class the styles invented is a class nobody agreed on. A state or a
-    /// narrowing of a specced class is fine — `Border.Card.Selectable.selected` is a state of
-    /// `Border.Card.Selectable`, and `Button.Rail.selected` of `Button.Rail`.
-    /// </summary>
     [Fact]
-    public void Every_styled_class_is_one_the_spec_names_or_a_state_of_one()
+    public void Nothing_is_styled_that_the_spec_never_names()
     {
         var spec = SpecClasses();
-        var invented = StyledNames()
-            .Where(name => !spec.Contains(name) && !Narrows(name, spec))
-            .OrderBy(name => name, StringComparer.Ordinal)
-            .ToList();
+        var invented = new List<string>();
+
+        foreach (var name in StyledNames().OrderBy(name => name, StringComparer.Ordinal))
+        {
+            var parts = name.Split('.');
+            var hit = 0;
+            for (var length = parts.Length; length >= 2; length--)
+            {
+                if (spec.Contains(string.Join('.', parts.Take(length))))
+                {
+                    hit = length;
+                    break;
+                }
+            }
+
+            if (hit == 0)
+            {
+                invented.Add(name);
+                continue;
+            }
+
+            // Everything stripped has to be a word from the vocabulary: `selected` on a named class
+            // is a state, `Anything` on one would be an invented class wearing a state's clothes.
+            var stripped = parts.Skip(hit).ToList();
+            var unknown = stripped.Where(part => !Vocabulary.Contains(part)).ToList();
+            if (unknown.Count > 0)
+            {
+                invented.Add(name + " (not a state: " + string.Join('.', unknown) + ")");
+            }
+        }
 
         Assert.True(
             invented.Count == 0,
             "these are styled but no line of the spec names them: " + string.Join(", ", invented));
     }
 
-    private static bool Narrows(string name, HashSet<string> spec)
+    [Fact]
+    public void The_vocabulary_matches_the_registry()
     {
-        var parts = name.Split('.');
-        for (var length = parts.Length - 1; length > 1; length--)
-        {
-            if (spec.Contains(string.Join('.', parts.Take(length))))
-            {
-                return true;
-            }
-        }
+        var header = File.ReadAllText(Path.Combine(
+            RepositoryRoot(), "WhaleGenie", "Themes", "Controls.axaml"));
 
-        return false;
+        var declared = Regex.Matches(header, @"^\s*(?:STATE|VARIANT)\s+(\S+)\s*$", RegexOptions.Multiline)
+            .Select(match => match.Groups[1].Value)
+            .Select(name => name.Split('.')[^1])
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(
+            declared.OrderBy(word => word, StringComparer.Ordinal),
+            Vocabulary.OrderBy(word => word, StringComparer.Ordinal));
     }
 
     /// <summary>
@@ -77,18 +115,35 @@ public class SpecClassTests
         var end = text.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
         var section = end < 0 ? text[start..] : text[start..end];
 
-        return Regex.Matches(section, @"^\|\s*`([A-Za-z][\w.]*)`", RegexOptions.Multiline)
-            .Select(match => match.Groups[1].Value)
+        // The first cell sometimes holds a whole selector head — `ListBox.List.Pill ListBoxItem` —
+        // so the backticked text is taken whole and then cut at the first space, exactly the way the
+        // style side is cut. Otherwise the two sides count the same class differently, which is how
+        // this file ended up with two totals for one thing.
+        return Regex.Matches(section, @"^\|\s*`([^`]+)`", RegexOptions.Multiline)
+            .Select(match => match.Groups[1].Value.Split(' ')[0])
             .Where(name => name.Contains('.', StringComparison.Ordinal))
             .ToHashSet(StringComparer.Ordinal);
     }
 
-    /// <summary>Every class name the style file writes a selector for.</summary>
+    /// <summary>
+    /// Every class name a selector starts with. The first space ends it, so `ListBox.List.Pill
+    /// ListBoxItem` contributes `ListBox.List.Pill` whole; pseudo-classes, `/template/` and child
+    /// combinators are dropped. Taking only the part before the first dot would count a family
+    /// instead of a class, and that mismatch is what made two different totals for the same thing.
+    /// </summary>
     private static HashSet<string> StyledNames()
     {
-        var text = File.ReadAllText(Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "Controls.axaml"));
+        var text = File.ReadAllText(Path.Combine(
+            RepositoryRoot(), "WhaleGenie", "Themes", "Controls.axaml"));
+
         return Regex.Matches(text, @"Selector=""([^""]+)""")
-            .Select(match => match.Groups[1].Value.Split(':')[0].Split(' ')[0])
+            .Select(match => match.Groups[1].Value)
+            .Select(selector => selector.Replace("/template/", " ", StringComparison.Ordinal))
+            .Select(selector => selector.Split('>')[0])
+            .Select(selector => selector.Split(',')[0])
+            .Select(selector => selector.Split(' ')[0])
+            .Select(selector => selector.Split(':')[0])
+            .Select(selector => selector.Trim())
             .Where(name => name.Contains('.', StringComparison.Ordinal))
             .ToHashSet(StringComparer.Ordinal);
     }
