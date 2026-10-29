@@ -141,9 +141,13 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 3. **焦点环不归 `Controls.axaml` 管**：颜色来自层 1 的 `SystemControlFocusVisualPrimaryBrush` /
    `SystemControlFocusVisualSecondaryBrush`，值取 `FocusRing` / `FocusRingInner`。**厚度层 1 给不了**
    ——主题里只有这两个刷子键，没有 Thickness 键（已把主题资源整个枚举核对过），所以 2 / 1 只能由
-   `FocusAdorner` 显式给。**自绘元素**
-   （`Border.Card.Thin`、`Border.Card.Selectable`、`Ellipse.Dot`、`GridSplitter.Split`）必须显式
-   `Focusable="True"` + 同款 `FocusAdorner`，否则键盘走到那里就断了。
+   `FocusAdorner` 显式给。**焦点环归接点击的那个控件**：自绘元素（`Border.Card.*`、`Ellipse.Dot`、
+   `GridSplitter.Split`）只有在**它自己接点击**时（带 `PointerPressed` / `Tapped`，或本身就是可点的
+   `Button`）才需要 `Focusable="True"` + 同款 `FocusAdorner`；若它只是 `Button` / `ListBoxItem` 内部的
+   外观，焦点由外层承担，**给它加会造出一个键盘停靠点**，Tab 会在同一处停两次。
+   实见于本仓库：`Views/` 的 124 个 `<Border>` 里接点击的是 **0 个**，卡片类全部挂在 `Button` 上
+   （`CardButton` 3、`ActionCard` 2、`Card`/`FnCard` 3、`TriggerCard` 1），所以当前这批
+   `Border.Card.*` **一个焦点环都不写**。
 
 ## 三处裁定
 
