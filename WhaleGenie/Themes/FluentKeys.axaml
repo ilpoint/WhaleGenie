@@ -19,6 +19,11 @@
 
       取值一律引 Tokens.axaml 的令牌，不写字面量。与 Fluent 默认相同的键不写——写了只是把默认值
       抄一遍，还让人以为我们特意定过。
+
+      **"裸值"指十六进制和数字。** `Transparent` 是语言常量、不是我们定的颜色，可以直接写：它没有
+      会漂移的值，也不参与对比度核算（底透出来，实际颜色由底下那层决定，与 `OverlayHover` 那类
+      叠层同理）。区别在"有没有值"：`OverlayHover` / `OverlayPressed` 是令牌，因为它们有半透明
+      的值、且随主题变；`Transparent` 没有值。
     -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
@@ -114,22 +119,22 @@
             <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="BorderControlHover" />
             <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="BorderStrong" />
             <StaticResource x:Key="ScrollBarThumbFillDisabled" ResourceKey="BorderSubtle" />
-            <StaticResource x:Key="ScrollBarBackground" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarBackgroundPointerOver" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackFill" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackFillPointerOver" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackStroke" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackStrokePointerOver" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="ScrollBarBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="Transparent" />
             <StaticResource x:Key="ScrollBarPanningThumbBackground" ResourceKey="BorderControl" />
             <StaticResource x:Key="ScrollBarForeground" ResourceKey="TextSecondary" />
 
             <!-- 弹出菜单：浮层底，项静息透明 -->
             <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="SurfaceFlyout" />
             <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderSubtle" />
-            <StaticResource x:Key="MenuFlyoutItemBackground" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackground" Color="Transparent" />
             <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="SurfaceHover" />
             <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="SurfacePressed" />
-            <StaticResource x:Key="MenuFlyoutItemBackgroundDisabled" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundDisabled" Color="Transparent" />
             <StaticResource x:Key="MenuFlyoutItemForeground" ResourceKey="TextPrimary" />
             <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="TextPrimary" />
             <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="TextPrimary" />
@@ -215,9 +220,9 @@
             <StaticResource x:Key="ToggleSwitchKnobFillOffPointerOver" ResourceKey="TextPrimary" />
             <StaticResource x:Key="ToggleSwitchKnobFillOffPressed" ResourceKey="TextPrimary" />
             <StaticResource x:Key="ToggleSwitchKnobFillOffDisabled" ResourceKey="TextDisabled" />
-            <StaticResource x:Key="ToggleSwitchContainerBackground" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ToggleSwitchContainerBackgroundPointerOver" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ToggleSwitchContainerBackgroundPressed" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="ToggleSwitchContainerBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPressed" Color="Transparent" />
             <StaticResource x:Key="ToggleSwitchContentForeground" ResourceKey="TextPrimary" />
 
             <!-- 开关按钮：未选是次按钮，选中是主按钮，六态写满（空一格就露 Fluent 默认） -->
@@ -368,22 +373,22 @@
             <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="BorderControlHover" />
             <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="BorderStrong" />
             <StaticResource x:Key="ScrollBarThumbFillDisabled" ResourceKey="BorderSubtle" />
-            <StaticResource x:Key="ScrollBarBackground" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarBackgroundPointerOver" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackFill" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackFillPointerOver" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackStroke" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ScrollBarTrackStrokePointerOver" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="ScrollBarBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="Transparent" />
+            <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="Transparent" />
             <StaticResource x:Key="ScrollBarPanningThumbBackground" ResourceKey="BorderControl" />
             <StaticResource x:Key="ScrollBarForeground" ResourceKey="TextSecondary" />
 
             <!-- 弹出菜单：浮层底，项静息透明 -->
             <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="SurfaceFlyout" />
             <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderSubtle" />
-            <StaticResource x:Key="MenuFlyoutItemBackground" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackground" Color="Transparent" />
             <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="SurfaceHover" />
             <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="SurfacePressed" />
-            <StaticResource x:Key="MenuFlyoutItemBackgroundDisabled" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundDisabled" Color="Transparent" />
             <StaticResource x:Key="MenuFlyoutItemForeground" ResourceKey="TextPrimary" />
             <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="TextPrimary" />
             <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="TextPrimary" />
@@ -469,9 +474,9 @@
             <StaticResource x:Key="ToggleSwitchKnobFillOffPointerOver" ResourceKey="TextPrimary" />
             <StaticResource x:Key="ToggleSwitchKnobFillOffPressed" ResourceKey="TextPrimary" />
             <StaticResource x:Key="ToggleSwitchKnobFillOffDisabled" ResourceKey="TextDisabled" />
-            <StaticResource x:Key="ToggleSwitchContainerBackground" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ToggleSwitchContainerBackgroundPointerOver" ResourceKey="TransparentFill" />
-            <StaticResource x:Key="ToggleSwitchContainerBackgroundPressed" ResourceKey="TransparentFill" />
+            <SolidColorBrush x:Key="ToggleSwitchContainerBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPressed" Color="Transparent" />
             <StaticResource x:Key="ToggleSwitchContentForeground" ResourceKey="TextPrimary" />
 
             <!-- 开关按钮：未选是次按钮，选中是主按钮，六态写满（空一格就露 Fluent 默认） -->

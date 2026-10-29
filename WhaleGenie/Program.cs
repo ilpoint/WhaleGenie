@@ -96,7 +96,9 @@ sealed class Program
 
 #if DEBUG
         // A throwaway window with six bare controls, for looking at what the Fluent key overrides
-        // actually did. It never takes the single-instance name and never touches the devices.
+        // actually did. Looking at colours must not touch the machine: nothing of the ordinary
+        // start-up runs with it — no devices, no project, no recovery snapshot, no single-instance
+        // name — which is the whole reason this branch exists.
         if (args.Contains("--theme-probe", System.StringComparer.Ordinal))
         {
             App.ThemeProbe = true;

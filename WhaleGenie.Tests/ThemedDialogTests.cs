@@ -59,7 +59,9 @@ public class ThemedDialogTests
                 var close = window.FindControl<Button>("CloseButton");
                 Assert.NotNull(close);
                 Assert.Equal(24, close!.Width);
-                Assert.Equal(Token("TransparentFill", "TransparentFillColor"), Presenter(close));
+                // A ghost has no fill of its own: the literal Transparent is what "no fill" means,
+                // and it is not a token because there is no value in it to keep in one place.
+                Assert.Equal(Colors.Transparent, Presenter(close));
             }
             finally
             {

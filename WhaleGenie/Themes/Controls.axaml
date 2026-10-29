@@ -9,12 +9,16 @@
       四条硬规则，写之前先看：
       1. 不写 `Margin`。纵向间距由父容器的 `Spacing` / `RowSpacing` 承担；唯一例外是 `GapSection`。
          理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
-      2. 不写裸值。颜色、字号、圆角、内边距四类一律引令牌。高度与宽度允许字面值，但只能出现在
+      2. 不写裸值——"裸值"指十六进制与数字。颜色、字号、圆角、内边距四类一律引令牌；`Transparent`
+         是语言常量、不是我们定的颜色，可以直接写（它没有值可漂移，也不参与对比度核算）。高度与宽度允许字面值，但只能出现在
          本文件的族定义里、一族一次；`Views/` 里不给族成员写 `Height` / `Width`。
       3. `Opacity` 只允许 `CardOpacity` 那一个例外——它是内容状态，不是造色。
-      4. 每个自定义类恰好一条 `:pointerover`，且每类都要能被键盘走到：控件族沿用模板的
-         `FocusAdorner`（层 1 的 `SystemControlFocusVisual*` 给双色环）；自绘元素
-         （`Border.Card.*`、`Ellipse.Dot`、`GridSplitter.Split`）必须显式 `Focusable="True"` +
+      4. 每个自定义类恰好一条 `:pointerover`，且每类都要能被键盘走到。两处例外，都是"由层 1 承担"
+         而不是"漏掉"：外观四态交给层 1 的类（`Button.Secondary` 这一档）不再写 `:pointerover`——
+         写了就是把 `ButtonBackgroundPointerOver` 抄一遍，两个源必然走散；控件族的焦点环由模板的
+         `FocusAdorner` 给（层 1 的 `SystemControlFocusVisual*` 两个刷子），不另写 `:focus-visible`。
+         真正需要显式写 `:focus-visible` 的是自绘元素（`Border.Card.*`、`Ellipse.Dot`、
+         `GridSplitter.Split`）：它们不是控件、没有模板，必须 `Focusable="True"` + 同款
          `FocusAdorner`，否则键盘走到那里就断了。
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
@@ -93,7 +97,7 @@
         <Setter Property="Height" Value="24" />
         <Setter Property="Padding" Value="{DynamicResource Pad0}" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource TransparentFill}" />
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -120,7 +124,7 @@
         <Setter Property="Padding" Value="{DynamicResource PadChrome}" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="Background" Value="{DynamicResource TransparentFill}" />
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
