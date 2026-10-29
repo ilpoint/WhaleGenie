@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+      22 个 App* 键是二十三个窗口还在用的名字。它们留在这里是为了让搬家的每一步都能单独看见：
+      键名不动，值也不动，窗口的 XAML 一句都不用改。
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="AppSurface" Color="#292929" />
+            <SolidColorBrush x:Key="AppBackdrop" Color="#1E1E1E" />
+            <SolidColorBrush x:Key="AppChrome" Color="#202020" />
+            <SolidColorBrush x:Key="AppField" Color="#2E2E2E" />
+            <SolidColorBrush x:Key="AppBorder" Color="#3A3A3A" />
+            <SolidColorBrush x:Key="AppText" Color="#E8E8E8" />
+            <SolidColorBrush x:Key="AppTextStrong" Color="#F5F5F5" />
+            <SolidColorBrush x:Key="AppMuted" Color="#9A9A9A" />
+            <SolidColorBrush x:Key="AppAccent" Color="#C8401C" />
+            <SolidColorBrush x:Key="AppControl" Color="#404040" />
+            <SolidColorBrush x:Key="AppGroup" Color="#1F1F1F" />
+            <SolidColorBrush x:Key="AppHover" Color="#3C3C3C" />
+            <SolidColorBrush x:Key="AppDock" Color="#2A2A2A" />
+            <SolidColorBrush x:Key="AppSelected" Color="#4A2A20" />
+            <SolidColorBrush x:Key="AppLabel" Color="#C8A165" />
+            <SolidColorBrush x:Key="AppInfo" Color="#8FB3D9" />
+            <SolidColorBrush x:Key="AppInfoSoft" Color="#2B3A4A" />
+            <SolidColorBrush x:Key="AppWarning" Color="#E0A060" />
+            <SolidColorBrush x:Key="AppDanger" Color="#E06C75" />
+            <SolidColorBrush x:Key="AppSuccess" Color="#7FC97F" />
+            <SolidColorBrush x:Key="AppAccentSoft" Color="#4A342E" />
+            <SolidColorBrush x:Key="AppAccentHover" Color="#D9502A" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="AppSurface" Color="#FAF8F4" />
+            <SolidColorBrush x:Key="AppBackdrop" Color="#F4F1EB" />
+            <SolidColorBrush x:Key="AppChrome" Color="#E9E4DA" />
+            <SolidColorBrush x:Key="AppField" Color="#F2EEE7" />
+            <SolidColorBrush x:Key="AppBorder" Color="#D5CEC1" />
+            <SolidColorBrush x:Key="AppText" Color="#2B2723" />
+            <SolidColorBrush x:Key="AppTextStrong" Color="#1B1713" />
+            <SolidColorBrush x:Key="AppMuted" Color="#6B6258" />
+            <SolidColorBrush x:Key="AppAccent" Color="#C8401C" />
+            <SolidColorBrush x:Key="AppControl" Color="#E2DCD1" />
+            <SolidColorBrush x:Key="AppGroup" Color="#F2EEE7" />
+            <SolidColorBrush x:Key="AppHover" Color="#D8D1C5" />
+            <SolidColorBrush x:Key="AppDock" Color="#EBE5DB" />
+            <SolidColorBrush x:Key="AppSelected" Color="#FBEDE4" />
+            <SolidColorBrush x:Key="AppLabel" Color="#8A6428" />
+            <SolidColorBrush x:Key="AppInfo" Color="#2F6F9F" />
+            <SolidColorBrush x:Key="AppInfoSoft" Color="#E3EEF8" />
+            <SolidColorBrush x:Key="AppWarning" Color="#9A6418" />
+            <SolidColorBrush x:Key="AppDanger" Color="#B23A3A" />
+            <SolidColorBrush x:Key="AppSuccess" Color="#2E7D4F" />
+            <SolidColorBrush x:Key="AppAccentSoft" Color="#F6D9CB" />
+            <SolidColorBrush x:Key="AppAccentHover" Color="#D9502A" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
