@@ -275,9 +275,9 @@ internal static class ActionBench
     /// </summary>
     private static Arrival? Later(string key, FakeDeviceLayer devices) => key switch
     {
-        "vision.waitImage" => Third(devices, () => devices.MatchAfter = 3, "match",
+        "vision.waitImage" => Third(devices, () => devices.Vision.MatchAfter = 3, "match",
             "图在第三次查找才出现"),
-        "vision.waitDetect" => Third(devices, () => devices.DetectAfter = 3, "match",
+        "vision.waitDetect" => Third(devices, () => devices.Detector.DetectAfter = 3, "match",
             "检测在第三次才找到"),
         "window.waitFor" => Third(devices, () =>
         {
@@ -370,13 +370,22 @@ internal static class ActionBench
     /// </summary>
     private static FakeDeviceLayer Desk()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(10, 10), Pixel = new PixelColor(255, 255, 255), ElementText = "bench", Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")) };
+        var devices = new FakeDeviceLayer
+        {
+            ElementText = "bench",
+            Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
+            CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
+            AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
+        };
+
+        devices.Screen.Cursor = new ScreenPoint(10, 10);
+        devices.Screen.Pixel = new PixelColor(255, 255, 255);
         devices.Clipboard.Text = "bench";
         devices.Clipboard.MovesAfter = 1;
         devices.Clipboard.Picture = new ImageFrame(8, 8, new byte[8 * 8 * 4]);
         devices.Processes.Command = new CommandResult(0, "bench", string.Empty);
 
-        devices.Desktop = new ScreenLayout(new ScreenArea(0, 0, 1920, 1080),
+        devices.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, 1920, 1080),
             [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
 
         devices.Files.Store[BenchFixtures.TextFile] = "bench";
@@ -398,10 +407,10 @@ internal static class ActionBench
         devices.ClientSizes[4242] = new ScreenSize(640, 480);
         devices.Elements.Add(new UiElementInfo("Bench", "bench", "Button", "Bench",
             new ScreenPoint(120, 120), new ScreenSize(80, 24), "Bench"));
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(200, 200), new ScreenSize(64, 64));
-        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(300, 300), new ScreenSize(64, 64)));
-        devices.Spans.Add(new TextSpan("Bench", new ScreenPoint(200, 200), new ScreenSize(60, 20), 0.9));
-        devices.Detections.Add(new DetectionHit(0.9, new ScreenPoint(200, 200), new ScreenSize(40, 40),
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(200, 200), new ScreenSize(64, 64));
+        devices.Vision.Matches.Add(new ImageMatch(0.95, new ScreenPoint(300, 300), new ScreenSize(64, 64)));
+        devices.Ocr.Spans.Add(new TextSpan("Bench", new ScreenPoint(200, 200), new ScreenSize(60, 20), 0.9));
+        devices.Detector.Detections.Add(new DetectionHit(0.9, new ScreenPoint(200, 200), new ScreenSize(40, 40),
             0, "bench"));
         devices.Processes.Running[BenchFixtures.ProgramName] = [BenchFixtures.ProcessId];
         devices.Processes.ExitCodes[BenchFixtures.ProcessId] = 0;

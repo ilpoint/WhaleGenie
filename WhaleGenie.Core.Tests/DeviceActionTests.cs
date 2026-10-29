@@ -720,7 +720,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_with_no_point_uses_where_the_pointer_already_is()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (_, _, _) = await RunAsync(
             [Step("input.mouseClick", Param("button", "left"), Param("x", ""), Param("y", ""))],
             devices);
@@ -736,7 +737,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_told_to_work_at_the_pointer_uses_where_the_pointer_is()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
@@ -754,7 +756,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_mouse_step_can_be_told_to_work_at_the_pointer()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseDoubleClick", Param("button", "left"), Param("useCursor", "true"),
@@ -781,7 +784,7 @@ public class DeviceActionTests
     public async Task A_step_at_the_pointer_does_not_need_the_window_its_numbers_are_counted_from()
     {
         var devices = WithAWindow();
-        devices.Cursor = new ScreenPoint(7, 9);
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
@@ -846,7 +849,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_can_put_the_pointer_back_where_it_was()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(300, 400) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(300, 400);
 
         var (result, _, _) = await RunAsync(
         [
@@ -862,7 +866,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_that_was_not_asked_to_put_the_pointer_back_does_not()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(300, 400) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(300, 400);
 
         await RunAsync(
             [Step("input.mouseClick", Param("button", "left"), Param("x", "10"), Param("y", "20"))],
@@ -996,7 +1001,7 @@ public class DeviceActionTests
     public async Task Every_mouse_action_can_land_where_a_record_says()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1149,7 +1154,7 @@ public class DeviceActionTests
     public async Task A_window_search_returns_a_screen_point_and_a_window_point()
     {
         var devices = WithWindow();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1293,7 +1298,7 @@ public class DeviceActionTests
     public async Task A_drag_can_start_where_something_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1318,7 +1323,7 @@ public class DeviceActionTests
     public async Task Both_ends_of_a_drag_can_each_come_from_their_own_record()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1341,7 +1346,7 @@ public class DeviceActionTests
     public async Task A_scroll_can_happen_where_something_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1363,7 +1368,7 @@ public class DeviceActionTests
     public async Task A_drag_from_a_record_starts_where_the_record_says_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1413,7 +1418,7 @@ public class DeviceActionTests
     public async Task A_record_in_a_number_field_is_refused()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1496,7 +1501,7 @@ public class DeviceActionTests
     public async Task A_click_can_go_where_something_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1520,7 +1525,7 @@ public class DeviceActionTests
     public async Task A_record_in_a_mouse_step_says_where_it_is_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1546,7 +1551,7 @@ public class DeviceActionTests
     public async Task A_record_wins_over_numbers_written_beside_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1565,8 +1570,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pixel_can_be_read_where_something_was_just_found()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xAB, 0xCD, 0xEF) };
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xAB, 0xCD, 0xEF);
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1588,7 +1594,7 @@ public class DeviceActionTests
     public async Task A_picture_can_be_taken_of_what_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1600,7 +1606,7 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
 
         // 截的是命中那一块：左上角 (30,40)，10×20；留下的「位置」说的也是这一块。
-        var asked = devices.Captures[^1];
+        var asked = devices.Screen.Captures[^1];
         Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal("30,40,10,20", Field(store, "cut", "box").AsText());
     }
@@ -1611,12 +1617,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_can_be_aimed_at_what_was_just_found()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FFFFFF,#FFFFFF"),
-            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
-        };
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#FFFFFF");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1627,7 +1631,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
 
-        var asked = devices.Captures[^1];
+        var asked = devices.Screen.Captures[^1];
         Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal("42", store.Local.Values["words"].AsText());
     }
@@ -1640,7 +1644,7 @@ public class DeviceActionTests
     public async Task A_rectangle_from_a_record_says_where_it_is_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1658,11 +1662,11 @@ public class DeviceActionTests
 
         // 前几次是找图那一步自己的事；第一条截图截的是记录自己那一块 (30,40,10,20)，第二条是写出来的
         // 四个数，照旧从窗口角 (1000,500) 量起。
-        Assert.Equal(3, devices.Captures.Count);
-        Assert.Equal((30, 40, 10, 20), (devices.Captures[1].X, devices.Captures[1].Y,
-            devices.Captures[1].Width, devices.Captures[1].Height));
-        Assert.Equal((1010, 520, 30, 40), (devices.Captures[2].X, devices.Captures[2].Y,
-            devices.Captures[2].Width, devices.Captures[2].Height));
+        Assert.Equal(3, devices.Screen.Captures.Count);
+        Assert.Equal((30, 40, 10, 20), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
+            devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
+        Assert.Equal((1010, 520, 30, 40), (devices.Screen.Captures[2].X, devices.Screen.Captures[2].Y,
+            devices.Screen.Captures[2].Width, devices.Screen.Captures[2].Height));
     }
 
 
@@ -1685,7 +1689,7 @@ public class DeviceActionTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BadRegion", result.Key);
-        Assert.Empty(devices.Captures);
+        Assert.Empty(devices.Screen.Captures);
     }
 
     /// <summary>
@@ -1751,7 +1755,7 @@ public class DeviceActionTests
     public async Task Only_the_results_a_step_was_told_to_hand_over_are_written()
     {
         var devices = new FakeDeviceLayer();
-        devices.Match = new ImageMatch(0.75, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+        devices.Vision.Match = new ImageMatch(0.75, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1780,10 +1784,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_hit_hands_over_its_middle_and_its_corner()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 6)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 6));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1813,7 +1815,7 @@ public class DeviceActionTests
     public async Task An_expression_reading_a_result_nobody_asked_for_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.Match = new ImageMatch(0.9, new ScreenPoint(1, 2), new ScreenSize(3, 4));
+        devices.Vision.Match = new ImageMatch(0.9, new ScreenPoint(1, 2), new ScreenSize(3, 4));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1891,10 +1893,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_search_region_can_be_named_by_the_record_a_step_handed_over()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1920,7 +1920,7 @@ public class DeviceActionTests
     public async Task A_region_handed_a_record_reads_where_the_record_says_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1942,7 +1942,7 @@ public class DeviceActionTests
     public async Task A_search_region_can_be_measured_from_a_window_corner()
     {
         var devices = WithAWindow();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
 
         var (_, _, store) = await RunAsync(
         [
@@ -1971,7 +1971,7 @@ public class DeviceActionTests
         devices.Windows.Add(new WindowInfo(1, "笔记 - 第 3 关", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
         devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
 
         var (result, _, store) = await RunAsync(
         [
@@ -2010,7 +2010,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_a_pixel_stores_its_colour_both_ways()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xAB, 0xCD, 0xEF) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xAB, 0xCD, 0xEF);
         var (_, _, store) = await RunAsync(
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
@@ -2046,7 +2047,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_is_found_where_the_region_shows_it()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000,#FF0000", "#000000,#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#FF0000", "#000000,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2066,7 +2068,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_share_of_the_region_that_shows_the_colour_can_be_read()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#FF0000", "#000000,#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#FF0000", "#000000,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2086,7 +2089,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_short_of_the_share_asked_for_is_not_found()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000", "#000000,#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000", "#000000,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2107,12 +2111,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_is_found_where_its_colours_sit()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000",
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
                 "#000000,#FF0000,#00FF00",
-                "#000000,#0000FF,#000000"),
-        };
+                "#000000,#0000FF,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2132,12 +2134,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_with_one_colour_out_of_place_is_not_found()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000",
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
                 "#000000,#FF0000,#123456",
-                "#000000,#0000FF,#000000"),
-        };
+                "#000000,#0000FF,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2153,7 +2153,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_that_is_not_there_leaves_the_result_empty()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
 
         var (result, _, store) = await RunAsync(
             [Step("vision.findColor", Param("color", "#FF0000"), Hit("match", "spot"))],
@@ -2170,13 +2171,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Query_actions_report_false_without_failing()
     {
-        var imageDevices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = null,
-            Spans = [],
-            ElementExists = false,
-        };
+        var imageDevices = new FakeDeviceLayer { ElementExists = false };
+        imageDevices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        imageDevices.Vision.Match = null;
+        imageDevices.Ocr.Spans = [];
 
         var (result, _, store) = await RunAsync(
         [
@@ -2203,7 +2201,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Pixel_matches_reports_the_comparison_instead_of_failing()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0x10, 0x20, 0x30);
         var (result, _, store) = await RunAsync(
         [
             Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
@@ -2214,7 +2213,7 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.True(store.Local.Values["yes"].AsBool());
 
-        devices.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
+        devices.Screen.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
         var (other, _, otherStore) = await RunAsync(
         [
             Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
@@ -2245,7 +2244,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_search_looks_once_and_leaves_the_colour_to_the_wait()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2264,7 +2264,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Watching_one_pixel_goes_on_when_it_shows_the_colour()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0x00, 0x00) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xFF, 0x00, 0x00);
         var host = new SilentRunHost();
 
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
@@ -2278,7 +2279,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Watching_one_pixel_that_stays_the_wrong_colour_gives_up()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x00, 0x00, 0x00) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0x00, 0x00, 0x00);
 
         var (result, _, _) = await RunAsync(
             [Within(20, Step("vision.waitColor", Param("x", "5"), Param("y", "6"),
@@ -2292,7 +2294,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_second_place_a_colour_shows_is_the_one_a_step_can_take()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000,#FF0000");
 
         var (_, _, store) = await RunAsync(
         [
@@ -2307,7 +2310,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_place_a_colour_shows_can_be_recorded()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000,#FF0000");
 
         var (_, _, store) = await RunAsync(
         [
@@ -2322,9 +2326,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_still_picture_goes_on_once_the_screen_stops_moving()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
         var frames = new Queue<ImageFrame>([Picture("#FFFFFF"), Picture("#00FF00")]);
-        devices.Next = () => frames.Count > 1 ? frames.Dequeue() : frames.Peek();
+        devices.Screen.Next = () => frames.Count > 1 ? frames.Dequeue() : frames.Peek();
 
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
@@ -2342,9 +2347,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_screen_that_never_holds_still_fails_the_step()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
         var moving = true;
-        devices.Next = () =>
+        devices.Screen.Next = () =>
         {
             moving = !moving;
             return Picture(moving ? "#FF0000" : "#0000FF");
@@ -2367,9 +2373,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_picture_that_only_drifts_a_little_is_still_a_picture()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#808080") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#808080");
         var frames = new Queue<ImageFrame>([Picture("#838383")]);
-        devices.Next = () => frames.Count > 0 ? frames.Dequeue() : Picture("#838383");
+        devices.Screen.Next = () => frames.Count > 0 ? frames.Dequeue() : Picture("#838383");
 
         var (result, _, _) = await RunAsync(
         [
@@ -2385,9 +2392,9 @@ public class DeviceActionTests
     public async Task A_picture_can_be_taken_by_its_place_on_the_screen()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2407,10 +2414,8 @@ public class DeviceActionTests
     [Fact]
     public async Task How_a_picture_is_looked_for_reaches_the_device()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3));
 
         var (_, _, _) = await RunAsync(
         [
@@ -2420,7 +2425,7 @@ public class DeviceActionTests
                 Hit("match", "where")),
         ], devices);
 
-        var query = Assert.Single(devices.Queries);
+        var query = Assert.Single(devices.Vision.Queries);
         Assert.Equal(MatchAlgorithm.Feature, query.Algorithm);
         Assert.Equal(88d, query.ConfidencePercent);
         Assert.Equal(12, query.MinFeatures);
@@ -2442,10 +2447,8 @@ public class DeviceActionTests
     public async Task The_recognition_algorithm_reaches_the_device(string written,
         MatchAlgorithm expected)
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3));
 
         var (_, _, _) = await RunAsync(
         [
@@ -2456,23 +2459,21 @@ public class DeviceActionTests
                     Param("detectAlgorithm", written), Hit("match", "where")),
         ], devices);
 
-        Assert.Equal(expected, Assert.Single(devices.Queries).Algorithm);
+        Assert.Equal(expected, Assert.Single(devices.Vision.Queries).Algorithm);
     }
 
     /// <summary>Left alone, a search is done the way every macro did it before the fields existed.</summary>
     [Fact]
     public async Task A_picture_search_left_alone_is_still_a_plain_matching_search()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3));
 
         var (_, _, _) = await RunAsync(
             [Step("vision.findImage", Pictures("ok.png"), Hit("match", "where"))],
             devices);
 
-        var query = Assert.Single(devices.Queries);
+        var query = Assert.Single(devices.Vision.Queries);
         Assert.Equal(MatchAlgorithm.Normed, query.Algorithm);
         Assert.Equal(90d, query.ConfidencePercent);
         Assert.Equal(6, query.MinFeatures);
@@ -2487,9 +2488,9 @@ public class DeviceActionTests
     public async Task The_surest_picture_can_be_the_one_taken()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.91, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.91, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2509,9 +2510,9 @@ public class DeviceActionTests
     public async Task The_biggest_picture_can_be_the_one_taken()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(4, 4)));
-        devices.Matches.Add(new ImageMatch(0.91, new ScreenPoint(10, 10), new ScreenSize(120, 40)));
-        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(30, 70), new ScreenSize(40, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(4, 4)));
+        devices.Vision.Matches.Add(new ImageMatch(0.91, new ScreenPoint(10, 10), new ScreenSize(120, 40)));
+        devices.Vision.Matches.Add(new ImageMatch(0.95, new ScreenPoint(30, 70), new ScreenSize(40, 20)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2530,9 +2531,9 @@ public class DeviceActionTests
     private static FakeDeviceLayer TwoPictures(ImageMatch? one, ImageMatch? two)
     {
         var devices = new FakeDeviceLayer();
-        devices.Pictures["one.png"] = Picture("#FF0000");
-        devices.Pictures["two.png"] = Picture("#00FF00");
-        devices.PictureAnswers = (needle, _) => (needle[0, 0].R == 0xFF ? one : two) is { } hit
+        devices.Vision.Pictures["one.png"] = Picture("#FF0000");
+        devices.Vision.Pictures["two.png"] = Picture("#00FF00");
+        devices.Vision.PictureAnswers = (needle, _) => (needle[0, 0].R == 0xFF ? one : two) is { } hit
             ? [hit]
             : [];
         return devices;
@@ -2562,7 +2563,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("6,7", Centre(store, "where"));
-        Assert.Equal(1, devices.Searches);
+        Assert.Equal(1, devices.Vision.Searches);
     }
 
     /// <summary>
@@ -2582,7 +2583,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("41,51", Centre(store, "where"));
-        Assert.Equal(2, devices.Searches);
+        Assert.Equal(2, devices.Vision.Searches);
     }
 
     /// <summary>
@@ -2621,7 +2622,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("6,7", Centre(store, "where"));
-        Assert.Equal(2, devices.Searches);
+        Assert.Equal(2, devices.Vision.Searches);
     }
 
     /// <summary>
@@ -2631,7 +2632,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_pixel_closest_to_the_colour_is_the_one_taken()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#F00000,#FF0000,#FB0000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#F00000,#FF0000,#FB0000");
 
         var (_, _, store) = await RunAsync(
         [
@@ -2647,14 +2649,11 @@ public class DeviceActionTests
     [Fact]
     public async Task The_surest_reading_can_be_the_one_taken()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Continue", new ScreenPoint(10, 10), new ScreenSize(30, 8), 12),
                 new TextSpan("Continue", new ScreenPoint(10, 60), new ScreenSize(30, 8), 38),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -2672,14 +2671,11 @@ public class DeviceActionTests
     [Fact]
     public async Task The_widest_reading_can_be_the_one_taken()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Ready", new ScreenPoint(10, 10), new ScreenSize(30, 8), 30),
                 new TextSpan("Ready to go", new ScreenPoint(100, 90), new ScreenSize(80, 8), 30),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -2699,9 +2695,9 @@ public class DeviceActionTests
     public async Task A_shuffled_search_hands_back_one_of_the_places_it_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(20, 20), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 30), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(20, 20), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 30), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2717,7 +2713,7 @@ public class DeviceActionTests
     public async Task A_search_can_watch_two_regions_at_once()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2761,7 +2757,7 @@ public class DeviceActionTests
                 Param("window", "Game"), Parts("image", "shot")),
         ], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((118, 101, 30, 40), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal(4, asked.Window);
         Assert.Equal(CaptureWay.Auto, asked.Method);
@@ -2777,8 +2773,8 @@ public class DeviceActionTests
     public async Task The_way_of_taking_the_picture_is_the_machines_own()
     {
         var devices = WithWindow();
-        devices.Ways.Window = CaptureWay.PrintWindow;
-        devices.Ways.Screen = CaptureWay.DesktopDuplication;
+        devices.Screen.Ways.Window = CaptureWay.PrintWindow;
+        devices.Screen.Ways.Screen = CaptureWay.DesktopDuplication;
 
         await RunAsync(
         [
@@ -2787,8 +2783,8 @@ public class DeviceActionTests
             Capture(1, 1, 2, 2, Parts("image", "screen", "method")),
         ], devices);
 
-        Assert.Equal(CaptureWay.PrintWindow, devices.Captures[0].Method);
-        Assert.Equal(CaptureWay.DesktopDuplication, devices.Captures[1].Method);
+        Assert.Equal(CaptureWay.PrintWindow, devices.Screen.Captures[0].Method);
+        Assert.Equal(CaptureWay.DesktopDuplication, devices.Screen.Captures[1].Method);
     }
 
     /// <summary>
@@ -2810,10 +2806,10 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal((115, 90, 10, 10),
-            (devices.Captures[0].X, devices.Captures[0].Y, devices.Captures[0].Width,
-                devices.Captures[0].Height));
-        Assert.Equal(4, devices.Captures[0].Window);
-        Assert.Equal(0, devices.Captures[1].Window);
+            (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y, devices.Screen.Captures[0].Width,
+                devices.Screen.Captures[0].Height));
+        Assert.Equal(4, devices.Screen.Captures[0].Window);
+        Assert.Equal(0, devices.Screen.Captures[1].Window);
 
         Assert.Equal("graphicsCapture", store.Local.Values["fromWindow.method"].AsText());
         Assert.Equal("gdi", store.Local.Values["fromScreen.method"].AsText());
@@ -2828,7 +2824,7 @@ public class DeviceActionTests
     public async Task A_way_the_machine_cannot_do_is_reported_rather_than_swapped_for_another()
     {
         var devices = WithWindow();
-        devices.Ways.Window = CaptureWay.GraphicsCapture;
+        devices.Screen.Ways.Window = CaptureWay.GraphicsCapture;
         devices.Refusal = new DeviceActionException("Run.NoGraphicsCapture", "this machine has none");
 
         var (result, _, _) = await RunAsync(
@@ -2849,7 +2845,7 @@ public class DeviceActionTests
     public async Task A_step_with_nowhere_to_look_reads_the_whole_window_it_counts_from()
     {
         var devices = WithWindow(handle: 9);
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
@@ -2858,7 +2854,7 @@ public class DeviceActionTests
                 Hit("match", "match")),
         ], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal(9, asked.Window);
         Assert.Equal((108, 81, 400, 300), (asked.X, asked.Y, asked.Width, asked.Height));
     }
@@ -2875,7 +2871,7 @@ public class DeviceActionTests
 
         await RunAsync([CaptureWholeScreen(Parts("image", "shot"))], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
     }
 
@@ -2886,7 +2882,7 @@ public class DeviceActionTests
 
         await RunAsync([RecognizeWholeScreen(Returns("text=words"))], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
     }
 
@@ -2906,11 +2902,11 @@ public class DeviceActionTests
             Step("vision.capture", Param("x", "20"), Param("y", "10"), Parts("image", "shot")),
         ], devices);
 
-        Assert.Equal(2, devices.Captures.Count);
-        Assert.Equal((0, 0, 40, 50), (devices.Captures[0].X, devices.Captures[0].Y,
-            devices.Captures[0].Width, devices.Captures[0].Height));
-        Assert.Equal((20, 10, 80, 40), (devices.Captures[1].X, devices.Captures[1].Y,
-            devices.Captures[1].Width, devices.Captures[1].Height));
+        Assert.Equal(2, devices.Screen.Captures.Count);
+        Assert.Equal((0, 0, 40, 50), (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y,
+            devices.Screen.Captures[0].Width, devices.Screen.Captures[0].Height));
+        Assert.Equal((20, 10, 80, 40), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
+            devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
     }
 
     /// <summary>
@@ -2929,7 +2925,7 @@ public class DeviceActionTests
                 Param("width", "40"), Param("height", "20"), Parts("image", "shot")),
         ], devices);
 
-        var shot = Assert.Single(devices.Captures);
+        var shot = Assert.Single(devices.Screen.Captures);
         Assert.Equal((-30, -10, 40, 20), (shot.X, shot.Y, shot.Width, shot.Height));
     }
 
@@ -2961,7 +2957,7 @@ public class DeviceActionTests
     public async Task A_result_says_which_window_it_came_from()
     {
         var devices = WithWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(2, 2)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(2, 2)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2982,7 +2978,7 @@ public class DeviceActionTests
     public async Task A_step_that_found_nothing_empties_the_window_it_read()
     {
         var devices = WithWindow();
-        devices.Match = null;
+        devices.Vision.Match = null;
 
         var (_, _, store) = await RunAsync(
         [
@@ -3014,7 +3010,7 @@ public class DeviceActionTests
 
         Assert.DoesNotContain(devices.Calls,
             call => call.StartsWith("pixel ", StringComparison.Ordinal));
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((205, 106, 1, 1), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal(4, asked.Window);
     }
@@ -3031,7 +3027,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Contains("pixel 5 6", devices.Calls);
-        Assert.Empty(devices.Captures);
+        Assert.Empty(devices.Screen.Captures);
     }
 
     /// <summary>
@@ -3043,7 +3039,7 @@ public class DeviceActionTests
     public async Task A_step_may_be_given_the_picture_an_earlier_step_took()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -3056,7 +3052,7 @@ public class DeviceActionTests
 
         // One reading of the screen between them: the whole of it, because a picture that is to be
         // used again has to hold whatever the next step asks for.
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
 
         // Both steps were answered out of that one picture, cut where each of them asked.
@@ -3072,7 +3068,7 @@ public class DeviceActionTests
     public async Task A_step_that_accepts_no_older_picture_reads_the_screen_again()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
@@ -3081,11 +3077,11 @@ public class DeviceActionTests
                 Param("confidence", "90"), Hit("match", "match")),
         ], devices);
 
-        Assert.Equal(2, devices.Captures.Count);
-        Assert.Equal((0, 0, 100, 50), (devices.Captures[0].X, devices.Captures[0].Y,
-            devices.Captures[0].Width, devices.Captures[0].Height));
-        Assert.Equal((30, 5, 10, 10), (devices.Captures[1].X, devices.Captures[1].Y,
-            devices.Captures[1].Width, devices.Captures[1].Height));
+        Assert.Equal(2, devices.Screen.Captures.Count);
+        Assert.Equal((0, 0, 100, 50), (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y,
+            devices.Screen.Captures[0].Width, devices.Screen.Captures[0].Height));
+        Assert.Equal((30, 5, 10, 10), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
+            devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
     }
 
     /// <summary>
@@ -3096,7 +3092,7 @@ public class DeviceActionTests
     public async Task A_picture_older_than_the_step_allows_is_taken_again()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
@@ -3107,7 +3103,7 @@ public class DeviceActionTests
                 Hit("match", "match")),
         ], devices);
 
-        Assert.Equal(2, devices.Captures.Count);
+        Assert.Equal(2, devices.Screen.Captures.Count);
     }
 
     /// <summary>
@@ -3119,7 +3115,7 @@ public class DeviceActionTests
     public async Task A_step_that_names_a_gap_between_looks_waits_it_out()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
 
         var started = Stopwatch.GetTimestamp();
         await RunAsync(
@@ -3140,12 +3136,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_looks_again_as_often_as_the_step_says()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2)),
-            MatchAfter = 3,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2));
+        devices.Vision.MatchAfter = 3;
 
         var started = Stopwatch.GetTimestamp();
         var (result, _, store) = await RunAsync(
@@ -3157,7 +3151,7 @@ public class DeviceActionTests
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Assert.True(result.Succeeded);
         Assert.Equal("2,2", Centre(store, "spot"));
-        Assert.Equal(3, devices.Searches);
+        Assert.Equal(3, devices.Vision.Searches);
         Assert.True(took >= 110, $"three looks 60 ms apart take at least 120 ms, took {took:0}");
     }
 
@@ -3171,11 +3165,9 @@ public class DeviceActionTests
     public async Task A_wait_without_a_gap_of_its_own_looks_on_the_screens_beat()
     {
         // A 240 Hz screen: one refresh every four milliseconds.
-        var devices = new FakeDeviceLayer
-        {
-            Pixel = new PixelColor(0xFF, 0xFF, 0xFF),
-            RefreshMilliseconds = 4,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
+        devices.Screen.RefreshMilliseconds = 4;
 
         var (result, _, _) = await RunAsync(
         [
@@ -3246,10 +3238,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_capture_can_be_searched_for_again()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10));
 
         var (result, _, store) = await RunAsync(
         [
@@ -3268,12 +3258,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_an_image_keeps_looking_until_it_appears()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2)),
-            MatchAfter = 3,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2));
+        devices.Vision.MatchAfter = 3;
 
         var (result, _, store) = await RunAsync(
         [
@@ -3283,17 +3271,15 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("2,2", Centre(store, "spot"));
-        Assert.Equal(3, devices.Searches);
+        Assert.Equal(3, devices.Vision.Searches);
     }
 
     [Fact]
     public async Task Waiting_for_an_image_that_never_appears_fails()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = null,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = null;
 
         var (result, _, _) = await RunAsync(
         [
@@ -3314,7 +3300,7 @@ public class DeviceActionTests
     {
         var looked = 0;
         var devices = new FakeDeviceLayer();
-        devices.PictureAnswers = (_, _) => ++looked == 1
+        devices.Vision.PictureAnswers = (_, _) => ++looked == 1
             ? [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))]
             : [];
 
@@ -3338,7 +3324,7 @@ public class DeviceActionTests
     {
         var looked = 0;
         var devices = new FakeDeviceLayer();
-        devices.PictureAnswers = (_, _) => ++looked == 1
+        devices.Vision.PictureAnswers = (_, _) => ++looked == 1
             ? [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))]
             : [new ImageMatch(0.99, new ScreenPoint(40, 50), new ScreenSize(2, 2))];
 
@@ -3363,7 +3349,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         string? ownerWhileLooking = null;
-        devices.PictureAnswers = (_, _) =>
+        devices.Vision.PictureAnswers = (_, _) =>
         {
             ownerWhileLooking = InputGate.Owner;
             return [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))];
@@ -3388,10 +3374,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_on_a_picture_hands_over_where_it_clicked()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2));
 
         var (result, _, store) = await RunAsync(
         [
@@ -3412,7 +3396,7 @@ public class DeviceActionTests
     public async Task A_detected_thing_is_handed_over_with_where_it_is_and_what_it_is()
     {
         var devices = new FakeDeviceLayer();
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.87, new ScreenPoint(30, 40), new ScreenSize(10, 20), 2, "car"));
 
         var (result, _, store) = await RunAsync(
@@ -3443,8 +3427,8 @@ public class DeviceActionTests
 
         // 模型与标签文件的路径都按宏目录解析，交给设备的是解出来的全路径；要认的类一行一个，
         // 置信度写多少就是多少。
-        Assert.Equal(@"G:\fake\models\yolo.onnx", Assert.Single(devices.Models));
-        var query = Assert.Single(devices.DetectionQueries);
+        Assert.Equal(@"G:\fake\models\yolo.onnx", Assert.Single(devices.Detector.Models));
+        var query = Assert.Single(devices.Detector.DetectionQueries);
         Assert.Equal(40, query.ConfidencePercent);
         Assert.Equal(["car", "bus"], query.Labels);
         Assert.Equal(@"G:\fake\classes.txt", query.LabelFile);
@@ -3458,7 +3442,7 @@ public class DeviceActionTests
     public async Task A_detection_in_a_region_counts_from_the_corner_of_that_region()
     {
         var devices = new FakeDeviceLayer();
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.9, new ScreenPoint(5, 6), new ScreenSize(10, 10), 0, "person"));
 
         var (result, _, store) = await RunAsync(
@@ -3478,8 +3462,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_detection_looks_again_until_the_model_finds_something()
     {
-        var devices = new FakeDeviceLayer { DetectAfter = 3 };
-        devices.Detections.Add(
+        var devices = new FakeDeviceLayer();
+        devices.Detector.DetectAfter = 3;
+        devices.Detector.Detections.Add(
             new DetectionHit(0.8, new ScreenPoint(7, 9), new ScreenSize(4, 4), 1, "bicycle"));
 
         var (result, _, store) = await RunAsync(
@@ -3489,7 +3474,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.True(devices.Looks >= 3);
+        Assert.True(devices.Detector.Looks >= 3);
         Assert.Equal("bicycle", Field(store, "spot", "label").AsText());
         Assert.Equal("9,11", Centre(store, "spot"));
     }
@@ -3524,9 +3509,9 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
 
         // 分数最高的那一处在右下角，阅读顺序的第一个在左上角：只要阅读顺序的第一个，就该拿到左上的。
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.95, new ScreenPoint(900, 700), new ScreenSize(20, 20), 0, "person"));
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.6, new ScreenPoint(10, 12), new ScreenSize(20, 20), 5, "bus"));
 
         var (result, _, store) = await RunAsync(
@@ -3538,7 +3523,7 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("bus", Field(store, "spot", "label").AsText());
         Assert.Equal("20,22", Centre(store, "spot"));
-        Assert.True(Assert.Single(devices.DetectionQueries).Limit > 1);
+        Assert.True(Assert.Single(devices.Detector.DetectionQueries).Limit > 1);
     }
 
     /// <summary>
@@ -3548,7 +3533,7 @@ public class DeviceActionTests
     public async Task Clicking_a_detected_thing_lands_on_the_middle_of_its_box_and_the_offset()
     {
         var devices = new FakeDeviceLayer();
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.95, new ScreenPoint(30, 40), new ScreenSize(10, 20), 0, "person"));
 
         var (result, _, store) = await RunAsync(
@@ -3576,11 +3561,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_model_the_device_refuses_keeps_its_own_reason()
     {
-        var devices = new FakeDeviceLayer
-        {
-            DetectionAnswers = (_, _) =>
-                throw new DeviceActionException("Run.MissingModel", @"models\ghost.onnx"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Detector.DetectionAnswers = (_, _) =>
+                throw new DeviceActionException("Run.MissingModel", @"models\ghost.onnx");
 
         var (result, _, _) = await RunAsync(
             [Step("vision.detect", Param("model", @"models\ghost.onnx"))], devices);
@@ -3589,7 +3572,7 @@ public class DeviceActionTests
         Assert.Equal("Run.MissingModel", result.Key);
         Assert.Equal(@"models\ghost.onnx", result.Detail);
 
-        devices.DetectionAnswers = (_, _) =>
+        devices.Detector.DetectionAnswers = (_, _) =>
             throw new DeviceActionException("Run.BadModelShape", "1x25200x85");
 
         var (shaped, _, _) = await RunAsync(
@@ -3603,11 +3586,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_search_region_is_copied_before_it_is_searched()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2));
 
         var (_, _, store) = await RunAsync(
         [
@@ -3660,14 +3641,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_puts_the_words_in_a_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Ready", new ScreenPoint(1, 2), new ScreenSize(10, 4), 0.9),
                 new TextSpan("Go", new ScreenPoint(20, 2), new ScreenSize(6, 4), 0.8),
-            ],
-        };
+            ];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3682,10 +3660,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Finding_text_reports_where_it_is()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3703,14 +3679,11 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_keep_letter_case()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9),
                 new TextSpan("save", new ScreenPoint(10, 40), new ScreenSize(20, 8), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3728,14 +3701,11 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_leave_out_a_reading_the_model_was_unsure_of()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 12),
                 new TextSpan("Save now", new ScreenPoint(10, 40), new ScreenSize(20, 8), 38),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3762,14 +3732,11 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_insist_on_the_shape_of_what_it_finds()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("HP full", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40),
                 new TextSpan("HP 120/300", new ScreenPoint(0, 20), new ScreenSize(40, 8), 40),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3784,10 +3751,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_shape_that_makes_no_sense_fails_the_step_with_a_sentence()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("HP 120/300", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("HP 120/300", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)];
 
         var (result, _, _) = await RunAsync(
         [
@@ -3806,10 +3771,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_reading_the_model_keeps_getting_wrong_can_be_put_right()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("G0LD l00", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("G0LD l00", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3829,11 +3792,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Writing_can_be_handed_over_in_its_own_colour_alone()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FFFFFF,#00FF00"),
-            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#00FF00");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
 
         var (_, _, _) = await RunAsync(
         [
@@ -3841,7 +3802,7 @@ public class DeviceActionTests
                 Param("colorTolerance", "10"), Returns("text=text")),
         ], devices);
 
-        var handed = Assert.Single(devices.OcrPictures);
+        var handed = Assert.Single(devices.Ocr.OcrPictures);
 
         // The green pixel is not the writing, so it arrives flat white; the white one is.
         Assert.Equal(255, handed[0, 0].R);
@@ -3854,18 +3815,16 @@ public class DeviceActionTests
     [Fact]
     public async Task Without_a_colour_asked_for_the_picture_is_read_as_it_is()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FFFFFF,#00FF00"),
-            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#00FF00");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
 
         var (_, _, _) = await RunAsync(
         [
             Recognize(0, 0, 2, 1, Returns("text=text")),
         ], devices);
 
-        var handed = Assert.Single(devices.OcrPictures);
+        var handed = Assert.Single(devices.Ocr.OcrPictures);
         Assert.Equal(0, handed[1, 0].R);
         Assert.Equal(255, handed[1, 0].G);
     }
@@ -3873,15 +3832,12 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_record_every_place_the_text_was_read()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Total 12", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9),
                 new TextSpan("Other", new ScreenPoint(0, 20), new ScreenSize(20, 8), 0.9),
                 new TextSpan("Total 99", new ScreenPoint(0, 40), new ScreenSize(40, 8), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3908,15 +3864,12 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_that_records_every_place_records_what_each_one_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Total 12", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9),
                 new TextSpan("Other", new ScreenPoint(0, 20), new ScreenSize(20, 8), 0.9),
                 new TextSpan("Total 99", new ScreenPoint(0, 40), new ScreenSize(40, 8), 0.9),
-            ],
-        };
+            ];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3941,10 +3894,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_on_a_line_hands_over_where_it_clicked()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3961,14 +3912,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_and_finding_can_ask_for_the_numbers_only()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("合计 ¥1,234.50", new ScreenPoint(0, 0), new ScreenSize(80, 12), 0.9),
                 new TextSpan("已完成", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3989,14 +3937,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_can_keep_only_one_kind_of_writing()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("序号 SN-2048 完成", new ScreenPoint(0, 0), new ScreenSize(120, 12), 0.9),
                 new TextSpan("1234", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.8),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4018,15 +3963,12 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_can_keep_only_what_a_pattern_picks_out()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("合计 ¥1,234.50", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9),
                 new TextSpan("已发货", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.8),
                 new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 40), new ScreenSize(110, 12), 0.7),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4048,10 +3990,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Finding_text_reads_the_screen_the_way_the_step_said_to()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("SN-2048", new ScreenPoint(0, 0), new ScreenSize(40, 10), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("SN-2048", new ScreenPoint(0, 0), new ScreenSize(40, 10), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4069,10 +4009,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_the_text_reading_cannot_read_stops_the_step()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 0), new ScreenSize(110, 12), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 0), new ScreenSize(110, 12), 0.9)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -4092,10 +4030,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_left_empty_keeps_everything_that_was_read()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("订单号 88231", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("订单号 88231", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4109,16 +4045,13 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_can_keep_the_lines_and_columns_it_was_read_in()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("名称", new ScreenPoint(0, 0), new ScreenSize(30, 14), 0.9),
                 new TextSpan("数量", new ScreenPoint(120, 0), new ScreenSize(30, 14), 0.9),
                 new TextSpan("苹果", new ScreenPoint(0, 30), new ScreenSize(30, 14), 0.9),
                 new TextSpan("3", new ScreenPoint(120, 30), new ScreenSize(8, 14), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4145,10 +4078,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Cleaning_the_picture_up_before_reading_it_keeps_the_positions_on_screen()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Go", new ScreenPoint(20, 10), new ScreenSize(40, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Go", new ScreenPoint(20, 10), new ScreenSize(40, 8), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4157,7 +4088,7 @@ public class DeviceActionTests
         ], devices);
 
         // The picture the OCR was handed was the searched region at twice its size...
-        Assert.Equal([(200, 100)], devices.OcrFrames);
+        Assert.Equal([(200, 100)], devices.Ocr.OcrFrames);
 
         // ...so what it read comes back halved, and the place still means screen pixels: the
         // writing sat at 20,10 and was 40 by 8, so its centre is 40,14 and comes back as 20,7.
@@ -4173,10 +4104,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_compares_the_way_the_step_says()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Running", new ScreenPoint(0, 0), new ScreenSize(10, 4), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Running", new ScreenPoint(0, 0), new ScreenSize(10, 4), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4208,10 +4137,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_match_mode_that_is_none_of_the_five_stops_the_step()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save the file", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save the file", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9)];
 
         var (refused, _, _) = await RunAsync(
         [
@@ -4236,10 +4163,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Clicking_text_clicks_where_the_words_are()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("OK", new ScreenPoint(10, 20), new ScreenSize(20, 10), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("OK", new ScreenPoint(10, 20), new ScreenSize(20, 10), 0.9)];
 
         var (result, _, _) = await RunAsync(
         [
@@ -4258,7 +4183,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Clicking_text_that_never_shows_says_what_was_never_read()
     {
-        var devices = new FakeDeviceLayer { Spans = [] };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [];
 
         var (result, _, _) = await RunAsync(
         [
@@ -7192,15 +7118,13 @@ public class DeviceActionTests
         // to work over there reads where "over there" is instead of having one machine's numbers
         // written into it. A display to the left of the primary one would start at a negative
         // number, and that is exactly what the step has to hand over.
-        var devices = new FakeDeviceLayer
-        {
-            Desktop = new ScreenLayout(
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Desktop = new ScreenLayout(
                 new ScreenArea(0, 0, 300, 100),
                 [
                     new ScreenDisplay(new ScreenArea(0, 0, 100, 100), true),
                     new ScreenDisplay(new ScreenArea(100, 0, 200, 100), false),
-                ]),
-        };
+                ]);
         var (_, _, store) = await RunAsync(
             [Step("screen.list", Returns("displays=desk"))], devices);
 
@@ -7745,7 +7669,7 @@ public class DeviceActionTests
     private static FakeDeviceLayer Looking()
     {
         var devices = Named();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
         return devices;
     }
 
@@ -7805,11 +7729,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_record_a_step_hands_over_carries_the_fields_the_catalogue_declares()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)],
-        };
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)];
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
         devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
         devices.WindowFacts[42] = ("notepad", "Notepad");
@@ -7914,7 +7836,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var calls = 0;
-        devices.PictureAnswers = (_, _) => calls++ == 0
+        devices.Vision.PictureAnswers = (_, _) => calls++ == 0
             ? [new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(20, 20))]
             : [];
         var find = new ExecutableStep
@@ -8262,7 +8184,7 @@ public class DeviceActionTests
     public async Task A_window_record_without_the_field_the_match_reads_is_refused()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8456,10 +8378,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_found_image_reports_its_parts_by_name()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10));
 
         var (result, _, store) = await RunAsync(
         [
@@ -8479,7 +8399,9 @@ public class DeviceActionTests
     [Fact]
     public async Task An_image_that_is_not_there_clears_the_parts()
     {
-        var devices = new FakeDeviceLayer { Match = null, Loaded = new ImageFrame(2, 2, new byte[16]) };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = null;
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -8499,10 +8421,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_captured_image_is_found_through_its_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(10, 10)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(10, 10));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8528,11 +8448,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_search_region_can_come_from_a_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8552,11 +8470,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_picture_taken_earlier_can_be_searched_inside()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#FF0000"),
-            Match = new ImageMatch(0.99, new ScreenPoint(1, 0), new ScreenSize(1, 1)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#FF0000");
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(1, 0), new ScreenSize(1, 1));
 
         var (result, _, store) = await RunAsync(
         [
@@ -8577,11 +8493,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_region_that_makes_no_sense_fails_the_step_with_a_sentence()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8596,10 +8510,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_found_text_reports_its_parts_by_name()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -8632,10 +8544,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_moves_to_the_match_a_find_reported()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(100, 200), new ScreenSize(20, 20)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(100, 200), new ScreenSize(20, 20));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8786,7 +8696,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_bent_move_walks_a_path_instead_of_jumping()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(0, 0) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(0, 0);
 
         var (result, _, _) = await RunAsync(
         [
@@ -8805,7 +8716,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_bent_move_with_no_duration_borrows_one_so_that_it_can_bend()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(0, 0) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(0, 0);
 
         var (result, _, _) = await RunAsync(
             [Step("input.mouseMove", Param("x", "400"), Param("y", "0"), Param("style", "human"))],
@@ -8820,7 +8732,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_relative_move_bends_from_wherever_the_pointer_is()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(20, 30) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(20, 30);
 
         var (result, _, _) = await RunAsync(
         [
@@ -10101,8 +10014,8 @@ internal sealed class TestInputHook : IInputHook
     }
 }
 internal sealed class FakeDeviceLayer
-    : IDeviceLayer, IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice,
-      IDetectorDevice, IUiDevice, IWindowDevice, IBrowserDevice, IScriptDevice
+    : IDeviceLayer, IInputDevice, IGamepadDevice, IUiDevice, IWindowDevice, IBrowserDevice,
+      IScriptDevice
 {
     /// <summary>
     /// What every device here shares: the one log of calls, and the two switches that make a device
@@ -10123,6 +10036,18 @@ internal sealed class FakeDeviceLayer
     /// <summary>The pretend machine: its name, its environment and its settings.</summary>
     public FakeSystem System { get; }
 
+    /// <summary>The pretend screen: what it shows, where the pointer is, what was read of it.</summary>
+    public FakeScreen Screen { get; }
+
+    /// <summary>The pretend vision: what a reference picture reads as, and where it turns up.</summary>
+    public FakeVision Vision { get; }
+
+    /// <summary>What recognition reads off a picture, and which pictures it was handed.</summary>
+    public FakeOcr Ocr { get; }
+
+    /// <summary>The pretend detection model, and every look the engine asked of it.</summary>
+    public FakeDetector Detector { get; }
+
     /// <summary>Every call the engine made to any device, in the order it made them.</summary>
     public List<string> Calls => Desk.Calls;
 
@@ -10139,6 +10064,10 @@ internal sealed class FakeDeviceLayer
         Clipboard = new FakeClipboard(Desk);
         Processes = new FakeProcesses(Desk);
         System = new FakeSystem(Desk);
+        Screen = new FakeScreen(Desk);
+        Vision = new FakeVision(Desk);
+        Ocr = new FakeOcr(Desk);
+        Detector = new FakeDetector(Desk);
         _router = new RecordingRouter(this);
         _files = files ?? Files;
     }
@@ -10147,39 +10076,6 @@ internal sealed class FakeDeviceLayer
 
     /// <summary>The paths the pointer was asked to travel, in the order they were asked for.</summary>
     public List<IReadOnlyList<ScreenPoint>> Paths { get; } = [];
-
-    public ScreenPoint Cursor { get; set; } = new(7, 9);
-
-    /// <summary>
-    /// How the pretend desk is laid out. One display to begin with; a check about several sets this
-    /// to a layout with more, in the coordinates Windows would report them in.
-    /// </summary>
-    public ScreenLayout Desktop { get; set; } = new(new ScreenArea(0, 0, 100, 50),
-        [new ScreenDisplay(new ScreenArea(0, 0, 100, 50), true)]);
-
-    /// <summary>
-    /// How long one refresh of the pretend screen lasts. A check that wants to see how often a
-    /// waiting step looks sets it low, and one that does not care gets a fast screen.
-    /// </summary>
-    public int RefreshMilliseconds { get; set; } = 1;
-
-    public PixelColor Pixel { get; set; }
-
-    public ImageMatch? Match { get; set; }
-
-    /// <summary>
-    /// The places the fake reports the reference picture at. Normally the one <see cref="Match"/>
-    /// sets up; a check that wants several fills this in instead.
-    /// </summary>
-    public List<ImageMatch> Matches { get; } = [];
-
-    public ImageFrame? Loaded { get; set; } = new(2, 2, new byte[16]);
-
-    /// <summary>How many searches happen before a match starts being returned.</summary>
-    public int MatchAfter { get; set; } = 1;
-
-    /// <summary>How many times the reference picture was looked for.</summary>
-    public int Searches { get; private set; }
 
     /// <summary>When set, every call is refused this way instead of being recorded.</summary>
     public System.Exception? Refusal
@@ -10197,9 +10093,6 @@ internal sealed class FakeDeviceLayer
         get => Desk.Unavailable;
         set => Desk.Unavailable = value;
     }
-
-    /// <summary>What text recognition should report.</summary>
-    public List<TextSpan> Spans { get; set; } = [];
 
     /// <summary>Whether UI Automation should say the element is there.</summary>
     public bool ElementExists { get; set; } = true;
@@ -10252,19 +10145,20 @@ internal sealed class FakeDeviceLayer
 
     private int _windowReads;
 
+    /// <summary>
+    /// The pointer's position. It is a fact about the desk rather than about the way input is sent,
+    /// so the screen device holds it and input only reads it back.
+    /// </summary>
+    ScreenPoint IInputDevice.Cursor => Screen.Cursor;
+
     IInputDevice IDeviceLayer.Input => this;
 
     IGamepadDevice IDeviceLayer.Gamepad => this;
 
-    /// <summary>
-    /// How this machine has been told to read the screen. Automatic unless a check is about the
-    /// choice itself, which is what a machine nobody has set up answers.
-    /// </summary>
-    public CaptureChoice Ways { get; } = new();
+    /// <summary>How this machine has been told to read the screen.</summary>
+    ICaptureChoice IDeviceLayer.Capture => Screen.Ways;
 
-    ICaptureChoice IDeviceLayer.Capture => Ways;
-
-    IScreenDevice IDeviceLayer.Screen => this;
+    IScreenDevice IDeviceLayer.Screen => Screen;
 
     /// <summary>
     /// A hook, a recorder and driver-level input are not something a macro's steps reach for, so
@@ -10284,11 +10178,11 @@ internal sealed class FakeDeviceLayer
 
     IDriverInput IDeviceLayer.Driver => NullDeviceLayer.Instance.Driver;
 
-    IVisionDevice IDeviceLayer.Vision => this;
+    IVisionDevice IDeviceLayer.Vision => Vision;
 
-    IDetectorDevice IDeviceLayer.Detector => this;
+    IDetectorDevice IDeviceLayer.Detector => Detector;
 
-    IOcrDevice IDeviceLayer.Ocr => this;
+    IOcrDevice IDeviceLayer.Ocr => Ocr;
 
     IUiDevice IDeviceLayer.Ui => this;
 
@@ -10735,133 +10629,6 @@ internal sealed class FakeDeviceLayer
         Note($"dragAlong {button} {path.Count} {durationMs}");
     }
 
-    public PixelColor PixelAt(int x, int y)
-    {
-        Note($"pixel {x} {y}");
-        return Display is { } display ? display[x, y] : Pixel;
-    }
-
-    public ImageFrame Capture(int x, int y, int width, int height)
-        => Capture(new ScreenCaptureRequest(x, y, width, height)).Frame;
-
-    public ScreenShot Capture(ScreenCaptureRequest request)
-    {
-        Captures.Add(request);
-        Note($"capture {request.X} {request.Y} {request.Width} {request.Height}");
-        var picture = Display is { } display
-            ? ScreenCut(display, request.X, request.Y, request.Width, request.Height)
-            : new ImageFrame(request.Width, request.Height, new byte[request.Width * request.Height * 4]);
-
-        // A screen that moves between two captures is what waiting for the picture to settle is
-        // about, so a check writes what the screen does next.
-        if (Next is { } next)
-        {
-            Display = next();
-        }
-
-        // What a real machine answers an automatic request with: the window itself when a window
-        // was named, and the pixels of the desktop when it was not.
-        return new ScreenShot(picture, new ScreenPoint(request.X, request.Y),
-            request.Method != CaptureWay.Auto
-                ? request.Method
-                : request.Window == 0 ? CaptureWay.Gdi : CaptureWay.GraphicsCapture);
-    }
-
-    /// <summary>
-    /// Every reading of the screen that was asked for, in the order it was asked: which pixels,
-    /// from where, and by which means. A check reads this to see how a step's fields were turned
-    /// into a request rather than only that something was captured.
-    /// </summary>
-    public List<ScreenCaptureRequest> Captures { get; } = [];
-
-    /// <summary>What the pretend screen shows: a capture cuts the rectangle asked for out of it.</summary>
-    public ImageFrame? Display { get; set; }
-
-    /// <summary>
-    /// What the pretend screen shows next, asked after every capture, for the checks that need a
-    /// picture that moves: one that moves twice and then holds, or one that never holds at all.
-    /// Nothing here leaves the screen as it was.
-    /// </summary>
-    public Func<ImageFrame>? Next { get; set; }
-
-    public ImageFrame? Load(string path)
-    {
-        Note($"load {path}");
-        return Pictures.TryGetValue(path, out var picture) ? picture : Loaded;
-    }
-
-    /// <summary>
-    /// What each reference picture is read as, by path, for the checks that need two of them to
-    /// stand for different things. A path that is not in here is read as <see cref="Loaded"/>.
-    /// </summary>
-    public Dictionary<string, ImageFrame> Pictures { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
-    {
-        Searches++;
-        Queries.Add(query);
-        Note($"findAll {needle.Width}x{needle.Height} {query.ConfidencePercent:0} {query.Algorithm}");
-
-        // A check that needs one reference picture to turn up and another not to says so here; the
-        // rest of the time every picture is answered the way the one <see cref="Match"/> is.
-        var hits = PictureAnswers?.Invoke(needle, query)
-            ?? (Matches.Count > 0 ? Matches : Match is null ? [] : [Match]);
-        return Searches >= MatchAfter ? [.. hits.Take(query.Limit)] : [];
-    }
-
-    /// <summary>What the detection model in the fake reports, in the order it reports them.</summary>
-    public List<DetectionHit> Detections { get; } = [];
-
-    /// <summary>How many looks happen before the model starts finding anything.</summary>
-    public int DetectAfter { get; set; } = 1;
-
-    /// <summary>How many times the model was asked to look.</summary>
-    public int Looks { get; private set; }
-
-    /// <summary>The model files the engine asked for, in the order it asked.</summary>
-    public List<string> Models { get; } = [];
-
-    /// <summary>What the engine asked the model to find, in the order it asked.</summary>
-    public List<DetectionQuery> DetectionQueries { get; } = [];
-
-    /// <summary>
-    /// What a look hands back, for a check whose answer depends on the query — a model that finds
-    /// something only once the engine has been told to look for it.
-    /// </summary>
-    public Func<ImageFrame, DetectionQuery, IReadOnlyList<DetectionHit>>? DetectionAnswers
-    { get; set; }
-
-    public IReadOnlyList<DetectionHit> Detect(string modelPath, ImageFrame frame, DetectionQuery query)
-    {
-        Looks++;
-        Models.Add(modelPath);
-        DetectionQueries.Add(query);
-        Note($"detect {Path.GetFileName(modelPath)} {query.ConfidencePercent:0} {query.Limit}");
-
-        var hits = DetectionAnswers?.Invoke(frame, query) ?? Detections;
-        return Looks >= DetectAfter ? [.. hits.Take(query.Limit)] : [];
-    }
-
-    /// <summary>What the screen answers for one reference picture, when they have to differ.</summary>
-    public Func<ImageFrame, VisionQuery, IReadOnlyList<ImageMatch>>? PictureAnswers { get; set; }
-
-    /// <summary>Every search asked for, so a check can see how the step was read.</summary>
-    public List<VisionQuery> Queries { get; } = [];
-
-    public IReadOnlyList<TextSpan> Recognize(ImageFrame frame)
-    {
-        Note("ocr");
-        OcrFrames.Add((frame.Width, frame.Height));
-        OcrPictures.Add(frame);
-        return Spans;
-    }
-
-    /// <summary>The sizes of the pictures the OCR was handed, so a test can see what was read.</summary>
-    public List<(int Width, int Height)> OcrFrames { get; } = [];
-
-    /// <summary>The pictures themselves, for a test that is about what was handed over to read.</summary>
-    public List<ImageFrame> OcrPictures { get; } = [];
-
     public bool Exists(UiQuery query, int timeoutMs)
     {
         LastQuery = query;
@@ -11151,28 +10918,4 @@ internal sealed class FakeDeviceLayer
 
     /// <summary>Writes one call down, and answers the two switches the same way every device does.</summary>
     private void Note(string call) => Desk.Note(call);
-
-    /// <summary>
-    /// The rectangle of the pretend screen a step asked for, with anything running off the edge
-    /// left black the way a real capture leaves it.
-    /// </summary>
-    private static ImageFrame ScreenCut(ImageFrame display, int x, int y, int width, int height)
-    {
-        var bytes = new byte[width * height * 4];
-        for (var row = 0; row < height; row++)
-        {
-            for (var column = 0; column < width; column++)
-            {
-                var from = ((y + row) * display.Width + (x + column)) * 4;
-                if (from < 0 || from + 4 > display.Bgra.Length)
-                {
-                    continue;
-                }
-
-                Array.Copy(display.Bgra, from, bytes, (row * width + column) * 4, 4);
-            }
-        }
-
-        return new ImageFrame(width, height, bytes);
-    }
 }

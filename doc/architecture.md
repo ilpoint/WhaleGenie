@@ -407,11 +407,15 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 1. **`FakeDeviceLayer` 是一个宽替身**：`IDeviceLayer` 的十三个设备它全都实现了，1535 行挤在
    `DeviceActionTests.cs` 尾部。2026-10-29 起按设备拆到 `WhaleGenie.Core.Tests/Fakes/`：`FakeDesk` 管共用
-   的一本调用日志与两个拒绝开关，`FakeFiles`、`FakeClipboard`、`FakeProcesses`、`FakeSystem` 各自成类，
-   层只剩组合，1535 行降到 1075 行。
+   的一本调用日志与两个拒绝开关；`FakeFiles`、`FakeClipboard`、`FakeProcesses`、`FakeSystem`、
+   `FakeScreen`、`FakeVision`、`FakeOcr`、`FakeDetector` 各自成类。层只剩组合，1535 行降到 905 行。
 
-   剩下六组按同样的办法继续：屏/视觉/OCR/检测、输入与手柄、窗口、UI、浏览器、脚本。每拆一组，测试里那组
-   的状态就从 `devices.X` 改成 `devices.<设备>.X`——这一步不能省，留着转发属性等于把宽度换个写法。
+   已拆两组：纯数据（磁盘/剪贴板/进程/系统），屏与看（屏、视觉、OCR、检测）。后者四个接口共用一套图像状态，
+   一起搬才不会出现"像素在这边、画面在那边"的两处真相；`Cursor` 留在 `FakeScreen`（位置是桌面的事实），
+   层的 `IInputDevice.Cursor` 转发给它。
+
+   剩下四组按同样的办法继续：输入与手柄、窗口、UI、浏览器、脚本。每拆一组，测试里那组的状态就从
+   `devices.X` 改成 `devices.<设备>.X`——这一步不能省，留着转发属性等于把宽度换个写法。
 
 ### 做过判断，不打算做
 
