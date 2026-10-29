@@ -293,6 +293,14 @@
     <Thickness x:Key="GapPageHeader">0,24,0,16</Thickness>
     <Thickness x:Key="GapGroupHeader">0,24,0,8</Thickness>
     <Thickness x:Key="GapSectionHeader">0,16,0,4</Thickness>
+    <!-- 空状态那一段的上下留白：它自己是容器，上下都是 32，没有父容器能给出这个值。 -->
+    <Thickness x:Key="GapEmpty">0,32,0,32</Thickness>
+
+    <!--
+      `StackPanel.Spacing` 要的是 `Double`，而 `Space*` 是 `Thickness`——类型不同，不能互用，
+      规范里写"`Spacing` `Space2`"是把两个名字当成同一个值了。这里补一个 `Double` 版。
+    -->
+    <sys:Double x:Key="StackGap">8</sys:Double>
 
     <CornerRadius x:Key="RadiusControl">4</CornerRadius>
     <CornerRadius x:Key="RadiusContainer">6</CornerRadius>

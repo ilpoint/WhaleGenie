@@ -77,6 +77,8 @@
       STATIC TextBlock.Body
       STATIC TextBlock.Code
       STATIC TextBox.Code
+      STATIC StackPanel.Empty
+      STATIC Ellipse.Dot
       STATIC TextBlock.ColumnHeader
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.GroupHeader
@@ -89,6 +91,8 @@
       STATE chosen
       STATE problem
       STATE selected
+      STATE Occupied
+      STATE Current
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
       窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
@@ -113,6 +117,126 @@
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
         <Setter Property="Margin" Value="{DynamicResource GapField}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--
+      图标块与其余六类。三个是修饰型（`Chrome.Labeled` / `Ghost.Tiny` / `Tile` 的状态），用法是
+      类叠加（`Classes="Ghost Tiny"`），样式里只写与父类不同的那几格。
+    -->
+    <Style Selector="Button.Icon">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+    </Style>
+    <Style Selector="Button.Icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
+    </Style>
+    <Style Selector="Button.Icon:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <!-- 滑块钮：只有描边，没有底——它压在一个已经上了色的条上。 -->
+    <Style Selector="Button.Thumb">
+        <Setter Property="Padding" Value="{DynamicResource Pad1}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.Thumb:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="Button.Thumb:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="Button.Thumb:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+
+    <!--
+      磁贴：`.Occupied` 只改底（这一格有人占了），`.Current` 只改描边（这一格是当前选择的）——
+      又是"两个状态各走一个通道"，同 `.Card.Selectable` 的做法。
+    -->
+    <Style Selector="Button.Tile">
+        <Setter Property="MinHeight" Value="64" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="Button.Tile:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfacePressed}" />
+    </Style>
+    <Style Selector="Button.Tile.Occupied /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="Button.Tile.Current /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!-- 标题栏上带一个词的动作钮：与 `Chrome` 同高，只是左右内边距宽一档。 -->
+    <Style Selector="Button.Chrome.Labeled">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+    </Style>
+    <Style Selector="Button.Chrome.Labeled:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+    </Style>
+
+    <!-- 16 平方的极小图标钮：卡片角落、行尾那些地方用它。四态沿用 `Ghost`，只改尺寸。 -->
+    <Style Selector="Button.Ghost.Tiny">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+    </Style>
+
+    <!--
+      空状态：图标 + 标题 + 说明竖着排。它是容器，`Spacing` 与上下留白由它给；里面三类文字各用
+      `TextBlock.*` 的类，**不给 `StackPanel` 写 `Foreground`**——它没有这个属性，写了静默无效。
+    -->
+    <Style Selector="StackPanel.Empty">
+        <Setter Property="Spacing" Value="{DynamicResource StackGap}" />
+        <Setter Property="Margin" Value="{DynamicResource GapEmpty}" />
+    </Style>
+
+    <!--
+      状态点：8 平方的圆，颜色由类给。`Fill` 是 `Shape` 的通道——给它写 `Foreground` 语法合法、
+      静默无效（`dev.md` 第 4 条），所以五个档位各写一条 `Fill`。
+    -->
+    <Style Selector="Ellipse.Dot">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+    </Style>
+    <Style Selector="Ellipse.Dot.Success">
+        <Setter Property="Fill" Value="{DynamicResource Success}" />
+    </Style>
+    <Style Selector="Ellipse.Dot.Warning">
+        <Setter Property="Fill" Value="{DynamicResource Warning}" />
+    </Style>
+    <Style Selector="Ellipse.Dot.Danger">
+        <Setter Property="Fill" Value="{DynamicResource Danger}" />
+    </Style>
+    <Style Selector="Ellipse.Dot.Info">
+        <Setter Property="Fill" Value="{DynamicResource Info}" />
+    </Style>
+    <Style Selector="Ellipse.Dot.Disabled">
+        <Setter Property="Fill" Value="{DynamicResource TextDisabled}" />
     </Style>
 
     <!--
