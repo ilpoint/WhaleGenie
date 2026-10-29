@@ -189,6 +189,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 `open_project` 的 `dropped` 里说出来；一张都没 apply 就报 `TooManyDrafts`，不替客户端扔掉没落地的活。`whalegenie_preview_apply` 用 `McpPreview` 在 apply
 之前说出哪些宏会来、会走、会变。
 
+**跑一条宏**　`run_macro` 默认等到跑完（`timeoutMs` 到了就取消整次运行并回 `Timeout`）。`wait=false` 时立刻回
+`status: "Started"` 与运行编号，真正的结束仍然走同一段收尾（写日志、释放"一次只跑一条"的占用）；所以
+不等待不等于放开并发，第二条照样 `RunBusy`。
+
 **写入与补丁**　`put_macro` 整宏替换；`patch_macro` 在副本上按序执行七种操作，任一条不合就整批不改：
 
 | 操作 | 改什么 | 怎么点名 |

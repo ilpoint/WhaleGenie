@@ -264,6 +264,64 @@ public class McpRunTests : IDisposable
         });
     }
 
+    /// <summary>
+    /// A macro that outlasts a call can be started and left to run: the answer comes back at once
+    /// with the run id, and the run still holds the session's one turn, so a second one is refused
+    /// exactly as it is for a run that was waited for.
+    /// </summary>
+    [Fact]
+    public void A_run_can_be_started_without_waiting()
+    {
+        Ui.RunAsync(async () =>
+        {
+            _gate.Run = true;
+            try
+            {
+                await using var loop = McpLoopback.Start(new MainViewModel());
+                await using var client = await loop.ConnectAsync();
+
+                var draft = await Draft(client);
+                await Put(client, draft, """
+                    {"name":"慢","steps":[{"type":"control.delay","params":{"ms":"1500"}}]}
+                    """);
+
+                var started = JsonDocument.Parse(await Call(client, "whalegenie_run_macro",
+                    new Dictionary<string, object?>
+                    {
+                        ["name"] = "慢",
+                        ["draftId"] = draft,
+                        ["wait"] = false,
+                    })).RootElement;
+
+                Assert.Equal("Started", started.GetProperty("status").GetString());
+                var runId = started.GetProperty("runId").GetString()!;
+
+                var status = JsonDocument.Parse(await Call(client, "whalegenie_run_status",
+                    new Dictionary<string, object?>())).RootElement;
+                Assert.True(status.GetProperty("running").GetBoolean());
+                Assert.Equal(runId, status.GetProperty("runId").GetString());
+
+                // Starting without waiting is not starting two.
+                var second = await client.CallToolAsync("whalegenie_run_macro",
+                    new Dictionary<string, object?> { ["name"] = "慢", ["draftId"] = draft });
+                Assert.Equal(McpErrors.RunBusy, JsonDocument
+                    .Parse(second.Content.OfType<TextContentBlock>().First().Text)
+                    .RootElement.GetProperty("error").GetProperty("code").GetString());
+
+                await Call(client, "whalegenie_stop_macro",
+                    new Dictionary<string, object?> { ["runId"] = runId });
+
+                await loop.StopAsync();
+            }
+            finally
+            {
+                _gate.Run = false;
+            }
+
+            return true;
+        });
+    }
+
     private static async Task<string> Draft(McpClient client)
         => JsonDocument.Parse(await Call(client, "whalegenie_open_project",
             new Dictionary<string, object?>())).RootElement.GetProperty("draftId").GetString()!;

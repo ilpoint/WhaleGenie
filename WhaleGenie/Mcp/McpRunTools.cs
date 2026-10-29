@@ -55,11 +55,12 @@ public sealed class McpRunTools
 
     [McpServerTool(Name = "whalegenie_run_macro", Destructive = true,
             Title = "Run a macro"),
-     Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow the AI to run macros\"（允许 AI 运行宏） in the WhaleGenie MCP flyout, which is a different switch from \"Allow direct control\"（允许直接控制）; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports.")]
+     Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow the AI to run macros\"（允许 AI 运行宏） in the WhaleGenie MCP flyout, which is a different switch from \"Allow direct control\"（允许直接控制）; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports. Set wait to false for a macro that takes longer than a call should: the answer comes back at once with status Started, and the same id is then read with run_status or ended with stop_macro.")]
     public Task<CallToolResult> RunMacro(
         [Description("The macro name, as whalegenie_list_macros shows it.")] string name,
         [Description("A draft id to run that draft's version instead of the project's.")] string? draftId = null,
-        [Description("How long the whole run may take, in milliseconds. 120000 by default.")] int timeoutMs = 120_000)
+        [Description("How long the whole run may take, in milliseconds. 120000 by default.")] int timeoutMs = 120_000,
+        [Description("Whether this call waits for the run to end. True by default; false starts it and answers at once with the run id.")] bool wait = true)
         => McpErrors.RunAsync(async () =>
         {
             if (!McpControl.AllowsRun)
@@ -139,42 +140,95 @@ public sealed class McpRunTools
                 });
 
                 var budget = Math.Clamp(timeoutMs, 1000, 3_600_000);
-                using var deadline = new CancellationTokenSource(budget);
-                using var both = CancellationTokenSource.CreateLinkedTokenSource(token.Token, deadline.Token);
+                var deadline = new CancellationTokenSource(budget);
+                var both = CancellationTokenSource.CreateLinkedTokenSource(token.Token, deadline.Token);
 
-                RunResult? result = null;
-                var timedOut = false;
-                try
+                // One ending, however the run was started: the answer, the log and the release of
+                // the session's turn all happen here, so a run started without waiting cleans up
+                // exactly like one that was waited for.
+                async Task<CallToolResult> FinishAsync()
                 {
-                    result = await Task.Run(() => runner.RunAsync(steps, both.Token), both.Token)
-                        .ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Stopping and running out of time are both normal endings for a run.
-                    timedOut = deadline.IsCancellationRequested;
+                    RunResult? result = null;
+                    var timedOut = false;
+                    var ended = "Stopped";
+                    try
+                    {
+                        try
+                        {
+                            result = await Task.Run(() => runner.RunAsync(steps, both.Token), both.Token)
+                                .ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Stopping and running out of time are both normal endings for a run.
+                            timedOut = deadline.IsCancellationRequested;
+                        }
+
+                        ended = result is not null
+                            ? result.Status.ToString()
+                            : timedOut ? "Timeout" : "Stopped";
+
+                        return McpErrors.Ok(new
+                        {
+                            runId = capture.Id,
+                            macro = runName,
+                            status = ended,
+                            key = result?.Key ?? string.Empty,
+                            detail = result?.Detail ?? string.Empty,
+                            steps = result?.Steps ?? 0,
+                            timedOut,
+                            outcomes = RunLogStore.Find(capture.Id)?.Outcomes ?? [],
+                        });
+                    }
+                    finally
+                    {
+                        capture.Finish(result, ended);
+                        McpAudit.Note("run_macro", $"{runName} {ended}");
+
+                        lock (Gate)
+                        {
+                            _running = null;
+                            _runningId = string.Empty;
+                            _runningMacro = string.Empty;
+                        }
+
+                        token.Dispose();
+                        both.Dispose();
+                        deadline.Dispose();
+                    }
                 }
 
-                var ended = result is not null
-                    ? result.Status.ToString()
-                    : timedOut ? "Timeout" : "Stopped";
-                capture.Finish(result, ended);
-                McpAudit.Note("run_macro", $"{runName} {ended}");
+                if (wait)
+                {
+                    return await FinishAsync().ConfigureAwait(false);
+                }
+
+                // Started, not finished: the run keeps the session's turn until it ends by itself,
+                // so a second run is still refused while this one is going.
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await FinishAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception error) when (error is not OutOfMemoryException)
+                    {
+                        McpAudit.Note("run_macro", $"{runName} stopped on {error.GetType().Name}");
+                    }
+                });
 
                 return McpErrors.Ok(new
                 {
                     runId = capture.Id,
                     macro = runName,
-                    status = ended,
-                    key = result?.Key ?? string.Empty,
-                    detail = result?.Detail ?? string.Empty,
-                    steps = result?.Steps ?? 0,
-                    timedOut,
-                    outcomes = RunLogStore.Find(capture.Id)?.Outcomes ?? [],
+                    status = "Started",
+                    timedOut = false,
+                    hint = "Read it with whalegenie_run_status, end it with whalegenie_stop_macro; the log is under the same run id.",
                 });
             }
-            finally
+            catch
             {
+                // Failing before the run started must not leave the session thinking it is busy.
                 lock (Gate)
                 {
                     _running = null;
@@ -182,7 +236,7 @@ public sealed class McpRunTools
                     _runningMacro = string.Empty;
                 }
 
-                token.Dispose();
+                throw;
             }
         });
 
