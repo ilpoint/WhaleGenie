@@ -280,6 +280,11 @@
     -->
     <Thickness x:Key="GapSection">0,0,0,12</Thickness>
     <Thickness x:Key="GapField">0,0,0,8</Thickness>
+    <!--
+      分隔线两侧的间隙。第三个 `Gap*`，理由同前两个：分隔线常常是 `Grid` 里独立的一行，与它上面
+      下面的内容不在同一个 `StackPanel` 里，没有 `Spacing` 可给。
+    -->
+    <Thickness x:Key="GapDivider">0,12,0,12</Thickness>
 
     <CornerRadius x:Key="RadiusControl">4</CornerRadius>
     <CornerRadius x:Key="RadiusContainer">6</CornerRadius>
