@@ -370,35 +370,27 @@ internal static class ActionBench
     /// </summary>
     private static FakeDeviceLayer Desk()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Cursor = new ScreenPoint(10, 10),
-            Pixel = new PixelColor(255, 255, 255),
-            ElementText = "bench",
-            ClipboardText = "bench",
-            ClipboardMovesAfter = 1,
-            ClipboardCopy = new ImageFrame(8, 8, new byte[8 * 8 * 4]),
-            Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
-            CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
-            AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")),
-            Command = new CommandResult(0, "bench", string.Empty),
-        };
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(10, 10), Pixel = new PixelColor(255, 255, 255), ElementText = "bench", Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")) };
+        devices.Clipboard.Text = "bench";
+        devices.Clipboard.MovesAfter = 1;
+        devices.Clipboard.Picture = new ImageFrame(8, 8, new byte[8 * 8 * 4]);
+        devices.Processes.Command = new CommandResult(0, "bench", string.Empty);
 
         devices.Desktop = new ScreenLayout(new ScreenArea(0, 0, 1920, 1080),
             [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
 
-        devices.Files[BenchFixtures.TextFile] = "bench";
-        devices.Files[BenchFixtures.OtherTextFile] = "bench";
-        devices.Files[BenchFixtures.JsonFile] = """{"a":{"b":1}}""";
-        devices.Files[BenchFixtures.CsvFile] = "a,b\r\n1,2";
-        devices.Files[BenchFixtures.VarsFile] = """{"benchGlobal":"saved"}""";
-        devices.Files[devices.Resolve(BenchFixtures.TextFile)] = "bench";
-        devices.Files[devices.Resolve(BenchFixtures.OtherTextFile)] = "bench";
-        devices.Files[devices.Resolve(BenchFixtures.JsonFile)] = """{"a":{"b":1}}""";
-        devices.Files[devices.Resolve(BenchFixtures.CsvFile)] = "a,b\r\n1,2";
-        devices.Files[devices.Resolve(BenchFixtures.VarsFile)] = """{"benchGlobal":"saved"}""";
-        devices.Folders.Add(BenchFixtures.Folder);
-        devices.Folders.Add(devices.Resolve(BenchFixtures.Folder));
+        devices.Files.Store[BenchFixtures.TextFile] = "bench";
+        devices.Files.Store[BenchFixtures.OtherTextFile] = "bench";
+        devices.Files.Store[BenchFixtures.JsonFile] = """{"a":{"b":1}}""";
+        devices.Files.Store[BenchFixtures.CsvFile] = "a,b\r\n1,2";
+        devices.Files.Store[BenchFixtures.VarsFile] = """{"benchGlobal":"saved"}""";
+        devices.Files.Store[devices.Files.Resolve(BenchFixtures.TextFile)] = "bench";
+        devices.Files.Store[devices.Files.Resolve(BenchFixtures.OtherTextFile)] = "bench";
+        devices.Files.Store[devices.Files.Resolve(BenchFixtures.JsonFile)] = """{"a":{"b":1}}""";
+        devices.Files.Store[devices.Files.Resolve(BenchFixtures.CsvFile)] = "a,b\r\n1,2";
+        devices.Files.Store[devices.Files.Resolve(BenchFixtures.VarsFile)] = """{"benchGlobal":"saved"}""";
+        devices.Files.Folders.Add(BenchFixtures.Folder);
+        devices.Files.Folders.Add(devices.Files.Resolve(BenchFixtures.Folder));
 
         devices.Windows.Add(new WindowInfo(4242, "Bench", new ScreenPoint(100, 100),
             new ScreenSize(640, 480), false, false));
@@ -411,12 +403,12 @@ internal static class ActionBench
         devices.Spans.Add(new TextSpan("Bench", new ScreenPoint(200, 200), new ScreenSize(60, 20), 0.9));
         devices.Detections.Add(new DetectionHit(0.9, new ScreenPoint(200, 200), new ScreenSize(40, 40),
             0, "bench"));
-        devices.Running[BenchFixtures.ProgramName] = [BenchFixtures.ProcessId];
-        devices.ExitCodes[BenchFixtures.ProcessId] = 0;
-        devices.Exited.Add(BenchFixtures.ProcessId);
-        devices.SystemValues["PATH"] = "C:\\bench";
-        devices.SystemValues["userName"] = "bench";
-        devices.EnvironmentValues["PATH"] = "C:\\bench";
+        devices.Processes.Running[BenchFixtures.ProgramName] = [BenchFixtures.ProcessId];
+        devices.Processes.ExitCodes[BenchFixtures.ProcessId] = 0;
+        devices.Processes.Exited.Add(BenchFixtures.ProcessId);
+        devices.System.Values["PATH"] = "C:\\bench";
+        devices.System.Values["userName"] = "bench";
+        devices.System.EnvironmentValues["PATH"] = "C:\\bench";
         return devices;
     }
 }

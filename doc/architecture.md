@@ -403,10 +403,15 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 `WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去。剩下的分三类：值得做的、做过判断不做的、以及一个
 不算债但必须知道的结构事实。
 
-### 值得单独一轮
+### 值得单独一轮（进行中）
 
-1. **`FakeDeviceLayer` 1535 行**（在 `DeviceActionTests.cs` 尾部）。它宽是因为 `IDeviceLayer` 宽；
-   窄接口推广到更多消费者之后它会自己瘦下来。现在动只是把一个宽替身拆成几个窄替身。
+1. **`FakeDeviceLayer` 是一个宽替身**：`IDeviceLayer` 的十三个设备它全都实现了，1535 行挤在
+   `DeviceActionTests.cs` 尾部。2026-10-29 起按设备拆到 `WhaleGenie.Core.Tests/Fakes/`：`FakeDesk` 管共用
+   的一本调用日志与两个拒绝开关，`FakeFiles`、`FakeClipboard`、`FakeProcesses`、`FakeSystem` 各自成类，
+   层只剩组合，1535 行降到 1075 行。
+
+   剩下六组按同样的办法继续：屏/视觉/OCR/检测、输入与手柄、窗口、UI、浏览器、脚本。每拆一组，测试里那组
+   的状态就从 `devices.X` 改成 `devices.<设备>.X`——这一步不能省，留着转发属性等于把宽度换个写法。
 
 ### 做过判断，不打算做
 

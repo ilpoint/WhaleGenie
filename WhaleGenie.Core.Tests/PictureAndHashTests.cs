@@ -51,7 +51,7 @@ public class PictureAndHashTests
         ]);
 
         Assert.True(result.Succeeded);
-        var written = Assert.Contains(@"shots\out.png", devices.Blobs);
+        var written = Assert.Contains(@"shots\out.png", devices.Files.Blobs);
         Assert.Equal(Png, written[..8]);
     }
 
@@ -69,7 +69,7 @@ public class PictureAndHashTests
         ]);
 
         Assert.True(result.Succeeded);
-        Assert.Empty(devices.Blobs);
+        Assert.Empty(devices.Files.Blobs);
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ public class PictureAndHashTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(Png, devices.Blobs["window.png"][..8]);
+        Assert.Equal(Png, devices.Files.Blobs["window.png"][..8]);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class PictureAndHashTests
     public async Task A_checksum_reads_a_file_the_same_way_a_piece_of_text()
     {
         var devices = new FakeDeviceLayer();
-        devices.Blobs["report.txt"] = Encoding.UTF8.GetBytes("hello");
+        devices.Files.Blobs["report.txt"] = Encoding.UTF8.GetBytes("hello");
 
         var (result, _, store) = await RunAsync(
         [

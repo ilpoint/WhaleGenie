@@ -240,7 +240,7 @@ public class DeviceActionTests
 
         // The whole run is written as text into the log folder, under the macro's own name, in the
         // encoding a person can open by double-clicking.
-        var written = Assert.Single(devices.Files);
+        var written = Assert.Single(devices.Files.Store);
         Assert.StartsWith("logs", written.Key);
         Assert.Contains("failure-订单导出-", written.Key);
         Assert.EndsWith(".log", written.Key);
@@ -267,7 +267,7 @@ public class DeviceActionTests
         await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
             .RunAsync([Step("control.repeat", Param("times", "1"), Body("body", Step("nope.unknown")))]);
 
-        var lines = Assert.Single(devices.Files).Value
+        var lines = Assert.Single(devices.Files.Store).Value
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
         // The step inside the block is one level in, which is two more spaces after the time.
@@ -289,7 +289,7 @@ public class DeviceActionTests
         }.RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.StartsWith(folder, Assert.Single(devices.Files).Key, StringComparison.Ordinal);
+        Assert.StartsWith(folder, Assert.Single(devices.Files.Store).Key, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class DeviceActionTests
             .RunAsync([Step("control.delay", Param("ms", "0"))]);
 
         Assert.True(result.Succeeded);
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public class DeviceActionTests
             .RunAsync([Step("control.stop")]);
 
         Assert.Equal(RunStatus.Stopped, result.Status);
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
     }
 
     [Fact]
@@ -328,7 +328,7 @@ public class DeviceActionTests
             .RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
         Assert.Contains(host.Entries, entry => entry.Key == "Log.FailureLogFailed");
     }
 
@@ -342,7 +342,7 @@ public class DeviceActionTests
             RunName = "a/b:c*?d",
         }.RunAsync([Step("nope.unknown")]);
 
-        Assert.Contains("failure-a_b_c__d-", Assert.Single(devices.Files).Key);
+        Assert.Contains("failure-a_b_c__d-", Assert.Single(devices.Files.Store).Key);
     }
 
     [Fact]
@@ -355,7 +355,7 @@ public class DeviceActionTests
             RunName = new string('x', 60),
         }.RunAsync([Step("nope.unknown")]);
 
-        Assert.Contains("failure-" + new string('x', 40) + "-", Assert.Single(devices.Files).Key);
+        Assert.Contains("failure-" + new string('x', 40) + "-", Assert.Single(devices.Files.Store).Key);
     }
 
     [Fact]
@@ -373,15 +373,15 @@ public class DeviceActionTests
 
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         var taken = Path.Combine("logs", $"failure-{stamp}.log");
-        devices.Files[taken] = "an older log";
+        devices.Files.Store[taken] = "an older log";
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
             .RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Contains(devices.Files.Keys,
+        Assert.Contains(devices.Files.Store.Keys,
             path => path.EndsWith($"failure-{stamp}-1.log", StringComparison.Ordinal));
-        Assert.Equal("an older log", devices.Files[taken]);
+        Assert.Equal("an older log", devices.Files.Store[taken]);
     }
 
     /// <summary>
@@ -1471,7 +1471,7 @@ public class DeviceActionTests
     public async Task A_drag_end_that_is_not_a_place_is_refused()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "name,age\nAda,36\n";
+        devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
 
         var (result, _, _) = await RunAsync(
         [
@@ -1674,7 +1674,7 @@ public class DeviceActionTests
     public async Task A_record_with_no_rectangle_in_it_is_refused_where_a_rectangle_is_read()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "name,age\nAda,36\n";
+        devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
 
         var (result, _, _) = await RunAsync(
         [
@@ -4744,7 +4744,7 @@ public class DeviceActionTests
     public async Task Reading_a_text_file_fills_a_variable()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["notes.txt"] = "hello world";
+        devices.Files.Store["notes.txt"] = "hello world";
         var (result, _, store) = await RunAsync(
             [Step("file.readText", Param("path", "notes.txt"), Returns("text=text"))],
             devices);
@@ -4758,7 +4758,7 @@ public class DeviceActionTests
     public async Task A_text_file_can_be_read_one_line_at_a_time()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\r\nbeta\ngamma\r";
+        devices.Files.Store["names.txt"] = "alpha\r\nbeta\ngamma\r";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Returns("lines=names")),
@@ -4773,7 +4773,7 @@ public class DeviceActionTests
     public async Task Blank_lines_and_padding_can_be_left_out_of_a_line_list()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\n\n  beta  \n";
+        devices.Files.Store["names.txt"] = "alpha\n\n  beta  \n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"),
@@ -4796,14 +4796,14 @@ public class DeviceActionTests
         ], devices);
 
         Assert.EndsWith("shot.png", store.Local.Values["saved"].AsText(), StringComparison.Ordinal);
-        Assert.Contains("shot.png", devices.Blobs.Keys);
+        Assert.Contains("shot.png", devices.Files.Blobs.Keys);
     }
 
     [Fact]
     public async Task A_line_result_can_be_read_up_to_a_line()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\nbeta\ngamma\n";
+        devices.Files.Store["names.txt"] = "alpha\nbeta\ngamma\n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("limit", "2"),
@@ -4819,7 +4819,7 @@ public class DeviceActionTests
     public async Task The_text_result_is_the_whole_file_even_when_the_line_options_are_set()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\n\n  beta  \n";
+        devices.Files.Store["names.txt"] = "alpha\n\n  beta  \n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("limit", "1"),
@@ -4834,7 +4834,7 @@ public class DeviceActionTests
     public async Task Reading_a_text_file_hands_nothing_over_until_a_result_is_asked_for()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["notes.txt"] = "kept";
+        devices.Files.Store["notes.txt"] = "kept";
         var (_, _, store) = await RunAsync(
             [Step("file.readText", Param("path", "notes.txt"))], devices);
 
@@ -4845,7 +4845,7 @@ public class DeviceActionTests
     public async Task Text_files_can_name_the_encoding_they_are_written_in()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["old.csv"] = "a,b";
+        devices.Files.Store["old.csv"] = "a,b";
         var (result, _, _) = await RunAsync(
         [
             Step("file.writeText", Param("path", "notes.txt"), Param("fileContent", "你好"),
@@ -4864,7 +4864,7 @@ public class DeviceActionTests
     public async Task Writing_a_text_file_replaces_it_or_adds_to_the_end()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.txt"] = "first\n";
+        devices.Files.Store["log.txt"] = "first\n";
         await RunAsync(
         [
             Step("file.writeText", Param("path", "log.txt"), Param("fileContent", "second"),
@@ -4873,8 +4873,8 @@ public class DeviceActionTests
                 Param("writeMode", "overwrite")),
         ], devices);
 
-        Assert.Equal("first\nsecond", devices.Files["log.txt"]);
-        Assert.Equal("fresh", devices.Files["other.txt"]);
+        Assert.Equal("first\nsecond", devices.Files.Store["log.txt"]);
+        Assert.Equal("fresh", devices.Files.Store["other.txt"]);
     }
 
     [Fact]
@@ -4887,14 +4887,14 @@ public class DeviceActionTests
                 Param("newline", "end")),
         ], devices);
 
-        Assert.Equal("done" + Environment.NewLine, devices.Files["notes.txt"]);
+        Assert.Equal("done" + Environment.NewLine, devices.Files.Store["notes.txt"]);
     }
 
     [Fact]
     public async Task Adding_to_a_file_that_never_ended_its_line_starts_a_new_one()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["list.txt"] = "first";
+        devices.Files.Store["list.txt"] = "first";
         await RunAsync(
         [
             Step("file.writeText", Param("path", "list.txt"), Param("fileContent", "second"),
@@ -4906,7 +4906,7 @@ public class DeviceActionTests
         // The second line gets a break in front of it because the file had none, and the third
         // does not because the second one left one behind.
         Assert.Equal("first" + Environment.NewLine + "second" + Environment.NewLine + "third",
-            devices.Files["list.txt"]);
+            devices.Files.Store["list.txt"]);
     }
 
     [Fact]
@@ -4919,14 +4919,14 @@ public class DeviceActionTests
                 Param("writeMode", "append"), Param("newline", "start")),
         ], devices);
 
-        Assert.Equal("first", devices.Files["fresh.txt"]);
+        Assert.Equal("first", devices.Files.Store["fresh.txt"]);
     }
 
     [Fact]
     public async Task A_log_line_never_lands_on_the_end_of_the_last_one()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.txt"] = "half a line";
+        devices.Files.Store["log.txt"] = "half a line";
         await RunAsync(
         [
             Step("file.appendLog", Param("path", "log.txt"), Param("logLine", "second"),
@@ -4934,14 +4934,14 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("half a line" + Environment.NewLine + "second" + Environment.NewLine,
-            devices.Files["log.txt"]);
+            devices.Files.Store["log.txt"]);
     }
 
     [Fact]
     public async Task A_log_line_is_added_to_the_end_of_the_file()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.txt"] = "first\n";
+        devices.Files.Store["log.txt"] = "first\n";
         await RunAsync(
         [
             Step("file.appendLog", Param("path", "log.txt"), Param("logLine", "second"),
@@ -4949,7 +4949,7 @@ public class DeviceActionTests
         ], devices);
 
         // The line carries its own line break, which is what keeps the next one on its own line.
-        Assert.Equal("first\nsecond" + Environment.NewLine, devices.Files["log.txt"]);
+        Assert.Equal("first\nsecond" + Environment.NewLine, devices.Files.Store["log.txt"]);
     }
 
     [Fact]
@@ -4962,7 +4962,7 @@ public class DeviceActionTests
                 Param("timestamp", "true")),
         ], devices);
 
-        var text = devices.Files["log.txt"];
+        var text = devices.Files.Store["log.txt"];
         Assert.EndsWith(" done" + Environment.NewLine, text);
         Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} done", text);
     }
@@ -4970,8 +4970,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Checking_for_a_file_leaves_true_or_false()
     {
-        var devices = new FakeDeviceLayer { PathExists = false };
-        devices.Files["there.txt"] = "";
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = false;
+        devices.Files.Store["there.txt"] = "";
         var (_, _, store) = await RunAsync(
         [
             Step("file.exists", Param("path", "there.txt"), Returns("exists=there")),
@@ -4986,10 +4987,10 @@ public class DeviceActionTests
     public async Task Deleting_a_file_asks_the_file_device_to_remove_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["old.txt"] = "x";
+        devices.Files.Store["old.txt"] = "x";
         await RunAsync([Step("file.delete", Param("path", "old.txt"))], devices);
 
-        Assert.DoesNotContain("old.txt", devices.Files.Keys);
+        Assert.DoesNotContain("old.txt", devices.Files.Store.Keys);
         Assert.Contains("deleteFile old.txt False", devices.Calls);
     }
 
@@ -4997,7 +4998,7 @@ public class DeviceActionTests
     public async Task A_file_can_be_put_in_the_recycle_bin_instead_of_removed_for_good()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["old.txt"] = "x";
+        devices.Files.Store["old.txt"] = "x";
         await RunAsync(
             [Step("file.delete", Param("path", "old.txt"), Param("toRecycleBin", "true"))],
             devices);
@@ -5009,14 +5010,14 @@ public class DeviceActionTests
     public async Task Copying_a_file_passes_both_paths_to_the_device()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["a.txt"] = "data";
+        devices.Files.Store["a.txt"] = "data";
         var (_, _, store) = await RunAsync(
         [
             Step("file.copy", Param("from", "a.txt"), Param("to", "b.txt"),
                 Param("ifExists", "overwrite"), Returns("path=landed")),
         ], devices);
 
-        Assert.Equal("data", devices.Files["b.txt"]);
+        Assert.Equal("data", devices.Files.Store["b.txt"]);
         Assert.Contains("copyFile a.txt b.txt", devices.Calls);
         Assert.EndsWith("b.txt", store.Local.Values["landed"].AsText(), StringComparison.Ordinal);
     }
@@ -5025,7 +5026,7 @@ public class DeviceActionTests
     public async Task Moving_a_file_takes_it_away_from_where_it_was()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["report.csv"] = "rows";
+        devices.Files.Store["report.csv"] = "rows";
         var (result, _, _) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", @"archive\old.csv"),
@@ -5034,8 +5035,8 @@ public class DeviceActionTests
 
         // A move is a rename as much as it is a change of folder: the old name is gone.
         Assert.True(result.Succeeded);
-        Assert.Equal("rows", devices.Files[@"archive\old.csv"]);
-        Assert.False(devices.Files.ContainsKey("report.csv"));
+        Assert.Equal("rows", devices.Files.Store[@"archive\old.csv"]);
+        Assert.False(devices.Files.Store.ContainsKey("report.csv"));
         Assert.Contains(@"moveFile report.csv archive\old.csv", devices.Calls);
     }
 
@@ -5043,8 +5044,8 @@ public class DeviceActionTests
     public async Task A_move_can_leave_a_file_that_is_already_there_alone()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["report.csv"] = "rows";
-        devices.Files["taken.csv"] = "keep me";
+        devices.Files.Store["report.csv"] = "rows";
+        devices.Files.Store["taken.csv"] = "keep me";
         var (result, _, store) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", "taken.csv"),
@@ -5054,8 +5055,8 @@ public class DeviceActionTests
         // Nothing was moved and nothing was overwritten: the file that was there is still there,
         // and the one that was to go there has not gone anywhere.
         Assert.True(result.Succeeded);
-        Assert.Equal("keep me", devices.Files["taken.csv"]);
-        Assert.Equal("rows", devices.Files["report.csv"]);
+        Assert.Equal("keep me", devices.Files.Store["taken.csv"]);
+        Assert.Equal("rows", devices.Files.Store["report.csv"]);
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("moveFile", StringComparison.Ordinal));
         Assert.EndsWith("taken.csv", store.Local.Values["landed"].AsText(), StringComparison.Ordinal);
     }
@@ -5064,18 +5065,18 @@ public class DeviceActionTests
     public async Task A_copy_can_be_given_a_number_of_its_own_beside_a_taken_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["report.csv"] = "new";
-        devices.Files[@"backup\report.csv"] = "old";
-        devices.Files[@"backup\report (2).csv"] = "older";
+        devices.Files.Store["report.csv"] = "new";
+        devices.Files.Store[@"backup\report.csv"] = "old";
+        devices.Files.Store[@"backup\report (2).csv"] = "older";
         var (_, _, store) = await RunAsync(
         [
             Step("file.copy", Param("from", "report.csv"), Param("to", @"backup\report.csv"),
                 Param("ifExists", "unique"), Returns("path=landed")),
         ], devices);
 
-        Assert.Equal("old", devices.Files[@"backup\report.csv"]);
-        Assert.Equal("older", devices.Files[@"backup\report (2).csv"]);
-        Assert.Equal("new", devices.Files[@"backup\report (3).csv"]);
+        Assert.Equal("old", devices.Files.Store[@"backup\report.csv"]);
+        Assert.Equal("older", devices.Files.Store[@"backup\report (2).csv"]);
+        Assert.Equal("new", devices.Files.Store[@"backup\report (3).csv"]);
         Assert.EndsWith(@"report (3).csv", store.Local.Values["landed"].AsText(),
             StringComparison.Ordinal);
     }
@@ -5089,13 +5090,14 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(@"createFolder output\reports", devices.Calls);
-        Assert.Contains(@"output\reports", devices.Folders);
+        Assert.Contains(@"output\reports", devices.Files.Folders);
     }
 
     [Fact]
     public async Task A_folder_that_still_holds_something_is_left_alone_unless_told_otherwise()
     {
-        var devices = new FakeDeviceLayer { FolderHasFiles = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.FolderHasFiles = true;
         var (refused, _, _) = await RunAsync(
             [Step("file.deleteFolder", Param("path", "old"))], devices);
 
@@ -5156,7 +5158,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(@"unzip download.zip unpacked True", devices.Calls);
-        Assert.Equal("unpacked", devices.Files[Path.Combine("unpacked", "readme.txt")]);
+        Assert.Equal("unpacked", devices.Files.Store[Path.Combine("unpacked", "readme.txt")]);
     }
 
     [Fact]
@@ -5174,7 +5176,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_zip_file_that_is_not_one_reports_what_the_device_said()
     {
-        var devices = new FakeDeviceLayer { UnzipWorks = false };
+        var devices = new FakeDeviceLayer();
+        devices.Files.UnzipWorks = false;
         var (result, _, _) = await RunAsync(
             [Step("file.unzip", Param("from", "notes.txt"), Param("folder", "unpacked"))], devices);
 
@@ -5186,8 +5189,8 @@ public class DeviceActionTests
     public async Task Listing_a_folder_gives_a_list_of_full_paths()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"C:\fake\a.txt");
-        devices.FolderEntries.Add(@"C:\fake\b.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\a.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\b.txt");
         var (_, _, store) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*.txt"),
@@ -5205,10 +5208,10 @@ public class DeviceActionTests
     public async Task A_listing_can_ask_for_what_changed_recently()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"C:\fake\today.txt");
-        devices.FolderEntries.Add(@"C:\fake\last_month.txt");
-        devices.FileFacts[@"C:\fake\today.txt"] = (12, DateTimeOffset.Now.AddHours(-2));
-        devices.FileFacts[@"C:\fake\last_month.txt"] = (12, DateTimeOffset.Now.AddDays(-30));
+        devices.Files.FolderEntries.Add(@"C:\fake\today.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\last_month.txt");
+        devices.Files.Facts[@"C:\fake\today.txt"] = (12, DateTimeOffset.Now.AddHours(-2));
+        devices.Files.Facts[@"C:\fake\last_month.txt"] = (12, DateTimeOffset.Now.AddDays(-30));
 
         var (_, _, store) = await RunAsync(
         [
@@ -5226,10 +5229,10 @@ public class DeviceActionTests
     public async Task A_listing_can_be_ordered_and_weeded_by_size()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"C:\fake\small.txt");
-        devices.FolderEntries.Add(@"C:\fake\big.txt");
-        devices.FileFacts[@"C:\fake\small.txt"] = (100, DateTimeOffset.Now);
-        devices.FileFacts[@"C:\fake\big.txt"] = (5_000_000, DateTimeOffset.Now);
+        devices.Files.FolderEntries.Add(@"C:\fake\small.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\big.txt");
+        devices.Files.Facts[@"C:\fake\small.txt"] = (100, DateTimeOffset.Now);
+        devices.Files.Facts[@"C:\fake\big.txt"] = (5_000_000, DateTimeOffset.Now);
 
         var (_, _, store) = await RunAsync(
         [
@@ -5255,7 +5258,7 @@ public class DeviceActionTests
     public async Task A_listing_can_be_given_as_paths_inside_the_folder()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"G:\fake\reports\a.txt");
+        devices.Files.FolderEntries.Add(@"G:\fake\reports\a.txt");
         var (_, _, store) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "reports"), Param("pattern", "*"),
@@ -5295,7 +5298,7 @@ public class DeviceActionTests
     public async Task Reading_json_walks_a_dotted_path()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["config.json"] = """{"server":{"name":"alpha","port":8080}}""";
+        devices.Files.Store["config.json"] = """{"server":{"name":"alpha","port":8080}}""";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readJson", Param("path", "config.json"), Param("query", "server.name"),
@@ -5312,14 +5315,14 @@ public class DeviceActionTests
     public async Task Writing_json_keeps_the_rest_and_makes_missing_objects()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["config.json"] = """{"server":{"name":"alpha"}}""";
+        devices.Files.Store["config.json"] = """{"server":{"name":"alpha"}}""";
         await RunAsync(
         [
             Step("file.writeJson", Param("path", "config.json"), Param("query", "server.port"),
                 Param("writeValue", "9000")),
         ], devices);
 
-        var written = devices.Files["config.json"];
+        var written = devices.Files.Store["config.json"];
         Assert.Contains("\"name\": \"alpha\"", written);
         Assert.Contains("\"port\": 9000", written);
     }
@@ -5328,7 +5331,7 @@ public class DeviceActionTests
     public async Task Reading_csv_splits_rows_and_skips_a_header()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["rows.csv"] = "name,age\r\nalice,30\r\nbob,41";
+        devices.Files.Store["rows.csv"] = "name,age\r\nalice,30\r\nbob,41";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
@@ -5347,7 +5350,7 @@ public class DeviceActionTests
         // What "change one cell of a CSV" comes to now that there are cells to point at: read the
         // column, change the item at that position, write the column back.
         var devices = new FakeDeviceLayer();
-        devices.Files["names.csv"] = "alice\r\nbob\r\ncarol";
+        devices.Files.Store["names.csv"] = "alice\r\nbob\r\ncarol";
 
         await RunAsync(
         [
@@ -5358,14 +5361,14 @@ public class DeviceActionTests
                 Param("separator", "comma")),
         ], devices);
 
-        Assert.Equal("alice\nBetty\ncarol", devices.Files["out.csv"].Replace("\r\n", "\n").TrimEnd('\n'));
+        Assert.Equal("alice\nBetty\ncarol", devices.Files.Store["out.csv"].Replace("\r\n", "\n").TrimEnd('\n'));
     }
 
     [Fact]
     public async Task Writing_csv_quotes_the_cells_that_need_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "a,\"b,c\"";
+        devices.Files.Store["in.csv"] = "a,\"b,c\"";
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
@@ -5376,7 +5379,7 @@ public class DeviceActionTests
 
         // The cell holding the separator comes back out quoted, and the file ends its last line
         // the way every writer ends one: with a line terminator, rather than a line left hanging.
-        Assert.Equal("a,\"b,c\"\r\n", devices.Files["out.csv"]);
+        Assert.Equal("a,\"b,c\"\r\n", devices.Files.Store["out.csv"]);
     }
 
     /// <summary>
@@ -5387,7 +5390,7 @@ public class DeviceActionTests
     public async Task A_row_read_with_a_header_is_read_by_column_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["rows.csv"] = "name,age\r\nalice,30";
+        devices.Files.Store["rows.csv"] = "name,age\r\nalice,30";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5413,7 +5416,7 @@ public class DeviceActionTests
     public async Task A_row_read_without_a_header_names_its_columns_by_letter()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["plain.csv"] = "alice,30";
+        devices.Files.Store["plain.csv"] = "alice,30";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5431,7 +5434,7 @@ public class DeviceActionTests
     public async Task Reading_csv_can_start_further_down_the_file_and_stop_early()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["big.csv"] = "a,1\r\nb,2\r\nc,3\r\nd,4";
+        devices.Files.Store["big.csv"] = "a,1\r\nb,2\r\nc,3\r\nd,4";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5450,7 +5453,7 @@ public class DeviceActionTests
     public async Task Reading_csv_leaves_out_the_blank_lines_a_file_ends_with()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["rows.csv"] = "a,b\r\n\r\nc,d\r\n\r\n";
+        devices.Files.Store["rows.csv"] = "a,b\r\n\r\nc,d\r\n\r\n";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5469,7 +5472,7 @@ public class DeviceActionTests
     public async Task Reading_csv_can_use_a_character_the_picker_does_not_offer()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["odd.csv"] = "a#b#c";
+        devices.Files.Store["odd.csv"] = "a#b#c";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5487,7 +5490,7 @@ public class DeviceActionTests
     public async Task Reading_csv_can_trim_the_spaces_around_a_cell()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["padded.csv"] = "a , b";
+        devices.Files.Store["padded.csv"] = "a , b";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5508,8 +5511,8 @@ public class DeviceActionTests
     public async Task Adding_to_a_csv_writes_the_header_once_and_the_rows_after_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["first.csv"] = "alice,30";
-        devices.Files["second.csv"] = "bob,41";
+        devices.Files.Store["first.csv"] = "alice,30";
+        devices.Files.Store["second.csv"] = "bob,41";
 
         await RunAsync(
         [
@@ -5525,7 +5528,7 @@ public class DeviceActionTests
                 Param("writeMode", "append")),
         ], devices);
 
-        Assert.Equal("name,age\r\nalice,30\r\nbob,41\r\n", devices.Files["log.csv"]);
+        Assert.Equal("name,age\r\nalice,30\r\nbob,41\r\n", devices.Files.Store["log.csv"]);
     }
 
     /// <summary>
@@ -5537,7 +5540,7 @@ public class DeviceActionTests
     public async Task A_csv_cell_that_looks_like_a_formula_is_written_as_it_stands()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "=SUM(A1),@mine,-1";
+        devices.Files.Store["in.csv"] = "=SUM(A1),@mine,-1";
 
         await RunAsync(
         [
@@ -5547,14 +5550,14 @@ public class DeviceActionTests
                 Param("separator", "comma")),
         ], devices);
 
-        Assert.Equal("=SUM(A1),@mine,-1\r\n", devices.Files["out.csv"]);
+        Assert.Equal("=SUM(A1),@mine,-1\r\n", devices.Files.Store["out.csv"]);
     }
 
     [Fact]
     public async Task Writing_csv_can_end_its_lines_and_quote_every_cell_the_way_it_was_told()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "a,b\r\nc,d";
+        devices.Files.Store["in.csv"] = "a,b\r\nc,d";
 
         await RunAsync(
         [
@@ -5565,14 +5568,14 @@ public class DeviceActionTests
                 Param("quoteAll", "true")),
         ], devices);
 
-        Assert.Equal("\"a\",\"b\"\n\"c\",\"d\"\n", devices.Files["unix.csv"]);
+        Assert.Equal("\"a\",\"b\"\n\"c\",\"d\"\n", devices.Files.Store["unix.csv"]);
     }
 
     [Fact]
     public async Task An_empty_csv_cell_is_left_empty_unless_it_is_asked_to_be_shown()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "a,,c";
+        devices.Files.Store["in.csv"] = "a,,c";
 
         await RunAsync(
         [
@@ -5588,8 +5591,8 @@ public class DeviceActionTests
 
         // Both are a cell holding nothing; the second one is for the reader that wants to see a
         // cell there, and it reads back as the same empty cell.
-        Assert.Equal("a,,c\r\n", devices.Files["bare.csv"]);
-        Assert.Equal("a,\"\",c\r\n", devices.Files["shown.csv"]);
+        Assert.Equal("a,,c\r\n", devices.Files.Store["bare.csv"]);
+        Assert.Equal("a,\"\",c\r\n", devices.Files.Store["shown.csv"]);
     }
 
     /// <summary>
@@ -5600,8 +5603,8 @@ public class DeviceActionTests
     public async Task Adding_to_a_csv_by_name_puts_each_cell_under_the_column_that_has_its_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.csv"] = "日期,订单号,金额\r\n2026-01-05,A123,120\r\n";
-        devices.Files["in.csv"] = "订单号,金额\r\nB456,80";
+        devices.Files.Store["log.csv"] = "日期,订单号,金额\r\n2026-01-05,A123,120\r\n";
+        devices.Files.Store["in.csv"] = "订单号,金额\r\nB456,80";
 
         await RunAsync(
         [
@@ -5616,15 +5619,15 @@ public class DeviceActionTests
         // The date column is the file's own and this step knows nothing about it: it stays empty
         // in the new line rather than taking the order number.
         Assert.Equal("日期,订单号,金额\r\n2026-01-05,A123,120\r\n,B456,80\r\n",
-            devices.Files["log.csv"]);
+            devices.Files.Store["log.csv"]);
     }
 
     [Fact]
     public async Task A_csv_column_name_the_file_has_not_got_is_reported()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
-        devices.Files["in.csv"] = "总价\r\n1";
+        devices.Files.Store["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
+        devices.Files.Store["in.csv"] = "总价\r\n1";
 
         var (result, _, _) = await RunAsync(
         [
@@ -5641,7 +5644,7 @@ public class DeviceActionTests
     public async Task A_csv_cell_added_by_name_needs_a_name_of_its_own()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
+        devices.Files.Store["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
 
         // A row of plain cells rather than a record: nothing says what its two cells are called, and
         // the step names one column for them. Half a name is worse than no name — the other cell
@@ -5670,7 +5673,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("5", store.Local.Values["counter"].AsText());
-        Assert.Contains("\"counter\": 5", devices.Files["state.json"]);
+        Assert.Contains("\"counter\": 5", devices.Files.Store["state.json"]);
     }
 
     [Fact]
@@ -5696,14 +5699,15 @@ public class DeviceActionTests
             [Step("clipboard.writeText", Param("clipboardText", "hello"))], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("hello", devices.ClipboardText);
+        Assert.Equal("hello", devices.Clipboard.Text);
         Assert.Contains("clipboardWrite hello", devices.Calls);
     }
 
     [Fact]
     public async Task Reading_the_clipboard_fills_a_variable()
     {
-        var devices = new FakeDeviceLayer { ClipboardText = "from the clipboard" };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "from the clipboard";
         var (_, _, store) = await RunAsync(
             [Step("clipboard.readText", Returns("text=picked"))], devices);
 
@@ -5713,7 +5717,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_the_clipboard_hands_nothing_over_until_a_result_is_asked_for()
     {
-        var devices = new FakeDeviceLayer { ClipboardText = "kept" };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "kept";
         var (_, _, store) = await RunAsync([Step("clipboard.readText")], devices);
 
         // Nothing was ticked, so the step leaves no variable behind at all: reading one is reading a
@@ -5724,10 +5729,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_picture_on_the_clipboard_can_be_read_into_a_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ClipboardCopy = new ImageFrame(4, 3, new byte[4 * 3 * 4]),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Picture = new ImageFrame(4, 3, new byte[4 * 3 * 4]);
         var (result, _, store) = await RunAsync(
             [Step("clipboard.readImage", Parts("image", "shot", "width", "height"))], devices);
 
@@ -5769,8 +5772,8 @@ public class DeviceActionTests
     public async Task The_files_on_the_clipboard_come_back_as_a_list()
     {
         var devices = new FakeDeviceLayer();
-        devices.ClipboardFiles.Add(@"C:\reports\day.csv");
-        devices.ClipboardFiles.Add(@"C:\reports\week.csv");
+        devices.Clipboard.Files.Add(@"C:\reports\day.csv");
+        devices.Clipboard.Files.Add(@"C:\reports\week.csv");
         var (_, _, store) = await RunAsync(
             [Step("clipboard.readFiles", Returns("files=picked"))], devices);
 
@@ -5781,18 +5784,20 @@ public class DeviceActionTests
     [Fact]
     public async Task Files_written_one_to_a_line_are_each_put_on_the_clipboard()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         var (result, _, _) = await RunAsync(
             [Step("clipboard.writeFiles", Param("files", "a.txt\nb.txt"))], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.ClipboardFiles);
+        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.Clipboard.Files);
     }
 
     [Fact]
     public async Task Files_can_be_put_on_the_clipboard()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         var (result, _, _) = await RunAsync(
         [
             // A list is built as an expression value and handed straight over, which is what a
@@ -5803,19 +5808,20 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(["G:/fake/a.txt", "G:/fake/b.txt"], devices.ClipboardFiles);
+        Assert.Equal(["G:/fake/a.txt", "G:/fake/b.txt"], devices.Clipboard.Files);
     }
 
     [Fact]
     public async Task A_relative_path_on_the_clipboard_is_taken_from_the_macros_folder()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         var (result, _, _) = await RunAsync(
             [Step("clipboard.writeFiles", Param("files", "notes.txt"))], devices);
 
         // Explorer can only paste a path that really points somewhere, so it goes out as a full one.
         Assert.True(result.Succeeded);
-        Assert.Equal([@"G:\fake\notes.txt"], devices.ClipboardFiles);
+        Assert.Equal([@"G:\fake\notes.txt"], devices.Clipboard.Files);
     }
 
     [Fact]
@@ -5833,21 +5839,20 @@ public class DeviceActionTests
     [Fact]
     public async Task Clearing_the_clipboard_empties_it()
     {
-        var devices = new FakeDeviceLayer { ClipboardText = "gone" };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "gone";
         await RunAsync([Step("clipboard.clear")], devices);
 
-        Assert.Equal(string.Empty, devices.ClipboardText);
+        Assert.Equal(string.Empty, devices.Clipboard.Text);
         Assert.Contains("clipboardClear", devices.Calls);
     }
 
     [Fact]
     public async Task Waiting_for_the_clipboard_keeps_what_was_copied()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ClipboardText = "copied meanwhile",
-            ClipboardMovesAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "copied meanwhile";
+        devices.Clipboard.MovesAfter = 1;
         var (result, _, store) = await RunAsync(
             [Within(500, Step("clipboard.waitChange", Returns("text=picked")))], devices);
 
@@ -5869,11 +5874,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Copying_a_selection_presses_the_shortcut_and_keeps_the_result()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ClipboardText = "the selection",
-            ClipboardMovesAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "the selection";
+        devices.Clipboard.MovesAfter = 1;
         var (result, _, store) = await RunAsync(
             [Within(500, Step("clipboard.copy", Param("shortcut", "Ctrl+C"),
                 Returns("text=picked")))], devices);
@@ -5935,7 +5938,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Starting_a_program_hands_back_its_record()
     {
-        var devices = new FakeDeviceLayer { NextProcessId = 4321 };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.NextProcessId = 4321;
         var (result, _, store) = await RunAsync(
         [
             Step("process.start", Param("programFile", "notepad.exe"), Param("commandArguments", "/a"),
@@ -5954,7 +5958,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Starting_a_program_hands_nothing_over_until_a_result_is_asked_for()
     {
-        var devices = new FakeDeviceLayer { NextProcessId = 7 };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.NextProcessId = 7;
         var (_, _, store) = await RunAsync(
             [Step("process.start", Param("programFile", "calc.exe"))], devices);
 
@@ -6082,10 +6087,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_command_can_report_what_it_prints_while_it_is_still_running()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(0, "first\n\nthird", "watch out"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(0, "first\n\nthird", "watch out");
         var host = new SilentRunHost();
         var store = new VariableStore();
 
@@ -6109,10 +6112,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_command_that_is_not_watched_keeps_its_output_to_itself()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(0, "first\nsecond", string.Empty),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(0, "first\nsecond", string.Empty);
         var host = new SilentRunHost();
 
         await new MacroRunner(new VariableStore(), host, devices).RunAsync(
@@ -6224,12 +6225,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_program_keeps_the_id_once_it_appears()
     {
-        var devices = new FakeDeviceLayer
-        {
-            NextProcessId = 55,
-            AppearsLater = "notepad",
-            AppearsAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.NextProcessId = 55;
+        devices.Processes.AppearsLater = "notepad";
+        devices.Processes.AppearsAfter = 1;
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("process.waitFor", Param("processName", "notepad"),
@@ -6255,7 +6254,7 @@ public class DeviceActionTests
     public async Task Checking_whether_a_program_runs_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [10];
+        devices.Processes.Running["notepad"] = [10];
         var (_, _, store) = await RunAsync(
         [
             Step("process.exists", Param("processName", "notepad"), Returns("running=here")),
@@ -6270,8 +6269,8 @@ public class DeviceActionTests
     public async Task Listing_programs_names_them_without_repeats()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [1, 2];
-        devices.Running["calc"] = [3];
+        devices.Processes.Running["notepad"] = [1, 2];
+        devices.Processes.Running["calc"] = [3];
         var (_, _, store) = await RunAsync(
             [Step("process.list", Returns("processes=names"))], devices);
 
@@ -6289,7 +6288,7 @@ public class DeviceActionTests
     public async Task Reading_a_programs_details_hands_it_over_as_one_record()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [42];
+        devices.Processes.Running["notepad"] = [42];
         var (result, _, store) = await RunAsync(
             [Step("process.info", Param("processTarget", "notepad"), Parts("program", "note"))],
             devices);
@@ -6319,7 +6318,7 @@ public class DeviceActionTests
     public async Task Stopping_a_program_by_name_counts_what_it_closed()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [1];
+        devices.Processes.Running["notepad"] = [1];
         var (_, _, store) = await RunAsync(
         [
             Step("process.kill", Param("processTarget", "notepad"),
@@ -6348,8 +6347,8 @@ public class DeviceActionTests
     public async Task Waiting_for_exit_keeps_the_exit_code()
     {
         var devices = new FakeDeviceLayer();
-        devices.Exited.Add(42);
-        devices.ExitCodes[42] = 7;
+        devices.Processes.Exited.Add(42);
+        devices.Processes.ExitCodes[42] = 7;
         var (result, _, store) = await RunAsync(
         [
             Within(1000, Step("process.waitExit", Param("id", "42"),
@@ -6385,10 +6384,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Running_a_command_keeps_its_output_and_exit_code()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(3, "hello", "watch out"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(3, "hello", "watch out");
         var (_, _, store) = await RunAsync(
         [
             Within(5000, Step("command.run", Param("commandFile", "cmd.exe"),
@@ -6405,11 +6402,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Running_a_script_keeps_what_it_printed_and_cleans_up_after_itself()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(0, "\n  hello from a script  \n\n", string.Empty),
-            PathExists = true,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(0, "\n  hello from a script  \n\n", string.Empty);
+        devices.Files.PathExists = true;
 
         var (result, _, store) = await RunAsync(
         [
@@ -6424,7 +6419,7 @@ public class DeviceActionTests
         // The script lives in the macro, so the copy handed to the interpreter is removed again.
         Assert.Contains(devices.Calls, call => call.StartsWith("writeFile") && call.Contains(".ps1"));
         Assert.Contains(devices.Calls, call => call.StartsWith("deleteFile") && call.Contains(".ps1"));
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
         Assert.Contains(devices.Calls,
             call => call.StartsWith("run powershell.exe|-NoProfile") && call.Contains("|G:\\fake|"));
     }
@@ -6432,7 +6427,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_runs_where_the_macros_are_when_that_folder_is_there()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
             [Within(60000, Step("script.run", Param("kind", "ps1"), Param("script", "echo hi")))],
             devices);
@@ -6556,10 +6552,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_that_stops_with_an_error_fails_the_step_and_hands_over_what_it_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(1, "  what it printed  ", "cannot open the file"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(1, "  what it printed  ", "cannot open the file");
 
         var (result, _, store) = await RunAsync(
         [
@@ -6617,7 +6611,7 @@ public class DeviceActionTests
             // Nothing was written and nothing was started: a machine without the program is not a
             // command line that failed, it is a step that could not be run.
             Assert.DoesNotContain(devices.Calls, call => call.StartsWith("start"));
-            Assert.DoesNotContain(devices.Files.Keys,
+            Assert.DoesNotContain(devices.Files.Store.Keys,
                 path => path.EndsWith(".ahk", StringComparison.Ordinal));
         });
     }
@@ -6637,8 +6631,9 @@ public class DeviceActionTests
         // The macro names a file rather than writing the script out: what it hands over is that
         // file's place on disk, taken from the macro's own folder when it is written as a path
         // relative to it, and nothing of the file is copied anywhere.
-        var devices = new FakeDeviceLayer { PathExists = true };
-        devices.Files[@"G:\fake\deploy.ps1"] = "Write-Host {{who}}";
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
+        devices.Files.Store[@"G:\fake\deploy.ps1"] = "Write-Host {{who}}";
 
         var (result, _, _) = await RunAsync(
         [
@@ -6656,13 +6651,14 @@ public class DeviceActionTests
         // itself rather than something this program made out of it.
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("writeFile"));
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("deleteFile"));
-        Assert.Equal("Write-Host {{who}}", devices.Files[@"G:\fake\deploy.ps1"]);
+        Assert.Equal("Write-Host {{who}}", devices.Files.Store[@"G:\fake\deploy.ps1"]);
     }
 
     [Fact]
     public async Task A_file_script_is_run_by_whatever_kind_of_script_it_was_said_to_be()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
         [
             Step("script.run", Param("scriptSource", "file"), Param("kind", "bat"),
@@ -6691,7 +6687,9 @@ public class DeviceActionTests
         // The one kind that has to be told the command is over is the kind whose script cannot be
         // touched: what is written instead is a two-line batch file that calls the macro's file and
         // then leaves the mark behind, and the file the macro named is left as it was.
-        var devices = new FakeDeviceLayer { PathExists = true, FileText = "0" };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
+        devices.Files.Text = "0";
         var (result, _, _) = await RunAsync(
         [
             Step("script.run", Param("scriptSource", "file"), Param("kind", "cmdKeep"),
@@ -6745,7 +6743,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_step_is_run_where_and_with_what_it_says()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
         [
             Within(5000, Step("script.ahk", Param("script", "Print(\"hi\")"),
@@ -6769,11 +6768,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_script_reaches_the_macro_the_way_the_other_two_languages_do()
     {
-        var devices = new FakeDeviceLayer
-        {
-            PathExists = true,
-            AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")),
-        };
+        var devices = new FakeDeviceLayer { AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")) };
+        devices.Files.PathExists = true;
 
         var asked = new List<string>();
         devices.AutoHotkeyBody = (host, _) =>
@@ -6916,7 +6912,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_python_step_is_run_where_and_with_what_it_says()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
         [
             Within(5000, Step("script.python", Param("script", "print('hi')"),
@@ -7001,11 +6998,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_C_sharp_script_reaches_the_macro_the_way_the_python_one_does()
     {
-        var devices = new FakeDeviceLayer
-        {
-            PathExists = true,
-            CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")),
-        };
+        var devices = new FakeDeviceLayer { CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")) };
+        devices.Files.PathExists = true;
 
         var asked = new List<string>();
         devices.CSharpBody = (host, _) =>
@@ -7158,7 +7152,7 @@ public class DeviceActionTests
             Directory.CreateDirectory(Path.Combine(folder, "python", "PyYAML-6.0.dist-info"));
 
             var devices = new FakeDeviceLayer();
-            var scripts = new ScriptDevice(devices, folder, string.Empty);
+            var scripts = new ScriptDevice(devices.Processes, folder, string.Empty);
             scripts.InstallPip(new PipRequest(["PyYAML==6.0", "requests"]), _ => { }, _ => { },
                 default);
 
@@ -7179,8 +7173,8 @@ public class DeviceActionTests
     public async Task System_info_and_environment_variables_reach_variables()
     {
         var devices = new FakeDeviceLayer();
-        devices.SystemValues["desktopFolder"] = @"C:\Users\me\Desktop";
-        devices.EnvironmentValues["TEMP"] = @"C:\Temp";
+        devices.System.Values["desktopFolder"] = @"C:\Users\me\Desktop";
+        devices.System.EnvironmentValues["TEMP"] = @"C:\Temp";
         var (_, _, store) = await RunAsync(
         [
             Step("system.info", Param("field", "desktopFolder"), Returns("value=desk")),
@@ -7266,7 +7260,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_volume_action_leaves_behind_the_level_the_machine_ended_at()
     {
-        var devices = new FakeDeviceLayer { SpeakerVolume = 30 };
+        var devices = new FakeDeviceLayer();
+        devices.System.SpeakerVolume = 30;
         var (_, _, store) = await RunAsync(
         [
             Step("system.volume", Param("volumeAction", "set"), Param("levelPercent", "80"),
@@ -7284,7 +7279,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Turning_the_volume_down_never_goes_below_nothing()
     {
-        var devices = new FakeDeviceLayer { SpeakerVolume = 4 };
+        var devices = new FakeDeviceLayer();
+        devices.System.SpeakerVolume = 4;
         var (_, _, store) = await RunAsync(
         [
             Step("system.volume", Param("volumeAction", "down"), Param("stepPercent", "20"),
@@ -7444,7 +7440,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_brightness_action_leaves_behind_the_brightness_the_screens_ended_at()
     {
-        var devices = new FakeDeviceLayer { ScreenBrightness = 20 };
+        var devices = new FakeDeviceLayer();
+        devices.System.ScreenBrightness = 20;
         var (_, _, store) = await RunAsync(
         [
             Step("system.brightness", Param("brightnessAction", "up"), Param("stepPercent", "30"),
@@ -7462,7 +7459,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_brightness_action_reads_without_changing_anything()
     {
-        var devices = new FakeDeviceLayer { ScreenBrightness = 65 };
+        var devices = new FakeDeviceLayer();
+        devices.System.ScreenBrightness = 65;
         var (_, _, store) = await RunAsync(
             [Step("system.brightness", Returns("brightness"))], devices);
 
@@ -7817,7 +7815,7 @@ public class DeviceActionTests
         devices.WindowFacts[42] = ("notepad", "Notepad");
         devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
-        devices.Running["notepad"] = [42];
+        devices.Processes.Running["notepad"] = [42];
 
         var (result, _, store) = await RunAsync(
         [
@@ -8146,7 +8144,7 @@ public class DeviceActionTests
     public async Task A_record_with_no_rectangle_in_it_is_refused_as_a_window_rectangle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "name,age\nAda,36\n";
+        devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
@@ -9313,11 +9311,11 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains($@"browserDownload #export #1 {devices.BaseFolder}\报告 2500", devices.Calls);
+        Assert.Contains($@"browserDownload #export #1 {devices.Files.BaseFolder}\报告 2500", devices.Calls);
 
         // Nothing written in the folder field saves beside the macro, which is where a path written
         // on its own is read from.
-        Assert.Contains($"browserDownload (none) {devices.BaseFolder} 0", devices.Calls);
+        Assert.Contains($"browserDownload (none) {devices.Files.BaseFolder} 0", devices.Calls);
         Assert.Equal(@"C:\报告\订单.csv", store.Local.Values["存到"].AsText());
         Assert.Equal("订单.csv", store.Local.Values["名字"].AsText());
     }
@@ -9630,7 +9628,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(
-            $"browserUpload input[name=report] #1 {devices.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt 0",
+            $"browserUpload input[name=report] #1 {devices.Files.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt 0",
             devices.Calls);
     }
 
@@ -9957,11 +9955,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_run_from_a_script_takes_the_input_door_without_deadlocking()
     {
-        var devices = new FakeDeviceLayer
-        {
-            PathExists = true,
-            AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null),
-        };
+        var devices = new FakeDeviceLayer { AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null) };
+        devices.Files.PathExists = true;
         devices.AutoHotkeyBody = (host, _) => Assert.True(host.RunStep("a7k2"));
 
         var run = new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
@@ -10107,10 +10102,29 @@ internal sealed class TestInputHook : IInputHook
 }
 internal sealed class FakeDeviceLayer
     : IDeviceLayer, IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice,
-      IDetectorDevice, IUiDevice, IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice,
-      IWindowDevice, IBrowserDevice, IScriptDevice
+      IDetectorDevice, IUiDevice, IWindowDevice, IBrowserDevice, IScriptDevice
 {
-    public List<string> Calls { get; } = [];
+    /// <summary>
+    /// What every device here shares: the one log of calls, and the two switches that make a device
+    /// refuse. The devices below hold it rather than the layer, because a device used on its own
+    /// needs the same two answers.
+    /// </summary>
+    public FakeDesk Desk { get; } = new();
+
+    /// <summary>The pretend disk. Whatever the layer is asked about files, this device answers.</summary>
+    public FakeFiles Files { get; }
+
+    /// <summary>The pretend clipboard.</summary>
+    public FakeClipboard Clipboard { get; }
+
+    /// <summary>The pretend list of running programs.</summary>
+    public FakeProcesses Processes { get; }
+
+    /// <summary>The pretend machine: its name, its environment and its settings.</summary>
+    public FakeSystem System { get; }
+
+    /// <summary>Every call the engine made to any device, in the order it made them.</summary>
+    public List<string> Calls => Desk.Calls;
 
     /// <summary>The routes the engine asked input to take, in the order it asked.</summary>
     public List<InputRoute> Routes { get; } = [];
@@ -10121,8 +10135,12 @@ internal sealed class FakeDeviceLayer
 
     public FakeDeviceLayer(IFileDevice? files = null)
     {
+        Files = new FakeFiles(Desk);
+        Clipboard = new FakeClipboard(Desk);
+        Processes = new FakeProcesses(Desk);
+        System = new FakeSystem(Desk);
         _router = new RecordingRouter(this);
-        _files = files ?? this;
+        _files = files ?? Files;
     }
 
     IInputRouter IDeviceLayer.Inputs => _router;
@@ -10164,13 +10182,21 @@ internal sealed class FakeDeviceLayer
     public int Searches { get; private set; }
 
     /// <summary>When set, every call is refused this way instead of being recorded.</summary>
-    public System.Exception? Refusal { get; set; }
+    public System.Exception? Refusal
+    {
+        get => Desk.Refusal;
+        set => Desk.Refusal = value;
+    }
 
     /// <summary>How long a page read takes to return, for checking a call that cannot be cancelled.</summary>
     public int ReadPageDelayMs { get; set; }
 
     /// <summary>When set, every call reports the device as missing.</summary>
-    public bool Unavailable { get; set; }
+    public bool Unavailable
+    {
+        get => Desk.Unavailable;
+        set => Desk.Unavailable = value;
+    }
 
     /// <summary>What text recognition should report.</summary>
     public List<TextSpan> Spans { get; set; } = [];
@@ -10205,80 +10231,6 @@ internal sealed class FakeDeviceLayer
 
     /// <summary>Whether the window can be brought to the front.</summary>
     public bool WindowFocused { get; set; } = true;
-
-    /// <summary>The pretend folder relative paths resolve under.</summary>
-    public string BaseFolder { get; set; } = "G:\\fake";
-
-    /// <summary>The full path a relative one stands for: the fake reads them from its base folder.</summary>
-    public string Resolve(string path)
-        => Path.IsPathRooted(path) ? path : Path.Combine(BaseFolder, path);
-
-    /// <summary>The pretend files on disk, keyed by full path, for reading and copying.</summary>
-    public Dictionary<string, string> Files { get; } = [];
-
-    /// <summary>The pretend files of raw bytes on disk, keyed by the path they were written to.</summary>
-    public Dictionary<string, byte[]> Blobs { get; } = [];
-
-    /// <summary>The folders the fake has been told about, by name.</summary>
-    public List<string> Folders { get; } = [];
-
-    /// <summary>True when a folder should refuse to go away on its own, like a real non-empty one.</summary>
-    public bool FolderHasFiles { get; set; }
-
-    /// <summary>What listing a folder gives back.</summary>
-    public List<string> FolderEntries { get; } = [];
-
-    /// <summary>
-    /// What each listed file says about itself. A file nothing is said about is empty and as old
-    /// as the epoch, so a step that sorts or weeds by these is the only thing under test.
-    /// </summary>
-    public Dictionary<string, (long Size, DateTimeOffset Modified)> FileFacts { get; } = new();
-
-    /// <summary>What <see cref="Exists"/> reports.</summary>
-    public bool PathExists { get; set; }
-
-    /// <summary>What is on the pretend clipboard.</summary>
-    public string ClipboardText { get; set; } = string.Empty;
-
-    /// <summary>Goes up whenever the pretend clipboard changes.</summary>
-    public int ClipboardChanges { get; private set; }
-
-    /// <summary>
-    /// How many times the change counter may be read before it starts moving by itself, which
-    /// stands in for another program copying something while a step waits.
-    /// </summary>
-    public int ClipboardMovesAfter { get; set; } = int.MaxValue;
-
-    private int _clipboardReads;
-
-    /// <summary>The running programs the fake reports, by name.</summary>
-    public Dictionary<string, List<int>> Running { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Process ids that have finished.</summary>
-    public HashSet<int> Exited { get; } = [];
-
-    /// <summary>What a finished process returned.</summary>
-    public Dictionary<int, int> ExitCodes { get; } = [];
-
-    /// <summary>A program name that only shows up once the process list has been read a few times.</summary>
-    public string? AppearsLater { get; set; }
-
-    /// <summary>How many reads happen before <see cref="AppearsLater"/> shows up.</summary>
-    public int AppearsAfter { get; set; } = 1;
-
-    /// <summary>The next process id a start hands out.</summary>
-    public int NextProcessId { get; set; } = 1000;
-
-    /// <summary>What a command line prints.</summary>
-    public CommandResult Command { get; set; } = new(0, string.Empty, string.Empty);
-
-    /// <summary>What reading a machine fact answers.</summary>
-    public Dictionary<string, string> SystemValues { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>What reading an environment variable answers.</summary>
-    public Dictionary<string, string> EnvironmentValues { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    private int _processReads;
 
     /// <summary>The windows the fake reports as open.</summary>
     public List<WindowInfo> Windows { get; } = [];
@@ -10346,13 +10298,13 @@ internal sealed class FakeDeviceLayer
     /// </summary>
     IFileDevice IDeviceLayer.Files => _files;
 
-    IClipboardDevice IDeviceLayer.Clipboard => this;
+    IClipboardDevice IDeviceLayer.Clipboard => Clipboard;
 
-    IProcessDevice IDeviceLayer.Processes => this;
+    IProcessDevice IDeviceLayer.Processes => Processes;
 
     IScriptDevice IDeviceLayer.Scripts => this;
 
-    ISystemDevice IDeviceLayer.System => this;
+    ISystemDevice IDeviceLayer.System => System;
 
     /// <summary>What running a script in the fake reports back.</summary>
     public ScriptResult Script { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
@@ -11022,415 +10974,11 @@ internal sealed class FakeDeviceLayer
     /// <summary>What reading a table answers about the names of its columns.</summary>
     public List<string> Columns { get; } = [];
 
-    bool IFileDevice.Exists(string path)
-    {
-        Note($"fileExists {path}");
-        return PathExists || Files.ContainsKey(path) || Blobs.ContainsKey(path);
-    }
-
-    string IFileDevice.ReadText(string path, string encoding)
-    {
-        Note($"readFile {path} {encoding}");
-        return Files.TryGetValue(path, out var text) ? text : FileText;
-    }
-
-    /// <summary>
-    /// What reading a text file answers when that path was never written. A script step reads back
-    /// the mark the command it started leaves behind, and a check that wants that command to look as
-    /// though it came to an end of its own says so here.
-    /// </summary>
-    public string FileText { get; set; } = string.Empty;
-
-    byte[] IFileDevice.ReadBytes(string path)
-    {
-        Note($"readBytes {path}");
-        return Blobs.TryGetValue(path, out var bytes) ? bytes : [];
-    }
-
-    Stream IFileDevice.OpenRead(string path)
-    {
-        Note($"openRead {path}");
-        return new MemoryStream(Blobs.TryGetValue(path, out var bytes) ? bytes : []);
-    }
-
-    void IFileDevice.WriteText(string path, string text, bool append, string encoding)
-    {
-        Note($"writeFile {path} {text} {append} {encoding}");
-        if (append && Files.TryGetValue(path, out var old))
-        {
-            Files[path] = old + text;
-        }
-        else
-        {
-            Files[path] = text;
-        }
-    }
-
-    bool IFileDevice.HasOpenLine(string path, string encoding)
-    {
-        Note($"openLine {path}");
-        return Files.TryGetValue(path, out var text)
-            && text.Length > 0
-            && text[^1] is not ('\n' or '\r');
-    }
-
-    void IFileDevice.WriteBytes(string path, byte[] bytes)
-    {
-        Note($"writeBytes {path} {bytes.Length}");
-        Blobs[path] = bytes;
-    }
-
-    void IFileDevice.Delete(string path, bool toRecycleBin)
-    {
-        Note($"deleteFile {path} {toRecycleBin}");
-        Files.Remove(path);
-    }
-
-    void IFileDevice.Copy(string from, string to)
-    {
-        Note($"copyFile {from} {to}");
-
-        if (Files.TryGetValue(from, out var text))
-        {
-            Files[to] = text;
-        }
-    }
-
-    void IFileDevice.Move(string from, string to)
-    {
-        Note($"moveFile {from} {to}");
-
-        if (Files.TryGetValue(from, out var text))
-        {
-            Files.Remove(from);
-            Files[to] = text;
-        }
-    }
-
-    IReadOnlyList<FileEntry> IFileDevice.List(string folder, IReadOnlyList<string> patterns,
-        bool recurse, int depth)
-    {
-        Note($"listFiles {folder} {string.Join(";", patterns)} {recurse} {depth}");
-        return
-        [
-            .. FolderEntries.Select(path =>
-            {
-                var facts = FileFacts.TryGetValue(path, out var known)
-                    ? known
-                    : (Size: 0L, Modified: DateTimeOffset.UnixEpoch);
-                return new FileEntry(path, Path.GetFileName(path),
-                    Path.GetDirectoryName(path) ?? "", facts.Size, facts.Modified, facts.Modified,
-                    facts.Modified);
-            }),
-        ];
-    }
-
-    void IFileDevice.CreateFolder(string path)
-    {
-        Note($"createFolder {path}");
-        Folders.Add(path);
-    }
-
-    void IFileDevice.Unzip(string from, string folder, bool overwrite)
-    {
-        Note($"unzip {from} {folder} {overwrite}");
-        if (UnzipWorks)
-        {
-            Files[Path.Combine(folder, "readme.txt")] = "unpacked";
-        }
-        else
-        {
-            throw new DeviceActionException("Run.FileFailed", $"{from}: not a zip file");
-        }
-    }
-
-    /// <summary>Whether the fake's zip file unpacks, or turns out to be something else.</summary>
-    public bool UnzipWorks { get; set; } = true;
-
-    void IFileDevice.Zip(string folder, string to)
-    {
-        Note($"zip {folder} {to}");
-        Files[to] = "zipped";
-    }
-
-    void IFileDevice.DeleteFolder(string path, bool recurse)
-    {
-        Note($"deleteFolder {path} {recurse}");
-
-        // A folder with something still in it is what the real one refuses to remove on its own,
-        // and the fake has to answer the same way for the check to mean anything.
-        if (FolderHasFiles && !recurse)
-        {
-            throw new DeviceActionException("Run.FileFailed", $"{path}: the folder is not empty");
-        }
-
-        Folders.Remove(path);
-    }
-
-    int IClipboardDevice.ChangeCount
-    {
-        get
-        {
-            _clipboardReads++;
-            if (_clipboardReads > ClipboardMovesAfter)
-            {
-                ClipboardChanges++;
-            }
-
-            return ClipboardChanges;
-        }
-    }
-
-    bool IClipboardDevice.HasText => !string.IsNullOrEmpty(ClipboardText);
-
-    string IClipboardDevice.ReadText()
-    {
-        Note("clipboardRead");
-        return ClipboardText;
-    }
-
-    void IClipboardDevice.WriteText(string text)
-    {
-        Note($"clipboardWrite {text}");
-        ClipboardText = text;
-        ClipboardChanges++;
-    }
-
-    ImageFrame? IClipboardDevice.ReadImage()
-    {
-        Note("clipboardReadImage");
-        return ClipboardCopy;
-    }
-
-    void IClipboardDevice.WriteImage(ImageFrame image)
-    {
-        Note($"clipboardWriteImage {image.Width}x{image.Height}");
-        ClipboardCopy = image;
-        ClipboardChanges++;
-    }
-
-    /// <summary>The picture the fake clipboard is holding, if any.</summary>
-    public ImageFrame? ClipboardCopy { get; set; }
-
-    IReadOnlyList<string> IClipboardDevice.ReadFiles()
-    {
-        Note("clipboardReadFiles");
-        return [.. ClipboardFiles];
-    }
-
-    void IClipboardDevice.WriteFiles(IReadOnlyList<string> paths)
-    {
-        Note($"clipboardWriteFiles {string.Join("|", paths)}");
-        ClipboardFiles.Clear();
-        ClipboardFiles.AddRange(paths);
-        ClipboardChanges++;
-    }
-
-    /// <summary>The file paths the fake clipboard is holding.</summary>
-    public List<string> ClipboardFiles { get; } = [];
-
-    void IClipboardDevice.Clear()
-    {
-        Note("clipboardClear");
-        ClipboardText = string.Empty;
-        ClipboardChanges++;
-    }
-
-    int IProcessDevice.Start(StartRequest request)
-    {
-        Note($"start {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
-             + $"|{request.Hidden}{(request.RunAsAdmin ? "|admin" : string.Empty)}"
-             + EnvironmentNote(request.Environment));
-        return NextProcessId++;
-    }
-
-    /// <summary>The environment a call carried, spelled out so a test can read it back.</summary>
-    private static string EnvironmentNote(IReadOnlyDictionary<string, string>? values)
-        => values is null or { Count: 0 }
-            ? string.Empty
-            : "|env " + string.Join(";",
-                values.OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                    .Select(pair => $"{pair.Key}={pair.Value}"));
-
-    /// <summary>What a call fed the program, with the line endings spelled out.</summary>
-    private static string InputNote(string? text)
-        => text is null ? string.Empty : "|in " + text.Replace("\r\n", "\n").Replace("\n", "\\n");
-
-    IReadOnlyList<int> IProcessDevice.Find(string name)
-    {
-        Note($"find {name}");
-        _processReads++;
-        if (AppearsLater is not null && _processReads > AppearsAfter)
-        {
-            Running[AppearsLater] = [NextProcessId];
-        }
-
-        return Running.TryGetValue(name, out var ids) ? ids : [];
-    }
-
-    IReadOnlyList<string> IProcessDevice.List()
-    {
-        Note("listPrograms");
-        return [.. Running.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
-    }
-
-    ProcessDetails? IProcessDevice.Details(string target)
-    {
-        Note($"processDetails {target}");
-        return Running.TryGetValue(target, out var ids) && ids.Count > 0
-            ? new ProcessDetails(ids[0], target, $@"C:\fake\{target}.exe", 12.5, 3.4)
-            : null;
-    }
-
-    bool IProcessDevice.HasExited(int id)
-    {
-        Note($"hasExited {id}");
-        return Exited.Contains(id);
-    }
-
-    int? IProcessDevice.ExitCode(int id)
-    {
-        Note($"exitCode {id}");
-        return Exited.Contains(id) ? ExitCodes.TryGetValue(id, out var code) ? code : 0 : null;
-    }
-
-    int IProcessDevice.StopByName(string name, bool force)
-    {
-        Note($"stopName {name}|{force}");
-        return Running.Remove(name) ? 1 : 0;
-    }
-
-    bool IProcessDevice.StopById(int id, bool force)
-    {
-        Note($"stopId {id}|{force}");
-        Exited.Add(id);
-        return true;
-    }
-
-    CommandResult IProcessDevice.Run(CommandRequest request)
-    {
-        Note($"run {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
-             + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}"
-             + InputNote(request.StandardInput)
-             + $"|out {request.OutputEncoding ?? "default"}");
-
-        // A real device hands each line over while the program is still running; the fake has all
-        // of them already and hands them over the same way, blank lines included.
-        foreach (var line in Lines(Command.StandardOutput))
-        {
-            request.OnOutput?.Invoke(line);
-        }
-
-        foreach (var line in Lines(Command.StandardError))
-        {
-            request.OnError?.Invoke(line);
-        }
-
-        return Command;
-    }
-
     /// <summary>The lines a stream holds, the way reading it a line at a time would find them.</summary>
     private static IEnumerable<string> Lines(string text)
         => text.Length == 0
             ? []
             : text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-
-    string ISystemDevice.Info(string field)
-    {
-        Note($"info {field}");
-        return SystemValues.TryGetValue(field, out var value) ? value : string.Empty;
-    }
-
-    string ISystemDevice.Environment(string name)
-    {
-        Note($"env {name}");
-        return EnvironmentValues.TryGetValue(name, out var value) ? value : string.Empty;
-    }
-
-    void ISystemDevice.Power(PowerAction action, int graceSeconds)
-    {
-        Note($"power {action} {graceSeconds}");
-    }
-
-    /// <summary>What the speakers are set to in the fake, and whether they are switched off.</summary>
-    public int SpeakerVolume { get; set; } = 50;
-
-    public bool SoundOff { get; set; }
-
-    int ISystemDevice.Volume()
-    {
-        Note("volume");
-        return SpeakerVolume;
-    }
-
-    void ISystemDevice.SetVolume(int percent)
-    {
-        Note($"setVolume {percent}");
-        SpeakerVolume = Math.Clamp(percent, 0, 100);
-    }
-
-    bool ISystemDevice.IsMuted()
-    {
-        Note("isMuted");
-        return SoundOff;
-    }
-
-    void ISystemDevice.SetMuted(bool muted)
-    {
-        Note($"setMuted {muted}");
-        SoundOff = muted;
-    }
-
-    void ISystemDevice.PlaySound(SoundKind kind) => Note($"sound {kind}");
-
-    void ISystemDevice.Notify(string title, string text, NotificationKind kind)
-        => Note($"notify {kind} [{title}] {text}");
-
-    /// <summary>The layouts the fake says are installed, and which of them is being typed in.</summary>
-    public List<string> Layouts { get; } = ["\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3", "\u82f1\u8bed(\u7f8e\u56fd)"];
-
-    public string Layout { get; set; } = "\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3";
-
-    string ISystemDevice.InputMethod()
-    {
-        Note("inputMethod");
-        return Layout;
-    }
-
-    IReadOnlyList<string> ISystemDevice.InputMethods()
-    {
-        Note("inputMethods");
-        return Layouts;
-    }
-
-    string? ISystemDevice.SwitchInputMethod(string layout)
-    {
-        Note($"switchInputMethod {layout}");
-        var found = Layouts.FirstOrDefault(installed =>
-            installed.Contains(layout, StringComparison.OrdinalIgnoreCase));
-        if (found is null)
-        {
-            return null;
-        }
-
-        Layout = found;
-        return found;
-    }
-
-    /// <summary>How bright the fake says the screens are.</summary>
-    public int ScreenBrightness { get; set; } = 50;
-
-    int ISystemDevice.Brightness()
-    {
-        Note("brightness");
-        return ScreenBrightness;
-    }
-
-    void ISystemDevice.SetBrightness(int percent)
-    {
-        Note($"setBrightness {percent}");
-        ScreenBrightness = Math.Clamp(percent, 0, 100);
-    }
 
     IReadOnlyList<WindowInfo> IWindowDevice.List()
     {
@@ -11601,20 +11149,8 @@ internal sealed class FakeDeviceLayer
         }
     }
 
-    private void Note(string call)
-    {
-        if (Unavailable)
-        {
-            throw new DeviceUnavailableException("the test device");
-        }
-
-        if (Refusal is not null)
-        {
-            throw Refusal;
-        }
-
-        Calls.Add(call);
-    }
+    /// <summary>Writes one call down, and answers the two switches the same way every device does.</summary>
+    private void Note(string call) => Desk.Note(call);
 
     /// <summary>
     /// The rectangle of the pretend screen a step asked for, with anything running off the edge

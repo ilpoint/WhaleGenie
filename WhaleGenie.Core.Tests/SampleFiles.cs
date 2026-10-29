@@ -232,7 +232,7 @@ internal static class SampleFiles
 
             // Decoded with the reader's own rules rather than with a second guess written here:
             // a file whose encoding the reader gets wrong has to fail in the check.
-            devices.Files[name] = TextEncoding.Read(File.ReadAllBytes(file), string.Empty);
+            devices.Files.Store[name] = TextEncoding.Read(File.ReadAllBytes(file), string.Empty);
         }
 
         var store = new VariableStore();
