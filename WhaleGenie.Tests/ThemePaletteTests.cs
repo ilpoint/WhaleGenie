@@ -70,6 +70,23 @@ public class ThemePaletteTests
         Assert.False(ThemePalette.TryDerive(Colors.White, light: true, out _));
     }
 
+    /// <summary>
+    /// Dark colours on the dark window get their accent text lifted as far as it takes, rather than
+    /// being refused. These two numbers are the whole evidence for that choice: they are what the
+    /// limit on the accent text is worth, and if the limit is ever tightened back to the fill's one
+    /// the derivation starts refusing both of these and this check goes red.
+    /// </summary>
+    [Theory]
+    [InlineData("#000000", "#858585", 4.62)]
+    [InlineData("#112233", "#4C88C4", 4.57)]
+    public void A_dark_accent_keeps_its_text_lifted_rather_than_refused(string accent, string text, double contrast)
+    {
+        Assert.True(ThemePalette.TryDerive(Color.Parse(accent), light: false, out var tokens));
+
+        Assert.Equal(Color.Parse(text), tokens.Text);
+        Assert.Equal(contrast, Math.Round(ThemePalette.Contrast(tokens.Text, WindowDark), 2));
+    }
+
     [Fact]
     public void An_unreadable_or_unparsable_accent_falls_back_to_the_built_in_one()
     {

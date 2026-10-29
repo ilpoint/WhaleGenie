@@ -7,7 +7,9 @@
 
       四行强调色用 DynamicResource，其余用 StaticResource：强调色是唯一会在运行时改的一档
       颜色，自定义主题把它写进 Application.Resources 覆盖掉，DynamicResource 才跟得上；
-      别的令牌启动时定下来就不再变，StaticResource 在解析时读一次就够。
+      别的令牌启动时定下来就不再变，StaticResource 在解析时读一次就够。判据：将来某个令牌也要
+      被运行时改写时，引用它的那一行必须换成 DynamicResource——不换不会报错，只是改了不生效，
+      窗口继续画旧颜色。
 
       本文件是桥，不是设计。窗口改用新令牌之后整份删掉，判据是界面里再没有一处引用旧名字：
       当前是 WhaleGenie/Views 下 26 个文件共 680 处 DynamicResource App*，加上 App.axaml 里
