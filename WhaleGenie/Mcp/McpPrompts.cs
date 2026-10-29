@@ -71,9 +71,11 @@ public sealed class McpPrompts
         - running: run_macro, stop_macro, run_status, list_runs, get_run_log,
           get_last_failure_log.
         - looking: capture_screen, pixel_at, cursor, list_windows, window_info, element_at,
-          find_elements, process_list, clipboard_read, read_picture.
+          find_elements, process_list, read_picture.
         - driving (needs the direct-control switch): mouse_move, mouse_click, mouse_scroll,
-          mouse_drag, key, type_text, window_activate, window_move, window_close, clipboard_write.
+          mouse_drag, key, type_text, window_activate, window_move, window_close, clipboard_write,
+          clipboard_read. The clipboard is on this side because it holds whatever the person last
+          copied, which may be a password.
         - reading without a call: the project index and any one macro's outline are resources —
           whalegenie://project (revision, macros, globals, triggers) and whalegenie://macros/{name}
           (every step's id, action and path), beside whalegenie://actions and whalegenie://actions/{key}.

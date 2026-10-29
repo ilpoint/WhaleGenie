@@ -268,10 +268,10 @@ public sealed class McpControlTools
             };
         }))));
 
-    [McpServerTool(Name = "whalegenie_clipboard_read", ReadOnly = true, Title = "Read the clipboard"),
-     Description("Returns what is on the clipboard as text, and how many files it holds when files were copied. Reading a page's text after selecting and copying it is steadier than reading the screen.")]
+    [McpServerTool(Name = "whalegenie_clipboard_read", Title = "Read the clipboard"),
+     Description("Returns what is on the clipboard as text, and how many files it holds when files were copied. Reading a page's text after selecting and copying it is steadier than reading the screen. Needs \"Allow direct control\": what is on the clipboard is whatever the person last copied, which can be a password.")]
     public Task<CallToolResult> ClipboardRead()
-        => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Use(() =>
+        => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Drive("clipboard_read", () =>
         {
             var clipboard = _devices().Clipboard;
             var files = clipboard.ReadFiles();
@@ -281,7 +281,7 @@ public sealed class McpControlTools
                 usesText = clipboard.HasText,
                 files,
             };
-        }))));
+        }, "read"))));
 
     [McpServerTool(Name = "whalegenie_clipboard_write", Destructive = true, Title = "Write the clipboard"),
      Description("Puts text on the clipboard, so a step that pastes can be tried without typing. Needs \"Allow direct control\".")]
@@ -571,7 +571,7 @@ public sealed class McpControlTools
         {
             McpAudit.Note(tool, "refused", McpErrors.DirectControlOff);
             throw new McpFailure(McpErrors.DirectControlOff,
-                "Direct control is off, so nothing was sent to the machine.",
+                "Direct control is off, so nothing was done to the machine.",
                 "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
                 " Looking at the screen needs no switch.");
         }

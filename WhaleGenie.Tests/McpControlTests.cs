@@ -345,20 +345,25 @@ public class McpControlTests : IDisposable
         Assert.Equal("保存", found.GetProperty("elements")[0].GetProperty("name").GetString());
     }
 
-    /// <summary>The clipboard is a place a step can read from and write to, and writing needs the switch.</summary>
+    /// <summary>
+    /// The clipboard is read and written behind the same switch as the keyboard: what is on it is
+    /// whatever the person last copied, which can be a password.
+    /// </summary>
     [Fact]
-    public async Task The_clipboard_can_be_read_and_written()
+    public async Task The_clipboard_is_read_and_written_behind_the_switch()
     {
         var clipboard = new RecordingClipboard();
         clipboard.WriteText("读到的");
         _devices.Clipboard = clipboard;
 
-        var read = Json(await _tools.ClipboardRead());
-        Assert.Equal("读到的", read.GetProperty("text").GetString());
-
+        Assert.Equal(McpErrors.DirectControlOff, Code(await _tools.ClipboardRead()));
         Assert.Equal(McpErrors.DirectControlOff, Code(await _tools.ClipboardWrite("写进去的")));
 
         _gate.Control = true;
+
+        var read = Json(await _tools.ClipboardRead());
+        Assert.Equal("读到的", read.GetProperty("text").GetString());
+
         var wrote = await _tools.ClipboardWrite("写进去的");
         Assert.True(wrote.IsError != true);
         Assert.Equal("写进去的", clipboard.Text);
