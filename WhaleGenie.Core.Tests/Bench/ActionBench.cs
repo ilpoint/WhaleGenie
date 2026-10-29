@@ -314,7 +314,7 @@ internal static class ActionBench
         List<string> problems)
     {
         var verbs = devices.Calls.Select(Verb).ToHashSet(StringComparer.Ordinal);
-        var sent = verbs.Overlaps(Sending) || devices.Routes.Count > 0;
+        var sent = verbs.Overlaps(Sending) || devices.Input.Routes.Count > 0;
         var looked = verbs.Overlaps(Looking);
 
         if (action.SendsInput && !sent)

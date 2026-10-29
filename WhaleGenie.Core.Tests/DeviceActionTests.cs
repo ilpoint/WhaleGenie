@@ -542,7 +542,7 @@ public class DeviceActionTests
         var (_, devices, _) = await RunAsync(
             [Step("input.keyPress", Param("key", "F5"), Param("holdMs", "10"))]);
 
-        Assert.Equal([InputRoute.Front], devices.Routes);
+        Assert.Equal([InputRoute.Front], devices.Input.Routes);
     }
 
     [Fact]
@@ -556,7 +556,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
 
-        var route = Assert.Single(devices.Routes);
+        var route = Assert.Single(devices.Input.Routes);
         Assert.Equal(InputDelivery.Driver, route.Delivery);
         Assert.Equal(["keyPress F5 10"], devices.Calls);
     }
@@ -577,7 +577,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
 
-        var route = Assert.Single(devices.Routes);
+        var route = Assert.Single(devices.Input.Routes);
         Assert.Equal(InputDelivery.Background, route.Delivery);
         Assert.Equal(4242, route.WindowHandle);
     }
@@ -604,7 +604,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(4242, Assert.Single(devices.Routes).WindowHandle);
+        Assert.Equal(4242, Assert.Single(devices.Input.Routes).WindowHandle);
     }
 
     /// <summary>
@@ -686,7 +686,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BadOption", result.Key);
-        Assert.Empty(devices.Paths);
+        Assert.Empty(devices.Input.Paths);
         Assert.Empty(Asked(devices));
     }
 
@@ -696,7 +696,7 @@ public class DeviceActionTests
     [Fact]
     public void Posted_messages_refuse_a_relative_move_at_the_device_too()
     {
-        var device = new MessageInputDevice(IntPtr.Zero, new FakeDeviceLayer());
+        var device = new MessageInputDevice(IntPtr.Zero, new FakeDeviceLayer().Input);
 
         var refused = Assert.Throws<DeviceActionException>(
             () => device.MoveMouseRelative(200, 0, 0));
@@ -1213,7 +1213,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Contains("click left 5 6 1 0", devices.Calls);
-        Assert.Equal(4, Assert.Single(devices.Routes).WindowHandle);
+        Assert.Equal(4, Assert.Single(devices.Input.Routes).WindowHandle);
     }
 
     [Fact]
@@ -3363,7 +3363,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(string.Empty, ownerWhileLooking);
-        Assert.Equal("看图", devices.GateAtClick);
+        Assert.Equal("看图", devices.Input.GateAtClick);
         Assert.Equal(string.Empty, InputGate.Owner);
     }
 
@@ -8690,7 +8690,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(["move 400 0 300"], devices.Calls);
-        Assert.Empty(devices.Paths);
+        Assert.Empty(devices.Input.Paths);
     }
 
     [Fact]
@@ -8706,7 +8706,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        var path = Assert.Single(devices.Paths);
+        var path = Assert.Single(devices.Input.Paths);
         Assert.Equal(new ScreenPoint(0, 0), path[0]);
         Assert.Equal(new ScreenPoint(400, 0), path[^1]);
         Assert.True(path.Any(point => Math.Abs(point.Y) >= 20), "the path should bow out of the line");
@@ -8742,7 +8742,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        var path = Assert.Single(devices.Paths);
+        var path = Assert.Single(devices.Input.Paths);
         Assert.Equal(new ScreenPoint(20, 30), path[0]);
         Assert.Equal(new ScreenPoint(220, 30), path[^1]);
     }
@@ -8800,7 +8800,7 @@ public class DeviceActionTests
         ]);
 
         Assert.True(result.Succeeded);
-        var path = Assert.Single(devices.Paths);
+        var path = Assert.Single(devices.Input.Paths);
         Assert.Equal(31, path.Count);
         Assert.Equal(new ScreenPoint(0, 0), path[0]);
         Assert.Equal(new ScreenPoint(300, 0), path[^1]);
@@ -9665,7 +9665,7 @@ public class DeviceActionTests
         await MacroRunner.TryAsync(
             Step("input.keyPress", Param("key", "A"), Param("inputMode", "driver")), devices);
 
-        Assert.Equal(InputDelivery.Driver, Assert.Single(devices.Routes).Delivery);
+        Assert.Equal(InputDelivery.Driver, Assert.Single(devices.Input.Routes).Delivery);
     }
 
     [Fact]
@@ -10014,8 +10014,7 @@ internal sealed class TestInputHook : IInputHook
     }
 }
 internal sealed class FakeDeviceLayer
-    : IDeviceLayer, IInputDevice, IGamepadDevice, IUiDevice, IWindowDevice, IBrowserDevice,
-      IScriptDevice
+    : IDeviceLayer, IUiDevice, IWindowDevice, IBrowserDevice, IScriptDevice
 {
     /// <summary>
     /// What every device here shares: the one log of calls, and the two switches that make a device
@@ -10048,11 +10047,14 @@ internal sealed class FakeDeviceLayer
     /// <summary>The pretend detection model, and every look the engine asked of it.</summary>
     public FakeDetector Detector { get; }
 
+    /// <summary>The pretend keyboard and mouse, with the routes and paths the engine asked for.</summary>
+    public FakeInput Input { get; }
+
+    /// <summary>The pretend controller.</summary>
+    public FakeGamepad Gamepad { get; }
+
     /// <summary>Every call the engine made to any device, in the order it made them.</summary>
     public List<string> Calls => Desk.Calls;
-
-    /// <summary>The routes the engine asked input to take, in the order it asked.</summary>
-    public List<InputRoute> Routes { get; } = [];
 
     private readonly RecordingRouter _router;
 
@@ -10068,14 +10070,13 @@ internal sealed class FakeDeviceLayer
         Vision = new FakeVision(Desk);
         Ocr = new FakeOcr(Desk);
         Detector = new FakeDetector(Desk);
-        _router = new RecordingRouter(this);
+        Input = new FakeInput(Desk, Screen);
+        Gamepad = new FakeGamepad(Desk);
+        _router = new RecordingRouter(Input);
         _files = files ?? Files;
     }
 
     IInputRouter IDeviceLayer.Inputs => _router;
-
-    /// <summary>The paths the pointer was asked to travel, in the order they were asked for.</summary>
-    public List<IReadOnlyList<ScreenPoint>> Paths { get; } = [];
 
     /// <summary>When set, every call is refused this way instead of being recorded.</summary>
     public System.Exception? Refusal
@@ -10145,15 +10146,9 @@ internal sealed class FakeDeviceLayer
 
     private int _windowReads;
 
-    /// <summary>
-    /// The pointer's position. It is a fact about the desk rather than about the way input is sent,
-    /// so the screen device holds it and input only reads it back.
-    /// </summary>
-    ScreenPoint IInputDevice.Cursor => Screen.Cursor;
+    IInputDevice IDeviceLayer.Input => Input;
 
-    IInputDevice IDeviceLayer.Input => this;
-
-    IGamepadDevice IDeviceLayer.Gamepad => this;
+    IGamepadDevice IDeviceLayer.Gamepad => Gamepad;
 
     /// <summary>How this machine has been told to read the screen.</summary>
     ICaptureChoice IDeviceLayer.Capture => Screen.Ways;
@@ -10575,60 +10570,6 @@ internal sealed class FakeDeviceLayer
         BrowserOpen = false;
     }
 
-    public void KeyPress(string key, int holdMs) => Note($"keyPress {key} {holdMs}");
-
-    public void Connect() => Note("gamepadConnect");
-
-    public void Button(string button, bool down) => Note($"gamepadButton {button} {down}");
-
-    public void Stick(string stick, int x, int y) => Note($"gamepadStick {stick} {x} {y}");
-
-    public void Trigger(string trigger, int amount) => Note($"gamepadTrigger {trigger} {amount}");
-
-    public void ReleaseAll() => Note("gamepadRelease");
-
-    public void KeyDown(string key) => Note($"keyDown {key}");
-
-    public void KeyUp(string key) => Note($"keyUp {key}");
-
-    public void Hotkey(IReadOnlyList<string> keys, int holdMs) => Note($"hotkey {string.Join('|', keys)} {holdMs}");
-
-    public void TypeText(string text, int intervalMs) => Note($"type {text} {intervalMs}");
-
-    public void MoveMouse(int x, int y, int durationMs) => Note($"move {x} {y} {durationMs}");
-
-    public void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs)
-    {
-        Paths.Add(path);
-        Note($"along {path.Count} {durationMs}");
-    }
-
-    public void MoveMouseRelative(int dx, int dy, int durationMs) => Note($"moveBy {dx} {dy} {durationMs}");
-
-    public void MouseDown(string button, int x, int y) => Note($"down {button} {x} {y}");
-
-    public void MouseUp(string button, int x, int y) => Note($"up {button} {x} {y}");
-
-    public void Click(string button, int x, int y, int clicks, int intervalMs)
-    {
-        GateAtClick = InputGate.Owner;
-        Note($"click {button} {x} {y} {clicks} {intervalMs}");
-    }
-
-    /// <summary>Who held the input door when the click was sent, for the check about waiting.</summary>
-    public string GateAtClick { get; private set; } = string.Empty;
-
-    public void Scroll(string direction, int delta, int x, int y) => Note($"scroll {direction} {delta} {x} {y}");
-
-    public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
-        => Note($"drag {button} {startX} {startY} {endX} {endY} {durationMs} {steps}");
-
-    public void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs)
-    {
-        Paths.Add(path);
-        Note($"dragAlong {button} {path.Count} {durationMs}");
-    }
-
     public bool Exists(UiQuery query, int timeoutMs)
     {
         LastQuery = query;
@@ -10907,7 +10848,7 @@ internal sealed class FakeDeviceLayer
     /// Notes which route input was asked to take, then hands back the fake itself so the call
     /// still lands in <see cref="Calls"/> whatever way it was routed.
     /// </summary>
-    private sealed class RecordingRouter(FakeDeviceLayer owner) : IInputRouter
+    private sealed class RecordingRouter(FakeInput owner) : IInputRouter
     {
         public IInputDevice For(InputRoute route)
         {

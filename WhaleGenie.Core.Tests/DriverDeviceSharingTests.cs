@@ -24,7 +24,7 @@ public class DriverDeviceSharingTests
     /// virtual devices is put on the bus by a run, and where the pointer is is the screen's answer,
     /// so the same stand-in can be both without a second one being written.
     /// </summary>
-    private static WindowsInputRouter Router(FakeDeviceLayer devices) => new(devices, devices.Screen);
+    private static WindowsInputRouter Router(FakeDeviceLayer devices) => new(devices.Input, devices.Screen);
 
     [Fact]
     public void Two_runs_in_the_program_are_given_the_same_virtual_keyboard_and_mouse()
