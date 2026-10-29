@@ -40,6 +40,10 @@ public class McpSelfCheckTests : IDisposable
                 await using var loop = McpLoopback.Start(viewModel);
                 await using var client = await loop.ConnectAsync();
 
+                // Writing the project is behind the control switch, as it is for a client: a
+                // check that was not allowed to write would skip the two rows it is here for.
+                _gate.Control = true;
+
                 var report = await new McpSelfCheck(client, new McpSelfCheckOptions
                 {
                     Where = loop.Label,
@@ -104,6 +108,8 @@ public class McpSelfCheckTests : IDisposable
                 await using var client = await loop.ConnectAsync();
 
                 // The six probes need the apply path, because one of the six is a second apply.
+                _gate.Control = true;
+
                 var report = await new McpSelfCheck(client, new McpSelfCheckOptions
                 {
                     Where = loop.Label,
@@ -158,6 +164,10 @@ public class McpSelfCheckTests : IDisposable
 
                 await using var loop = McpLoopback.Start(viewModel);
                 await using var client = await loop.ConnectAsync();
+
+                // Writing the project is behind the control switch, as it is for a client: a
+                // check that was not allowed to write would skip the two rows it is here for.
+                _gate.Control = true;
 
                 var report = await new McpSelfCheck(client, new McpSelfCheckOptions
                 {

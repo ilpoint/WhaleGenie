@@ -28,6 +28,9 @@ internal static class McpErrors
     public const string NoPackagePath = "NoPackagePath";
     public const string DraftHasBlockingProblems = "DraftHasBlockingProblems";
     public const string DirectControlOff = "DirectControlOff";
+
+    /// <summary>The project or its package may not be written: the same door as direct control.</summary>
+    public const string ProjectWriteOff = "ProjectWriteOff";
     public const string RunNotAllowed = "RunNotAllowed";
     public const string RunBusy = "RunBusy";
     public const string DeviceUnavailable = "DeviceUnavailable";

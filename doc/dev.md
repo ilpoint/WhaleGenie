@@ -174,10 +174,11 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 一个**说 stdio 的子进程**：客户端启动它，JSON-RPC 走标准输入输出，管道关闭即退出。不监听端口，因此也没有令牌。协议面（资源、体检、审计的定位）见
 `doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；这里只写改它时要守的规矩。
 
-**四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠与窗口）、运行宏。后两组各由一档开关把守，默认关。
+**四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠、窗口、写项目与存图片）、运行宏。后两组各由一档
+开关把守，默认关：`apply` / `save_project` / `put_image` 与键鼠同一档——能改这台机器才算能改这台机器上的文件。
 开关是 MCP 页写的 `settings.json` 字段，服务端**每次调用前**读回来（`McpGrants` → `McpControl`），所以改完
-下一次调用就生效、不用重启；`--allow-control` / `--allow-run` 只是整轮强制，给一次性配置和自检用，不写就是
-只读。加新工具先想清楚它属于哪一组——忘了加守卫，它就成了无授权也能动的工具。
+下一次调用就生效、不用重启；命令行上没有第二份答案，文件里没开就是只读。加新工具先想清楚它属于哪一组——
+忘了加守卫，它就成了无授权也能动的工具。
 
 **桥与草稿**　`McpLiveProject` 是界面与 HTTP 线程之间唯一的桥：快照、apply、save 全部经
 `Dispatcher.UIThread.InvokeAsync` 回界面线程。`MainViewModel.Revision` 每次 `MarkDirty` 增加，草稿 `apply`

@@ -58,6 +58,9 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
         "whalegenie_list_actions", "whalegenie_get_action",
     ];
 
+    /// <summary>Why a write was not tried: the switch that allows one is off.</summary>
+    private const string WriteOff = "direct control is off, so the project may not be written";
+
     private static readonly string[] OptionalTools =
     [
         "whalegenie_instructions", "whalegenie_macro_template", "whalegenie_get_actions",
@@ -71,6 +74,7 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
         "whalegenie_window_close", "whalegenie_get_step", "whalegenie_get_globals",
         "whalegenie_find_elements", "whalegenie_window_info", "whalegenie_clipboard_read",
         "whalegenie_clipboard_write", "whalegenie_process_list", "whalegenie_read_picture",
+        "whalegenie_put_image",
         "whalegenie_run_macro", "whalegenie_stop_macro", "whalegenie_run_status",
     ];
 
@@ -80,11 +84,27 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
     private readonly List<string> _drafts = [];
     private HashSet<string> _tools = new(StringComparer.Ordinal);
 
+    /// <summary>Whether the door that writing the project stands behind is open on this server.</summary>
+    private bool _controlAllowed;
+
+    /// <summary>
+    /// Whether this run may write the project at all: it was asked to, and the switch that allows a
+    /// client to change this machine is on. Reading is free; putting something in the person's file
+    /// is not, so a check against a read-only server measures what it can and says what it skipped.
+    /// </summary>
+    private bool _writes;
+
     public async Task<McpSelfCheckReport> RunAsync(CancellationToken token = default)
     {
         try
         {
             await DescribeAsync(token).ConfigureAwait(false);
+
+            // What the server says about its own doors decides whether a write is worth trying:
+            // otherwise every write below is one refusal that looks like a failure.
+            (_controlAllowed, _) = await PermissionsAsync(token).ConfigureAwait(false);
+            _writes = _options.AllowApply && _controlAllowed;
+
             await LoopAsync(token).ConfigureAwait(false);
             await PatchAsync(token).ConfigureAwait(false);
             await RejectAsync(token).ConfigureAwait(false);
@@ -278,10 +298,11 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
                 ? "no blocking problem"
                 : $"{blocking.Count} problem(s): {string.Join(" / ", blocking)}");
 
-        if (!_options.AllowApply)
+        if (!_writes)
         {
-            Add("loop.apply", McpCheckResult.Skip, "the run may not write the project");
-            Add("loop.save", McpCheckResult.Skip, "the run may not write the project");
+            var why = _controlAllowed ? "the run may not write the project" : WriteOff;
+            Add("loop.apply", McpCheckResult.Skip, why);
+            Add("loop.save", McpCheckResult.Skip, why);
             MeasureCost(start);
             await MeasurePagingAsync(draft!, token).ConfigureAwait(false);
             return;
@@ -1018,9 +1039,10 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
 
     private async Task GateAsync(CancellationToken token)
     {
-        if (!_options.AllowApply)
+        if (!_writes)
         {
-            Add("gate.apply_invalid", McpCheckResult.Skip, "the run may not write the project");
+            Add("gate.apply_invalid", McpCheckResult.Skip,
+                _controlAllowed ? "the run may not write the project" : WriteOff);
             return;
         }
 

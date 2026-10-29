@@ -54,13 +54,19 @@ public sealed class McpPrompts
         whalegenie_window_activate, whalegenie_window_move, whalegenie_window_close) only work
         while the person has turned on "Allow direct control" in the WhaleGenie MCP flyout; when
         they are refused with DirectControlOff, ask the person to turn it on rather than trying
-        another way. Driving the machine is not the same as running a macro: whalegenie_run_macro is
-        the tool for that, and it has a switch of its own.
+        another way. Writing the project is behind that same switch: apply, save_project and
+        put_image answer ProjectWriteOff while it is off, and a draft can still be opened, edited
+        and validated. Driving the machine is not the same as running a macro:
+        whalegenie_run_macro is the tool for that, and it has a switch of its own.
         The tools, by what they are for. Every name below starts with whalegenie_:
         - the draft: project_status, open_project, list_drafts (what is still pending), preview_apply
           (what applying would change, before it writes), apply, save_project, discard.
         - reading it: list_macros, get_macro, get_step, get_macro_signature, get_globals, validate.
         - writing it: put_macro, patch_macro, delete_macro, set_globals.
+        - pictures: put_image (it needs the direct-control switch) stores a PNG, JPEG, BMP or GIF
+          beside the package and answers with the file name; a step points at it through a
+          parameter called image, for example {"image":"shot.png"}, and the file travels with the
+          package when the project is saved.
         - the catalogue: list_actions, get_actions, get_action, macro_template, instructions.
         - running: run_macro, stop_macro, run_status, list_runs, get_run_log,
           get_last_failure_log.

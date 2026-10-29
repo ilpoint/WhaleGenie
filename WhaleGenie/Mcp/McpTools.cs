@@ -7,12 +7,14 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Mcp;
 
@@ -27,6 +29,12 @@ namespace WhaleGenie.Mcp;
 [McpServerToolType]
 public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 {
+    /// <summary>
+    /// The largest picture a client may hand over. A template a step matches against is a crop of
+    /// the screen, not a photograph, so anything past this is a client sending the wrong file.
+    /// </summary>
+    private const int MaxImageBytes = 8 * 1024 * 1024;
+
     private static async Task<T> Ui<T>(Func<T> work) => await Dispatcher.UIThread.InvokeAsync(work);
 
     [McpServerTool(Name = "whalegenie_project_status", ReadOnly = true,
@@ -499,6 +507,11 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         [Description("Writes the draft even when validation reports blocking problems.")] bool force = false)
         => McpErrors.RunAsync(async () =>
         {
+            if (RefuseWrite() is { } refused)
+            {
+                return refused;
+            }
+
             var draft = drafts.Get(draftId);
             if (draft.Applied)
             {
@@ -541,6 +554,11 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     public Task<CallToolResult> SaveProject()
         => McpErrors.RunAsync(async () =>
         {
+            if (RefuseWrite() is { } refused)
+            {
+                return refused;
+            }
+
             var path = await project.SaveAsync();
             var status = await project.StatusAsync();
 
@@ -819,7 +837,190 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     }
 
     /// <summary>
-    /// The macros this draft moved, named against the snapshot it came from. Saying what changed is
+    /// Puts a picture where the macros look for one and answers with the name a step points at. A
+    /// picture is a file beside the package, and the package carries it when the project is saved —
+    /// so it is written here, not inside a draft, and it is behind the same switch as anything else
+    /// that puts something on this machine.
+    /// </summary>
+    [McpServerTool(Name = "whalegenie_put_image", Destructive = true,
+            Title = "Store an image for a macro"),
+     Description("Stores an image in the project's assets folder and answers with the name a step points at. Give the bytes (base64) or a file on this machine (path). A step uses it in a parameter called image, for example {\"image\":\"shot.png\"}; the file travels with the package when the project is saved.")]
+    public Task<CallToolResult> PutImage(
+        [Description("The image bytes, base64 encoded; a data: URL is accepted. Give this or path, not both.")] string? base64 = null,
+        [Description("A file on this machine to copy in. Give this or base64, not both.")] string? path = null,
+        [Description("The name to keep it under, without a folder. Left out, one is made from the time it arrived.")] string? name = null)
+        => McpErrors.RunAsync(async () =>
+        {
+            if (RefuseWrite() is { } refused)
+            {
+                return refused;
+            }
+
+            var bytes = await ReadImage(base64, path);
+            if (bytes.Length > MaxImageBytes)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument,
+                    $"The image is {bytes.Length} bytes; at most {MaxImageBytes} are accepted.",
+                    "Scale it down before sending it: a picture a step matches against is a small part of the screen.");
+            }
+
+            if (Extension(bytes) is not { } extension)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument,
+                    "That is not a PNG, JPEG, BMP or GIF.",
+                    "A screen picture is one of those four; anything else cannot be matched against the screen.");
+            }
+
+            var status = await project.StatusAsync();
+            var folder = ImageAssets.FolderFor(status.Path);
+            var file = FileName(name, extension);
+            var written = Unique(folder, file);
+            Directory.CreateDirectory(folder);
+            await File.WriteAllBytesAsync(written, bytes);
+
+            var size = await Ui(() =>
+            {
+                using var bitmap = new Bitmap(written);
+                return bitmap.PixelSize;
+            });
+
+            file = Path.GetFileName(written);
+            McpAudit.Note("whalegenie_put_image", $"{file}, {bytes.Length} bytes");
+            return McpErrors.Ok(new
+            {
+                file,
+                folder,
+                width = size.Width,
+                height = size.Height,
+                bytes = bytes.Length,
+                parameter = new { image = file },
+                hint = status.Path is null
+                    ? "The project has no package yet, so this sits in WhaleGenie's own folder until the first save."
+                    : "Saving the project copies it into the package's assets.",
+            });
+        });
+
+    /// <summary>
+    /// The two tools that write the project stand behind one door: the switch that allows this
+    /// machine to be changed. Editing a draft is not behind it — a draft is a copy, and looking at
+    /// what it would do costs nothing.
+    /// </summary>
+    private static CallToolResult? RefuseWrite()
+        => McpControl.Allowed
+            ? null
+            : McpErrors.Fail(McpErrors.ProjectWriteOff,
+                "Direct control is off, so the project was not written.",
+                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP page, then call again." +
+                " Opening, editing and validating a draft needs no switch.",
+                retryable: true);
+
+    /// <summary>The image the call carried, from the bytes or from a file, or a refusal.</summary>
+    private static async Task<byte[]> ReadImage(string? base64, string? path)
+    {
+        var hasBytes = !string.IsNullOrWhiteSpace(base64);
+        var hasFile = !string.IsNullOrWhiteSpace(path);
+        if (hasBytes == hasFile)
+        {
+            throw new McpFailure(McpErrors.BadArgument,
+                hasBytes ? "Give either base64 or path, not both." : "Give the image as base64 or as a path.",
+                "A file on this machine is cheaper to send; the bytes are for a picture that is not on disk yet.");
+        }
+
+        if (hasFile)
+        {
+            var file = path!.Trim();
+            if (!File.Exists(file))
+            {
+                throw new McpFailure(McpErrors.BadArgument, $"There is no file at \"{file}\".",
+                    "The path is read on this machine, where the server runs, not where the client does.");
+            }
+
+            return await File.ReadAllBytesAsync(Path.GetFullPath(file));
+        }
+
+        var text = base64!.Trim();
+
+        // A data URL is what a model tends to have when the picture came from a chat; the part
+        // before the comma is a description of the bytes, not part of them.
+        var comma = text.IndexOf(',');
+        if (text.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma > 0)
+        {
+            text = text[(comma + 1)..];
+        }
+
+        try
+        {
+            return Convert.FromBase64String(text);
+        }
+        catch (FormatException)
+        {
+            throw new McpFailure(McpErrors.BadJson, "The base64 was not base64.",
+                "Send the bytes without line breaks; a data URL is accepted as it is.");
+        }
+    }
+
+    /// <summary>What kind of picture the bytes are, from the signature they start with.</summary>
+    private static string? Extension(byte[] bytes)
+    {
+        if (bytes.Length > 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
+        {
+            return ".png";
+        }
+
+        if (bytes.Length > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+        {
+            return ".jpg";
+        }
+
+        if (bytes.Length > 2 && bytes[0] == 0x42 && bytes[1] == 0x4D)
+        {
+            return ".bmp";
+        }
+
+        return bytes.Length > 6 && bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46
+            ? ".gif"
+            : null;
+    }
+
+    /// <summary>
+    /// The name to store the picture under: what was asked for, with the extension the bytes
+    /// actually are, and without a folder — this writes into one folder and nowhere else.
+    /// </summary>
+    private static string FileName(string? name, string extension)
+    {
+        var asked = (name ?? string.Empty).Trim();
+        asked = Path.GetFileName(asked.Replace('\\', '/'));
+        if (asked.Length == 0)
+        {
+            return "image-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + extension;
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(asked);
+        var invalid = Path.GetInvalidFileNameChars();
+        var clean = new string([.. stem.Where(character => !invalid.Contains(character))]).Trim();
+        return (clean.Length == 0 ? "image" : clean) + extension;
+    }
+
+    /// <summary>
+    /// A path in that folder which nothing else is using. A second picture under the same name is
+    /// kept rather than overwriting the one a step already points at.
+    /// </summary>
+    private static string Unique(string folder, string file)
+    {
+        var candidate = Path.Combine(folder, file);
+        var stem = Path.GetFileNameWithoutExtension(file);
+        var extension = Path.GetExtension(file);
+        var counter = 1;
+        while (File.Exists(candidate))
+        {
+            counter++;
+            candidate = Path.Combine(folder, string.Create(CultureInfo.InvariantCulture, $"{stem}-{counter}{extension}"));
+        }
+
+        return candidate;
+    }
+
+    /// <summary>The macros this draft moved, named against the snapshot it came from. Saying what changed is
     /// cheaper for a reader than diffing two macro dumps, and it is what "what did you do" means.
     /// </summary>
     private static IReadOnlyList<string> Changed(McpDraft draft)
