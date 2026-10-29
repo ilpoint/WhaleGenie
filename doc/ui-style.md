@@ -249,10 +249,14 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected | disabled | focus | 归属 |
 |---|---|---|---|---|---|---|---|---|---|
 | `ListBox.List` | ListBox | `Pad0` | `Transparent` | — | — | — | — | — | 层 3 |
-| `ListBox.List > ListBoxItem` | ListBoxItem | H32 · `PadRow` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `/template/ ContentPresenter` → `OverlayHover` | `OverlayPressed` | `AccentSurface` · `TextPrimary` · 左 2px `AccentText` | — · `TextDisabled` · — | 双色环 | 层 3（`ListBoxItem*` 无键可覆盖） |
+| `ListBox.List ListBoxItem` | ListBoxItem | H32 · `PadRow` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `/template/ ContentPresenter` → `OverlayHover` | `OverlayPressed` | `AccentSurface` · `TextPrimary` · 左 2px `AccentText` | — · `TextDisabled` · — | 双色环 | 层 3（`ListBoxItem*` 无键可覆盖） |
 | `ListBox.List.Boxed` | ListBox | 1px · `RadiusControl` · `Pad1` | `SurfaceWindow` · — · `BorderControl` | — | — | — | — | — | 层 3 |
-| `ListBox.List.Pill > ListBoxItem` | ListBoxItem | H24 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` | `AccentSurface` · `AccentText` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
-| `ListBox.List.Bare > ListBoxItem` | ListBoxItem | `Pad0` | 六态全 `Transparent`（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
+| `ListBox.List.Pill ListBoxItem` | ListBoxItem | H24 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` | `AccentSurface` · `AccentText` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
+| `ListBox.List.Bare ListBoxItem` | ListBoxItem | `Pad0` | 六态全 `Transparent`（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
+
+**行选择器用后代（空格），不用子代（`>`）。** `ListBoxItem` 的真实位置是
+`ListBox > ItemsPresenter > 面板 > ListBoxItem`，`>` 从 `ListBox` 出发匹配不到任何行——**而且不报错**，
+行会安静地保持 Fluent 默认外观。`App.axaml` 里既有的 `ListBox.Dock ListBoxItem` 用的也是空格。
 
 列表行的选中态**文字统一 `TextPrimary`**，不改纯白。
 
