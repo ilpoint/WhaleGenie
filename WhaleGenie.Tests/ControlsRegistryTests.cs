@@ -23,10 +23,17 @@ public class ControlsRegistryTests
     {
         var controls = Read("Controls.axaml");
 
+        // A state class (.selected) decorates the class it is written on; it is not a class of its
+        // own and does not need four states of its own. Only classes that are not declared as states
+        // are checked below.
+        var states = Entries(controls, "STATE").Keys.Select(name => name.Split('.')[^1])
+            .ToHashSet(StringComparer.Ordinal);
+
         var classes = Selectors(controls)
             .Select(selector => selector.Split(':')[0])
             .Where(selector => selector.Contains('.', StringComparison.Ordinal))
             .Select(selector => selector.Split(' ')[0])
+            .Where(selector => !states.Contains(selector.Split('.')[^1]))
             .ToHashSet(StringComparer.Ordinal);
 
         var hovering = Selectors(controls)
@@ -40,9 +47,10 @@ public class ControlsRegistryTests
 
         Assert.NotEmpty(classes);
 
-        // A class that narrows another one (Button.Tab.Root.Compact) inherits its states, so a hover
-        // on any prefix of the name covers it. Only the prefixes that are themselves selector names
-        // count, which is what the sets above hold.
+        // A class that narrows another one (`Button.Tab.Root.Compact`) inherits its states only when
+        // the element really carries both class lists — `Classes="Tab Root Compact"` is matched by
+        // `Button.Tab.Root`, a plain `Classes="Compact"` is not. So the ancestor has to be a class of
+        // its own in this file; a bare substring is not an inheritance.
         var silent = classes
             .Where(name => !Covered(name, hovering) && !Covered(name, registered))
             .OrderBy(name => name, StringComparer.Ordinal)
@@ -106,6 +114,20 @@ public class ControlsRegistryTests
             .Select(match => match.Groups[1].Value)
             .ToList();
 
+    /// <summary>Every window's markup, since a class is only real where an element carries it.</summary>
+    private static string ReadFromViews()
+    {
+        var folder = Path.Combine(RepositoryRoot(), "WhaleGenie", "Views");
+        if (!Directory.Exists(folder))
+        {
+            Assert.Fail($"the windows are not where the repository root says they are: {folder}");
+        }
+
+        return string.Join(
+            "\n",
+            Directory.EnumerateFiles(folder, "*.axaml").Select(File.ReadAllText));
+    }
+
     private static string Read(string file)
     {
         var path = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", file);
@@ -121,7 +143,11 @@ public class ControlsRegistryTests
     /// Where this file's own path says the repository is: the checks run out of bin, where the
     /// dictionaries are copied but the repository layout is not.
     /// </summary>
-    /// <summary>Whether the name, or the class it narrows, is in the set.</summary>
+    /// <summary>
+    /// Whether the name, or a class it really narrows, is in the set. Narrowing is not a substring
+    /// match: the ancestor has to be a class declared in this file, so `Button.Compact` cannot ride
+    /// on a registration for `Button` — nothing in the file declares `Button` as a class.
+    /// </summary>
     private static bool Covered(string name, HashSet<string> names)
     {
         var parts = name.Split('.');
@@ -134,6 +160,42 @@ public class ControlsRegistryTests
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Wherever a narrowed class is used in a window, the element has to carry the whole class list,
+    /// which is the only thing that makes the ancestor's selectors match. A use with just the leaf
+    /// class would look styled in the file and be styled by nothing on screen.
+    /// </summary>
+    [Fact]
+    public void A_narrowed_class_is_used_with_the_classes_it_narrows()
+    {
+        var classes = Selectors(Read("Controls.axaml"))
+            .Select(selector => selector.Split(':')[0].Split(' ')[0])
+            .Where(selector => selector.Count(character => character == '.') > 1)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var usages = Regex.Matches(ReadFromViews(), @"Classes=""([^""]+)""")
+            .Select(match => match.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .ToList();
+
+        foreach (var name in classes)
+        {
+            var steps = name.Split('.');
+            var leaf = steps[^1];
+            var parents = steps.Skip(1).SkipLast(1).ToList();
+
+            foreach (var used in usages.Where(list => list.Contains(leaf, StringComparer.Ordinal)))
+            {
+                foreach (var parent in parents)
+                {
+                    Assert.True(
+                        used.Contains(parent, StringComparer.Ordinal),
+                        $"{name} is used as Classes=\"{string.Join(' ', used)}\" without {parent}, "
+                        + "so the class is styled by nothing");
+                }
+            }
+        }
     }
 
     private static string RepositoryRoot([CallerFilePath] string here = "")

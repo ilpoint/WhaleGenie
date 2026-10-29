@@ -35,7 +35,10 @@
 
       `STATIC` 表示这一类根本没有交互状态（文本、纯容器），不是"漏了 `:pointerover`"。
 
+      `STATE` 表示这一类是**状态类**（选中、问题、占用），不自己定义四态，是所属类的修饰。
+
       LAYER1 Button.Secondary Button
+      STATE selected
       STATIC TextBlock.Title
       STATIC TextBlock.Body
       STATIC TextBlock.FieldLabel
