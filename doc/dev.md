@@ -174,6 +174,12 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 一个**说 stdio 的子进程**：客户端启动它，JSON-RPC 走标准输入输出，管道关闭即退出。不监听端口，因此也没有令牌。协议面（资源、体检、审计的定位）见
 `doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；这里只写改它时要守的规矩。
 
+**步骤标识撞了怎么办**　一个宏连同它的子宏里，步骤标识唯一：`StepIds.Settle` 遇到重复就给后来的一步发新
+标识，并把**那一步自己的**条件与表达式里的 `step.<旧>` 一起改写（只改这一步的子树：粘贴进来的一整块是
+一起搬的，原来那块的名字不能被改走）。改写只碰引擎按"引用"读的字段（`AcceptsVariables` + `WholeValue`），
+按字面读的字段原样留着。编辑器在步骤列表上方说明改了哪几个；MCP 的 `put_macro` / `patch_macro` 答案里
+带 `renamed: [{from,to}]`。
+
 **四组工具，两档权限**　项目读写、看屏幕、直接控制（键鼠、窗口、写项目与存图片）、运行宏。后两组各由一档
 开关把守，默认关：`apply` / `save_project` / `put_image` 与键鼠同一档——能改这台机器才算能改这台机器上的文件。
 开关是 MCP 页写的 `settings.json` 字段，服务端**每次调用前**读回来（`McpGrants` → `McpControl`），所以改完

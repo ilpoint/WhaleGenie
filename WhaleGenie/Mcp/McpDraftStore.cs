@@ -24,6 +24,13 @@ public sealed record McpDraftValidation(
     bool Ok, IReadOnlyList<McpProblem> Blocking, IReadOnlyList<McpProblem> Hints);
 
 /// <summary>
+/// What one write put in the draft: the macro as it now stands, and the ids the repair had to move
+/// because the macro arrived with two steps sharing one. The client is told so it can see that the
+/// names it wrote are not the names that were kept.
+/// </summary>
+public sealed record McpPut(MacroItem Macro, IReadOnlyList<StepIds.Rename> Renamed);
+
+/// <summary>
 /// A copy of the project that an MCP client is editing. It is not the project the window shows:
 /// nothing reaches the interface until apply, and nothing reaches the package until save.
 /// </summary>
@@ -72,11 +79,11 @@ public sealed class McpDraft
         }
     }
 
-    /// <summary>Adds or replaces one macro by name. The macro JSON is the same shape the package uses.</summary>
-    public MacroItem Put(JsonObject json)
+    /// <summary>Adds or replaces one macro by name, and says which ids the repair moved.</summary>
+    public McpPut Put(JsonObject json)
     {
         var macro = MacroItem.FromJson(json);
-        McpPatches.Settle(macro);
+        var renamed = McpPatches.Settle(macro);
         macro.Name = macro.Name.Trim();
         if (macro.Name.Length == 0)
         {
@@ -115,7 +122,7 @@ public sealed class McpDraft
         }
 
         McpAudit.Note("draft.put", $"{macro.Name} ({macro.Steps.Count} steps)");
-        return macro;
+        return new McpPut(macro, renamed);
     }
 
     public void Delete(string name)

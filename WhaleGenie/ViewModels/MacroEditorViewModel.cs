@@ -499,7 +499,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
-        PlacementNotice = string.Empty;
+        Notice = string.Empty;
         foreach (var action in ActionPalette)
         {
             action.RefreshLanguage();
@@ -707,15 +707,16 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool HasCallImpact => CallImpactSummary.Length > 0;
 
     /// <summary>
-    /// Why the last drag, paste or structural edit was refused. It stays above the step list until
-    /// another edit succeeds or the selection moves, so a refused drop does not look like a silent
-    /// failure.
+    /// The one line the editor has to say about the steps: why the last drag, paste or structural
+    /// edit was refused, or which step ids a file brought in that had to be repaired. It stays above
+    /// the step list until another edit succeeds or the selection moves, so neither a refused drop
+    /// nor a repaired file looks like nothing happened.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPlacementNotice))]
-    public partial string PlacementNotice { get; set; } = string.Empty;
+    [NotifyPropertyChangedFor(nameof(HasNotice))]
+    public partial string Notice { get; set; } = string.Empty;
 
-    public bool HasPlacementNotice => PlacementNotice.Length > 0;
+    public bool HasNotice => Notice.Length > 0;
 
     /// <summary>One line above the list saying how much the editor has to say about the steps.</summary>
     public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
@@ -1674,7 +1675,31 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>Shows the reason a placement was refused without changing the macro.</summary>
-    public void ReportPlacementRefusal(string reason) => PlacementNotice = reason;
+    public void ReportPlacementRefusal(string reason) => Notice = reason;
+
+    /// <summary>
+    /// Lets every step in this document have an id of its own, and says so when one had to move.
+    /// Two steps with one id is a file that cannot be branched on — the run would keep one answer
+    /// under a name two steps share — so the repair is done here and reported rather than left to
+    /// be discovered at run time.
+    /// </summary>
+    public void SettleStepIds() => ShowStepIdsRepaired(StepIds.Settle(Steps));
+
+    /// <summary>
+    /// Says which ids a repair moved, for a caller that settled more than one document and knows
+    /// which one this is. The macro counts as changed: the file on disk still has the old names.
+    /// </summary>
+    public void ShowStepIdsRepaired(IReadOnlyList<StepIds.Rename> renamed)
+    {
+        if (renamed.Count == 0)
+        {
+            return;
+        }
+
+        Notice = Strings.Format("Editor.StepIdsRepaired", renamed.Count,
+            string.Join(", ", renamed.Select(rename => $"{rename.Old} → {rename.New}")));
+        IsDirty = true;
+    }
 
     /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
     [RelayCommand]
@@ -1844,7 +1869,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         list.Insert(Math.Clamp(index, 0, list.Count), group);
-        StepIds.Settle(Steps);
+        SettleStepIds();
         RestoreSelection([group]);
         NotifyStepsChanged();
     }
@@ -1888,7 +1913,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         list.Insert(Math.Clamp(index, 0, list.Count), call);
-        StepIds.Settle(Steps);
+        SettleStepIds();
 
         // The new macro is one of the ones a call may reach from here, so the step just written is
         // checked against it rather than being marked as calling something that is not there.
@@ -2177,7 +2202,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
 
-        StepIds.Settle(Steps);
+        SettleStepIds();
         ShowInside(list);
         RestoreSelection([step]);
         NotifyStepsChanged();
@@ -2206,7 +2231,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             Steps.Add(step);
         }
 
-        StepIds.Settle(Steps);
+        SettleStepIds();
         NotifyStepsChanged();
         MarkDirty();
     }
@@ -2276,7 +2301,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         // A paste is a copy, and two steps sharing a name share the variable it fills in and the
         // row a run lights up; a name that is free in this macro is kept, so pasting from another
         // macro leaves the steps as they were.
-        StepIds.Settle(Steps);
+        SettleStepIds();
         ShowInside(list);
         RestoreSelection(copies);
         NotifyStepsChanged();
@@ -2336,7 +2361,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         // A step asked for before this one is no longer the step being pointed at.
         _insertAt = null;
-        PlacementNotice = string.Empty;
+        Notice = string.Empty;
         _selection.Clear();
         _selection.AddRange(steps);
 
@@ -2410,7 +2435,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             // A macro written before steps had names, or one edited by hand outside the program,
             // arrives with none or with the same one twice; both are settled here, once, rather
             // than defended against in every place that reads a step's name.
-            StepIds.Settle(Steps);
+            SettleStepIds();
         }
         finally
         {
@@ -2994,7 +3019,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     internal void NotifyStepsChanged()
     {
-        PlacementNotice = string.Empty;
+        Notice = string.Empty;
         RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();

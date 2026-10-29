@@ -664,6 +664,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PlaceTakesOnly"] = "The step was not placed. This list only takes {0}.",
         ["Editor.PlaceCaseOnly"] = "A case can only be placed in a switch's branch list.",
         ["Editor.PlaceUnavailable"] = "This action cannot be placed here: {0}.",
+        ["Editor.StepIdsRepaired"] = "Repaired {0} step id(s) that were used twice: {1}",
         ["Editor.PlaceIntoItself"] = "A block cannot be moved inside itself.",
         ["Editor.RecordActive"] = "Recording: {0} captured, Escape is recorded like any other "
                                   + "key. Press Ctrl + F10 to stop",
@@ -2604,6 +2605,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PlaceTakesOnly"] = "这一步没有放进去：这个列表只收{0}。",
         ["Editor.PlaceCaseOnly"] = "Case 只能放进多分支的分支列表。",
         ["Editor.PlaceUnavailable"] = "这个动作不能放进当前位置：{0}。",
+        ["Editor.StepIdsRepaired"] = "修复了 {0} 个重复的步骤 ID：{1}",
         ["Editor.PlaceIntoItself"] = "不能把块放进它自己的内部。",
         ["Editor.RecordActive"] = "录制中：已捕获 {0} 个事件（Esc 会被正常录下来），"
                                   + "按 Ctrl + F10 停止",

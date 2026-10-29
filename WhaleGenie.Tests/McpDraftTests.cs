@@ -96,7 +96,7 @@ public class McpDraftTests
                     }),
             });
 
-            var ids = Ids(macro.Steps);
+            var ids = Ids(macro.Macro.Steps);
             Assert.Equal(3, ids.Count);
             Assert.All(ids, id => Assert.Equal(4, id.Length));
             Assert.Equal(3, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());

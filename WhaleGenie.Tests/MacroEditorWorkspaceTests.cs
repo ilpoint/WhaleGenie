@@ -853,9 +853,9 @@ public class MacroEditorWorkspaceTests
 
             Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
             Assert.Empty(switchStep.StepLists.Single(parameter => parameter.Name == "cases").Steps);
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible && text.Text == editor.PlacementNotice);
+                text => text.IsEffectivelyVisible && text.Text == editor.Notice);
             window.Close(null);
         });
     }

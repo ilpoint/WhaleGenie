@@ -327,7 +327,7 @@ public class StepTreeTests
             // A loop holding itself could never finish, so the drop is simply not taken.
             Assert.Same(loop, Assert.Single(editor.Steps));
             Assert.Single(Inside(loop));
-            Assert.Equal(Strings.Get("Editor.PlaceIntoItself"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceIntoItself"), editor.Notice);
         });
     }
 

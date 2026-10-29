@@ -1277,8 +1277,8 @@
                                   Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
                        <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasCallImpact}"
                                   Text="{Binding CallImpactSummary}" TextWrapping="Wrap" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasPlacementNotice}"
-                                  Text="{Binding PlacementNotice}" TextWrapping="Wrap" />
+                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasNotice}"
+                                  Text="{Binding Notice}" TextWrapping="Wrap" />
                    </StackPanel>
 
                    <!-- Empty state -->

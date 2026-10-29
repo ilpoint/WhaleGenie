@@ -342,7 +342,8 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         => McpErrors.RunAsync(async () =>
         {
             var draft = drafts.Get(draftId);
-            var written = await Ui(() => draft.Put(macro));
+            var put = await Ui(() => draft.Put(macro));
+            var written = put.Macro;
             var validation = await Ui(() => McpDraftStore.Validate(draft));
             var outline = await Ui(() => McpOutline.Of(written));
             return includeMacro
@@ -351,6 +352,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     name = written.Name,
                     steps = written.Steps.Count,
                     outline,
+                    renamed = Renamed(put.Renamed),
                     validation = Shape(validation),
                     macro = await Ui(() => written.ToJson(includeTriggers: true)),
                 })
@@ -359,6 +361,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     name = written.Name,
                     steps = written.Steps.Count,
                     outline,
+                    renamed = Renamed(put.Renamed),
                     validation = Shape(validation),
                 });
         });
@@ -391,11 +394,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             }
 
             var patched = outcome.Macro!;
-            await Ui(() =>
-            {
-                draft.Put(patched.ToJson());
-                return true;
-            });
+            var stored = await Ui(() => draft.Put(patched.ToJson()));
 
             var written = await Ui(() => draft.Find(name)) ?? patched;
             var validation = await Ui(() => McpDraftStore.Validate(draft));
@@ -419,6 +418,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                 ["name"] = written.Name,
                 ["steps"] = written.Steps.Count,
                 ["changed"] = changed,
+                ["renamed"] = Renamed(stored.Renamed),
                 ["validation"] = Shape(validation),
             };
 
@@ -899,6 +899,13 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     : "Saving the project copies it into the package's assets.",
             });
         });
+
+    /// <summary>
+    /// The ids a write had to move because two steps arrived sharing one, said as the pairs they
+    /// are. A client that wrote expressions against its own ids can see what was kept instead.
+    /// </summary>
+    private static IReadOnlyList<object> Renamed(IReadOnlyList<StepIds.Rename> renamed)
+        => [.. renamed.Select(rename => (object)new { from = rename.Old, to = rename.New })];
 
     /// <summary>
     /// The two tools that write the project stand behind one door: the switch that allows this

@@ -734,8 +734,19 @@ public partial class MacroEditorWindow : Window
         _documentPages.Add(page);
     }
 
+    /// <summary>
+    /// Gives every step of every open document an id of its own, and says on the page it happened
+    /// to when one had to move: a submacro brought in from elsewhere arrives with the ids it was
+    /// written with, and the caller it was dropped into may already be using them.
+    /// </summary>
     private void SettleDocumentIds()
-        => StepIds.SettleAcross(_documentPages.Select(page => page.Editor.Steps));
+    {
+        var renamed = StepIds.SettleAcross(_documentPages.Select(page => page.Editor.Steps));
+        if (renamed.Count > 0)
+        {
+            _documentPages[^1].Editor.ShowStepIdsRepaired(renamed);
+        }
+    }
 
     private string UniqueSubMacroName(string basis)
     {

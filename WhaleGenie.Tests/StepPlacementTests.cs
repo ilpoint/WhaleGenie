@@ -24,7 +24,7 @@ public class StepPlacementTests
             editor.PasteSteps([Case("two")]);
 
             Assert.Equal(["control.case", "control.case"], cases.Select(step => step.Type));
-            Assert.False(editor.HasPlacementNotice);
+            Assert.False(editor.HasNotice);
         });
     }
 
@@ -43,7 +43,7 @@ public class StepPlacementTests
 
             Assert.Same(first, Assert.Single(cases));
             Assert.Equal(Strings.Format("Editor.PlaceTakesOnly",
-                ActionCatalog.Find("control.case")!.LocalName), editor.PlacementNotice);
+                ActionCatalog.Find("control.case")!.LocalName), editor.Notice);
 
             editor.UndoCommand.Execute(null);
             Assert.Empty(editor.Steps);
@@ -60,7 +60,7 @@ public class StepPlacementTests
             editor.PasteSteps([Case("one")]);
 
             Assert.Empty(editor.Steps);
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
         });
     }
 
@@ -75,16 +75,16 @@ public class StepPlacementTests
 
             editor.ReplaceStep(ordinary, Case("replacement"));
             Assert.Same(ordinary, Assert.Single(editor.Steps));
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
 
             editor.AppendSteps([Case("appended")]);
             Assert.Same(ordinary, Assert.Single(editor.Steps));
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
 
             var empty = new MacroEditorViewModel();
             empty.AddStep(Case("added"));
             Assert.Empty(empty.Steps);
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), empty.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), empty.Notice);
         });
     }
 
@@ -124,7 +124,7 @@ public class StepPlacementTests
                 editor.Steps.Select(step => step.Type));
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
         });
     }
 
@@ -143,7 +143,7 @@ public class StepPlacementTests
             Assert.Same(choice, Assert.Single(editor.Steps));
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
         });
     }
 
@@ -159,7 +159,7 @@ public class StepPlacementTests
             editor.PasteSteps([group]);
 
             Assert.Empty(editor.Steps);
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
         });
     }
 
@@ -178,14 +178,14 @@ public class StepPlacementTests
             editor.GroupSelectedCommand.Execute(null);
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
 
             editor.SetSelection([first]);
             editor.LiftSelectedCommand.Execute(null);
             Assert.Null(lifted);
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
         });
     }
 
@@ -203,7 +203,7 @@ public class StepPlacementTests
 
             var body = first.StepLists.Single();
             Assert.Equal("control.sequence", Assert.Single(body.Steps).Type);
-            Assert.False(editor.HasPlacementNotice);
+            Assert.False(editor.HasNotice);
         });
     }
 
@@ -242,7 +242,7 @@ public class StepPlacementTests
                 choice.StepLists.Single(parameter => parameter.Name == "otherwise").Steps).Type);
             Assert.Equal("control.case", Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps).Type);
-            Assert.False(editor.HasPlacementNotice);
+            Assert.False(editor.HasNotice);
         });
 
         static void AddInside(MacroEditorViewModel editor, MacroStep owner, string list, MacroStep child)

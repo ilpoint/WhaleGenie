@@ -86,7 +86,8 @@ internal static class McpPatches
     /// arrives without one, and a run reports such a step as <c>step..outcome</c>, so the ids are
     /// issued here rather than waiting for someone to open the macro in the editor.
     /// </summary>
-    public static void Settle(MacroItem macro) => StepIds.SettleAcross(Documents(macro));
+    public static IReadOnlyList<StepIds.Rename> Settle(MacroItem macro)
+        => StepIds.SettleAcross(Documents(macro));
 
     private static Refusal? Run(MacroItem macro, JsonObject operation, List<Touch> touches)
         => Scope(macro, operation).Error ?? Text(operation["op"]).Trim().ToLowerInvariant() switch
