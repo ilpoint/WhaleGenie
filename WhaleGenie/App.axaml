@@ -8,9 +8,11 @@
 
 
     <!--
-      颜色只有一套，写在 Themes/Tokens.axaml 里，按 ThemeVariant 分红。App* 是窗口仍在用的旧名字，
-      住在 Themes/LegacyKeys.axaml。两份字典都在这里合并进来，所以设计器预览与运行时的颜色来自
-      同一处，不会像从前那样 XAML 与 ThemePalette.cs 各抄一份再慢慢走散。
+      颜色只有一套，写在 Themes/Tokens.axaml 里，按 ThemeVariant 分红。App* 是二十三个窗口仍在
+      用的旧名字，住在 Themes/LegacyKeys.axaml，值也只是引用令牌里的 Color。两份字典都在这里合并
+      进来，所以设计器预览与运行时看到的是同一处颜色，不会像从前那样 XAML 与 ThemePalette.cs
+      各抄一份再慢慢走散。运行时唯一会被改写的是自定义强调色那五个令牌：ThemePalette.Apply 把
+      它们的 Color 与 Brush 两种形状写进 Application.Resources 盖住这里，非自定义时再摘掉。
     -->
     <Application.Resources>
         <ResourceDictionary>

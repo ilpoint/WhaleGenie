@@ -4,11 +4,15 @@
     <!--
       22 个 App* 键是二十三个窗口还在用的名字，值现在全部落在 Themes/Tokens.axaml 的 Color 上：
       旧键不再有自己的颜色，于是改令牌就是改窗口，窗口也不会再各有一套值。
-      这张表是过渡用的，等窗口改用新令牌就整份删掉。
 
       四行强调色用 DynamicResource，其余用 StaticResource：强调色是唯一会在运行时改的一档
       颜色，自定义主题把它写进 Application.Resources 覆盖掉，DynamicResource 才跟得上；
       别的令牌启动时定下来就不再变，StaticResource 在解析时读一次就够。
+
+      本文件是桥，不是设计。窗口改用新令牌之后整份删掉，判据是界面里再没有一处引用旧名字：
+      当前是 WhaleGenie/Views 下 26 个文件共 680 处 DynamicResource App*，加上 App.axaml 里
+      五处（ListBox.Dock 与 ToolTip 那两条全局样式）。两处都归零时删掉这个文件和 App.axaml
+      里对应的 ResourceInclude，删的时候不必留兼容层。
     -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
