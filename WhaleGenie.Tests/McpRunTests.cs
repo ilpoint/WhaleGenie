@@ -17,15 +17,20 @@ namespace WhaleGenie.Tests;
 /// a run worth doing. These checks use a macro that touches no device, so what they measure is the
 /// entrance itself rather than the machine behind it.
 /// </summary>
-public class McpRunTests
+public class McpRunTests : IDisposable
 {
+    /// <summary>The two switches, standing in for the MCP page's settings file.</summary>
+    private readonly McpGate _gate = new();
+
+    public void Dispose() => _gate.Dispose();
+
     /// <summary>With the switch off nothing runs, and the refusal says which switch to turn on.</summary>
     [Fact]
     public void A_run_needs_its_own_switch()
     {
         Ui.RunAsync(async () =>
         {
-            McpControl.AllowsRun = false;
+            _gate.Run = false;
             await using var loop = McpLoopback.Start(new MainViewModel());
             await using var client = await loop.ConnectAsync();
 
@@ -42,11 +47,11 @@ public class McpRunTests
                 StringComparison.Ordinal);
 
             // Direct control being on is not the same permission.
-            McpControl.Allowed = true;
+            _gate.Control = true;
             var stillOff = await client.CallToolAsync("whalegenie_run_macro",
                 new Dictionary<string, object?> { ["name"] = "安静", ["draftId"] = draft });
             Assert.True(stillOff.IsError);
-            McpControl.Allowed = false;
+            _gate.Control = false;
 
             await loop.StopAsync();
             return true;
@@ -62,7 +67,7 @@ public class McpRunTests
     {
         Ui.RunAsync(async () =>
         {
-            McpControl.AllowsRun = true;
+            _gate.Run = true;
             try
             {
                 await using var loop = McpLoopback.Start(new MainViewModel());
@@ -107,7 +112,7 @@ public class McpRunTests
             }
             finally
             {
-                McpControl.AllowsRun = false;
+                _gate.Run = false;
             }
 
             return true;
@@ -120,7 +125,7 @@ public class McpRunTests
     {
         Ui.RunAsync(async () =>
         {
-            McpControl.AllowsRun = true;
+            _gate.Run = true;
             try
             {
                 await using var loop = McpLoopback.Start(new MainViewModel());
@@ -170,7 +175,7 @@ public class McpRunTests
             }
             finally
             {
-                McpControl.AllowsRun = false;
+                _gate.Run = false;
             }
 
             return true;
@@ -205,7 +210,7 @@ public class McpRunTests
     {
         Ui.RunAsync(async () =>
         {
-            McpControl.AllowsRun = true;
+            _gate.Run = true;
             try
             {
                 await using var loop = McpLoopback.Start(new MainViewModel());
@@ -252,7 +257,7 @@ public class McpRunTests
             }
             finally
             {
-                McpControl.AllowsRun = false;
+                _gate.Run = false;
             }
 
             return true;

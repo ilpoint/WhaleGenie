@@ -28,8 +28,6 @@ public class McpGrantsTests : IDisposable
     public void Dispose()
     {
         McpControl.Stored = null;
-        McpControl.Allowed = false;
-        McpControl.AllowsRun = false;
         LocalSettings.FilePath = _was;
         try
         {
@@ -62,21 +60,19 @@ public class McpGrantsTests : IDisposable
     }
 
     [Fact]
-    public void A_run_started_with_a_flag_is_allowed_whatever_the_page_says()
+    public void A_run_with_nothing_stored_may_only_look()
     {
-        LocalSettings.StoreMcpGrants(false, false);
-        McpControl.Allowed = true;
-
-        Assert.True(McpControl.Allowed);
-        Assert.False(McpControl.AllowsRun);
-    }
-
-    [Fact]
-    public void A_run_with_no_stored_grants_is_read_only()
-    {
+        // No settings file at all, and nothing to read it from: the state of a check, and of a
+        // machine that has never opened the MCP page.
         File.Delete(_path);
         McpControl.Stored = null;
 
+        Assert.False(McpControl.Allowed);
+        Assert.False(McpControl.AllowsRun);
+
+        // A run that has a file but no grants in it is the same: the page writes a no as readily as
+        // a yes, and a missing answer is a no either way.
+        McpControl.Stored = McpGrants.Current;
         Assert.False(McpControl.Allowed);
         Assert.False(McpControl.AllowsRun);
     }

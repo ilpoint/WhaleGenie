@@ -233,8 +233,7 @@ presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 
 ## 第八轮：体检先问开关
 
-关于键鼠与运行的那两条检查原来只会一种答案：**期待被拒**。可服务端现在能带 `--allow-control` /
-`--allow-run` 起来——那时它该被放行。旧检查对着这样的服务端跑，报的是
+关于键鼠与运行的那两条检查原来只会一种答案：**期待被拒**。可服务端现在能在开关打开时起来——那时它该被放行。旧检查对着这样的服务端跑，报的是
 
 ```
 | gate.control_off | fail | {"x":1,"y":1,"durationMs":0,"cursor":{"x":1,"y":1}} |
@@ -246,7 +245,7 @@ presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 
 现在检查先读 `project_status` 里的 `control.allowed` / `control.runAllowed`，按服务端自己说的来验：
 
-| 权限 | 关着（默认） | 开着（`--allow-*`） |
+| 权限 | 关着（默认） | 开着（页面开关） |
 | --- | --- | --- |
 | 直接控制 | `gate.control_off`：`mouse_move` 必须被 `DirectControlOff` 拒 | `gate.control_on`：移到**指针现在所在的位置**——驱动走完一遍，桌面不动 |
 | 运行宏 | `gate.run_off`：`run_macro` 必须被 `RunNotAllowed` 拒 | `gate.run_on`：用一个不存在的名字，能走到查找就说明门开了，什么都没有真的跑 |

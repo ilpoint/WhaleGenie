@@ -4,8 +4,7 @@ using System.IO;
 namespace WhaleGenie.Mcp;
 
 /// <summary>What a run without a window was asked to serve.</summary>
-internal sealed record McpHostOptions(string? PackagePath, string? NewFolder,
-    bool AllowControl, bool AllowRun);
+internal sealed record McpHostOptions(string? PackagePath, string? NewFolder);
 
 /// <summary>What a doctor run was asked to look at.</summary>
 internal sealed record McpDoctorOptions(string? PackagePath, string? Report, bool Write, bool Strict);
@@ -21,14 +20,12 @@ internal static class McpCommandLine
     internal const string DoctorFlag = "--mcp-doctor";
 
     internal static string Usage => """
-        whalegenie --mcp [--open FILE.wgmacro] [--new FOLDER] [--allow-control] [--allow-run]
+        whalegenie --mcp [--open FILE.wgmacro] [--new FOLDER]
           Serves MCP over stdin and stdout. The client launches this program and owns the pipe; when
-          it closes, this exits. What the client may do is decided by the two switches on the MCP
-          page, which this reads from the settings file before every call, so a switch flipped while
-          it runs is obeyed on the next call. The last two flags force a permission for the whole
-          run regardless of the page, for a client set up once and left alone. Without either, the
-          server can only read: it lists macros, reads the screen and reports state, but sends no
-          input and runs no macro.
+          it closes, this exits. What the client may do is the two switches on the MCP page, which
+          this reads from the settings file before every call, so a switch flipped beside it is
+          obeyed on the next call. With neither switched on it can only read: it lists macros, reads
+          the screen and reports state, but sends no input and runs no macro.
         whalegenie --mcp-doctor [--open FILE.wgmacro] [--report FILE] [--write] [--strict]
           Starts a server of its own over a pipe and prints what it found.
         """;
@@ -45,8 +42,6 @@ internal static class McpCommandLine
     {
         string? open = null;
         string? folder = null;
-        var allowControl = false;
-        var allowRun = false;
         error = string.Empty;
 
         for (var index = 1; index < args.Length; index++)
@@ -69,12 +64,6 @@ internal static class McpCommandLine
                     }
 
                     break;
-                case "--allow-control":
-                    allowControl = true;
-                    break;
-                case "--allow-run":
-                    allowRun = true;
-                    break;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;
@@ -88,7 +77,7 @@ internal static class McpCommandLine
         }
 
         return new McpHostOptions(open is null ? null : Path.GetFullPath(open),
-            folder is null ? null : Path.GetFullPath(folder), allowControl, allowRun);
+            folder is null ? null : Path.GetFullPath(folder));
     }
 
     /// <summary>The doctor command, or null with a reason.</summary>

@@ -163,7 +163,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 | `Avalonia.Controls.ColorPicker` | 界面：设置里的自定义主题用它做 HSV 色板、滑块与十六进制输入；只有界面引用，引擎不认，也不影响宏文件格式。MIT，Fluent 主题样式从包里的 `Themes/Fluent/Fluent.xaml` 引入 |
 | `Lucide.Avalonia` 0.2.27 | 界面：所有动作分类、工具栏、窗口按钮与菜单图标由 `LucideIconKind` 渲染；`IconView` 只做旧属性名到 Lucide `Kind`、`Foreground`、`StrokeWidth` 的映射。包按 MIT 授权，图形来自 ISC 授权的 Lucide |
-| `ModelContextProtocol` | 界面：MCP 服务器本身。它没有端口、不监听任何东西，说的是客户端启动这个进程后给的那条标准输入输出；工具读写当前项目草稿与运行日志，还能看屏幕、窗口与 UI 元素，在 `--allow-control` 下发送键鼠与窗口操作，在 `--allow-run` 下一次运行一条宏（读回每一步的结果）。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，传输与发现由 SDK 管 |
+| `ModelContextProtocol` | 界面：MCP 服务器本身。它没有端口、不监听任何东西，说的是客户端启动这个进程后给的那条标准输入输出；工具读写当前项目草稿与运行日志，还能看屏幕、窗口与 UI 元素，在「允许直接控制」开着时发送键鼠与窗口操作，在「允许 AI 运行宏」开着时一次运行一条宏（读回每一步的结果）；两档权限来自 `settings.json`，服务每次调用前读回来。`WhaleGenie.Core` 不引用它；宿主由 `WhaleGenie/Mcp/McpServerHost.cs` 建，传输与发现由 SDK 管 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
 和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
@@ -217,11 +217,11 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 **审计**　`McpAudit` 往 `logs/mcp-<日期>.log` 一行一次调用，**只记改了东西或动了机器的**；`type_text` 只记
 字数不记内容。失败日志按文件名认（`failure-*.log`），不能取"最新一个 .log"——那个可能是审计文件。
 
-**无窗口与体检**　`--mcp [--open 包] [--new 文件夹] [--allow-control] [--allow-run]` 起服务，
+**无窗口与体检**　`--mcp [--open 包] [--new 文件夹]` 起服务（权限不在这条命令行上，见上一段的两个开关），
 stdout 是协议本身，一行别的都不能写（`McpHeadless` 只说一句到 stderr）；`--mcp-doctor [--report …]
 [--strict]` 自己拉起一个子进程、接上它的管道量一遍，退出码 0 全过 / 1 有 fail / 2 参数或包有问题 / 3 说不上话
-/ 4 子进程起不来。体检会先读 `project_status` 里的两档权限再验：关着就期待被拒，开着就期待放行——对着带
-`--allow-control` 起的进程跑，它不会把「本来就该放行」报成 fail。两者都只是入口，不得借此让核心依赖 MCP。
+/ 4 子进程起不来。体检会先读 `project_status` 里的两档权限再验：关着就期待被拒，开着就期待放行——对着把开关打开
+的机器跑，它不会把「本来就该放行」报成 fail。两者都只是入口，不得借此让核心依赖 MCP。
 
 **改它的固定四步**　改 → 量（动作矩阵与体检各跑一次）→ 比（两份报告对着看）→ 提交。量不出差别就不要说
 "更顺了"；矩阵里多出来的缺夹具与不可达也不算通过。

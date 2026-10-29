@@ -16,8 +16,13 @@ namespace WhaleGenie.Tests;
 /// the server is broken. These checks keep the ruler honest; the numbers it reports are meant to be
 /// read by a person comparing two builds, not asserted here.
 /// </summary>
-public class McpSelfCheckTests
+public class McpSelfCheckTests : IDisposable
 {
+    /// <summary>The two switches, standing in for the MCP page's settings file.</summary>
+    private readonly McpGate _gate = new();
+
+    public void Dispose() => _gate.Dispose();
+
     [Fact]
     public void The_self_check_closes_the_loop_and_reports_its_cost()
     {
@@ -138,8 +143,8 @@ public class McpSelfCheckTests
         Ui.RunAsync(async () =>
         {
             var folder = Scratch();
-            var control = McpControl.Allowed;
-            var runs = McpControl.AllowsRun;
+            var control = _gate.Control;
+            var runs = _gate.Run;
             try
             {
                 var path = Path.Combine(folder, "project.wgmacro");
@@ -148,8 +153,8 @@ public class McpSelfCheckTests
                 viewModel.CurrentPath = path;
                 viewModel.SavePackage(path);
 
-                McpControl.Allowed = true;
-                McpControl.AllowsRun = true;
+                _gate.Control = true;
+                _gate.Run = true;
 
                 await using var loop = McpLoopback.Start(viewModel);
                 await using var client = await loop.ConnectAsync();
@@ -179,8 +184,8 @@ public class McpSelfCheckTests
             }
             finally
             {
-                McpControl.Allowed = control;
-                McpControl.AllowsRun = runs;
+                _gate.Control = control;
+                _gate.Run = runs;
                 Directory.Delete(folder, true);
             }
 

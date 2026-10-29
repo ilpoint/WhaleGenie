@@ -10,29 +10,19 @@ namespace WhaleGenie.Mcp;
 /// </summary>
 public static class McpControl
 {
-    private static bool _allowed;
-
-    private static bool _allowsRun;
-
     /// <summary>
-    /// Where a run reads the permissions the MCP page stored, asked afresh each time. Null in a run
-    /// that was given no such file — a check, the self check — which then has only the flags it was
-    /// started with, and can be counted on to answer the same way on every machine.
+    /// The two switches as the MCP page stored them, asked afresh each time. There is no second
+    /// source: the page is the only writer, and a run that was given no settings file — a check, the
+    /// self check — reads nothing and may only look.
     /// </summary>
     internal static Func<(bool Control, bool Run)>? Stored { get; set; }
 
     /// <summary>
-    /// True while the person has allowed an MCP client to send keys, clicks and window commands —
-    /// either by switching it on in the MCP page, which a running server reads back, or by starting
-    /// this program with <c>--allow-control</c>, which overrides the page for that run. Reading the
-    /// screen, the windows and the elements works whatever this says; only the tools that change
-    /// something on the machine ask.
+    /// True while the person has allowed an MCP client to send keys, clicks and window commands.
+    /// Reading the screen, the windows and the elements works whatever this says; only the tools that
+    /// change something on the machine ask.
     /// </summary>
-    public static bool Allowed
-    {
-        get => _allowed || Stored?.Invoke().Control == true;
-        set => _allowed = value;
-    }
+    public static bool Allowed => Stored?.Invoke().Control == true;
 
     /// <summary>
     /// True while the person has allowed an MCP client to run one macro at a time. It is a second
@@ -40,9 +30,5 @@ public static class McpControl
     /// and starts programs are not the same favour to ask, and a person may want one without the
     /// other.
     /// </summary>
-    public static bool AllowsRun
-    {
-        get => _allowsRun || Stored?.Invoke().Run == true;
-        set => _allowsRun = value;
-    }
+    public static bool AllowsRun => Stored?.Invoke().Run == true;
 }

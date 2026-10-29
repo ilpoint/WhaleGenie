@@ -25,6 +25,7 @@ public class McpControlTests : IDisposable
     private readonly WindowsForChecks _windows = new();
     private readonly ElementAtUi _ui = new();
     private readonly McpControlTools _tools;
+    private readonly McpGate _gate = new();
 
     public McpControlTests()
     {
@@ -36,7 +37,7 @@ public class McpControlTests : IDisposable
     }
 
     /// <summary>The gate is the machine's, not one check's: it goes back off whatever happened.</summary>
-    public void Dispose() => McpControl.Allowed = false;
+    public void Dispose() => _gate.Control = false;
 
     [Fact]
     public async Task The_driving_tools_are_refused_until_the_person_allows_them()
@@ -48,7 +49,7 @@ public class McpControlTests : IDisposable
         Assert.Contains("Allow direct control", Text(refused), StringComparison.Ordinal);
         Assert.Empty(_input.Done);
 
-        McpControl.Allowed = true;
+        _gate.Control = true;
         var moved = await _tools.MouseMove(10, 20);
         Assert.True(moved.IsError != true);
         Assert.Contains("move 10,20 0", _input.Done);
@@ -170,7 +171,7 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task Keys_chords_and_text_go_to_the_input_device()
     {
-        McpControl.Allowed = true;
+        _gate.Control = true;
 
         await _tools.Key("Ctrl+Shift+S");
         Assert.Contains("hotkey Ctrl+Shift+S 0", _input.Done);
@@ -186,7 +187,7 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task The_text_itself_is_not_echoed_back()
     {
-        McpControl.Allowed = true;
+        _gate.Control = true;
 
         var answer = await _tools.TypeText("秘密", 0);
 
@@ -196,7 +197,7 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task A_mistake_is_refused_with_a_code_and_says_what_is_allowed()
     {
-        McpControl.Allowed = true;
+        _gate.Control = true;
 
         var key = await _tools.Key("nosuchkey");
         Assert.Equal(McpErrors.BadArgument, Code(key));
@@ -218,7 +219,7 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task A_click_stands_when_the_pointer_cannot_be_read_afterwards()
     {
-        McpControl.Allowed = true;
+        _gate.Control = true;
         _screen.CursorFails = true;
 
         var clicked = Json(await _tools.MouseClick(11, 22));
@@ -230,7 +231,7 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task A_click_a_drag_and_a_scroll_reach_the_input_device()
     {
-        McpControl.Allowed = true;
+        _gate.Control = true;
 
         var clicked = Json(await _tools.MouseClick(11, 22, MouseButtonName.Right, clicks: 2));
         Assert.Equal("right", clicked.GetProperty("button").GetString());
@@ -253,7 +254,7 @@ public class McpControlTests : IDisposable
     {
         _windows.Add(55, "演示", "Demo", "DemoWindow");
 
-        McpControl.Allowed = true;
+        _gate.Control = true;
 
         var activated = Json(await _tools.WindowActivate(55));
         Assert.True(activated.GetProperty("activated").GetBoolean());
@@ -357,7 +358,7 @@ public class McpControlTests : IDisposable
 
         Assert.Equal(McpErrors.DirectControlOff, Code(await _tools.ClipboardWrite("写进去的")));
 
-        McpControl.Allowed = true;
+        _gate.Control = true;
         var wrote = await _tools.ClipboardWrite("写进去的");
         Assert.True(wrote.IsError != true);
         Assert.Equal("写进去的", clipboard.Text);
@@ -403,7 +404,7 @@ public class McpControlTests : IDisposable
     [Fact]
     public async Task Raising_a_window_says_whether_it_got_there()
     {
-        McpControl.Allowed = true;
+        _gate.Control = true;
         _windows.Add(4242, "别的窗口", "other", "Other");
         _windows.Add(9999, "WhaleGenie Range", "WhaleGenie", "AvaloniaWindow");
 
@@ -423,7 +424,7 @@ public class McpControlTests : IDisposable
     {
         _windows.Add(4242, "计算器", "Calculator", "CalcFrame");
         _windows.Place(4242, 0, 0, 320, 240);
-        McpControl.Allowed = true;
+        _gate.Control = true;
 
         var moved = Json(await _tools.WindowMove(4242, 50, 60));
         Assert.True(moved.GetProperty("moved").GetBoolean());

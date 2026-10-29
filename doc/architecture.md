@@ -283,7 +283,7 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 ### 9.1 两种运行形态
 
-**只有一种形态：客户端启动的子进程，走 stdio。** `whalegenie --mcp [--allow-control] [--allow-run]`，
+**只有一种形态：客户端启动的子进程，走 stdio。** `whalegenie --mcp [--open 包] [--new 文件夹]`，
 `App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`；`McpServerHost` 在一个
 通用宿主里把工具、资源、提示词装好，用 `WithStreamServerTransport` 接上这个进程的标准输入输出。
 客户端关掉管道，会话就结束，进程跟着退出。
@@ -292,12 +292,12 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 监听端口。本地工具不该为此开一个。窗口里的 MCP 页因此是"两档开关 + 一段**客户端配置**"：开关写进设置
 文件，那段 JSON 只有 `--mcp` 一个参数，粘一次就够。
 
-权限在**每次调用时**才问：`McpControl.Allowed` / `AllowsRun` = 命令行强制值 OR `McpGrants.Current()`。
-`McpGrants` 每次都从 `settings.json` 读 `McpAllowControl` / `McpAllowRun`（几百字节，不缓存）。所以页面上
-翻一下开关，正在跑的服务下一次调用就换答案——不用重启应用，也不用让客户端重连，因为服务端和页面是两个
-进程，唯一能碰面的地方就是那个文件。`--allow-control` / `--allow-run` 退化成"整轮强制"，只留给客户端
-配好就不动、或者要跑自检的场合；没有它、文件里也没开，就是只读（列宏、读屏幕、报状态都行，发输入与跑宏
-一律拒绝）。读到半个文件（页面正在写）当作没授权，拒绝而不是放行。
+权限在**每次调用时**才问：`McpControl.Allowed` / `AllowsRun` 就是 `McpGrants.Current()`，而 `McpGrants`
+每次都从 `settings.json` 读 `McpAllowControl` / `McpAllowRun`（几百字节，不缓存）。所以页面上翻一下开关，
+正在跑的服务下一次调用就换答案——不用重启应用，也不用让客户端重连，因为服务端和页面是两个进程，唯一能
+碰面的地方就是那个文件。**只有一个来源**：命令行没有权限参数（曾经有过 `--allow-control` /
+`--allow-run`，搬到设置文件后删掉了，留着就有两个真相）；文件里没开就是只读，列宏、读屏幕、报状态都行，
+发输入与跑宏一律拒绝。读到半个文件（页面正在写）当作没授权，拒绝而不是放行。
 
 ### 9.2 工具
 
@@ -383,7 +383,7 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 1. **包格式不向后兼容。** `FormatVersion` 严格等于 20。开发阶段没有真实用户数据，保留双读会让每个字段都长出两条读法。
 2. **文案是两份手写字典，不是资源文件 + 生成器。** 要能逐条读、逐条改，并由测试对账。
-3. **无窗口 MCP 默认只读，授权以设置文件为准。** 唯一的写方是 MCP 页（`settings.json` 的两个字段），服务端每次调用前读回来，所以改开关不用重启；`--allow-control` / `--allow-run` 只是整轮强制，给一次性配置与自检用。默认拒绝是有意的：一条命令就在后台起一个能操作机器的服务，不该是静默的。
+3. **无窗口 MCP 默认只读，授权只有一个来源：设置文件。** 唯一的写方是 MCP 页（`settings.json` 的两个字段），服务端每次调用前读回来，所以改开关不用重启，也不会出现「命令行说行、页面说不行」两套答案。默认拒绝是有意的：一条命令就在后台起一个能操作机器的服务，不该是静默的。自检也一样，它对着本机真实的开关跑，先读 `project_status` 再决定期待什么。
 4. **`WhaleGenie.Core` 里放着几个只服务界面的东西**：`StepMeta.ToJson`（文件格式）、`ActionParameterSemantics` 里的编辑器事实、`MacroRunner.LookOnce`（对话框的"试一下"）。挪走的收益不抵一次大改。
 5. **MCP 是一次会话一条管道**（stdio），所以没有资源订阅推送，也没有多客户端并发：第二个客户端就是第二个进程、第二份草稿。
 
