@@ -304,6 +304,38 @@
     </Style>
 
     <!--
+      分类栏那一列方钮。规范注明它"不属 Tab 族"，但在同一个窗口里它和页签是同一个导航面，
+      所以放一起比分成两处好找。48×50 是族的度量：图标 22 加一行 `UiCaption` 单行标题。
+    -->
+    <Style Selector="Button.Rail">
+        <Setter Property="Width" Value="48" />
+        <Setter Property="Height" Value="50" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Rail:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Rail:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="Button.Rail:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+    <Style Selector="Button.Rail.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
       区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
       组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。
     -->
