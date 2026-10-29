@@ -922,7 +922,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             ? null
             : McpErrors.Fail(McpErrors.ProjectWriteOff,
                 "Direct control is off, so the project was not written.",
-                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
+                "Ask the person to turn on \"Allow direct control\"（允许直接控制） in the WhaleGenie MCP flyout, then call again." +
                 " Opening, editing and validating a draft needs no switch.",
                 retryable: true);
 

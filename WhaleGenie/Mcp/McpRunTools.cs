@@ -55,7 +55,7 @@ public sealed class McpRunTools
 
     [McpServerTool(Name = "whalegenie_run_macro", Destructive = true,
             Title = "Run a macro"),
-     Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow the AI to run macros\" in the WhaleGenie MCP flyout, which is a different switch from \"Allow direct control\"; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports.")]
+     Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow the AI to run macros\"（允许 AI 运行宏） in the WhaleGenie MCP flyout, which is a different switch from \"Allow direct control\"（允许直接控制）; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports.")]
     public Task<CallToolResult> RunMacro(
         [Description("The macro name, as whalegenie_list_macros shows it.")] string name,
         [Description("A draft id to run that draft's version instead of the project's.")] string? draftId = null,
@@ -67,7 +67,7 @@ public sealed class McpRunTools
                 McpAudit.Note("run_macro", "refused", McpErrors.RunNotAllowed);
                 return McpErrors.Fail(McpErrors.RunNotAllowed,
                     "Running a macro is not allowed right now, so nothing was run.",
-                    "Ask the person to turn on \"Allow the AI to run macros\" in the WhaleGenie MCP flyout. It is a separate switch from \"Allow direct control\", and a running server reads it before every call, so nothing has to be restarted.");
+                    "Ask the person to turn on \"Allow the AI to run macros\"（允许 AI 运行宏） in the WhaleGenie MCP flyout. It is a separate switch from \"Allow direct control\"（允许直接控制）, and a running server reads it before every call, so nothing has to be restarted.");
             }
 
             var wanted = (name ?? string.Empty).Trim();

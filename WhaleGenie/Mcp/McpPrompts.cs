@@ -23,7 +23,8 @@ public sealed class McpPrompts
         whalegenie_run_macro runs one macro and answers with what every step worked out, which is
         how you check your own work: run the draft before applying it, compare the answers with what
         you meant, and change the step that did not do it. It needs the person to turn on "Allow AI
-        to run macros" in the WhaleGenie MCP flyout, which is a separate switch from "Allow direct control";
+        to run macros"（允许 AI 运行宏） in the WhaleGenie MCP flyout, which is a separate switch from
+        "Allow direct control"（允许直接控制）;
         when it is refused with RunNotAllowed, ask the person rather than working around it. One run
         at a time: a second call while one is going is refused with RunBusy.
         The catalogue holds around 180 actions. whalegenie_list_actions returns one page with
@@ -52,7 +53,7 @@ public sealed class McpPrompts
         send keys, clicks and window commands (whalegenie_mouse_move, whalegenie_mouse_click,
         whalegenie_mouse_scroll, whalegenie_mouse_drag, whalegenie_key, whalegenie_type_text,
         whalegenie_window_activate, whalegenie_window_move, whalegenie_window_close) only work
-        while the person has turned on "Allow direct control" in the WhaleGenie MCP flyout; when
+        while the person has turned on "Allow direct control"（允许直接控制） in the WhaleGenie MCP flyout; when
         they are refused with DirectControlOff, ask the person to turn it on rather than trying
         another way. Writing the project is behind that same switch: apply, save_project and
         put_image answer ProjectWriteOff while it is off, and a draft can still be opened, edited
@@ -125,7 +126,7 @@ public sealed class McpPrompts
            Applying does not run the macro and does not save the package.
         6. Call whalegenie_save_project only when the user wants the package written. It keeps a
            .bak copy. If it reports that there is no path, ask the user to save once in WhaleGenie.
-        7. When the person has turned on "Allow AI to run macros", run the draft with
+        7. When the person has turned on "Allow the AI to run macros"（允许 AI 运行宏）, run the draft with
            whalegenie_run_macro (draftId) and read what each step answered; fix what came out wrong
            and run it again. A refusal with RunNotAllowed means that switch is off: say so and hand
            the macro over. Never claim a run you did not make, and never add a script or action
@@ -151,7 +152,7 @@ public sealed class McpPrompts
            for a picture of the desktop or one window, whalegenie_list_windows and
            whalegenie_element_at to find a window or name a control, whalegenie_cursor and
            whalegenie_pixel_at for the pointer and a colour. These answer whenever the server is on.
-           If the person has turned on "Allow direct control", you may also drive the machine the
+           If the person has turned on "Allow direct control"（允许直接控制）, you may also drive the machine the
            way a person would — whalegenie_window_activate to choose a window, then the mouse, key
            and typing tools — but only while that switch stays on, and only to look at or reach
            something, never to run the macro.

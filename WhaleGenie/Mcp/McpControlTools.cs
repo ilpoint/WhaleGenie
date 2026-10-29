@@ -269,7 +269,7 @@ public sealed class McpControlTools
         }))));
 
     [McpServerTool(Name = "whalegenie_clipboard_read", Title = "Read the clipboard"),
-     Description("Returns what is on the clipboard as text, and how many files it holds when files were copied. Reading a page's text after selecting and copying it is steadier than reading the screen. Needs \"Allow direct control\": what is on the clipboard is whatever the person last copied, which can be a password.")]
+     Description("Returns what is on the clipboard as text, and how many files it holds when files were copied. Reading a page's text after selecting and copying it is steadier than reading the screen. Needs \"Allow direct control\"（允许直接控制）: what is on the clipboard is whatever the person last copied, which can be a password.")]
     public Task<CallToolResult> ClipboardRead()
         => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Drive("clipboard_read", () =>
         {
@@ -284,7 +284,7 @@ public sealed class McpControlTools
         }, "read"))));
 
     [McpServerTool(Name = "whalegenie_clipboard_write", Destructive = true, Title = "Write the clipboard"),
-     Description("Puts text on the clipboard, so a step that pastes can be tried without typing. Needs \"Allow direct control\".")]
+     Description("Puts text on the clipboard, so a step that pastes can be tried without typing. Needs \"Allow direct control\"（允许直接控制）.")]
     public Task<CallToolResult> ClipboardWrite(
         [Description("The text to put on the clipboard.")] string text)
         => Task.FromResult(McpErrors.Run(() => McpErrors.Ok(Drive("clipboard_write", () =>
@@ -572,7 +572,7 @@ public sealed class McpControlTools
             McpAudit.Note(tool, "refused", McpErrors.DirectControlOff);
             throw new McpFailure(McpErrors.DirectControlOff,
                 "Direct control is off, so nothing was done to the machine.",
-                "Ask the person to turn on \"Allow direct control\" in the WhaleGenie MCP flyout, then call again." +
+                "Ask the person to turn on \"Allow direct control\"（允许直接控制） in the WhaleGenie MCP flyout, then call again." +
                 " Looking at the screen needs no switch.");
         }
 
