@@ -44,6 +44,10 @@
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.Hint
       STATIC Border.Section
+      STATIC ListBox.List
+      STATIC ListBox.List.Boxed
+      STATIC ListBox.List.Pill
+      STATIC ListBox.List.Bare
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
       窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
@@ -336,6 +340,109 @@
     <Style Selector="Button.Rail.selected">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
+      列表一族：四个壳 + 两种行。
+
+      **态画在模板的 `ContentPresenter` 上，不是 `ListBoxItem` 自身。** `ListBoxItem*` 没有层 1
+      可覆盖的键，所以这一族必须自己写；而写在自身上的话语法合法、编译通过，屏幕上什么都不发生
+      ——这是"读错观察点"的写侧版本。Fluent 的模板把行的底与边框画在 `ContentPresenter` 上，
+      所以选择器一律 `/template/ ContentPresenter`。
+
+      选择器用后代（空格）不用子代（`>`）：行的真实位置是
+      `ListBox > ItemsPresenter > 面板 > ListBoxItem`，写 `>` 匹配不到，而这个错不报错。
+
+      `.Bare` 不是可选项：`Border.Card.*` 放进 `ListBoxItem` 之后两层都会画底（行有 hover/selected
+      底、卡片自己也有），所以先有"行全透明"这一档，卡片才敢往里放。写 `Border.Card.*` 之前先确认
+      `.Bare` 在。
+    -->
+    <Style Selector="ListBox.List">
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ListBox.List ListBoxItem">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+        <Setter Property="BorderThickness" Value="2,0,0,0" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <Style Selector="ListBox.List.Boxed">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Padding" Value="{DynamicResource Pad1}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+    </Style>
+
+    <!--
+      胶囊一档靠描边站住，不靠底色差：胶囊底与它所在的面板同值之后，"两个填充之间的亮度差"这条
+      识别路径就没了，能改的只有描边。见规范「三处裁定」第 1 条。
+    -->
+    <Style Selector="ListBox.List.Pill ListBoxItem">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.List.Pill ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+    </Style>
+    <Style Selector="ListBox.List.Pill ListBoxItem:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
+    </Style>
+    <Style Selector="ListBox.List.Pill ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ListBox.List.Pill ListBoxItem:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+
+    <!-- 全透明的一档：行的六个态都不画底，外观交给放进来的子元素。 -->
+    <Style Selector="ListBox.List.Bare ListBoxItem">
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+    </Style>
+    <Style Selector="ListBox.List.Bare ListBoxItem /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.List.Bare ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.List.Bare ListBoxItem:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.List.Bare ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.List.Bare ListBoxItem:disabled /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
 
     <!--
