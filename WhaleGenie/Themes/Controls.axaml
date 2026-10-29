@@ -63,6 +63,10 @@
       STATIC Border.Section
       STATIC Border.Tag
       STATIC Border.Badge
+      STATIC Border.Badge.Info
+      STATIC Border.Badge.Success
+      STATIC Border.Badge.Warning
+      STATIC Border.Badge.Danger
       STATIC Border.Divider
       STATIC Border.Panel
       STATIC Border.Sunken
@@ -75,6 +79,10 @@
       STATIC ListBox.List
       STATIC Border.Tag
       STATIC Border.Badge
+      STATIC Border.Badge.Info
+      STATIC Border.Badge.Success
+      STATIC Border.Badge.Warning
+      STATIC Border.Badge.Danger
       STATIC Border.Divider
       STATIC Border.Panel
       STATIC Border.Sunken
@@ -87,6 +95,10 @@
       STATIC ListBox.List.Boxed
       STATIC Border.Tag
       STATIC Border.Badge
+      STATIC Border.Badge.Info
+      STATIC Border.Badge.Success
+      STATIC Border.Badge.Warning
+      STATIC Border.Badge.Danger
       STATIC Border.Divider
       STATIC Border.Panel
       STATIC Border.Sunken
@@ -99,6 +111,10 @@
       STATIC ListBox.List.Pill
       STATIC Border.Tag
       STATIC Border.Badge
+      STATIC Border.Badge.Info
+      STATIC Border.Badge.Success
+      STATIC Border.Badge.Warning
+      STATIC Border.Badge.Danger
       STATIC Border.Divider
       STATIC Border.Panel
       STATIC Border.Sunken
@@ -610,6 +626,38 @@
         <Setter Property="Height" Value="18" />
         <Setter Property="Padding" Value="{DynamicResource PadChip}" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+    </Style>
+
+    <!--
+      徽标的四个档位：底与外框由档位色给，字色靠后代选择器——`Border` 没有 `Foreground`，
+      给 `Border` 设一条 `Foreground` 是静默无效的（`dev.md` 第 4 条同族）。
+    -->
+    <Style Selector="Border.Badge.Info">
+        <Setter Property="Background" Value="{DynamicResource InfoSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Info TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Info}" />
+    </Style>
+
+    <Style Selector="Border.Badge.Success">
+        <Setter Property="Background" Value="{DynamicResource SuccessSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Success TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Success}" />
+    </Style>
+
+    <Style Selector="Border.Badge.Warning">
+        <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Warning TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
+    </Style>
+
+    <Style Selector="Border.Badge.Danger">
+        <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Danger TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
     </Style>
 
     <!-- 分隔线：一条 1px 的线，两侧间隙由 `GapDivider` 给（见令牌注释）。 -->
