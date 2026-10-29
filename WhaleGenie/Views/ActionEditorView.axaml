@@ -108,7 +108,7 @@
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <Button Grid.Column="1" Classes="Secondary CaptureToggle" Height="34" Padding="9,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnCaptureKey" />
@@ -127,7 +127,7 @@
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <Button Grid.Column="1" Classes="Secondary CaptureToggle" Height="34" Padding="9,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnCaptureKey" />
@@ -621,7 +621,7 @@
                                                 Content="{Binding KeysDisplay}"
                                                 ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickKeyRow" />
-                                        <Button Grid.Column="1" Classes="Secondary CaptureToggle"
+                                        <Button Grid.Column="1" Classes="Secondary"
                                                 Height="34" Padding="9,0"
                                                 Content="{Binding CaptureLabel}"
                                                 ToolTip.Tip="{Binding [Add.CaptureKeyRunHint], Source={x:Static loc:Strings.Current}}"
