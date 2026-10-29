@@ -1,0 +1,140 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+      层 3：我们自己画的族。颜色全部取自 Themes/Tokens.axaml，能由层 1（FluentKeys.axaml）给的
+      外观一律不在这里重写——`Button.Secondary` / `TextBox.Field` / `ComboBox.Field` 的外观已经
+      实测跟着层 1 走（见 LayerOneTests），这里只给它们度量。
+
+      四条硬规则，写之前先看：
+      1. 不写 `Margin`。纵向间距由父容器的 `Spacing` / `RowSpacing` 承担；唯一例外是 `GapSection`。
+         理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
+      2. 不写裸值。颜色、字号、圆角、内边距四类一律引令牌。高度与宽度允许字面值，但只能出现在
+         本文件的族定义里、一族一次；`Views/` 里不给族成员写 `Height` / `Width`。
+      3. `Opacity` 只允许 `CardOpacity` 那一个例外——它是内容状态，不是造色。
+      4. 每个自定义类恰好一条 `:pointerover`，且每类都要能被键盘走到：控件族沿用模板的
+         `FocusAdorner`（层 1 的 `SystemControlFocusVisual*` 给双色环）；自绘元素
+         （`Border.Card.*`、`Ellipse.Dot`、`GridSplitter.Split`）必须显式 `Focusable="True"` +
+         `FocusAdorner`，否则键盘走到那里就断了。
+
+      这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
+      窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
+    -->
+
+    <Style Selector="TextBlock.Title">
+        <Setter Property="FontSize" Value="{DynamicResource UiSubtitleSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiSubtitleLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.FieldLabel">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.Hint">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--
+      主按钮：层 1 给的是次按钮的样子，所以这一类必须把四个状态全部写满，漏一格就露 Fluent 默认。
+      状态画在模板的 ContentPresenter 上（`Button:pointerover /template/` 那一条），只改控件自身的
+      Background 在 hover 时不会有人读它。
+    -->
+    <Style Selector="Button.Primary">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource PadControlWide}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillHover}" />
+    </Style>
+    <Style Selector="Button.Primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillPressed}" />
+    </Style>
+    <Style Selector="Button.Primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+
+    <!-- 次按钮：外观四个状态由层 1 的 Button* 键给，这里只给度量与字重。 -->
+    <Style Selector="Button.Secondary">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- 只有图标的动作钮（关窗、折叠）。底色透明，悬停靠叠层，所以它不必知道底下是什么颜色。 -->
+    <Style Selector="Button.Ghost">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource TransparentFill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Ghost:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Ghost:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <!--
+      标题栏上的动作钮，比 Ghost 宽一档、能带一个词。`Button*` 在层 1 是实心次按钮的样子，所以
+      这一类必须显式把底改回透明，否则标题栏上会出现一排灰块。
+    -->
+    <Style Selector="Button.Chrome">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource PadChrome}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="Background" Value="{DynamicResource TransparentFill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Chrome:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Chrome:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Chrome:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+</Styles>

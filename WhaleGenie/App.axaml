@@ -36,6 +36,12 @@
         <FluentTheme DensityStyle="Compact" />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
 
+        <!--
+          层 3 排在这里：同样是 `Button`，我们写的类比主题里的更靠后，选择器也更具体，所以压得住。
+          放在 FluentTheme 之前会被它盖回去，而且不报错。
+        -->
+        <StyleInclude Source="avares://WhaleGenie/Themes/Controls.axaml" />
+
         <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the
              expression builder's list of functions each stand one on screen, and one control with
              one look is worth a style above both windows rather than two that drift apart. -->
