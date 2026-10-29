@@ -2928,10 +2928,16 @@ public class ActionDialogTests
     }
 
     /// <summary>The button on a key field that takes the key pressed on the keyboard.</summary>
+    /// <summary>
+    /// The button that starts and stops capturing a key. It used to carry a `CaptureToggle` class of
+    /// its own; that class never had a style behind it, so it was removed — the lookup now goes by
+    /// the library's class plus the parameter the button belongs to, which is what actually picks one
+    /// out. **Renaming a class in the markup leaves every lookup of it pointing at nothing.**
+    /// </summary>
     private static Button CaptureButton(Window window, StepParameterViewModel parameter)
         => window.GetVisualDescendants().OfType<Button>()
             .First(item => item.IsEffectivelyVisible
-                && item.Classes.Contains("CaptureToggle")
+                && item.Classes.Contains("Secondary")
                 && ReferenceEquals(item.DataContext, parameter));
 
     /// <summary>Presses one key of the physical keyboard on the window the form stands in.</summary>
