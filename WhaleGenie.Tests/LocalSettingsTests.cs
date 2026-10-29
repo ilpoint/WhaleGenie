@@ -198,23 +198,36 @@ public class LocalSettingsTests
     }
 
     [Fact]
-    public void An_old_theme_choice_migrates_and_a_custom_palette_round_trips()
+    public void An_old_theme_choice_migrates_and_the_accent_round_trips()
     {
-        InOwnFile(_ =>
+        InOwnFile(path =>
         {
             LocalSettings.StoreLightTheme(true);
             Assert.Equal(ThemeMode.Light, LocalSettings.LoadTheme().Mode);
 
-            var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false))
-            {
-                ["AppAccent"] = "#112233",
-            };
-            LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Custom, false, colors));
+            // The file a custom theme left behind before this version: twenty-two colours, one per
+            // interface colour. Only the accent still means anything, so only it comes across.
+            File.WriteAllText(path, """
+                {"Theme":"custom","CustomThemeLight":true,"CustomThemeColors":{"AppAccent":"#112233","AppText":"#00FF00"}}
+                """);
 
-            var loaded = LocalSettings.LoadTheme();
-            Assert.Equal(ThemeMode.Custom, loaded.Mode);
-            Assert.False(loaded.CustomBaseLight);
-            Assert.Equal("#112233", loaded.CustomColors["AppAccent"]);
+            var migrated = LocalSettings.LoadTheme();
+            Assert.Equal(ThemeMode.Custom, migrated.Mode);
+            Assert.True(migrated.BaseLight);
+            Assert.Equal("#112233", migrated.AccentHex);
+
+            // Saving writes the new shape, and the dictionary that was read is not carried along.
+            LocalSettings.StoreTheme(migrated);
+            var written = File.ReadAllText(path);
+            Assert.DoesNotContain("CustomThemeColors", written, StringComparison.Ordinal);
+            Assert.Contains("\"Accent\":\"#112233\"", written, StringComparison.Ordinal);
+            Assert.Equal("#112233", LocalSettings.LoadTheme().AccentHex);
+
+            // A built-in variant has no accent of its own; the stored one is kept for the next time
+            // custom is picked rather than thrown away.
+            LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Dark, false, "#445566"));
+            Assert.Equal(ThemeMode.Dark, LocalSettings.LoadTheme().Mode);
+            Assert.Equal("#445566", LocalSettings.LoadTheme().AccentHex);
         });
     }
 

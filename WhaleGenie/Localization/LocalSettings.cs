@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
@@ -39,23 +40,38 @@ public static class LocalSettings
 
     /// <summary>
     /// The whole theme choice. A file from before custom themes carried only <see cref="Model.LightTheme"/>,
-    /// so that flag is the fallback when no mode was written.
+    /// so that flag is the fallback when no mode was written. A file from before this version kept a
+    /// dictionary of twenty-two colours; only the accent in it still means anything, so that one entry
+    /// is carried over and the rest are dropped rather than left to rot.
     /// </summary>
     public static ThemeSelection LoadTheme()
     {
         var model = Read();
-        var mode = Enum.TryParse<ThemeMode>(model.Theme, true, out var stored)
-            ? stored
+        var mode = Enum.TryParse<ThemeMode>(model.Theme, true, out var selected)
+            ? selected
             : model.LightTheme ? ThemeMode.Light : ThemeMode.Dark;
-        var colors = model.CustomThemeColors ?? new Dictionary<string, string>();
-        var light = model.CustomThemeLight;
 
-        if (mode is ThemeMode.Custom && colors.Count == 0)
+        var accent = model.Accent;
+        if (string.IsNullOrWhiteSpace(accent)
+            && model.CustomThemeColors is { } palette
+            && palette.TryGetValue("AppAccent", out var legacy))
         {
-            colors = new Dictionary<string, string>(ThemePalette.Defaults(light));
+            accent = legacy;
         }
 
-        return new ThemeSelection(mode, light, colors);
+        // Only a custom theme has a base of its own; the built-in light and dark choices say theirs
+        // in the mode, and reading a stale flag over it would leave "light" painting dark controls.
+        var baseLight = mode switch
+        {
+            ThemeMode.Light => true,
+            ThemeMode.Dark => false,
+            _ => model.CustomThemeLight,
+        };
+
+        return new ThemeSelection(
+            mode,
+            baseLight,
+            string.IsNullOrWhiteSpace(accent) ? null : accent);
     }
 
     /// <summary>Stores the whole theme choice; the old flag is kept for older copies of the program.</summary>
@@ -63,9 +79,14 @@ public static class LocalSettings
         => Write(model =>
         {
             model.Theme = selection.Mode.ToString().ToLowerInvariant();
-            model.CustomThemeLight = selection.CustomBaseLight;
-            model.CustomThemeColors = new Dictionary<string, string>(selection.CustomColors);
+            model.CustomThemeLight = selection.BaseLight;
+            model.Accent = selection.AccentHex ?? string.Empty;
             model.LightTheme = selection.Mode is ThemeMode.Light;
+
+            // Writing is where the old shape goes away: a dictionary left in the file would read as
+            // a palette that was never migrated, and the next start would pick the accent out of it
+            // over the one just chosen.
+            model.CustomThemeColors = null;
         });
 
     /// <summary>
@@ -220,6 +241,15 @@ public static class LocalSettings
 
         public bool CustomThemeLight { get; set; }
 
+        /// <summary>The one colour a custom theme paints with; empty means the built-in accent.</summary>
+        public string Accent { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Where a custom theme used to keep twenty-two colours, one per interface colour. Read so
+        /// that the accent chosen there survives the move to a single colour, and never written:
+        /// leaving it behind would look like a palette that had not been migrated yet.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, string>? CustomThemeColors { get; set; } = new();
     }
 }

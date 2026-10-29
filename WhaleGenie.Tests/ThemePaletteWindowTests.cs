@@ -1,9 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie;
@@ -13,12 +14,12 @@ using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
-/// <summary>The palette window has to load the official picker and list every semantic color.</summary>
+/// <summary>The accent window has to load the official picker and show what the colour becomes.</summary>
 [Collection("Theme")]
 public class ThemePaletteWindowTests
 {
     [Fact]
-    public void The_window_shows_a_picker_and_all_twenty_two_colors()
+    public void The_window_shows_one_picker_and_three_previews()
     {
         Ui.Run(() =>
         {
@@ -30,21 +31,28 @@ public class ThemePaletteWindowTests
                 Directory.CreateDirectory(folder);
                 LocalSettings.FilePath = Path.Combine(folder, "settings.json");
 
-                var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false));
                 var viewModel = new ThemePaletteViewModel(
-                    new ThemeSelection(ThemeMode.Custom, false, colors));
+                    new ThemeSelection(ThemeMode.Custom, false, "#112233"));
                 var window = new ThemePaletteWindow(viewModel);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
-                Assert.Equal(22, viewModel.Entries.Count);
                 Assert.Single(window.GetVisualDescendants().OfType<ColorView>());
 
-                viewModel.SelectedEntry.Color = Color.Parse("#123456");
+                // The three previews paint the derived colours, not the picked one: the window has
+                // to show what the rest of the program will look like.
+                Assert.True(ThemePalette.TryDerive(Color.Parse("#112233"), light: false, out var tokens));
+                Assert.Equal(tokens.Fill, Fill(viewModel.FillPreview));
+                Assert.Equal(tokens.Surface, Fill(viewModel.SurfacePreview));
+                Assert.Equal(tokens.Text, Fill(viewModel.TextPreview));
+
+                var next = Color.Parse("#2E5AAC");
+                viewModel.Accent = next;
                 Dispatcher.UIThread.RunJobs();
-                var surface = Assert.IsType<SolidColorBrush>(
-                    Application.Current!.Resources["AppSurface"]);
-                Assert.Equal(Color.Parse("#123456"), surface.Color);
+
+                Assert.True(ThemePalette.TryDerive(next, light: false, out var expected));
+                Assert.True(Application.Current!.TryGetResource("AccentFill", ThemeVariant.Dark, out var live));
+                Assert.Equal(expected.Fill, Fill(Assert.IsAssignableFrom<IBrush>(live)));
 
                 window.Close();
             }
@@ -59,4 +67,6 @@ public class ThemePaletteWindowTests
             }
         });
     }
+
+    private static Color Fill(IBrush brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
 }

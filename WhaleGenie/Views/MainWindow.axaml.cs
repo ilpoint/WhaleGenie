@@ -1936,10 +1936,7 @@ public partial class MainWindow : Window
     private void OnToggleTheme(object? sender, RoutedEventArgs e)
     {
         var current = ThemeController.Load();
-        var next = current with
-        {
-            Mode = current.BaseLight ? ThemeMode.Dark : ThemeMode.Light,
-        };
+        var next = current.WithMode(current.BaseLight ? ThemeMode.Dark : ThemeMode.Light);
 
         ThemeController.Apply(next);
         ThemeController.Save(next);

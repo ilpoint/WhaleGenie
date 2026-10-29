@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,8 +7,8 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// The custom palette editor. It is shown over the settings window and applies every change to the
-/// running program at once; closing it writes the palette that was being previewed.
+/// The accent picker. It is shown over the settings window and applies every change to the running
+/// program at once; closing it writes the colour that was being previewed.
 /// </summary>
 public partial class ThemePaletteWindow : Window
 {
@@ -34,14 +33,6 @@ public partial class ThemePaletteWindow : Window
         }
 
         Closed += (_, _) => _viewModel.Flush();
-    }
-
-    private void OnSelectColor(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ThemeColorEntryViewModel entry })
-        {
-            _viewModel.Select(entry);
-        }
     }
 
     private void OnDone(object? sender, RoutedEventArgs e) => Close();

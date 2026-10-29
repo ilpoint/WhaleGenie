@@ -97,6 +97,58 @@ public class ThemeTokenTests
         });
     }
 
+    /// <summary>
+    /// Where each old name lands. The old keys carry no colour of their own any more, so this is
+    /// also the check that the table in LegacyKeys.axaml points where it says it does.
+    /// </summary>
+    private static readonly (string Old, string Token)[] Mapped =
+    [
+        ("AppBackdrop", "SurfaceWindow"),
+        ("AppChrome", "SurfaceChrome"),
+        ("AppSurface", "SurfacePanel"),
+        ("AppDock", "SurfacePanel"),
+        ("AppField", "SurfaceField"),
+        ("AppBorder", "BorderControl"),
+        ("AppControl", "SurfaceControl"),
+        ("AppGroup", "SurfaceSunken"),
+        ("AppHover", "SurfaceHover"),
+        ("AppSelected", "AccentSurface"),
+        ("AppAccentSoft", "AccentSurface"),
+        ("AppAccent", "AccentFill"),
+        ("AppAccentHover", "AccentFillHover"),
+        ("AppText", "TextPrimary"),
+        ("AppTextStrong", "TextPrimary"),
+        ("AppMuted", "TextTertiary"),
+        ("AppLabel", "Warning"),
+        ("AppWarning", "Warning"),
+        ("AppInfo", "Info"),
+        ("AppInfoSoft", "InfoSurface"),
+        ("AppDanger", "Danger"),
+        ("AppSuccess", "Success"),
+    ];
+
+    [Fact]
+    public void Every_legacy_key_paints_the_token_it_stands_for()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
+            {
+                foreach (var (oldKey, token) in Mapped)
+                {
+                    Assert.Equal(Colour(token, variant), Colour(oldKey, variant));
+                }
+            }
+        });
+    }
+
+    private static Color Colour(string key, ThemeVariant variant)
+    {
+        var brush = Brush(key, variant);
+        Assert.NotNull(brush);
+        return Assert.IsAssignableFrom<ISolidColorBrush>(brush!).Color;
+    }
+
     private static IBrush? Brush(string key, ThemeVariant variant)
         => Application.Current!.TryGetResource(key, variant, out var value) ? value as IBrush : null;
 

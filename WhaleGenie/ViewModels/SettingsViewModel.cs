@@ -639,9 +639,9 @@ public partial class SettingsViewModel : ViewModelBase
         => Strings.Current.Language = value.Language;
 
     /// <summary>
-    /// Applies a theme as soon as the picker changes. Choosing Custom starts from the palette in
-    /// use, unless one was already saved; the dark and light choices leave a saved custom palette
-    /// untouched for next time.
+    /// Applies a theme as soon as the picker changes. Choosing Custom starts from the accent in use,
+    /// unless one was already saved; the dark and light choices leave a saved accent untouched for
+    /// next time.
     /// </summary>
     partial void OnSelectedThemeChanged(ThemeOption value)
     {
@@ -654,7 +654,7 @@ public partial class SettingsViewModel : ViewModelBase
         var current = ThemeController.Load();
         var next = value.Mode is ThemeMode.Custom
             ? ThemeController.StartCustom(current)
-            : current with { Mode = value.Mode };
+            : current.WithMode(value.Mode);
         ThemeController.Apply(next);
         ThemeController.Save(next);
     }
