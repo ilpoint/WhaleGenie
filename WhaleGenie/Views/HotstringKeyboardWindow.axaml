@@ -33,17 +33,6 @@
         <Style Selector="Button.CharKey.ShiftOn /template/ ContentPresenter">
             <Setter Property="Background" Value="#2E5F8A" />
         </Style>
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D95727" />
-            <Setter Property="BorderBrush" Value="#E86A3A" />
-        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
@@ -93,7 +82,7 @@
                                 Content="{Binding [HotstringKeyboard.Backspace], Source={x:Static loc:Strings.Current}}" />
                         <Button Name="ClearButton" Classes="CharKey" MinWidth="80"
                                 Content="{Binding [HotstringKeyboard.Clear], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="ConfirmButton" Classes="PrimaryButton" Height="36" MinWidth="92"
+                        <Button Name="ConfirmButton" Classes="Primary" Height="36" MinWidth="92"
                                 Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Grid>

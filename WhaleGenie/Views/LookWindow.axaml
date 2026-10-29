@@ -24,20 +24,6 @@
             <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
 
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D94C25" />
-        </Style>
-
         <Style Selector="Border.Panel">
             <Setter Property="Background" Value="{DynamicResource AppSurface}" />
             <Setter Property="CornerRadius" Value="6" />
@@ -184,7 +170,7 @@
                 <Button Grid.Column="7" Name="SaveRaw" Classes="Secondary" Margin="0,0,8,0"
                         Click="OnSaveRaw"
                         Content="{Binding [Look.SaveRaw], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="8" Name="SaveMarked" Classes="PrimaryButton"
+                <Button Grid.Column="8" Name="SaveMarked" Classes="Primary"
                         Click="OnSave"
                         Content="{Binding [Look.Save], Source={x:Static loc:Strings.Current}}" />
             </Grid>

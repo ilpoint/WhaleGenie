@@ -82,7 +82,7 @@
                 <Button Classes="Secondary" Height="30"
                         Content="{Binding [Run.BreakpointCancel], Source={x:Static loc:Strings.Current}}"
                         Command="{Binding CancelCommand}" />
-                <Button Classes="PrimaryButton" Height="30"
+                <Button Classes="Primary" Height="30"
                         Content="{Binding [Run.BreakpointSave], Source={x:Static loc:Strings.Current}}"
                         Command="{Binding SaveCommand}" />
             </StackPanel>

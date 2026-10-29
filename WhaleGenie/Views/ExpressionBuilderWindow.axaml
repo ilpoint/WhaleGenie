@@ -160,22 +160,6 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentHover}" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
-        </Style>
-
     </Window.Styles>
 
     <Grid RowDefinitions="38,*,Auto">
@@ -494,7 +478,7 @@
             <Button Grid.Column="1" Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
-            <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="110"
+            <Button Grid.Column="2" Classes="Primary" Height="36" MinWidth="110"
                     Margin="8,0,0,0"
                     IsEnabled="{Binding CanConfirm}"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"

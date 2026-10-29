@@ -19,22 +19,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#5A3226" />
-        </Style>
-
         <Style Selector="TextBox.FilterInput">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -119,7 +103,7 @@
             <Button Grid.Column="1" Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
-            <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="120"
+            <Button Grid.Column="2" Classes="Primary" Height="36" MinWidth="120"
                     Content="{Binding [WindowPicker.Choose], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ChooseCommand}" />
         </Grid>

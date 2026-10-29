@@ -36,19 +36,6 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-
     </Window.Styles>
 
     <Grid RowDefinitions="38,Auto,Auto,Auto,*,Auto">
@@ -99,7 +86,7 @@
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Right" Margin="20,0,20,20">
-            <Button Classes="PrimaryButton" Height="36" MinWidth="92"
+            <Button Classes="Primary" Height="36" MinWidth="92"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ConfirmCommand}" />
             <Button Classes="Secondary" Height="36" MinWidth="92"
