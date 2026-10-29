@@ -33,14 +33,14 @@ public class ListBoxStyleTests
                 Assert.Equal(Token("OverlayHover", "OverlayHoverColor"), Presenter(item));
 
                 Pseudo(item, ":pointerover", false);
-                var restLeft = Presenter2(item).Left;
+                var restLeft = PresenterBorderThickness(item).Left;
                 Pseudo(item, ":selected", true);
                 Assert.Equal(Token("AccentSurface", "AccentSurfaceColor"), Presenter(item));
 
                 // Selecting must not move the content: the rest state already carries the same
                 // border thickness, painted transparent. A difference here is a 2px jump that no
                 // screenshot would show.
-                Assert.Equal(restLeft, Presenter2(item).Left);
+                Assert.Equal(restLeft, PresenterBorderThickness(item).Left);
                 Assert.True(restLeft > 0, "the leading indicator's room is not reserved");
             }
             finally
@@ -94,7 +94,8 @@ public class ListBoxStyleTests
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static Thickness Presenter2(ListBoxItem item)
+    /// <summary>The thickness of the row's border, which is where its leading indicator lives.</summary>
+    private static Thickness PresenterBorderThickness(ListBoxItem item)
         => item.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault()?.BorderThickness
             ?? default;
 
