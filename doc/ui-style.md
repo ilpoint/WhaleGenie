@@ -131,7 +131,7 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | 17 → 16 | 2 | 同上；并确认它同排的是 12 还是 15 |
 | 6 → 8 | 1 | **唯一变大的一档**；状态点在小行里放大 2px 会显眼，要看它有没有顶破行高 |
 
-### 三条结构约定（违反即评审不过）
+### 四条结构约定（违反即评审不过）
 
 1. **`Controls.axaml` 里不写 `Margin`**，纵向间距由父容器的 `Spacing` / `RowSpacing` 承担（`Space3`）。
    唯一例外是 `GapSection`。理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
@@ -148,8 +148,12 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
    实见于本仓库：`Views/` 的 124 个 `<Border>` 里接点击的是 **0 个**，卡片类全部挂在 `Button` 上
    （`CardButton` 3、`ActionCard` 2、`Card`/`FnCard` 3、`TriggerCard` 1），所以当前这批
    `Border.Card.*` **一个焦点环都不写**。
+4. **态只改颜色，不改尺寸。** 需要更粗的边，默认就写同粗细的 `Transparent`；需要更大的内边距，默认就留出来。
+   **可 grep**：态选择器（`:pointerover` / `:pressed` / `:selected` / `:checked` / `:disabled` / `.xxx`）里出现
+   `BorderThickness` / `Padding` / `Height` / `Width` 即违规。理由：改尺寸的态会在切换瞬间移动内容，
+   而这类位移在截图里看不出来，只有并排比对才明显。
 
-## 三处裁定
+## 四处裁定
 
 ### 1. 过滤器芯片（`ListBox.List.Pill`）为什么靠描边而不是靠底色
 
@@ -189,11 +193,36 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 判据是"它有没有自己的一行"。混着用一个类会把行内加强也抬到 15px，打乱行高。
 
+### 4. 会同现的状态不能共用同一个通道
+
+`Border` 四条边共用一个 `BorderBrush`，画不出"只左边变色"；而 `.selected` 若也改描边，两个状态就抢同一处，
+只剩"谁覆盖谁"可答。**靠覆盖就要有优先级，而优先级只能靠书写顺序或额外规则——两样都不可靠。**
+
+所以按通道分工：
+
+| 状态 | 只改哪个通道 |
+|---|---|
+| `.selected` | **只改底**：`AccentSurface` + 前景 `AccentText`，**不设描边**（保持卡片的 `BorderSubtle`） |
+| `.problem` | **只改描边**：整圈 1px `Warning`，底不动 |
+| `.chosen` | **只改描边**：整圈 1px `Success`，底不动 |
+
+同现时的读法是"底偏红＝选着它，描边发黄＝它有问题"，两条信息同时成立，不需要仲裁。
+
+> **会同现的两个状态不能共用同一个通道。** 一定会同现、又没有通道可分时，说明它们该拆成两个类，
+> 或者其中一个是另一件的标记。
+
+**单个状态用两个通道是正当的**——`ListBoxItem` 的选中态同时改底（`AccentSurface`）与左边条（左 2px
+`AccentText`），说的是同一件事的两个侧面，比只用其中一个更清楚；它没和谁抢通道，所以不违规。
+规则防的从来不是"用几个通道"，是"两个态抢同一处"。
+
 ## 组件族表
 
 状态格格式 `背景 · 前景 · 边框`。`—` = **该态不设 setter**（沿用默认值）。**`Button*` 与
 `ToggleButton*` 六个态必须写满**：层 1 已给这些控件的四态默认值，空一格就会露出 Fluent 的外观，
 不是"没有变化"。
+
+每一族还要回答一句"**它的态会不会同现**"；会同现，就按裁定第 4 条拆通道，拆不了说明这是两个类。
+这一句不在表的任何一格里面，所以必须单独问。
 
 ### 按钮
 
@@ -209,7 +238,7 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | `ToggleButton.Chip.Key` | ToggleButton | 32×32 · `Pad0` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `AccentFill` · `TextOnAccent` · `AccentFill` | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（键位按下要亮） |
 | `Button.Icon` | Button | 34×32 · `Pad0` · `RadiusControl` | `SurfaceControl` · `TextPrimary` · — | `SurfaceControlHover` · — · — | `SurfaceControlPressed` · — · — | — | — · `TextDisabled` · — | 双色环 | 层 3 |
 | `Button.Thumb` | Button | `Pad1` · `RadiusControl` · 1px | `SurfaceSunken` · — · `BorderControl` | — · — · `AccentText` | — · — · `AccentText` | — | — · — · `BorderSubtle` | 双色环 | 层 3 |
-| `Button.Tile` | Button | MinH64 · `PadChip` · `RadiusControl` · 1px | `SurfaceCard` · `TextPrimary` · `BorderSubtle` | `SurfaceHover` · — · — | `SurfacePressed` · — · — | `.Occupied` → `SurfaceHover`；`.Current` → 2px `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
+| `Button.Tile` | Button | MinH64 · `PadChip` · `RadiusControl` · 1px | `SurfaceCard` · `TextPrimary` · `BorderSubtle` | `SurfaceHover` · — · — | `SurfacePressed` · — · — | `.Occupied` → 底 `SurfaceHover`（只改底）；`.Current` → 描边 1px `AccentText`（只改描边，**不改粗细**） | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
 | `Button.Field` | Button | H34 · `PadField` · `RadiusControl` · 1px · `UiBody` · 左对齐 | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `SurfaceControlPressed` · — · — | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（输入框形状的按钮） |
 
 ### 导航
@@ -233,8 +262,8 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | `Border.Panel` | Border | `Space4` · `RadiusContainer` | `SurfacePanel` · — · — | — | 层 3 |
 | `Border.Sunken` | Border | `Space4` · `RadiusContainer` · 1px | `SurfaceSunken` · — · `BorderSubtle` | — | 层 3 |
 | `Border.Card` | Border | `PadRow` · `RadiusControl` · 1px | `SurfaceCard` · — · `BorderSubtle` | — | 层 3 |
-| `Border.Card.Thin` | Border | `PadRow` · `RadiusControl` · 1px | 同 Card | `.selected` → `AccentSurface` · — · `AccentText`；`.chosen` → — · — · `Success` | 层 3 |
-| `Border.Card.Selectable` | Border | `PadRow` · `RadiusControl` · **2px**（未选中 2px `Transparent`，防跳位） | `SurfaceCard` · — · `Transparent` | `:pointerover` → `SurfaceHover`；`.selected` → `AccentSurface` · — · `AccentText`；`.problem` → — · — · `Warning`（叠加时左 2px `Warning` 条） | 层 3 |
+| `Border.Card.Thin` | Border | `PadRow` · `RadiusControl` · 1px | 同 Card | `.selected` → `AccentSurface` · `AccentText` · —（**不设描边**）；`.chosen` → — · — · `Success` | 层 3 |
+| `Border.Card.Selectable` | Border | `PadRow` · `RadiusControl` · 1px | `SurfaceCard` · — · `BorderSubtle` | `:pointerover` → `SurfaceHover`；`.selected` → `AccentSurface` · `AccentText` · —（**不设描边**）；`.problem` → — · — · `Warning`（**整圈 1px**，不指定某条边） | 层 3 |
 | `Border.Card.Target` | Border | `PadRow` · `RadiusControl` · 2px | `AccentSurface` · — · `AccentFill` | `.Rejected` → `DangerSurface` · — · `Danger` | 层 3（**不透明**，不用 30% 透明） |
 | `Border.Tag` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfacePanel` · `TextSecondary` · `BorderSubtle` | 无 hover / pressed（只读） | 层 3 |
 | `Border.Badge` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` 600 | `XxxSurface` · `Xxx` · — | 无 | 层 3（档位由 H18 决定，不由字号规则决定） |
@@ -249,7 +278,7 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected | disabled | focus | 归属 |
 |---|---|---|---|---|---|---|---|---|---|
 | `ListBox.List` | ListBox | `Pad0` | `Transparent` | — | — | — | — | — | 层 3 |
-| `ListBox.List ListBoxItem` | ListBoxItem | H32 · `PadRow` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `/template/ ContentPresenter` → `OverlayHover` | `OverlayPressed` | `AccentSurface` · `TextPrimary` · 左 2px `AccentText` | — · `TextDisabled` · — | 双色环 | 层 3（`ListBoxItem*` 无键可覆盖） |
+| `ListBox.List ListBoxItem` | ListBoxItem | H32 · `PadRow` · `RadiusControl` · 左 2px 预留（默认 `Transparent`） | `Transparent` · `TextPrimary` · — | `/template/ ContentPresenter` → `OverlayHover` | `OverlayPressed` | `AccentSurface` · `TextPrimary` · 左 2px `AccentText` | — · `TextDisabled` · — | 双色环 | 层 3（`ListBoxItem*` 无键可覆盖） |
 | `ListBox.List.Boxed` | ListBox | 1px · `RadiusControl` · `Pad1` | `SurfaceWindow` · — · `BorderControl` | — | — | — | — | — | 层 3 |
 | `ListBox.List.Pill ListBoxItem` | ListBoxItem | H24 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` | `AccentSurface` · `AccentText` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
 | `ListBox.List.Bare ListBoxItem` | ListBoxItem | `Pad0` | 六态全 `Transparent`（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
