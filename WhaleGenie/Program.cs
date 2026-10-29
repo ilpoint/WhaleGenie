@@ -94,6 +94,17 @@ sealed class Program
             return RunHeadless();
         }
 
+#if DEBUG
+        // A throwaway window with six bare controls, for looking at what the Fluent key overrides
+        // actually did. It never takes the single-instance name and never touches the devices.
+        if (args.Contains("--theme-probe", System.StringComparer.Ordinal))
+        {
+            App.ThemeProbe = true;
+            Run(args);
+            return 0;
+        }
+#endif
+
         // One window, one program. A second launch is somebody double-clicking the icon while the
         // window is already out of the way, so the window is asked to come back and this copy ends.
         // The headless forms above are not part of that rule: a client may start as many servers as

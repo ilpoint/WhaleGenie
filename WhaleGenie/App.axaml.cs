@@ -25,6 +25,14 @@ public partial class App : Application
     /// </summary>
     internal static McpHostOptions? Headless { get; set; }
 
+#if DEBUG
+    /// <summary>
+    /// Whether this launch is the throwaway theme probe rather than the program. Debug only: the
+    /// probe window exists to be looked at while layer one is being reviewed and then goes away.
+    /// </summary>
+    internal static bool ThemeProbe { get; set; }
+#endif
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -44,6 +52,13 @@ public partial class App : Application
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 McpHeadless.Start(desktop, options);
             }
+#if DEBUG
+            else if (ThemeProbe)
+            {
+                // No devices, no project, no snapshot: looking at colours must not touch the machine.
+                ThemeProbeWindow.Show(desktop);
+            }
+#endif
             else
             {
                 PrepareWindow();
