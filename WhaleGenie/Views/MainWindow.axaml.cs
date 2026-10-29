@@ -1497,6 +1497,7 @@ public partial class MainWindow : Window
         try
         {
             viewModel.OpenPackage(path);
+            LocalSettings.StoreLastProject(path);
         }
         catch (Exception error)
         {
@@ -1561,6 +1562,7 @@ public partial class MainWindow : Window
         try
         {
             viewModel.OpenPackage(path);
+            LocalSettings.StoreLastProject(path);
         }
         catch (Exception error)
         {
@@ -1654,6 +1656,7 @@ public partial class MainWindow : Window
         try
         {
             viewModel.SavePackage(path);
+            LocalSettings.StoreLastProject(path);
             return true;
         }
         catch (Exception error)

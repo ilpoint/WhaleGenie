@@ -38,6 +38,26 @@ public class LocalSettingsTests
         });
     }
 
+    /// <summary>
+    /// The package that was open last, so the next start does not begin with an empty list. A path
+    /// that no longer exists is kept: the work may be on a drive that is not plugged in.
+    /// </summary>
+    [Fact]
+    public void The_last_project_is_remembered()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.Equal(string.Empty, LocalSettings.LastProject());
+
+            LocalSettings.StoreLastProject(@"D://宏//我的.wgmacro");
+            Assert.Equal(@"D://宏//我的.wgmacro", LocalSettings.LastProject());
+
+            // Storing another choice leaves it alone, like every other choice in this file.
+            LocalSettings.StorePreloadOcr(true);
+            Assert.Equal(@"D://宏//我的.wgmacro", LocalSettings.LastProject());
+        });
+    }
+
     [Fact]
     public void A_file_with_nothing_in_it_falls_back_to_the_starting_choices()
     {

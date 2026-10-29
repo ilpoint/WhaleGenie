@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -73,6 +74,15 @@ internal static class McpHeadless
                 var created = Path.Combine(folder, "doctor.wgmacro");
                 project.CurrentPath = created;
                 project.SavePackage(created);
+                return null;
+            }
+
+            // Neither told which package to serve: the one the window had open last is what the
+            // client means by "my project". A path that is gone leaves this run with nothing, which
+            // is still better than failing to start.
+            if (LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
+            {
+                project.OpenPackage(last);
             }
 
             return null;

@@ -20,6 +20,17 @@ public static class LocalSettings
     /// </summary>
     internal static string FilePath { get; set; } = AppPaths.Settings;
 
+    /// <summary>
+    /// The package this copy of the program had open last, so the next start does not begin with an
+    /// empty list the person has to fill by hand. A path that no longer exists is still remembered:
+    /// the file may be on a drive that is not plugged in, and forgetting it would lose the only
+    /// record of where the work was.
+    /// </summary>
+    public static string LastProject() => Read().LastProject;
+
+    /// <summary>Remembers the package that is open now. An empty path forgets it.</summary>
+    public static void StoreLastProject(string? path) => Write(model => model.LastProject = path ?? string.Empty);
+
     /// <summary>Whether the window frame and controls use the light variant.</summary>
     public static bool LoadLightTheme() => Read().LightTheme;
 
@@ -184,6 +195,8 @@ public static class LocalSettings
     private sealed class Model
     {
         public string Language { get; set; } = string.Empty;
+
+        public string LastProject { get; set; } = string.Empty;
 
         public bool PreloadOcr { get; set; }
 
