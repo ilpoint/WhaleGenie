@@ -86,7 +86,7 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 ```
 
 外加一个字体令牌 `UiCodeFont`（现值 `Consolas, Cascadia Mono, monospace`；本仓库只做 Windows，
-不用 `Menlo` 这类只在别的系统上有的名字），否则等宽字体只能写字面量。
+不用 `Menlo` 这类只在别的系统上有的名字），否则等宽字体只能写字面量。透明不设令牌，理由见下面结构约定的第 2 条。
 
 ### 高度：族常量，不是令牌
 
@@ -135,7 +135,9 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 1. **`Controls.axaml` 里不写 `Margin`**，纵向间距由父容器的 `Spacing` / `RowSpacing` 承担（`Space3`）。
    唯一例外是 `GapSection`。理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
-2. **不写裸值**：颜色、字号、圆角、内边距四类，一律引令牌。
+2. **不写裸值**：颜色、字号、圆角、内边距与间距四类，一律引令牌。**唯一例外是 `Transparent`**——它没有值可
+   漂移、不参与对比度核算，而且模板里每个键各自写一支透明画笔（`<SolidColorBrush x:Key="…" Color="Transparent"/>`），
+   不共享一支，所以不必也不该为它设一个长度为一的令牌。
 3. **焦点环不归 `Controls.axaml` 管**：颜色来自层 1 的 `SystemControlFocusVisualPrimaryBrush` /
    `SystemControlFocusVisualSecondaryBrush`，值取 `FocusRing` / `FocusRingInner`。**厚度层 1 给不了**
    ——主题里只有这两个刷子键，没有 Thickness 键（已把主题资源整个枚举核对过），所以 2 / 1 只能由
@@ -165,11 +167,11 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 原先 4 处参数槽标签用琥珀色与普通标签区分。琥珀色已并进 `Warning`，若跟着变警告色，会把"警告"稀释成
 "标签"——这是不可逆的语义损耗。
 
-裁定：`Text.FieldLabel.Strong` = `UiBodySize` 600 + `TextPrimary`。
+裁定：`TextBlock.FieldLabel.Strong` = `UiBodySize` 600 + `TextPrimary`。
 
 > **颜色表达状态，字重表达结构。**
 
-若在密集的函数签名里字重不够，退路是改 `Text.Code`（等宽）——参数名用等宽比用颜色更准确，
+若在密集的函数签名里字重不够，退路是改 `TextBlock.Code`（等宽）——参数名用等宽比用颜色更准确，
 **不要退回颜色**。
 
 ### 3. 加强标题按"有没有自己的一行"分两类
@@ -178,8 +180,8 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 | 情形 | 类 | 值 |
 |---|---|---|
-| 独立成行的标题（面板标题、对话框标题） | `Text.Title` | `UiSubtitleSize`(15) 600 · `TextPrimary` |
-| 与正文同行的加强（"变量名："这类） | `Text.FieldLabel.Strong` | `UiBodySize`(13) 600 · `TextPrimary` |
+| 独立成行的标题（面板标题、对话框标题） | `TextBlock.Title` | `UiSubtitleSize`(15) 600 · `TextPrimary` |
+| 与正文同行的加强（"变量名："这类） | `TextBlock.FieldLabel.Strong` | `UiBodySize`(13) 600 · `TextPrimary` |
 
 判据是"它有没有自己的一行"。混着用一个类会把行内加强也抬到 15px，打乱行高。
 
@@ -193,11 +195,11 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected/on | disabled | focus | 归属 |
 |---|---|---|---|---|---|---|---|---|---|
-| `Button.Chrome` | Button | H24 · `PadChrome` · `RadiusControl` | Transparent · `TextPrimary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3（须压住层 1） |
-| `Button.Chrome.Labeled` | Button | H24 · `PadControl` · `RadiusControl` · `UiBody` | Transparent · `TextPrimary` · — | `OverlayHover` · — · — | `OverlayPressed` · — · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 |
+| `Button.Chrome` | Button | H24 · `PadChrome` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3（须压住层 1） |
+| `Button.Chrome.Labeled` | Button | H24 · `PadControl` · `RadiusControl` · `UiBody` | `Transparent` · `TextPrimary` · — | `OverlayHover` · — · — | `OverlayPressed` · — · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 |
 | `Button.Primary` | Button | H32 · `PadControlWide` · `RadiusControl` · `UiBody` 600 | `AccentFill` · `TextOnAccent` · — | `AccentFillHover` · `TextOnAccent` · — | `AccentFillPressed` · `TextOnAccent` · — | — | `SurfaceControl` · `TextDisabled` · — | 双色环 | 层 3 覆盖层 1 |
 | `Button.Secondary` | Button | H30 · `PadControl` · `RadiusControl` · `UiBody` · 1px | `SurfaceControl` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · `TextPrimary` · `BorderControl` | — | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | **层 1 给四态**；层 3 只补度量与 disabled 去色 |
-| `Button.Ghost` | Button | 24×24 · `Pad0` · `RadiusControl` | Transparent · `TextSecondary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 全写 |
+| `Button.Ghost` | Button | 24×24 · `Pad0` · `RadiusControl` | `Transparent` · `TextSecondary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 全写 |
 | `Button.Ghost.Tiny` | Button | 16×16 · `Pad0` · `RadiusControl` | 同 Ghost | `OverlayHover` · `AccentText` · — | `OverlayPressed` · `AccentText` · — | 同 Ghost | — · `TextDisabled` · — | 双色环 | 层 3 |
 | `ToggleButton.Chip` | ToggleButton | H28 · `PadChip` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · — · — | checked：`AccentSurface` · `AccentText` · `AccentText` | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | 层 1 四态 + 层 3 覆盖 checked |
 | `ToggleButton.Chip.Key` | ToggleButton | 32×32 · `Pad0` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `AccentFill` · `TextOnAccent` · `AccentFill` | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（键位按下要亮） |
@@ -210,12 +212,12 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected/on | disabled | focus | 归属 |
 |---|---|---|---|---|---|---|---|---|---|
-| `Button.Tab.Root` | Button | MinH32 · `PadControl` · `RadiusControl` · `UiBody` · 底 2px | Transparent · `TextTertiary` · Transparent | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | — · `TextPrimary` · `AccentFill` | — · `TextDisabled` · — | 双色环 | 层 3 |
+| `Button.Tab.Root` | Button | MinH32 · `PadControl` · `RadiusControl` · `UiBody` · 底 2px | `Transparent` · `TextTertiary` · `Transparent` | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | — · `TextPrimary` · `AccentFill` | — · `TextDisabled` · — | 双色环 | 层 3 |
 | `Button.Tab.Root.Compact` | Button | **MinH28**（不设 Height）· `PadControl` · `UiBodySmall` · 底 2px | 同 Root | 同 Root | 同 Root | 同 Root | 同 Root | 双色环 | 层 3 |
-| `Button.Tab.Side` | Button | H32 · `PadControl` · `RadiusControl` · `UiBody` · 左 3px | Transparent · `TextTertiary` · Transparent | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | `AccentSurface` · `TextPrimary` · `AccentFill` | — · `TextDisabled` · — | 双色环 | 层 3 |
-| `Button.Tab.Inline.Solid` | Button | H28 · `PadControl` · `RadiusControl` · `UiBodySmall` | Transparent · `TextTertiary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | `AccentFill` · `TextOnAccent` · — | — · `TextDisabled` · — | 双色环 | 层 3 |
-| `Button.Tab.Inline.Boxed` | Button | H28 · `PadControl` · `RadiusControl` · `UiBodySmall` · 1px | Transparent · `TextTertiary` · `BorderControl` | `OverlayHover` · `TextPrimary` · `BorderControlHover` | `OverlayPressed` · — · — | `SurfaceCard` · `TextPrimary` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
-| `Button.Rail` | Button | 48×50 · `Pad0` · `RadiusControl` · `UiCaption` 600 | Transparent · `TextTertiary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3（分类栏，**不属 Tab 族**） |
+| `Button.Tab.Side` | Button | H32 · `PadControl` · `RadiusControl` · `UiBody` · 左 3px | `Transparent` · `TextTertiary` · `Transparent` | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | `AccentSurface` · `TextPrimary` · `AccentFill` | — · `TextDisabled` · — | 双色环 | 层 3 |
+| `Button.Tab.Inline.Solid` | Button | H28 · `PadControl` · `RadiusControl` · `UiBodySmall` | `Transparent` · `TextTertiary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | `AccentFill` · `TextOnAccent` · — | — · `TextDisabled` · — | 双色环 | 层 3 |
+| `Button.Tab.Inline.Boxed` | Button | H28 · `PadControl` · `RadiusControl` · `UiBodySmall` · 1px | `Transparent` · `TextTertiary` · `BorderControl` | `OverlayHover` · `TextPrimary` · `BorderControlHover` | `OverlayPressed` · — · — | `SurfaceCard` · `TextPrimary` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
+| `Button.Rail` | Button | 48×50 · `Pad0` · `RadiusControl` · `UiCaption` 600 | `Transparent` · `TextTertiary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3（分类栏，**不属 Tab 族**） |
 
 四档页签一眼分开：**Root 横条在底、Side 竖条在左、Inline 无条、Rail 不是页签。**
 
@@ -228,12 +230,12 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 | `Border.Sunken` | Border | `Space4` · `RadiusContainer` · 1px | `SurfaceSunken` · — · `BorderSubtle` | — | 层 3 |
 | `Border.Card` | Border | `PadRow` · `RadiusControl` · 1px | `SurfaceCard` · — · `BorderSubtle` | — | 层 3 |
 | `Border.Card.Thin` | Border | `PadRow` · `RadiusControl` · 1px | 同 Card | `.selected` → `AccentSurface` · — · `AccentText`；`.chosen` → — · — · `Success` | 层 3 |
-| `Border.Card.Selectable` | Border | `PadRow` · `RadiusControl` · **2px**（未选中 2px Transparent，防跳位） | `SurfaceCard` · — · Transparent | `:pointerover` → `SurfaceHover`；`.selected` → `AccentSurface` · — · `AccentText`；`.problem` → — · — · `Warning`（叠加时左 2px `Warning` 条） | 层 3 |
+| `Border.Card.Selectable` | Border | `PadRow` · `RadiusControl` · **2px**（未选中 2px `Transparent`，防跳位） | `SurfaceCard` · — · `Transparent` | `:pointerover` → `SurfaceHover`；`.selected` → `AccentSurface` · — · `AccentText`；`.problem` → — · — · `Warning`（叠加时左 2px `Warning` 条） | 层 3 |
 | `Border.Card.Target` | Border | `PadRow` · `RadiusControl` · 2px | `AccentSurface` · — · `AccentFill` | `.Rejected` → `DangerSurface` · — · `Danger` | 层 3（**不透明**，不用 30% 透明） |
 | `Border.Tag` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfacePanel` · `TextSecondary` · `BorderSubtle` | 无 hover / pressed（只读） | 层 3 |
 | `Border.Badge` | Border | H18 · `PadChip` · `RadiusControl` · `UiCaption` 600 | `XxxSurface` · `Xxx` · — | 无 | 层 3（档位由 H18 决定，不由字号规则决定） |
 | `Border.Divider` | Border | 高 1px · 上下 `Space3` | `BorderSubtle` | — | 层 3 |
-| `GridSplitter.Split` | GridSplitter | 宽 6px | Transparent | hover 居中 2px `AccentFill`；可聚焦 | 层 3 |
+| `GridSplitter.Split` | GridSplitter | 宽 6px | `Transparent` | hover 居中 2px `AccentFill`；可聚焦 | 层 3 |
 
 `Border.Card.Thin` / `.Selectable` / `.Target` 是**修饰**：只改状态，不改壳。判断一个新需求属于容器还是修饰，
 问"我要装东西时会不会想到它"——会，是容器；不会，是修饰。
@@ -242,28 +244,34 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected | disabled | focus | 归属 |
 |---|---|---|---|---|---|---|---|---|---|
-| `ListBox.List` | ListBox | `Pad0` | Transparent | — | — | — | — | — | 层 3 |
-| `ListBox.List > ListBoxItem` | ListBoxItem | H32 · `PadRow` · `RadiusControl` | Transparent · `TextPrimary` · — | `/template/ ContentPresenter` → `OverlayHover` | `OverlayPressed` | `AccentSurface` · `TextPrimary` · 左 2px `AccentText` | — · `TextDisabled` · — | 双色环 | 层 3（`ListBoxItem*` 无键可覆盖） |
+| `ListBox.List` | ListBox | `Pad0` | `Transparent` | — | — | — | — | — | 层 3 |
+| `ListBox.List > ListBoxItem` | ListBoxItem | H32 · `PadRow` · `RadiusControl` | `Transparent` · `TextPrimary` · — | `/template/ ContentPresenter` → `OverlayHover` | `OverlayPressed` | `AccentSurface` · `TextPrimary` · 左 2px `AccentText` | — · `TextDisabled` · — | 双色环 | 层 3（`ListBoxItem*` 无键可覆盖） |
 | `ListBox.List.Boxed` | ListBox | 1px · `RadiusControl` · `Pad1` | `SurfaceWindow` · — · `BorderControl` | — | — | — | — | — | 层 3 |
 | `ListBox.List.Pill > ListBoxItem` | ListBoxItem | H24 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` | `AccentSurface` · `AccentText` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
-| `ListBox.List.Bare > ListBoxItem` | ListBoxItem | `Pad0` | 六态全 Transparent（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
+| `ListBox.List.Bare > ListBoxItem` | ListBoxItem | `Pad0` | 六态全 `Transparent`（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
 
 列表行的选中态**文字统一 `TextPrimary`**，不改纯白。
 
 ### 文本
 
+> `Text.` 只在本表里表示"文本族这一目"；写进 XAML 必须是 `TextBlock.`——类名不等于控件类型。
+
 | 类名 | 控件 | 尺寸 | 颜色 |
 |---|---|---|---|
-| `Text.PageHeader` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` · 上 `Space6` 下 `Space4` | `TextPrimary` |
-| `Text.Title` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` | `TextPrimary` |
-| `Text.GroupHeader` | TextBlock | `UiBodySmallSize` 600 · `UiBodySmallLine` · 上 `Space6` 下 `Space2` | `TextTertiary` |
-| `Text.SectionHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` · 上 `Space4` 下 `Space1` | `TextTertiary`（单行短标签） |
-| `Text.FieldLabel` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下 `Space2` | `TextSecondary` |
-| `Text.FieldLabel.Strong` | TextBlock | `UiBodySize` 600 · `UiBodyLine` | `TextPrimary` |
-| `Text.Hint` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `TextTertiary` |
-| `Text.Problem` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `Warning` |
-| `Text.ColumnHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` | `TextTertiary` |
-| `Text.Code` | TextBlock / SelectableTextBlock | `UiCodeFont` · `UiBodySmallSize` · `FontFeatures=tnum` | `TextPrimary` |
+| `TextBlock.PageHeader` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` · 上 `Space6` 下 `Space4` | `TextPrimary` |
+| `TextBlock.Title` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` | `TextPrimary` |
+| `TextBlock.GroupHeader` | TextBlock | `UiBodySmallSize` 600 · `UiBodySmallLine` · 上 `Space6` 下 `Space2` | `TextTertiary` |
+| `TextBlock.SectionHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` · 上 `Space4` 下 `Space1` | `TextTertiary`（单行短标签） |
+| `TextBlock.FieldLabel` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下 `Space2` | `TextSecondary` |
+| `TextBlock.Body` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下边距无 | `TextSecondary` |
+| `TextBlock.FieldLabel.Strong` | TextBlock | `UiBodySize` 600 · `UiBodyLine` | `TextPrimary` |
+| `TextBlock.Hint` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `TextTertiary` |
+| `TextBlock.Problem` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `Warning` |
+| `TextBlock.ColumnHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` | `TextTertiary` |
+| `TextBlock.Code` | TextBlock / SelectableTextBlock | `UiCodeFont` · `UiBodySmallSize` · `FontFeatures=tnum` | `TextPrimary` |
+
+`FieldLabel` 的下边距是"标签 → 控件"的间距；**正文不设下边距，间距由父容器给**。正文借 `FieldLabel`
+写作时每段下面会多一道 `Space2`，所以成段说明与对话框正文用 `Body`。
 
 `TextTertiary`（暗 `#A8A8A8` / 亮 `#676058`）的合法底面判据是**余量 ≥ 0.2，即对比度 ≥ 4.7**，
 不是"明度 ≤ 某个值"：暗主题上底面越暗越合法，亮主题上越亮越合法，两个方向的明度轴相反，一个阈值
@@ -305,8 +313,8 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 
 | 类名 | 控件 | 尺寸 | 取值 | 归属 |
 |---|---|---|---|---|
-| `TableView`（默认） | TableView | 行与单元格 padding 由 `DensityStyle=Compact` 给 | 行底 `SurfaceCard`、列头分隔 `BorderSubtle` | 层 1 `TableView*`（**选中态无键**），层 3 补 `:selected` → `AccentSurface` |
-| `StackPanel.Empty` | StackPanel | `Spacing` `Space2` · 上下 `Space8` | 图标 `TextTertiary` · 标题 `Text.Title` · 说明 `Text.Hint` | 层 3 |
+| `TableView`（默认） | TableView | 行与单元格 padding 由 `DensityStyle=Compact` 给 | 行底 `SurfaceCard`、表头底 `SurfacePanel`、列头分隔 `BorderSubtle` | 层 1 `TableView*` 给行底与分隔线（**选中态有键、表头底无键**），表头底由**层 3 补** |
+| `StackPanel.Empty` | StackPanel | `Spacing` `Space2` · 上下 `Space8` | 图标 `TextTertiary` · 标题 `TextBlock.Title` · 说明 `TextBlock.Hint` | 层 3 |
 | `Ellipse.Dot` | Ellipse | 8×8 · 无边框 | `Fill` 由 `Classes` 给 `Success` / `Warning` / `Danger` / `Info` / `TextDisabled`，**不靠继承** | 层 3 |
 | `Border.PickerScrim` | Border | 铺满 | `PickerScrim` | 层 3，**主题不变** |
 | `Border.PickerTarget` | Border | 铺满 | `PickerTargetScrim` | 层 3，**主题不变** |
@@ -328,7 +336,8 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 4. 每个自定义类恰好一条 `:pointerover`。
 5. 每个可聚焦的自定义类都有 `:focus-visible`。
 6. `Controls.axaml` 里 `App*` 残留为 0（`Views/` 里还有约 680 处，那是迁移中的正常状态）。
-7. 四类字面量为 0：**颜色、字号、圆角、内边距与间距**。高度与宽度不在此列——它们是族常量，只出现在本文件的
+7. 四类字面量为 0：**颜色、字号、圆角、内边距与间距**（`Transparent` 除外，见结构约定第 2 条）。
+   高度与宽度不在此列——它们是族常量，只出现在本文件的
    族定义里；`Views/` 里**族成员**（`Button`、`TextBox`、`ComboBox`、`ToggleButton`、`Border`、`ListBoxItem`、
    `GridSplitter`）的尺寸为零。`Grid` 行列、`Window` 初始尺寸与叶子图元除外。
 8. 图元尺寸只取清单档位（8 / 10 / 12 / 15 / 16 / 22）；内容尺寸（预览、缩略图、截图）不受约束。
