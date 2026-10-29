@@ -50,6 +50,7 @@
       STATIC Border.Card.Thin
       STATIC Border.Card.Target
       STATE chosen
+      STATE problem
       STATE Rejected
       STATIC ListBox.List
       STATIC Border.Panel
@@ -58,6 +59,7 @@
       STATIC Border.Card.Thin
       STATIC Border.Card.Target
       STATE chosen
+      STATE problem
       STATE Rejected
       STATIC ListBox.List.Boxed
       STATIC Border.Panel
@@ -66,6 +68,7 @@
       STATIC Border.Card.Thin
       STATIC Border.Card.Target
       STATE chosen
+      STATE problem
       STATE Rejected
       STATIC ListBox.List.Pill
       STATIC Border.Panel
@@ -74,6 +77,7 @@
       STATIC Border.Card.Thin
       STATIC Border.Card.Target
       STATE chosen
+      STATE problem
       STATE Rejected
       STATIC ListBox.List.Bare
 
@@ -418,6 +422,36 @@
     </Style>
     <Style Selector="Border.Card.Thin.chosen">
         <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
+    </Style>
+
+    <!--
+      可选卡片：两个状态**各用一个通道**，谁也覆盖不了谁。
+      - `.selected` 只改**底**（`AccentSurface`），描边留在 `BorderSubtle`；
+      - `.problem` 只改**描边**（整圈 `Warning`），底不动。
+      这样"选着它"和"它有问题"同时成立时不用仲裁，也不靠书写顺序。原来那版"左 2px 条"用一支
+      `BorderBrush` 画不出来（四边共用一支画刷），而为此在窗口里加一个 1px 元素是结构改动——
+      能用描边表达的事不该造元素。
+
+      悬停加了 `:not(.selected)`：不然悬停的 `SurfaceHover` 和选中的 `AccentSurface` 抢同一个底，
+      又回到"谁写在后面谁赢"。选中之后指针压上去，底仍是选中的样子，这才是"选中"的意思。
+
+      描边 1px 与 `Card` 一致，所以不需要"未选中占位"那 2px：跳位只发生在粗细真的变的时候。
+    -->
+    <Style Selector="Border.Card.Selectable">
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.Card.Selectable:pointerover:not(.selected)">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="Border.Card.Selectable.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+    </Style>
+    <Style Selector="Border.Card.Selectable.problem">
+        <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
     </Style>
 
     <!--
