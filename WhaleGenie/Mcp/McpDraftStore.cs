@@ -222,18 +222,61 @@ public sealed class McpDraft
 /// <summary>All drafts of one running MCP server. A server is stopped as a whole; so is this store.</summary>
 public sealed class McpDraftStore
 {
+    /// <summary>
+    /// How many drafts one session may hold. Every draft is a deep copy of the project, and a client
+    /// that opens one on each turn without ever discarding one is a session that grows until it ends.
+    /// </summary>
+    public const int MaxDrafts = 8;
+
     private readonly object _gate = new();
     private readonly Dictionary<string, McpDraft> _drafts = [];
 
-    public McpDraft Create(McpProjectSnapshot basis)
+    /// <summary>
+    /// Opens a draft, dropping an applied one when the session is full. A draft that was applied has
+    /// already reached the project, so losing it costs a list entry; a draft that was never applied
+    /// is work, so the room is made by refusing rather than by throwing it away behind the client's
+    /// back.
+    /// </summary>
+    public (McpDraft Draft, IReadOnlyList<string> Dropped) Create(McpProjectSnapshot basis)
     {
         var draft = new McpDraft(basis);
+        List<string> dropped = [];
         lock (_gate)
         {
+            while (_drafts.Count >= MaxDrafts)
+            {
+                var spent = _drafts.Values
+                    .Where(candidate => candidate.Applied)
+                    .OrderBy(candidate => candidate.CreatedAt)
+                    .FirstOrDefault();
+                if (spent is null)
+                {
+                    throw new McpFailure(McpErrors.TooManyDrafts,
+                        $"This session already holds {_drafts.Count} drafts and none has been applied.",
+                        "Call whalegenie_discard for a draft that is no longer needed, or apply one so it can be dropped, then open the project again.",
+                        retryable: true,
+                        details: new
+                        {
+                            limit = MaxDrafts,
+                            drafts = _drafts.Values
+                                .OrderBy(entry => entry.CreatedAt)
+                                .Select(entry => new { id = entry.Id, entry.Applied }),
+                        });
+                }
+
+                _drafts.Remove(spent.Id);
+                dropped.Add(spent.Id);
+            }
+
             _drafts[draft.Id] = draft;
         }
 
-        return draft;
+        if (dropped.Count > 0)
+        {
+            McpAudit.Note("draft.drop", string.Join(", ", dropped) + " (applied)");
+        }
+
+        return (draft, dropped);
     }
 
     public McpDraft Get(string id)

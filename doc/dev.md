@@ -185,7 +185,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 **桥与草稿**　`McpLiveProject` 是界面与 MCP 会话之间唯一的桥：快照、apply、save 全部经
 `Dispatcher.UIThread.InvokeAsync` 回界面线程。`MainViewModel.Revision` 每次 `MarkDirty` 增加，草稿 `apply`
 前对不上就拒绝。`McpDraftStore` 只改内存草稿：`apply` 才替换项目的宏与全局变量，`save_project` 才写包
-（先复制 `.wgmacro.bak`），一份草稿只能 apply 一次。`whalegenie_preview_apply` 用 `McpPreview` 在 apply
+（先复制 `.wgmacro.bak`），一份草稿只能 apply 一次。一次会话最多 8 张：满了先丢**已 apply** 的最旧一张并在
+`open_project` 的 `dropped` 里说出来；一张都没 apply 就报 `TooManyDrafts`，不替客户端扔掉没落地的活。`whalegenie_preview_apply` 用 `McpPreview` 在 apply
 之前说出哪些宏会来、会走、会变。
 
 **写入与补丁**　`put_macro` 整宏替换；`patch_macro` 在副本上按序执行七种操作，任一条不合就整批不改：

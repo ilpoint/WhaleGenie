@@ -20,6 +20,9 @@ internal static class McpErrors
     public const string BadPatch = "BadPatch";
     public const string BadPlacement = "BadPlacement";
     public const string DraftNotFound = "DraftNotFound";
+
+    /// <summary>The session holds as many drafts as it may, and none can be dropped.</summary>
+    public const string TooManyDrafts = "TooManyDrafts";
     public const string NoSuchMacro = "NoSuchMacro";
     public const string NoSuchRun = "NoSuchRun";
     public const string UnknownAction = "UnknownAction";

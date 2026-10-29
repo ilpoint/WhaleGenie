@@ -124,18 +124,22 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_open_project",
             Title = "Open a draft"),
-     Description("Takes a snapshot of the open project and returns a draft id for editing it. Everything is edited through that id; nothing reaches the window until apply.")]
+     Description("Takes a snapshot of the open project and returns a draft id for editing it. Everything is edited through that id; nothing reaches the window until apply. A session holds at most eight drafts: opening one more drops the oldest that was already applied, and says which in dropped; with none applied the call is refused with TooManyDrafts rather than losing work.")]
     public Task<CallToolResult> OpenProject()
         => McpErrors.RunAsync(async () =>
         {
             var basis = await project.SnapshotAsync();
-            var draft = drafts.Create(basis);
+            var (draft, dropped) = drafts.Create(basis);
             return McpErrors.Ok(new
             {
                 draftId = draft.Id,
                 path = basis.Path,
                 revision = basis.Revision,
                 macros = basis.Macros.Select(McpOutline.Summary),
+
+                // A draft that was applied has already reached the project; saying which ones were
+                // let go is what keeps the list a client holds from being quietly wrong.
+                dropped,
             });
         });
 

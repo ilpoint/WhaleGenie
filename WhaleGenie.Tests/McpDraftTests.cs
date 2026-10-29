@@ -34,7 +34,7 @@ public class McpDraftTests
                 var live = new McpLiveProject(project);
                 var basis = await live.SnapshotAsync();
                 var drafts = new McpDraftStore();
-                var draft = drafts.Create(basis);
+                var draft = drafts.Create(basis).Draft;
                 draft.Put(new JsonObject
                 {
                     ["name"] = "新宏",
@@ -68,7 +68,7 @@ public class McpDraftTests
         {
             var project = new MainViewModel();
             var live = new McpLiveProject(project);
-            var draft = new McpDraftStore().Create(await live.SnapshotAsync());
+            var draft = new McpDraftStore().Create(await live.SnapshotAsync()).Draft;
 
             // A run reports every step as step.<id>.outcome, so a macro written through MCP has to
             // carry ids the moment it lands, not only after somebody opens it in the editor.
@@ -119,6 +119,61 @@ public class McpDraftTests
         return ids;
     }
 
+    /// <summary>
+    /// One session holds a limited number of drafts. Each one is a deep copy of the project, so a
+    /// client that opens one on every turn and never discards one would grow until the server ends.
+    /// </summary>
+    [Fact]
+    public void A_session_holds_a_limited_number_of_drafts()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var store = new McpDraftStore();
+            var basis = await new McpLiveProject(new MainViewModel()).SnapshotAsync();
+
+            for (var index = 0; index < McpDraftStore.MaxDrafts; index++)
+            {
+                store.Create(basis);
+            }
+
+            var refusal = Assert.Throws<McpFailure>(() => store.Create(basis));
+            Assert.Equal(McpErrors.TooManyDrafts, refusal.Code);
+            Assert.Equal(McpDraftStore.MaxDrafts, store.Open);
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// A draft that was applied has already reached the project, so it is the one let go when the
+    /// room is needed — and the answer says which, so a client's own list does not go quietly wrong.
+    /// A draft that was never applied is never dropped behind the client's back.
+    /// </summary>
+    [Fact]
+    public void An_applied_draft_makes_room_for_the_next_one()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var store = new McpDraftStore();
+            var basis = await new McpLiveProject(new MainViewModel()).SnapshotAsync();
+
+            var first = store.Create(basis).Draft;
+            for (var index = 1; index < McpDraftStore.MaxDrafts; index++)
+            {
+                store.Create(basis);
+            }
+
+            first.MarkApplied();
+
+            var (opened, dropped) = store.Create(basis);
+
+            Assert.Equal([first.Id], dropped);
+            Assert.Equal(McpDraftStore.MaxDrafts, store.Open);
+            Assert.DoesNotContain(store.All(), draft => draft.Id == first.Id);
+            Assert.Contains(store.All(), draft => draft.Id == opened.Id);
+            return true;
+        });
+    }
+
     [Fact]
     public void A_draft_is_refused_after_the_project_moves()
     {
@@ -128,7 +183,7 @@ public class McpDraftTests
             project.AddMacro(new MacroItem { Name = "原宏" });
             var live = new McpLiveProject(project);
             var basis = await live.SnapshotAsync();
-            var draft = new McpDraftStore().Create(basis);
+            var draft = new McpDraftStore().Create(basis).Draft;
 
             project.AddMacro(new MacroItem { Name = "后来加的" });
 
@@ -157,7 +212,7 @@ public class McpDraftTests
             var project = new MainViewModel();
             project.AddMacro(new MacroItem { Name = "原宏" });
             var live = new McpLiveProject(project);
-            var draft = new McpDraftStore().Create(await live.SnapshotAsync());
+            var draft = new McpDraftStore().Create(await live.SnapshotAsync()).Draft;
             var bad = new MacroItem { Name = "非法分支" };
             bad.Steps.Add(new MacroStep
             {
