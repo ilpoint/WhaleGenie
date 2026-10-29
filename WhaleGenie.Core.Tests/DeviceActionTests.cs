@@ -2229,7 +2229,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Browser_exists_asks_once_and_reports_the_state()
     {
-        var devices = new FakeDeviceLayer { BrowserHasElement = true };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.HasElement = true;
         var (result, _, store) = await RunAsync(
         [
             Step("browser.exists", Param("pageSelector", "#ready"),
@@ -6715,11 +6716,12 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_script_reaches_the_macro_the_way_the_other_two_languages_do()
     {
-        var devices = new FakeDeviceLayer { AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")) };
+        var devices = new FakeDeviceLayer();
+        devices.Script.AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed"));
         devices.Files.PathExists = true;
 
         var asked = new List<string>();
-        devices.AutoHotkeyBody = (host, _) =>
+        devices.Script.AutoHotkeyBody = (host, _) =>
         {
             asked.Add(host.Read("who")?.AsText() ?? "nothing");
             host.Write("answer", Value.FromText("Ann!"));
@@ -6750,7 +6752,7 @@ public class DeviceActionTests
     public async Task An_AutoHotkey_script_that_names_a_step_this_macro_has_not_got_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.AutoHotkeyBody = (host, _) => host.RunStep("zzzz");
+        devices.Script.AutoHotkeyBody = (host, _) => host.RunStep("zzzz");
 
         var (result, _, _) = await RunAsync(
             [Step("script.ahk", Param("script", "StepExecute(\"zzzz\")"))], devices);
@@ -6773,10 +6775,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_script_that_stops_with_an_error_fails_the_step_and_hands_over_what_it_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            AutoHotkey = new ScriptResult(1, string.Empty, "no (line 2)", Value.Null),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.AutoHotkey = new ScriptResult(1, string.Empty, "no (line 2)", Value.Null);
 
         var (result, _, store) = await RunAsync(
         [
@@ -6796,15 +6796,13 @@ public class DeviceActionTests
     [Fact]
     public async Task A_python_script_reads_and_writes_the_values_of_the_macro_while_it_runs()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Script = new ScriptResult(1, "printed\n", string.Empty, Value.Null),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Python = new ScriptResult(1, "printed\n", string.Empty, Value.Null);
 
         var asked = new List<string>();
         var said = new List<string>();
         var handed = new List<string>();
-        devices.ScriptBody = (host, _) =>
+        devices.Script.PythonBody = (host, _) =>
         {
             asked.Add(host.Read("who")?.AsText() ?? "nothing");
             host.Write("answer", Value.FromText("Ann!"));
@@ -6840,10 +6838,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_python_script_hands_back_what_it_set_as_the_result()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Script = new ScriptResult(0, "one\ntwo", string.Empty, Value.FromText("handed")),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Python = new ScriptResult(0, "one\ntwo", string.Empty, Value.FromText("handed"));
 
         var (result, _, store) = await RunAsync(
         [
@@ -6883,7 +6879,7 @@ public class DeviceActionTests
     public async Task A_python_script_that_names_a_step_this_macro_has_not_got_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.ScriptBody = (host, _) => host.RunStep("zzzz");
+        devices.Script.PythonBody = (host, _) => host.RunStep("zzzz");
 
         var (result, _, _) = await RunAsync(
         [
@@ -6910,11 +6906,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Installing_packages_hands_back_what_went_in()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Packages = new ScriptResult(0, string.Empty, string.Empty,
-                Value.FromList([Value.FromText("requests")])),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Packages = new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([Value.FromText("requests")]));
 
         var (result, _, store) = await RunAsync(
         [
@@ -6945,11 +6939,12 @@ public class DeviceActionTests
     [Fact]
     public async Task A_C_sharp_script_reaches_the_macro_the_way_the_python_one_does()
     {
-        var devices = new FakeDeviceLayer { CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")) };
+        var devices = new FakeDeviceLayer();
+        devices.Script.CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed"));
         devices.Files.PathExists = true;
 
         var asked = new List<string>();
-        devices.CSharpBody = (host, _) =>
+        devices.Script.CSharpBody = (host, _) =>
         {
             asked.Add(host.Read("who")?.AsText() ?? "nothing");
             host.Write("answer", Value.FromText("Ann!"));
@@ -6982,11 +6977,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_that_does_not_compile_fails_the_step_with_what_the_compiler_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            CSharp = new ScriptResult(1, string.Empty, "script.cs(3,9): error CS0103: oops",
-                Value.Null, "Run.ScriptCompileFailed"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.CSharp = new ScriptResult(1, string.Empty, "script.cs(3,9): error CS0103: oops",
+                Value.Null, "Run.ScriptCompileFailed");
 
         var (result, _, store) = await RunAsync(
         [
@@ -7007,10 +7000,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_C_sharp_step_with_nothing_to_run_says_so_rather_than_non_compiling()
     {
-        var devices = new FakeDeviceLayer
-        {
-            CSharp = new ScriptResult(1, string.Empty, string.Empty, Value.Null, "Run.NoEntryPoint"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.CSharp = new ScriptResult(1, string.Empty, string.Empty, Value.Null, "Run.NoEntryPoint");
 
         var (result, _, _) = await RunAsync(
             [Step("script.csharp", Param("script", "class Nothing { }"))], devices);
@@ -7033,11 +7024,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Downloading_packages_hands_back_what_went_in()
     {
-        var devices = new FakeDeviceLayer
-        {
-            NuGet = new ScriptResult(0, string.Empty, string.Empty,
-                Value.FromList([Value.FromText("PyYAML 6.0.0")])),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.NuGet = new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([Value.FromText("PyYAML 6.0.0")]));
 
         var (result, _, store) = await RunAsync(
         [
@@ -7058,11 +7047,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_download_that_goes_wrong_fails_the_step_and_still_hands_the_three_over()
     {
-        var devices = new FakeDeviceLayer
-        {
-            NuGet = new ScriptResult(1, string.Empty, "there is no Such.Package on nuget.org",
-                Value.FromList([]), "Run.NuGetFailed"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.NuGet = new ScriptResult(1, string.Empty, "there is no Such.Package on nuget.org",
+                Value.FromList([]), "Run.NuGetFailed");
 
         var (result, _, store) = await RunAsync(
         [
@@ -8830,7 +8817,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_browser_is_opened_driven_and_closed()
     {
-        var devices = new FakeDeviceLayer { BrowserPage = "Hello from the page" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Page = "Hello from the page";
         var (result, _, store) = await RunAsync(
         [
             Step("browser.open", Param("browser", "edge"), Param("url", "https://example.com"),
@@ -8850,13 +8838,14 @@ public class DeviceActionTests
         Assert.Contains("browserFill #q #1 macro Fill 0 0", devices.Calls);
         Assert.Contains("browserText #result #1 Text (none) 0", devices.Calls);
         Assert.Contains("browserClose", devices.Calls);
-        Assert.False(devices.BrowserOpen);
+        Assert.False(devices.Browser.IsOpen);
     }
 
     [Fact]
     public async Task A_browser_that_is_not_installed_says_what_to_install()
     {
-        var devices = new FakeDeviceLayer { BrowserReady = false };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Installed = false;
         var (result, _, _) = await RunAsync(
             [Step("browser.open", Param("url", "https://example.com"))], devices);
 
@@ -8950,7 +8939,8 @@ public class DeviceActionTests
         // Which of the selectors a target was written with is the thing its author cannot see from
         // the file alone: a second line is written for the day the first stops working, and the run
         // has to say when that day has come.
-        var devices = new FakeDeviceLayer { BrowserChosen = 2 };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.ChosenIndex = 2;
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices)
             .RunAsync([Step("browser.click", Param("pageSelector", "#first\n#second"))]);
@@ -8966,7 +8956,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_page_action_reads_whichever_part_of_the_element_it_was_told_to()
     {
-        var devices = new FakeDeviceLayer { BrowserPage = "1234" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Page = "1234";
         var (result, _, store) = await RunAsync(
         [
             Within(2500, Step("browser.readText", Param("pageSelector", "#card"),
@@ -8995,7 +8986,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_element_a_selector_names_is_read_as_one_list()
     {
-        var devices = new FakeDeviceLayer { BrowserItems = ["甲", "乙", "丙"] };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Items = ["甲", "乙", "丙"];
         var (result, _, store) = await RunAsync(
         [
             Within(2500, Step("browser.readAll",
@@ -9021,10 +9013,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_rows_of_a_page_table_are_keyed_by_the_names_above_its_columns()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserTable = new(["金额", "日期"], [["100", "3 日"], ["200", "4 日"]]),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Table = new(["金额", "日期"], [["100", "3 日"], ["200", "4 日"]]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -9048,7 +9038,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_page_table_that_writes_no_column_names_is_read_by_letter()
     {
-        var devices = new FakeDeviceLayer { BrowserTable = new([], [["Ann", "31"]]) };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Table = new([], [["Ann", "31"]]);
         var (result, _, store) = await RunAsync(
         [
             Step("browser.readTable", Param("matchIndex", "2"), Returns("table=表")),
@@ -9071,7 +9062,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_dialog_is_answered_around_the_steps_that_raise_it()
     {
-        var devices = new FakeDeviceLayer { BrowserDialog = "确定要提交吗？" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Dialog = "确定要提交吗？";
         var (result, _, store) = await RunAsync(
         [
             Step("browser.dialog", Param("dialogHow", "accept"), Param("dialogText", "报告.csv"),
@@ -9095,7 +9087,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_dialog_that_never_came_up_is_a_step_that_did_not_work()
     {
-        var devices = new FakeDeviceLayer { BrowserDialog = null };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Dialog = null;
         var (result, _, _) = await RunAsync(
         [
             Step("browser.dialog",
@@ -9113,7 +9106,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_synchronous_browser_call_works_inside_a_dialog()
     {
-        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Dialog = "继续吗？";
         var library = new Macros(("用页面", [Step("browser.click", Param("pageSelector", "#submit"))]));
 
         var (result, _, _) = await RunWithAsync(
@@ -9133,7 +9127,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_of_the_steps_own_runs_in_the_page_and_hands_back_what_it_returned()
     {
-        var devices = new FakeDeviceLayer { BrowserScriptResult = """{"rows":3}""" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Evaluated = """{"rows":3}""";
         var (result, _, store) = await RunAsync(
         [
             Within(2500, Step("browser.evaluate",
@@ -9231,10 +9226,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_file_the_page_hands_over_is_saved_where_the_step_says()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserDownloaded = new(@"C:\报告\订单.csv", "订单.csv"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Downloaded = new(@"C:\报告\订单.csv", "订单.csv");
 
         var (result, _, store) = await RunAsync(
         [
@@ -9265,10 +9258,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_can_be_for_an_address_rather_than_for_an_element()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserWaitingAddress = "https://example.com/receipt/42",
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.WaitingAddress = "https://example.com/receipt/42";
 
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices)
@@ -9343,10 +9334,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Where_the_page_is_and_what_it_calls_itself_are_read()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserPageInfo = new("https://example.com/next", "下一步"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.PageInfo = new("https://example.com/next", "下一步");
 
         var (result, _, store) = await RunAsync(
         [
@@ -9384,7 +9373,8 @@ public class DeviceActionTests
         // Sites hand the page the macro came for to a new tab, and left on the old one every step
         // after the click aims at the wrong page: on a site whose pages look alike, a step finds an
         // element that happens to match over there and works on it without anything looking wrong.
-        var devices = new FakeDeviceLayer { BrowserTabAddress = "https://example.com/receipt" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.TabAddress = "https://example.com/receipt";
         var (result, _, _) = await RunAsync(
         [
             Step("browser.open", Param("url", "https://example.com")),
@@ -9888,9 +9878,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_run_from_a_script_takes_the_input_door_without_deadlocking()
     {
-        var devices = new FakeDeviceLayer { AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null) };
+        var devices = new FakeDeviceLayer();
+        devices.Script.AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null);
         devices.Files.PathExists = true;
-        devices.AutoHotkeyBody = (host, _) => Assert.True(host.RunStep("a7k2"));
+        devices.Script.AutoHotkeyBody = (host, _) => Assert.True(host.RunStep("a7k2"));
 
         var run = new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
@@ -10032,539 +10023,4 @@ internal sealed class TestInputHook : IInputHook
             KeyDown?.Invoke(seen);
         }
     }
-}
-internal sealed class FakeDeviceLayer : IDeviceLayer, IBrowserDevice, IScriptDevice
-{
-    /// <summary>
-    /// What every device here shares: the one log of calls, and the two switches that make a device
-    /// refuse. The devices below hold it rather than the layer, because a device used on its own
-    /// needs the same two answers.
-    /// </summary>
-    public FakeDesk Desk { get; } = new();
-
-    /// <summary>The pretend disk. Whatever the layer is asked about files, this device answers.</summary>
-    public FakeFiles Files { get; }
-
-    /// <summary>The pretend clipboard.</summary>
-    public FakeClipboard Clipboard { get; }
-
-    /// <summary>The pretend list of running programs.</summary>
-    public FakeProcesses Processes { get; }
-
-    /// <summary>The pretend machine: its name, its environment and its settings.</summary>
-    public FakeSystem System { get; }
-
-    /// <summary>The pretend screen: what it shows, where the pointer is, what was read of it.</summary>
-    public FakeScreen Screen { get; }
-
-    /// <summary>The pretend vision: what a reference picture reads as, and where it turns up.</summary>
-    public FakeVision Vision { get; }
-
-    /// <summary>What recognition reads off a picture, and which pictures it was handed.</summary>
-    public FakeOcr Ocr { get; }
-
-    /// <summary>The pretend detection model, and every look the engine asked of it.</summary>
-    public FakeDetector Detector { get; }
-
-    /// <summary>The pretend keyboard and mouse, with the routes and paths the engine asked for.</summary>
-    public FakeInput Input { get; }
-
-    /// <summary>The pretend controller.</summary>
-    public FakeGamepad Gamepad { get; }
-
-    /// <summary>The pretend window list, and the commands that act on one of them.</summary>
-    public FakeWindow Window { get; }
-
-    /// <summary>The pretend UI Automation tree.</summary>
-    public FakeUi Ui { get; }
-
-    /// <summary>Every call the engine made to any device, in the order it made them.</summary>
-    public List<string> Calls => Desk.Calls;
-
-    private readonly RecordingRouter _router;
-
-    private readonly IFileDevice _files;
-
-    public FakeDeviceLayer(IFileDevice? files = null)
-    {
-        Files = new FakeFiles(Desk);
-        Clipboard = new FakeClipboard(Desk);
-        Processes = new FakeProcesses(Desk);
-        System = new FakeSystem(Desk);
-        Screen = new FakeScreen(Desk);
-        Vision = new FakeVision(Desk);
-        Ocr = new FakeOcr(Desk);
-        Detector = new FakeDetector(Desk);
-        Input = new FakeInput(Desk, Screen);
-        Gamepad = new FakeGamepad(Desk);
-        Window = new FakeWindow(Desk);
-        Ui = new FakeUi(Desk);
-        _router = new RecordingRouter(Input);
-        _files = files ?? Files;
-    }
-
-    IInputRouter IDeviceLayer.Inputs => _router;
-
-    /// <summary>When set, every call is refused this way instead of being recorded.</summary>
-    public System.Exception? Refusal
-    {
-        get => Desk.Refusal;
-        set => Desk.Refusal = value;
-    }
-
-    /// <summary>How long a page read takes to return, for checking a call that cannot be cancelled.</summary>
-    public int ReadPageDelayMs { get; set; }
-
-    /// <summary>When set, every call reports the device as missing.</summary>
-    public bool Unavailable
-    {
-        get => Desk.Unavailable;
-        set => Desk.Unavailable = value;
-    }
-
-    IInputDevice IDeviceLayer.Input => Input;
-
-    IGamepadDevice IDeviceLayer.Gamepad => Gamepad;
-
-    /// <summary>How this machine has been told to read the screen.</summary>
-    ICaptureChoice IDeviceLayer.Capture => Screen.Ways;
-
-    IScreenDevice IDeviceLayer.Screen => Screen;
-
-    /// <summary>
-    /// A hook, a recorder and driver-level input are not something a macro's steps reach for, so
-    /// this layer answers the way a machine with no devices would: it refuses. A check that needs
-    /// one of them drives it through a layer of its own.
-    /// </summary>
-    internal TestInputHook HookEvents { get; } = new();
-
-    IInputHook IDeviceLayer.Hook => HookEvents;
-
-    IInputRecorder IDeviceLayer.CreateRecorder() => NullDeviceLayer.Instance.CreateRecorder();
-
-    IWindowEvents IDeviceLayer.WindowEvents => new NoWindowEvents();
-
-    /// <summary>No controller is in a macro's steps, so this layer answers as a machine with none.</summary>
-    IGamepadReading IDeviceLayer.GamepadReading => new NoGamepadReading();
-
-    IDriverInput IDeviceLayer.Driver => NullDeviceLayer.Instance.Driver;
-
-    IVisionDevice IDeviceLayer.Vision => Vision;
-
-    IDetectorDevice IDeviceLayer.Detector => Detector;
-
-    IOcrDevice IDeviceLayer.Ocr => Ocr;
-
-    IUiDevice IDeviceLayer.Ui => Ui;
-
-    /// <summary>
-    /// The files on disk. Normally the fake keeps them in memory; a check that has to walk over a
-    /// real file hands the real device in here and the rest of the layer stays pretended.
-    /// </summary>
-    IFileDevice IDeviceLayer.Files => _files;
-
-    IClipboardDevice IDeviceLayer.Clipboard => Clipboard;
-
-    IProcessDevice IDeviceLayer.Processes => Processes;
-
-    IScriptDevice IDeviceLayer.Scripts => this;
-
-    ISystemDevice IDeviceLayer.System => System;
-
-    /// <summary>What running a script in the fake reports back.</summary>
-    public ScriptResult Script { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
-
-    /// <summary>
-    /// What the script does while it runs, in place of running one: a check that is about what a
-    /// script can reach hands in the calls it would make, so that reading a value, writing one,
-    /// running a step and leaving a line in the log all arrive at the engine the way they would.
-    /// </summary>
-    public Action<IScriptHost, string>? ScriptBody { get; set; }
-
-    /// <summary>What installing packages reports back.</summary>
-    public ScriptResult Packages { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
-
-    /// <summary>What running a C# script in the fake reports back.</summary>
-    public ScriptResult CSharp { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
-
-    /// <summary>
-    /// What a C# script does while it runs, in place of being compiled and run: this language
-    /// reaches the macro the same way the Python one does, so a check hands in the calls a script
-    /// would make.
-    /// </summary>
-    public Action<IScriptHost, string>? CSharpBody { get; set; }
-
-    /// <summary>What downloading NuGet packages reports back.</summary>
-    public ScriptResult NuGet { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
-
-    /// <summary>What running an AutoHotkey script in the fake reports back.</summary>
-    public ScriptResult AutoHotkey { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
-
-    /// <summary>
-    /// What an AutoHotkey script does while it runs, in place of being run: this language reaches
-    /// the macro through the same bridge the other two do, so a check hands in the calls a script
-    /// would make.
-    /// </summary>
-    public Action<IScriptHost, string>? AutoHotkeyBody { get; set; }
-
-    ScriptResult IScriptDevice.RunPython(PythonScript script, IScriptHost host,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
-    {
-        Note($"python {script.Command}|{script.Arguments}|{script.Folder}|{script.TimeoutMs}");
-        ScriptBody?.Invoke(host, script.Script);
-
-        foreach (var line in Lines(Script.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(Script.Error))
-        {
-            onError(line);
-        }
-
-        return Script;
-    }
-
-    ScriptResult IScriptDevice.InstallPip(PipRequest request, Action<string> onOutput,
-        Action<string> onError, CancellationToken token)
-    {
-        Note($"pip {request.Command}|{request.TimeoutMs}|{string.Join(",", request.Packages)}");
-
-        foreach (var line in Lines(Packages.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(Packages.Error))
-        {
-            onError(line);
-        }
-
-        return Packages;
-    }
-
-    ScriptResult IScriptDevice.RunCSharp(CSharpScript script, IScriptHost host,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
-    {
-        Note($"csharp {script.Arguments}|{script.Folder}|{script.TimeoutMs}");
-        CSharpBody?.Invoke(host, script.Script);
-
-        foreach (var line in Lines(CSharp.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(CSharp.Error))
-        {
-            onError(line);
-        }
-
-        return CSharp;
-    }
-
-    ScriptResult IScriptDevice.InstallNuGet(NuGetRequest request, Action<string> onOutput,
-        Action<string> onError, CancellationToken token)
-    {
-        Note($"nuget {request.TimeoutMs}|{string.Join(",", request.Packages)}");
-
-        foreach (var line in Lines(NuGet.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(NuGet.Error))
-        {
-            onError(line);
-        }
-
-        return NuGet;
-    }
-
-    ScriptResult IScriptDevice.RunAutoHotkey(AutoHotkeyScript script, IScriptHost host,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
-    {
-        Note($"ahk {script.Command}|{script.Arguments}|{script.Folder}|{script.TimeoutMs}");
-        AutoHotkeyBody?.Invoke(host, script.Script);
-
-        foreach (var line in Lines(AutoHotkey.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(AutoHotkey.Error))
-        {
-            onError(line);
-        }
-
-        return AutoHotkey;
-    }
-
-    IWindowDevice IDeviceLayer.Windows => Window;
-
-    IBrowserDevice IDeviceLayer.Browser => this;
-
-    public bool BrowserReady { get; set; } = true;
-
-    public string BrowserPage { get; set; } = "page text";
-
-    bool IBrowserDevice.Ready(string browser) => BrowserReady;
-
-    string IBrowserDevice.InstallHint => "install the browser";
-
-    bool IBrowserDevice.IsOpen => BrowserOpen;
-
-    public bool BrowserOpen { get; private set; }
-
-    string IBrowserDevice.Url => BrowserAddress;
-
-    public string BrowserAddress { get; private set; } = string.Empty;
-
-    void IBrowserDevice.Open(string browser, string url, bool headless, string profile)
-    {
-        Note($"browserOpen {browser} {url} {headless} {Profile(profile)}");
-        BrowserOpen = true;
-        BrowserAddress = url;
-    }
-
-    void IBrowserDevice.GoTo(string url, int timeoutMs)
-    {
-        Note($"browserGoTo {url} {timeoutMs}");
-        BrowserAddress = url;
-    }
-
-    string IBrowserDevice.Click(PageTarget target, ClickWay how, bool force, int timeoutMs)
-    {
-        Note($"browserClick {Named(target)} {how} {force} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Fill(PageTarget target, string text, FillWay how, int intervalMs,
-        int timeoutMs)
-    {
-        Note($"browserFill {Named(target)} {text} {how} {intervalMs} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    void IBrowserDevice.Scroll(PageTarget? target, ScrollWay how, int timeoutMs)
-        => Note($"browserScroll {Named(target)} {how} {timeoutMs}");
-
-    /// <summary>Where a download lands and what the page called it, as though one had arrived.</summary>
-    public DownloadResult BrowserDownloaded { get; set; } = new(@"C:\下载\报告.csv", "报告.csv");
-
-    DownloadResult IBrowserDevice.Download(PageTarget? target, string folder, int timeoutMs)
-    {
-        Note($"browserDownload {Named(target)} {folder} {timeoutMs}");
-        return BrowserDownloaded;
-    }
-
-    /// <summary>The address the tab a switch moves to is showing, as though it had a page of its own.</summary>
-    public string BrowserTabAddress { get; set; } = string.Empty;
-
-    void IBrowserDevice.SwitchTab(TabChoice choice, int index, string match)
-    {
-        Note($"browserSwitchTab {choice} {index} {match}");
-        if (BrowserTabAddress.Length > 0)
-        {
-            BrowserAddress = BrowserTabAddress;
-        }
-    }
-
-    void IBrowserDevice.CloseTab() => Note("browserCloseTab");
-
-    string IBrowserDevice.Text(PageTarget? target, PagePart part, string attribute, int timeoutMs)
-    {
-        Note($"browserText {Named(target)} {part} {Part(attribute)} {timeoutMs}");
-        return BrowserPage;
-    }
-
-    /// <summary>What reading every match of a selector answers with, as though the page held them.</summary>
-    public IReadOnlyList<string> BrowserItems { get; set; } = ["第一行", "第二行"];
-
-    IReadOnlyList<string> IBrowserDevice.ReadAll(PageTarget target, PagePart part, string attribute,
-        int maxItems, int timeoutMs)
-    {
-        Note($"browserReadAll {Named(target)} {part} {Part(attribute)} {maxItems} {timeoutMs}");
-        return BrowserItems;
-    }
-
-    /// <summary>What reading a table answers with, as though the page drew one.</summary>
-    public PageTable BrowserTable { get; set; } = new(["金额"], [["100"], ["200"]]);
-
-    PageTable IBrowserDevice.ReadTable(PageTarget target, int maxRows, int timeoutMs)
-    {
-        Note($"browserReadTable {Named(target)} {maxRows} {timeoutMs}");
-        return BrowserTable;
-    }
-
-    /// <summary>Where the page is and what it calls itself, as though it had loaded one.</summary>
-    public PageInfo BrowserPageInfo { get; set; } = new("https://example.com/here", "示例页");
-
-    PageInfo IBrowserDevice.ReadPage(int timeoutMs)
-    {
-        Note($"browserReadPage {timeoutMs}");
-        Thread.Sleep(ReadPageDelayMs);
-        return BrowserPageInfo;
-    }
-
-    /// <summary>What a condition about an element of the page answers with, as though it were there.</summary>
-    public bool BrowserHasElement { get; set; } = true;
-
-    bool IBrowserDevice.Exists(PageTarget target, ElementWait state)
-    {
-        Note($"browserExists {Named(target)} {state}");
-        return BrowserHasElement;
-    }
-
-    /// <summary>The address a wait for one ends at, as though the page had gone there.</summary>
-    public string BrowserWaitingAddress { get; set; } = string.Empty;
-
-    void IBrowserDevice.WaitForUrl(string match, string how, int timeoutMs,
-        TextCompareOptions options)
-    {
-        Note($"browserWaitForUrl {match} {how} {timeoutMs}");
-        if (BrowserWaitingAddress.Length > 0)
-        {
-            BrowserAddress = BrowserWaitingAddress;
-        }
-    }
-
-    void IBrowserDevice.WaitForLoad(PageLoad state, int timeoutMs)
-        => Note($"browserWaitForLoad {state} {timeoutMs}");
-
-    /// <summary>What the next dialog the page puts up says, as though one had appeared.</summary>
-    public string? BrowserDialog { get; set; } = "确定要提交吗？";
-
-    void IBrowserDevice.ArmDialog(bool accept, string text)
-        => Note($"browserArmDialog {accept} {Part(text)}");
-
-    string? IBrowserDevice.TakeDialog() => BrowserDialog;
-
-    /// <summary>What a script of the step's own answers with, as though the page had run it.</summary>
-    public string BrowserScriptResult { get; set; } = "true";
-
-    string IBrowserDevice.Evaluate(string script, int timeoutMs)
-    {
-        Note($"browserEvaluate {script} {timeoutMs}");
-        return BrowserScriptResult;
-    }
-
-    /// <summary>An attribute name as it reads in a note; nothing written is nothing asked for.</summary>
-    private static string Part(string attribute)
-        => attribute.Trim().Length == 0 ? "(none)" : attribute;
-
-    /// <summary>What the next pick answers with, as though a person had clicked that element.</summary>
-    public PickResult BrowserPicked { get; set; } =
-        new("#picked", [new PickCandidate(PickKind.Id, "#picked", 1)]);
-
-    PickResult IBrowserDevice.Pick(string hint, int timeoutMs)
-    {
-        Note($"browserPick {hint} {timeoutMs}");
-        return BrowserPicked;
-    }
-
-    HighlightResult IBrowserDevice.Highlight(PageTarget target)
-    {
-        Note($"browserHighlight {Named(target)}");
-        return BrowserOpen
-            ? new HighlightResult(true, 1, target.Selectors.Count)
-            : new HighlightResult(false, 0, 0);
-    }
-
-    string IBrowserDevice.Select(PageTarget target, string value, bool byIndex, int timeoutMs)
-    {
-        Note($"browserSelect {Named(target)} {value} {byIndex} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Check(PageTarget target, bool wanted, int timeoutMs)
-    {
-        Note($"browserCheck {Named(target)} {wanted} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Hover(PageTarget target, int timeoutMs)
-    {
-        Note($"browserHover {Named(target)} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Press(PageTarget? target, string key, int timeoutMs)
-    {
-        Note($"browserPress {Named(target)} {key} {timeoutMs}");
-        return target is null ? string.Empty : Chosen(target);
-    }
-
-    string? IBrowserDevice.WaitFor(PageTarget target, ElementWait state, int timeoutMs)
-    {
-        Note($"browserWaitFor {Named(target)} {state} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs)
-    {
-        Note($"browserUpload {Named(target)} {string.Join('|', paths)} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    /// <summary>
-    /// A target as it reads in a note: every way of naming the element in the order it was written,
-    /// and which of the matches the step means, because both are things the engine has to hand over
-    /// untouched for a fallback to be worth writing down.
-    /// </summary>
-    private static string Named(PageTarget? target) => target is null || target.Selectors.Count == 0
-        ? "(none)"
-        : $"{string.Join(" / ", target.Selectors)} #{target.MatchIndex}{Narrowed(target)}";
-
-    /// <summary>
-    /// What a target narrows the page down by, written after which match the step means: the
-    /// conditions a step adds are handed over with the selectors they go with, in the order they
-    /// were written, and a target that adds none says nothing here.
-    /// </summary>
-    private static string Narrowed(PageTarget target) => target.Conditions.Count == 0
-        ? string.Empty
-        : " [" + string.Join(", ",
-            target.Conditions.Select(condition => $"{condition.How}={condition.Value}")) + "]";
-
-    /// <summary>
-    /// Which of a target's selectors turns out to name the element, as though the ones before it had
-    /// found nothing. 1 is the first, which is what a target with no fallbacks always answers.
-    /// </summary>
-    public int BrowserChosen { get; set; } = 1;
-
-    /// <summary>The way of naming the element that won, which is what the run's own log reports.</summary>
-    private string Chosen(PageTarget target)
-        => target.Selectors.Count == 0
-            ? string.Empty
-            : target.Selectors[Math.Min(Math.Max(BrowserChosen, 1), target.Selectors.Count) - 1];
-
-    private static string Profile(string profile) => profile.Length == 0 ? "(none)" : profile;
-
-    void IBrowserDevice.Close()
-    {
-        Note("browserClose");
-        BrowserOpen = false;
-    }
-
-    /// <summary>The lines a stream holds, the way reading it a line at a time would find them.</summary>
-    private static IEnumerable<string> Lines(string text)
-        => text.Length == 0
-            ? []
-            : text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-
-    /// <summary>
-    /// Notes which route input was asked to take, then hands back the fake itself so the call
-    /// still lands in <see cref="Calls"/> whatever way it was routed.
-    /// </summary>
-    private sealed class RecordingRouter(FakeInput owner) : IInputRouter
-    {
-        public IInputDevice For(InputRoute route)
-        {
-            owner.Routes.Add(route);
-            return owner;
-        }
-    }
-
-    /// <summary>Writes one call down, and answers the two switches the same way every device does.</summary>
-    private void Note(string call) => Desk.Note(call);
 }

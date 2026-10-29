@@ -222,7 +222,8 @@ public class RunLookTests
     [Fact]
     public async Task A_call_that_returns_after_the_budget_is_judged_when_it_returns()
     {
-        var devices = new FakeDeviceLayer { ReadPageDelayMs = 120 };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.PageReadDelay = 120;
         var page = Within(40, Step("browser.readPage"));
         var watched = new Watched();
 

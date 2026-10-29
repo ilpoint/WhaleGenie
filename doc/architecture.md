@@ -221,7 +221,7 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 ### 6.4 替身
 
-测试里有两套：`WhaleGenie.Tests/ChecksDevices.cs`（只真实现窗口，其余回落 `NullDeviceLayer`，输入/屏幕/剪贴板/UIA 可替换）与 `WhaleGenie.Core.Tests` 里的 `FakeDeviceLayer`（**1535 行，一个类实现 15 个接口**）。后者的规模就是"接口过宽"最直接的物证：宽接口的维护成本最终落在测试上。
+测试里有两套：`WhaleGenie.Tests/ChecksDevices.cs`（只真实现窗口，其余回落 `NullDeviceLayer`，输入/屏幕/剪贴板/UIA 可替换）与 `WhaleGenie.Core.Tests/Fakes/`（`FakeDeviceLayer` 加上十四个各自成文件的设备，见第十四章）。后者曾经是一个 1535 行、实现 15 个接口的类——宽接口的维护成本最终确实落在测试上，只是解法是"一件一个文件"而不是等接口变窄。
 
 浏览器、脚本、检测这几族在界面测试里基本"一律拒绝"，所以它们的用例只能起真件（`BrowserActionTests` 真的开一个不显示窗口的 Edge）。
 
@@ -400,36 +400,44 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 ## 十四、债务与建议
 
 清债的五个阶段、编辑器状态归位与录制两步都已落地（改动与当时的判断在 git 里），2026-10-29 又拆出
-`WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去。剩下的分三类：值得做的、做过判断不做的、以及一个
-不算债但必须知道的结构事实。
+`WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去，同日把测试的假设备拆成一件一个文件。现在剩下的分两类：
+做过判断不做的，以及一个不算债但必须知道的结构事实。
 
-### 值得单独一轮（进行中）
+### 已清掉的一笔：宽替身（2026-10-29）
 
-1. **`FakeDeviceLayer` 是一个宽替身**：`IDeviceLayer` 的十三个设备它全都实现了，1535 行挤在
-   `DeviceActionTests.cs` 尾部。2026-10-29 起按设备拆到 `WhaleGenie.Core.Tests/Fakes/`：`FakeDesk` 管共用
-   的一本调用日志与两个拒绝开关；`FakeFiles`、`FakeClipboard`、`FakeProcesses`、`FakeSystem`、
-   `FakeScreen`、`FakeVision`、`FakeOcr`、`FakeDetector` 各自成类。层只剩组合，1535 行降到 905 行。
+`FakeDeviceLayer` 曾经是 `IDeviceLayer` 十三个设备的全集，1535 行挤在 `DeviceActionTests.cs` 尾部。现在它是
+**组合**：`WhaleGenie.Core.Tests/Fakes/` 下十六个文件——十四个设备各一件，加上共用的 `FakeDesk` 与层自己。
+层只剩 171 行，做两件事：把设备拼起来，以及回答不属于任何一件设备的问题（输入怎么路由、没有钩子、没有
+录制、没有驱动级输入）。
 
-   已拆两组：纯数据（磁盘/剪贴板/进程/系统），屏与看（屏、视觉、OCR、检测）。后者四个接口共用一套图像状态，
-   一起搬才不会出现"像素在这边、画面在那边"的两处真相；`Cursor` 留在 `FakeScreen`（位置是桌面的事实），
-   层的 `IInputDevice.Cursor` 转发给它。
+顺序按耦合从低到高：磁盘/剪贴板/进程/系统，屏/视觉/OCR/检测（四个接口共用一套图像状态，一起搬才不会出现
+"像素在这边、画面在那边"），键鼠/手柄，窗口/界面元素（UI 的查询里带着窗口规则），浏览器/脚本。
 
-   剩下四组按同样的办法继续：输入与手柄、窗口、UI、浏览器、脚本。每拆一组，测试里那组的状态就从
-   `devices.X` 改成 `devices.<设备>.X`——这一步不能省，留着转发属性等于把宽度换个写法。
+三条经验：
+- **不留转发属性**。测试里那组状态一律改成 `devices.<设备>.X`——留着 `public X => Something.X` 等于把宽度
+  换个写法，宽度还在。
+- **设备名里重复的前缀一起去掉**。`devices.Windows` → `devices.Window.Open`、`devices.BrowserPage` →
+  `devices.Browser.Page`、`devices.Script` → `devices.Script.Python`：搬进自己的类之后，"Window"、"Browser"
+  这些前缀就是它自己。
+- **对象初始化器要拆**。字段一旦分家，`new FakeDeviceLayer { Match = ... }` 里就写不下了，79 处改成
+  "建对象 + 逐条赋值"。
+
+`FakeDesk` 仍是共用的一本调用日志与两个拒绝开关：日志没有拆成每设备一本，因为测试问的是"引擎按什么顺序动了
+什么"，一次点击与它前面的等待必须落在同一条时间线上。
 
 ### 做过判断，不打算做
 
-2. **编辑器剩下的两步 MVVM**（键位捕获合并、窗口压到只绑定）。两套捕获的"单个修饰键"语义不同
+1. **编辑器剩下的两步 MVVM**（键位捕获合并、窗口压到只绑定）。两套捕获的"单个修饰键"语义不同
    （窗口那边"按下单个 Ctrl 就是一种绑定"，编辑器那边不是），合并要加分支；剩下 130 个方法平均 24 行，
    都是 UI——拖动、落点、滚动本来就该在窗口里。
-3. **`Core` 里几件只服务界面的东西**（`StepMeta.ToJson`、`MacroRunner.LookOnce`、编辑器事实）。
+2. **`Core` 里几件只服务界面的东西**（`StepMeta.ToJson`、`MacroRunner.LookOnce`、编辑器事实）。
    挪走要动引擎契约，收益不抵一次大改。
-4. **静态单例**（`SharedVariables.Current`、`VariableCatalog.Globals`、`Strings.Current`）。进程级，
+3. **静态单例**（`SharedVariables.Current`、`VariableCatalog.Globals`、`Strings.Current`）。进程级，
    测试间共享，靠禁用并行兜着。程序一次只开一个项目，静态就是"那一个"。
 
 ### 一个结构事实（不是债，但决定了很多事）
 
-5. **引擎不认识宏的文件模型。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
+4. **引擎不认识宏的文件模型。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
    `WhaleGenie.Model/Models`（8.5k 行），而 `WhaleGenie.Core` 只认 `ExecutableStep`，转换点唯一
    （`MacroStepConverter`）且每次运行都重建。
 

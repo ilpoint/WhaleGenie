@@ -370,7 +370,10 @@ internal static class ActionBench
     /// </summary>
     private static FakeDeviceLayer Desk()
     {
-        var devices = new FakeDeviceLayer { Script = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")), AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench")) };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Python = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench"));
+        devices.Script.CSharp = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench"));
+        devices.Script.AutoHotkey = new ScriptResult(0, "bench", string.Empty, Value.FromText("bench"));
         devices.Ui.ElementText = "bench";
 
         devices.Screen.Cursor = new ScreenPoint(10, 10);
