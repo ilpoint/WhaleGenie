@@ -82,7 +82,20 @@ PadField    = 8,6      （输入框、下拉）
 PadCell     = 6,1      （表格单元输入）
 PadChip     = 8,2      （芯片、标签、徽标）
 PadRow      = 8,4      （列表行、卡片）
-GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
+GapSection  = 0,0,0,12 （区块底距）
+```
+
+另有一组**命名的纵向间隙** `Gap*`，同样必须在 `Tokens.axaml` 里定义：两个单值令牌落不进一个 `Margin`，
+而这几处又都不能交给父容器的 `Spacing`（区块之间不相邻；标签与它管着的控件之间隔着一层模板；
+标题的上/下间隙本来就不等）。**新增第七个 `Gap*` 之前，先说明 `Spacing` 为什么做不到。**
+
+```
+GapSection     = 0,0,0,12    （区块底距）
+GapField       = 0,0,0,8     （标签 → 它管着的控件）
+GapDivider     = 0,12,0,12   （分隔线两侧；它常是 Grid 里独立的一行）
+GapPageHeader  = 0,24,0,16   （页标题）
+GapGroupHeader = 0,24,0,8    （分组标题）
+GapSectionHeader = 0,16,0,4  （单行分隔标题）
 ```
 
 外加一个字体令牌 `UiCodeFont`（现值 `Consolas, Cascadia Mono, monospace`；本仓库只做 Windows，
@@ -134,7 +147,8 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 ### 四条结构约定（违反即评审不过）
 
 1. **`Controls.axaml` 里不写 `Margin`**，纵向间距由父容器的 `Spacing` / `RowSpacing` 承担（`Space3`）。
-   唯一例外是 `GapSection`。理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
+   例外只允许**命名的** `Gap*` 令牌（见上表，现有 6 个）。理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，
+   收样式前满地都是；而**命名的 `Margin` 不是病**——它查的是"这个间隙有没有名字"，不是"有没有写 Margin"。
 2. **不写裸值**：颜色、字号、圆角、内边距与间距四类，一律引令牌。**唯一例外是 `Transparent`**——它没有值可
    漂移、不参与对比度核算，而且模板里每个键各自写一支透明画笔（`<SolidColorBrush x:Key="…" Color="Transparent"/>`），
    不共享一支，所以不必也不该为它设一个长度为一的令牌。
@@ -322,11 +336,11 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 
 | 类名 | 控件 | 尺寸 | 颜色 |
 |---|---|---|---|
-| `TextBlock.PageHeader` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` · 上 `Space6` 下 `Space4` | `TextPrimary` |
+| `TextBlock.PageHeader` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` · `GapPageHeader` | `TextPrimary` |
 | `TextBlock.Title` | TextBlock | `UiSubtitleSize` 600 · `UiSubtitleLine` | `TextPrimary` |
-| `TextBlock.GroupHeader` | TextBlock | `UiBodySmallSize` 600 · `UiBodySmallLine` · 上 `Space6` 下 `Space2` | `TextTertiary` |
-| `TextBlock.SectionHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` · 上 `Space4` 下 `Space1` | `TextTertiary`（单行短标签） |
-| `TextBlock.FieldLabel` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下 `Space2` | `TextSecondary` |
+| `TextBlock.GroupHeader` | TextBlock | `UiBodySmallSize` 600 · `UiBodySmallLine` · `GapGroupHeader` | `TextTertiary` |
+| `TextBlock.SectionHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` · `GapSectionHeader` | `TextTertiary`（单行短标签） |
+| `TextBlock.FieldLabel` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · `GapField` | `TextSecondary` |
 | `TextBlock.Body` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下边距无 | `TextSecondary` |
 | `TextBlock.FieldLabel.Strong` | TextBlock | `UiBodySize` 600 · `UiBodyLine` | `TextPrimary` |
 | `TextBlock.Hint` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `TextTertiary` |
