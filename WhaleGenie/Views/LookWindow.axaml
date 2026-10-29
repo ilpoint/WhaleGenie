@@ -18,10 +18,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
         <Style Selector="TextBlock.SectionHeader">
             <Setter Property="Foreground" Value="#E4E4E4" />
             <Setter Property="FontSize" Value="12.5" />

@@ -28,11 +28,6 @@
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
-
         <!-- One part of the palette, and the box the whole palette stands in: reading what can go
              into a formula means seeing where one kind of thing stops and the next begins. -->
         <Style Selector="TextBox.ExprInput">
@@ -221,7 +216,7 @@
                             Content="{Binding TextTab}" Click="OnShowText" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="1" Classes="Muted" Margin="2,10,0,0" TextWrapping="Wrap"
+                <TextBlock Grid.Row="1" Classes="Hint" Margin="2,10,0,0" TextWrapping="Wrap"
                            Text="{Binding TreeHelp}" IsVisible="{Binding IsTreePage}" />
 
                 <!-- The structure page: one line to a piece of the formula, moved across by how deep
@@ -230,7 +225,7 @@
                 <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"
                               IsVisible="{Binding IsTreePage}">
                     <StackPanel>
-                        <TextBlock Classes="Muted" Foreground="{DynamicResource AppWarning}" TextWrapping="Wrap"
+                        <TextBlock Classes="Hint" Foreground="{DynamicResource AppWarning}" TextWrapping="Wrap"
                                    Margin="2,0,0,6" Text="{Binding TreeCannotRead}"
                                    IsVisible="{Binding TextUnreadable}" />
                         <ItemsControl Name="TreeRows" ItemsSource="{Binding Rows}"
@@ -289,7 +284,7 @@
                      pressed, so a hand-built structure can never be lost to a stray keystroke. -->
                 <Grid Grid.Row="2" Margin="0,8,0,0" RowDefinitions="Auto,Auto,*,Auto"
                       IsVisible="{Binding IsTextPage}">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Help}" />
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding Help}" />
                     <TextBlock Grid.Row="1" Classes="FieldLabel" Margin="2,14,0,6"
                                Text="{Binding ExpressionHeader}" />
                     <TextBox Grid.Row="2" Name="ExpressionBox" Classes="ExprInput"
@@ -302,7 +297,7 @@
                                 Content="{Binding [ExprBuilder.Rebuild], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [ExprBuilder.RebuildHint], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding RebuildCommand}" />
-                        <TextBlock Classes="Muted" VerticalAlignment="Center" TextWrapping="Wrap"
+                        <TextBlock Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Text="{Binding WrittenMessage}" />
                     </StackPanel>
                 </Grid>
@@ -373,11 +368,11 @@
             <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
 
                 <StackPanel Name="HintBlock" Spacing="3" Margin="2,0,0,10">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                Foreground="{DynamicResource AppWarning}"
                                Text="{Binding PaletteNotice}"
                                IsVisible="{Binding HasPaletteNotice}" />
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding PaletteHint}" />
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding PaletteHint}" />
                 </StackPanel>
 
                 <!-- What the formula comes to: what is picked and how the formula is written on the
@@ -386,12 +381,12 @@
                     <Grid ColumnDefinitions="*,14,*">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
                             <StackPanel Spacing="4">
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Picked}"
+                                <TextBlock Classes="Note" TextWrapping="Wrap" Text="{Binding Picked}"
                                            IsVisible="{Binding IsTreePage}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Note" TextWrapping="Wrap"
                                            Text="{Binding TreePreviewHeader}"
                                            IsVisible="{Binding IsTreePage}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppText}"
+                                <TextBlock Classes="Note" TextWrapping="Wrap" Foreground="{DynamicResource AppText}"
                                            Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
                             </StackPanel>
                         </ScrollViewer>
@@ -400,19 +395,19 @@
                             <StackPanel Spacing="4">
                                 <!-- The formula said in plain Chinese: a reader who does not follow
                                      the formula can still check the logic against it. -->
-                                <TextBlock Name="SayingLine" Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Name="SayingLine" Classes="Note" TextWrapping="Wrap"
                                            Foreground="{DynamicResource AppInfo}" Text="{Binding Saying}"
                                            IsVisible="{Binding ShowsSaying}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding TreeMessage}"
                                            IsVisible="{Binding ShowTreeNote}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
                                            Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
                                            Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
                                 <!-- What the page written out by hand has to say about the text. -->
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
                                            Text="{Binding Message}" IsVisible="{Binding ShowError}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
                                            Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
                             </StackPanel>
                         </ScrollViewer>
@@ -447,7 +442,7 @@
                                  Text="{Binding FunctionFilter}" />
                         <ScrollViewer Grid.Row="3" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBlock Classes="Muted" Margin="2,0,0,8" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,0,0,8" TextWrapping="Wrap"
                                            IsVisible="{Binding HasNoFunctionMatch}"
                                            Text="{Binding [ExprBuilder.NoFunctionFound], Source={x:Static loc:Strings.Current}}" />
                                 <ItemsControl ItemsSource="{Binding Functions}">

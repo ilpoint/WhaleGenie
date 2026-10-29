@@ -11,7 +11,7 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="14,4,14,14" Spacing="8">
-            <TextBlock Classes="Muted" TextWrapping="Wrap"
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
                        Text="{Binding [MacroInterface.Hint], Source={x:Static loc:Strings.Current}}" />
             <TextBlock Classes="ProblemSummary" Margin="0"
                        IsVisible="{Binding ProblemSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -19,7 +19,7 @@
 
             <TextBlock Classes="GroupHeader" Margin="0,4,0,0"
                        Text="{Binding [MacroInterface.Parameters], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Classes="Muted" TextWrapping="Wrap"
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
                        Text="{Binding [MacroInterface.DefaultHint], Source={x:Static loc:Strings.Current}}" />
 
             <ItemsControl ItemsSource="{Binding Parameters}">
@@ -94,7 +94,7 @@
                                         BorderBrush="{DynamicResource AppBorder}"
                                         BorderThickness="1">
                                     <StackPanel Spacing="4">
-                                        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                        <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                    Text="{Binding [MacroInterface.FieldsHint], Source={x:Static loc:Strings.Current}}" />
                                         <ItemsControl ItemsSource="{Binding Fields}">
                                             <ItemsControl.ItemTemplate>
@@ -133,7 +133,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Classes="Muted" TextWrapping="Wrap"
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
                        IsVisible="{Binding !HasParameters}"
                        Text="{Binding [MacroInterface.NoParameters], Source={x:Static loc:Strings.Current}}" />
 
@@ -191,7 +191,7 @@
                                         BorderBrush="{DynamicResource AppBorder}"
                                         BorderThickness="1">
                                     <StackPanel Spacing="4">
-                                        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                        <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                    Text="{Binding [MacroInterface.FieldsHint], Source={x:Static loc:Strings.Current}}" />
                                         <ItemsControl ItemsSource="{Binding Fields}">
                                             <ItemsControl.ItemTemplate>
@@ -230,7 +230,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Classes="Muted" TextWrapping="Wrap"
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
                        IsVisible="{Binding !HasResults}"
                        Text="{Binding [MacroInterface.NoResults], Source={x:Static loc:Strings.Current}}" />
 

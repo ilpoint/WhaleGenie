@@ -25,10 +25,6 @@
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Margin" Value="2,2,0,6" />
         </Style>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
         <Style Selector="ComboBox.LanguageSelect">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -153,7 +149,7 @@
                                        Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
                             <ComboBox Classes="LanguageSelect" ItemsSource="{Binding Languages}"
                                       SelectedItem="{Binding SelectedLanguage}" />
-                            <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
@@ -165,7 +161,7 @@
                                            Text="{Binding [Settings.Hotkeys], Source={x:Static loc:Strings.Current}}" />
                                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                     <StackPanel>
-                                        <TextBlock Classes="Muted"
+                                        <TextBlock Classes="Note"
                                                    Text="{Binding [Settings.SystemHotkey], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
                                                    Text="{Binding SystemHotkeyDisplay}" />
@@ -177,11 +173,11 @@
                                             Name="ClearSystemHotkeyButton"
                                             Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                                 </Grid>
-                                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.HotkeyHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.HotkeySupport], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                            Foreground="{DynamicResource AppWarning}"
                                            Text="{Binding SystemHotkeyProblem}"
                                            IsVisible="{Binding SystemHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -193,19 +189,19 @@
                                            Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
                                 <ComboBox Classes="LanguageSelect" ItemsSource="{Binding WindowWays}"
                                           SelectedItem="{Binding SelectedWindowWay}" />
-                                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.CaptureWindowHint], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
                                            Text="{Binding [Settings.CaptureScreen], Source={x:Static loc:Strings.Current}}" />
                                 <ComboBox Classes="LanguageSelect" ItemsSource="{Binding ScreenWays}"
                                           SelectedItem="{Binding SelectedScreenWay}" />
-                                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
                                 <CheckBox Margin="2,16,0,0" Name="PreloadOcrCheck"
                                           Foreground="{DynamicResource AppMuted}" FontSize="12.5"
                                           IsChecked="{Binding PreloadOcr}"
                                           Content="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.PreloadOcrHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                         </Border>
@@ -216,20 +212,20 @@
                             <StackPanel>
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7BC17B"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="#7BC17B"
                                            Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
                                 <Button Classes="Secondary" Name="DriverInstallButton" Height="32"
                                         HorizontalAlignment="Left" Margin="2,10,0,0"
                                         Click="OnInstallDriverClicked"
                                         Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
                                 <CheckBox Margin="2,16,0,0" Name="DriverAttachCheck"
                                           IsChecked="{Binding AttachDriverAtStart}"
                                           Content="{Binding [Settings.DriverAttachAtStart], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.DriverAttachAtStartHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                         </Border>
@@ -237,16 +233,16 @@
                             <StackPanel>
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
-                                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7BC17B"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="#7BC17B"
                                            Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
                                 <Button Classes="Secondary" Name="AdminRestartButton" Height="32"
                                         HorizontalAlignment="Left" Margin="2,10,0,0"
                                         IsVisible="{Binding !IsElevated}"
                                         Click="OnRestartElevatedClicked"
                                         Content="{Binding [Settings.AdminRestart], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.AdminHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                         </Border>
@@ -266,13 +262,13 @@
                                         Classes="Secondary" Height="32"
                                         Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
-                            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                        Text="{Binding MenuLauncherStatus}" />
-                            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.MenuLauncherHint], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.HotkeySupport], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.MenuShapeHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
@@ -314,10 +310,10 @@
                                 <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleDown"
                                         Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
-                            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                        Foreground="{DynamicResource AppWarning}"
                                        Text="{Binding MenuRuleProblem}" />
-                            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
@@ -334,10 +330,10 @@
                                     IsVisible="{Binding IsCustomTheme}"
                                     Click="OnCustomizeThemeClicked"
                                     Content="{Binding [Settings.CustomizeTheme], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,6,0,0" TextWrapping="Wrap"
                                        IsVisible="{Binding IsCustomTheme}"
                                        Text="{Binding [Settings.CustomizeThemeHint], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>

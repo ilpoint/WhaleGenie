@@ -175,11 +175,11 @@
                     IsVisible="{Binding IsPublicMacroDock}"
                     Content="{Binding [Editor.ManagePublicMacros], Source={x:Static loc:Strings.Current}}"
                     Click="OnManagePublicMacros" />
-            <TextBlock Grid.ColumnSpan="2" Classes="Muted" VerticalAlignment="Center"
+            <TextBlock Grid.ColumnSpan="2" Classes="Hint" VerticalAlignment="Center"
                        IsVisible="{Binding IsBasicDock}"
                        Text="{Binding [Editor.DragActionHint], Source={x:Static loc:Strings.Current}}"
                        TextWrapping="Wrap" />
-            <TextBlock Grid.ColumnSpan="2" Classes="Muted" VerticalAlignment="Center"
+            <TextBlock Grid.ColumnSpan="2" Classes="Hint" VerticalAlignment="Center"
                        IsVisible="{Binding IsFlowDock}"
                        Text="{Binding [Editor.DragActionHint], Source={x:Static loc:Strings.Current}}"
                        TextWrapping="Wrap" />

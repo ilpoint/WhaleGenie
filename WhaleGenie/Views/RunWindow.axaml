@@ -19,10 +19,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
         <Style Selector="TextBlock.SectionHeader">
             <Setter Property="Foreground" Value="#E4E4E4" />
             <Setter Property="FontSize" Value="12.5" />
@@ -437,7 +433,7 @@
                                                       Foreground="{DynamicResource AppMuted}"
                                                       IsChecked="{Binding Given}"
                                                       Content="{Binding [Run.ArgumentGiven], Source={x:Static loc:Strings.Current}}" />
-                                            <TextBlock Text="{Binding Hint}" Classes="Muted"
+                                            <TextBlock Text="{Binding Hint}" Classes="Hint"
                                                        TextWrapping="Wrap" />
                                         </StackPanel>
                                     </Border>
@@ -462,7 +458,7 @@
                              standing in front of is kept in view as it moves. -->
                         <ScrollViewer Grid.Row="1" Name="StepScroll" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            IsVisible="{Binding !HasSteps}"
                                            Text="{Binding [Run.Empty], Source={x:Static loc:Strings.Current}}" />
                                 <ItemsControl Name="StepList" ItemsSource="{Binding Steps}">
@@ -530,7 +526,7 @@
                                                             <TextBlock Text="{Binding Label}" Classes="StepLabel"
                                                                        Classes.container="{Binding IsContainer}" />
                                                         </StackPanel>
-                                                        <TextBlock Text="{Binding Detail}" Classes="Muted"
+                                                        <TextBlock Text="{Binding Detail}" Classes="Hint"
                                                                    TextWrapping="Wrap" />
                                                         <!-- The note the step carries, the same one the
                                                              editor writes under a step. -->
@@ -664,7 +660,7 @@
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
 
     <StackPanel>
-        <TextBlock Classes="Muted"
+        <TextBlock Classes="Hint"
                    IsVisible="{Binding !HasVariables}"
                    Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
         <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,4" ColumnSpacing="6"

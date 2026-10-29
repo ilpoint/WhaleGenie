@@ -19,11 +19,6 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
         </Style>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
     </Window.Styles>
 
     <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
@@ -55,13 +50,13 @@
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
                 </Grid>
-                <TextBlock Classes="Muted" Margin="2,2,0,0" Foreground="#E06C75"
+                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="#E06C75"
                            Text="{Binding ExpressionMessage}"
                            IsVisible="{Binding ShowExpressionError}" />
-                <TextBlock Classes="Muted" Margin="2,2,0,0" Foreground="#7FC97F"
+                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="#7FC97F"
                            Text="{Binding ExpressionMessage}"
                            IsVisible="{Binding ShowExpressionSuccess}" />
-                <TextBlock Classes="Muted"
+                <TextBlock Classes="Hint"
                            Text="{Binding [Run.BreakpointExpressionHint], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
 
@@ -74,13 +69,13 @@
                     <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12"
                                Foreground="{DynamicResource AppMuted}"
                                Text="{Binding [Run.BreakpointHitsUnit], Source={x:Static loc:Strings.Current}}" />
-                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="Muted"
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="Hint"
                                Margin="4,0,0,0"
                                Text="{Binding [Run.BreakpointHitsHint], Source={x:Static loc:Strings.Current}}" />
                 </Grid>
             </StackPanel>
 
-            <TextBlock Classes="Muted"
+            <TextBlock Classes="Hint"
                        Text="{Binding [Run.BreakpointNote], Source={x:Static loc:Strings.Current}}" />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">

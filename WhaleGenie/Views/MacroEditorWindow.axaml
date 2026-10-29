@@ -89,10 +89,6 @@
                 </Animation>
             </Style.Animations>
         </Style>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
         <Style Selector="ToggleButton.EndKeyChip">
             <Setter Property="MinWidth" Value="36" />
             <Setter Property="Height" Value="28" />
@@ -743,7 +739,7 @@
                                         </Button.Flyout>
                                     </Button>
 
-                                    <TextBlock Classes="Muted" Margin="2,8,0,0"
+                                    <TextBlock Classes="Hint" Margin="2,8,0,0"
                                                IsVisible="{Binding !HasSelectedTrigger}"
                                                Text="{Binding [Editor.NoTriggerSelected], Source={x:Static loc:Strings.Current}}" />
 
@@ -849,11 +845,11 @@
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
-                                    <TextBlock Classes="Muted"
+                                    <TextBlock Classes="Hint"
                                                Text="{Binding [Editor.AltXHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Muted" Margin="0,2,0,0"
+                                    <TextBlock Classes="Hint" Margin="0,2,0,0"
                                                Text="{Binding [Editor.AltCHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Muted" Margin="0,2,0,0" Name="PickStatus"
+                                    <TextBlock Classes="Hint" Margin="0,2,0,0" Name="PickStatus"
                                                Foreground="#8FC7F0" />
                                 </StackPanel>
                             </Grid>
@@ -886,7 +882,7 @@
                                          Text="{Binding ScheduleTime}"
                                          PlaceholderText="{Binding [Editor.ScheduleTimeHint], Source={x:Static loc:Strings.Current}}" />
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.ScheduleNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -912,7 +908,7 @@
                                           Content="{Binding [Editor.WatchSubfolders], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding WatchSubfolders}" />
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.WatchNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -928,7 +924,7 @@
                                 <ComboBox Classes="OptionSelect" ItemsSource="{Binding ProcessChangeOptions}"
                                           SelectedIndex="{Binding ProcessChangeIndex}" />
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.ProcessNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -954,7 +950,7 @@
                                      when it fires. -->
                                 <StackPanel Margin="0,8,0,0" Spacing="4">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                        <TextBlock Classes="Hint" VerticalAlignment="Center"
                                                    TextWrapping="Wrap"
                                                    Text="{Binding WindowPreview.Summary}" />
                                         <Button Grid.Column="1" Classes="Secondary" Height="28"
@@ -973,9 +969,9 @@
                                                                Text="{Binding Title}" />
                                                     <StackPanel Orientation="Horizontal" Spacing="5"
                                                                 IsVisible="{Binding HasPart}">
-                                                        <TextBlock Classes="Muted" FontSize="11"
+                                                        <TextBlock Classes="Note" FontSize="11"
                                                                    Text="{Binding PartLabel}" />
-                                                        <TextBlock Classes="Muted" FontSize="11"
+                                                        <TextBlock Classes="Note" FontSize="11"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    Text="{Binding Part}" />
                                                     </StackPanel>
@@ -984,10 +980,10 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                Text="{Binding WindowPreview.More}"
                                                IsVisible="{Binding WindowPreview.HasMore}" />
-                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                Text="{Binding WindowPreview.Note}"
                                                IsVisible="{Binding WindowPreview.HasNote}" />
                                 </StackPanel>
@@ -998,12 +994,12 @@
                                     <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowChangeOptions}"
                                               SelectedIndex="{Binding WindowChangeIndex}" />
 
-                                    <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.WindowNote], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
                                 <StackPanel IsVisible="{Binding IsInterfaceTrigger}" Margin="0,10,0,0">
-                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                Text="{Binding [Editor.InterfaceHint], Source={x:Static loc:Strings.Current}}" />
                                     <TextBlock Classes="FieldLabel" Margin="2,10,0,5"
                                                Text="{Binding [Editor.InterfaceMembers], Source={x:Static loc:Strings.Current}}" />
@@ -1035,9 +1031,9 @@
                                                 Command="{Binding ClearInterfaceHotkeyCommand}"
                                                 Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                                     </Grid>
-                                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.InterfaceHotkeySupport], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                                Foreground="{DynamicResource AppWarning}"
                                                Text="{Binding InterfaceHotkeyProblem}"
                                                IsVisible="{Binding InterfaceHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -1087,10 +1083,10 @@
                                                 Command="{Binding ResetHotstringEndCharsCommand}"
                                                 Content="{Binding [Editor.HotstringEndCharsReset], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
-                                    <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                                Text="{Binding HotstringEndCaptureStatus}"
                                                IsVisible="{Binding HotstringEndCaptureStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.HotstringEndCharsHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                                 <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
@@ -1113,14 +1109,14 @@
                                                Text="{Binding [Schedule.Unit.Seconds], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.IdleNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                             </StackPanel>
 
                             <!-- Menu placement is project-wide and lives in the runtime menu. -->
                             <StackPanel IsVisible="{Binding IsMenuTrigger}">
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            Text="{Binding [Editor.MenuManagedInPanel], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -1140,7 +1136,7 @@
                                               Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
                                               IsChecked="{Binding ExclusiveInput}" />
 
-                                    <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.ExclusiveInputNote], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Border>
@@ -1281,7 +1277,7 @@
                                   Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
                                   HorizontalAlignment="Center" />
                        <TextBlock Text="{Binding [Editor.NoStepsHint], Source={x:Static loc:Strings.Current}}"
-                                  Classes="Muted" HorizontalAlignment="Center" TextAlignment="Center" />
+                                  Classes="Hint" HorizontalAlignment="Center" TextAlignment="Center" />
                    </StackPanel>
 
                    <!-- Selection is restored after every edit. Following it would drag a long
@@ -1366,7 +1362,7 @@
                                                                  Foreground="#8FD9A8" />
                                                   </Border>
                                               </StackPanel>
-                                              <TextBlock Text="{Binding Detail}" Classes="Muted"
+                                              <TextBlock Text="{Binding Detail}" Classes="Hint"
                                                          TextWrapping="Wrap" />
                                               <TextBlock Text="{Binding Comment}" FontSize="11"
                                                          Foreground="#C8A165" TextWrapping="Wrap"
@@ -1391,7 +1387,7 @@
                                       <StackPanel Orientation="Horizontal" Spacing="8">
                                           <TextBlock Classes="StepHeadLabel"
                                                      Text="{Binding HeadLabel}" />
-                                          <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                          <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
                                           <Button Classes="AddChildButton"
                                                   ToolTip.Tip="{Binding AddHint}"
@@ -1409,7 +1405,7 @@
                                           </Button>
                                           <TextBlock IsVisible="{Binding IsEmptyList}"
                                                      Text="{Binding EmptyListHint}"
-                                                     Classes="Muted"
+                                                     Classes="Hint"
                                                      VerticalAlignment="Center" />
                                       </StackPanel>
                                   </Border>
@@ -1458,7 +1454,7 @@
                                 Content="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"
                                 Click="OnCloseRecording" />
                     </Grid>
-                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                Text="{Binding [Editor.RecordIdle], Source={x:Static loc:Strings.Current}}" />
                             <Border Classes="GroupBox">
                                 <StackPanel>
@@ -1602,7 +1598,7 @@
                             </StackPanel>
                         </StackPanel>
                     </Button>
-                    <TextBlock Classes="Muted" HorizontalAlignment="Center"
+                    <TextBlock Classes="Hint" HorizontalAlignment="Center"
                                TextAlignment="Center" TextWrapping="Wrap"
                                Text="{Binding RecordStatusText}" />
                 </StackPanel>

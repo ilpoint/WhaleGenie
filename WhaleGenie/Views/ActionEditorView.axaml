@@ -51,7 +51,7 @@
              columns, so the four numbers of a rectangle read as two pairs rather than a column. -->
         <DataTemplate x:Key="NumberCell" x:DataType="vm:NumberCellViewModel">
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                <TextBlock Classes="Muted" VerticalAlignment="Center"
+                <TextBlock Classes="Hint" VerticalAlignment="Center"
                            Text="{Binding Label}"
                            ToolTip.Tip="{Binding Hint}" />
 
@@ -146,7 +146,7 @@
                         <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Text="{Binding WindowRuleSummary}" FontSize="12.5"
                                        Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
-                            <TextBlock Classes="Muted" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" TextWrapping="Wrap"
                                        Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                         <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
@@ -239,7 +239,7 @@
                     </Grid>
 
                     <StackPanel IsVisible="{Binding HasCandidates}" Spacing="5">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                        <TextBlock Classes="Hint" TextWrapping="Wrap"
                                    Text="{Binding [Add.BrowserWayMore], Source={x:Static loc:Strings.Current}}" />
                         <ItemsControl ItemsSource="{Binding Candidates}">
                             <ItemsControl.ItemsPanel>
@@ -322,12 +322,12 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5"
                                 IsVisible="{Binding IsDuration}"
                                 ToolTip.Tip="{Binding [Add.JitterHint], Source={x:Static loc:Strings.Current}}">
-                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                        <TextBlock Classes="Unit" VerticalAlignment="Center"
                                    Text="{Binding [Add.JitterSign], Source={x:Static loc:Strings.Current}}" />
                         <views:NumberBox Name="JitterBox" Width="76" Increment="5" FormatString="0.##"
                                        Minimum="0" Maximum="100" VerticalAlignment="Center"
                                        Value="{Binding JitterPercent}" />
-                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                        <TextBlock Classes="Unit" VerticalAlignment="Center"
                                    Text="{Binding [Add.JitterUnit], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
 
@@ -341,23 +341,23 @@
                             Click="OnOpenExpressionBuilder" />
                 </Grid>
 
-                <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                            IsVisible="{Binding HasJitterRange}"
                            Text="{Binding JitterRange}" />
 
                 <StackPanel IsVisible="{Binding IsNumberFormula}">
-                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                Text="{Binding FormulaNote}"
                                IsVisible="{Binding IsNumberFormula}" />
-                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                Text="{Binding [Add.FormulaMilliseconds], Source={x:Static loc:Strings.Current}}"
                                IsVisible="{Binding IsDurationFormula}" />
-                    <TextBlock Classes="Muted" Margin="2,5,0,0"
+                    <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
                                Foreground="#E06C75"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionError}" />
-                    <TextBlock Classes="Muted" Margin="2,5,0,0"
+                    <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
                                Foreground="#7FC97F"
                                Text="{Binding ExpressionMessage}"
@@ -475,7 +475,7 @@
                                 Content="{Binding [Add.ImageAdd], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.ImageAddHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddImageRow" />
-                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
                                    TextWrapping="Wrap"
                                    Text="{Binding [Add.ImageEmpty], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasPictures}" />
@@ -487,7 +487,7 @@
                      under the fields that make up the rule. -->
                 <StackPanel IsVisible="{Binding ShowsWindowPreview}" Margin="0,8,0,0" Spacing="4">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                        <TextBlock Classes="Muted" VerticalAlignment="Center" TextWrapping="Wrap"
+                        <TextBlock Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Text="{Binding WindowPreview.Summary}" />
                         <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
                                 Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
@@ -504,9 +504,9 @@
                                                Text="{Binding Title}" />
                                     <StackPanel Orientation="Horizontal" Spacing="5"
                                                 IsVisible="{Binding HasPart}">
-                                        <TextBlock Classes="Muted" FontSize="11"
+                                        <TextBlock Classes="Note" FontSize="11"
                                                    Text="{Binding PartLabel}" />
-                                        <TextBlock Classes="Muted" FontSize="11"
+                                        <TextBlock Classes="Note" FontSize="11"
                                                    TextTrimming="CharacterEllipsis"
                                                    Text="{Binding Part}" />
                                     </StackPanel>
@@ -515,9 +515,9 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding WindowPreview.More}"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding WindowPreview.More}"
                                IsVisible="{Binding WindowPreview.HasMore}" />
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding WindowPreview.Note}"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding WindowPreview.Note}"
                                IsVisible="{Binding WindowPreview.HasNote}" />
                 </StackPanel>
 
@@ -549,11 +549,11 @@
                                                         ContentTemplate="{StaticResource NumberCell}" />
                                     </Grid>
 
-                                    <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
                                                Foreground="#E06C75"
                                                Text="{Binding CellMessage}"
                                                IsVisible="{Binding ShowCellError}" />
-                                    <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
                                                Foreground="#7FC97F"
                                                Text="{Binding CellMessage}"
                                                IsVisible="{Binding ShowCellResult}" />
@@ -562,7 +562,7 @@
                                          look may be a picture taken earlier, or a rectangle some
                                          earlier step worked out. -->
                                     <WrapPanel>
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                        <TextBlock Classes="Note" VerticalAlignment="Center"
                                                    Margin="0,0,6,0"
                                                    Text="{Binding [Add.RegionOrVariable], Source={x:Static loc:Strings.Current}}"
                                                    ToolTip.Tip="{Binding VariableHint}" />
@@ -594,14 +594,14 @@
                         <Button Classes="Secondary" Height="30" Padding="10,0"
                                 Content="{Binding [Add.RegionAdd], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddRegionRow" />
-                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
                                    Text="{Binding [Add.RegionEmpty], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasRegions}" />
                     </Grid>
 
                     <!-- Where the four numbers of every row are counted from, said once for the
                          whole list: the same numbers mean somewhere else depending on it. -->
-                    <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
                 </StackPanel>
 
@@ -629,19 +629,19 @@
                                     </Grid>
 
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                        <TextBlock Classes="Hint" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunHold], Source={x:Static loc:Strings.Current}}" />
                                         <views:NumberBox Width="84" FormatString="0" PlaceholderText="50"
                                                        Value="{Binding HoldMs}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunHoldHint], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock Classes="Muted" Margin="0,0,8,0" VerticalAlignment="Center"
+                                        <TextBlock Classes="Unit" Margin="0,0,8,0" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                        <TextBlock Classes="Unit" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunGap], Source={x:Static loc:Strings.Current}}" />
                                         <views:NumberBox Width="84" FormatString="0" PlaceholderText="120"
                                                        Value="{Binding GapMs}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock Classes="Muted" Margin="0,0,8,0" VerticalAlignment="Center"
+                                        <TextBlock Classes="Unit" Margin="0,0,8,0" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
                                         <Button Classes="Secondary"
                                                 Height="26" Padding="9,0" VerticalAlignment="Center"
@@ -658,7 +658,7 @@
                         <Button Classes="Secondary" Height="30" Padding="10,0"
                                 Content="{Binding [Add.KeyRunAdd], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddKeyRow" />
-                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
                                    Text="{Binding [Add.KeyRunEmpty], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasKeyRows}" />
                     </Grid>
@@ -710,7 +710,7 @@
                                                 ToolTip.Tip="{Binding [Add.NarrowRemoveHint], Source={x:Static loc:Strings.Current}}"
                                                 Command="{Binding RemoveCommand}" />
                                     </Grid>
-                                    <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Note" Margin="2,0,0,0" TextWrapping="Wrap"
                                                Text="{Binding Count}"
                                                IsVisible="{Binding HasCount}" />
                                 </StackPanel>
@@ -723,7 +723,7 @@
                                 Content="{Binding [Add.NarrowAdd], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.NarrowAddHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddNarrowRow" />
-                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
                                    TextWrapping="Wrap"
                                    Text="{Binding [Add.NarrowEmpty], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasNarrowRows}" />
@@ -826,19 +826,19 @@
                                 ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnOpenExpressionBuilder" />
                     </Grid>
-                    <TextBlock Classes="Muted" Margin="2,5,0,0"
+                    <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
                                Foreground="#E06C75"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionError}" />
-                    <TextBlock Classes="Muted" Margin="2,5,0,0"
+                    <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
                                Foreground="#7FC97F"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
 
-                <TextBlock Classes="Muted" Text="{Binding Hint}"
+                <TextBlock Classes="Hint" Text="{Binding Hint}"
                            IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="2,5,0,0" />
 
@@ -860,9 +860,9 @@
                 </Grid>
                 <TextBox Classes="ParamInput" Text="{Binding Value}" Margin="0,4,0,0"
                          IsEnabled="{Binding !Given}" />
-                <TextBlock Classes="Muted" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
+                <TextBlock Classes="Hint" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="0,3,0,0" />
-                <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#D8B36A"
+                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="#D8B36A"
                            Margin="0,3,0,0" IsVisible="{Binding IsUndeclared}"
                            Text="{Binding [Add.CallArgumentUndeclared], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
@@ -875,7 +875,7 @@
         <DataTemplate x:Key="ReturnsRowEditor" x:DataType="vm:ReturnsRowViewModel">
             <StackPanel Margin="0,0,0,14">
                 <CheckBox IsChecked="{Binding Ticked}" Content="{Binding Label}" />
-                <TextBlock Classes="Muted" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
+                <TextBlock Classes="Hint" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="26,3,0,0" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="26,6,0,0"
                       IsVisible="{Binding ShowsName}">
@@ -887,7 +887,7 @@
                             ToolTip.Tip="{Binding [Add.NameMakeUniqueHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnMakeReturnNameUnique" />
                 </Grid>
-                <TextBlock Classes="Muted" Text="{Binding NameWarning}" TextWrapping="Wrap"
+                <TextBlock Classes="Hint" Text="{Binding NameWarning}" TextWrapping="Wrap"
                            Foreground="#D8B36A" Margin="26,4,0,0"
                            IsVisible="{Binding IsNameTaken}" />
             </StackPanel>
@@ -945,7 +945,7 @@
                 <!-- A position is taken from the pointer with Alt + X, and a click point from the
                      reference picture itself. -->
                 <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="2,6,0,0" Spacing="6">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                IsVisible="{Binding ShowsPositionHint}"
                                Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
                     <Button Classes="Secondary" Height="30" Padding="10,0"
@@ -957,7 +957,7 @@
                 </StackPanel>
 
                 <!-- Where these numbers are counted from, said once for the line they are on. -->
-                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="Muted" Margin="2,6,0,0"
+                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="Hint" Margin="2,6,0,0"
                            TextWrapping="Wrap"
                            IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
             </Grid>
@@ -984,7 +984,7 @@
                     </StackPanel>
                 </Button>
 
-                <TextBlock Classes="Muted" Margin="22,3,10,0"
+                <TextBlock Classes="Hint" Margin="22,3,10,0"
                            TextWrapping="Wrap" Text="{Binding Note}"
                            IsVisible="{Binding HasNote}" />
 
@@ -1011,6 +1011,15 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+
+        <!--
+          表单前后缀：`±`、`%`、`按住`、`毫秒`、`间隔`。它们不是"次要文字"——单位要紧贴控件，
+          附注可以离远，排版要求不同，所以不进库、留在这个窗口里。
+        -->
+        <Style Selector="TextBlock.Unit">
+            <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        </Style>
         <Style Selector="TextBlock.GroupHeader">
             <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="12" />
@@ -1041,11 +1050,6 @@
             <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
             <Setter Property="Margin" Value="2,3,5,6" />
         </Style>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
-
         <Style Selector="Border.GroupBox">
             <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -1282,7 +1286,7 @@
 
                     <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Classes="Muted" Margin="2,0,0,6" TextWrapping="Wrap"
+                            <TextBlock Classes="Hint" Margin="2,0,0,6" TextWrapping="Wrap"
                                        IsVisible="{Binding HasNoActionMatch}"
                                        Text="{Binding [Add.NoActionFound], Source={x:Static loc:Strings.Current}}" />
 
@@ -1298,7 +1302,7 @@
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
                         <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{DynamicResource AppTextStrong}" />
-                        <TextBlock Classes="Muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                        <TextBlock Classes="Hint" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
                     <ItemsControl Grid.Row="1" ItemsSource="{Binding Pages}" Margin="0,0,0,4">
@@ -1344,7 +1348,7 @@
                             <!-- A block's settings are about the block, not about one thing the run
                                  does, and the two levels are what make a failure answerable at the
                                  level it belongs to. -->
-                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
+                            <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,8"
                                        IsVisible="{Binding IsBlock}"
                                        Text="{Binding [Add.BlockStepsInList], Source={x:Static loc:Strings.Current}}" />
 
@@ -1408,7 +1412,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Classes="Muted" IsVisible="{Binding !HasParameters}"
+                            <TextBlock Classes="Hint" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
@@ -1428,7 +1432,7 @@
                          its own for a later step to read. -->
                     <Border Classes="GroupBox" IsVisible="{Binding OnReturns}">
                         <StackPanel>
-                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
+                            <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,8"
                                        Text="{Binding [Add.Page.ReturnsHint], Source={x:Static loc:Strings.Current}}" />
                             <ItemsControl ItemsSource="{Binding ReturnsRows}"
                                           ItemTemplate="{StaticResource ReturnsRowEditor}" />
@@ -1437,7 +1441,7 @@
 
                     <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
                         <StackPanel>
-                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,12"
+                            <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,12"
                                        IsVisible="{Binding IsBlock}"
                                        Text="{Binding [Add.BlockSettings], Source={x:Static loc:Strings.Current}}" />
 
@@ -1455,7 +1459,7 @@
                                             Click="OnCopyStepId"
                                             Content="{Binding [Add.StepIdCopy], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
-                                <TextBlock Classes="Muted" Margin="0,5,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,5,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Add.StepIdHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -1465,7 +1469,7 @@
                                                Text="{Binding [Add.StepTimeout], Source={x:Static loc:Strings.Current}}" />
                                     <ContentControl Content="{Binding MetaTimeout}"
                                                     ContentTemplate="{StaticResource DurationSetting}" />
-                                    <TextBlock Classes="Muted" Margin="0,5,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="0,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Add.StepTimeoutHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
@@ -1513,7 +1517,7 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <TextBlock Classes="Muted" Margin="0,5,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,5,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Add.StepBackoffHint], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Margin="0,4,0,0" FontSize="11.5" TextWrapping="Wrap"
                                            Foreground="#C8A165" Text="{Binding RetryPlan}" />
@@ -1563,7 +1567,7 @@
                 <!-- Nothing picked yet is not a mistake, so it stays quiet; anything else is a
                      reason the step cannot be saved and is said in red, where it is hard to miss. -->
                 <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="3">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                Text="{Binding ValidationMessage}"
                                IsVisible="{Binding !ValidationIsProblem}" />
                     <TextBlock VerticalAlignment="Center" Foreground="#E06C75"
