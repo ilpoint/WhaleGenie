@@ -34,6 +34,10 @@ public class ThemeTokenTests
         "Success", "SuccessSurface", "Warning", "WarningSurface",
         "Danger", "DangerSurface", "Info", "InfoSurface",
         "OverlayHover", "OverlayPressed",
+
+        // "No fill" is a colour too: the styles say Transparent in a dozen places, and a literal
+        // there is exactly the kind of value this table exists to keep out of the styles.
+        "TransparentFill",
     ];
 
     /// <summary>The five picker colours, which are deliberately the same in both variants.</summary>

@@ -214,6 +214,14 @@
     </ResourceDictionary.ThemeDictionaries>
 
     <!--
+      "不画"也是一种颜色。规范里到处是 `Transparent`（项静息底、轨道填充），写成品名很常见的
+      字面值，但样式库里不写裸色是规矩，所以给它一个令牌，让"没有底"也是一处可以改的决定。
+      明暗同值。
+    -->
+    <Color x:Key="TransparentFillColor">#00000000</Color>
+    <SolidColorBrush x:Key="TransparentFill" Color="{StaticResource TransparentFillColor}" />
+
+    <!--
       拾取器令牌不跟随主题：框选、取色、点拾取、元素拾取、窗口规则这五个窗口站着的时候，屏幕上的
       像素与它们画出来的遮罩是同一件事，遮罩的浓淡一跟着明暗变，取到的颜色与截出来的图就跟着变。
       所以这五个键只在下面写一份，明暗同值；不要为了"整齐"把它们搬进上面的两套变体里。

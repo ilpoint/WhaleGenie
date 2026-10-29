@@ -108,6 +108,171 @@
             <!-- 焦点环：模板读这两个刷子。厚度没有键（主题里只有这两个刷子键），厚度只能由 FocusAdorner 给。 -->
             <StaticResource x:Key="SystemControlFocusVisualPrimaryBrush" ResourceKey="FocusRing" />
             <StaticResource x:Key="SystemControlFocusVisualSecondaryBrush" ResourceKey="FocusRingInner" />
+
+            <!-- 滚动条：轨道透明，滑块是唯一看得见的东西 -->
+            <StaticResource x:Key="ScrollBarThumbBackgroundColor" ResourceKey="BorderControlColor" />
+            <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="BorderStrong" />
+            <StaticResource x:Key="ScrollBarThumbFillDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ScrollBarBackground" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarBackgroundPointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackFill" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackFillPointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackStroke" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackStrokePointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarPanningThumbBackground" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ScrollBarForeground" ResourceKey="TextSecondary" />
+
+            <!-- 弹出菜单：浮层底，项静息透明 -->
+            <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="MenuFlyoutItemBackground" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="SurfaceHover" />
+            <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="SurfacePressed" />
+            <StaticResource x:Key="MenuFlyoutItemBackgroundDisabled" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="MenuFlyoutItemForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutItemForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevron" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevronPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevronPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="TextDisabled" />
+
+            <!-- 勾选框：未选是输入框的样子，选中是强调色，勾形取按钮上的白 -->
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUnchecked" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUncheckedPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUncheckedDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUnchecked" ResourceKey="BorderControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUncheckedPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUnchecked" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUncheckedPointerOver" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUncheckedPressed" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUncheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxForegroundUnchecked" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundUncheckedPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundUncheckedPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundUncheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillChecked" ResourceKey="AccentFill" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundChecked" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxForegroundChecked" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundCheckedPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundCheckedPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundCheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminate" ResourceKey="AccentFill" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminateDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeIndeterminateDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminate" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminateDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminate" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminatePointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminatePressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminateDisabled" ResourceKey="TextDisabled" />
+
+            <!-- 开关：开态强调色，滑块取按钮上的白 -->
+            <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleSwitchFillOnDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleSwitchStrokeOn" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleSwitchStrokeOnPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleSwitchStrokeOnPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleSwitchStrokeOnDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOnDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleSwitchFillOff" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ToggleSwitchFillOffPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="ToggleSwitchFillOffPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="ToggleSwitchStrokeOff" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleSwitchStrokeOffPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ToggleSwitchStrokeOffPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleSwitchStrokeOffDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOff" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOffPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOffPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOffDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleSwitchContainerBackground" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ToggleSwitchContainerBackgroundPointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ToggleSwitchContainerBackgroundPressed" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ToggleSwitchContentForeground" ResourceKey="TextPrimary" />
+
+            <!-- 开关按钮：未选是次按钮，选中是主按钮，六态写满（空一格就露 Fluent 默认） -->
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminate" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminateDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminate" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminatePointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminatePressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminateDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminate" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminateDisabled" ResourceKey="BorderSubtle" />
+
+            <!-- 表格：行底卡片色，靠 hover 与选中区分（表头底色没有键，只有分隔线） -->
+            <StaticResource x:Key="TableViewRowBackground" ResourceKey="SurfaceCard" />
+            <StaticResource x:Key="TableViewRowBackgroundPointerOver" ResourceKey="SurfaceHover" />
+            <StaticResource x:Key="TableViewRowBackgroundPressed" ResourceKey="SurfacePressed" />
+            <StaticResource x:Key="TableViewRowBackgroundDisabled" ResourceKey="SurfaceCard" />
+            <StaticResource x:Key="TableViewRowBackgroundSelected" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPointerOver" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPressed" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="TableViewRowForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TableViewRowForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TableViewRowForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="TableViewRowForegroundSelected" ResourceKey="AccentText" />
+            <StaticResource x:Key="TableViewRowForegroundSelectedPointerOver" ResourceKey="AccentText" />
+            <StaticResource x:Key="TableViewRowForegroundSelectedPressed" ResourceKey="AccentText" />
+            <StaticResource x:Key="TableViewColumnHeaderSeparatorBackground" ResourceKey="BorderSubtle" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -197,6 +362,171 @@
             <!-- 焦点环：模板读这两个刷子。厚度没有键（主题里只有这两个刷子键），厚度只能由 FocusAdorner 给。 -->
             <StaticResource x:Key="SystemControlFocusVisualPrimaryBrush" ResourceKey="FocusRing" />
             <StaticResource x:Key="SystemControlFocusVisualSecondaryBrush" ResourceKey="FocusRingInner" />
+
+            <!-- 滚动条：轨道透明，滑块是唯一看得见的东西 -->
+            <StaticResource x:Key="ScrollBarThumbBackgroundColor" ResourceKey="BorderControlColor" />
+            <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="BorderStrong" />
+            <StaticResource x:Key="ScrollBarThumbFillDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ScrollBarBackground" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarBackgroundPointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackFill" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackFillPointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackStroke" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarTrackStrokePointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ScrollBarPanningThumbBackground" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ScrollBarForeground" ResourceKey="TextSecondary" />
+
+            <!-- 弹出菜单：浮层底，项静息透明 -->
+            <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="MenuFlyoutItemBackground" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="SurfaceHover" />
+            <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="SurfacePressed" />
+            <StaticResource x:Key="MenuFlyoutItemBackgroundDisabled" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="MenuFlyoutItemForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutItemForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevron" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevronPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevronPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="MenuFlyoutSubItemChevronDisabled" ResourceKey="TextDisabled" />
+
+            <!-- 勾选框：未选是输入框的样子，选中是强调色，勾形取按钮上的白 -->
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUnchecked" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUncheckedPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillUncheckedDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUnchecked" ResourceKey="BorderControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUncheckedPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUnchecked" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUncheckedPointerOver" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUncheckedPressed" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundUncheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxForegroundUnchecked" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundUncheckedPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundUncheckedPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundUncheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillChecked" ResourceKey="AccentFill" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundChecked" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxForegroundChecked" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundCheckedPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundCheckedPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundCheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminate" ResourceKey="AccentFill" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillIndeterminateDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeIndeterminateDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminate" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundIndeterminateDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminate" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminatePointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminatePressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="CheckBoxForegroundIndeterminateDisabled" ResourceKey="TextDisabled" />
+
+            <!-- 开关：开态强调色，滑块取按钮上的白 -->
+            <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleSwitchFillOnDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleSwitchStrokeOn" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleSwitchStrokeOnPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleSwitchStrokeOnPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleSwitchStrokeOnDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOnDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleSwitchFillOff" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ToggleSwitchFillOffPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="ToggleSwitchFillOffPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="ToggleSwitchStrokeOff" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleSwitchStrokeOffPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ToggleSwitchStrokeOffPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleSwitchStrokeOffDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOff" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOffPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOffPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleSwitchKnobFillOffDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleSwitchContainerBackground" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ToggleSwitchContainerBackgroundPointerOver" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ToggleSwitchContainerBackgroundPressed" ResourceKey="TransparentFill" />
+            <StaticResource x:Key="ToggleSwitchContentForeground" ResourceKey="TextPrimary" />
+
+            <!-- 开关按钮：未选是次按钮，选中是主按钮，六态写满（空一格就露 Fluent 默认） -->
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminate" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBackgroundIndeterminateDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminate" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminatePointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminatePressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="ToggleButtonForegroundIndeterminateDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminate" ResourceKey="AccentFill" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="ToggleButtonBorderBrushIndeterminateDisabled" ResourceKey="BorderSubtle" />
+
+            <!-- 表格：行底卡片色，靠 hover 与选中区分（表头底色没有键，只有分隔线） -->
+            <StaticResource x:Key="TableViewRowBackground" ResourceKey="SurfaceCard" />
+            <StaticResource x:Key="TableViewRowBackgroundPointerOver" ResourceKey="SurfaceHover" />
+            <StaticResource x:Key="TableViewRowBackgroundPressed" ResourceKey="SurfacePressed" />
+            <StaticResource x:Key="TableViewRowBackgroundDisabled" ResourceKey="SurfaceCard" />
+            <StaticResource x:Key="TableViewRowBackgroundSelected" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPointerOver" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPressed" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="TableViewRowForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TableViewRowForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TableViewRowForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="TableViewRowForegroundSelected" ResourceKey="AccentText" />
+            <StaticResource x:Key="TableViewRowForegroundSelectedPointerOver" ResourceKey="AccentText" />
+            <StaticResource x:Key="TableViewRowForegroundSelectedPressed" ResourceKey="AccentText" />
+            <StaticResource x:Key="TableViewColumnHeaderSeparatorBackground" ResourceKey="BorderSubtle" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
