@@ -11,6 +11,7 @@ public class TitleBarMarkTests
     {
         var views = Path.Combine(Repository(), "WhaleGenie", "Views");
         var missing = new List<string>();
+        var found = 0;
 
         foreach (var window in Directory.EnumerateFiles(views, "*.axaml").Order())
         {
@@ -19,10 +20,12 @@ public class TitleBarMarkTests
             // The row that carries the close button is the title bar, so that is where the mark
             // belongs — every one of them, not only the main window. The marker is the library's
             // `Chrome` family, which covers every kind of title-bar button there is.
-            if (!markup.Contains("Classes=\"Chrome", StringComparison.Ordinal))
+            if (!TitleBarMarkup.IsTitleBar(markup))
             {
                 continue;
             }
+
+            found++;
 
             if (!markup.Contains("/Assets/WhaleGenie.png", StringComparison.Ordinal))
             {
@@ -34,6 +37,9 @@ public class TitleBarMarkTests
         }
 
         Assert.Empty(missing);
+
+        // Same tripwire as the drag check: a marker that matches nothing passes by covering nothing.
+        Assert.Equal(TitleBarMarkup.Expected, found);
     }
 
     /// <summary>The repository root, found by walking up from the test binaries.</summary>

@@ -12,6 +12,7 @@ public class TitleBarDragTests
     {
         var views = Path.Combine(Repository(), "WhaleGenie", "Views");
         var missing = new List<string>();
+        var found = 0;
 
         foreach (var window in Directory.EnumerateFiles(views, "*.axaml").Order())
         {
@@ -19,10 +20,12 @@ public class TitleBarDragTests
             // mark is looked for in as well. The marker is the library's `Chrome` family — one word
             // that covers `Chrome`, `Chrome.Icon`, `Chrome.Icon.Wide` and `Chrome.Labeled`, so a new
             // member of the family does not have to be added here.
-            if (!File.ReadAllText(window).Contains("Classes=\"Chrome", StringComparison.Ordinal))
+            if (!TitleBarMarkup.IsTitleBar(File.ReadAllText(window)))
             {
                 continue;
             }
+
+            found++;
 
             var code = window + ".cs";
             if (!File.Exists(code)
@@ -33,6 +36,10 @@ public class TitleBarDragTests
         }
 
         Assert.Empty(missing);
+
+        // A marker that matches nothing makes this check pass by covering nothing: "no window has a
+        // title bar" and "the class name changed" look exactly the same from here.
+        Assert.Equal(TitleBarMarkup.Expected, found);
     }
 
     /// <summary>The repository root, found by walking up from the test binaries.</summary>
