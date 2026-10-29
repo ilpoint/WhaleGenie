@@ -127,6 +127,16 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
     private async Task DescribeAsync(CancellationToken token)
     {
         var instructions = client.ServerInstructions;
+
+        // Every word the client is given, gathered for one question: does it name tools that are
+        // really there? A description that promises a tool nobody registered is how an AI ends up
+        // calling something that does not exist.
+        var said = new List<string>();
+        if (!string.IsNullOrWhiteSpace(instructions))
+        {
+            said.Add(instructions);
+        }
+
         Add("server.instructions",
             string.IsNullOrWhiteSpace(instructions) ? McpCheckResult.Missing : McpCheckResult.Pass,
             string.IsNullOrWhiteSpace(instructions)
@@ -184,6 +194,7 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
                 .Select(message => message.Content as TextContentBlock)
                 .Where(block => block is not null)
                 .Select(block => block!.Text));
+            said.Add(text);
             if (text.Length < 200 || !text.Contains("whalegenie_", StringComparison.Ordinal))
             {
                 thin.Add($"{name} ({text.Length} characters)");
@@ -192,6 +203,32 @@ internal sealed class McpSelfCheck(McpClient client, McpSelfCheckOptions? option
 
         Add("prompts.text", thin.Count == 0 ? McpCheckResult.Pass : McpCheckResult.Missing,
             thin.Count == 0 ? "both prompts carry the workflow" : string.Join("; ", thin));
+
+        var named = NamedTools(said);
+        var invented = named.Where(name => !_tools.Contains(name)).ToArray();
+        Add("docs.tool_names", invented.Length == 0 ? McpCheckResult.Pass : McpCheckResult.Fail,
+            invented.Length == 0
+                ? $"{named.Count} tool names, every one registered"
+                : $"named but not registered: {string.Join(", ", invented)}");
+    }
+
+    /// <summary>
+    /// Every tool name a piece of prose mentions. Names are read by the same shape the tools have,
+    /// so a resource address such as <c>whalegenie://project</c> is not mistaken for one.
+    /// </summary>
+    internal static IReadOnlyList<string> NamedTools(IEnumerable<string> prose)
+    {
+        var found = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var text in prose)
+        {
+            foreach (System.Text.RegularExpressions.Match match in
+                System.Text.RegularExpressions.Regex.Matches(text, "whalegenie_[a-z0-9_]+"))
+            {
+                found.Add(match.Value);
+            }
+        }
+
+        return [.. found];
     }
 
     private void MeasureSchema(IEnumerable<McpClientTool> tools)

@@ -23,6 +23,25 @@ public class McpSelfCheckTests : IDisposable
 
     public void Dispose() => _gate.Dispose();
 
+    /// <summary>
+    /// The check that keeps prose honest reads tool names out of it. A resource address is not one,
+    /// and a name nobody registered is what it is there to catch.
+    /// </summary>
+    [Fact]
+    public void A_tool_name_in_the_prose_has_to_be_a_tool_that_exists()
+    {
+        var named = McpSelfCheck.NamedTools(
+        [
+            "Call whalegenie_list_macros, then whalegenie_put_macro. The project page is whalegenie://project.",
+            "Read one step with whalegenie_get_step and change it with whalegenie_patch_macro_x.",
+        ]);
+
+        Assert.Contains("whalegenie_list_macros", named);
+        Assert.Contains("whalegenie_get_step", named);
+        Assert.DoesNotContain("whalegenie", named);
+        Assert.Contains("whalegenie_patch_macro_x", named);
+    }
+
     [Fact]
     public void The_self_check_closes_the_loop_and_reports_its_cost()
     {
