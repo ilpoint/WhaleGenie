@@ -5,7 +5,8 @@
 
 文档各有唯一职责，同一件事只在一个地方写：`README.md` 给刚来的人；`doc/manual.md` 给用程序的人，
 **用户看到的行为以它为准**；`doc/dev.md` 给改这个仓库的人（命令、工程结构、依赖、测试分层、发布）；
-`doc/architecture.md` 讲工程划分、依赖方向、主链路与债务；`doc/roadmap.md` 只写还没做的事；
+`doc/architecture.md` 讲工程划分、依赖方向、主链路与债务；`doc/ui-style.md` 是界面的施工图——令牌、
+组件族与六种状态，加窗口、加控件照它写；`doc/roadmap.md` 只写还没做的事；
 `doc/mcp-usability.md` 是一次自检的指标与遗留项；这份文件讲规范与必须守住的约定。
 改过什么在 git 里，不在此重复；重构留下的、还会约束后续改动的判断在 `doc/roadmap.md` 的「上一轮留下的约束」。
 
