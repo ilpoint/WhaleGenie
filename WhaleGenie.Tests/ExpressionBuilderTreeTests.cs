@@ -1086,10 +1086,14 @@ public class ExpressionBuilderTreeTests
         });
     }
 
-    /// <summary>The chip a piece of the formula is shown as, found by what the piece stands for.</summary>
+    /// <summary>
+    /// The tag a piece of the formula is shown as, found by what the piece stands for. It used to be
+    /// the window's own `Chip` class; the library's `Tag` took that job over, so the lookup moved with
+    /// it — a rename that only touches markup leaves a check looking for something that is gone.
+    /// </summary>
     private static Border Chip(Window window, ExpressionItemKind kind)
         => window.GetVisualDescendants().OfType<Border>()
-            .First(border => border.Classes.Contains("Chip")
+            .First(border => border.Classes.Contains("Tag")
                 && border.DataContext is ExpressionItemViewModel piece && piece.Kind == kind);
 
     private static TreeOperator Operator(ExpressionBuilderViewModel builder, string token)

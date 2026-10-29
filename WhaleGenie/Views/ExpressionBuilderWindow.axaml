@@ -28,11 +28,6 @@
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="Margin" Value="2,0,0,6" />
-        </Style>
         <Style Selector="TextBlock.Muted">
             <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
@@ -40,19 +35,6 @@
 
         <!-- One part of the palette, and the box the whole palette stands in: reading what can go
              into a formula means seeing where one kind of thing stops and the next begins. -->
-        <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,10" />
-        </Style>
-        <Style Selector="Border.Divider">
-            <Setter Property="Height" Value="1" />
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="Margin" Value="0,14,0,12" />
-        </Style>
-
         <Style Selector="TextBox.ExprInput">
             <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -80,7 +62,7 @@
         <!-- One thing that can be put into the formula: an operator, a plain value, or a function.
              They are all one size, so the palette reads as a wall of things to point at rather than
              as a handful of different walls. -->
-        <Style Selector="Button.Card">
+        <Style Selector="Button.ExprOption">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -95,7 +77,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
-        <Style Selector="Button.Card:pointerover /template/ ContentPresenter">
+        <Style Selector="Button.ExprOption:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
@@ -160,18 +142,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
-        <Style Selector="Border.Chip">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="7,2" />
-        </Style>
-        <Style Selector="Border.Chip TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-        </Style>
-
         <Style Selector="TextBlock.ArgLabel">
             <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
             <Setter Property="FontSize" Value="11.5" />
@@ -179,17 +149,6 @@
 
         <!-- What is typed into a place. It is a box rather than a label because filling a place in
              is what the page is for, and it looks empty on purpose until something is typed. -->
-        <Style Selector="TextBox.Cell">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="6,1" />
-            <Setter Property="MinHeight" Value="24" />
-        </Style>
-
         <Style Selector="Button.RowButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
@@ -303,7 +262,7 @@
                                                        Text="{Binding Label}"
                                                        IsVisible="{Binding HasLabel}"
                                                        ToolTip.Tip="{Binding LabelHint}" />
-                                            <TextBox Classes="Cell" Width="{Binding CellWidth}"
+                                            <TextBox Classes="Field Cell" Width="{Binding CellWidth}"
                                                      Text="{Binding Literal}"
                                                      PlaceholderText="{Binding HoleHint}"
                                                      IsVisible="{Binding IsTextBox}" />
@@ -313,12 +272,12 @@
                                             <CheckBox IsVisible="{Binding IsFlag}"
                                                       IsChecked="{Binding FlagValue}"
                                                       ToolTip.Tip="{Binding LabelHint}" />
-                                            <ComboBox Classes="Cell" Width="{Binding CellWidth}"
+                                            <ComboBox Classes="Field Cell" Width="{Binding CellWidth}"
                                                       ItemsSource="{Binding Choices}"
                                                       SelectedItem="{Binding ChosenWord}"
                                                       PlaceholderText="{Binding HoleHint}"
                                                       IsVisible="{Binding IsChoice}" />
-                                            <Border Classes="Chip" IsVisible="{Binding ShowsToken}">
+                                            <Border Classes="Tag" IsVisible="{Binding ShowsToken}">
                                                 <TextBlock Text="{Binding Token}"
                                                            ToolTip.Tip="{Binding LabelHint}" />
                                             </Border>
@@ -382,7 +341,7 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:TreeOperator">
-                                            <Button Classes="Card" Content="{Binding Token}"
+                                            <Button Classes="ExprOption" Content="{Binding Token}"
                                                     ToolTip.Tip="{Binding Hint}" Click="OnWrapWithOperator" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -399,7 +358,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ValueChoice">
-                                                <Button Classes="Card" Content="{Binding Label}"
+                                                <Button Classes="ExprOption" Content="{Binding Label}"
                                                         ToolTip.Tip="{Binding Hint}" Click="OnPickValue" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -512,7 +471,7 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
-                                            <Button Classes="Card FnCard"
+                                            <Button Classes="ExprOption FnCard"
                                                     BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
                                                     Click="OnInsertFunction">
                                                 <TextBlock Text="{Binding Heading}"
