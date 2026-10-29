@@ -1489,7 +1489,7 @@
 
                     <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
                         <StackPanel>
-                            <TextBlock Classes="GroupHeader" Margin="0,12,0,10"
+                            <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,12,0,10"
                                        Text="{Binding [Add.JsonNode], Source={x:Static loc:Strings.Current}}" />
                             <TextBox Classes="JsonPreview" Text="{Binding JsonPreview, Mode=OneWay}"
                                      IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"

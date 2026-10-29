@@ -1087,7 +1087,7 @@
                                  whatever starts the macro. -->
                             <Border Classes="GroupBox">
                                 <StackPanel>
-                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                    <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
 
                                     <CheckBox Foreground="{DynamicResource AppMuted}" FontSize="12.5"
@@ -1099,7 +1099,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Classes="GroupHeader" Margin="0,16,0,9"
+                            <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,16,0,9"
                                        Text="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
                             <ContentControl Name="MacroInterfaceHost" />
                         </StackPanel>
@@ -1192,7 +1192,7 @@
                 </StackPanel>
             </Button>
             </Grid>
-            <TextBlock Grid.Row="1" Classes="SectionHeader"
+            <TextBlock Grid.Row="1" Classes="SectionHeader" HorizontalAlignment="Center"
                        Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
 
              <ItemsControl Grid.Row="2" ItemsSource="{Binding ActionPalette}" Margin="0,0,0,12">
@@ -1406,7 +1406,7 @@
                     CornerRadius="6" IsVisible="False">
                 <StackPanel Margin="20,18" Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="SectionHeader"
+                        <TextBlock Classes="SectionHeader" HorizontalAlignment="Center"
                                    Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
                         <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="8,0"
                                 Content="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"
@@ -1416,7 +1416,7 @@
                                Text="{Binding [Editor.RecordIdle], Source={x:Static loc:Strings.Current}}" />
                             <Border Classes="GroupBox">
                                 <StackPanel>
-                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                    <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
 
                                     <TextBlock Classes="FieldLabel"
