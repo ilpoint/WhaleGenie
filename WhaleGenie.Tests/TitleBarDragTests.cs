@@ -16,8 +16,10 @@ public class TitleBarDragTests
         foreach (var window in Directory.EnumerateFiles(views, "*.axaml").Order())
         {
             // The row carrying the buttons in the corner is the title bar, which is the row the
-            // mark is looked for in as well.
-            if (!File.ReadAllText(window).Contains("TitleBarButton", StringComparison.Ordinal))
+            // mark is looked for in as well. The marker is the library's `Chrome` family — one word
+            // that covers `Chrome`, `Chrome.Icon`, `Chrome.Icon.Wide` and `Chrome.Labeled`, so a new
+            // member of the family does not have to be added here.
+            if (!File.ReadAllText(window).Contains("Classes=\"Chrome", StringComparison.Ordinal))
             {
                 continue;
             }

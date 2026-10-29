@@ -17,8 +17,9 @@ public class TitleBarMarkTests
             var markup = File.ReadAllText(window);
 
             // The row that carries the close button is the title bar, so that is where the mark
-            // belongs — every one of them, not only the main window.
-            if (!markup.Contains("TitleBarButton", StringComparison.Ordinal))
+            // belongs — every one of them, not only the main window. The marker is the library's
+            // `Chrome` family, which covers every kind of title-bar button there is.
+            if (!markup.Contains("Classes=\"Chrome", StringComparison.Ordinal))
             {
                 continue;
             }

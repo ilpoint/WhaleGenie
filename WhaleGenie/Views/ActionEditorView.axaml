@@ -1212,20 +1212,6 @@
             <Setter Property="Background" Value="#5A3226" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <!-- A named button in the title bar, for the one thing the dialog can do besides hand the
              step back: run it. It is wider than the window buttons because it says what it is. -->
         <Style Selector="Button.TitleBarAction">
@@ -1260,10 +1246,10 @@
                 <!-- Runs the step being written, without leaving the macro and going into a run:
                      that is the question the dialog is open to answer, and closing it to ask loses
                      the half-written step on the way. -->
-                <Button Classes="TitleBarButton" Name="MinimizeButton">
+                <Button Classes="Chrome Icon" Name="MinimizeButton">
                     <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
-                <Button Classes="TitleBarButton" Name="CloseButton">
+                <Button Classes="Chrome Icon" Name="CloseButton">
                     <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>

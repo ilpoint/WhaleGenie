@@ -398,20 +398,7 @@
             <Setter Property="Margin" Value="0,4,0,0" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.TitleBarButton.pinned /template/ ContentPresenter">
+        <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
         <Style Selector="Button.TabCloseButton">
@@ -528,23 +515,23 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="TitleBarButton" Name="PinButton"
+                <Button Classes="Chrome Icon" Name="PinButton"
                         ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="PinIcon" Width="11" Height="11"
                                     Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
                                     FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
-                <Button Classes="TitleBarButton" Name="MinimizeButton"
+                <Button Classes="Chrome Icon" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
-                <Button Classes="TitleBarButton" Name="MaximizeButton"
+                <Button Classes="Chrome Icon" Name="MaximizeButton"
                         ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="MaximizeIcon" Width="10" Height="10"
                                     Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
                                     FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                 </Button>
-                <Button Classes="TitleBarButton" Name="CloseButton"
+                <Button Classes="Chrome Icon" Name="CloseButton"
                         ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
