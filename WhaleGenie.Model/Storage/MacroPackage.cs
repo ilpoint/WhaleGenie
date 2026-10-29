@@ -164,7 +164,22 @@ public static class MacroPackage
     }
 
     /// <summary>Reads a package file back into macros and shared variables.</summary>
-    public static PackageContents Load(string path)
+    public static PackageContents Load(string path) => Load(path, AssetFolderFor(path), reuseExisting: true);
+
+    /// <summary>
+    /// Reads a package, putting the pictures it carries into <paramref name="assetFolder"/>.
+    /// </summary>
+    /// <remarks>
+    /// An import is not the same reader as an open. Opening a project finds a folder that belongs to
+    /// that project, where a picture already there is the one the macro means. A file that arrives
+    /// from elsewhere is unpacked into somebody else's folder, so a name already taken is not
+    /// evidence of the same picture: the bytes are compared, and a different picture is kept beside
+    /// the old one rather than quietly replacing what another macro looks for.
+    /// </remarks>
+    public static PackageContents Load(string path, string assetFolder)
+        => Load(path, assetFolder, reuseExisting: false);
+
+    private static PackageContents Load(string path, string assetFolder, bool reuseExisting)
     {
         var fullPath = Path.GetFullPath(path);
         using var stream = File.OpenRead(fullPath);
@@ -187,7 +202,7 @@ public static class MacroPackage
                 + $"{FormatVersion}.");
         }
 
-        var assets = new AssetExtractor(archive, AssetFolderFor(fullPath));
+        var assets = new AssetExtractor(archive, assetFolder, reuseExisting);
         var macros = new List<MacroItem>();
 
         foreach (var item in manifest["macros"] as JsonArray ?? [])
@@ -592,12 +607,64 @@ public static class MacroPackage
     {
         private readonly ZipArchive _archive;
         private readonly string _folder;
+        private readonly bool _reuseExisting;
         private readonly Dictionary<string, string> _mapped = new(StringComparer.OrdinalIgnoreCase);
 
-        public AssetExtractor(ZipArchive archive, string folder)
+        public AssetExtractor(ZipArchive archive, string folder, bool reuseExisting)
         {
             _archive = archive;
             _folder = folder;
+            _reuseExisting = reuseExisting;
+        }
+
+        /// <summary>
+        /// A picture that belongs to this folder already: what is there is the one the macro means,
+        /// so the file is only written when the folder has nothing under that name.
+        /// </summary>
+        private string Keep(string name, ZipArchiveEntry entry)
+        {
+            var target = Path.Combine(_folder, name);
+            if (!File.Exists(target))
+            {
+                Directory.CreateDirectory(_folder);
+                entry.ExtractToFile(target, true);
+            }
+
+            return target;
+        }
+
+        /// <summary>
+        /// A picture arriving from somewhere else: the same bytes under the name are shared, and
+        /// different ones are written beside it under a number of their own.
+        /// </summary>
+        private string KeepApart(string name, ZipArchiveEntry entry)
+        {
+            byte[] arriving;
+            using (var source = entry.Open())
+            using (var buffer = new MemoryStream())
+            {
+                source.CopyTo(buffer);
+                arriving = buffer.ToArray();
+            }
+
+            Directory.CreateDirectory(_folder);
+            var stem = Path.GetFileNameWithoutExtension(name);
+            var extension = Path.GetExtension(name);
+            for (var counter = 1; ; counter++)
+            {
+                var candidate = counter == 1 ? name : $"{stem}-{counter}{extension}";
+                var target = Path.Combine(_folder, candidate);
+                if (!File.Exists(target))
+                {
+                    File.WriteAllBytes(target, arriving);
+                    return target;
+                }
+
+                if (File.ReadAllBytes(target).SequenceEqual(arriving))
+                {
+                    return target;
+                }
+            }
         }
 
         public string Expand(string value)
@@ -619,14 +686,10 @@ public static class MacroPackage
             }
 
             // Only the file name is used, so a crafted package cannot escape the folder.
-            var target = Path.Combine(_folder, Path.GetFileName(value));
-            if (!File.Exists(target))
-            {
-                Directory.CreateDirectory(_folder);
-                entry.ExtractToFile(target, true);
-            }
-
-            var resolved = Path.GetFullPath(target);
+            var name = Path.GetFileName(value);
+            var resolved = Path.GetFullPath(_reuseExisting
+                ? Keep(name, entry)
+                : KeepApart(name, entry));
             _mapped[value] = resolved;
             return resolved;
         }

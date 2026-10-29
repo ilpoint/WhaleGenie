@@ -11,13 +11,13 @@ namespace WhaleGenie.Tests;
 /// can leave on its own; and a macro that is ticked covers its rows so the same steps cannot be
 /// counted twice.
 /// </summary>
-public class MacroExportSelectionTests
+public class MacroTreeSelectionTests
 {
     [Fact]
     public void A_ticked_macro_takes_its_submacros_with_it()
     {
         var macro = WithSubs("整理", "读表", "收尾");
-        var selection = new MacroExportSelection([macro]);
+        var selection = new MacroTreeSelection([macro]);
 
         var root = selection.Roots[0];
         selection.SetChecked(root, true);
@@ -35,7 +35,7 @@ public class MacroExportSelectionTests
     public void A_ticked_submacro_leaves_on_its_own()
     {
         var macro = WithSubs("整理", "读表");
-        var selection = new MacroExportSelection([macro]);
+        var selection = new MacroTreeSelection([macro]);
 
         selection.SetChecked(selection.Roots[0].Children[0], true);
 
@@ -48,7 +48,7 @@ public class MacroExportSelectionTests
     public void Unticking_a_macro_hands_its_submacros_back()
     {
         var macro = WithSubs("整理", "读表");
-        var selection = new MacroExportSelection([macro]);
+        var selection = new MacroTreeSelection([macro]);
         var root = selection.Roots[0];
 
         selection.SetChecked(root, true);
@@ -64,7 +64,7 @@ public class MacroExportSelectionTests
     {
         var one = WithSubs("整理", "读表");
         var two = new MacroItem { Name = "收尾" };
-        var selection = new MacroExportSelection([one, two]);
+        var selection = new MacroTreeSelection([one, two]);
 
         selection.SetAll(true);
 
@@ -80,11 +80,33 @@ public class MacroExportSelectionTests
     {
         var one = WithSubs("整理", "读表");
         var two = new MacroItem { Name = "收尾" };
-        var selection = new MacroExportSelection([one, two], [two]);
+        var selection = new MacroTreeSelection([one, two], [two]);
 
         var chosen = Assert.Single(selection.Chosen);
         Assert.Same(two, chosen);
         Assert.True(selection.Roots[0].Children[0].IsCovered == false);
+    }
+
+    /// <summary>
+    /// Where an import goes is decided by what was ticked, not by a second question: a macro joins
+    /// the project, and submacros chosen on their own go to the public library.
+    /// </summary>
+    [Fact]
+    public void Ticking_only_submacros_means_the_public_library()
+    {
+        var macro = WithSubs("整理", "读表");
+        var selection = new MacroTreeSelection([macro]);
+
+        selection.SetChecked(selection.Roots[0], true);
+        Assert.False(selection.OnlySubMacros);
+
+        selection.SetChecked(selection.Roots[0], false);
+        selection.SetChecked(selection.Roots[0].Children[0], true);
+        Assert.True(selection.OnlySubMacros);
+
+        // A macro ticked beside a submacro is still a project import.
+        selection.SetChecked(selection.Roots[0], true);
+        Assert.False(selection.OnlySubMacros);
     }
 
     private static MacroItem WithSubs(string name, params string[] subs)

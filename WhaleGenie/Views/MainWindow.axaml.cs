@@ -1505,22 +1505,70 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OnImportProjectClicked(object? sender, RoutedEventArgs e)
+    /// <summary>
+    /// Imports from a package: the window shows what is inside it, and what was ticked decides
+    /// where it goes. Macros join this project; submacros ticked on their own go to the public
+    /// library, because that is where something a macro calls belongs.
+    /// </summary>
+    private async void OnImportClicked(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel viewModel)
         {
             return;
         }
 
-        var path = await PickPackageAsync(Strings.Get("Main.ImportProjectTitle"));
+        var path = await PickPackageAsync(Strings.Get("Main.ImportTitle"));
         if (path is null)
         {
             return;
         }
 
+        PackageContents contents;
         try
         {
-            viewModel.ImportPackage(path);
+            // Pictures land in this project's folder: the file being imported is not where the
+            // macros will be working from. A name already used there is compared by content, so an
+            // arriving picture never replaces one another macro looks for.
+            contents = MacroPackage.Load(path, ImageAssets.FolderFor(viewModel.CurrentPath));
+        }
+        catch (Exception error)
+        {
+            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+            return;
+        }
+
+        var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import, contents.Macros,
+            contents.Triggers, contents.Globals, fileName: Path.GetFileName(path));
+        if (nodes is null || nodes.Count == 0)
+        {
+            return;
+        }
+
+        var chosen = nodes.Select(node => node.Macro).ToList();
+
+        try
+        {
+            if (nodes.All(node => node.IsSub))
+            {
+                var added = MacroImport.IntoLibrary(chosen, AppPaths.PublicMacroLibrary);
+                await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"),
+                    Strings.Format("Import.LibraryAdded",
+                        string.Join("、", added.Select(entry => entry.Macro.Name))),
+                    Strings.Get("Common.Ok"), null, false);
+                return;
+            }
+
+            // What to do about a variable both sides declare is a question, not a default: the wrong
+            // answer is a macro that reads somebody else's number without saying so.
+            var decisions = MacroImport.Decisions(chosen, contents.Globals);
+            if (!await GlobalConflictWindow.ShowAsync(this, decisions, chosen))
+            {
+                return;
+            }
+
+            var report = MacroImport.IntoProject(viewModel, contents, chosen, decisions);
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"), ReportText(report),
+                Strings.Get("Common.Ok"), null, false, height: 320);
         }
         catch (Exception error)
         {
@@ -1528,37 +1576,65 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OnImportMacroClicked(object? sender, RoutedEventArgs e)
+    /// <summary>
+    /// What the import did, in the order a person checks it: what arrived, what had to be renamed,
+    /// what happened to the variables, and what now needs their attention.
+    /// </summary>
+    private static string ReportText(ImportReport report)
     {
-        if (DataContext is not MainViewModel viewModel)
+        var lines = new List<string>();
+
+        if (report.Added.Count > 0)
         {
-            return;
+            lines.Add(Strings.Format("Import.ReportMacros",
+                string.Join("、", report.Added.Select(macro => macro.Name))));
         }
 
-        var path = await MacroFilePicker.PickAsync(this, Strings.Get("Main.ImportMacroTitle"));
-        if (path is null)
+        if (report.RenamedMacros.Count > 0)
         {
-            return;
+            lines.Add(Strings.Format("Import.ReportRenamed",
+                string.Join("、", report.RenamedMacros.Select(pair => $"{pair.Was} → {pair.Now}"))));
         }
 
-        try
+        var globals = new List<string>();
+        if (report.GlobalsAdded.Count > 0)
         {
-            var (macro, arrivedAs) = viewModel.ImportMacro(path);
+            globals.Add(Strings.Format("Import.GlobalAdded", string.Join("、", report.GlobalsAdded)));
+        }
 
-            // A name the project already has is not a failure, but it does mean the macro in the
-            // list is not the name on the file. Saying so is the difference between "it worked" and
-            // "where did it go".
-            if (!string.Equals(arrivedAs, macro.Name, StringComparison.Ordinal))
-            {
-                await ConfirmDialog.ShowAsync(this, Strings.Get("Main.ImportMacroTitle"),
-                    Strings.Format("Main.MacroRenamed", arrivedAs, macro.Name),
-                    Strings.Get("Common.Ok"), null, false);
-            }
-        }
-        catch (Exception error)
+        if (report.GlobalsRenamed.Count > 0)
         {
-            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+            globals.Add(Strings.Format("Import.GlobalRenamed", string.Join("、", report.GlobalsRenamed)));
         }
+
+        if (report.GlobalsOverwritten.Count > 0)
+        {
+            globals.Add(Strings.Format("Import.GlobalOverwritten",
+                string.Join("、", report.GlobalsOverwritten)));
+        }
+
+        if (report.GlobalsKept.Count > 0)
+        {
+            globals.Add(Strings.Format("Import.GlobalKept", string.Join("、", report.GlobalsKept)));
+        }
+
+        if (globals.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportGlobals", string.Join("；", globals)));
+        }
+
+        if (report.DuplicateTriggers.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportDuplicates",
+                string.Join("；", report.DuplicateTriggers)));
+        }
+
+        if (report.ScriptsToCheck.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportScripts", string.Join("；", report.ScriptsToCheck)));
+        }
+
+        return lines.Count == 0 ? Strings.Get("Import.ReportNothing") : string.Join("\n", lines);
     }
 
     /// <summary>
@@ -1600,12 +1676,14 @@ public partial class MainWindow : Window
     /// </summary>
     private async Task ExportMacrosAsync(MainViewModel viewModel, IReadOnlyList<MacroItem> preselected)
     {
-        var selection = await MacroExportWindow.ShowAsync(this, viewModel.Macros, viewModel.Triggers,
-            preselected);
-        if (selection is null || selection.Count == 0)
+        var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Export, viewModel.Macros,
+            viewModel.Triggers, preselected: preselected);
+        if (nodes is null || nodes.Count == 0)
         {
             return;
         }
+
+        var selection = nodes.Select(node => node.Macro).ToList();
 
         var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
             selection[0].Name);

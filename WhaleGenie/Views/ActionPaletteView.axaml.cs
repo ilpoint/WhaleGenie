@@ -27,7 +27,6 @@ public partial class ActionPaletteView : UserControl
     internal event Action<MacroItemReference>? SubMacroChosen;
     internal event Action? AddBlankSubMacroRequested;
     internal event Action? CopyProjectMacroRequested;
-    internal event Action? ImportSubMacroFileRequested;
     internal event Action? ManagePublicMacrosRequested;
 
     internal bool HasArmedDrag => _press is not null && _card is not null;
@@ -113,9 +112,6 @@ public partial class ActionPaletteView : UserControl
 
     private void OnCopyProjectMacro(object? sender, RoutedEventArgs e)
         => CopyProjectMacroRequested?.Invoke();
-
-    private void OnImportSubMacroFile(object? sender, RoutedEventArgs e)
-        => ImportSubMacroFileRequested?.Invoke();
 
     private void OnManagePublicMacros(object? sender, RoutedEventArgs e)
         => ManagePublicMacrosRequested?.Invoke();

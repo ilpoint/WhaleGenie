@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -14,34 +15,44 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
+/// <summary>Whether a file is being written or read.</summary>
+public enum MacroChooseKind
+{
+    Export,
+    Import,
+}
+
 /// <summary>
-/// Chooses which macros a file is to hold.
+/// Chooses which macros of a list go into a file, or come out of one.
 /// </summary>
 /// <remarks>
-/// The file is an ordinary package, so this window is the only thing that says "these three, not
-/// the whole project". What a tick means is <see cref="MacroExportSelection"/>'s business; this only
-/// draws it and names what the file will end up carrying.
-///
-/// Calls to macros that are not coming along are named before the file is written. The export still
-/// happens, because a half-finished export is a normal thing to want. What must not happen is
-/// finding out at run time.
+/// The two directions are the same question — a tree of macros with their submacros, and a tick —
+/// so they are one window. What differs is the line underneath: an export names the calls it will
+/// leave without a target, and an import says where the ticks are going, which is decided by what
+/// is ticked rather than by a second choice: macros go into the project, and submacros chosen on
+/// their own go to the public library, because that is where a thing a macro calls belongs.
 /// </remarks>
-public sealed class MacroExportWindow : Window
+public sealed class MacroChooseWindow : Window
 {
-    private readonly MacroExportSelection _selection;
+    private readonly MacroChooseKind _kind;
+    private readonly MacroTreeSelection _selection;
     private readonly ProjectTriggers _triggers;
-    private readonly List<(MacroExportSelection.Node Node, CheckBox Box)> _rows = [];
+    private readonly IReadOnlyList<VariableDefinition> _fileGlobals;
+    private readonly List<(MacroTreeSelection.Node Node, CheckBox Box)> _rows = [];
     private readonly TextBlock _counts;
-    private readonly TextBlock _warning;
-    private readonly Button _export;
+    private readonly TextBlock _note;
+    private readonly Button _do;
     private readonly CheckBox _all;
     private bool _syncing;
 
-    internal MacroExportWindow(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
-        IEnumerable<MacroItem>? preselected)
+    internal MacroChooseWindow(MacroChooseKind kind, IReadOnlyList<MacroItem> macros,
+        ProjectTriggers triggers, IReadOnlyList<VariableDefinition> fileGlobals,
+        IEnumerable<MacroItem>? preselected, string? fileName)
     {
+        _kind = kind;
         _triggers = triggers;
-        _selection = new MacroExportSelection(macros, preselected);
+        _fileGlobals = fileGlobals;
+        _selection = new MacroTreeSelection(macros, preselected);
 
         Width = 560;
         Height = 560;
@@ -51,21 +62,21 @@ public sealed class MacroExportWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
-        Title = Strings.Get("Export.Title");
+        Title = Strings.Get(Head);
         Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
 
         var heading = new TextBlock
         {
-            Text = Strings.Get("Export.Title"),
+            Text = Strings.Get(Head),
             FontSize = 15,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brush("AppTextStrong", Colors.White),
-            Margin = new Thickness(0, 0, 0, 6),
+            Margin = new Thickness(0, 0, 0, 4),
         };
 
         var hint = new TextBlock
         {
-            Text = Strings.Get("Export.Hint"),
+            Text = Strings.Get(kind == MacroChooseKind.Export ? "Export.Hint" : "Import.Hint"),
             FontSize = 11.5,
             Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160)),
             TextWrapping = TextWrapping.Wrap,
@@ -86,7 +97,7 @@ public sealed class MacroExportWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        _warning = new TextBlock
+        _note = new TextBlock
         {
             FontSize = 11.5,
             Foreground = Brush("Warning", Color.FromRgb(224, 108, 117)),
@@ -111,14 +122,15 @@ public sealed class MacroExportWindow : Window
             Sync();
         };
 
-        _export = new Button
+        _do = new Button
         {
-            Content = Strings.Get("Export.Do"),
+            Content = Strings.Get(kind == MacroChooseKind.Export ? "Export.Do" : "Import.Do"),
             Height = 32,
             MinWidth = 84,
             Padding = new Thickness(11, 0),
+            IsEnabled = false,
         };
-        _export.Click += (_, _) => Close(_selection.Chosen);
+        _do.Click += (_, _) => Close(_selection.ChosenNodes);
 
         var cancel = new Button
         {
@@ -135,7 +147,7 @@ public sealed class MacroExportWindow : Window
             Spacing = 7,
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(10, 0, 0, 0),
-            Children = { _all, cancel, _export },
+            Children = { _all, cancel, _do },
         };
 
         var footer = new Grid
@@ -148,7 +160,7 @@ public sealed class MacroExportWindow : Window
         footer.Children.Add(buttons);
 
         var scroll = new ScrollViewer { Content = rows };
-        var bottom = new StackPanel { Children = { _warning, footer } };
+        var bottom = new StackPanel { Children = { _note, footer } };
         Grid.SetRow(hint, 1);
         Grid.SetRow(scroll, 2);
         Grid.SetRow(bottom, 3);
@@ -160,19 +172,31 @@ public sealed class MacroExportWindow : Window
             Children = { heading, hint, scroll, bottom },
         };
 
+        if (fileName is { Length: > 0 })
+        {
+            hint.Text += "\n" + Strings.Format("Import.File", fileName);
+        }
+
         Sync();
     }
 
-    /// <summary>The macros that were ticked, or null when the window was closed without exporting.</summary>
-    public static async Task<IReadOnlyList<MacroItem>?> ShowAsync(Window owner,
-        IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
-        IEnumerable<MacroItem>? preselected = null)
+    /// <summary>
+    /// The rows that were ticked, or null when the window was closed without going on. Rows rather
+    /// than macros, because whether a tick was a macro or one of its submacros decides where it goes.
+    /// </summary>
+    public static async Task<IReadOnlyList<MacroTreeSelection.Node>?> ShowAsync(Window owner,
+        MacroChooseKind kind, IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition>? fileGlobals = null,
+        IEnumerable<MacroItem>? preselected = null, string? fileName = null)
     {
-        var window = new MacroExportWindow(macros, triggers, preselected);
-        return await window.ShowDialogOver<IReadOnlyList<MacroItem>?>(owner);
+        var window = new MacroChooseWindow(kind, macros, triggers, fileGlobals ?? [], preselected,
+            fileName);
+        return await window.ShowDialogOver<IReadOnlyList<MacroTreeSelection.Node>?>(owner);
     }
 
-    private Control Row(MacroExportSelection.Node node)
+    private string Head => _kind == MacroChooseKind.Export ? "Export.Title" : "Import.Title";
+
+    private Control Row(MacroTreeSelection.Node node)
     {
         var label = node.IsSub
             ? $"{node.Macro.Name}  ·  {Strings.Get("Export.SubMacro")}"
@@ -201,11 +225,11 @@ public sealed class MacroExportWindow : Window
         return box;
     }
 
-    private static int Depth(MacroExportSelection.Node node)
+    private static int Depth(MacroTreeSelection.Node node)
         => node.Parent is null ? 0 : Depth(node.Parent) + 1;
 
     /// <summary>
-    /// Redraws every row from the selection, then says what the file will hold. Covering a macro's
+    /// Redraws every row from the selection, then says what is about to happen. Covering a macro's
     /// submacros changes rows the person did not touch, so one place puts the whole list back in
     /// step rather than each click patching its own neighbours.
     /// </summary>
@@ -227,24 +251,36 @@ public sealed class MacroExportWindow : Window
     private void Refresh()
     {
         var chosen = _selection.Chosen;
-        _export.IsEnabled = chosen.Count > 0;
+        _do.IsEnabled = chosen.Count > 0;
 
         if (chosen.Count == 0)
         {
-            _counts.Text = Strings.Get("Export.Nothing");
-            _warning.IsVisible = false;
+            _counts.Text = Strings.Get(_kind == MacroChooseKind.Export
+                ? "Export.Nothing"
+                : "Import.Nothing");
+            _note.IsVisible = false;
             return;
         }
 
-        var globals = MacroBundle.UsedGlobals(chosen).Count;
-        var entries = MacroBundle.Take(_triggers, chosen).Entries.Count;
-        _counts.Text = Strings.Format("Export.Counts", chosen.Count, globals, entries);
+        if (_kind == MacroChooseKind.Export)
+        {
+            var globals = MacroBundle.UsedGlobals(chosen).Count;
+            var entries = MacroBundle.Take(_triggers, chosen).Entries.Count;
+            _counts.Text = Strings.Format("Export.Counts", chosen.Count, globals, entries);
 
-        var dangling = MacroBundle.DanglingCalls(chosen);
-        _warning.Text = dangling.Count == 0
-            ? string.Empty
-            : Strings.Format("Export.Dangling", string.Join("、", dangling));
-        _warning.IsVisible = dangling.Count > 0;
+            var dangling = MacroBundle.DanglingCalls(chosen);
+            _note.Text = dangling.Count == 0
+                ? string.Empty
+                : Strings.Format("Export.Dangling", string.Join("、", dangling));
+            _note.IsVisible = dangling.Count > 0;
+            return;
+        }
+
+        var brought = MacroBundle.UsedGlobals(chosen, _fileGlobals).Count;
+        _counts.Text = Strings.Format("Import.Counts", chosen.Count, brought);
+        _note.Text = Strings.Get(_selection.OnlySubMacros ? "Import.ToLibrary" : "Import.ToProject");
+        _note.Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160));
+        _note.IsVisible = true;
     }
 
     private static IBrush Brush(string key, Color fallback)

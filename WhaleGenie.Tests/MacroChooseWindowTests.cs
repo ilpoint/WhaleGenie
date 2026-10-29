@@ -12,7 +12,7 @@ namespace WhaleGenie.Tests;
 /// The window that chooses what an export holds. Building it is the part that can fail on its own:
 /// the rows are made in code, so a mistake there is a blank window rather than a compile error.
 /// </summary>
-public class MacroExportWindowTests
+public class MacroChooseWindowTests
 {
     [Fact]
     public void The_window_lists_every_macro_with_the_submacros_inside_it()
@@ -23,7 +23,8 @@ public class MacroExportWindowTests
             macro.SubMacros.Add(new MacroItem { Name = "读表" });
             var other = new MacroItem { Name = "收尾" };
 
-            var window = new MacroExportWindow([macro, other], new ProjectTriggers(), [macro]);
+            var window = new MacroChooseWindow(MacroChooseKind.Export, [macro, other],
+                new ProjectTriggers(), [], [macro], null);
             try
             {
                 var boxes = Boxes(window).ToList();

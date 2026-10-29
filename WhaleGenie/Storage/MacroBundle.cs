@@ -78,30 +78,32 @@ public static class MacroBundle
     }
 
     /// <summary>
-    /// The project's global variables that the chosen macros actually read. The names are taken
-    /// from the same reading the variable center and the design-time check use, so a variable that
-    /// shows a reference there is one that travels here.
+    /// The global variables of a given table that the chosen macros actually read.
     /// </summary>
     /// <remarks>
+    /// The names come from <see cref="MacroCheck.ReadsOf"/>, which is the same question the
+    /// design-time check and the variable center ask of a field, so a variable that shows a
+    /// reference there is one that travels here. The table is passed in rather than read from the
+    /// open project because a file's variables are not in it yet — that is exactly what an import
+    /// is bringing.
+    ///
     /// A script body is not read this way, because it is another language: a macro that only
-    /// mentions a variable inside a script exports without it. That is the one case where a file
+    /// mentions a variable inside a script travels without it. That is the one case where a file
     /// can arrive with a name the project already has under a different meaning, and it is why the
     /// import reports the variables it brought.
     /// </remarks>
     public static IReadOnlyList<VariableDefinition> UsedGlobals(IEnumerable<MacroItem> macros)
+        => UsedGlobals(macros, VariableCatalog.Globals);
+
+    /// <summary>
+    /// The same, out of a given table rather than the open project's: a file has its own variables,
+    /// and what it will bring is the ones its macros read from that list.
+    /// </summary>
+    public static IReadOnlyList<VariableDefinition> UsedGlobals(IEnumerable<MacroItem> macros,
+        IReadOnlyList<VariableDefinition> pool)
     {
-        var steps = macros.SelectMany(AllSteps).ToList();
-        if (steps.Count == 0)
-        {
-            return [];
-        }
-
-        var used = VariableChoices.For(steps)
-            .Where(choice => choice.Origin == VariableOrigin.Global && choice.Uses.Count > 0)
-            .Select(choice => choice.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        return [.. VariableCatalog.Globals.Where(variable => used.Contains(variable.Name))];
+        var used = ReadNames(macros.SelectMany(AllSteps));
+        return [.. pool.Where(variable => used.Contains(variable.Name.Trim()))];
     }
 
     /// <summary>
@@ -131,6 +133,36 @@ public static class MacroBundle
         }
 
         return [.. missing];
+    }
+
+    /// <summary>The names the steps read, taken field by field the way the engine reads one.</summary>
+    private static HashSet<string> ReadNames(IEnumerable<MacroStep> steps)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var step in steps)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Kind == ActionParameterKind.Steps || step.DefinesVariable(parameter))
+                {
+                    continue;
+                }
+
+                // A script body is another language: a name inside it is the script's business, and
+                // the text is not one of this macro's variable references.
+                if (step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                foreach (var name in MacroCheck.ReadsOf(step, parameter))
+                {
+                    names.Add(name);
+                }
+            }
+        }
+
+        return names;
     }
 
     /// <summary>Every step of one macro, including the ones written inside a block or a submacro.</summary>

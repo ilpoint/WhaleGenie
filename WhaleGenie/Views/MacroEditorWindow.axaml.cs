@@ -263,7 +263,6 @@ public partial class MacroEditorWindow : Window
         ActionPalette.SubMacroChosen += reference => SwitchToSubMacro(reference.Macro);
         ActionPalette.AddBlankSubMacroRequested += AddBlankSubMacro;
         ActionPalette.CopyProjectMacroRequested += CopyProjectMacroAsSub;
-        ActionPalette.ImportSubMacroFileRequested += ImportSubMacroFromFile;
         ActionPalette.ManagePublicMacrosRequested += ManagePublicMacros;
         RefreshPalette();
         EnsureInterface();
@@ -704,42 +703,6 @@ public partial class MacroEditorWindow : Window
         copy.Origin = null;
         copy.Name = UniqueSubMacroName(source.Name);
         AddExistingSubMacro(copy);
-    }
-
-    /// <summary>
-    /// Brings a submacro in from a macro file. A file may hold submacros of its own; those arrive as
-    /// documents of this macro as well, because a submacro is a page here however deep it was
-    /// written, and leaving them inside would be writing them out where nothing can edit them.
-    /// </summary>
-    private async void ImportSubMacroFromFile()
-    {
-        var path = await MacroFilePicker.PickAsync(this, Strings.Get("Main.ImportMacroTitle"));
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var contents = MacroFile.Load(path, _session.AssetFolder);
-            var copy = contents.Macro;
-            copy.Name = UniqueSubMacroName(copy.Name);
-            var nested = copy.SubMacros.ToList();
-            AddExistingSubMacro(copy);
-
-            if (nested.Count > 0)
-            {
-                AddChildPages(nested);
-                SettleDocumentIds();
-                RefreshProjectCallables();
-                RefreshDocuments();
-            }
-        }
-        catch (Exception error)
-        {
-            await ConfirmDialog.ShowAsync(this, Strings.Get("Main.ImportMacroTitle"),
-                error.Message, Strings.Get("Common.Ok"), null, false);
-        }
     }
 
     /// <summary>

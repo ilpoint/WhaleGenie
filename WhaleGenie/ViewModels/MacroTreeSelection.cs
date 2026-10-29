@@ -14,7 +14,7 @@ namespace WhaleGenie.ViewModels;
 /// one alone, which is how a single piece of a long macro is handed over. Both are decided here
 /// rather than in the window, because this is the rule the file ends up depending on.
 /// </remarks>
-public sealed class MacroExportSelection
+public sealed class MacroTreeSelection
 {
     public sealed class Node
     {
@@ -44,7 +44,7 @@ public sealed class MacroExportSelection
 
     private readonly List<Node> _roots = [];
 
-    public MacroExportSelection(IReadOnlyList<MacroItem> macros,
+    public MacroTreeSelection(IReadOnlyList<MacroItem> macros,
         IEnumerable<MacroItem>? preselected = null)
     {
         var wanted = (preselected ?? [])
@@ -67,9 +67,14 @@ public sealed class MacroExportSelection
     /// <summary>Every row, parents before the submacros written inside them.</summary>
     public IEnumerable<Node> All => _roots.SelectMany(Flatten);
 
+    /// <summary>The rows that count, each with whatever is written inside it.</summary>
+    public IReadOnlyList<Node> ChosenNodes => [.. All.Where(node => node.TakesPart)];
+
     /// <summary>The macros that leave, each with whatever is written inside it.</summary>
-    public IReadOnlyList<MacroItem> Chosen
-        => [.. All.Where(node => node.TakesPart).Select(node => node.Macro)];
+    public IReadOnlyList<MacroItem> Chosen => [.. ChosenNodes.Select(node => node.Macro)];
+
+    /// <summary>True when what was ticked is all submacros, which is what goes to the library.</summary>
+    public bool OnlySubMacros => ChosenNodes.Count > 0 && ChosenNodes.All(node => node.IsSub);
 
     /// <summary>
     /// Ticks or unticks one row. A macro takes its submacros with it in either direction; a submacro
