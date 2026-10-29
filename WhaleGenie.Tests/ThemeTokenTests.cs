@@ -180,6 +180,51 @@ public class ThemeTokenTests
     }
 
     /// <summary>
+    /// Layer one is a table of aliases: each Fluent key names the token it should paint with. An alias
+    /// that names a key nobody can see throws when it is read, and an alias written to the wrong key
+    /// silently paints the wrong colour — both are invisible until somebody looks. So the table is
+    /// read back out of the file and every entry is compared with the token it claims, in both
+    /// variants.
+    /// </summary>
+    [Fact]
+    public void Every_fluent_key_paints_the_token_it_names()
+    {
+        Ui.Run(() =>
+        {
+            var path = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "FluentKeys.axaml");
+            if (!File.Exists(path))
+            {
+                Assert.Fail($"the layer-one dictionary is not where the repository root says it is: {path}");
+            }
+
+            var xml = File.ReadAllText(path);
+            var aliases = Regex.Matches(xml, "x:Key=\"([^\"]+)\" ResourceKey=\"([^\"]+)\"")
+                .Select(match => (Key: match.Groups[1].Value, Token: match.Groups[2].Value))
+                .Distinct()
+                .ToList();
+            Assert.NotEmpty(aliases);
+
+            foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
+            {
+                foreach (var (key, token) in aliases)
+                {
+                    Assert.True(
+                        Application.Current!.TryGetResource(token, variant, out var expected),
+                        $"{token} is named by {key} but does not resolve");
+                    Assert.True(
+                        Application.Current.TryGetResource(key, variant, out var actual),
+                        $"{key} does not resolve in {variant}");
+
+                    var same = actual is ISolidColorBrush painted && expected is ISolidColorBrush token1
+                        ? painted.Color == token1.Color
+                        : Equals(actual, expected);
+                    Assert.True(same, $"{key} paints {actual} but {token} is {expected} in {variant}");
+                }
+            }
+        });
+    }
+
+    /// <summary>
     /// Every key the dictionary declares a value for. The theme dictionaries' own <c>x:Key="Dark"</c>
     /// is a container rather than a value, so the pattern names the value elements instead of taking
     /// every key in the file.

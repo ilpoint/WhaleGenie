@@ -19,6 +19,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://WhaleGenie/Themes/Tokens.axaml" />
                 <ResourceInclude Source="avares://WhaleGenie/Themes/LegacyKeys.axaml" />
+                <ResourceInclude Source="avares://WhaleGenie/Themes/FluentKeys.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
@@ -28,7 +29,11 @@
     </Application.DataTemplates>
 
     <Application.Styles>
-        <FluentTheme />
+        <!--
+          Compact 收紧 Fluent 自己的行高与控件内边距（表格行、列表项、菜单项都跟着变）。
+          我们只覆盖颜色与圆角，密度用它给的，不再自己写一套行高。
+        -->
+        <FluentTheme DensityStyle="Compact" />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
 
         <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the

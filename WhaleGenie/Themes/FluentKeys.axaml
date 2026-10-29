@@ -1,0 +1,209 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+      层 1：改 Fluent 模板自己会读的那批资源键，让裸控件（不带类名的 Button、TextBox、ComboBox）
+      一出生就是我们这套颜色。层 3（Controls.axaml）只补度量与偏离默认的部分，能靠这里给的一律不给。
+
+      键名是 `WhaleGenie.csproj` 里那个 Avalonia 版本自带的 FluentTheme 中真实存在的那些，逐个
+      从主题资源里枚举出来核对过（当前共 830 个键）。写错一个键名不会报错、也不会有任何效果——静默地"看起来正常"，所以这个文件
+      里不许出现没核过的名字。
+
+      这份清单只覆盖设计规范里给了取值的四个族（Button / TextControl / ComboBox / ToolTip）加四个
+      度量键。ScrollBar、MenuFlyout、CheckBox、ToggleSwitch、ToggleButton、TableView 六个族的四态
+      取值规范里还没给，先不写：凭空补 130 个键的取值，等于把设计决定悄悄做在实现里。
+
+      注意这里的别名只能引用同一层能看见的键：主题变体里的别名能引 Tokens 变体里的颜色，文件末尾
+      那些与明暗无关的别名只能引 Tokens 里同在最外层的键（圆角、字号那批）。放在最外层去引
+      `FocusRing` 会在取值时抛 KeyNotFound——颜色只存在于变体里，变体外面看不见它。
+
+      取值一律引 Tokens.axaml 的令牌，不写字面量。与 Fluent 默认相同的键不写——写了只是把默认值
+      抄一遍，还让人以为我们特意定过。
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <!-- 裸按钮、也是 Button.Secondary 的底：次按钮的样子由这里给四态 -->
+            <StaticResource x:Key="ButtonBackground" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ButtonForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ButtonBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ButtonPadding" ResourceKey="PadControl" />
+
+            <!-- 输入框：四态都在这里，层 3 只补高度 -->
+            <StaticResource x:Key="TextControlBackground" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="TextControlForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="TextControlBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="AccentFill" />
+            <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="TextControlThemePadding" ResourceKey="PadField" />
+
+            <!-- 下拉：输入框的样子 + 弹出的那一层 -->
+            <StaticResource x:Key="ComboBoxBackground" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ComboBoxForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxForegroundFocused" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxForegroundFocusedPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForeground" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocused" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxPlaceHolderForeground" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="ComboBoxPlaceHolderForegroundFocusedPressed" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="ComboBoxItemBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxItemBackgroundPointerOver" ResourceKey="SurfaceHover" />
+            <StaticResource x:Key="ComboBoxItemBackgroundPressed" ResourceKey="SurfacePressed" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelectedPressed" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelectedDisabled" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxItemBackgroundDisabled" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxItemForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxItemForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxItemForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="AccentText" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelectedPointerOver" ResourceKey="AccentText" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelectedPressed" ResourceKey="AccentText" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelectedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxItemForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxItemThemePadding" ResourceKey="PadRow" />
+
+            <!--
+              悬停提示：浮层底 + 一层描边。这四个键此刻还被 App.axaml 末尾那条 `<Style Selector="ToolTip">`
+              压着（样式比主题资源更靠前），要等那条样式搬进 Controls.axaml 才会真的生效。
+            -->
+            <StaticResource x:Key="ToolTipBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToolTipForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToolTipBorderThemePadding" ResourceKey="PadRow" />
+
+            <!-- 焦点环：模板读这两个刷子。厚度没有键（主题里只有这两个刷子键），厚度只能由 FocusAdorner 给。 -->
+            <StaticResource x:Key="SystemControlFocusVisualPrimaryBrush" ResourceKey="FocusRing" />
+            <StaticResource x:Key="SystemControlFocusVisualSecondaryBrush" ResourceKey="FocusRingInner" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <!-- 裸按钮、也是 Button.Secondary 的底：次按钮的样子由这里给四态 -->
+            <StaticResource x:Key="ButtonBackground" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="SurfaceControlPressed" />
+            <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ButtonForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ButtonBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ButtonPadding" ResourceKey="PadControl" />
+
+            <!-- 输入框：四态都在这里，层 3 只补高度 -->
+            <StaticResource x:Key="TextControlBackground" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="TextControlForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="TextControlBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="AccentFill" />
+            <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="TextControlThemePadding" ResourceKey="PadField" />
+
+            <!-- 下拉：输入框的样子 + 弹出的那一层 -->
+            <StaticResource x:Key="ComboBoxBackground" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="SurfaceField" />
+            <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="SurfaceControl" />
+            <StaticResource x:Key="ComboBoxForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxForegroundFocused" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxForegroundFocusedPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="BorderControlHover" />
+            <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="BorderSubtle" />
+            <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForeground" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocused" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="ComboBoxDropDownGlyphForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxPlaceHolderForeground" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="ComboBoxPlaceHolderForegroundFocusedPressed" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="ComboBoxItemBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxItemBackgroundPointerOver" ResourceKey="SurfaceHover" />
+            <StaticResource x:Key="ComboBoxItemBackgroundPressed" ResourceKey="SurfacePressed" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelectedPressed" ResourceKey="AccentSurface" />
+            <StaticResource x:Key="ComboBoxItemBackgroundSelectedDisabled" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxItemBackgroundDisabled" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ComboBoxItemForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxItemForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxItemForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="AccentText" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelectedPointerOver" ResourceKey="AccentText" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelectedPressed" ResourceKey="AccentText" />
+            <StaticResource x:Key="ComboBoxItemForegroundSelectedDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxItemForegroundDisabled" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="ComboBoxItemThemePadding" ResourceKey="PadRow" />
+
+            <!--
+              悬停提示：浮层底 + 一层描边。这四个键此刻还被 App.axaml 末尾那条 `<Style Selector="ToolTip">`
+              压着（样式比主题资源更靠前），要等那条样式搬进 Controls.axaml 才会真的生效。
+            -->
+            <StaticResource x:Key="ToolTipBackground" ResourceKey="SurfaceFlyout" />
+            <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="BorderControl" />
+            <StaticResource x:Key="ToolTipForeground" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="ToolTipBorderThemePadding" ResourceKey="PadRow" />
+
+            <!-- 焦点环：模板读这两个刷子。厚度没有键（主题里只有这两个刷子键），厚度只能由 FocusAdorner 给。 -->
+            <StaticResource x:Key="SystemControlFocusVisualPrimaryBrush" ResourceKey="FocusRing" />
+            <StaticResource x:Key="SystemControlFocusVisualSecondaryBrush" ResourceKey="FocusRingInner" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- 与明暗无关的度量 -->
+    <StaticResource x:Key="ControlCornerRadius" ResourceKey="RadiusControl" />
+    <StaticResource x:Key="OverlayCornerRadius" ResourceKey="RadiusOverlay" />
+    <StaticResource x:Key="ContentControlThemeFontFamily" ResourceKey="UiFont" />
+    <StaticResource x:Key="ControlContentThemeFontSize" ResourceKey="UiBodySize" />
+
+</ResourceDictionary>
