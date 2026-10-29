@@ -27,4 +27,30 @@ public class SingleInstanceTests
 
         Assert.True(heard.Wait(TimeSpan.FromSeconds(5)), "the running copy was never told to come back");
     }
+
+    /// <summary>
+    /// The ask does not end the moment it is heard: it ends when the window says it is back. The
+    /// launch that asks is the copy holding the foreground, and the right to take it lasts only as
+    /// long as that copy does — leaving before the window used it is how the taskbar button was all
+    /// that ever happened.
+    /// </summary>
+    [Fact]
+    public void A_second_launch_waits_until_the_window_is_back()
+    {
+        SingleInstance.Place = "Local\\WhaleGenie-test-" + Guid.NewGuid().ToString("N");
+
+        Assert.True(SingleInstance.TryAcquire());
+        Assert.False(SingleInstance.TryAcquire());
+
+        var raised = false;
+        SingleInstance.Listen(() =>
+        {
+            Thread.Sleep(300);
+            raised = true;
+        });
+
+        SingleInstance.AskToComeBack();
+
+        Assert.True(raised, "the second launch left before the window was up");
+    }
 }

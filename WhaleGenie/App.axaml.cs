@@ -145,11 +145,14 @@ public partial class App : Application
             await host.DisposeAsync().ConfigureAwait(false);
         });
 
-        // A second launch asks this one to come back instead of starting a copy of its own.
-        SingleInstance.Listen(() => Dispatcher.UIThread.Post(() =>
+        // A second launch asks this one to come back instead of starting a copy of its own. The work
+        // is done on the interface thread and this call comes back only once it is done, because the
+        // launch that asked waits for that answer before it ends — and it is the one holding the
+        // right to take the foreground, so an answer given too early is an answer given too late.
+        SingleInstance.Listen(() => Dispatcher.UIThread.Invoke(() =>
         {
             window.Tray?.ComeBack();
-            window.Activate();
+            WindowFront.Bring(window);
         }));
 
         desktop.Exit += (_, _) =>

@@ -191,9 +191,12 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 之前说出哪些宏会来、会走、会变。
 
 **一个窗口，一个程序**　`SingleInstance` 用命名互斥占住"这一份"，第二次启动发一个命名事件让窗口回来然后
-自己退出；`--mcp` 与 `--mcp-doctor` 不参与，客户端要几个服务端就起几个。上次打开的包记在 `settings.json`
-的 `LastProject`，启动时能读到就打开——窗口与无窗口两侧都用它，所以客户端不给 `--open` 时看到的是这个人
-上次用的那份，而不是空项目。
+自己退出；`--mcp` 与 `--mcp-doctor` 不参与，客户端要几个服务端就起几个。**窗口真的到前台**要靠两件事配合：
+第二次启动在退出前把"可以抢前台"的权利交出去（`AllowSetForegroundWindow`），并等窗口回一个"已经回来了"
+的事件才结束——它是持有前台的进程，先退就等于没交；窗口这边（`WindowFront`）除了 `SetForegroundWindow`，
+还会临时 attach 到占着前台的那个线程上，最后一招是翻一下 Topmost。少任何一半，看到的就是任务栏图标闪一下、
+窗口没上来。上次打开的包记在 `settings.json` 的 `LastProject`，启动时能读到就打开——窗口与无窗口两侧都用它，
+所以客户端不给 `--open` 时看到的是这个人上次用的那份，而不是空项目。
 
 **跑一条宏**　`run_macro` 默认等到跑完（`timeoutMs` 到了就取消整次运行并回 `Timeout`）。`wait=false` 时立刻回
 `status: "Started"` 与运行编号，真正的结束仍然走同一段收尾（写日志、释放"一次只跑一条"的占用）；所以
