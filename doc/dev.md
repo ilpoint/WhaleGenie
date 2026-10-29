@@ -193,7 +193,9 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 `status: "Started"` 与运行编号，真正的结束仍然走同一段收尾（写日志、释放"一次只跑一条"的占用）；所以
 不等待不等于放开并发，第二条照样 `RunBusy`。
 
-**写入与补丁**　`put_macro` 整宏替换；`patch_macro` 在副本上按序执行七种操作，任一条不合就整批不改：
+**写入与补丁**　`put_macro` 整宏替换；`patch_macro` 在副本上按序执行七种操作，任一条不合就整批不改。
+每条操作可以带 `macro` 指定写哪一份文档：`main`（默认）、`sub:名字`，或 `sub:a/sub:b` 这种按层往下的路径——
+和 outline 每行印的标签是同一个字符串：
 
 | 操作 | 改什么 | 怎么点名 |
 | --- | --- | --- |

@@ -290,11 +290,12 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     return null;
                 }
 
-                // The outer macro first, then each submacro: a step id is unique across the whole
-                // document, so the first place it turns up is the place it belongs to.
+                // The outer macro first, then every document written inside it, level by level: an
+                // id is unique across the whole chain, so the first place it turns up is the place
+                // it belongs to, and the label is the path a patch sends back.
                 var found = Find(macro.Steps, stepId, string.Empty);
                 var scope = "main";
-                foreach (var sub in macro.SubMacros)
+                foreach (var (sub, label) in Documents(macro.SubMacros, "main"))
                 {
                     if (found is not null)
                     {
@@ -302,7 +303,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     }
 
                     found = Find(sub.Steps, stepId, string.Empty);
-                    scope = "sub:" + sub.Name;
+                    scope = label;
                 }
 
                 return found is { } place
@@ -377,7 +378,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     public Task<CallToolResult> PatchMacro(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name,
-        [Description("The operations: {op:\"set\",stepId,param,value}, {op:\"insert\",parent,index,step}, {op:\"remove\",stepId} or {op:\"move\",stepId,parent,index}. A parent is a list path such as 0.then, or empty for the top level. An operation that changes a step inside a submacro also carries \"macro\":\"sub:<name>\", the label the outline prints for that step; without it the operation means the macro's own steps.")] JsonArray operations,
+        [Description("The operations: {op:\"set\",stepId,param,value}, {op:\"insert\",parent,index,step}, {op:\"remove\",stepId} or {op:\"move\",stepId,parent,index}. A parent is a list path such as 0.then, or empty for the top level. An operation that changes a step inside a submacro also carries \"macro\" with the label the outline prints for that step: \"sub:<name>\", or a path such as \"sub:a/sub:b\" for one written inside another. Without it the operation means the macro's own steps.")] JsonArray operations,
         [Description("Also returns the whole macro. Off by default, because the outline already says what it holds.")] bool includeMacro = false,
         [Description("Returns the outline of every step after the patch. On by default; turn it off when only the changed list is needed.")] bool includeOutline = true)
         => McpErrors.RunAsync(async () =>
@@ -904,6 +905,24 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
                     : "Saving the project copies it into the package's assets.",
             });
         });
+
+    /// <summary>
+    /// Every submacro below a macro, each with the path that reaches it: <c>sub:a</c>, then
+    /// <c>sub:a/sub:b</c> for one inside that.
+    /// </summary>
+    private static IEnumerable<(MacroItem Sub, string Label)> Documents(
+        IReadOnlyList<MacroItem> subs, string scope)
+    {
+        foreach (var sub in subs)
+        {
+            var label = scope == "main" ? "sub:" + sub.Name.Trim() : scope + "/sub:" + sub.Name.Trim();
+            yield return (sub, label);
+            foreach (var nested in Documents(sub.SubMacros, label))
+            {
+                yield return nested;
+            }
+        }
+    }
 
     /// <summary>
     /// The ids a write had to move because two steps arrived sharing one, said as the pairs they

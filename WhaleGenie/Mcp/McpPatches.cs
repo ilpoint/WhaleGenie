@@ -1293,21 +1293,32 @@ internal static class McpPatches
             return (macro.Steps, "main", null);
         }
 
-        var name = written.StartsWith("sub:", StringComparison.OrdinalIgnoreCase)
-            ? written[4..].Trim()
-            : written;
-
-        var sub = macro.SubMacros.FirstOrDefault(candidate =>
-            string.Equals(candidate.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
-        if (sub is not null)
+        // A document is named by the path that reaches it: sub:a, or sub:a/sub:b for one written
+        // inside a. Each segment is a name, so the walk goes one level at a time.
+        var here = macro;
+        var label = "main";
+        foreach (var segment in written.Split('/'))
         {
-            return (sub.Steps, "sub:" + sub.Name.Trim(), null);
+            var asked = segment.Trim();
+            var name = asked.StartsWith("sub:", StringComparison.OrdinalIgnoreCase)
+                ? asked[4..].Trim()
+                : asked;
+
+            var sub = here.SubMacros.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
+            if (sub is null)
+            {
+                return ([], written, Refused(McpErrors.BadArgument,
+                    $"There is no submacro named \"{name}\" in \"{here.Name}\".",
+                    "Call whalegenie_get_macro: every row of its outline says which macro it belongs to, and the label is the path to send back.",
+                    true, new { macro = name, submacros = here.SubMacros.Select(child => child.Name).ToList() }));
+            }
+
+            label = label == "main" ? "sub:" + sub.Name.Trim() : label + "/sub:" + sub.Name.Trim();
+            here = sub;
         }
 
-        return ([], written, Refused(McpErrors.BadArgument,
-            $"There is no submacro named \"{name}\" in \"{macro.Name}\".",
-            "Call whalegenie_get_macro: every row of its outline says which macro it belongs to.",
-            true, new { macro = name, submacros = macro.SubMacros.Select(child => child.Name).ToList() }));
+        return (here.Steps, label, null);
     }
 
     /// <summary>Where one step sits: the list holding it and its place in that list.</summary>

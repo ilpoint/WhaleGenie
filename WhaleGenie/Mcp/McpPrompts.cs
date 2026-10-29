@@ -115,7 +115,8 @@ public sealed class McpPrompts
         4. Put a new macro in with whalegenie_put_macro as a JSON object. To change a macro that is
            already written, use whalegenie_patch_macro: set one parameter by step id, insert,
            remove or move a step. A step inside a submacro is named the way the outline names it,
-           by adding "macro":"sub:<name>" to that one operation. Sending the whole macro again for
+           by adding "macro":"sub:<name>" to that one operation, or "sub:a/sub:b" for a
+           submacro written inside another. Sending the whole macro again for
            one number is how a long macro
            gets rewritten in a place nobody meant to touch. Then call whalegenie_validate and fix
            every blocking problem. Every problem names the macro and

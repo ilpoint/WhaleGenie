@@ -23,11 +23,28 @@ internal static class McpOutline
     /// without reading the whole macro back.
     /// </remarks>
     public static IReadOnlyList<object> Of(MacroItem macro)
-        =>
-        [
-            .. Walk(macro.Steps, string.Empty, "main"),
-            .. macro.SubMacros.SelectMany(sub => Walk(sub.Steps, string.Empty, "sub:" + sub.Name)),
-        ];
+    {
+        var all = new List<object>();
+        Add(macro.Steps, macro.SubMacros, "main", all);
+        return all;
+    }
+
+    /// <summary>
+    /// One document, then the documents written inside it, each named by the path that reaches it:
+    /// <c>main</c>, <c>sub:初始化</c>, and <c>sub:初始化/sub:读表</c> for one inside that. A path is
+    /// what a patch names in its <c>macro</c> field, so the label a client copies is the label it
+    /// sends back.
+    /// </summary>
+    private static void Add(IReadOnlyList<MacroStep> steps, IReadOnlyList<MacroItem> subs,
+        string scope, List<object> all)
+    {
+        all.AddRange(Walk(steps, string.Empty, scope));
+
+        foreach (var sub in subs)
+        {
+            Add(sub.Steps, sub.SubMacros, scope == "main" ? "sub:" + sub.Name : scope + "/sub:" + sub.Name, all);
+        }
+    }
 
     /// <summary>
     /// One macro in a list: what it is called, how long it is, and what a call to it would have to
