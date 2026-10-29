@@ -96,7 +96,14 @@ GapDivider     = 0,12,0,12   （分隔线两侧；它常是 Grid 里独立的一
 GapPageHeader  = 0,24,0,16   （页标题）
 GapGroupHeader = 0,24,0,8    （分组标题）
 GapSectionHeader = 0,16,0,4  （单行分隔标题）
+StackGap       = 8            （Double：`StackPanel.Spacing`）
+GapEmpty       = 0,32,0,32    （空状态的上下留白；它的父容器给不了）
 ```
+
+**令牌有类型。** `Space*` / `Gap*` 是 `Thickness`、`StackGap` 是 `Double`、`Radius*` 是 `CornerRadius`、
+字号是 `Double`。**名字不能互借**——`Spacing` 要 `Double`，那里写 `Space2` 编译不过。
+这是十处规范错误里**唯一在编译期就能抓到**的一类，所以它该排在最前：写之前先看类型，
+比写完再被实现撞出来便宜一个数量级。
 
 外加一个字体令牌 `UiCodeFont`（现值 `Consolas, Cascadia Mono, monospace`；本仓库只做 Windows，
 不用 `Menlo` 这类只在别的系统上有的名字），否则等宽字体只能写字面量。透明不设令牌，理由见下面结构约定的第 2 条。
@@ -406,8 +413,9 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | 类名 | 控件 | 尺寸 | 取值 | 归属 |
 |---|---|---|---|---|
 | `TableView`（默认） | TableView | 行与单元格 padding 由 `DensityStyle=Compact` 给 | 行底 `SurfaceCard`、表头底 `SurfacePanel`、列头分隔 `BorderSubtle` | 层 1 `TableView*` 给行底与分隔线（**选中态有键、表头底无键**），表头底由**层 3 补** |
-| `StackPanel.Empty` | StackPanel | `Spacing` `Space2` · 上下 `Space8` | 图标 `TextTertiary` · 标题 `TextBlock.Title` · 说明 `TextBlock.Hint` | 层 3 |
+| `StackPanel.Empty` | StackPanel | `StackGap` · `GapEmpty` | 图标 `TextTertiary` · 标题 `TextBlock.Title` · 说明 `TextBlock.Hint` | 层 3 |
 | `Ellipse.Dot` | Ellipse | 8×8 · 无边框 | `Fill` 由 `Classes` 给 `Success` / `Warning` / `Danger` / `Info` / `TextDisabled`，**不靠继承**。**用例**：加 `.Success` 后 `Fill` 为 `Success` **且 `Foreground` 未被设置**——`Foreground` 挂在 `Ellipse` 上是合法语法、静默无效，只有断言能拦 | 层 3 |
+| `Ellipse.Dot.Disabled` | Ellipse | 同上 | `Fill` = `TextDisabled` | 层 3（`Ellipse` 没有 `:disabled`——它不是 `InputElement`，所以禁用是**类**不是伪类） |
 | `Border.PickerScrim` | Border | 铺满 | `PickerScrim` | 层 3，**主题不变** |
 | `Border.PickerTarget` | Border | 铺满 | `PickerTargetScrim` | 层 3，**主题不变** |
 | `Border.Readout` | Border | `PadChip` · `RadiusControl` · 1px | `PickerReadout` · `TextPrimary` · `BorderControl` | 层 3，**主题不变** |
@@ -438,3 +446,56 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 11. 测试若带手抄清单，必须与真源做**集合**比较（不是计数，不是顺序）；读仓库文件不依赖 `bin` 布局。
 12. **等价实现必须当场留理由。** 与这份文件不同、但同样成立的写法，在实现的注释里写一句"与规范 X 等价，
     因为 Y"。没写理由的等价等于一个待复发的偏差——下一轮评审会以同一个理由再提一次。
+13. **"类目"的取法写死，两侧同法**，否则数与结果永远对不上：规范侧取组件族表**第一列里的反引号名**（一行一个）；
+    实现侧取 `Selector=` 里**第一个空格之前**那一段整体（`ListBox.List.Pill` 是一个名字，不是 `ListBox`），
+    再去掉 `/template/`、伪类、`>`、`,` 之后的部分。比法是**两条都要**：
+    `规范 ⊆ 实现`（管缺，缺一个就红）+ **从右往左逐段剥离**（管多：剥掉的每段必须是状态/变体词，剥完仍命不中即红）。
+    **可剥的词表必须固定成常量，并与 `Controls.axaml` 的 `STATE` 登记断言一致**——否则今天剥 `Success`、
+    明天剥 `Field`，剥离就成了万能后门，第二条等于没写。
+
+    **"实现有、规范无"红了怎么处置**（按序执行，不走样）：
+
+    1. 逐条判**规范缺**还是**实现多**——判据：这个类表达的样式，规范里有没有对应物？
+       有 → 实现多了名字；没有 → 规范缺一行。
+    2. 判"规范缺"就**补规范**，并在那一行写清"**为什么它是类不是状态**"（`Ellipse.Dot.Disabled` 即此例：
+       `Ellipse` 不是 `InputElement`，没有 `:disabled` 伪类）。
+    3. **禁止为了让用例变绿而扩可剥词表。** 放宽一次，用例立刻从"保护"变成"装饰"，而且**不留痕迹**——
+       它仍然绿，只是绿得没有意义。
+
+    判不清就让它红着：用例里标 `Skip` 并写明待定。**红的用例会有人看，放宽的规则没人看。**
+
+## 迁移前置条件（动第一个窗口之前必须定）
+
+`Views/` 里已有本地类与本表的类同名：`Classes="Cell"`、`Classes="Card"`、`Classes="Key Small Cell"`——
+与新增的 `Cell` / `Card` / `Field` **撞名**。`ControlsRegistryTests` 的注释已写明这条限制：
+迁移之后，只留 leaf 的元素与本地同名类长得一模一样，用例**抓不到**，只能靠两窗对比。
+
+处置按一条判据，不靠拍脑袋：**这个本地类定义的样式，本表里有没有对应物？**
+
+- **有 → 并入**（`Cell` → `Field.Cell`）：不产生新名字；
+- **没有 → 改成带窗口域的本地名**（`Expression.Cell`），并注明为什么它不是词汇表里的东西：
+  带域的名字不会再撞第二次。
+
+两件事必须一次定完，不能混：混着改的话，迁到第十个窗口时已经分不清哪个 `Cell` 是哪个，而那时再统一，
+成本按窗口数翻倍。**先出"名字 → 何去何从"的一张表，再动窗口**；判据可以逐个用，但结论要一次落。
+
+## 试点与收敛判据（阈值先定，数据后到）
+
+`ConfirmDialog` 试点要报三个数：**内联样式条数 → 删后条数**（算单价）、**新类名使用次数**（哪几族真在用）、
+**保留的例外**（下一版要收的东西）。**判据必须在试点之前定死**——数据一到再想"这算多还是少"，
+结论就会变成"看着差不多就达标"。
+
+| 试点的删除比例 | 结论 | 收敛目标 |
+|---|---|---|
+| **≥ 60%** | 确实以重复为主 | 沿用迁移计划里的原目标：整仓内联样式 **≤ 30 条** |
+| **30–60%** | 混合 | "≤ 30 条 **或** 每条都有名字"，按实际取 |
+| **< 30%** | 以特例为主 | **放弃数量指标**，改为"每条内联样式必须有名字"：归入某个类、成为命名令牌、或成为带窗口域的局部类 |
+
+第三种结果不是失败：它说明乱的地方不在重复，在**没名字**。而"没名字"是可以修的——每个都有名字之后，
+下一个读的人就知道它为什么在那儿。
+
+两条读数规则：
+
+- **"写了没人用"的族是删除候选，不是补文档的理由。** 规范超前于产品时，删规范比补实现便宜。
+- **保留下来的例外要逐个起名。** 例外不是"来不及收"，是"还没名字"；起不出名字的那一条，
+  通常说明它该拆成两条样式。
