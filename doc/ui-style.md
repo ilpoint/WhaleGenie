@@ -136,8 +136,10 @@ GapSection  = 0,0,0,12 （区块底距，唯一允许的 Margin）
 1. **`Controls.axaml` 里不写 `Margin`**，纵向间距由父容器的 `Spacing` / `RowSpacing` 承担（`Space3`）。
    唯一例外是 `GapSection`。理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
 2. **不写裸值**：颜色、字号、圆角、内边距四类，一律引令牌。
-3. **焦点环不归 `Controls.axaml` 管**：来自层 1 的 `SystemControlFocusVisual*`（Primary/Secondary 的
-   Brush 与 Thickness），值取 `FocusRing` / `FocusRingInner` / 2 / 1。**自绘元素**
+3. **焦点环不归 `Controls.axaml` 管**：颜色来自层 1 的 `SystemControlFocusVisualPrimaryBrush` /
+   `SystemControlFocusVisualSecondaryBrush`，值取 `FocusRing` / `FocusRingInner`。**厚度层 1 给不了**
+   ——主题里只有这两个刷子键，没有 Thickness 键（已把主题资源整个枚举核对过），所以 2 / 1 只能由
+   `FocusAdorner` 显式给。**自绘元素**
    （`Border.Card.Thin`、`Border.Card.Selectable`、`Ellipse.Dot`、`GridSplitter.Split`）必须显式
    `Focusable="True"` + 同款 `FocusAdorner`，否则键盘走到那里就断了。
 
