@@ -713,7 +713,7 @@ public partial class MacroEditorWindow : Window
     private async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
     {
         var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : BuildRootSnapshot();
-        var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
+        var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
             macro.Name);
         if (path is null)
         {

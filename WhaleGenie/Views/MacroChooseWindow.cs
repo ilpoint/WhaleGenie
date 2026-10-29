@@ -38,6 +38,7 @@ public sealed class MacroChooseWindow : Window
     private readonly MacroTreeSelection _selection;
     private readonly ProjectTriggers _triggers;
     private readonly IReadOnlyList<VariableDefinition> _fileGlobals;
+    private readonly bool? _intoLibrary;
     private readonly List<(MacroTreeSelection.Node Node, CheckBox Box)> _rows = [];
     private readonly TextBlock _counts;
     private readonly TextBlock _note;
@@ -47,11 +48,12 @@ public sealed class MacroChooseWindow : Window
 
     internal MacroChooseWindow(MacroChooseKind kind, IReadOnlyList<MacroItem> macros,
         ProjectTriggers triggers, IReadOnlyList<VariableDefinition> fileGlobals,
-        IEnumerable<MacroItem>? preselected, string? fileName)
+        IEnumerable<MacroItem>? preselected, string? fileName, bool? intoLibrary = null)
     {
         _kind = kind;
         _triggers = triggers;
         _fileGlobals = fileGlobals;
+        _intoLibrary = intoLibrary;
         _selection = new MacroTreeSelection(macros, preselected);
 
         Width = 560;
@@ -187,10 +189,11 @@ public sealed class MacroChooseWindow : Window
     public static async Task<IReadOnlyList<MacroTreeSelection.Node>?> ShowAsync(Window owner,
         MacroChooseKind kind, IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition>? fileGlobals = null,
-        IEnumerable<MacroItem>? preselected = null, string? fileName = null)
+        IEnumerable<MacroItem>? preselected = null, string? fileName = null,
+        bool? intoLibrary = null)
     {
         var window = new MacroChooseWindow(kind, macros, triggers, fileGlobals ?? [], preselected,
-            fileName);
+            fileName, intoLibrary);
         return await window.ShowDialogOver<IReadOnlyList<MacroTreeSelection.Node>?>(owner);
     }
 
@@ -278,7 +281,9 @@ public sealed class MacroChooseWindow : Window
 
         var brought = MacroBundle.UsedGlobals(chosen, _fileGlobals).Count;
         _counts.Text = Strings.Format("Import.Counts", chosen.Count, brought);
-        _note.Text = Strings.Get(_selection.OnlySubMacros ? "Import.ToLibrary" : "Import.ToProject");
+        _note.Text = Strings.Get((_intoLibrary ?? _selection.OnlySubMacros)
+            ? "Import.ToLibrary"
+            : "Import.ToProject");
         _note.Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160));
         _note.IsVisible = true;
     }

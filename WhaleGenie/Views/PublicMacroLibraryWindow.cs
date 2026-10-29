@@ -202,14 +202,13 @@ public sealed class PublicMacroLibraryWindow : Window
     }
 
     /// <summary>
-    /// Takes a macro from a file into the library. The library is where macros that are called
-    /// rather than started live, so what arrives is kept as one: it gets an id and version of its
-    /// own, and a name the library does not already use — two entries with one name are refused by
-    /// the file that holds them.
+    /// Takes macros from a file into the library. The same window as the project's import, with the
+    /// destination decided by where it was opened from: from here, whatever is ticked becomes a
+    /// library entry, named so the library stays valid.
     /// </summary>
     private async void OnImportFile(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var path = await MacroFilePicker.PickAsync(this, Strings.Get("PublicMacroManager.ImportTitle"));
+        var path = await PackagePicker.PickAsync(this, Strings.Get("PublicMacroManager.ImportTitle"));
         if (path is null)
         {
             return;
@@ -217,13 +216,22 @@ public sealed class PublicMacroLibraryWindow : Window
 
         try
         {
-            var contents = MacroFile.Load(path,
+            var contents = MacroPackage.Load(path,
                 PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
-            var macro = contents.Macro;
-            macro.Name = UniqueName(macro.Name);
-            _entries = [.. _entries, new PublicMacroEntry(Guid.NewGuid().ToString("N"), 1, macro)];
-            Save();
-            _status.Text = Strings.Format("PublicMacroManager.Imported", macro.Name);
+            var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import,
+                contents.Macros, contents.Triggers, contents.Globals,
+                fileName: Path.GetFileName(path), intoLibrary: true);
+            if (nodes is null || nodes.Count == 0)
+            {
+                return;
+            }
+
+            var added = MacroImport.IntoLibrary([.. nodes.Select(node => node.Macro)],
+                AppPaths.PublicMacroLibrary);
+            _entries = PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary);
+            RefreshRows();
+            _status.Text = Strings.Format("PublicMacroManager.Imported",
+                string.Join("、", added.Select(entry => entry.Macro.Name)));
         }
         catch (Exception error)
         {
@@ -232,8 +240,9 @@ public sealed class PublicMacroLibraryWindow : Window
     }
 
     /// <summary>
-    /// Writes one entry out as a macro file, pictures and all, so it can be given to somebody who
-    /// does not share this library. It leaves as a submacro: that is what a public macro is.
+    /// Writes one entry out as a package holding that one macro, pictures and all, so it can be
+    /// given to somebody who does not share this library. It leaves as a submacro: that is what a
+    /// public macro is. Its triggers stay behind, because a library entry is called, not started.
     /// </summary>
     private async void OnExportFile(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -243,7 +252,7 @@ public sealed class PublicMacroLibraryWindow : Window
             return;
         }
 
-        var path = await MacroFilePicker.AskWhereAsync(this,
+        var path = await PackagePicker.AskWhereAsync(this,
             Strings.Get("PublicMacroManager.ExportTitle"), row.Entry.Macro.Name);
         if (path is null)
         {
@@ -252,8 +261,8 @@ public sealed class PublicMacroLibraryWindow : Window
 
         try
         {
-            MacroFile.Save(path, row.Entry.Macro, MacroFileKind.SubMacro, AppVersion.Text,
-                PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
+            var copy = MacroItem.FromJson(row.Entry.Macro.ToSubMacroJson());
+            MacroPackage.Save(path, [copy], [], AppVersion.Text);
             _status.Text = Strings.Format("PublicMacroManager.Exported", Path.GetFileName(path));
         }
         catch (Exception error)

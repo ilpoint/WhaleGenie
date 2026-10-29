@@ -1685,7 +1685,7 @@ public partial class MainWindow : Window
 
         var selection = nodes.Select(node => node.Macro).ToList();
 
-        var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
+        var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
             selection[0].Name);
         if (path is null)
         {

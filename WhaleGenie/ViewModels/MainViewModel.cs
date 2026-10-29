@@ -320,44 +320,6 @@ public partial class MainViewModel : ViewModelBase
         Revision++;
     }
 
-    /// <summary>Adds the macros of a package file to the list without replacing what is there.</summary>
-    public void ImportPackage(string path)
-    {
-        var contents = Storage.MacroPackage.Load(path);
-
-        foreach (var macro in contents.Macros)
-        {
-            var wanted = macro.Name;
-            AddMacro(macro);
-
-            // The macro's own entries came across with it, under whatever name it ended up with. The
-            // package's trigger table still says the old one, and the menu merge below reads it, so
-            // the rename is carried over there as well.
-            if (!string.Equals(wanted, macro.Name, StringComparison.Ordinal))
-            {
-                contents.Triggers.RenameMacro(wanted, macro.Name);
-            }
-        }
-
-        Triggers.MergeMenuFrom(contents.Triggers, contents.Macros);
-
-        LoadSharedVariables(contents.Globals, replace: false);
-    }
-
-    /// <summary>
-    /// Brings one macro in from a file of its own, with the pictures it looks for. A name this
-    /// project already has is not a mistake — the arriving macro keeps its steps under a name of
-    /// its own, the same way a whole package being imported is treated — so the caller is answered
-    /// with the macro as it now stands, name and all.
-    /// </summary>
-    public (MacroItem Macro, string ArrivedAs) ImportMacro(string path)
-    {
-        var contents = Storage.MacroFile.Load(path, Storage.ImageAssets.FolderFor(CurrentPath));
-        var arrivedAs = contents.Macro.Name.Trim();
-        AddMacro(contents.Macro);
-        return (contents.Macro, arrivedAs);
-    }
-
     /// <summary>
     /// Puts a package's shared variables into the catalog. Replace takes the current list away
     /// first, which is what opening a project means; add keeps what is there and only brings in the

@@ -47,6 +47,33 @@ public class MacroChooseWindowTests
         });
     }
 
+    /// <summary>
+    /// The same window reads a file: the rows are the file's macros, and the line underneath says
+    /// where the ticked ones will land.
+    /// </summary>
+    [Fact]
+    public void The_import_side_lists_what_the_file_holds()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "整理" };
+            macro.SubMacros.Add(new MacroItem { Name = "读表" });
+
+            var window = new MacroChooseWindow(MacroChooseKind.Import, [macro],
+                new ProjectTriggers(), [], null, "from.wgmacro");
+            try
+            {
+                var boxes = Boxes(window).ToList();
+                Assert.Equal(3, boxes.Count);
+                Assert.All(boxes.Skip(1), box => Assert.NotEqual(true, box.IsChecked));
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
     private static IEnumerable<CheckBox> Boxes(ILogical root)
     {
         foreach (var child in root.LogicalChildren)

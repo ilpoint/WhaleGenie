@@ -99,8 +99,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.OpenProject"] = "Open Macro Project",
         ["Main.SaveProject"] = "Save Macro Project",
         ["Main.SaveProjectAs"] = "Save Macro Project As",
-        ["Main.ImportProject"] = "Import Macro Project",        ["Main.Import"] = "Import…",
-        ["Main.ImportMacro"] = "Import Macro…",
+        ["Main.Import"] = "Import…",
         ["Main.ExportMacro"] = "Export Macro…",
 
         ["Main.OpenCurrentLocation"] = "Open Current Macro Location",
@@ -729,7 +728,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["GlobalConflict.All"] = "Apply to all",
         ["GlobalConflict.Scripts"] = "A script in these macros mentions it, and scripts are not renamed: {0}",
         ["GlobalConflict.Do"] = "Continue",
-        ["Editor.ExportDocumentTip"] = "Write this page, which is the macro or the submacro you are looking at, and its own submacros, to a .wgm file.",
+        ["Editor.ExportDocumentTip"] = "Write this page, which is the macro or the submacro you are looking at, and its own submacros, into a macro package.",
         ["Editor.ExportTitle"] = "Export this macro to a file",
 
         ["Editor.PickSubMacro"] = "Choose a project macro to copy",
@@ -1525,11 +1524,8 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "Open Macro Project",
-        ["Main.ImportProjectTitle"] = "Import Macro Project",
         ["Main.SaveProjectTitle"] = "Save Macro Project",        ["Main.ImportTitle"] = "Import from a macro file",
-        ["Main.ImportMacroTitle"] = "Import a macro file",
         ["Main.ExportMacroTitle"] = "Export a macro to a file",
-        ["Main.MacroRenamed"] = "\"{0}\" is already used here, so the imported macro is called \"{1}\".",
 
         ["Main.CloseAllTitle"] = "Close all macros",
         ["Main.CloseAllMessage"] = "Remove every macro from the list? The saved package is not changed.",
@@ -1540,12 +1536,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.UnsavedSave"] = "Save project",
         ["Main.UnsavedDiscard"] = "Discard changes",
         ["Package.Filter"] = "WhaleGenie Macro Package",
-        ["Package.OpenFailed"] = "This file could not be opened",        ["MacroFile.NoManifest"] = "This macro file has no manifest.json.",
-        ["MacroFile.NotAMacroFile"] = "\"{0}\" is not a WhaleGenie macro file.",
-        ["MacroFile.WrongVersion"] = "The macro file was written in format {0}; this WhaleGenie reads format {1}.",
-        ["MacroFile.NoDocument"] = "This macro file holds no macro.",
-        ["MacroFile.Filter"] = "WhaleGenie macro file",
-
+        ["Package.OpenFailed"] = "This file could not be opened",
         ["Package.SaveFailed"] = "This file could not be saved",
         ["Package.BadDeclaration"] =
             "The macro \"{0}\" has a declaration that cannot be called (\"{1}\"): fix its parameters or results before saving.",
@@ -2181,8 +2172,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.OpenProject"] = "打开宏项目",
         ["Main.SaveProject"] = "保存宏项目",
         ["Main.SaveProjectAs"] = "宏项目另存为",
-        ["Main.ImportProject"] = "导入宏项目",        ["Main.Import"] = "导入…",
-        ["Main.ImportMacro"] = "导入宏…",
+        ["Main.Import"] = "导入…",
         ["Main.ExportMacro"] = "导出宏…",
 
         ["Main.OpenCurrentLocation"] = "打开当前宏所在位置",
@@ -2726,7 +2716,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["GlobalConflict.All"] = "全部按这个处理",
         ["GlobalConflict.Scripts"] = "这些宏的脚本里提到了它，而脚本不会跟着改名：{0}",
         ["GlobalConflict.Do"] = "继续",
-        ["Editor.ExportDocumentTip"] = "把当前这页写成一个 .wgm 文件：你正在看的宏或子宏，连同它自己的子宏。",
+        ["Editor.ExportDocumentTip"] = "把当前这页写进一个宏包：你正在看的宏或子宏，连同它自己的子宏。",
         ["Editor.ExportTitle"] = "把这页导出成文件",
 
         ["Editor.PickSubMacro"] = "选择要复制的项目宏",
@@ -3841,11 +3831,8 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "打开宏项目",
-        ["Main.ImportProjectTitle"] = "导入宏项目",
         ["Main.SaveProjectTitle"] = "保存宏项目",        ["Main.ImportTitle"] = "从一个宏文件导入",
-        ["Main.ImportMacroTitle"] = "导入一个宏文件",
         ["Main.ExportMacroTitle"] = "把这个宏导出成文件",
-        ["Main.MacroRenamed"] = "项目里已经有一份“{0}”，导入的这份叫“{1}”。",
 
         ["Main.CloseAllTitle"] = "关闭全部宏",
         ["Main.CloseAllMessage"] = "从列表中移除所有宏？已保存的宏包不会被修改。",
@@ -3854,12 +3841,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.UnsavedSave"] = "保存项目",
         ["Main.UnsavedDiscard"] = "放弃修改",
         ["Package.Filter"] = "鲸灵宏包",
-        ["Package.OpenFailed"] = "无法打开该文件",        ["MacroFile.NoManifest"] = "这个宏文件里没有 manifest.json。",
-        ["MacroFile.NotAMacroFile"] = "“{0}”不是鲸灵的宏文件。",
-        ["MacroFile.WrongVersion"] = "这个宏文件是格式 {0} 写的，这一版鲸灵读格式 {1}。",
-        ["MacroFile.NoDocument"] = "这个宏文件里没有宏。",
-        ["MacroFile.Filter"] = "鲸灵宏文件",
-
+        ["Package.OpenFailed"] = "无法打开该文件",
         ["Package.SaveFailed"] = "无法保存该文件",
         ["Package.BadDeclaration"] = "宏「{0}」的声明「{1}」不能用来调用：先修正形参或结果，再保存。",
 

@@ -336,11 +336,12 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 子宏与项目宏的可调用名忽略大小写后必须唯一。公共宏库是另一个原子写入的包，位置固定
 `library/public-macros.wgmacro`，独立格式版本 1；拖入时复制可调用内容并记录来源版本，之后不跟随来源更新。
 
-**单个宏文件**　`.wgm` 是同一个 zip 形状，只装一份：`manifest.json`（`kind` 是 `macro` 或 `submacro`）、
-`macro.json`（`MacroItem.ToSubMacroJson()` 的形状：步骤、形参、返回值、它自己的子宏）、`assets/`、`README.md`。
-读写是 `WhaleGenie.Model/Storage/MacroFile.cs`，图片复用 `MacroPackage.AssetCollector` 与 `RewriteAssets`。
-读出来时图片按 SHA-256 的前 16 位落到目标目录（项目的 assets，或公共宏库的），所以同名不同图不会互相覆盖，
-同一张图也不会存两份。触发器不进这个文件：触发入口属于运行它的项目，导入时由 `AddMacro` 补一条。
+**导入与导出**　只有一种文件，就是一个包：导出是"把选中的那几条写成一个包"，导入是"从这个包里挑几条"。
+要动的是三张表的裁剪与合并，格式一个字都没加——`Storage/MacroBundle.cs` 管裁剪（选中宏的触发入口、界面布局、
+它们引用的菜单页，以及这些宏真正读到的全局变量），`Storage/MacroImport.cs` 管落地与改名。`MacroTreeSelection`
+（ViewModels）是"勾一个宏就连它的子宏一起带上"这条规则本身，导出与导入两个方向共用；勾选决定落点：有顶层宏进
+项目，只勾子宏进公共宏库。全局变量同名时逐个问一次（重命名 / 用本项目的 / 覆盖），重命名只改随文件带进来的宏，
+走 `VariableRename`，脚本正文不跟着改名所以要单独报出来。
 
 **步骤标识撞了怎么办**　一个宏连同它的子宏里，标识唯一：`StepIds.Settle` 遇到重复就给后到的那一步发新
 标识，并把**那一步自己的**条件与表达式里的 `step.<旧>` 一起改写。只改这一步的子树：粘贴进来的一整块是

@@ -12,7 +12,7 @@ namespace WhaleGenie.Views;
 /// in one place. There is one kind of file: an export of a few macros is a package with those
 /// macros in it, and what the file is meant to become is decided when it is imported.
 /// </summary>
-internal static class MacroFilePicker
+internal static class PackagePicker
 {
     /// <summary>What the dialog calls this kind of file.</summary>
     internal static FilePickerFileType Type

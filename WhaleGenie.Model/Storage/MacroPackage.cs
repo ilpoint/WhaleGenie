@@ -422,8 +422,8 @@ public static class MacroPackage
     }
 
     /// <summary>
-    /// Rewrites every <c>image</c> value through <paramref name="map"/>. Shared with
-    /// <see cref="MacroFile"/>, because a single macro file holds pictures the same way.
+    /// Rewrites every <c>image</c> value through <paramref name="map"/>. Shared with the export,
+    /// which writes a package of its own out of a few chosen macros.
     /// </summary>
     internal static void RewriteAssets(JsonNode? node, Func<string, string> map)
     {

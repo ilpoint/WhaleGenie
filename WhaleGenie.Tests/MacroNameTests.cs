@@ -100,9 +100,11 @@ public class MacroNameTests
             });
             MacroPackage.Save(path, [incoming], [], "test");
 
+            var contents = MacroPackage.Load(path);
             var project = new MainViewModel();
             project.AddMacro(new MacroItem { Name = "整理" });
-            project.ImportPackage(path);
+            MacroImport.IntoProject(project, contents, contents.Macros,
+                MacroImport.Decisions(contents.Macros, contents.Globals));
 
             Assert.Equal(2, project.Macros.Count);
             Assert.Equal("整理", project.Macros[0].Name);
