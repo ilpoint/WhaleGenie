@@ -99,17 +99,10 @@ public sealed class SharpHookInputDevice : IInputDevice
             WhaleGenieInputGate.Note(character.ToString());
         }
 
-        if (intervalMs <= 0)
-        {
-            _simulator.SimulateTextEntry(text);
-            return;
-        }
-
-        foreach (var character in text)
-        {
-            _simulator.SimulateTextEntry(character.ToString());
-            Thread.Sleep(intervalMs);
-        }
+        // Text goes out as characters rather than as the keys they sit on: a key press is read by
+        // the layout, and by an input method before that, so on this machine "Hello" would arrive
+        // as 和梁哦 through a Chinese input method.
+        WindowsKeyStrokes.TypeText(text, intervalMs);
     }
 
     public void MoveMouse(int x, int y, int durationMs) => Glide(Cursor, new ScreenPoint(x, y), durationMs);

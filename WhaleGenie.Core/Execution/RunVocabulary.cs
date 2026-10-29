@@ -179,6 +179,10 @@ public static class RunKeys
     public const string SoundRefused = "Run.SoundRefused";
     public const string StepFailedByMacro = "Run.StepFailedByMacro";
     public const string TextNotFound = "Run.TextNotFound";
+
+    /// <summary>No window took the text that was typed.</summary>
+    public const string TextNotTyped = "Run.TextNotTyped";
+
     public const string Timeout = "Run.Timeout";
     public const string UndeclaredArgument = "Run.UndeclaredArgument";
     public const string UndeclaredResult = "Run.UndeclaredResult";

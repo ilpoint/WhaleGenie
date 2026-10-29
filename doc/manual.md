@@ -1593,6 +1593,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.SoundRefused` | 这台机器没有可用的声音设备，放不出这个提示音。 |
 | `Run.StepFailedByMacro` | 宏把这一步判为失败。{0} |
 | `Run.TextNotFound` | 始终没有找到文字：{0} |
+| `Run.TextNotTyped` | 这段文字没能输出去：没有窗口接收它。目标窗口可能已经关闭，或者它的权限比鲸灵高。 |
 | `Run.Timeout` | 该步骤的运行时间超过了允许的 {0} 毫秒。 |
 | `Run.DuplicateArgument` | 这一步有两行都写了形参“{0}”，传哪一个并不确定。 |
 | `Run.UndeclaredArgument` | 被调用的宏没有形参“{0}”，这一步传的值没有去处。 |
