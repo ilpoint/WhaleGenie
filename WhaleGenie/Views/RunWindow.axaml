@@ -105,18 +105,6 @@
             <Setter Property="Background" Value="#B03A1A" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-        </Style>
         <!-- The edge between two halves: a hairline down the middle of the band that is dragged, so
              nothing looks stuck to either panel, and it lights up when the pointer is on it. -->
         <Style Selector="GridSplitter.Split">
@@ -156,7 +144,7 @@
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton.pinned /template/ ContentPresenter">
+        <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
 
@@ -289,7 +277,7 @@
                 <!-- The same four buttons the macro editor carries: a run is watched while the
                      program it drives is in front, so pinning matters here for the same reason. -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-                    <Button Classes="TitleBarButton" Name="PinButton"
+                    <Button Classes="Chrome Icon Wide Quiet" Name="PinButton"
                             ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="PinIcon" Width="11" Height="11"
                                         Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
@@ -297,17 +285,17 @@
                     </Button>
                     <!-- A run carries on while its window is out of the way, which is what watching
                          the macro work in the program it drives takes. -->
-                    <Button Classes="TitleBarButton" Name="MinimizeButton"
+                    <Button Classes="Chrome Icon Wide Quiet" Name="MinimizeButton"
                             ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                     </Button>
-                    <Button Classes="TitleBarButton" Name="MaximizeButton"
+                    <Button Classes="Chrome Icon Wide Quiet" Name="MaximizeButton"
                             ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="MaximizeIcon" Width="10" Height="10"
                                         Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
                                         FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                     </Button>
-                    <Button Classes="TitleBarButton" Name="CloseButton"
+                    <Button Classes="Chrome Icon Wide Quiet" Name="CloseButton"
                             ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                     </Button>

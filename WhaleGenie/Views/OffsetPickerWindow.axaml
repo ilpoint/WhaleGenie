@@ -15,18 +15,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-        </Style>
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -52,7 +40,7 @@
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
                            FontSize="13" Foreground="{DynamicResource AppText}"
                            Text="{Binding [Offset.Title], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="2" Classes="TitleBarButton" Content="✕" Click="OnCancel" />
+                <Button Grid.Column="2" Classes="Chrome Icon Wide Quiet" Content="✕" Click="OnCancel" />
             </Grid>
 
             <StackPanel Grid.Row="1" Margin="16,0,16,10" Spacing="3">

@@ -48,16 +48,6 @@
             <Setter Property="Background" Value="{DynamicResource AppSurface}" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
@@ -70,7 +60,7 @@
                            Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
-            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
+            <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Width="30" Height="24" Padding="0" Margin="8,0" VerticalAlignment="Center">
                 <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
             </Button>

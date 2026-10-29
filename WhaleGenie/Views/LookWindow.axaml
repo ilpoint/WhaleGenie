@@ -24,19 +24,6 @@
             <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -95,15 +82,15 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
                     <!-- A reference picture is read at its own size, and a whole screen of hits does
                          not fit in a window; this is the answer to both. -->
-                    <Button Name="FullScreen" Classes="TitleBarButton" Padding="10,0"
+                    <Button Name="FullScreen" Classes="Chrome Icon Wide Quiet" Padding="10,0"
                             Click="OnToggleFullScreen"
                             ToolTip.Tip="{Binding [Look.FullScreenHint], Source={x:Static loc:Strings.Current}}" />
                     <!-- Putting this one away leaves the screen behind it free, which is how what was
                          found is compared with what is really there. -->
-                    <Button Classes="TitleBarButton" Name="MinimizeButton" Click="OnMinimize">
+                    <Button Classes="Chrome Icon Wide Quiet" Name="MinimizeButton" Click="OnMinimize">
                         <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                     </Button>
-                    <Button Classes="TitleBarButton" Content="✕"
+                    <Button Classes="Chrome Icon Wide Quiet" Content="✕"
                         Click="OnClose" />
                 </StackPanel>
             </Grid>

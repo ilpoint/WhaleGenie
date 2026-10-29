@@ -53,17 +53,6 @@
             <Setter Property="Background" Value="#C8401C" />
         </Style>
 
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <!-- A named button in the title bar, for finishing rather than dismissing. -->
         <Style Selector="Button.TitleBarAction">
             <Setter Property="Background" Value="{DynamicResource AppControl}" />
@@ -98,11 +87,11 @@
                         Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
                 <!-- Each window is put away on its own: the keyboard covers whatever the keys are
                      being read off, and putting it away leaves the add-action window as it was. -->
-                <Button Classes="TitleBarButton" Name="MinimizeButton"
+                <Button Classes="Chrome Icon" Name="MinimizeButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
                     <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
-                <Button Classes="TitleBarButton" Name="CloseButton"
+                <Button Classes="Chrome Icon" Name="CloseButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
                     <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
