@@ -1214,9 +1214,10 @@
      <Border Grid.Column="2" Name="DocumentPanel"
              Background="{DynamicResource AppSurface}" CornerRadius="6">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="18,16">
-            <ListBox Grid.Row="0" Name="DocumentTabs" ItemsSource="{Binding Documents}"
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <ListBox Name="DocumentTabs" ItemsSource="{Binding Documents}"
                      SelectionMode="Single" SelectionChanged="OnDocumentTabChanged"
-                     Background="Transparent" Margin="0,0,0,8">
+                     Background="Transparent">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" />
@@ -1245,6 +1246,22 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+            <!-- What is exported is the page that is showing: the macro itself, or the submacro
+                 in front of you with the submacros it holds. -->
+            <Button Grid.Column="1" Name="ExportDocumentButton" Classes="FlatButton" Height="26"
+                    Padding="9,0" VerticalAlignment="Center" Margin="8,0,0,0"
+                    ToolTip.Tip="{Binding [Editor.ExportDocumentTip], Source={x:Static loc:Strings.Current}}"
+                    Click="OnExportDocumentClicked">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <views:IconView Width="12" Height="12"
+                                    Stroke="{DynamicResource AppMuted}"
+                                    StrokeThickness="1.4" FitToBounds="True"
+                                    Data="{x:Static vm:AppIcons.ExternalLink}" />
+                    <TextBlock FontSize="11.5"
+                               Text="{Binding [Editor.ExportDocument], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+            </Button>
+            </Grid>
             <TextBlock Grid.Row="1" Classes="SectionHeader"
                        Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
 

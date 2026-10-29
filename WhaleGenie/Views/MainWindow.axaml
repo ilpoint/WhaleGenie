@@ -203,6 +203,12 @@
                             <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Download}" />
                         </MenuItem.Icon>
                     </MenuItem>
+                    <MenuItem Header="{Binding [Main.ImportMacro], Source={x:Static loc:Strings.Current}}"
+                              Click="OnImportMacroClicked">
+                        <MenuItem.Icon>
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FilePlus}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenCurrentLocation], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenLocationClicked">
                         <MenuItem.Icon>
@@ -434,6 +440,8 @@
                                               Click="OnDebugMacroClicked" />
                                     <MenuItem Header="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                               Click="OnEditMacroClicked" />
+                                    <MenuItem Header="{Binding [Main.ExportMacro], Source={x:Static loc:Strings.Current}}"
+                                              Click="OnExportMacroClicked" />
                                     <MenuItem Header="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
                                               Click="OnDeleteMacroClicked" />
                                 </ContextMenu>

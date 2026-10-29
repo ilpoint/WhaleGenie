@@ -167,6 +167,8 @@
                                   Click="OnAddBlankSubMacro" />
                         <MenuItem Header="{Binding [Editor.CopyProjectMacro], Source={x:Static loc:Strings.Current}}"
                                   Click="OnCopyProjectMacro" />
+                        <MenuItem Header="{Binding [Editor.ImportSubMacroFile], Source={x:Static loc:Strings.Current}}"
+                                  Click="OnImportSubMacroFile" />
                     </MenuFlyout>
                 </Button.Flyout>
             </Button>

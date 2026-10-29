@@ -1528,6 +1528,71 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnImportMacroClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        var path = await MacroFilePicker.PickAsync(this, Strings.Get("Main.ImportMacroTitle"));
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var (macro, arrivedAs) = viewModel.ImportMacro(path);
+
+            // A name the project already has is not a failure, but it does mean the macro in the
+            // list is not the name on the file. Saying so is the difference between "it worked" and
+            // "where did it go".
+            if (!string.Equals(arrivedAs, macro.Name, StringComparison.Ordinal))
+            {
+                await ConfirmDialog.ShowAsync(this, Strings.Get("Main.ImportMacroTitle"),
+                    Strings.Format("Main.MacroRenamed", arrivedAs, macro.Name),
+                    Strings.Get("Common.Ok"), null, false);
+            }
+        }
+        catch (Exception error)
+        {
+            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+        }
+    }
+
+    /// <summary>
+    /// Writes one macro out as a file of its own. The pictures it looks for travel inside the file,
+    /// so the person it is handed to does not have to be told what to copy as well.
+    /// </summary>
+    private async void OnExportMacroClicked(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is not Control { DataContext: MacroItem macro }
+            || DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
+            macro.Name);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            MacroFile.Save(path, macro, MacroFileKind.Macro, AppVersion.Text,
+                ImageAssets.FolderFor(viewModel.CurrentPath));
+        }
+        catch (Exception error)
+        {
+            await ReportAsync(Strings.Get("Main.ExportMacroTitle"), path, error);
+        }
+    }
+
     private async void OnSaveProjectClicked(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel viewModel)

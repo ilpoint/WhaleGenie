@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -50,9 +51,13 @@ public sealed class PublicMacroLibraryWindow : Window
         var newButton = Button(Strings.Get("PublicMacroManager.New"), OnNew);
         var editButton = Button(Strings.Get("PublicMacroManager.Edit"), OnEdit);
         var deleteButton = Button(Strings.Get("PublicMacroManager.Delete"), OnDelete);
+        var importButton = Button(Strings.Get("PublicMacroManager.ImportFile"), OnImportFile);
+        var exportButton = Button(Strings.Get("PublicMacroManager.ExportFile"), OnExportFile);
         newButton.IsEnabled = !_locked;
         editButton.IsEnabled = !_locked;
         deleteButton.IsEnabled = !_locked;
+        importButton.IsEnabled = !_locked;
+        exportButton.IsEnabled = !_locked;
         var closeButton = Button(Strings.Get("Common.Close"), (_, _) => Close());
         _status = new TextBlock
         {
@@ -93,7 +98,7 @@ public sealed class PublicMacroLibraryWindow : Window
         {
             Orientation = Orientation.Horizontal,
             Spacing = 7,
-            Children = { newButton, editButton, deleteButton },
+            Children = { newButton, editButton, deleteButton, importButton, exportButton },
         };
         var heading = new TextBlock
         {
@@ -196,9 +201,69 @@ public sealed class PublicMacroLibraryWindow : Window
         Save();
     }
 
-    private void Save()
+    /// <summary>
+    /// Takes a macro from a file into the library. The library is where macros that are called
+    /// rather than started live, so what arrives is kept as one: it gets an id and version of its
+    /// own, and a name the library does not already use — two entries with one name are refused by
+    /// the file that holds them.
+    /// </summary>
+    private async void OnImportFile(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        var path = await MacroFilePicker.PickAsync(this, Strings.Get("PublicMacroManager.ImportTitle"));
+        if (path is null)
+        {
+            return;
+        }
+
         try
+        {
+            var contents = MacroFile.Load(path,
+                PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
+            var macro = contents.Macro;
+            macro.Name = UniqueName(macro.Name);
+            _entries = [.. _entries, new PublicMacroEntry(Guid.NewGuid().ToString("N"), 1, macro)];
+            Save();
+            _status.Text = Strings.Format("PublicMacroManager.Imported", macro.Name);
+        }
+        catch (Exception error)
+        {
+            _status.Text = Strings.Format("PublicMacroManager.SaveFailed", error.Message);
+        }
+    }
+
+    /// <summary>
+    /// Writes one entry out as a macro file, pictures and all, so it can be given to somebody who
+    /// does not share this library. It leaves as a submacro: that is what a public macro is.
+    /// </summary>
+    private async void OnExportFile(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_list.SelectedItem is not Row row)
+        {
+            _status.Text = Strings.Get("PublicMacroManager.PickFirst");
+            return;
+        }
+
+        var path = await MacroFilePicker.AskWhereAsync(this,
+            Strings.Get("PublicMacroManager.ExportTitle"), row.Entry.Macro.Name);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            MacroFile.Save(path, row.Entry.Macro, MacroFileKind.SubMacro, AppVersion.Text,
+                PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
+            _status.Text = Strings.Format("PublicMacroManager.Exported", Path.GetFileName(path));
+        }
+        catch (Exception error)
+        {
+            _status.Text = Strings.Format("PublicMacroManager.SaveFailed", error.Message);
+        }
+    }
+
+    private void Save()
+    {        try
         {
             PublicMacroLibrary.Save(AppPaths.PublicMacroLibrary, _entries, AppVersion.Text);
             _status.Text = Strings.Get("PublicMacroManager.Saved");

@@ -345,6 +345,20 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Brings one macro in from a file of its own, with the pictures it looks for. A name this
+    /// project already has is not a mistake — the arriving macro keeps its steps under a name of
+    /// its own, the same way a whole package being imported is treated — so the caller is answered
+    /// with the macro as it now stands, name and all.
+    /// </summary>
+    public (MacroItem Macro, string ArrivedAs) ImportMacro(string path)
+    {
+        var contents = Storage.MacroFile.Load(path, Storage.ImageAssets.FolderFor(CurrentPath));
+        var arrivedAs = contents.Macro.Name.Trim();
+        AddMacro(contents.Macro);
+        return (contents.Macro, arrivedAs);
+    }
+
+    /// <summary>
     /// Puts a package's shared variables into the catalog. Replace takes the current list away
     /// first, which is what opening a project means; add keeps what is there and only brings in the
     /// names the project does not have yet, which is what importing a package means.

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -262,6 +263,7 @@ public partial class MacroEditorWindow : Window
         ActionPalette.SubMacroChosen += reference => SwitchToSubMacro(reference.Macro);
         ActionPalette.AddBlankSubMacroRequested += AddBlankSubMacro;
         ActionPalette.CopyProjectMacroRequested += CopyProjectMacroAsSub;
+        ActionPalette.ImportSubMacroFileRequested += ImportSubMacroFromFile;
         ActionPalette.ManagePublicMacrosRequested += ManagePublicMacros;
         RefreshPalette();
         EnsureInterface();
@@ -704,9 +706,71 @@ public partial class MacroEditorWindow : Window
         AddExistingSubMacro(copy);
     }
 
-    private void AddExistingSubMacro(MacroItem macro)
+    /// <summary>
+    /// Brings a submacro in from a macro file. A file may hold submacros of its own; those arrive as
+    /// documents of this macro as well, because a submacro is a page here however deep it was
+    /// written, and leaving them inside would be writing them out where nothing can edit them.
+    /// </summary>
+    private async void ImportSubMacroFromFile()
     {
-        var editor = new MacroEditorViewModel { IsSubMacro = true };
+        var path = await MacroFilePicker.PickAsync(this, Strings.Get("Main.ImportMacroTitle"));
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var contents = MacroFile.Load(path, _session.AssetFolder);
+            var copy = contents.Macro;
+            copy.Name = UniqueSubMacroName(copy.Name);
+            var nested = copy.SubMacros.ToList();
+            AddExistingSubMacro(copy);
+
+            if (nested.Count > 0)
+            {
+                AddChildPages(nested);
+                SettleDocumentIds();
+                RefreshProjectCallables();
+                RefreshDocuments();
+            }
+        }
+        catch (Exception error)
+        {
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Main.ImportMacroTitle"),
+                error.Message, Strings.Get("Common.Ok"), null, false);
+        }
+    }
+
+    /// <summary>
+    /// Writes the page in front to a file of its own: the macro with everything that makes it
+    /// callable, and the pictures it looks for. Triggers stay behind on purpose — they belong to
+    /// the project that runs the macro, and the project it lands in gives it a way to be started.
+    /// </summary>
+    private async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
+    {
+        var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : BuildRootSnapshot();
+        var kind = _viewModel.IsSubMacro ? MacroFileKind.SubMacro : MacroFileKind.Macro;
+        var path = await MacroFilePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
+            macro.Name);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            MacroFile.Save(path, macro, kind, AppVersion.Text, _session.AssetFolder);
+        }
+        catch (Exception error)
+        {
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Editor.ExportTitle"),
+                $"{Path.GetFileName(path)}\n{error.Message}", Strings.Get("Common.Ok"), null, false);
+        }
+    }
+
+    private void AddExistingSubMacro(MacroItem macro)
+    {        var editor = new MacroEditorViewModel { IsSubMacro = true };
         editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {

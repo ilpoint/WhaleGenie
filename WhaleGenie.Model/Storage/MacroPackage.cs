@@ -406,8 +406,11 @@ public static class MacroPackage
         return slug.Length == 0 ? "macro" : slug[..Math.Min(slug.Length, 40)];
     }
 
-    /// <summary>Rewrites every <c>image</c> value through <paramref name="map"/>.</summary>
-    private static void RewriteAssets(JsonNode? node, Func<string, string> map)
+    /// <summary>
+    /// Rewrites every <c>image</c> value through <paramref name="map"/>. Shared with
+    /// <see cref="MacroFile"/>, because a single macro file holds pictures the same way.
+    /// </summary>
+    internal static void RewriteAssets(JsonNode? node, Func<string, string> map)
     {
         switch (node)
         {
@@ -506,7 +509,7 @@ public static class MacroPackage
         => value.Length == 0 ? fallback : value;
 
     /// <summary>Copies referenced images into the package as it is written.</summary>
-    private sealed class AssetCollector
+    internal sealed class AssetCollector
     {
         private readonly ZipArchive _archive;
         private readonly string _sourceFolder;
