@@ -44,9 +44,37 @@
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.Hint
       STATIC Border.Section
+      STATIC Border.Panel
+      STATIC Border.Sunken
+      STATIC Border.Card
+      STATIC Border.Card.Thin
+      STATIC Border.Card.Target
+      STATE chosen
+      STATE Rejected
       STATIC ListBox.List
+      STATIC Border.Panel
+      STATIC Border.Sunken
+      STATIC Border.Card
+      STATIC Border.Card.Thin
+      STATIC Border.Card.Target
+      STATE chosen
+      STATE Rejected
       STATIC ListBox.List.Boxed
+      STATIC Border.Panel
+      STATIC Border.Sunken
+      STATIC Border.Card
+      STATIC Border.Card.Thin
+      STATIC Border.Card.Target
+      STATE chosen
+      STATE Rejected
       STATIC ListBox.List.Pill
+      STATIC Border.Panel
+      STATIC Border.Sunken
+      STATIC Border.Card
+      STATIC Border.Card.Thin
+      STATIC Border.Card.Target
+      STATE chosen
+      STATE Rejected
       STATIC ListBox.List.Bare
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
@@ -340,6 +368,72 @@
     <Style Selector="Button.Rail.selected">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
+      容器与卡片。这一批只写到能写的部分：`Border.Card.Selectable` 留着没写，因为它有两个问题
+      规范没有答案（见提交信息与报告）——用一个没定义的先后顺序凑出来，比不写更难发现。
+
+      卡片都不碰焦点：`Views/` 里接点击的 `Border` 是 0 个，可点的卡片全是 `Button` 的替身，
+      所以焦点环归外层控件。给纯容器加 `Focusable` 只会造出一个键盘停靠点。
+    -->
+    <Style Selector="Border.Panel">
+        <Setter Property="Padding" Value="{DynamicResource Space4}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+    </Style>
+
+    <!-- 内凹的一块：设置页里"权限"这类要跟别的组分开讲的东西。 -->
+    <Style Selector="Border.Sunken">
+        <Setter Property="Padding" Value="{DynamicResource Space4}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- 卡片：列表里、面板里那一块内容。底色比它所在的面板亮一档，靠 1px 描边收边。 -->
+    <Style Selector="Border.Card">
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!--
+      薄卡片：壳跟 Card 一样，只多两个状态。`.chosen` 只改描边颜色不改底，因为它和 `.selected`
+      说的不是一件事：选中的底要铺开，而"已经挑进这一批"只是打个标。
+    -->
+    <Style Selector="Border.Card.Thin">
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.Card.Thin.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="Border.Card.Thin.chosen">
+        <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
+    </Style>
+
+    <!--
+      拖动落点的目标卡：不透明的强调浅底 + 强调描边。不透明是有意的——它会压在别的内容上，
+      半透明底会让底下的字透出来。
+    -->
+    <Style Selector="Border.Card.Target">
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.Card.Target.Rejected">
+        <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
     </Style>
 
     <!--
