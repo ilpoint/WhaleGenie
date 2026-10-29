@@ -7,7 +7,9 @@
       实测跟着层 1 走（见 LayerOneTests），这里只给它们度量。
 
       四条硬规则，写之前先看：
-      1. 不写 `Margin`。纵向间距由父容器的 `Spacing` / `RowSpacing` 承担；唯一例外是 `GapSection`。
+      1. 不写 `Margin`。纵向间距由父容器的 `Spacing` / `RowSpacing` 承担；例外只有 `GapSection`
+         与 `GapField` 两处，都是"没有能用 Spacing 的父容器"的情形（区块之间不相邻；标签与它管
+         着的控件之间隔着一层模板）。
          理由不是洁癖：`Margin="2,4,0,0"` 是"用间距调对齐"的症状，收样式前满地都是。
       2. 不写裸值——"裸值"指十六进制与数字。颜色、字号、圆角、内边距四类一律引令牌；`Transparent`
          是语言常量、不是我们定的颜色，可以直接写（它没有值可漂移，也不参与对比度核算）。高度与宽度允许字面值，但只能出现在
@@ -33,7 +35,20 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
+    <!--
+      两类 13px 的字分得很细，因为差别在**下边距**而不在字号：标签下面紧跟着就是它管着的控件，
+      所以标签自己带 `Space2`；成段的说明与对话框正文下面不该多出一道空白，所以 `Body` 不带。
+      借 `FieldLabel` 写正文会让每段正文底下多 8px，看着像排版松了，其实是类的语义用错了。
+    -->
     <Style Selector="TextBlock.FieldLabel">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="Margin" Value="{DynamicResource GapField}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.Body">
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
         <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />

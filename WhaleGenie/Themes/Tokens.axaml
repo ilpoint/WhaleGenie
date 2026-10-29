@@ -273,8 +273,13 @@
     <Thickness x:Key="PadRow">8,4</Thickness>
     <Thickness x:Key="PadSection">16</Thickness>
 
-    <!-- 区块底距。样式库里唯一允许的 Margin：纵向间距由父容器的 Spacing 承担，区块之间没有父容器可用。 -->
+    <!--
+      两处允许的 Margin。纵向间距本该由父容器的 Spacing 承担，但这两个间隙没有能用它的父容器：
+      区块之间不相邻（`GapSection`），标签到它管着的那个控件之间也隔着一层模板（`GapField`）。
+      规范要求"标签的下边距"长在标签身上，所以这里是 Margins 的第二个、也是最后一个例外。
+    -->
     <Thickness x:Key="GapSection">0,0,0,12</Thickness>
+    <Thickness x:Key="GapField">0,0,0,8</Thickness>
 
     <CornerRadius x:Key="RadiusControl">4</CornerRadius>
     <CornerRadius x:Key="RadiusContainer">6</CornerRadius>

@@ -23,7 +23,8 @@
       **"裸值"指十六进制和数字。** `Transparent` 是语言常量、不是我们定的颜色，可以直接写：它没有
       会漂移的值，也不参与对比度核算（底透出来，实际颜色由底下那层决定，与 `OverlayHover` 那类
       叠层同理）。区别在"有没有值"：`OverlayHover` / `OverlayPressed` 是令牌，因为它们有半透明
-      的值、且随主题变；`Transparent` 没有值。
+      的值、且随主题变；`Transparent` 没有值。**别为"不画"开令牌**：每个键自己定义一支
+      `Transparent` 画笔就够，共享一个键只多一处要同步。
     -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">

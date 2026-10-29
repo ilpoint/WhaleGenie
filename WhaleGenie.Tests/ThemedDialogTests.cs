@@ -55,6 +55,16 @@ public class ThemedDialogTests
                 Assert.Equal(30, secondary.Height);
                 Assert.Equal(Token("SurfaceControl", "SurfaceControlColor"), Presenter(secondary));
 
+                // The message is body copy, not a field label: same 13px and colour, but no bottom
+                // margin — a label carries the gap down to the control it names, prose does not.
+                var body = window.GetVisualDescendants().OfType<TextBlock>()
+                    .First(text => text.Classes.Contains("Body"));
+                Assert.Equal(0, body.Margin.Bottom);
+                Assert.Equal(Token("TextSecondary", "TextSecondaryColor"), Colour(body.Foreground));
+                Assert.Equal(
+                    Application.Current!.TryGetResource("UiBodySize", null, out var size) ? size : null,
+                    body.FontSize);
+
                 // The window's own close button is a ghost: no fill of its own, a 24 square.
                 var close = window.FindControl<Button>("CloseButton");
                 Assert.NotNull(close);

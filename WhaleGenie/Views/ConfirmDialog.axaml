@@ -36,7 +36,7 @@
         </Grid>
 
         <ScrollViewer Grid.Row="1" Margin="20,16,20,0" VerticalScrollBarVisibility="Auto">
-            <TextBlock Classes="FieldLabel" Text="{Binding Message}" />
+            <TextBlock Classes="Body" Text="{Binding Message}" />
         </ScrollViewer>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"
