@@ -74,6 +74,14 @@ sealed class Program
         // project lives on its thread, but nothing is ever shown.
         if (McpCommandLine.HostAsked(args))
         {
+            // A window is already running with the project the person is editing: this process is
+            // only here to carry the client's words to it. That is the whole point of the pipe, and
+            // it is what makes the draft a copy of what is on screen rather than of what is on disk.
+            if (McpPipe.TryBridge(Console.OpenStandardInput(), Console.OpenStandardOutput()))
+            {
+                return 0;
+            }
+
             var options = McpCommandLine.ParseHost(args, out var error);
             if (options is null)
             {

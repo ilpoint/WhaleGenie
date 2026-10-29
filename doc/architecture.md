@@ -283,14 +283,18 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 ### 9.1 运行形态
 
-**只有一种形态：客户端启动的子进程，走 stdio。** `whalegenie --mcp [--open 包] [--new 文件夹]`，
+**入口一个，服务的地方两个。** 客户端永远只启动一个子进程，说 stdio；那个子进程若发现已经有一个窗口在跑，
+就把两股流原样转给窗口（命名管道 `whalegenie-mcp-<用户>`），工具因此跑在窗口进程里，面对的是**屏幕上那份**
+项目——未保存的改动也在。没有窗口时才自己起一份项目，也就是下面这条路。转发层不过滤、不审计、不判权限：
+权限仍由窗口进程读 `settings.json` 决定。
+
+**没有窗口时：客户端启动的子进程自己服务，走 stdio。** `whalegenie --mcp [--open 包] [--new 文件夹]`，
 `App.axaml.cs` 走 `McpHeadless`，只建 `MainViewModel` 与服务，不建 `MainWindow`；`McpServerHost` 在一个
 通用宿主里把工具、资源、提示词装好，用 `WithStreamServerTransport` 接上这个进程的标准输入输出。
 客户端关掉管道，会话就结束，进程跟着退出。
 
-没有第二种形态是有意的：一个在跑的窗口没法把管道交给别人，所以"窗口里开个服务器"这件事本身就要求
-监听端口。本地工具不该为此开一个。窗口里的 MCP 浮层因此是"两档开关 + 一段**客户端配置**"：开关写进设置
-文件，那段 JSON 只有 `--mcp` 一个参数，粘一次就够。
+窗口不开端口这件事没有变：管道是本机的、只有当前用户能开，不是监听。窗口里的 MCP 浮层因此仍是"两档
+开关 + 一段**客户端配置**"：开关写进设置文件，那段 JSON 只有 `--mcp` 一个参数，粘一次就够。
 
 权限在**每次调用时**才问：`McpControl.Allowed` / `AllowsRun` 就是 `McpGrants.Current()`，而 `McpGrants`
 每次都从 `settings.json` 读 `McpAllowControl` / `McpAllowRun`（几百字节，不缓存）。所以页面上翻一下开关，

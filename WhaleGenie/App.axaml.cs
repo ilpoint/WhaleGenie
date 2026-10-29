@@ -133,6 +133,18 @@ public partial class App : Application
         // from the notification area, and that is not the last run.
         window.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
 
+        // The door a client's own process knocks on. Tools run here, on the project this window is
+        // showing, so a draft is a copy of what is on screen and a save writes the file the person
+        // has open. Permissions are read from the same settings file the flyout writes.
+        McpControl.Stored = McpGrants.Current;
+        McpPipe.Serve(async pipe =>
+        {
+            var host = new McpServerHost(viewModel, services);
+            host.Start(pipe, pipe);
+            await host.WaitForShutdownAsync().ConfigureAwait(false);
+            await host.DisposeAsync().ConfigureAwait(false);
+        });
+
         // A second launch asks this one to come back instead of starting a copy of its own.
         SingleInstance.Listen(() => Dispatcher.UIThread.Post(() =>
         {

@@ -170,9 +170,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 ## MCP 服务器
 
-主界面「运行调试」左边的 MCP 按钮打开一个浮层，里面只有两样东西：两个权限开关，和一段**客户端配置**。真正的
-服务器是另一个进程——客户端启动的一个**说 stdio 的子进程**，JSON-RPC 走标准输入输出，管道关闭即退出；
-不监听端口，因此也没有令牌。
+主界面「运行调试」左边的 MCP 按钮打开一个浮层，里面只有两样东西：两个权限开关，和一段**客户端配置**。客户端
+启动的是一个**说 stdio 的子进程**：它先敲窗口的门（命名管道 `whalegenie-mcp-<用户>`），敲开就把两股流原样
+转给窗口，工具于是跑在窗口进程里、改的就是屏幕上那份项目；敲不开（没有窗口）才自己起一份项目，走和以前
+一样的老路。不监听端口，因此也没有令牌。
 协议面（资源、体检、审计的定位）见 `doc/architecture.md` 第九章，指标与检查项见 `doc/mcp-usability.md`；
 这里只写改它时要守的规矩。
 
@@ -188,6 +189,11 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 （先复制 `.wgmacro.bak`），一份草稿只能 apply 一次。一次会话最多 8 张：满了先丢**已 apply** 的最旧一张并在
 `open_project` 的 `dropped` 里说出来；一张都没 apply 就报 `TooManyDrafts`，不替客户端扔掉没落地的活。`whalegenie_preview_apply` 用 `McpPreview` 在 apply
 之前说出哪些宏会来、会走、会变。
+
+**一个窗口，一个程序**　`SingleInstance` 用命名互斥占住"这一份"，第二次启动发一个命名事件让窗口回来然后
+自己退出；`--mcp` 与 `--mcp-doctor` 不参与，客户端要几个服务端就起几个。上次打开的包记在 `settings.json`
+的 `LastProject`，启动时能读到就打开——窗口与无窗口两侧都用它，所以客户端不给 `--open` 时看到的是这个人
+上次用的那份，而不是空项目。
 
 **跑一条宏**　`run_macro` 默认等到跑完（`timeoutMs` 到了就取消整次运行并回 `Timeout`）。`wait=false` 时立刻回
 `status: "Started"` 与运行编号，真正的结束仍然走同一段收尾（写日志、释放"一次只跑一条"的占用）；所以

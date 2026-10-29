@@ -22,7 +22,9 @@ internal static class McpCommandLine
     internal static string Usage => """
         whalegenie --mcp [--open FILE.wgmacro] [--new FOLDER]
           Serves MCP over stdin and stdout. The client launches this program and owns the pipe; when
-          it closes, this exits. What the client may do is the two switches in the MCP flyout, which
+          it closes, this exits. When WhaleGenie is already running with a window, this process
+          forwards to that window instead and the tools work on the project it has open, unsaved
+          changes included; --open and --new are for the case where no window is running. What the client may do is the two switches in the MCP flyout, which
           this reads from the settings file before every call, so a switch flipped beside it is
           obeyed on the next call. With neither switched on it can only read: it lists macros, reads
           the screen and reports state, but sends no input and runs no macro.
