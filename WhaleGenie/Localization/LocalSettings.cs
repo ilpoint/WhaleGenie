@@ -96,9 +96,22 @@ public static class LocalSettings
     public static void StoreDriverAttachAtStart(bool value)
         => Write(model => model.DriverAttachAtStart = value);
 
-    /// <summary>The port the local MCP server asks for; 3917 unless the person changed it.</summary>
+    /// <summary>
+    /// The two permissions the MCP page last put into a client's configuration. Remembered so the
+    /// block a person copies next time is the one they meant, rather than a bare "read only" again.
+    /// </summary>
+    public static (bool Control, bool Run) LoadMcpGrants()
+    {
+        var model = Read();
+        return (model.McpAllowControl, model.McpAllowRun);
+    }
 
-    /// <summary>Stores the MCP port. The server falls back to a free port if it is taken.</summary>
+    /// <summary>Stores those two choices. Failures are ignored on purpose.</summary>
+    public static void StoreMcpGrants(bool control, bool run) => Write(model =>
+    {
+        model.McpAllowControl = control;
+        model.McpAllowRun = run;
+    });
 
     /// <summary>
     /// How this machine reads a picture of a window. Automatic by default, which is the order the
@@ -183,6 +196,10 @@ public static class LocalSettings
         public string SystemHotkey { get; set; } = "Home";
 
         public string DockPage { get; set; } = nameof(Models.DockPage.Keys);
+
+        public bool McpAllowControl { get; set; }
+
+        public bool McpAllowRun { get; set; }
 
         public bool LightTheme { get; set; }
 

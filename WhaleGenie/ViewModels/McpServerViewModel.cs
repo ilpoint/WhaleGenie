@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -12,20 +13,52 @@ namespace WhaleGenie.ViewModels;
 
 /// <summary>
 /// The MCP page in the main window. This program no longer serves MCP from inside itself: a client
-/// launches WhaleGenie with <c>--mcp</c> and talks down the pipe it owns, so there is nothing here
-/// to switch on and no address to show. What a person needs instead is the block to paste into the
-/// client's own configuration file, which is what this hands over — and the record of what a client
-/// did, which is the question asked afterwards.
+/// launches WhaleGenie with <c>--mcp</c> and talks down the pipe it owns, so there is no server here
+/// to switch on. The two switches that used to start one now decide what the client may do, and the
+/// block underneath is what a person pastes into that client's configuration — flipping a switch
+/// rewrites the block, so nobody has to type an argument by hand.
 /// </summary>
 public partial class McpServerViewModel : ViewModelBase
 {
+    private readonly bool _loaded;
+    private bool _allowControl;
+    private bool _allowRun;
     private string _status = string.Empty;
+
+    public McpServerViewModel()
+    {
+        var grants = LocalSettings.LoadMcpGrants();
+        _allowControl = grants.Control;
+        _allowRun = grants.Run;
+        _loaded = true;
+    }
 
     public string Header => Strings.Get("Mcp.Title");
 
     /// <summary>
-    /// The block to paste into a client's configuration file. It names this program and the flag
-    /// that makes it speak MCP; the client starts the process itself, which is why no port appears.
+    /// Whether the client may send keys, clicks and window commands. It is written into the block as
+    /// <c>--allow-control</c>; the grant itself takes effect when that client starts this program.
+    /// </summary>
+    public bool AllowControl
+    {
+        get => _allowControl;
+        set => Grant(nameof(AllowControl), ref _allowControl, value);
+    }
+
+    /// <summary>
+    /// Whether the client may run one macro at a time and read what every step worked out. A second
+    /// switch rather than part of the first: clicking once and running a macro that writes files are
+    /// not the same favour.
+    /// </summary>
+    public bool AllowRun
+    {
+        get => _allowRun;
+        set => Grant(nameof(AllowRun), ref _allowRun, value);
+    }
+
+    /// <summary>
+    /// The block to paste into a client's configuration file: this program, the flag that makes it
+    /// speak MCP, and whichever of the two permissions was switched on.
     /// </summary>
     public string Config => JsonSerializer.Serialize(new
     {
@@ -34,7 +67,7 @@ public partial class McpServerViewModel : ViewModelBase
             whalegenie = new
             {
                 command = Executable,
-                args = new[] { "--mcp" },
+                args = Arguments(),
             },
         },
     }, new JsonSerializerOptions { WriteIndented = true });
@@ -42,7 +75,7 @@ public partial class McpServerViewModel : ViewModelBase
     /// <summary>This program's own path, which is what the client has to be told to start.</summary>
     public string Executable => McpProgram.Executable;
 
-    /// <summary>Where the block was copied, or why there is nothing to copy.</summary>
+    /// <summary>Where the block was copied, or why there was nothing to copy.</summary>
     public string Status
     {
         get => _status;
@@ -82,5 +115,43 @@ public partial class McpServerViewModel : ViewModelBase
     {
         base.RefreshLanguage();
         OnPropertyChanged(nameof(Header));
+    }
+
+    /// <summary>The arguments the block asks for: MCP itself, then whichever door was left open.</summary>
+    private IReadOnlyList<string> Arguments()
+    {
+        var args = new List<string> { "--mcp" };
+        if (AllowControl)
+        {
+            args.Add("--allow-control");
+        }
+
+        if (AllowRun)
+        {
+            args.Add("--allow-run");
+        }
+
+        return args;
+    }
+
+    /// <summary>
+    /// Flips one switch, remembers it, and rewrites the block. The text already in the clipboard
+    /// belongs to the old choice, so the block changing in front of the person is the honest signal
+    /// that this one has to be copied again.
+    /// </summary>
+    private void Grant(string name, ref bool field, bool value)
+    {
+        if (field == value)
+        {
+            return;
+        }
+
+        field = value;
+        OnPropertyChanged(name);
+        OnPropertyChanged(nameof(Config));
+        if (_loaded)
+        {
+            LocalSettings.StoreMcpGrants(_allowControl, _allowRun);
+        }
     }
 }

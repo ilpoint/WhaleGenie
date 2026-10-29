@@ -276,7 +276,7 @@ presses Run」，与它前面讲 `run_macro` 的那段矛盾，一并改掉。
 改法：`McpServerHost` 用 `WithStreamServerTransport` 接一对流——命令行是标准输入输出，体检里是子进程
 的管道，测试里是内存里的一对管道（`McpLoopback`）。`ModelContextProtocol.AspNetCore` 与
 `Microsoft.AspNetCore.App` 的引用一并删掉，程序里不再有 Kestrel。窗口里的 MCP 从"开关 + 地址 + 端口"
-改成一段可直接粘贴的**客户端配置**。
+改成"两档开关 + 一段可直接粘贴的**客户端配置**"：开关只把参数写进那段 JSON，启动仍然由客户端发起。
 
 同一天复量，协议面一个数都没变：
 

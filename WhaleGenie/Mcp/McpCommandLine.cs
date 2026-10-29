@@ -72,11 +72,6 @@ internal static class McpCommandLine
                 case "--allow-run":
                     allowRun = true;
                     break;
-                case "--port" or "--stdio":
-                    error = args[index] == "--port"
-                        ? "There is no port any more: the server speaks over stdin and stdout, and the client that starts it owns the pipe."
-                        : "--stdio is what --mcp does now; drop the flag.";
-                    return null;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;
@@ -128,11 +123,6 @@ internal static class McpCommandLine
                 case "--strict":
                     strict = true;
                     break;
-                case "--url" or "--spawn":
-                    error = args[index] == "--url"
-                        ? "There is no address to point at any more: the check starts a server of its own over a pipe."
-                        : "--spawn is what the check does now; drop the flag.";
-                    return null;
                 default:
                     error = $"Unknown argument \"{args[index]}\".";
                     return null;

@@ -140,12 +140,11 @@ public class McpServerTests
     }
 
     /// <summary>
-    /// The window hands over a recipe, not a switch: a client starts this program and owns the pipe,
-    /// so what a person needs is the block to paste. The switches that used to live here could only
-    /// have served a server this window does not run.
+    /// The window hands over a recipe with two switches on it: flipping one rewrites the block rather
+    /// than starting anything, because the pipe is the client's and this window cannot hand it out.
     /// </summary>
     [Fact]
-    public void The_main_window_offers_the_client_config_instead_of_a_switch()
+    public void The_window_offers_the_client_config_and_two_switches()
     {
         Ui.Run(() =>
         {
@@ -159,17 +158,52 @@ public class McpServerTests
             Assert.Null(button!.Command);
             Assert.NotNull(Assert.IsType<Flyout>(button.Flyout).Content);
 
-            // What the client has to be told: this program, and the flag that makes it speak MCP.
+            Assert.NotNull(window.FindControl<ToggleSwitch>("McpControlToggle"));
+            Assert.NotNull(window.FindControl<ToggleSwitch>("McpRunToggle"));
             Assert.Contains("\"mcpServers\"", viewModel.Mcp.Config, StringComparison.Ordinal);
-            Assert.Contains("\"--mcp\"", viewModel.Mcp.Config, StringComparison.Ordinal);
             Assert.EndsWith("WhaleGenie.exe", viewModel.Mcp.Executable,
                 StringComparison.OrdinalIgnoreCase);
-
-            // And the switches are gone with the server they used to drive.
-            Assert.Null(window.FindControl<ToggleSwitch>("McpToggle"));
-            Assert.Null(window.FindControl<ToggleSwitch>("McpControlToggle"));
             window.Close();
         });
+    }
+
+    /// <summary>
+    /// The two switches write the arguments. They are the whole reason nobody has to type
+    /// <c>--allow-control</c> into a client's configuration by hand.
+    /// </summary>
+    [Fact]
+    public void The_switches_rewrite_the_block_they_sit_above()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "wg-mcp-grants-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var stored = LocalSettings.FilePath;
+        try
+        {
+            LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+
+            var mcp = new McpServerViewModel();
+            mcp.AllowControl = false;
+            mcp.AllowRun = false;
+            Assert.DoesNotContain("--allow-control", mcp.Config, StringComparison.Ordinal);
+            Assert.DoesNotContain("--allow-run", mcp.Config, StringComparison.Ordinal);
+
+            mcp.AllowControl = true;
+            Assert.Contains("\"--allow-control\"", mcp.Config, StringComparison.Ordinal);
+            Assert.DoesNotContain("--allow-run", mcp.Config, StringComparison.Ordinal);
+
+            mcp.AllowRun = true;
+            Assert.Contains("\"--allow-run\"", mcp.Config, StringComparison.Ordinal);
+
+            // 记住选择：下次打开这一页，配置块还是上次那一份。
+            var again = new McpServerViewModel();
+            Assert.True(again.AllowControl);
+            Assert.True(again.AllowRun);
+        }
+        finally
+        {
+            LocalSettings.FilePath = stored;
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]

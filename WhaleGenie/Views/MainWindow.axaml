@@ -299,12 +299,33 @@
                                     <TextBlock FontSize="13" FontWeight="SemiBold"
                                                Foreground="{DynamicResource AppText}"
                                                Text="{Binding [Mcp.Title], Source={x:Static loc:Strings.Current}}" />
-                                    <!-- No switch and no address: a client starts this program and
-                                         owns the pipe, so what a person needs here is the block to
-                                         paste, not a server this window cannot provide. -->
+                                    <!-- The switches are not a server: they decide what the client
+                                         is allowed to do, and the block below is rewritten with
+                                         the matching arguments. Nobody types a flag by hand. -->
                                     <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                TextWrapping="Wrap"
                                                Text="{Binding [Mcp.Intro], Source={x:Static loc:Strings.Current}}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <ToggleSwitch Name="McpControlToggle"
+                                                      IsChecked="{Binding Mcp.AllowControl, Mode=TwoWay}"
+                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
+                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding [Mcp.Control], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <ToggleSwitch Name="McpRunToggle"
+                                                      IsChecked="{Binding Mcp.AllowRun, Mode=TwoWay}"
+                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
+                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding [Mcp.Run], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding [Mcp.GrantsNote], Source={x:Static loc:Strings.Current}}" />
                                     <Border Background="{DynamicResource AppField}" CornerRadius="5"
                                             BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                                             Padding="10,8">
@@ -325,9 +346,6 @@
                                     <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
                                                TextWrapping="Wrap"
                                                Text="{Binding [Mcp.CopyConfigHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.PermissionsNote], Source={x:Static loc:Strings.Current}}" />
                                     <!-- What the client did to this machine is a question the person
                                          asks afterwards, so the record is one click away rather than
                                          something to go looking for in a folder. -->
