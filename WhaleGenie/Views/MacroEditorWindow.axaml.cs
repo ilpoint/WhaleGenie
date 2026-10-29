@@ -732,7 +732,8 @@ public partial class MacroEditorWindow : Window
     }
 
     private void AddExistingSubMacro(MacroItem macro)
-    {        var editor = new MacroEditorViewModel { IsSubMacro = true };
+    {
+        var editor = new MacroEditorViewModel { IsSubMacro = true };
         editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {

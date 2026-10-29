@@ -272,7 +272,8 @@ public sealed class PublicMacroLibraryWindow : Window
     }
 
     private void Save()
-    {        try
+    {
+        try
         {
             PublicMacroLibrary.Save(AppPaths.PublicMacroLibrary, _entries, AppVersion.Text);
             _status.Text = Strings.Get("PublicMacroManager.Saved");

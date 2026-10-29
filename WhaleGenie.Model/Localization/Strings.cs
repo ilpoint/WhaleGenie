@@ -796,7 +796,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.DeleteMessage"] = "Delete '{0}'? This cannot be undone.",
         ["Editor.Delete"] = "Delete",
         ["PublicMacroManager.Title"] = "Public macro library",
-        ["PublicMacroManager.New"] = "New",        ["PublicMacroManager.ImportFile"] = "From file…",
+        ["PublicMacroManager.New"] = "New",
+        ["PublicMacroManager.ImportFile"] = "From file…",
         ["PublicMacroManager.ExportFile"] = "To file…",
         ["PublicMacroManager.ImportTitle"] = "Add a macro file to the library",
         ["PublicMacroManager.ExportTitle"] = "Write a public macro to a file",
@@ -1504,7 +1505,8 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "Open Macro Project",
-        ["Main.SaveProjectTitle"] = "Save Macro Project",        ["Main.ImportTitle"] = "Import from a macro file",
+        ["Main.SaveProjectTitle"] = "Save Macro Project",
+        ["Main.ImportTitle"] = "Import from a macro file",
         ["Main.ExportMacroTitle"] = "Export a macro to a file",
 
         ["Main.CloseAllTitle"] = "Close all macros",
@@ -2759,7 +2761,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.DeleteMessage"] = "确定删除“{0}”？此操作无法撤销。",
         ["Editor.Delete"] = "删除",
         ["PublicMacroManager.Title"] = "公共宏库",
-        ["PublicMacroManager.New"] = "新建",        ["PublicMacroManager.ImportFile"] = "从文件导入…",
+        ["PublicMacroManager.New"] = "新建",
+        ["PublicMacroManager.ImportFile"] = "从文件导入…",
         ["PublicMacroManager.ExportFile"] = "导出到文件…",
         ["PublicMacroManager.ImportTitle"] = "把一个宏文件加进公共宏库",
         ["PublicMacroManager.ExportTitle"] = "把一个公共宏写成文件",
@@ -3791,7 +3794,8 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "打开宏项目",
-        ["Main.SaveProjectTitle"] = "保存宏项目",        ["Main.ImportTitle"] = "从一个宏文件导入",
+        ["Main.SaveProjectTitle"] = "保存宏项目",
+        ["Main.ImportTitle"] = "从一个宏文件导入",
         ["Main.ExportMacroTitle"] = "把这个宏导出成文件",
 
         ["Main.CloseAllTitle"] = "关闭全部宏",

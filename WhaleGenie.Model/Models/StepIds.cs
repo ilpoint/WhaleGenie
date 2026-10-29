@@ -151,7 +151,7 @@ public static class StepIds
     /// </summary>
     private static bool ReadsReferences(string type, string parameter)
         => ActionSemanticsCatalog.Find(type)?.Parameter(parameter) is
-            { AcceptsVariables: true, ReadMode: ActionReadMode.WholeValue };
+        { AcceptsVariables: true, ReadMode: ActionReadMode.WholeValue };
 
     /// <summary>
     /// The text with every <c>step.&lt;old&gt;</c> that names a moved step replaced by the new id.
