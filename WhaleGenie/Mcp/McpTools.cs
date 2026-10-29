@@ -369,7 +369,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
     public Task<CallToolResult> PatchMacro(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name,
-        [Description("The operations: {op:\"set\",stepId,param,value}, {op:\"insert\",parent,index,step}, {op:\"remove\",stepId} or {op:\"move\",stepId,parent,index}. A parent is a list path such as 0.then, or empty for the top level.")] JsonArray operations,
+        [Description("The operations: {op:\"set\",stepId,param,value}, {op:\"insert\",parent,index,step}, {op:\"remove\",stepId} or {op:\"move\",stepId,parent,index}. A parent is a list path such as 0.then, or empty for the top level. An operation that changes a step inside a submacro also carries \"macro\":\"sub:<name>\", the label the outline prints for that step; without it the operation means the macro's own steps.")] JsonArray operations,
         [Description("Also returns the whole macro. Off by default, because the outline already says what it holds.")] bool includeMacro = false,
         [Description("Returns the outline of every step after the patch. On by default; turn it off when only the changed list is needed.")] bool includeOutline = true)
         => McpErrors.RunAsync(async () =>
