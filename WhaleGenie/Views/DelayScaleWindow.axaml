@@ -22,19 +22,6 @@
     </Design.DataContext>
 
     <Window.Styles>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PresetButton">
             <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
@@ -128,7 +115,7 @@
             <Button Classes="PrimaryButton" Height="36" MinWidth="92"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ConfirmCommand}" />
-            <Button Classes="FlatButton" Height="36" MinWidth="92"
+            <Button Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Confirm.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
         </StackPanel>

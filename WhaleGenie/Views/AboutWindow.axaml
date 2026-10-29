@@ -18,19 +18,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -88,7 +75,7 @@
                     <TextBlock Name="SupportText"
                                Text="{Binding [About.SupportText], Source={x:Static loc:Strings.Current}}"
                                TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}" FontSize="13" />
-                    <Button Classes="FlatButton" Name="SupportButton"
+                    <Button Classes="Secondary" Name="SupportButton"
                             Height="30" MinWidth="82" HorizontalAlignment="Left"
                             Content="{Binding [About.SupportButton], Source={x:Static loc:Strings.Current}}"
                             Click="OnSupportClicked" />
@@ -126,10 +113,10 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8"
               Margin="20,4,20,18">
-            <Button Classes="FlatButton" Name="ProjectButton" Height="36" MinWidth="112"
+            <Button Classes="Secondary" Name="ProjectButton" Height="36" MinWidth="112"
                     Content="{Binding [Main.AboutOpenPage], Source={x:Static loc:Strings.Current}}"
                     Click="OnOpenProjectClicked" />
-            <Button Grid.Column="1" Classes="FlatButton" Name="NoticesButton" Height="36" MinWidth="112"
+            <Button Grid.Column="1" Classes="Secondary" Name="NoticesButton" Height="36" MinWidth="112"
                     Content="{Binding [Main.AboutNotices], Source={x:Static loc:Strings.Current}}"
                     Click="OnNoticesClicked" />
             <Button Grid.Column="3" Classes="PrimaryButton" Name="DoneButton" Height="36" MinWidth="92"

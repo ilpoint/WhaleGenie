@@ -36,19 +36,6 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -128,7 +115,7 @@
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox Name="SearchBox" Text="{Binding SearchText}"
                                  PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="30" Padding="9,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="9,0"
                                 Content="{Binding [GlobalVariables.ClearFilters], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding ClearFiltersCommand}"
                                 IsVisible="{Binding CanClearFilters}" />
@@ -177,9 +164,9 @@
                     </ListBox>
 
                     <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
-                        <Button Name="NewButton" Classes="FlatButton" Height="32"
+                        <Button Name="NewButton" Classes="Secondary" Height="32"
                                 Content="{Binding NewLabel}" Command="{Binding NewCommand}" />
-                        <Button Grid.Column="1" Name="RemoveButton" Classes="FlatButton" Height="32"
+                        <Button Grid.Column="1" Name="RemoveButton" Classes="Secondary" Height="32"
                                 Content="{Binding RemoveLabel}" Click="OnRemove" />
                     </Grid>
                 </Grid>
@@ -230,7 +217,7 @@
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.DefaultProblem}"
                                                    IsVisible="{Binding Editor.HasDefaultProblem}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="32"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
                                             Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding BuildDefaultExpressionCommand}" />
                                 </Grid>
@@ -245,7 +232,7 @@
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.CurrentProblem}"
                                                    IsVisible="{Binding Editor.HasCurrentProblem}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="32"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
                                             Content="{Binding [GlobalVariables.UseCurrentExpression], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding BuildCurrentExpressionCommand}" />
                                 </Grid>
@@ -287,7 +274,7 @@
                             <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
                                        Foreground="{DynamicResource AppMuted}"
                                        TextAlignment="Center" />
-                            <Button Classes="FlatButton" Height="32" MinWidth="120"
+                            <Button Classes="Secondary" Height="32" MinWidth="120"
                                     HorizontalAlignment="Center"
                                     Content="{Binding NewLabel}" Command="{Binding NewCommand}" />
                         </StackPanel>
@@ -298,7 +285,7 @@
                             <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
                                        Foreground="{DynamicResource AppMuted}"
                                        TextAlignment="Center" />
-                            <Button Classes="FlatButton" Height="32" MinWidth="120"
+                            <Button Classes="Secondary" Height="32" MinWidth="120"
                                     HorizontalAlignment="Center"
                                     Content="{Binding [GlobalVariables.ClearFilters], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding ClearFiltersCommand}" />
@@ -313,7 +300,7 @@
                            TextWrapping="Wrap" VerticalAlignment="Center"
                            Foreground="#E06C75"
                            IsVisible="{Binding HasValidationProblem}" />
-                <Button Grid.Column="1" Name="CancelButton" Classes="FlatButton"
+                <Button Grid.Column="1" Name="CancelButton" Classes="Secondary"
                         Height="36" MinWidth="92" Content="{Binding CancelLabel}"
                         Command="{Binding CancelCommand}" />
                 <Button Grid.Column="2" Name="SaveButton" Classes="PrimaryButton"

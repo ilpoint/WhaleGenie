@@ -40,18 +40,6 @@
             <Setter Property="Width" Value="240" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="13,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
         <Style Selector="Button.TitleBarButton">
             <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
@@ -182,10 +170,10 @@
                                         <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
                                                    Text="{Binding SystemHotkeyDisplay}" />
                                     </StackPanel>
-                                    <Button Grid.Column="1" Classes="FlatButton" Height="30"
+                                    <Button Grid.Column="1" Classes="Secondary" Height="30"
                                             Name="CaptureSystemHotkeyButton"
                                             Content="{Binding SystemHotkeyButton}" />
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="30"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="30"
                                             Name="ClearSystemHotkeyButton"
                                             Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                                 </Grid>
@@ -232,7 +220,7 @@
                                            Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
                                 <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7BC17B"
                                            Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
-                                <Button Classes="FlatButton" Name="DriverInstallButton" Height="32"
+                                <Button Classes="Secondary" Name="DriverInstallButton" Height="32"
                                         HorizontalAlignment="Left" Margin="2,10,0,0"
                                         Click="OnInstallDriverClicked"
                                         Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
@@ -253,7 +241,7 @@
                                            Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
                                 <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7BC17B"
                                            Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
-                                <Button Classes="FlatButton" Name="AdminRestartButton" Height="32"
+                                <Button Classes="Secondary" Name="AdminRestartButton" Height="32"
                                         HorizontalAlignment="Left" Margin="2,10,0,0"
                                         IsVisible="{Binding !IsElevated}"
                                         Click="OnRestartElevatedClicked"
@@ -272,10 +260,10 @@
                                 <TextBlock FontSize="13" Foreground="{DynamicResource AppText}"
                                            VerticalAlignment="Center" Text="{Binding MenuLauncherDisplay}" />
                                 <Button Grid.Column="1" Name="CaptureMenuLauncherButton"
-                                        Classes="FlatButton" Height="32"
+                                        Classes="Secondary" Height="32"
                                         Content="{Binding MenuLauncherButton}" />
                                 <Button Grid.Column="2" Name="ClearMenuLauncherButton"
-                                        Classes="FlatButton" Height="32"
+                                        Classes="Secondary" Height="32"
                                         Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
                             <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
@@ -309,21 +297,21 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                             <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
-                                <Button Name="AddMenuRuleButton" Classes="FlatButton" Height="30"
+                                <Button Name="AddMenuRuleButton" Classes="Secondary" Height="30"
                                         Click="OnAddMenuRule"
                                         Content="{Binding [Settings.MenuRuleAdd], Source={x:Static loc:Strings.Current}}" />
-                                <Button Name="EditMenuRuleButton" Classes="FlatButton" Height="30"
+                                <Button Name="EditMenuRuleButton" Classes="Secondary" Height="30"
                                         Click="OnEditMenuRule"
                                         Content="{Binding [Settings.MenuRuleEdit], Source={x:Static loc:Strings.Current}}" />
-                                <Button Name="RemoveMenuRuleButton" Classes="FlatButton" Height="30"
+                                <Button Name="RemoveMenuRuleButton" Classes="Secondary" Height="30"
                                         Click="OnRemoveMenuRule"
                                         Content="{Binding [Settings.MenuRuleRemove], Source={x:Static loc:Strings.Current}}" />
-                                <Button Name="AddMenuRulePageButton" Classes="FlatButton" Height="30"
+                                <Button Name="AddMenuRulePageButton" Classes="Secondary" Height="30"
                                         Click="OnAddMenuRulePage"
                                         Content="{Binding [Settings.MenuRuleAddPage], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="FlatButton" Height="30" Click="OnMoveMenuRuleUp"
+                                <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleUp"
                                         Content="{Binding [Settings.MenuRuleUp], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="FlatButton" Height="30" Click="OnMoveMenuRuleDown"
+                                <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleDown"
                                         Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                             <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
@@ -341,7 +329,7 @@
                             <ComboBox Name="ThemeSelect" Classes="LanguageSelect"
                                       ItemsSource="{Binding ThemeOptions}"
                                       SelectedItem="{Binding SelectedTheme}" />
-                            <Button Name="CustomizeThemeButton" Classes="FlatButton" Height="32"
+                            <Button Name="CustomizeThemeButton" Classes="Secondary" Height="32"
                                     HorizontalAlignment="Left" Margin="2,10,0,0"
                                     IsVisible="{Binding IsCustomTheme}"
                                     Click="OnCustomizeThemeClicked"
@@ -357,7 +345,7 @@
             </ScrollViewer>
         </Grid>
 
-        <Button Grid.Row="3" Classes="FlatButton" Height="36" MinWidth="92"
+        <Button Grid.Row="3" Classes="Secondary" Height="36" MinWidth="92"
                 HorizontalAlignment="Right" Margin="20,0,20,18" Name="DoneButton"
                 Content="{Binding [Settings.Close], Source={x:Static loc:Strings.Current}}" />
     </Grid>

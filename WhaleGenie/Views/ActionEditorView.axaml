@@ -68,7 +68,7 @@
                                  MinimumPrefixLength="1"
                                  FilterMode="Contains" />
 
-                <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                         Tag="{Binding}"
                         Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
@@ -93,7 +93,7 @@
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <!-- A path is the one value the machine can offer a list of. -->
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding IsPath}"
                             Content="{Binding PathButton}"
                             ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
@@ -108,13 +108,13 @@
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <Button Grid.Column="1" Classes="FlatButton CaptureToggle" Height="34" Padding="9,0"
+                    <Button Grid.Column="1" Classes="Secondary CaptureToggle" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnCaptureKey" />
                     <!-- The same question the element picker answers with its test: is this the
                          thing I meant? For a key that is answered by pressing it once. -->
-                    <Button Grid.Column="2" Classes="FlatButton" Height="34" Padding="11,0"
+                    <Button Grid.Column="2" Classes="Secondary" Height="34" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestStep" />
@@ -127,11 +127,11 @@
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
-                    <Button Grid.Column="1" Classes="FlatButton CaptureToggle" Height="34" Padding="9,0"
+                    <Button Grid.Column="1" Classes="Secondary CaptureToggle" Height="34" Padding="9,0"
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnCaptureKey" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="34" Padding="11,0"
+                    <Button Grid.Column="2" Classes="Secondary" Height="34" Padding="11,0"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestStep" />
@@ -149,15 +149,15 @@
                             <TextBlock Classes="Muted" TextWrapping="Wrap"
                                        Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
-                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnPickWindowRule" />
-                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnPickWindowVariable" />
-                        <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="10,0"
+                        <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="10,0"
                                 Content="{Binding [WindowRule.Clear], Source={x:Static loc:Strings.Current}}"
                                 Click="OnClearWindowRule" />
                     </Grid>
@@ -175,22 +175,22 @@
                                      PlaceholderText="{Binding Placeholder}"
                                      MinimumPrefixLength="1"
                                      FilterMode="Contains" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding IsPath}"
                             Content="{Binding PathButton}"
                             ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnBrowsePath" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding IsWindow}"
                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickWindow" />
-                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
-                    <Button Grid.Column="4" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="4" Classes="Secondary" Height="33" Padding="11,0"
                             Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickVariable" />
@@ -201,11 +201,11 @@
                 <Grid IsVisible="{Binding IsSelector}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             Content="{Binding [Add.PickElement], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickElementHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickElement" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                             Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnTestElement" />
@@ -220,17 +220,17 @@
                         <TextBox Classes="ParamInput" Text="{Binding Text}"
                                  AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
                                  PlaceholderText="{Binding Placeholder}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                 VerticalAlignment="Top"
                                 Content="{Binding [Add.PickBrowserElement], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.PickBrowserElementHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnPickBrowserElement" />
-                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                                 VerticalAlignment="Top"
                                 Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnTestBrowserElement" />
-                        <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
                                 VerticalAlignment="Top"
                                 IsVisible="{Binding OffersPageVariables}"
                                 Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
@@ -249,7 +249,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:BrowserWayViewModel">
-                                    <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                    <Button Classes="Secondary" Height="30" Padding="10,0"
                                             Margin="0,0,6,6" Content="{Binding Text}"
                                             ToolTip.Tip="{Binding [Add.BrowserWayAdd], Source={x:Static loc:Strings.Current}}"
                                             Click="OnAddBrowserWay" />
@@ -269,13 +269,13 @@
                              AcceptsReturn="True" TextWrapping="Wrap"
                              Height="{Binding MultilineHeight}"
                              PlaceholderText="{Binding Placeholder}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             VerticalAlignment="Top"
                             IsVisible="{Binding IsPath}"
                             Content="{Binding PathButton}"
                             ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnBrowsePath" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                             VerticalAlignment="Top"
                             IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
@@ -335,7 +335,7 @@
                          builds one is there from the start rather than behind a switch: what the
                          builder hands back is what the field holds, and a plain number written that
                          way puts the spinner back. -->
-                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
@@ -372,13 +372,13 @@
                     <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                             Background="{Binding Text, Converter={StaticResource HexBrush}}"
                             BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
-                    <Button Grid.Column="2" Classes="FlatButton" Name="PickColourButton"
+                    <Button Grid.Column="2" Classes="Secondary" Name="PickColourButton"
                             Width="38" Height="33" Padding="0"
                             ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickParameterColor">
                         <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
                     </Button>
-                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
@@ -398,15 +398,15 @@
                                          PlaceholderText="{Binding Placeholder}"
                                          MinimumPrefixLength="{Binding NamePrefix}"
                                          FilterMode="Contains" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnBrowseImage" />
-                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.CaptureImage], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnCaptureImage" />
-                        <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.ClearImage], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.ClearImageHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnClearImage" />
@@ -440,27 +440,27 @@
                                                      PlaceholderText="{Binding Placeholder}"
                                                      MinimumPrefixLength="1"
                                                      FilterMode="Contains" />
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="33"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="33"
                                             Padding="11,0"
                                             Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
                                             Click="OnBrowseImageRow" />
-                                    <Button Grid.Column="3" Classes="FlatButton" Height="33"
+                                    <Button Grid.Column="3" Classes="Secondary" Height="33"
                                             Padding="11,0"
                                             Content="{Binding [Add.CaptureImage], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
                                             Click="OnCaptureImageRow" />
-                                    <Button Grid.Column="4" Classes="FlatButton" Height="33"
+                                    <Button Grid.Column="4" Classes="Secondary" Height="33"
                                             Padding="9,0"
                                             Content="{Binding [Add.ImageMoveUp], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ImageMoveUpHint], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding MoveUpCommand}" />
-                                    <Button Grid.Column="5" Classes="FlatButton" Height="33"
+                                    <Button Grid.Column="5" Classes="Secondary" Height="33"
                                             Padding="9,0"
                                             Content="{Binding [Add.ImageMoveDown], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ImageMoveDownHint], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding MoveDownCommand}" />
-                                    <Button Grid.Column="6" Classes="FlatButton" Height="33"
+                                    <Button Grid.Column="6" Classes="Secondary" Height="33"
                                             Padding="11,0"
                                             Content="{Binding [Add.ImageRemove], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ImageRemoveHint], Source={x:Static loc:Strings.Current}}"
@@ -471,7 +471,7 @@
                     </ItemsControl>
 
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                        <Button Classes="Secondary" Height="30" Padding="10,0"
                                 Content="{Binding [Add.ImageAdd], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.ImageAddHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddImageRow" />
@@ -489,7 +489,7 @@
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBlock Classes="Muted" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Text="{Binding WindowPreview.Summary}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="10,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
                                 Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding WindowPreview.RefreshCommand}" />
@@ -570,17 +570,17 @@
                                                  Text="{Binding OrVariable}"
                                                  PlaceholderText="{Binding VariablePlaceholder}"
                                                  ToolTip.Tip="{Binding VariableHint}" />
-                                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                        <Button Classes="Secondary" Height="33" Padding="11,0"
                                                 Margin="0,0,6,0"
                                                 Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickRegionVariable" />
-                                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                        <Button Classes="Secondary" Height="33" Padding="11,0"
                                                 Margin="0,0,6,0"
                                                 Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickRegionRow" />
-                                        <Button Classes="FlatButton" Height="26" Padding="9,0"
+                                        <Button Classes="Secondary" Height="26" Padding="9,0"
                                                 Content="{Binding [Add.RegionRemove], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.RegionRemoveHint], Source={x:Static loc:Strings.Current}}"
                                                 Command="{Binding RemoveCommand}" />
@@ -591,7 +591,7 @@
                     </ItemsControl>
 
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                        <Button Classes="Secondary" Height="30" Padding="10,0"
                                 Content="{Binding [Add.RegionAdd], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddRegionRow" />
                         <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
@@ -621,7 +621,7 @@
                                                 Content="{Binding KeysDisplay}"
                                                 ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickKeyRow" />
-                                        <Button Grid.Column="1" Classes="FlatButton CaptureToggle"
+                                        <Button Grid.Column="1" Classes="Secondary CaptureToggle"
                                                 Height="34" Padding="9,0"
                                                 Content="{Binding CaptureLabel}"
                                                 ToolTip.Tip="{Binding [Add.CaptureKeyRunHint], Source={x:Static loc:Strings.Current}}"
@@ -643,7 +643,7 @@
                                                        ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="Muted" Margin="0,0,8,0" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
-                                        <Button Classes="FlatButton"
+                                        <Button Classes="Secondary"
                                                 Height="26" Padding="9,0" VerticalAlignment="Center"
                                                 Content="{Binding [Add.KeyRunRemove], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.KeyRunRemoveHint], Source={x:Static loc:Strings.Current}}"
@@ -655,7 +655,7 @@
                     </ItemsControl>
 
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                        <Button Classes="Secondary" Height="30" Padding="10,0"
                                 Content="{Binding [Add.KeyRunAdd], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddKeyRow" />
                         <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
@@ -694,17 +694,17 @@
                                                  IsVisible="{Binding NeedsValue}"
                                                  Text="{Binding Value}"
                                                  PlaceholderText="{Binding ValueHint}" />
-                                        <Button Grid.Column="2" Classes="FlatButton" Height="33"
+                                        <Button Grid.Column="2" Classes="Secondary" Height="33"
                                                 Padding="11,0" IsVisible="{Binding NeedsValue}"
                                                 Content="{Binding [Add.NarrowPick], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.NarrowPickHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickNarrowValue" />
-                                        <Button Grid.Column="3" Classes="FlatButton" Height="33"
+                                        <Button Grid.Column="3" Classes="Secondary" Height="33"
                                                 Padding="11,0"
                                                 Content="{Binding [Add.NarrowLook], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.NarrowLookHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnLookNarrowRow" />
-                                        <Button Grid.Column="4" Classes="FlatButton" Height="33"
+                                        <Button Grid.Column="4" Classes="Secondary" Height="33"
                                                 Padding="11,0"
                                                 Content="{Binding [Add.NarrowRemove], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.NarrowRemoveHint], Source={x:Static loc:Strings.Current}}"
@@ -719,7 +719,7 @@
                     </ItemsControl>
 
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                        <Button Classes="Secondary" Height="30" Padding="10,0"
                                 Content="{Binding [Add.NarrowAdd], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.NarrowAddHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddNarrowRow" />
@@ -752,12 +752,12 @@
                     <!-- A control of the virtual controller says which one it is on a pad drawn
                          on screen, where the button that is meant is in the place the hand
                          already knows it in. -->
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding IsGamepadPad}"
                             Content="{Binding [Add.OpenGamepad], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.OpenGamepadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenGamepadPad" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding IsGamepadPad}"
                             Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.TestGamepadHint], Source={x:Static loc:Strings.Current}}"
@@ -789,17 +789,17 @@
                                      MinimumPrefixLength="{Binding NamePrefix}"
                                      FilterMode="Contains" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Classes="Secondary" Height="33" Padding="11,0"
                                 IsVisible="{Binding OffersFormula}"
                                 Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnOpenExpressionBuilder" />
-                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Classes="Secondary" Height="33" Padding="11,0"
                                 IsVisible="{Binding IsPath}"
                                 Content="{Binding PathButton}"
                                 ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnBrowsePath" />
-                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnPickVariable" />
@@ -821,7 +821,7 @@
                                          PlaceholderText="{Binding Placeholder}"
                                          MinimumPrefixLength="1"
                                          FilterMode="Contains" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnOpenExpressionBuilder" />
@@ -881,7 +881,7 @@
                       IsVisible="{Binding ShowsName}">
                     <TextBox Classes="ParamInput" Text="{Binding Name}"
                              IsEnabled="{Binding Ticked}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="30" Padding="9,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="9,0"
                             IsVisible="{Binding IsNameTaken}"
                             Content="{Binding [Add.NameMakeUnique], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.NameMakeUniqueHint], Source={x:Static loc:Strings.Current}}"
@@ -903,21 +903,21 @@
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <!-- What fills the whole rectangle stands above the pair of numbers it fills,
                      because it is one button for both of them rather than an answer to one. -->
-                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
+                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="Secondary"
                         Width="150" Margin="0,0,0,6"
                         HorizontalAlignment="Left"
                         IsVisible="{Binding IsPointAnchor}"
                         ToolTip.Tip="{Binding [Add.PickCoordinateHint], Source={x:Static loc:Strings.Current}}"
                         Content="{Binding [Add.PickCoordinate], Source={x:Static loc:Strings.Current}}"
                         Click="OnPickPoint" />
-                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
+                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="Secondary"
                         Width="150" Margin="0,0,0,6"
                         HorizontalAlignment="Left"
                         IsVisible="{Binding IsWindowBoundsAnchor}"
                         ToolTip.Tip="{Binding [Add.PickWindowBoundsHint], Source={x:Static loc:Strings.Current}}"
                         Content="{Binding [Add.PickWindowBounds], Source={x:Static loc:Strings.Current}}"
                         Click="OnPickWindowBounds" />
-                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
+                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="Secondary"
                         Height="30" Padding="10,0" Margin="0,0,0,8"
                         HorizontalAlignment="Left"
                         IsVisible="{Binding IsRegionAnchor}"
@@ -948,7 +948,7 @@
                     <TextBlock Classes="Muted" TextWrapping="Wrap"
                                IsVisible="{Binding ShowsPositionHint}"
                                Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
-                    <Button Classes="FlatButton" Height="30" Padding="10,0"
+                    <Button Classes="Secondary" Height="30" Padding="10,0"
                             HorizontalAlignment="Left"
                             IsVisible="{Binding ShowsOffsetPick}"
                             ToolTip.Tip="{Binding [Add.PickOffsetHint], Source={x:Static loc:Strings.Current}}"
@@ -1192,19 +1192,6 @@
             <Setter Property="FontSize" Value="12.5" />
         </Style>
 
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.AddButton">
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -1398,7 +1385,7 @@
                                                    VerticalAlignment="Center" />
                                         <TextBox Grid.Column="1"
                                                  Text="{Binding GlobalVariableDraft.DefaultValue}" />
-                                        <Button Grid.Column="2" Classes="FlatButton"
+                                        <Button Grid.Column="2" Classes="Secondary"
                                                 Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnBuildGlobalDefaultExpression" />
                                     </Grid>
@@ -1464,7 +1451,7 @@
                                     <TextBlock Text="{Binding StepId}" VerticalAlignment="Center"
                                                FontFamily="Consolas,Menlo,monospace" FontSize="13"
                                                Foreground="#8FB3D9" />
-                                    <Button Classes="FlatButton" Padding="10,2"
+                                    <Button Classes="Secondary" Padding="10,2"
                                             Click="OnCopyStepId"
                                             Content="{Binding [Add.StepIdCopy], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
@@ -1593,12 +1580,12 @@
                                Text="{Binding Notice}"
                                IsVisible="{Binding ShowsWarning}" />
                 </StackPanel>
-                <Button Grid.Column="1" Classes="FlatButton" Height="38" MinWidth="92"
+                <Button Grid.Column="1" Classes="Secondary" Height="38" MinWidth="92"
                         Margin="8,0,0,0" Content="{Binding RunLabel}"
                         IsVisible="{Binding ShowsRun}" IsEnabled="{Binding CanRun}"
                         ToolTip.Tip="{Binding [Add.RunStepHint], Source={x:Static loc:Strings.Current}}"
                         Click="OnRunStep" />
-                <Button Grid.Column="2" Classes="FlatButton" Height="38" MinWidth="92"
+                <Button Grid.Column="2" Classes="Secondary" Height="38" MinWidth="92"
                         Content="{Binding CancelLabel}"
                         Margin="8,0,0,0" Command="{Binding CancelCommand}" />
                 <Button Grid.Column="3" Classes="AddButton" Content="{Binding CommitLabel}" Height="38" MinWidth="110"

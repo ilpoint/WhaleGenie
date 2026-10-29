@@ -19,19 +19,6 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -109,7 +96,7 @@
             <TextBox Classes="FilterInput" Name="FilterBox"
                      Text="{Binding Filter}"
                      PlaceholderText="{Binding [WindowPicker.Filter], Source={x:Static loc:Strings.Current}}" />
-            <Button Grid.Column="1" Classes="FlatButton" Height="34" MinWidth="76"
+            <Button Grid.Column="1" Classes="Secondary" Height="34" MinWidth="76"
                     Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
                     ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ReloadCommand}" />
@@ -143,7 +130,7 @@
             <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5"
                        Foreground="{DynamicResource AppMuted}" MaxWidth="280"
                        Text="{Binding MatchHint}" />
-            <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
+            <Button Grid.Column="1" Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
             <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="120"

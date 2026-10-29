@@ -36,18 +36,6 @@
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
         <Style Selector="TextBlock.Hint">
             <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
             <Setter Property="FontSize" Value="11.5" />
@@ -133,10 +121,10 @@
         </Grid>
 
         <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="16,0,16,14">
-            <Button Classes="FlatButton" Height="32"
+            <Button Classes="Secondary" Height="32"
                     Content="{Binding [Theme.ResetAccent], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ResetAccentCommand}" />
-            <Button Grid.Column="2" Classes="FlatButton" Height="32"
+            <Button Grid.Column="2" Classes="Secondary" Height="32"
                     Content="{Binding [Theme.Done], Source={x:Static loc:Strings.Current}}"
                     Click="OnDone" />
         </Grid>

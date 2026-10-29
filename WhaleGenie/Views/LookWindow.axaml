@@ -41,20 +41,6 @@
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
 
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -175,7 +161,7 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
                                            Text="{Binding [Look.ReadText], Source={x:Static loc:Strings.Current}}" />
-                                <Button Grid.Column="1" Name="CopyText" Classes="FlatButton"
+                                <Button Grid.Column="1" Name="CopyText" Classes="Secondary"
                                         Click="OnCopyText"
                                         Content="{Binding [Look.CopyText], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
@@ -189,20 +175,20 @@
             <!-- zoom, and saving the picture -->
             <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
                   Margin="14,0,14,12">
-                <Button Grid.Column="0" Classes="FlatButton" Content="−" Width="34"
+                <Button Grid.Column="0" Classes="Secondary" Content="−" Width="34"
                         Click="OnZoomOut" />
                 <TextBlock Grid.Column="1" Name="ZoomText" MinWidth="54" Margin="8,0"
                            VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AppMuted}"
                            TextAlignment="Center" />
-                <Button Grid.Column="2" Classes="FlatButton" Content="+" Width="34"
+                <Button Grid.Column="2" Classes="Secondary" Content="+" Width="34"
                         Click="OnZoomIn" />
-                <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
+                <Button Grid.Column="3" Classes="Secondary" Margin="8,0,0,0"
                         Click="OnZoomFit"
                         Content="{Binding [Look.ZoomFit], Source={x:Static loc:Strings.Current}}" />
                 <!-- Only the window opened on the step just written can look a second time: it was
                      handed that step, and the picture belongs to a reading that has just been asked
                      for. The one opened from a run shows a picture that belongs to that run. -->
-                <Button Grid.Column="4" Name="Again" Classes="FlatButton" Margin="8,0,0,0"
+                <Button Grid.Column="4" Name="Again" Classes="Secondary" Margin="8,0,0,0"
                         IsVisible="False" Click="OnLookAgain"
                         Content="{Binding [Look.Again], Source={x:Static loc:Strings.Current}}" />
                 <CheckBox Grid.Column="5" Name="LabelsOnPicture" Margin="12,0,0,0" FontSize="12"
@@ -212,7 +198,7 @@
                 <TextBlock Grid.Column="6" Name="Status" Margin="14,0,10,0"
                            VerticalAlignment="Center" FontSize="12" Foreground="#BFE3BF"
                            TextTrimming="CharacterEllipsis" />
-                <Button Grid.Column="7" Name="SaveRaw" Classes="FlatButton" Margin="0,0,8,0"
+                <Button Grid.Column="7" Name="SaveRaw" Classes="Secondary" Margin="0,0,8,0"
                         Click="OnSaveRaw"
                         Content="{Binding [Look.SaveRaw], Source={x:Static loc:Strings.Current}}" />
                 <Button Grid.Column="8" Name="SaveMarked" Classes="PrimaryButton"

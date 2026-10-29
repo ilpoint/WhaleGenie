@@ -33,7 +33,7 @@
                 <TextBlock Text="{Binding [Run.BreakpointTitle], Source={x:Static loc:Strings.Current}}"
                            FontSize="13" FontWeight="SemiBold"
                            Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" Classes="FlatButton" Height="26" Padding="10,0" FontSize="11.5"
+                <Button Grid.Column="1" Classes="Secondary" Height="26" Padding="10,0" FontSize="11.5"
                         Content="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
                         Command="{Binding ClearCommand}" />
             </Grid>
@@ -49,7 +49,7 @@
                                      MinimumPrefixLength="1" FilterMode="Contains"
                                      FontSize="12.5"
                                      PlaceholderText="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             Name="BuildExpressionButton"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
@@ -84,7 +84,7 @@
                        Text="{Binding [Run.BreakpointNote], Source={x:Static loc:Strings.Current}}" />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Classes="FlatButton" Height="30"
+                <Button Classes="Secondary" Height="30"
                         Content="{Binding [Run.BreakpointCancel], Source={x:Static loc:Strings.Current}}"
                         Command="{Binding CancelCommand}" />
                 <Button Classes="PrimaryButton" Height="30"

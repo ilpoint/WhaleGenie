@@ -342,7 +342,7 @@
                                                              Text="{Binding Mcp.Config}" />
                                     </Border>
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <Button Classes="FlatButton" Height="28" Padding="10,0"
+                                        <Button Classes="Secondary" Height="28" Padding="10,0"
                                                 Click="OnCopyMcpConfig"
                                                 Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
@@ -355,7 +355,7 @@
                                     <!-- What the client did to this machine is a question the person
                                          asks afterwards, so the record is one click away rather than
                                          something to go looking for in a folder. -->
-                                    <Button Classes="FlatButton" Height="28" Padding="10,0"
+                                    <Button Classes="Secondary" Height="28" Padding="10,0"
                                             HorizontalAlignment="Left"
                                             Command="{Binding Mcp.OpenAuditCommand}"
                                             ToolTip.Tip="{Binding [Mcp.OpenAuditHint], Source={x:Static loc:Strings.Current}}"

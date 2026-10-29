@@ -21,19 +21,6 @@
     </Design.DataContext>
 
     <Window.Styles>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#C8401C" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -89,7 +76,7 @@
                         HorizontalAlignment="Right" Margin="0,16,0,0">
                 <Button Classes="PrimaryButton" Content="{Binding OkText}" Height="36" MinWidth="92"
                         Command="{Binding OkCommand}" />
-                <Button Classes="FlatButton" Content="{Binding CancelText}" Height="36" MinWidth="92"
+                <Button Classes="Secondary" Content="{Binding CancelText}" Height="36" MinWidth="92"
                         Command="{Binding CancelCommand}" />
             </StackPanel>
         </Grid>

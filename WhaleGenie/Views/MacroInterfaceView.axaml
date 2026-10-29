@@ -35,19 +35,19 @@
                                     <!-- The order these rows are in is the order the call form and
                                          the debug panel follow, so it has to be something a person
                                          can change without rewriting the declaration. -->
-                                    <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                    <Button Classes="Secondary" Height="28" Padding="8,0"
                                             IsEnabled="{Binding CanMoveUp}"
                                             Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).MoveParameterUpCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{Binding [MacroInterface.MoveUp], Source={x:Static loc:Strings.Current}}"
                                             Content="↑" />
-                                    <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                    <Button Classes="Secondary" Height="28" Padding="8,0"
                                             IsEnabled="{Binding CanMoveDown}"
                                             Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).MoveParameterDownCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{Binding [MacroInterface.MoveDown], Source={x:Static loc:Strings.Current}}"
                                             Content="↓" />
-                                    <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                    <Button Classes="Secondary" Height="28" Padding="8,0"
                                             Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).RemoveParameterCommand}"
                                             CommandParameter="{Binding}"
                                             Content="{Binding [MacroInterface.Remove], Source={x:Static loc:Strings.Current}}" />
@@ -70,12 +70,12 @@
                                       ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                     <TextBox Text="{Binding Default}"
                                              PlaceholderText="{Binding [MacroInterface.Default], Source={x:Static loc:Strings.Current}}" />
-                                    <Button Grid.Column="1" Classes="FlatButton" Height="30"
+                                    <Button Grid.Column="1" Classes="Secondary" Height="30"
                                             Padding="8,0"
                                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                                             Click="OnOpenDefaultExpression" />
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="30"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="30"
                                             Padding="8,0"
                                             Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
@@ -112,7 +112,7 @@
                                                                 </DataTemplate>
                                                             </ComboBox.ItemTemplate>
                                                         </ComboBox>
-                                                        <Button Grid.Column="2" Classes="FlatButton" Height="28"
+                                                        <Button Grid.Column="2" Classes="Secondary" Height="28"
                                                                 Padding="8,0"
                                                                 Command="{Binding $parent[ItemsControl].((vm:MacroParameterRow)DataContext).RemoveFieldCommand}"
                                                                 CommandParameter="{Binding}"
@@ -121,7 +121,7 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                        <Button Classes="Secondary" Height="28" Padding="8,0"
                                                 HorizontalAlignment="Left"
                                                 Command="{Binding AddFieldCommand}"
                                                 Content="{Binding [MacroInterface.AddField], Source={x:Static loc:Strings.Current}}" />
@@ -137,7 +137,7 @@
                        IsVisible="{Binding !HasParameters}"
                        Text="{Binding [MacroInterface.NoParameters], Source={x:Static loc:Strings.Current}}" />
 
-            <Button Classes="FlatButton" Height="30" Padding="10,0" HorizontalAlignment="Left"
+            <Button Classes="Secondary" Height="30" Padding="10,0" HorizontalAlignment="Left"
                     Command="{Binding AddParameterCommand}"
                     Content="{Binding [MacroInterface.AddParameter], Source={x:Static loc:Strings.Current}}" />
 
@@ -154,19 +154,19 @@
                                          PlaceholderText="{Binding [MacroInterface.Name], Source={x:Static loc:Strings.Current}}" />
                                 <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
                                             Spacing="4">
-                                    <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                    <Button Classes="Secondary" Height="28" Padding="8,0"
                                             IsEnabled="{Binding CanMoveUp}"
                                             Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).MoveResultUpCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{Binding [MacroInterface.MoveUp], Source={x:Static loc:Strings.Current}}"
                                             Content="↑" />
-                                    <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                    <Button Classes="Secondary" Height="28" Padding="8,0"
                                             IsEnabled="{Binding CanMoveDown}"
                                             Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).MoveResultDownCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{Binding [MacroInterface.MoveDown], Source={x:Static loc:Strings.Current}}"
                                             Content="↓" />
-                                    <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                    <Button Classes="Secondary" Height="28" Padding="8,0"
                                             Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).RemoveResultCommand}"
                                             CommandParameter="{Binding}"
                                             Content="{Binding [MacroInterface.Remove], Source={x:Static loc:Strings.Current}}" />
@@ -209,7 +209,7 @@
                                                                 </DataTemplate>
                                                             </ComboBox.ItemTemplate>
                                                         </ComboBox>
-                                                        <Button Grid.Column="2" Classes="FlatButton" Height="28"
+                                                        <Button Grid.Column="2" Classes="Secondary" Height="28"
                                                                 Padding="8,0"
                                                                 Command="{Binding $parent[ItemsControl].((vm:MacroResultRow)DataContext).RemoveFieldCommand}"
                                                                 CommandParameter="{Binding}"
@@ -218,7 +218,7 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <Button Classes="FlatButton" Height="28" Padding="8,0"
+                                        <Button Classes="Secondary" Height="28" Padding="8,0"
                                                 HorizontalAlignment="Left"
                                                 Command="{Binding AddFieldCommand}"
                                                 Content="{Binding [MacroInterface.AddField], Source={x:Static loc:Strings.Current}}" />
@@ -234,7 +234,7 @@
                        IsVisible="{Binding !HasResults}"
                        Text="{Binding [MacroInterface.NoResults], Source={x:Static loc:Strings.Current}}" />
 
-            <Button Classes="FlatButton" Height="30" Padding="10,0" HorizontalAlignment="Left"
+            <Button Classes="Secondary" Height="30" Padding="10,0" HorizontalAlignment="Left"
                     Command="{Binding AddResultCommand}"
                     Content="{Binding [MacroInterface.AddResult], Source={x:Static loc:Strings.Current}}" />
         </StackPanel>

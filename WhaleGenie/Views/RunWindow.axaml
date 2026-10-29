@@ -164,20 +164,6 @@
             <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
 
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -348,22 +334,22 @@
                             Content="{Binding [Run.Run], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding RunCommand}"
                             ToolTip.Tip="{Binding [Run.RunTip], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0"
+                    <Button Grid.Column="1" Classes="Secondary" Margin="8,0,0,0"
                             Content="{Binding [Run.Step], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding StepCommand}"
                             ToolTip.Tip="{Binding [Run.StepTip], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="2" Classes="FlatButton" Margin="8,0,0,0"
+                    <Button Grid.Column="2" Classes="Secondary" Margin="8,0,0,0"
                             Content="{Binding [Run.Continue], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding ContinueCommand}"
                             ToolTip.Tip="{Binding [Run.ContinueTip], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
+                    <Button Grid.Column="3" Classes="Secondary" Margin="8,0,0,0"
                             Content="{Binding [Run.Stop], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding StopCommand}"
                             ToolTip.Tip="{Binding [Run.StopTip], Source={x:Static loc:Strings.Current}}" />
                     <!-- Skipping the step a breakpoint stopped in front of lives here as well as in
                          the dot's own menu: where it is wanted is right after a run has stopped, and
                          that is when this window is being looked at, not the dot. -->
-                    <Button Grid.Column="4" Classes="FlatButton" Name="SkipStepButton" Margin="8,0,0,0"
+                    <Button Grid.Column="4" Classes="Secondary" Name="SkipStepButton" Margin="8,0,0,0"
                             Content="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding SkipStepCommand}" />
                     <StackPanel Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center">
@@ -717,7 +703,7 @@
         </ItemsControl>
 
         <!-- One of these for every step of the macro, so it stays folded away. -->
-        <Button Classes="FlatButton" Margin="0,10,0,6" Height="24" Padding="10,0"
+        <Button Classes="Secondary" Margin="0,10,0,6" Height="24" Padding="10,0"
                 FontSize="11.5" HorizontalAlignment="Left"
                 IsVisible="{Binding HasStepOutcomes}"
                 Content="{Binding StepOutcomeHeader}"
@@ -817,9 +803,9 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                         <Button Classes="PrimaryButton" Content="{Binding [Run.AskRetry], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerCommand}" CommandParameter="retry" />
-                        <Button Classes="FlatButton" Content="{Binding [Run.AskSkip], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Secondary" Content="{Binding [Run.AskSkip], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerCommand}" CommandParameter="skip" />
-                        <Button Classes="FlatButton" Content="{Binding [Run.AskStop], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Secondary" Content="{Binding [Run.AskStop], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerCommand}" CommandParameter="stop" />
                     </StackPanel>
                 </Grid>
@@ -837,14 +823,14 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                         <Button Classes="PrimaryButton" Content="{Binding [Run.AnswerOk], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerUserCommand}" CommandParameter="ok" />
-                        <Button Classes="FlatButton" Content="{Binding [Run.AnswerCancel], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Secondary" Content="{Binding [Run.AnswerCancel], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerUserCommand}" CommandParameter="cancel" />
                     </StackPanel>
                 </StackPanel>
             </Border>
 
             <!-- ===================== Footer ===================== -->
-            <Button Grid.Row="5" Classes="FlatButton" HorizontalAlignment="Right" Margin="14,12,14,14"
+            <Button Grid.Row="5" Classes="Secondary" HorizontalAlignment="Right" Margin="14,12,14,14"
                     Content="{Binding [Run.Close], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CloseCommand}" />
         </Grid>

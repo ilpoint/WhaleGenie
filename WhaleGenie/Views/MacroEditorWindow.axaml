@@ -433,30 +433,6 @@
         </Style>
 
         <!-- Flat grey button used by Set Key / Record / the action palette -->
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="12,7" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-        </Style>
-        <Style Selector="Button.FlatButton /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="CornerRadius" Value="5" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.FlatButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PaletteButton">
             <Setter Property="Background" Value="{DynamicResource AppControl}" />
             <Setter Property="CornerRadius" Value="5" />
@@ -591,7 +567,7 @@
             <!-- Left: the action library. -->
             <Grid Grid.Column="0" Name="ActionLibraryColumn" RowDefinitions="*,Auto">
                 <views:ActionPaletteView Grid.Row="0" Name="ActionPalette" />
-                <Button Grid.Row="1" Classes="FlatButton" Height="34" Margin="4,2,4,4"
+                <Button Grid.Row="1" Classes="Secondary" Height="34" Margin="4,2,4,4"
                         Click="OnShowRecording">
                     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
                         <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
@@ -620,7 +596,7 @@
                                            TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}"
                                            Margin="4,0,0,8" />
                             </StackPanel>
-                            <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="FlatButton"
+                            <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="Secondary"
                                     VerticalAlignment="Top" Margin="0,0,2,0"
                                     ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
                                     Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
@@ -666,7 +642,7 @@
                                 <TextBlock Text="{Binding OriginLabel}" TextWrapping="Wrap"
                                            FontSize="11.5" Foreground="{DynamicResource AppMuted}" />
                             </Border>
-                            <Button Classes="FlatButton" Height="32" Margin="0,8,0,0"
+                            <Button Classes="Secondary" Height="32" Margin="0,8,0,0"
                                     HorizontalAlignment="Left"
                                     IsVisible="{Binding IsSubMacro}"
                                     Content="{Binding [Editor.DeleteSubMacro], Source={x:Static loc:Strings.Current}}"
@@ -716,7 +692,7 @@
                                     </ListBox>
 
                                     <Button Name="AddTriggerButton"
-                                            Classes="FlatButton" Height="32" Padding="11,0"
+                                            Classes="Secondary" Height="32" Padding="11,0"
                                             HorizontalAlignment="Left" Margin="0,7,0,0">
                                         <Button.Content>
                                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -806,7 +782,7 @@
                                         <TextBlock Text="{Binding BindKeyDisplay}" FontSize="12.5"
                                                    Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
                                     </Border>
-                                    <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0" Height="34"
+                                    <Button Grid.Column="1" Classes="Secondary" Margin="8,0,0,0" Height="34"
                                             Content="{Binding SetKeyLabel}"
                                             IsEnabled="{Binding !IsRecording}"
                                             ToolTip.Tip="{Binding [Editor.Tip.SetKey], Source={x:Static loc:Strings.Current}}"
@@ -855,7 +831,7 @@
                                         <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                                                 Background="{Binding HexColor, Converter={StaticResource HexBrush}}"
                                                 BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
-                                        <Button Grid.Column="2" Classes="FlatButton" Name="PickColorButton"
+                                        <Button Grid.Column="2" Classes="Secondary" Name="PickColorButton"
                                                 Width="38" Height="33" Padding="0"
                                                 ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickColorClicked">
@@ -967,7 +943,7 @@
                                         <TextBlock Text="{Binding WindowTargetSummary}" FontSize="12.5"
                                                    Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
                                     </Border>
-                                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                                             Click="OnPickTriggerWindow" />
@@ -981,7 +957,7 @@
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    TextWrapping="Wrap"
                                                    Text="{Binding WindowPreview.Summary}" />
-                                        <Button Grid.Column="1" Classes="FlatButton" Height="28"
+                                        <Button Grid.Column="1" Classes="Secondary" Height="28"
                                                 Padding="10,0"
                                                 Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
@@ -1052,10 +1028,10 @@
                                         <TextBlock VerticalAlignment="Center" FontSize="12.5"
                                                    Foreground="{DynamicResource AppText}"
                                                    Text="{Binding InterfaceToggleHotkeyDisplay}" />
-                                        <Button Grid.Column="1" Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Grid.Column="1" Classes="Secondary" Height="32" Padding="10,0"
                                                 Click="OnSetInterfaceHotkey"
                                                 Content="{Binding InterfaceHotkeyButton}" />
-                                        <Button Grid.Column="2" Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Grid.Column="2" Classes="Secondary" Height="32" Padding="10,0"
                                                 Command="{Binding ClearInterfaceHotkeyCommand}"
                                                 Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                                     </Grid>
@@ -1104,10 +1080,10 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                        <Button Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Classes="Secondary" Height="32" Padding="10,0"
                                                 Click="OnCaptureHotstringEnd"
                                                 Content="{Binding HotstringEndCaptureButton}" />
-                                        <Button Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Classes="Secondary" Height="32" Padding="10,0"
                                                 Command="{Binding ResetHotstringEndCharsCommand}"
                                                 Content="{Binding [Editor.HotstringEndCharsReset], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
@@ -1248,7 +1224,7 @@
             </ListBox>
             <!-- What is exported is the page that is showing: the macro itself, or the submacro
                  in front of you with the submacros it holds. -->
-            <Button Grid.Column="1" Name="ExportDocumentButton" Classes="FlatButton" Height="26"
+            <Button Grid.Column="1" Name="ExportDocumentButton" Classes="Secondary" Height="26"
                     Padding="9,0" VerticalAlignment="Center" Margin="8,0,0,0"
                     ToolTip.Tip="{Binding [Editor.ExportDocumentTip], Source={x:Static loc:Strings.Current}}"
                     Click="OnExportDocumentClicked">
@@ -1478,7 +1454,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="SectionHeader"
                                    Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="8,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="8,0"
                                 Content="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"
                                 Click="OnCloseRecording" />
                     </Grid>

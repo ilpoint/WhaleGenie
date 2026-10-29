@@ -165,19 +165,6 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -311,7 +298,7 @@
                              PlaceholderText="{Binding Placeholder}"
                              Text="{Binding Written}" />
                     <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                        <Button Classes="FlatButton" Height="30" Name="RebuildButton"
+                        <Button Classes="Secondary" Height="30" Name="RebuildButton"
                                 Content="{Binding [ExprBuilder.Rebuild], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [ExprBuilder.RebuildHint], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding RebuildCommand}" />
@@ -522,7 +509,7 @@
         </Grid>
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="16,10,16,14">
-            <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
+            <Button Grid.Column="1" Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
             <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="110"
