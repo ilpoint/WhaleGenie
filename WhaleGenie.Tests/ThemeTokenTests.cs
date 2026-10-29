@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -147,6 +151,66 @@ public class ThemeTokenTests
         var brush = Brush(key, variant);
         Assert.NotNull(brush);
         return Assert.IsAssignableFrom<ISolidColorBrush>(brush!).Color;
+    }
+
+    [Fact]
+    public void The_lists_above_match_the_dictionaries_they_describe()
+    {
+        // The three arrays are a second copy of what the two dictionaries declare, and a second copy
+        // is what drifts. These read the dictionaries themselves: a key added there and forgotten
+        // here would otherwise go untested, and a key renamed in one place only would keep passing
+        // the checks above, which walk this array rather than the file.
+        var tokens = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "Tokens.axaml");
+        var legacy = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "LegacyKeys.axaml");
+
+        Assert.Equal(
+            Tokens.Concat(PickerTokens).ToHashSet(StringComparer.Ordinal),
+            Declared(tokens, "SolidColorBrush"));
+
+        Assert.Equal(
+            LegacyKeys.ToHashSet(StringComparer.Ordinal),
+            Declared(legacy, "SolidColorBrush"));
+    }
+
+    /// <summary>
+    /// The brush keys a dictionary declares. The pattern is pinned to the whole opening tag: loosened
+    /// to the key alone it would also collect the forty-three *Color entries, which are not brushes.
+    /// </summary>
+    private static HashSet<string> Declared(string path, string element)
+    {
+        if (!File.Exists(path))
+        {
+            Assert.Fail($"the dictionary is not where the repository root says it is: {path}");
+        }
+
+        var xml = File.ReadAllText(path);
+        Assert.Contains($"<{element}", xml, StringComparison.Ordinal);
+
+        var pattern = "<" + element + "\\s+x:Key=\"([^\"]+)\"";
+        return Regex.Matches(xml, pattern)
+            .Select(match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Where this file's own path says the repository is. The checks run out of bin, where the
+    /// dictionaries are copied but the repository layout is not, so the path is taken from the
+    /// source file rather than from the working directory.
+    /// </summary>
+    private static string RepositoryRoot([CallerFilePath] string here = "")
+    {
+        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
+        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Themes")))
+        {
+            folder = folder.Parent;
+        }
+
+        if (folder is null)
+        {
+            Assert.Fail($"the repository root was not found above {here}; check where the tests are built");
+        }
+
+        return folder!.FullName;
     }
 
     private static IBrush? Brush(string key, ThemeVariant variant)
