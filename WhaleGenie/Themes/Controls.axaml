@@ -56,6 +56,7 @@
       LAYER1 ToggleButton.Chip ToggleButton
       LAYER1 TextBox.Field TextControl
       LAYER1 ComboBox.Field ComboBox
+      LAYER1 ComboBox.Field.Cell ComboBox
       LAYER1 AutoCompleteBox.Field TextControl
       STATIC Border.Badge
       STATIC Border.Badge.Danger
@@ -285,6 +286,15 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+    </Style>
+
+    <!-- 与 `TextBox.Field.Cell` 对称的 24 档：公式行里两种格子并排，差 6px 看得出来。 -->
+    <Style Selector="ComboBox.Field.Cell">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="{DynamicResource PadCell}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
     </Style>
 
     <!-- 自动补全里面也有一支 `TextBox`，它自带底与边框，不清掉就是双边框。 -->

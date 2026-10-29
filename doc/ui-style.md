@@ -406,6 +406,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `TextBox.Code` | TextBox | `PadField` · `RadiusControl` · 1px · `UiBodySmall` · `MinH58` · `UiCodeFont` | `SurfaceSunken` · `TextPrimary` · `BorderSubtle` | 层 3（无 hover） |
 | `TextBox.Code.ReadOnly` | TextBox | 同上 + `IsReadOnly=True` | `SurfaceSunken` · `TextSecondary` · `BorderSubtle` | 层 3 |
 | `ComboBox.Field` | ComboBox | H30 · `PadField` · `RadiusControl` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | **层 1**，层 3 只补 H30 |
+| `ComboBox.Field.Cell` | ComboBox | **H24** · `PadCell` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | 层 1 给四态，层 3 只补度量。**与 `TextBox.Field.Cell` 对称**：公式行里两种格子并排，差 6px 看得出来 |
 | `AutoCompleteBox.Field` | AutoCompleteBox | H30 · `PadField` · `RadiusControl` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | 层 3 + 必须带 `AutoCompleteBox.Field TextBox { Background: Transparent }`，否则双边框 |
 
 ### 表格、空状态、拾取器
