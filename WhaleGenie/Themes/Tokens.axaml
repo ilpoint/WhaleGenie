@@ -232,7 +232,7 @@
 
     <!-- 字体、字号、间距、圆角：与明暗无关，只写一份 -->
     <FontFamily x:Key="UiFont">Inter, Microsoft YaHei UI, Microsoft YaHei, Segoe UI</FontFamily>
-    <FontFamily x:Key="CodeFont">Consolas, Cascadia Mono, monospace</FontFamily>
+    <FontFamily x:Key="UiCodeFont">Consolas, Cascadia Mono, monospace</FontFamily>
 
     <sys:Double x:Key="UiCaptionSize">11</sys:Double>
     <sys:Double x:Key="UiCaptionLine">15</sys:Double>
@@ -257,6 +257,24 @@
     <Thickness x:Key="Space4">16</Thickness>
     <Thickness x:Key="Space6">24</Thickness>
     <Thickness x:Key="Space8">32</Thickness>
+
+    <!--
+      复合内边距。上面那组间距都是单值，表达不了"只横向 12"这种内边距，少了这一组，样式里就只能写
+      `Padding="12,0"` 的裸值。名字按用法的族来分，不按数字：`PadControl` 改一次，所有次按钮一起变。
+    -->
+    <Thickness x:Key="Pad0">0</Thickness>
+    <Thickness x:Key="Pad1">1</Thickness>
+    <Thickness x:Key="PadChrome">8,0</Thickness>
+    <Thickness x:Key="PadControl">12,0</Thickness>
+    <Thickness x:Key="PadControlWide">16,0</Thickness>
+    <Thickness x:Key="PadField">8,6</Thickness>
+    <Thickness x:Key="PadCell">6,1</Thickness>
+    <Thickness x:Key="PadChip">8,2</Thickness>
+    <Thickness x:Key="PadRow">8,4</Thickness>
+    <Thickness x:Key="PadSection">16</Thickness>
+
+    <!-- 区块底距。样式库里唯一允许的 Margin：纵向间距由父容器的 Spacing 承担，区块之间没有父容器可用。 -->
+    <Thickness x:Key="GapSection">0,0,0,12</Thickness>
 
     <CornerRadius x:Key="RadiusControl">4</CornerRadius>
     <CornerRadius x:Key="RadiusContainer">6</CornerRadius>

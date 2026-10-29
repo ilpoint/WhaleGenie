@@ -153,6 +153,52 @@ public class ThemeTokenTests
         return Assert.IsAssignableFrom<ISolidColorBrush>(brush!).Color;
     }
 
+    /// <summary>
+    /// The tokens that are not colours — fonts, sizes, spacing, radii — are read out of the file the
+    /// same way, because a missing one of those does not fail anything either: a style that names it
+    /// just gets no value, and the next person fills the gap with a literal.
+    /// </summary>
+    [Fact]
+    public void Every_declared_token_resolves_in_the_dark_variant()
+    {
+        Ui.Run(() =>
+        {
+            var tokens = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "Tokens.axaml");
+            var keys = DeclaredKeys(tokens);
+
+            Assert.Contains("UiCodeFont", keys, StringComparer.Ordinal);
+            Assert.Contains("PadSection", keys, StringComparer.Ordinal);
+            Assert.Contains("GapSection", keys, StringComparer.Ordinal);
+
+            foreach (var key in keys)
+            {
+                Assert.True(
+                    Application.Current!.TryGetResource(key, ThemeVariant.Dark, out _),
+                    $"{key} is declared in Tokens.axaml but does not resolve");
+            }
+        });
+    }
+
+    /// <summary>
+    /// Every key the dictionary declares a value for. The theme dictionaries' own <c>x:Key="Dark"</c>
+    /// is a container rather than a value, so the pattern names the value elements instead of taking
+    /// every key in the file.
+    /// </summary>
+    private static HashSet<string> DeclaredKeys(string path)
+    {
+        if (!File.Exists(path))
+        {
+            Assert.Fail($"the dictionary is not where the repository root says it is: {path}");
+        }
+
+        var xml = File.ReadAllText(path);
+        var pattern = "<(?:Color|SolidColorBrush|FontFamily|sys:Double|Thickness|CornerRadius)"
+            + "\\s+x:Key=\"([^\"]+)\"";
+        return Regex.Matches(xml, pattern)
+            .Select(match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     [Fact]
     public void The_lists_above_match_the_dictionaries_they_describe()
     {
