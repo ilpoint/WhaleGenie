@@ -1025,13 +1025,13 @@
                                                   <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding IsSkipped}">
-                                                      <TextBlock Text="{Binding SkipLabel}" FontSize="10.5"
+                                                      <TextBlock Text="{Binding SkipLabel}" Classes="Caption"
                                                                  Foreground="#D8B36A" />
                                                   </Border>
                                                   <Border Background="#2C3A46" CornerRadius="3" Padding="5,0"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding HasId}">
-                                                      <TextBlock Text="{Binding Id}" FontSize="10.5"
+                                                      <TextBlock Text="{Binding Id}" Classes="Caption"
                                                                  FontFamily="Consolas,Menlo,monospace"
                                                                  Foreground="#8FB3D9" />
                                                   </Border>
@@ -1042,7 +1042,7 @@
                                                           VerticalAlignment="Center"
                                                           ToolTip.Tip="{Binding InputMarkHint}"
                                                           IsVisible="{Binding HasInputMark}">
-                                                      <TextBlock Text="{Binding InputMark}" FontSize="10.5"
+                                                      <TextBlock Text="{Binding InputMark}" Classes="Caption"
                                                                  Foreground="#8FD9A8" />
                                                   </Border>
                                               </StackPanel>
@@ -1051,7 +1051,7 @@
                                               <TextBlock Text="{Binding Comment}" FontSize="11"
                                                          Foreground="#C8A165" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasComment}" />
-                                              <TextBlock Text="{Binding MetaSummary}" FontSize="10.5"
+                                              <TextBlock Text="{Binding MetaSummary}" Classes="Caption"
                                                          Foreground="#8FB3D9" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
