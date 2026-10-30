@@ -585,6 +585,13 @@ DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
    而它们要守的东西一点没变。
    （再进一步是"钉它引了某个语义令牌，不钉具体令牌名"——令牌名也会改，`Problem → Warning` 就是。
    那一层先不做，遇到再说。）
+12. **加类之后必须删掉那行赋值，否则等于没加。** C# 里创建的控件，`new TextBlock { FontSize = 13 }`
+   设的是**本地值**，本地值压过样式——**屏幕上没变化，代码里那行还在骗人**。
+   所以"换类"这个动作是两半：**加 `Classes`** + **删 `FontSize=` / `Foreground=` / `Margin=`**。
+   实见于 `VariableFieldPickerWindow`：换 6 处类、删 9 行赋值；验收标准就是"这个 `.cs` 里
+   `FontSize =` / `Margin =` / `Foreground =` 一处都没有"。
+   它与"删样式前先看它还带了什么"是一对：**一个防漏删，一个防漏加。**
+
 11. **注释与代码不一致时，不要默认代码是对的。** 默认假设是：**注释写下的是当时的意图，
 代码是当时的实现**，两边都要看。`MainWindow` 那条 `Chrome.Icon.Active` 旁边写着
 *"No Active state: there is no server in this window to be on or off."*，而样式一直在——

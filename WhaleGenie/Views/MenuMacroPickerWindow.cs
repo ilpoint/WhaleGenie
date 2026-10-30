@@ -32,18 +32,19 @@ public sealed class MenuMacroPickerWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = title ?? Strings.Get("Menu.PickMacro");
-        Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
+        Background = Brush("SurfaceWindow");
 
+        // 外观交给 `TextBox.Field`；`Height = 36` 是"搜索框比标准字段高一档"，是布局不是外观。
         _search = new TextBox
         {
             Height = 36,
-            Margin = new Thickness(12, 12, 12, 8),
+            Classes = { "Field" },
             PlaceholderText = placeholder ?? Strings.Get("Menu.PickMacroSearch"),
         };
         _search.TextChanged += (_, _) => Fill();
         _list = new ListBox
         {
-            Margin = new Thickness(12, 0, 12, 8),
+            Classes = { "List" },
             ItemsSource = _macros,
             ItemTemplate = new FuncDataTemplate<MacroItem>((macro, _) =>
             {
@@ -52,20 +53,19 @@ public sealed class MenuMacroPickerWindow : Window
                 var name = new TextBlock
                 {
                     Text = macro.Name,
-                    FontSize = 13,
+                    Classes = { "Body" },
                     TextTrimming = TextTrimming.CharacterEllipsis,
                 };
+                // `Caption` 本身就是三级灰，原来那 0.62 的透明度是把它再压暗一次——去掉。
                 var preview = new TextBlock
                 {
                     Text = macro.TriggerPreview,
-                    FontSize = 11.5,
-                    Opacity = 0.62,
+                    Classes = { "Caption" },
                     TextTrimming = TextTrimming.CharacterEllipsis,
                 };
                 return new StackPanel
                 {
                     Spacing = 2,
-                    Margin = new Thickness(2, 4),
                     Children = { name, preview },
                 };
             }),
@@ -88,35 +88,40 @@ public sealed class MenuMacroPickerWindow : Window
         {
             Content = Strings.Get("Common.Cancel"),
             MinWidth = 88,
-            Height = 32,
+            Classes = { "Secondary" },
         };
         cancel.Click += (_, _) => Close(null);
         var choose = new Button
         {
             Content = Strings.Get("Common.Ok"),
             MinWidth = 88,
-            Height = 32,
+            Classes = { "Primary" },
         };
         choose.Click += (_, _) => Choose();
-        Content = new Grid
+        // 整页内缩只写这一处：原来搜索框、列表、按钮行各写一条 `Margin`，
+        // 且上下值互不一致（12,8 / 0,8 / 0,12）。
+        Content = new Border
         {
-            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
-            Children =
+            Padding = new Thickness(12),
+            Child = new Grid
             {
-                _search,
-                _list,
-                new StackPanel
+                RowDefinitions = new RowDefinitions("Auto,*,Auto"),
+                Children =
                 {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Spacing = 8,
-                    Margin = new Thickness(12, 0, 12, 12),
-                    Children = { cancel, choose },
+                    _search,
+                    _list,
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Spacing = 8,
+                        Children = { cancel, choose },
+                    },
                 },
             },
         };
         Grid.SetRow(_list, 1);
-        Grid.SetRow(((Grid)Content).Children[2], 2);
+        Grid.SetRow(((Grid)((Border)Content!).Child!).Children[2], 2);
         Opened += (_, _) => _search.Focus();
         Fill();
     }
@@ -147,8 +152,6 @@ public sealed class MenuMacroPickerWindow : Window
         }
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
+    private static IBrush? Brush(string key)
+        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 }
