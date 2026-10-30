@@ -24,12 +24,6 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
-        <Style Selector="TextBlock.FieldHint">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
         <Style Selector="TextBlock.FieldProblem">
             <Setter Property="Foreground" Value="#E06C75" />
             <Setter Property="FontSize" Value="11.5" />
@@ -153,7 +147,7 @@
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="NameBox" Text="{Binding Editor.Name}" />
-                                        <TextBlock Classes="FieldHint"
+                                        <TextBlock Classes="Hint"
                                                    Text="{Binding [GlobalVariables.NameHint], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="FieldProblem"
                                                    Text="{Binding Editor.NameProblem}"
@@ -180,7 +174,7 @@
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="DefaultValueBox" Text="{Binding Editor.DefaultValue}"
                                                  PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock Classes="FieldHint" Text="{Binding Editor.DefaultPreview}"
+                                        <TextBlock Classes="Hint" Text="{Binding Editor.DefaultPreview}"
                                                    IsVisible="{Binding !Editor.HasDefaultProblem}" />
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.DefaultProblem}"
                                                    IsVisible="{Binding Editor.HasDefaultProblem}" />
@@ -195,7 +189,7 @@
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="CurrentValueBox" Text="{Binding Editor.CurrentValue}" />
-                                        <TextBlock Classes="FieldHint" Text="{Binding Editor.CurrentPreview}"
+                                        <TextBlock Classes="Hint" Text="{Binding Editor.CurrentPreview}"
                                                    IsVisible="{Binding !Editor.HasCurrentProblem}" />
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.CurrentProblem}"
                                                    IsVisible="{Binding Editor.HasCurrentProblem}" />
