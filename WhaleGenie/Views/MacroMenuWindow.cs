@@ -188,8 +188,9 @@ public sealed class MacroMenuWindow : Window
             ColumnDefinitions = new ColumnDefinitions("28,Auto,*,Auto,Auto,Auto"),
             Margin = new Thickness(0),
             Cursor = TitleCursor,
-            Background = ThemeBrush.Of("SurfaceChrome") ?? Brushes.Transparent,
         };
+        // 标题栏底：**绑令牌**，不是取一次快照——换主题要跟着变。
+        ThemeBrush.Assign(title, BackgroundProperty, "SurfaceChrome");
         ToolTip.SetTip(title, Strings.Get("Menu.Drag"));
         title.PointerPressed += (_, e) =>
         {

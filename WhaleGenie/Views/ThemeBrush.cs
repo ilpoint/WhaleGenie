@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 
 namespace WhaleGenie.Views;
@@ -16,6 +17,27 @@ namespace WhaleGenie.Views;
 /// </summary>
 internal static class ThemeBrush
 {
+    /// <summary>
+    /// 取一支画笔的**快照**。**不随主题切换更新**——只用于"不能绑定的地方"：
+    /// `Pen`、`DrawingContext`、几何填充这类需要一个 `IBrush` 对象本身的场合。
+    ///
+    /// **要设属性请用 <see cref="Assign"/>**（`DynamicResource`），那条路会跟着主题变。
+    ///
+    /// 查找必须带 `ActualThemeVariant`：令牌都在 `Tokens.axaml` 的 `ThemeDictionaries` 里，
+    /// **不带 variant 的重载取不到它们**——这个函数为此静默失败过很久（返回 `null`，
+    /// 而调用方的兜底把它盖住了，于是"窗有底色"看起来正常）。
+    /// </summary>
     internal static IBrush? Of(string key)
-        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
+        => Application.Current is { } app
+            && app.TryFindResource(key, app.ActualThemeVariant, out var found)
+            && found is IBrush brush
+                ? brush
+                : null;
+
+    /// <summary>
+    /// 把一个令牌**绑到属性上**（`DynamicResource` 语义）：和 axaml 窗走同一条路，
+    /// **换主题会跟着变**。设属性的场合一律用这个，不要用 <see cref="Of"/>。
+    /// </summary>
+    internal static void Assign(AvaloniaObject target, AvaloniaProperty property, string key)
+        => target.Bind(property, new DynamicResourceExtension(key));
 }

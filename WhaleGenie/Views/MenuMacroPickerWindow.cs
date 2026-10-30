@@ -32,7 +32,7 @@ public sealed class MenuMacroPickerWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = title ?? Strings.Get("Menu.PickMacro");
-        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
+        ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 
         // 外观交给 `TextBox.Field`；`Height = 36` 是"搜索框比标准字段高一档"，是布局不是外观。
         _search = new TextBox

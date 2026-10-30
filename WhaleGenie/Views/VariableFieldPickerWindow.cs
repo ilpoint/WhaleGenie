@@ -25,7 +25,7 @@ public sealed class VariableFieldPickerWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
 
         // 窗自己的底：这是"窗体"属性，不是某一类控件的外观，所以拿令牌而不是类（规则 7）。
-        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
+        ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 
         var list = new ListBox
         {
