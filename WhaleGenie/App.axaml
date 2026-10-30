@@ -46,25 +46,25 @@
              expression builder's list of functions each stand one on screen, and one control with
              one look is worth a style above both windows rather than two that drift apart. -->
         <Style Selector="ListBox.Dock ListBoxItem">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="11,3" />
             <Setter Property="Margin" Value="0,0,6,6" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <!-- What comes up when the pointer rests on something. It is painted here rather than in a
              window because a tooltip is not drawn inside the window it belongs to: it stands in a
              popup of its own, where the window's styles do not reach it. -->
         <Style Selector="ToolTip">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="10,9" />
