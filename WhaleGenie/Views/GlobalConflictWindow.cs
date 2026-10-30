@@ -43,7 +43,7 @@ public sealed class GlobalConflictWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("GlobalConflict.Title");
-        Background = ThemeBrush.Of("SurfaceWindow");
+        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
 
         var heading = new TextBlock
         {

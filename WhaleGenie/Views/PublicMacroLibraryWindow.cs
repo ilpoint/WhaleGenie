@@ -46,7 +46,7 @@ public sealed class PublicMacroLibraryWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("PublicMacroManager.Title");
-        Background = Brush("SurfaceWindow");
+        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
 
         var newButton = Button(Strings.Get("PublicMacroManager.New"), OnNew);
         var editButton = Button(Strings.Get("PublicMacroManager.Edit"), OnEdit);

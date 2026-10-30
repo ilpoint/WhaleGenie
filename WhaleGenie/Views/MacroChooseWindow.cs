@@ -65,7 +65,7 @@ public sealed class MacroChooseWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get(Head);
-        Background = ThemeBrush.Of("SurfaceWindow");
+        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
 
         var heading = new TextBlock
         {

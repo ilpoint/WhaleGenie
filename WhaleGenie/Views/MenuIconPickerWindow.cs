@@ -49,7 +49,7 @@ public sealed class MenuIconPickerWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("Menu.PickIcon");
-        Background = Brush("SurfaceWindow");
+        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
 
         _searchDelay = new DispatcherTimer(TimeSpan.FromMilliseconds(180),
             DispatcherPriority.Input, (_, _) => ApplySearch(resetPage: true));
