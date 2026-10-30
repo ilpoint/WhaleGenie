@@ -587,7 +587,7 @@
                 <DataTemplate x:DataType="vm:WatchedVariable">
                     <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,3" ColumnSpacing="6"
                           ToolTip.Tip="{Binding Display}">
-                        <TextBlock Text="{Binding Display}" FontSize="12" Foreground="#BFE3BF"
+                        <TextBlock Text="{Binding Display}" FontSize="12" Classes="Code"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
                                    Foreground="#D6C08A" />

@@ -80,7 +80,7 @@
                                    TextWrapping="Wrap" />
                         <TextBlock Name="OutcomeLine" FontSize="12" Foreground="#E0B080"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="NoteLine" FontSize="12" Foreground="#BFE3BF"
+                        <TextBlock Name="NoteLine" FontSize="12" Classes="Code"
                                    TextWrapping="Wrap" IsVisible="False" />
                     </StackPanel>
                 </Grid>
@@ -146,7 +146,7 @@
                           Content="{Binding [Look.LabelsOnPicture], Source={x:Static loc:Strings.Current}}"
                           ToolTip.Tip="{Binding [Look.LabelsHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Grid.Column="6" Name="Status" Margin="14,0,10,0"
-                           VerticalAlignment="Center" FontSize="12" Foreground="#BFE3BF"
+                           VerticalAlignment="Center" FontSize="12" Classes="Code"
                            TextTrimming="CharacterEllipsis" />
                 <Button Grid.Column="7" Name="SaveRaw" Classes="Secondary" Margin="0,0,8,0"
                         Click="OnSaveRaw"
