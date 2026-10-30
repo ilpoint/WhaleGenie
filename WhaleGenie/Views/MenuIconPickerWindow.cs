@@ -225,7 +225,7 @@ public sealed class MenuIconPickerWindow : Window
                         Width = 30,
                         Height = 30,
                         Data = option.Kind,
-                        Stroke = Brush("TextPrimary"),
+                        Stroke = ThemeBrush.Of("TextPrimary"),
                         StrokeThickness = 1.5,
                         HorizontalAlignment = HorizontalAlignment.Center,
                     },
@@ -325,6 +325,4 @@ public sealed class MenuIconPickerWindow : Window
         }
     }
 
-    private static IBrush? Brush(string key)
-        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 }

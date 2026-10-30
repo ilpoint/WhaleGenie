@@ -99,11 +99,6 @@ public sealed class VariableFieldPickerWindow : Window
         };
     }
 
-    private static IBrush? Brush(string key)
-        => Application.Current?.Resources.TryGetResource(key, Application.Current.ActualThemeVariant, out var value) == true
-            ? value as IBrush
-            : null;
-
     private static T Place<T>(T control, int row)
         where T : Control
     {

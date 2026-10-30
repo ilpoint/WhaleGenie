@@ -334,8 +334,6 @@ public sealed class PublicMacroLibraryWindow : Window
         return button;
     }
 
-    private static IBrush? Brush(string key)
-        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

@@ -54,7 +54,7 @@ public class ActionEditorWindow : Window
         ExtendClientAreaToDecorationsHint = true;
         ExtendClientAreaTitleBarHeightHint = -1;
         WindowDecorations = WindowDecorations.BorderOnly;
-        Background = (IBrush?)Application.Current?.Resources["AppBackdrop"] ?? Brushes.Transparent;
+        Background = ThemeBrush.Of("SurfaceWindow") ?? Brushes.Transparent;
 
         _view = new ActionEditorView(existing, actions, variables, macros, presetKey, assetFolder,
             steps, newStepId);

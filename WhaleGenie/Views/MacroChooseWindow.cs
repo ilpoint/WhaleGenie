@@ -277,8 +277,6 @@ public sealed class MacroChooseWindow : Window
         _note.IsVisible = true;
     }
 
-    private static IBrush? Brush(string key)
-        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

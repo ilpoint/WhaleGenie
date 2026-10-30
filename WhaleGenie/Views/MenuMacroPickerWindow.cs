@@ -152,6 +152,4 @@ public sealed class MenuMacroPickerWindow : Window
         }
     }
 
-    private static IBrush? Brush(string key)
-        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 }
