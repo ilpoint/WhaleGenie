@@ -20,43 +20,6 @@
     </Design.DataContext>
 
     <Window.Styles>
-        <Style Selector="ComboBox.LanguageSelect">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="10,6" />
-            <Setter Property="Width" Value="240" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-        </Style>
-        <Style Selector="Button.RootTab">
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="20,0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="BorderThickness" Value="0,0,0,2" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="CornerRadius" Value="0" />
-        </Style>
-        <Style Selector="Button.RootTab.On">
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-        </Style>
-        <Style Selector="Button.SideTab">
-            <Setter Property="Height" Value="34" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-        </Style>
-        <Style Selector="Button.SideTab.On">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-        </Style>
         <Style Selector="Border.Section">
             <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="6" />
@@ -82,14 +45,14 @@
 
         <Grid Grid.Row="1" Background="{DynamicResource AppDock}" ColumnDefinitions="*,*,*"
               Margin="14,8,14,0">
-            <Button Grid.Column="0" Name="SystemRootButton" Classes="RootTab"
-                    Classes.On="{Binding IsSystemRoot}"
+            <Button Grid.Column="0" Name="SystemRootButton" Classes="Tab Root"
+                    Classes.selected="{Binding IsSystemRoot}"
                     Content="{Binding [Settings.Root.System], Source={x:Static loc:Strings.Current}}" />
-            <Button Grid.Column="1" Name="TriggersRootButton" Classes="RootTab"
-                    Classes.On="{Binding IsTriggersRoot}"
+            <Button Grid.Column="1" Name="TriggersRootButton" Classes="Tab Root"
+                    Classes.selected="{Binding IsTriggersRoot}"
                     Content="{Binding [Settings.Root.Triggers], Source={x:Static loc:Strings.Current}}" />
-            <Button Grid.Column="2" Name="AppearanceRootButton" Classes="RootTab"
-                    Classes.On="{Binding IsAppearanceRoot}"
+            <Button Grid.Column="2" Name="AppearanceRootButton" Classes="Tab Root"
+                    Classes.selected="{Binding IsAppearanceRoot}"
                     Content="{Binding [Settings.Root.Appearance], Source={x:Static loc:Strings.Current}}" />
         </Grid>
 
@@ -97,27 +60,27 @@
             <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
                 <StackPanel Spacing="3">
                     <StackPanel IsVisible="{Binding IsSystemRoot}">
-                        <Button Name="GeneralNavButton" Classes="SideTab"
-                                Classes.On="{Binding IsGeneralPage}"
+                        <Button Name="GeneralNavButton" Classes="Tab Side"
+                                Classes.selected="{Binding IsGeneralPage}"
                                 Content="{Binding [Settings.Nav.General], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="CaptureNavButton" Classes="SideTab"
-                                Classes.On="{Binding IsCapturePage}"
+                        <Button Name="CaptureNavButton" Classes="Tab Side"
+                                Classes.selected="{Binding IsCapturePage}"
                                 Content="{Binding [Settings.Nav.Capture], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="DevicesNavButton" Classes="SideTab"
-                                Classes.On="{Binding IsDevicesPage}"
+                        <Button Name="DevicesNavButton" Classes="Tab Side"
+                                Classes.selected="{Binding IsDevicesPage}"
                                 Content="{Binding [Settings.Nav.Devices], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                     <StackPanel IsVisible="{Binding IsTriggersRoot}">
-                        <Button Name="MenuLauncherNavButton" Classes="SideTab"
-                                Classes.On="{Binding IsMenuLauncherPage}"
+                        <Button Name="MenuLauncherNavButton" Classes="Tab Side"
+                                Classes.selected="{Binding IsMenuLauncherPage}"
                                 Content="{Binding [Settings.Nav.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="WindowRulesNavButton" Classes="SideTab"
-                                Classes.On="{Binding IsWindowRulesPage}"
+                        <Button Name="WindowRulesNavButton" Classes="Tab Side"
+                                Classes.selected="{Binding IsWindowRulesPage}"
                                 Content="{Binding [Settings.Nav.WindowRules], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                     <StackPanel IsVisible="{Binding IsAppearanceRoot}">
-                        <Button Name="ThemeNavButton" Classes="SideTab"
-                                Classes.On="{Binding IsThemePage}"
+                        <Button Name="ThemeNavButton" Classes="Tab Side"
+                                Classes.selected="{Binding IsThemePage}"
                                 Content="{Binding [Settings.Nav.Theme], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </StackPanel>
@@ -129,7 +92,7 @@
                         <StackPanel>
                             <TextBlock Classes="FieldLabel"
                                        Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
-                            <ComboBox Classes="LanguageSelect" ItemsSource="{Binding Languages}"
+                            <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding Languages}"
                                       SelectedItem="{Binding SelectedLanguage}" />
                             <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
@@ -169,13 +132,13 @@
                             <StackPanel>
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="LanguageSelect" ItemsSource="{Binding WindowWays}"
+                                <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowWays}"
                                           SelectedItem="{Binding SelectedWindowWay}" />
                                 <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.CaptureWindowHint], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
                                            Text="{Binding [Settings.CaptureScreen], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="LanguageSelect" ItemsSource="{Binding ScreenWays}"
+                                <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding ScreenWays}"
                                           SelectedItem="{Binding SelectedScreenWay}" />
                                 <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
@@ -304,7 +267,7 @@
                         <StackPanel>
                             <TextBlock Classes="FieldLabel"
                                        Text="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}" />
-                            <ComboBox Name="ThemeSelect" Classes="LanguageSelect"
+                            <ComboBox Name="ThemeSelect" Classes="Field" Width="240" HorizontalAlignment="Left"
                                       ItemsSource="{Binding ThemeOptions}"
                                       SelectedItem="{Binding SelectedTheme}" />
                             <Button Name="CustomizeThemeButton" Classes="Secondary" Height="32"
