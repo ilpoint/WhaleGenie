@@ -1058,7 +1058,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["ColorMatch.Matches"] = "Color Matches",
         ["ColorMatch.NotMatches"] = "Color Not Matches",
 
-        ["Palette.Add"] = "Add new action (Insert)",
         ["Palette.Undo"] = "Undo the last change (Ctrl + Z)",
         ["Palette.Redo"] = "Redo the change that was undone (Ctrl + Y)",
         ["Palette.Edit"] = "Edit the selected step (F2 or double-click)",
@@ -1111,10 +1110,10 @@ public sealed class Strings : INotifyPropertyChanged
         // ---------------------------------------------------------- add action
         ["Add.Title"] = "Add Action",
         ["Add.EditTitle"] = "Edit Action",
-        ["Add.SelectAction"] = "Select Action",
         ["Add.SharedPositionHint"] = "Press Alt + X to take the pointer's position for both fields.",
         ["Add.NoSelection"] = "No action selected",
-        ["Add.SelectHint"] = "Pick an action from the list to see the parameters it needs.",
+        ["Add.SelectHint"] = "This window has no action yet: close it and drop a card from the "
+            + "library where the step should go.",
         ["Add.Page.Base"] = "Basics",
         ["Add.Page.Advanced"] = "Advanced",
         ["Add.Page.Returns"] = "Returns",
@@ -1127,7 +1126,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JsonPlaceholder"] = "// Select an action to preview its JSON node",
         ["Add.NoParameters"] = "This action takes no parameters.",
         ["Add.Cancel"] = "Cancel",
-        ["Add.ClearForm"] = "Clear",
         ["Add.Commit"] = "Add Step",
         ["Add.CommitEdit"] = "Save Step",
         ["Add.SelectFirst"] = "Select an action first.",
@@ -1151,18 +1149,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Unit.s"] = "s",
         ["Add.Unit.min"] = "min",
         ["Add.Unit.h"] = "h",
-        ["Add.ActionGroup"] = "{0} ({1})",
-        ["Add.RecentlyUsed"] = "Recently used",
-        ["Add.GameSection"] = "For game macros",
-        ["Add.GameSectionNote"] = "What a game macro is written out of: what the screen shows, "
-            + "what it says, what the hands do, and the things around the game.",
-        ["Add.FurtherSection"] = "Further out",
-        ["Add.FurtherSectionNote"] = "The rest: windows in other programs, pages, the clipboard "
-            + "and files.",
-        ["Add.Blocks"] = "Blocks",
-        ["Add.BlocksNote"] = "These are the shapes a task is built from: what the run does when it "
-            + "reaches them. The trigger's \"repeat while held\" is a separate setting: it starts "
-            + "the whole macro over again.",
         ["Add.SearchAction"] = "Search: keys, names, or what an action does",
         ["Add.NoActionFound"] = "Nothing in the catalogue matches that.",
         ["Add.AllActions"] = "All actions",
@@ -3011,7 +2997,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["ColorMatch.Matches"] = "颜色匹配",
         ["ColorMatch.NotMatches"] = "颜色不匹配",
 
-        ["Palette.Add"] = "添加新动作 (Insert)",
         ["Palette.Undo"] = "撤销上一步操作 (Ctrl + Z)",
         ["Palette.Redo"] = "恢复被撤销的操作 (Ctrl + Y)",
         ["Palette.Edit"] = "编辑选中的步骤（F2 或双击）",
@@ -3063,10 +3048,9 @@ public sealed class Strings : INotifyPropertyChanged
         // ---------------------------------------------------------- add action
         ["Add.Title"] = "添加动作",
         ["Add.EditTitle"] = "编辑动作",
-        ["Add.SelectAction"] = "选择动作",
         ["Add.SharedPositionHint"] = "按 Alt + X 可把鼠标当前位置同时填入这两项。",
         ["Add.NoSelection"] = "尚未选择动作",
-        ["Add.SelectHint"] = "从列表中选择一个动作，查看它需要填写的参数。",
+        ["Add.SelectHint"] = "这个窗口还没有动作：关掉它，把动作库里的一张卡片拖到这一步该在的位置。",
         ["Add.Page.Base"] = "基础设置",
         ["Add.Page.Advanced"] = "高级设置",
         ["Add.Page.Returns"] = "返回值",
@@ -3077,7 +3061,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JsonPlaceholder"] = "// 选择一个动作以预览它的 JSON 节点",
         ["Add.NoParameters"] = "这个动作不需要参数。",
         ["Add.Cancel"] = "取消",
-        ["Add.ClearForm"] = "清空",
         ["Add.Commit"] = "添加步骤",
         ["Add.CommitEdit"] = "保存步骤",
         ["Add.SelectFirst"] = "请先选择一个动作。",
@@ -3098,16 +3081,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Unit.s"] = "秒",
         ["Add.Unit.min"] = "分",
         ["Add.Unit.h"] = "时",
-        ["Add.ActionGroup"] = "{0}（{1}）",
-        ["Add.RecentlyUsed"] = "最近使用",
-        ["Add.GameSection"] = "游戏常用",
-        ["Add.GameSectionNote"] = "写游戏宏用得最多的几组：画面能看到什么、上面写着什么、"
-            + "手上正在做什么，以及游戏周边的内容。",
-        ["Add.FurtherSection"] = "进阶",
-        ["Add.FurtherSectionNote"] = "其余几组：别的程序里的窗口、网页、剪贴板和文件。",
-        ["Add.Blocks"] = "流程块",
-        ["Add.BlocksNote"] = "这些是构成任务流程的骨架：宏执行到此处会按它的设置运行。触发方式中的"
-            + "“按住期间循环（长按）”与此无关，那是指整个宏反复重新执行。",
         ["Add.SearchAction"] = "搜索：按键、名称或作用",
         ["Add.NoActionFound"] = "目录里没有匹配的动作。",
         ["Add.AllActions"] = "全部动作",
