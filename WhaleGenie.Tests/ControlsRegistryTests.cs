@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using Xunit.Abstractions;
 
 namespace WhaleGenie.Tests;
 
@@ -18,6 +19,10 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ControlsRegistryTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ControlsRegistryTests(ITestOutputHelper output) => _output = output;
+
     [Fact]
     public void Every_class_paints_its_own_hover_or_is_registered()
     {
@@ -95,6 +100,45 @@ public class ControlsRegistryTests
     /// does not always name its keys after the control — the text box's are <c>TextControl*</c> — so
     /// the prefix is written out rather than guessed, and a guess that is wrong shows up here.
     /// </summary>
+    /// <summary>
+    /// 登记表 → 库：**每一条 `STATIC` / `LAYER1` 都得有对应的选择器。**
+    ///
+    /// 登记表是文件开头那段文本，它声明"这些类是词表的一部分"。此前**没有任何检查确认过这件事**，
+    /// 于是"幽灵登记"不会自己暴露：`STATIC X` 写了、库里没有 `X`，读的人以为词表里有它。
+    ///
+    /// **反方向（库里有、清单里没有）不查**，因为那不是错：自己画 hover 的类**本来就不需要登记**
+    /// （登记是给"四态取自层 1"的类用的）。那条规则由
+    /// `Every_class_paints_its_own_hover_or_is_registered` 管——**两条合起来才是完整的**：
+    /// 那一条管"该登记而没登记"，这一条管"登记了却不存在"。
+    ///
+    /// 只报告不失败：幽灵登记要先判"是笔误还是那类被删了"。
+    /// </summary>
+    [Fact]
+    public void Every_registry_line_names_a_class_the_file_actually_styles()
+    {
+        var controls = Read("Controls.axaml");
+
+        // `STATE selected` 是**裸词**（它挂在别的类上），不是类名，所以不参与比对。
+        var declared = Entries(controls, "STATIC").Keys
+            .Concat(Entries(controls, "LAYER1").Keys)
+            .Where(name => name.Contains('.', StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var styled = Selectors(controls)
+            .Select(selector => selector.Split(':')[0].Split(' ')[0])
+            .ToHashSet(StringComparer.Ordinal);
+
+        var ghosts = declared.Where(name => !styled.Contains(name))
+            .OrderBy(name => name, StringComparer.Ordinal).ToList();
+
+        foreach (var name in ghosts)
+        {
+            _output.WriteLine($"registered but never styled: {name}");
+        }
+
+        _output.WriteLine($"ghosts {ghosts.Count}, registered {declared.Count}");
+    }
+
     private static Dictionary<string, string> Entries(string xaml, string kind)
     {
         var entries = new Dictionary<string, string>(StringComparer.Ordinal);

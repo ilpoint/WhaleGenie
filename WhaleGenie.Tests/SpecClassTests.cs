@@ -28,7 +28,7 @@ public class SpecClassTests
     private static readonly HashSet<string> Vocabulary = new(StringComparer.Ordinal)
     {
         // States: things a control is, not colours it can be.
-        "selected", "chosen", "problem", "Rejected", "Occupied", "Current",
+        "selected", "chosen", "problem", "Rejected", "Occupied", "Current", "Picked", "DropTarget",
 
         // Variants: colour tiers a family offers.
         "Success", "Warning", "Danger", "Info", "Disabled",
