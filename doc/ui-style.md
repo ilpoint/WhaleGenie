@@ -539,6 +539,75 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 的窗口不加 `CornerRadius`（会露黑角）。选区描边用双色（外 `PickerEdgeDark` + 内 `PickerEdgeLight`），
 保证在任意截图上可见。
 
+## 缺变体：六档与三条规则
+
+六档全是**几何**，没有一支新颜色。每档四件事：**要区分什么 / 每档定义 / 落在哪 / 少一档会怎样**——
+第四条是它存在的理由，写不出就不用立。
+
+### A · 可点的方块——按**角色**分，不按尺寸排档
+
+- **要区分什么**：这一格**对谁做动作**——对这张卡 / 对整个视图 / 对内容。
+- **每档定义**（三个角色，**互不派生**）：
+  `Button.Ghost` 24×24（对卡做动作）· `Button.Rail` 48×50（切换视图，图标上文字下）·
+  `Button.Rail` 之外的 `.Square` 80×80（挑内容，图标 22 居中、无文字、`RadiusContainer`、**1px `BorderSubtle`**）。
+- **落在哪**：`MainWindow` 卡片右上三钮（Ghost）· `ActionPaletteView` 左栏（Rail）· `MenuIconPicker` 图标砖（Square）。
+- **少一档会怎样**：图标砖挤进 48×50，22px 图标 + 8 内距放不下视觉重心；反之给 26 也排一档，则把"对卡做动作"
+  写成了"小一号内容砖"。
+- **为什么必须 1px `BorderSubtle`**：80 方砖若用 `SurfaceCard` 作底，与浅色面板对比只有 **1.07**——**没边就分不开**。
+
+> **同角色只许一档。** 真正要防的不是这三个尺寸，是**第四个**：新增"可点方块"必须先说它是哪个角色，
+> 已存在的角色只能用该角色那一档。
+
+### B · 工具栏上的文字钮——**有没有底**
+
+- **要区分什么**：这个文字钮**在主动作区还是框架区**。
+- **每档定义**：框架区 = `Button.Chrome`（静息透明、hover `OverlayHover`）；主动作区 = `.Labeled.Filled`
+  （H24 · `PadControl` · `RadiusControl` · `UiBody` · 底 `SurfaceControl` · **1px `BorderControl`**）。
+- **落在哪**：标题栏四钮（Chrome）· `LabeledToolButton`（Filled）。
+- **少一档会怎样**：工具栏上的文字钮只能透明，与标题栏一样，读不出"这里有底、可点"。
+- **为什么 1px 边是硬要求**：`SurfaceControl`(亮 `#E4E1DB`) 与窗底 `#FBFAF8` 对比 **1.12**——**少这一笔，
+  浅色下这一档就退化成透明的 A 档**。这是唯一一处"少一笔就失效"的档。
+
+### C · 可点的行——**卡还是行**
+
+- **要区分什么**：这一条是浮在面上的卡，还是列表里的一行。
+- **每档定义**：`Border.Card`（有 1px `BorderSubtle`，浮起）· `Border.Row`（**无边框** · `PadRow`(8,4) ·
+  `RadiusControl` · hover 底 `OverlayHover`）。
+- **落在哪**：`MacroEditor` 的卡片（Card）· `LookWindow` 的 `MarkRow` 那类（Row）。
+- **少一档会怎样**：无边框行只能用 Card，密集列表出现一片格子线，行与行之间的"同一组"读不出来。
+- **两通道都要（不合并）**：`.Picked` 改**底** `AccentSurface` + 左 2px `AccentText`；`.DropTarget` 改**整圈
+  1px 边** `AccentText`。**必须能同时渲染**——见下面那条作废。
+
+> **作废（原判：`.picked` 与 `.drop` 是同一概念，合并为 `.Target`）。** 当时判的依据是"语义相近"，
+> 而**两个语义相近的状态可以同时存在**——已选的行同时也是可放置的目标——**那它们就需要两个通道**。
+> 合并的后果是拖拽时把"可放置"读成"已选"，用户放错位置：**这是误操作，不是观感。**
+
+### D · 可点的分组头——**能不能点**
+
+- **要区分什么**：这个分组标题**能不能点**。
+- **每档定义**：不可点 = `TextBlock.GroupHeader`（纯文字）；可点 = `Button.GroupToggle`
+  （全宽 · `PadChip` · `RadiusControl` · 透明底 · 左对齐 · `UiBodySmall` 600 · hover `SurfaceField`）。
+- **落在哪**：`ActionEditorView` 的分组头。
+- **少一档会怎样**：分组头只能借用文字标题，于是不可点、不能折叠。
+
+### E · 等宽与颜色正交——`TextBlock.Mono`
+
+- **要区分什么**：等宽**要不要同时决定颜色**。
+- **每档定义**：`TextBlock.Mono` 只设 `FontFamily` = `UiCodeFont`，**不设 `Foreground`**。
+- **落在哪**：任何"等宽 + 主色"的地方（上一轮为此手写 `FontFamily` 绕了三次）。
+- **少一档会怎样**：每处手写字体名，而 `TextBlock.Code` 把字体和颜色捆在一起——**这就是那三次绕行的来源**。
+
+### F · 窄滚动条——**暂缓**（判据比这一档本身有用）
+
+- **要区分什么**：滚动条要不要窄。
+- **每档定义**（待立）：宽 12、拇指视觉宽 8、`RadiusControl`。
+- **落在哪**：目前只有 `VariableWall` 一处 `/template/ ScrollBar#PART_VerticalScrollBar` 局部覆盖。
+- **为什么暂缓**：**只有一个使用者时，它就是例外。** 等第二个窗口要窄条时再立——一个令牌只有一个使用者，
+  只会多一个要解释的名字。
+- **顺带一条 B 类规则**：**视觉宽 ≠ 命中宽。** 视觉 < 12px 的可交互元素，命中区必须补到 **≥12×12**
+  （做法：条宽 12、拇指视觉 8，差的 4px 是透明命中区；不要反过来把整条压到 8）。
+  判据：**能不能不犹豫地按下**——需要瞄准就已经失败了。
+
 ## 评审口径
 
 `Controls.axaml` 落地后逐条核。第一条是方法，后面每一条都必须是它要求的形状：
