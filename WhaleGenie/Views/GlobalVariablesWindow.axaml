@@ -24,8 +24,13 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
+        <!--
+          字段级错误：红 `#E06C75` 不在词表里，换成 `Danger` 令牌（琥珀 `#E0A23C` 才是 `Warning`，
+          那是"提醒、可继续"，这是"必须改"——**同名的类，不同色的语义**）。
+          类仍留本窗：词表暂时没有"字段级错误"这一档；第二个窗口出现同形态时升 `TextBlock.FieldError`。
+        -->
         <Style Selector="TextBlock.FieldProblem">
-            <Setter Property="Foreground" Value="#E06C75" />
+            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
