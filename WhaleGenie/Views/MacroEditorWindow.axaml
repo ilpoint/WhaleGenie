@@ -108,10 +108,15 @@
             <Setter Property="BorderThickness" Value="2,0,0,0" />
             <Setter Property="Padding" Value="8,1" />
         </Style>
+        <!--
+          块的尾标：10.5 是漂移，按裁定回落到 `UiCaption`(11)。**字号引令牌但类留在本窗**——
+          词汇表里 11px 的两个类（`ColumnHeader` / `SectionHeader`）都是 600 字重，而这个尾标是 400，
+          并过去不是"回落"是"加重"。它也没有第二个用处，所以先当例外记着，等词汇表真需要再加。
+          `VerticalAlignment` 是布局，留在元素上。
+        -->
         <Style Selector="TextBlock.StepFootLabel">
-            <Setter Property="Foreground" Value="#8A8A8A" />
-            <Setter Property="FontSize" Value="10.5" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
         </Style>
 
         <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
@@ -1103,7 +1108,7 @@
                                        the block" never read as the same place. -->
                                   <Border Classes="StepFoot" Margin="{Binding Indent}"
                                           IsVisible="{Binding IsFoot}">
-                                      <TextBlock Classes="StepFootLabel" Text="{Binding FootLabel}" />
+                                      <TextBlock Classes="StepFootLabel" VerticalAlignment="Center" Text="{Binding FootLabel}" />
                                   </Border>
                               </Panel>
                            </DataTemplate>
