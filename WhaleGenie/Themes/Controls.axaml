@@ -906,6 +906,10 @@
     <!--
       拖动落点的目标卡：不透明的强调浅底 + 强调描边。不透明是有意的——它会压在别的内容上，
       半透明底会让底下的字透出来。
+
+      **"不透明"说的是"整张卡片变成放置区"这一种表达**。另一种是"细边框落点标记"——它在两行之间
+      画一道亮边，半透明正是为了让底下的内容看得见（`MacroEditorWindow` 的 `Border.DropTarget`
+      就是这一种）。两者不是矛盾，是两种落点：整卡接管 vs 插一条缝。
     -->
     <Style Selector="Border.Card.Target">
         <Setter Property="Padding" Value="{DynamicResource PadRow}" />
