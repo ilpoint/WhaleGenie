@@ -102,7 +102,7 @@
              **悬停转危红**，"这一下会删掉东西"要看得出来。
              原先它的样式定义在 `RunWindow` 里，够不着本窗，所以这个钮一直露着 Fluent 默认外观，
              而测试按类名找得到它、点得动它，于是没人发现。 -->
-        <Style Selector="Button.Ghost.RemoveButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Style Selector="Button.Ghost.RemoveButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
         </Style>
 
@@ -204,13 +204,13 @@
         <Style Selector="Button.Icon.primary">
             <Setter Property="Width" Value="44" />
         </Style>
-        <Style Selector="Button.Icon.primary /template/ ContentPresenter#PART_ContentPresenter">
+        <Style Selector="Button.Icon.primary /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
-        <Style Selector="Button.Icon.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Style Selector="Button.Icon.primary:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
         </Style>
-        <Style Selector="Button.Icon.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Style Selector="Button.Icon.primary:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
         </Style>
         <Style Selector="Button.Icon.primary views|IconView">

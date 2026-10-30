@@ -171,13 +171,13 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Icon:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
     </Style>
-    <Style Selector="Button.Icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Icon:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
     </Style>
-    <Style Selector="Button.Icon:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Icon:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
 
@@ -210,15 +210,15 @@
     <Style Selector="Button.Chrome.Icon.Quiet">
         <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
     </Style>
-    <Style Selector="Button.Chrome.Icon.Quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome.Icon.Quiet:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
     </Style>
 
-    <Style Selector="Button.Chrome.Icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome.Icon:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
-    <Style Selector="Button.Chrome.Icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome.Icon:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
     </Style>
 
@@ -228,7 +228,7 @@
         <Setter Property="Padding" Value="{DynamicResource PadControl}" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
     </Style>
-    <Style Selector="Button.Chrome.Labeled:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome.Labeled:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
 
@@ -241,10 +241,10 @@
         <Setter Property="Width" Value="16" />
         <Setter Property="Height" Value="16" />
     </Style>
-    <Style Selector="Button.Ghost.Tiny:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Ghost.Tiny:pointerover /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
     </Style>
-    <Style Selector="Button.Ghost.Tiny:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Ghost.Tiny:pressed /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
     </Style>
 
@@ -373,14 +373,14 @@
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Field:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Field:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
     </Style>
-    <Style Selector="Button.Field:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Field:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
     </Style>
-    <Style Selector="Button.Field:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Field:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
@@ -393,7 +393,7 @@
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
-    <Style Selector="ToggleButton.Chip:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip:checked /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
@@ -413,16 +413,16 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="ToggleButton.Chip.Key:pointerover:not(:checked) /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip.Key:pointerover:not(:checked) /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
     </Style>
-    <Style Selector="ToggleButton.Chip.Key:pressed:not(:checked) /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip.Key:pressed:not(:checked) /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
     </Style>
-    <Style Selector="ToggleButton.Chip.Key:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip.Key:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
@@ -436,7 +436,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
     </Style>
-    <Style Selector="ToggleButton.Chip.Key:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip.Key:checked /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
     </Style>
 
@@ -459,16 +459,16 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Key:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Key:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
     </Style>
-    <Style Selector="Button.Key:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Key:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
         <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentFillPressed}" />
     </Style>
-    <Style Selector="Button.Key:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Key:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
@@ -612,13 +612,13 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
-<Style Selector="Button.Thumb:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+<Style Selector="Button.Thumb:pointerover /template/ ContentPresenter">
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
     </Style>
-<Style Selector="Button.Thumb:pressed /template/ ContentPresenter#PART_ContentPresenter">
+<Style Selector="Button.Thumb:pressed /template/ ContentPresenter">
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
     </Style>
-<Style Selector="Button.Thumb:disabled /template/ ContentPresenter#PART_ContentPresenter">
+<Style Selector="Button.Thumb:disabled /template/ ContentPresenter">
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
 
@@ -635,17 +635,17 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Primary:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentFillHover}" />
     </Style>
-    <Style Selector="Button.Primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Primary:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
         <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentFillPressed}" />
     </Style>
-    <Style Selector="Button.Primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Primary:disabled /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
@@ -738,7 +738,7 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Square:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Square:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
 
@@ -753,15 +753,15 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Ghost:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Ghost:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Ghost:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Ghost:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Ghost:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
 
@@ -780,15 +780,15 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Chrome:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Chrome:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Chrome:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Chrome:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
 
@@ -810,15 +810,15 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Tab.Root:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Root:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Tab.Root:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Root:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Tab.Root:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Root:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
     <Style Selector="Button.Tab.Root.selected">
@@ -845,14 +845,14 @@
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Tab.Side:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Side:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Tab.Side:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Side:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
     </Style>
-    <Style Selector="Button.Tab.Side:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Side:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
     <Style Selector="Button.Tab.Side.selected">
@@ -873,14 +873,14 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Tab.Inline.Solid:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Inline.Solid:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Tab.Inline.Solid:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Inline.Solid:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
     </Style>
-    <Style Selector="Button.Tab.Inline.Solid:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Inline.Solid:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
     <Style Selector="Button.Tab.Inline.Solid.selected">
@@ -902,15 +902,15 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Tab.Inline.Boxed:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Inline.Boxed:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
     </Style>
-    <Style Selector="Button.Tab.Inline.Boxed:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Inline.Boxed:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
     </Style>
-    <Style Selector="Button.Tab.Inline.Boxed:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Tab.Inline.Boxed:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
@@ -937,14 +937,14 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.Rail:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Rail:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
-    <Style Selector="Button.Rail:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Rail:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
     </Style>
-    <Style Selector="Button.Rail:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.Rail:disabled /template/ ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
     <Style Selector="Button.Rail.selected">

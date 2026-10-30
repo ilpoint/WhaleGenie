@@ -270,7 +270,8 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 - `StyleVocabularyTests`：可剥离的状态词/变体词是固定词表，与 `Controls.axaml` 头部的 `STATE`/`VARIANT` 登记断言一致。
 
 `/template/` 选择器是这套外观最脆的一处：它按**模板部件名**命中，模板换名字就静默失效（写下来不报错、也不生效）。
-改模板或换主题之前先确认部件名，`Button` 这类内容宿主在 Fluent 下叫 `PART_ContentPresenter`。
+所以颜色一律写成 `/template/ ContentPresenter`（只认类型，不认名字）；确实要按名字命中的，由
+`TemplatePartTests` 逐个实例化宿主、在视觉树里找那个部件——部件没了它就红，而不是等下一个人把鼠标压上去才发现。
 
 ## 八、持久化
 

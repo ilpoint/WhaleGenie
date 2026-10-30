@@ -25,6 +25,7 @@ pwsh build/site.ps1                              # 拼出介绍页 _site
 
 ```csharp
 #:property TargetFramework=net10.0-windows10.0.19041
+#:property JsonSerializerIsReflectionEnabledByDefault=true
 #:package Avalonia.Headless@12.1.2
 #:project C:/path/to/WhaleGenie/WhaleGenie.csproj
 
@@ -37,6 +38,8 @@ using WhaleGenie.Views;
 
 // 与 Program.BuildAvaloniaApp 对齐：真画笔（无头默认的假画笔截不出帧）+ 同一套字体。
 // 少了 WithInterFont，文字度量会和真机不同（中文多行会挤到一起）。
+// 少了上面第二行的 JsonSerializerIsReflectionEnabledByDefault，文件式程序默认关掉了反射式 JSON，
+// `ActionCatalog` 的静态构造会抛——凡是打开含动作的窗口（宏编辑器、动作编辑器）都会炸在这儿。
 AppBuilder.Configure<WhaleGenie.App>()
     .UseSkia()
     .WithInterFont()
