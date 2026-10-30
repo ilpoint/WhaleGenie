@@ -41,32 +41,6 @@ public partial class ActionEditorView : UserControl
     private IStorageProvider StorageProvider => TopLevel.GetTopLevel(this)?.StorageProvider
         ?? throw new InvalidOperationException("The form is not attached to a window.");
 
-    /// <summary>
-    /// True while the window-sized header is shown. The editor's inspector hides it, because the
-    /// pane it stands in already has a title and a close of its own.
-    /// </summary>
-    internal bool ShowHeader
-    {
-        set
-        {
-            FormHeader.IsVisible = value;
-            FormRoot.RowDefinitions[0].Height = value ? new GridLength(38) : new GridLength(0);
-        }
-    }
-
-    /// <summary>
-    /// True while the action list stands beside the fields. The inspector is narrower than a
-    /// window, so it chooses an action from its own bar and gives the whole pane to the fields.
-    /// </summary>
-    internal bool ShowPicker
-    {
-        set
-        {
-            PickerColumn.IsVisible = value;
-            FormBody.ColumnDefinitions[0].Width = value ? new GridLength(320) : new GridLength(0);
-        }
-    }
-
     /// <summary>Chooses the action whose fields the form shows.</summary>
     internal void SelectAction(string key) => (DataContext as AddActionViewModel)?.SelectAction(key);
     /// <summary>Raised when the form is finished with a step, or with nothing when it was cleared.</summary>
@@ -134,8 +108,19 @@ public partial class ActionEditorView : UserControl
 
     private IDeviceLayer? _devices;
 
+    /// <summary>
+    /// The XAML previewer's entry, and only that: the form is built holding no action and nothing
+    /// to choose from, because which action it is for and where that step goes is the editor's to
+    /// say. The program never builds the view this way — every window hands it the action.
+    /// </summary>
+    /// <remarks>
+    /// This exists because a XAML file reached without a public parameterless constructor is
+    /// reported as unreachable through the runtime loader (AVLN3001). The form is only ever built
+    /// by <see cref="InitializeComponent"/> with an action in hand, so the parameterless path is
+    /// for the previewer alone.
+    /// </remarks>
     public ActionEditorView()
-        : this(null, null, null, null, null, null)
+        : this(null, [], null, null, null, null)
     {
     }
 
@@ -158,35 +143,11 @@ public partial class ActionEditorView : UserControl
     internal IMacroLibrary? Macros { get; set; }
 
     /// <summary>
-    /// True while the window stays up from one step to the next, which is how the editor opens it:
-    /// a macro is a run of steps, and being taken back to the list to open the window again for
-    /// each one is the thing this saves.
-    /// </summary>
-    internal bool StaysOpen
-    {
-        get => Form?.StaysOpen ?? false;
-        set
-        {
-            if (Form is { } form)
-            {
-                form.StaysOpen = value;
-            }
-        }
-    }
-
-    /// <summary>
     /// Where a step written here goes. The editor takes it because only the editor knows what is
     /// picked in the list and what that place accepts; it answers null once the step is in the
     /// list, or what to say when the place would not take it.
     /// </summary>
     internal Func<MacroStep?, MacroStep, string?>? PlaceStep { get; set; }
-
-    /// <summary>
-    /// A name for the next step, minted by the editor. The window outlives one step, and two steps
-    /// of a macro are told apart by their names, so a name held from when the window opened would
-    /// be handed out twice.
-    /// </summary>
-    internal Func<string>? MintStepId { get; set; }
 
     /// <summary>
     /// What to do with a step somebody asked to be shown while filling a field in — the reverse
@@ -199,10 +160,10 @@ public partial class ActionEditorView : UserControl
     private AddActionViewModel? Form => DataContext as AddActionViewModel;
 
     /// <summary>
-    /// Opens the dialog, optionally preloaded with a step being edited and optionally
-    /// restricted to a catalogue subset, such as the condition actions.
+    /// Opens the dialog, optionally preloaded with a step being edited. <paramref name="actions"/>
+    /// is what the place a step is going accepts, which only the editor knows.
     /// </summary>
-    public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
+    public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
@@ -401,8 +362,8 @@ public partial class ActionEditorView : UserControl
 
     /// <summary>
     /// The form was finished with: it either holds a step to put somewhere, or nothing when the
-    /// user cleared it. A window opened for one step closes and hands the step back; the editor's
-    /// window stays up, so it is told where the step goes and starts again on the next one.
+    /// user cancelled. The window answers with it rather than staying up for the next one: the
+    /// editor places the step and opens the window again when another one is asked for.
     /// </summary>
     private void OnFormFinished(MacroStep? step)
     {
@@ -415,29 +376,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (!StaysOpen)
-        {
-            Finished?.Invoke(step);
-            return;
-        }
-
-        BeginStep(null);
-    }
-
-    /// <summary>
-    /// Starts the form again on a fresh step of the action it is already showing, under a name the
-    /// editor mints. This is what "that one is done" looks like in a window that does not close.
-    /// </summary>
-    internal void BeginStep(string? presetKey)
-    {
-        _editingStep = null;
-        ResetKeyPad();
-        Form?.Reset(MintStepId?.Invoke());
-
-        if (!string.IsNullOrEmpty(presetKey))
-        {
-            Form?.SelectAction(presetKey);
-        }
+        Finished?.Invoke(step);
     }
 
     /// <summary>Points the form at a step that is already in the list, so it can be changed.</summary>
@@ -447,16 +386,6 @@ public partial class ActionEditorView : UserControl
         ResetKeyPad();
         Form?.LoadFrom(step);
     }
-
-    /// <summary>
-    /// Takes what the editor knows about the place a step would go now: which actions that place
-    /// takes, and the names its fields may offer. Both change while the window is up, because the
-    /// list behind it is still being worked on.
-    /// </summary>
-    internal void Retarget(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<MacroCallable>? macros,
-        IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
-        => Form?.Retarget(actions, variables, macros, steps, assetFolder);
 
     /// <summary>
     /// The form has moved on to another step, so the keyboard is no longer writing into anything
@@ -933,26 +862,6 @@ public partial class ActionEditorView : UserControl
                 variables) is { } built)
         {
             draft.DefaultValue = built;
-        }
-    }
-
-    /// <summary>Folds one group of the action picker open or shut.</summary>
-    private void OnToggleActionGroup(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ActionGroupViewModel group }
-            && DataContext is AddActionViewModel viewModel)
-        {
-            viewModel.ToggleGroup(group);
-        }
-    }
-
-    /// <summary>Chooses the action whose card was clicked.</summary>
-    private void OnPickAction(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ActionCardViewModel card }
-            && DataContext is AddActionViewModel viewModel)
-        {
-            viewModel.SelectAction(card.Key);
         }
     }
 

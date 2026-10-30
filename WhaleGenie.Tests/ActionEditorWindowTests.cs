@@ -22,7 +22,6 @@ public class ActionEditorWindowTests
             var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             Assert.IsType<ActionEditorView>(window.Content);
             Assert.True(window.CanResize);
-            Assert.False(window.StaysOpen);
             Assert.Equal(WindowDecorations.BorderOnly, window.WindowDecorations);
             window.Close();
         });
@@ -45,20 +44,6 @@ public class ActionEditorWindowTests
             Assert.Equal("整理",
                 form.Parameters.Single(parameter => parameter.Definition.Name == "macro").Text);
             window.Close();
-        });
-    }
-
-    [Fact]
-    public void The_old_action_picker_can_be_hidden_when_the_library_already_chose_the_action()
-    {
-        Ui.Run(() =>
-        {
-            var view = new ActionEditorView();
-            view.ShowPicker = false;
-
-            Assert.False(view.FindControl<Grid>("PickerColumn")!.IsVisible);
-            Assert.Equal(0, view.FindControl<Grid>("FormBody")!
-                .ColumnDefinitions[0].Width.Value);
         });
     }
 

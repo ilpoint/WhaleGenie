@@ -187,9 +187,6 @@ public class MacroEditorWorkspaceTests
             Drag(list, DragDrop.DropEvent, transfer);
             Dispatcher.UIThread.RunJobs();
             var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
-            Assert.False(action.StaysOpen);
-            var actionView = Assert.IsType<ActionEditorView>(action.Content);
-            Assert.False(actionView.FindControl<Grid>("PickerColumn")!.IsVisible);
             var form = (AddActionViewModel)action.DataContext!;
             form.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();

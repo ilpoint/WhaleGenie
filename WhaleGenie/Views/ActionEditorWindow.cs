@@ -16,9 +16,9 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// The one window an action is written in. The macro editor opens it after a card is dropped, the
-/// run window opens it for a breakpoint condition, and pickers reuse the same form rather than
-/// growing a second action editor.
+/// The one window an action is written in. The macro editor opens it once it knows which action
+/// and where the step goes, so what stands in it is the fields of that one action rather than a
+/// catalogue to choose from.
 /// </summary>
 public class ActionEditorWindow : Window
 {
@@ -35,12 +35,7 @@ public class ActionEditorWindow : Window
     private readonly TaskCompletionSource<MacroStep?> _answer =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public ActionEditorWindow()
-        : this(null, null, null, null, null, null)
-    {
-    }
-
-    public ActionEditorWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
+    public ActionEditorWindow(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
@@ -145,17 +140,6 @@ public class ActionEditorWindow : Window
         set => _view.Macros = value;
     }
 
-    internal bool StaysOpen
-    {
-        get => _view.StaysOpen;
-        set => _view.StaysOpen = value;
-    }
-
-    internal bool ShowPicker
-    {
-        set => _view.ShowPicker = value;
-    }
-
     internal void SetMacroCall(string macroName)
     {
         _view.SelectAction("control.runMacro");
@@ -200,12 +184,6 @@ public class ActionEditorWindow : Window
         set => _view.PlaceStep = value;
     }
 
-    internal Func<string>? MintStepId
-    {
-        get => _view.MintStepId;
-        set => _view.MintStepId = value;
-    }
-
     internal Action<MacroStep>? LookAtStep
     {
         get => _view.LookAtStep;
@@ -214,12 +192,5 @@ public class ActionEditorWindow : Window
 
     internal IReadOnlyCollection<long> FramedWindows => _view.FramedWindows;
 
-    internal void BeginStep(string? presetKey) => _view.BeginStep(presetKey);
-
     internal void EditStep(MacroStep step) => _view.EditStep(step);
-
-    internal void Retarget(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<MacroCallable>? macros,
-        IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
-        => _view.Retarget(actions, variables, macros, steps, assetFolder);
 }

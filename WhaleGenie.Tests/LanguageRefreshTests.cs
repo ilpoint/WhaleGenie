@@ -30,23 +30,20 @@ public class LanguageRefreshTests
     }
 
     [Fact]
-    public void The_action_picker_relabels_its_dock_and_pages()
+    public void The_action_form_relabels_its_pages()
     {
         AddActionViewModel? form = null;
-        string? dock = null;
         string? page = null;
 
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
-            form = new AddActionViewModel();
-            dock = form.Categories[1].Label;
+            form = new AddActionViewModel(ActionCatalog.RunnableActions);
             page = form.Pages[0].Title;
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             form!.RefreshLanguage();
-            Assert.NotEqual(dock, form.Categories[1].Label);
             Assert.NotEqual(page, form.Pages[0].Title);
         }));
     }

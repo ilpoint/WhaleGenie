@@ -16,10 +16,6 @@
         x:DataType="vm:AddActionViewModel"
         Background="Transparent">
 
-    <Design.DataContext>
-        <vm:AddActionViewModel />
-    </Design.DataContext>
-
     <UserControl.Resources>
         <!-- Paints the swatch beside a colour parameter. -->
         <conv:HexColorToBrushConverter x:Key="HexBrush" />
@@ -964,52 +960,6 @@
                            IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
             </Grid>
         </DataTemplate>
-
-        <!-- One group of the action picker: a heading that opens and closes, and the actions
-             under it, laid out as a grid of cards. -->
-        <DataTemplate x:Key="ActionGroup" x:DataType="vm:ActionGroupViewModel">
-            <StackPanel Margin="0,0,0,2">
-                <!-- A heading that only divides the picker into parts: it says what the parts are
-                     for and holds nothing itself. -->
-                <TextBlock Classes="SectionHeader" Text="{Binding Title}"
-                           IsVisible="{Binding IsSection}" />
-
-                <Button Classes="GroupToggle" Click="OnToggleActionGroup"
-                        IsVisible="{Binding HasActions}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <views:IconView Width="10" Height="8" VerticalAlignment="Center" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.2" FitToBounds="True" Data="{Binding Caret}" />
-                        <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}"
-                                        StrokeThickness="1.4" FitToBounds="True" Data="{Binding Icon}"
-                                        VerticalAlignment="Center" IsVisible="{Binding HasIcon}" />
-                        <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-
-                <TextBlock Classes="Hint" Margin="22,3,10,0"
-                           TextWrapping="Wrap" Text="{Binding Note}"
-                           IsVisible="{Binding HasNote}" />
-
-                <ItemsControl ItemsSource="{Binding Actions}" IsVisible="{Binding IsOpen}"
-                              Margin="22,7,0,4">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ActionCardViewModel">
-                            <Button Classes="Secondary" Margin="0,0,6,6" Classes.selected="{Binding IsSelected}"
-                                    Click="OnPickAction"
-                                    ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="13"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </DataTemplate>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -1018,8 +968,6 @@
           表单前后缀：`±`、`%`、`按住`、`毫秒`、`间隔`。它们不是"次要文字"——单位要紧贴控件，
           附注可以离远，排版要求不同，所以不进库、留在这个窗口里。
         -->
-        <!-- A heading that divides the picker in two, rather than a group of actions: it is read
-             on the way past, so it is quieter and smaller than a group heading. -->
         <!-- The mark on a field that is read as one value: small, and in the colour the interface
              already uses for a name it made itself. -->
         <!--
@@ -1034,17 +982,6 @@
         </Style>
 
         <!-- The fold that keeps the settings an action can live without out of the way. -->
-
-        <!-- The heading of one group in the action picker: quiet, and the whole width of the list. -->
-        <!-- One action in the picker: a card holding its name, laid out a grid to a group. -->
-        <!-- The one the dialog is about reads as chosen, so the list on the left always says what
-             the fields on the right are fields of. -->
-        <!-- 被选中的次按钮**不是危险态**：`#3A2A22` 与 `DangerSurface` 值接近，语义完全不同。
-             选中态全仓只有一种表达——底 `AccentSurface`、边 `AccentFill`。 -->
-        <Style Selector="Button.Secondary.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-        </Style>
 
         <!-- One page of a step's settings. -->
         <!-- Variable name: free text with the known variables offered as suggestions. -->
@@ -1076,35 +1013,13 @@
         </Grid>
 
         <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="14">
-            <Grid Name="FormBody" Grid.Row="0" ColumnDefinitions="320,*">
-
-                <!-- Which action. Always on screen rather than folded away once one is chosen:
-                 changing one's mind is then a click, and the fields beside it never move. -->
-                <Grid Name="PickerColumn" Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,6,0">
-                    <TextBlock Classes="FieldLabel"
-                               Text="{Binding [Add.SelectAction], Source={x:Static loc:Strings.Current}}" />
-
-                    <!-- The catalogue is well over a hundred actions, so it is read as a search box
-                         over short groups rather than one long dropdown. -->
-                    <TextBox Grid.Row="1" Classes="Field" Text="{Binding ActionSearch}"
-                             AutomationProperties.Name="Search actions"
-                             PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
-
-                    <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Classes="Hint" Margin="2,0,0,6" TextWrapping="Wrap"
-                                       IsVisible="{Binding HasNoActionMatch}"
-                                       Text="{Binding [Add.NoActionFound], Source={x:Static loc:Strings.Current}}" />
-
-                            <ItemsControl ItemsSource="{Binding ActionGroups}"
-                                          ItemTemplate="{StaticResource ActionGroup}" />
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
+            <!-- One pane: the action was chosen where the step was placed — a card dropped from the
+                 library, a branch added to a switch — so there is nothing left to choose here. -->
+            <Grid Name="FormBody" Grid.Row="0" ColumnDefinitions="*">
 
                 <!-- What the step is, and how it is set up: a page at a time, so a form of a dozen
                      fields is not one wall of them. -->
-                <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,0,0,0">
+                <Grid RowDefinitions="Auto,Auto,*">
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
                         <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimary}" />

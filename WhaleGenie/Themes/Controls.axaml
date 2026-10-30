@@ -719,27 +719,6 @@
     </Style>
 
     <!--
-      分组头：动作选择器里"这一组叫什么"的那一行。
-      它是**按钮**（整行可点、点它收起或展开），但看起来像标题：全宽、透明底、左对齐、小字加粗。
-      与 `Ghost` 的区别不在尺寸，在**它是行不是钮**——所以单独一层，不挂 `Ghost`。
-    -->
-    <Style Selector="Button.GroupToggle">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-    </Style>
-    <Style Selector="Button.GroupToggle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-
-    <!--
       可点方块：图标砖。80×80 是族的度量，**图标 22、居中、无文字**，全名走 tooltip。
 
       **为什么没有文字**：砖上的标签是 Lucide 的枚举名（`CircleQuestionMark` 18 字符 ≈ 108px），

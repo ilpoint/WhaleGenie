@@ -1765,8 +1765,8 @@ public partial class MacroEditorWindow : Window
     /// <summary>Brings up the window a step is written in, on the place the editor is now.</summary>
     private async void OnAddStepRequested()
     {
-        var actions = _viewModel.InsertChoices;
-        if (actions is { Count: 1 })
+        var actions = _viewModel.AddableActions;
+        if (actions.Count == 1)
         {
             await ShowActionEditor(null, actions, actions[0].Key, null);
             return;
@@ -1778,7 +1778,7 @@ public partial class MacroEditorWindow : Window
 
     /// <summary>The same, preset on the "run another macro" step.</summary>
     private async void OnRunMacroRequested()
-        => await ShowActionEditor(null, null, "control.runMacro", null);
+        => await ShowActionEditor(null, ActionCatalog.ForKeys(["control.runMacro"]), "control.runMacro", null);
 
     /// <summary>
     /// Whether any other macro of this project sends keys or clicks. Two macros that do, running at
@@ -1859,7 +1859,7 @@ public partial class MacroEditorWindow : Window
 
     /// <summary>Writes one step in the single, draggable action window.</summary>
     private async Task<MacroStep?> ShowActionEditor(MacroStep? editing,
-        IReadOnlyList<ActionDefinition>? actions, string? presetKey, string? macroName)
+        IReadOnlyList<ActionDefinition> actions, string? presetKey, string? macroName)
     {
         var editingPage = _viewModel;
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
@@ -1868,7 +1868,6 @@ public partial class MacroEditorWindow : Window
         {
             Devices = Layer,
             Macros = BuildLibrary(),
-            ShowPicker = false,
             PlaceStep = (existing, step) => existing is null
                 ? _viewModel.PlacementRefusalForPending(step)
                 : _viewModel.PlacementRefusalForReplacement(existing, step),
@@ -2145,9 +2144,13 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>Opens the same window on an existing step and swaps in the result.</summary>
+    /// <summary>
+    /// Opens the same window on an existing step and swaps in the result. The catalogue it is
+    /// handed includes the actions no longer offered, so a step written before one was retired
+    /// still opens.
+    /// </summary>
     private async void OnEditStepRequested(MacroStep step)
-        => await ShowActionEditor(step, null, null, null);
+        => await ShowActionEditor(step, ActionCatalog.PlaceableActions, null, null);
 
     /// <summary>Confirms the palette's "clear all steps", which cannot be undone.</summary>
     private async void OnClearRequested()
@@ -2960,7 +2963,7 @@ public partial class MacroEditorWindow : Window
             }
         }
 
-        await ShowActionEditor(null, _viewModel.InsertChoices, actionKey, macroName);
+        await ShowActionEditor(null, _viewModel.AddableActions, actionKey, macroName);
         _viewModel = editingPage;
         DataContext = editingPage;
     }

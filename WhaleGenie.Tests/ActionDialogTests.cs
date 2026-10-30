@@ -805,22 +805,17 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void Condition_actions_are_not_offered_in_the_step_picker()
+    public void The_catalogue_a_step_is_written_from_leaves_out_conditions_and_cases()
     {
-        Ui.Run(() =>
-        {
-            var window = new ActionEditorWindow(null, null, [], []);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (AddActionViewModel)window.DataContext!;
-
-            // A condition says what has to be true rather than doing something, and the engine
-            // only ever asks one inside an if, a while or a wait, so it is not on the step list.
-            Assert.DoesNotContain(viewModel.AvailableActions,
-                action => action.Key.StartsWith("condition.", StringComparison.Ordinal));
-            Assert.Contains(viewModel.AvailableActions, action => action.Key == "input.mouseClick");
-        });
+        // A condition says what has to be true rather than doing something, and the engine only
+        // ever asks one inside an if, a while or a wait, so it is not a step of its own. A case is
+        // half of a branch: without a switch to belong to it would have nothing to match against.
+        // The editor hands the form RunnableActions, so that is where both have to be absent.
+        Assert.DoesNotContain(ActionCatalog.RunnableActions,
+            action => action.Key.StartsWith("condition.", StringComparison.Ordinal));
+        Assert.DoesNotContain(ActionCatalog.RunnableActions, action => action.Key == "control.case");
+        Assert.Contains(ActionCatalog.RunnableActions, action => action.Key == "input.mouseClick");
+        Assert.Contains(ActionCatalog.RunnableActions, action => action.Key == "control.switch");
     }
 
     [Fact]
@@ -828,17 +823,6 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var window = new ActionEditorWindow(null, null, [], []);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var picker = (AddActionViewModel)window.DataContext!;
-
-            // A case is half of a branch: without a switch to belong to it would have nothing
-            // to match against, so it is never offered as a step of its own.
-            Assert.DoesNotContain(picker.AvailableActions, action => action.Key == "control.case");
-            Assert.Contains(picker.AvailableActions, action => action.Key == "control.switch");
-
             var viewModel = Open("control.switch");
             var cases = viewModel.Parameters.First(parameter => parameter.Definition.Name == "cases");
 
@@ -2538,231 +2522,6 @@ public class ActionDialogTests
         });
     }
 
-    [Fact]
-    public void The_action_picker_opens_as_searchable_groups_rather_than_one_long_list()
-    {
-        Ui.Run(() =>
-        {
-            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (AddActionViewModel)window.DataContext!;
-            Assert.Empty(viewModel.ActionSearch);
-
-            // The list of actions is on screen the whole time the dialog is, rather than folded
-            // away once one is chosen: changing one's mind is a click and nothing moves. The
-            // groups start shut, so what is on screen is the box and the headings.
-            var headings = window.GetVisualDescendants().OfType<Button>()
-                .Where(button => button.Classes.Contains("GroupToggle") && button.IsEffectivelyVisible)
-                .ToList();
-            Assert.NotEmpty(headings);
-
-            // This test hands over every definition, including the hidden grouping container.
-            // The ordinary user-facing palette is built from RunnableActions, where it is absent.
-            var blocks = viewModel.ActionGroups.First(group => group.Key == "blocks");
-            Assert.Equal(
-                ["control.holdInput", "control.holdBrowser",
-                    "control.repeat", "control.while", "control.for",
-                    "control.forEach", "control.if", "control.switch", "control.try",
-                    "control.sequence",
-                    // The switch case is a block too, and only ever offered inside a switch, so
-                    // it lands after the ones a task is built from.
-                    "control.case",
-                    // Answering a dialog is a block for a reason of its own: a page stops where it
-                    // stands until somebody answers, so the steps that raise the dialog go inside
-                    // the box rather than before it.
-                    "browser.dialog"],
-                blocks.Actions.Select(action => action.Key));
-            Assert.True(blocks.HasNote);
-
-            // The categories are read in two parts: what a game macro reaches for, then the rest.
-            // The headings that divide them hold no actions of their own, so they are told apart
-            // from the groups by that.
-            var sections = viewModel.ActionGroups.Where(group => group.IsSection).ToList();
-            Assert.Equal(["section.game", "section.further"],
-                sections.Select(section => section.Key));
-            Assert.All(sections, section => Assert.Empty(section.Actions));
-            Assert.All(sections, section => Assert.True(section.HasNote));
-
-            // Everything else stays a group a category, and no block is left behind in one.
-            var groups = viewModel.ActionGroups
-                .Where(group => group.HasActions && group.Key is not "recent" and not "blocks")
-                .ToList();
-            static string PickerCategory(ActionCategory category) => category switch
-            {
-                ActionCategory.Ocr => nameof(ActionCategory.Vision),
-                ActionCategory.Window => nameof(ActionCategory.Process),
-                _ => category.ToString(),
-            };
-
-            Assert.Equal(
-                viewModel.AvailableActions.Select(action => PickerCategory(action.Category))
-                    .Distinct().Order().ToList(),
-                groups.Select(group => group.Key).Order().ToList());
-            Assert.All(groups, group => Assert.All(group.Actions,
-                card => Assert.Equal(PickerCategory(card.Definition.Category), group.Key)));
-            Assert.All(groups.SelectMany(group => group.Actions), action => Assert.DoesNotContain(
-                action.Definition.Parameters,
-                parameter => parameter.Kind is ActionParameterKind.Steps));
-
-            // Over a hundred actions read as a dozen shut headings until one of them is opened or
-            // a search says which one matters. ("Recently used" is the exception: it is open,
-            // because a handful of actions the user just reached for is already short enough.)
-            Assert.False(blocks.IsOpen);
-            Assert.All(groups, group => Assert.False(group.IsOpen));
-            Assert.All(groups, group => Assert.NotEmpty(group.Actions));
-            Assert.NotEmpty(blocks.Actions);
-
-            // The first part lists the categories a game macro is written out of, in the order
-            // they are reached for: what the screen shows and says, then the hands, then the
-            // things around the game.
-            var forGames = viewModel.ActionGroups
-                .SkipWhile(group => group.Key != "section.game")
-                .Skip(1)
-                .TakeWhile(group => !group.IsSection)
-                .Select(group => group.Key)
-                .ToList();
-            Assert.Equal(["Vision", "Input", "Control", "Process", "System",
-                "Data", "Script"], forGames);
-
-            var search = window.GetVisualDescendants().OfType<TextBox>()
-                .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));
-            Assert.True(search.IsEffectivelyVisible);
-
-            // The dropdown the picker used to be, holding every action at once, is gone.
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>(),
-                box => ReferenceEquals(box.ItemsSource, viewModel.AvailableActions));
-        });
-    }
-
-    [Fact]
-    public void Typing_in_the_search_narrows_the_catalogue_to_what_matches()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("input.mouseMove");
-
-            // Something written in any of the three things a search reads — the key, the name the
-            // card shows, what the action does — finds the action. The name is asked for in
-            // whatever language the interface is in rather than a word typed into the case.
-            var target = viewModel.AvailableActions.First(action => action.Key == "input.mouseScroll");
-            foreach (var term in new[] { "mouseScroll", target.LocalName })
-            {
-                viewModel.ActionSearch = term;
-                Dispatcher.UIThread.RunJobs();
-
-                var found = viewModel.ActionGroups.SelectMany(group => group.Actions).ToList();
-                Assert.NotEmpty(found);
-                Assert.Contains(found, card => ReferenceEquals(card.Definition, target));
-                Assert.All(found, action => Assert.True(
-                    action.Key.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || action.Definition.LocalName.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || action.Definition.LocalDescription.Contains(
-                        term, StringComparison.OrdinalIgnoreCase)));
-
-                // A search has already done the narrowing, so everything left is open to read.
-                Assert.All(viewModel.ActionGroups.Where(group => group.HasActions),
-                    group => Assert.True(group.IsOpen, group.Key));
-            }
-
-            // Something no action answers to empties the picker and says so, rather than
-            // leaving the last result of the previous search behind under the box.
-            viewModel.ActionSearch = "zzzz";
-            Dispatcher.UIThread.RunJobs();
-            Assert.Empty(viewModel.ActionGroups);
-            Assert.True(viewModel.HasNoActionMatch);
-        });
-    }
-
-    [Fact]
-    public void Choosing_an_action_marks_its_card_and_fills_the_fields_beside_it()
-    {
-        Ui.Run(() =>
-        {
-            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (AddActionViewModel)window.DataContext!;
-
-            // The list opens with its groups folded, so the card for one action is only on
-            // screen once something has narrowed the list to it — searching for its key does
-            // that, and searching is also what opens the groups that hold the matches. Looking
-            // for the card without searching would only work while a case that runs first has
-            // happened to use this action, because "recently used" is kept in a static list.
-            viewModel.ActionSearch = "mouseMove";
-            Dispatcher.UIThread.RunJobs();
-
-            // Clicking a card in the list is the same thing as choosing that action.
-            var card = window.GetVisualDescendants().OfType<Button>()
-                .First(button => button.DataContext is ActionCardViewModel { Key: "input.mouseMove" }
-                    && button.Classes.Contains("Secondary"));
-            card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal("input.mouseMove", viewModel.SelectedDefinition!.Key);
-            Assert.Contains(viewModel.SelectedDefinition.LocalName, viewModel.SelectedActionName);
-
-            // The card that is being built reads as chosen, and the search box and the groups stay
-            // where they are: the list is one of the two halves of the dialog, not a question that
-            // has been answered and folded away.
-            Assert.True(((ActionCardViewModel)card.DataContext!).IsSelected);
-            var search = window.GetVisualDescendants().OfType<TextBox>()
-                .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));
-            Assert.True(search.IsEffectivelyVisible);
-        });
-    }
-
-    [Fact]
-    public void A_group_opened_by_hand_stays_open()
-    {
-        Ui.Run(() =>
-        {
-            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (AddActionViewModel)window.DataContext!;
-            var heading = window.GetVisualDescendants().OfType<Button>()
-                .First(button => button.Classes.Contains("GroupToggle")
-                    && button.DataContext is ActionGroupViewModel { Key: "Input" });
-            Assert.False(((ActionGroupViewModel)heading.DataContext!).IsOpen);
-
-            heading.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-
-            // A search rebuilds the groups, and the one the user opened is still open after it.
-            Assert.True(viewModel.ActionGroups.First(group => group.Key == "Input").IsOpen);
-            viewModel.ActionSearch = "mouse";
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(viewModel.ActionGroups.First(group => group.Key == "Input").IsOpen);
-        });
-    }
-
-    [Fact]
-    public void An_action_that_has_just_been_used_waits_at_the_top_of_the_picker()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = Open("vision.getPixel");
-            viewModel.CloseRequested += _ => { };
-            viewModel.SaveCommand.Execute(null);
-
-            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var picker = (AddActionViewModel)window.DataContext!;
-            var recent = picker.ActionGroups.First(group => group.Key == "recent");
-
-            // The group is there to save the trip back through the categories, so it is open
-            // and the action is the first thing in it.
-            Assert.True(recent.IsOpen);
-            Assert.Equal("vision.getPixel", recent.Actions[0].Key);
-        });
-    }
-
     /// <summary>The parameter names on one line of the dialog.</summary>
     private static IEnumerable<string> Names(ParameterRowViewModel row)
     {
@@ -3357,36 +3116,6 @@ public class ActionDialogTests
             Assert.Equal("$n", Assert.Single(again.CallArgumentRows, row => row.Name == "次数").Value);
             Assert.Equal("开始", Assert.Single(again.CallArgumentRows, row => row.Name == "标签").Value);
             Assert.True(Assert.Single(again.ReturnsRows).Ticked);
-        });
-    }
-
-    /// <summary>
-    /// The window stays up from one step to the next, and the next step is a different step: what
-    /// was written into the last call is not something this one said, so naming the same macro again
-    /// starts from the macro's own defaults rather than from the step before it.
-    /// </summary>
-    [Fact]
-    public void A_call_written_next_does_not_inherit_what_the_last_one_was_filled_with()
-    {
-        Ui.Run(() =>
-        {
-            var window = CallWindow();
-            var viewModel = (AddActionViewModel)window.DataContext!;
-
-            Field(viewModel, "macro")!.WriteValue("整理");
-            Dispatcher.UIThread.RunJobs();
-            Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数").Value = "$n";
-
-            window.MintStepId = () => "eeee";
-            window.BeginStep("control.runMacro");
-            Dispatcher.UIThread.RunJobs();
-
-            Field(viewModel, "macro")!.WriteValue("整理");
-            Dispatcher.UIThread.RunJobs();
-
-            var next = Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数");
-            Assert.Equal(string.Empty, next.Value);
-            Assert.Contains("3", next.Hint, StringComparison.Ordinal);
         });
     }
 

@@ -123,7 +123,8 @@ public class PickerTests
         Ui.Run(() =>
         {
             var folder = @"C:\macros\demo.assets";
-            var dialog = new ActionEditorWindow(null, null, null, null, "vision.findImage", folder);
+            var dialog = new ActionEditorWindow(null, ActionCatalog.RunnableActions, null, null,
+                "vision.findImage", folder);
             try
             {
                 var model = Assert.IsType<AddActionViewModel>(dialog.DataContext);

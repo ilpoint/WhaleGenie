@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -18,12 +17,10 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// Drives the "Add Action" dialog: pick an action from the catalogue, fill in the
-/// parameters it asks for, then save the result as one step.
+/// Drives the "Add Action" dialog: fill in the parameters the action asks for, then save the
+/// result as one step. Which action that is comes from the editor, which is the only thing that
+/// knows where the step is going.
 /// </summary>
-public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short,
-    Lucide.Avalonia.LucideIconKind Icon, IBrush Accent);
-
 public partial class AddActionViewModel : ViewModelBase
 {
     private IReadOnlyList<VariableChoice> _variables;
@@ -54,11 +51,9 @@ public partial class AddActionViewModel : ViewModelBase
     private bool _buildingCallFields;
 
     /// <summary>
-    /// What was filled into a call's fields, kept by the step being written and the macro it names:
-    /// switching to another macro and back leaves the values where the author left them rather than
-    /// emptying the form on the way through. The step is part of the key so that the next step
-    /// written in the same window starts empty — a value remembered from another step is the one
-    /// thing about this form that could silently make two steps say different things.
+    /// What was filled into a call's fields, kept by the macro those fields were filled for:
+    /// switching to another macro and back leaves the values where the author left them rather
+    /// than emptying the form on the way through.
     /// </summary>
     private readonly Dictionary<string, (Dictionary<string, (string Value, bool Given)> Arguments,
         Dictionary<string, string> Results)> _callFill = new(StringComparer.OrdinalIgnoreCase);
@@ -76,19 +71,18 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
 
-    public AddActionViewModel()
-        : this(null, null, null)
-    {
-    }
-
-    /// <summary>Creates the dialog, optionally restricted to a catalogue subset.</summary>
-    public AddActionViewModel(IReadOnlyList<ActionDefinition>? actions,
+    /// <summary>Creates the dialog on the actions the place a step is going accepts.</summary>
+    /// <param name="actions">
+    /// The actions that place takes — a switch's branch list only takes branches. Only the editor
+    /// knows which list a step is going into, so this is given rather than defaulted: a list
+    /// nobody chose is how the dialog came to offer the whole catalogue beside a form that had
+    /// already been decided.
+    /// </param>
+    public AddActionViewModel(IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
-        // Steps, not the whole catalogue: a condition says what has to be true and only means
-        // something inside an if, a while or a wait, so it is not something to add as a step.
-        AvailableActions = actions ?? ActionCatalog.RunnableActions;
+        AvailableActions = actions;
         _variables = variables ?? [];
         _macros = macros ?? [];
         StepChoices = steps ?? [];
@@ -126,31 +120,21 @@ public partial class AddActionViewModel : ViewModelBase
             Pages.Add(new ActionPageViewModel { Key = key, TitleKey = title });
         }
 
-        Categories = BuildCategories();
-        SelectedCategory = Categories[0];
-
         Page = Pages[0];
-        RebuildActions();
     }
 
     /// <summary>
-    /// Re-reads the dock, the pages and the action cards in the chosen language. The cards are
-    /// rebuilt because their names come from the catalogue; the selected action is kept.
+    /// Re-reads the pages and the fields in the chosen language. The action itself is kept: it is
+    /// the one the editor handed in, not something this form chose.
     /// </summary>
     public override void RefreshLanguage()
     {
-        var selected = SelectedCategory?.Value;
-        Categories = BuildCategories();
-        OnPropertyChanged(nameof(Categories));
-        SelectedCategory = Categories.FirstOrDefault(choice => choice.Value == selected) ?? Categories[0];
-
         foreach (var page in Pages)
         {
             page.RefreshLanguage();
         }
 
         base.RefreshLanguage();
-        RebuildActions();
 
         foreach (var parameter in Parameters)
         {
@@ -173,12 +157,11 @@ public partial class AddActionViewModel : ViewModelBase
         MetaDelayAfter.RefreshLanguage();
     }
 
-    /// <summary>Everything the "Select Action" dropdown offers.</summary>
-    /// <remarks>
-    /// The window stays open from one step to the next, and the place a step goes decides which
-    /// actions are worth offering — a switch's branch list only takes branches — so this is
-    /// replaced rather than fixed when the editor moves.
-    /// </remarks>
+    /// <summary>
+    /// The actions the place a step is going accepts. A palette shortcut opens this dialog on the
+    /// action it stands for, and only that action is written here, so this is the set those
+    /// shortcuts are checked against rather than a list the user browses.
+    /// </summary>
     public IReadOnlyList<ActionDefinition> AvailableActions
     {
         get => _availableActions;
@@ -204,57 +187,6 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Takes what only the editor knows about the place a step is going: the actions that place
-    /// takes, the names its fields may offer, and where a picture taken from the screen is kept.
-    /// </summary>
-    public void Retarget(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<MacroCallable>? macros,
-        IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
-    {
-        AvailableActions = actions ?? ActionCatalog.RunnableActions;
-        _variables = variables ?? [];
-        _macros = macros ?? [];
-        StepChoices = steps ?? [];
-        AssetFolder = assetFolder ?? string.Empty;
-        RebuildActions();
-    }
-
-    /// <summary>What the picker's search box holds. Blank shows the whole catalogue.</summary>
-    [ObservableProperty]
-    public partial string ActionSearch { get; set; } = string.Empty;
-
-    /// <summary>
-    /// The catalogue as the picker shows it: recently used first, then the blocks, then a group a
-    /// category.
-    /// </summary>
-    public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
-
-    /// <summary>The actions the palette lists for the chosen category, in one flat run.</summary>
-    public ObservableCollection<ActionCardViewModel> VisibleActions { get; } = [];
-
-    /// <summary>True when the chosen category and search leave nothing to click.</summary>
-    public bool HasNoVisibleAction => VisibleActions.Count == 0;
-    /// <summary>The categories the vertical dock offers, with "all" first.</summary>
-    public IReadOnlyList<ActionCategoryChoice> Categories { get; private set; }
-
-    [ObservableProperty]
-    public partial ActionCategoryChoice? SelectedCategory { get; set; }
-
-    partial void OnSelectedCategoryChanged(ActionCategoryChoice? value) => RebuildActions();
-
-    /// <summary>True when the search box has hidden everything, so the picker can say so.</summary>
-    public bool HasNoActionMatch => ActionGroups.Count == 0;
-
-    /// <summary>
-    /// The actions used most recently, newest first. Shared by every dialog in the run, so the
-    /// second step of a macro can start from what the first one used.
-    /// </summary>
-    private static readonly List<string> RecentlyUsed = [];
-
-    /// <summary>How many actions the "recently used" group holds at most.</summary>
-    private const int RecentLimit = 8;
-
-    /// <summary>
     /// The name of the step this dialog was opened on. Editing a step must not rename it: the
     /// macro may already point at it — a condition watching whether it succeeded, a result
     /// variable carrying its name — so the dialog hands the same name back.
@@ -274,100 +206,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// step that those names follow the note: a variable a macro already uses keeps its name.
     /// </summary>
     private bool _isNewStep;
-
-    /// <summary>Key of the group that holds those, which is not a category.</summary>
-    private const string RecentGroup = "recent";
-
-    /// <summary>
-    /// The category the picker shows an action under. The engine keeps OCR apart from the rest of
-    /// vision and windows apart from the processes that own them, because different code runs
-    /// them; a person choosing an action thinks of one picture group and one program-and-window
-    /// group, so the picker joins those pairs back together.
-    /// </summary>
-    private static ActionCategory PickerCategory(ActionCategory category)
-        => ActionCategoryPresentation.PickerCategory(category);
-    /// <summary>The colour that marks a category in the dock and on every card of that group.</summary>
-    private static IBrush CategoryAccent(ActionCategory? category)
-        => ActionCategoryPresentation.Accent(category);
-    /// <summary>The line icon the dock shows over a category's short name.</summary>
-    private static Lucide.Avalonia.LucideIconKind CategoryIcon(ActionCategory? category)
-        => ActionCategoryPresentation.Icon(category);
-    /// <summary>The dock order: the categories a macro reaches for first, then the rest.</summary>
-    private static readonly ActionCategory[] DockOrder =
-    [
-        ActionCategory.Control,
-        ActionCategory.Input,
-        ActionCategory.Vision,
-        ActionCategory.Uia,
-        ActionCategory.Browser,
-        ActionCategory.Script,
-        ActionCategory.Process,
-        ActionCategory.Data,
-        ActionCategory.File,
-        ActionCategory.Clipboard,
-        ActionCategory.System,
-    ];
-
-    /// <summary>The dock's entries, named in the current interface language.</summary>
-    private static IReadOnlyList<ActionCategoryChoice> BuildCategories() =>
-    [
-        new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"),
-            CategoryIcon(null), CategoryAccent(null)),
-        .. DockOrder.Select(category =>
-        {
-            var label = Strings.Get($"Add.Category.{category}");
-            return new ActionCategoryChoice(category, label,
-                Strings.Get($"Add.Category.{category}.short", label), CategoryIcon(category),
-                CategoryAccent(category));
-        }),
-    ];
-
-    /// <summary>Key of the group that holds the blocks, which is not a category either.</summary>
-    private const string BlockGroup = "blocks";
-
-    /// <summary>Key of the heading that divides the picker into what a game macro reaches for and the rest.</summary>
-    private const string GameSection = "section.game";
-
-    /// <summary>Key of the heading that holds the categories a game macro seldom reaches for.</summary>
-    private const string FurtherSection = "section.further";
-
-    /// <summary>
-    /// The categories a game macro is written out of, in the order the picker lists them: what the
-    /// screen shows, what it says, what the hands do, then the things around the game — its window,
-    /// the processes running, the machine, the data the macro keeps and any script it calls. The
-    /// categories left over are the ones an office macro reaches for instead of a game one.
-    /// </summary>
-    private static readonly ActionCategory[] GameOrder =
-    [
-        ActionCategory.Vision,
-        ActionCategory.Input,
-        ActionCategory.Control,
-        ActionCategory.Process,
-        ActionCategory.System,
-        ActionCategory.Data,
-        ActionCategory.Script,
-    ];
-
-    /// <summary>
-    /// The order the blocks are listed in: the two doors, the four repeats, then the branch, the
-    /// many-way branch and the tidy-up. This is the order a task is built in, and it puts the
-    /// four things that all "repeat" next to each other where they can be told apart.
-    /// </summary>
-    private static readonly string[] BlockOrder =
-    [
-        "control.holdInput",
-        "control.holdBrowser",
-        "control.repeat",
-        "control.while",
-        "control.for",
-        "control.forEach",
-        "control.if",
-        "control.switch",
-        "control.try",
-    ];
-
-    /// <summary>Groups the user opened by hand, so a search does not fold them back up.</summary>
-    private readonly HashSet<string> _openedGroups = new(StringComparer.Ordinal);
 
     /// <summary>The name of the action being built, over the fields it needs.</summary>
     public string SelectedActionName => SelectedDefinition?.LocalName
@@ -431,31 +269,8 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Label of the confirm button.</summary>
     public string CommitLabel => Strings.Get(IsEditing ? "Add.CommitEdit" : "Add.Commit");
 
-    /// <summary>
-    /// True while the window stays up from one step to the next, which is how the editor opens it.
-    /// The button that ends a step then reads as clearing the form, because the window does not go
-    /// anywhere when it is pressed.
-    /// </summary>
-    public bool StaysOpen
-    {
-        get => _staysOpen;
-        set
-        {
-            if (_staysOpen == value)
-            {
-                return;
-            }
-
-            _staysOpen = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(CancelLabel));
-        }
-    }
-
-    /// <summary>Label of the button that ends a step: leaving, or clearing the form.</summary>
-    public string CancelLabel => Strings.Get(StaysOpen ? "Add.ClearForm" : "Add.Cancel");
-
-    private bool _staysOpen;
+    /// <summary>Label of the button that ends a step.</summary>
+    public string CancelLabel => Strings.Get("Add.Cancel");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection))]
@@ -829,42 +644,6 @@ public partial class AddActionViewModel : ViewModelBase
         Notice = message;
     }
 
-    /// <summary>
-    /// Puts the dialog back to writing a fresh step of the action it is on. The dialog stays open
-    /// from one step to the next, so this is what "that one is done" looks like: the left list and
-    /// the chosen action stay where they are and everything filled in goes.
-    /// </summary>
-    public void Reset(string? stepId = null)
-    {
-        var keep = SelectedDefinition?.Key;
-
-        _editingId = stepId ?? string.Empty;
-        _isNewStep = _editingId.Length > 0;
-        IsEditing = false;
-        OnPropertyChanged(nameof(StepId));
-        OnPropertyChanged(nameof(HasStepId));
-
-        MetaComment = string.Empty;
-        MetaEnabled = true;
-        MetaTimeout.Load(0);
-        MetaRetryCount = 0;
-        MetaRetryDelay.Load(500);
-        MetaOnError = ErrorChoices.First(choice =>
-            choice.Value == StepMeta.Name(StepMeta.New.OnError));
-        MetaRetryBackoff = BackoffChoices[0];
-        MetaDelayBefore.Load(0);
-        MetaDelayAfter.Load(0);
-        NoticeIsWarning = false;
-        Notice = string.Empty;
-
-        // Choosing the action again is what rebuilds its fields, with nothing in them.
-        SelectedDefinition = null;
-        if (keep is not null)
-        {
-            SelectAction(keep);
-        }
-    }
-
     partial void OnSelectedDefinitionChanged(ActionDefinition? value)
     {
         // A step that waits for something starts out with the length the action suggests, so the
@@ -874,23 +653,10 @@ public partial class AddActionViewModel : ViewModelBase
         MetaTimeout.Load(value?.StepTimeoutMs ?? 0);
         BuildParameters(value);
         SyncGlobalVariable();
-        MarkChosen();
         // Choosing an action is what turns "pick one first" into a real answer, so whether the line
         // is a problem changes here as well as when a parameter is filled in.
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(ValidationIsProblem));
-    }
-
-    /// <summary>
-    /// Marks the card of the action being built, so the list on the left always says what the
-    /// fields on the right are fields of.
-    /// </summary>
-    private void MarkChosen()
-    {
-        foreach (var card in ActionGroups.SelectMany(group => group.Actions).Concat(VisibleActions))
-        {
-            card.IsSelected = card.Key == SelectedDefinition?.Key;
-        }
     }
 
     /// <summary>
@@ -1050,179 +816,12 @@ public partial class AddActionViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Folds a group open or shut and remembers which way it went.</summary>
-    public void ToggleGroup(ActionGroupViewModel group)
-    {
-        group.IsOpen = !group.IsOpen;
-        if (group.IsOpen)
-        {
-            _openedGroups.Add(group.Key);
-        }
-        else
-        {
-            _openedGroups.Remove(group.Key);
-        }
-    }
-
-    /// <summary>What the search box does to the picker: it filters it, so it is rebuilt.</summary>
-    partial void OnActionSearchChanged(string value) => RebuildActions();
-
-    /// <summary>
-    /// Fills the picker with the actions that answer to what has been typed, as a group of
-    /// recently used ones, then the blocks, then a group a category.
-    /// </summary>
-    private void RebuildActions()
-    {
-        var search = ActionSearch.Trim();
-        var wanted = SelectedCategory?.Value;
-        var matching = AvailableActions.Where(action =>
-            Matches(action, search) && (wanted is null || PickerCategory(action.Category) == wanted)).ToList();
-
-        // A search has already narrowed the list, so everything left in it is worth showing;
-        // with a blank box the groups start folded, which is what keeps the catalogue readable.
-        var searching = search.Length > 0;
-
-        ActionGroups.Clear();
-        VisibleActions.Clear();
-
-        var recent = new List<ActionDefinition>();
-        foreach (var key in RecentlyUsed)
-        {
-            if (matching.FirstOrDefault(action => string.Equals(action.Key, key, StringComparison.Ordinal))
-                is { } used && !recent.Contains(used))
-            {
-                recent.Add(used);
-            }
-        }
-
-        if (recent.Count > 0)
-        {
-            Group(RecentGroup, Strings.Get("Add.RecentlyUsed"), null, recent, open: true);
-        }
-
-        // The blocks are lifted out of the categories and listed together, because "which shape
-        // does this task need" is the question the picker is asked first, and the four repeats
-        // only differ from each other when they stand side by side.
-        foreach (var card in Cards([.. matching
-                     .OrderBy(action => PickerCategory(action.Category))
-                     .ThenBy(action => action.LocalName)]))
-        {
-            VisibleActions.Add(card);
-        }
-
-        OnPropertyChanged(nameof(HasNoVisibleAction));
-
-        var blocks = matching.Where(HoldsSteps)
-            .OrderBy(BlockRank)
-            .ToList();
-
-        if (blocks.Count > 0)
-        {
-            Group(BlockGroup, Strings.Get("Add.Blocks"), ActionCategoryPresentation.IconFor(ActionCategory.Control),
-                blocks, searching || _openedGroups.Contains(BlockGroup), Strings.Get("Add.BlocksNote"));
-        }
-
-        // The categories are then read in two parts, because "what a game macro reaches for" and
-        // "everything else" are the two halves a macro author actually looks through: the
-        // categories themselves stay the headings inside them, so nothing has to be hunted for in
-        // one long list of a hundred cards.
-        var categories = matching.Where(action => !HoldsSteps(action))
-            .GroupBy(action => PickerCategory(action.Category))
-            .ToDictionary(group => group.Key, group => (IReadOnlyList<ActionDefinition>)[.. group]);
-
-        var forGames = GameOrder.Where(categories.ContainsKey).ToList();
-        if (forGames.Count > 0)
-        {
-            Section(GameSection, Strings.Get("Add.GameSection"), Strings.Get("Add.GameSectionNote"));
-            foreach (var category in forGames)
-            {
-                Category(category, categories[category], searching);
-            }
-        }
-
-        var further = categories.Keys.Where(category => !GameOrder.Contains(category))
-            .OrderBy(category => (int)category)
-            .ToList();
-        if (further.Count > 0)
-        {
-            Section(FurtherSection, Strings.Get("Add.FurtherSection"),
-                Strings.Get("Add.FurtherSectionNote"));
-            foreach (var category in further)
-            {
-                Category(category, categories[category], searching);
-            }
-        }
-
-        OnPropertyChanged(nameof(HasNoActionMatch));
-
-        void Category(ActionCategory category, IReadOnlyList<ActionDefinition> actions, bool open)
-        {
-            var key = category.ToString();
-            Group(key, CategoryName(category), ActionCategoryPresentation.IconFor(category), actions,
-                open || _openedGroups.Contains(key));
-        }
-    }
-
     /// <summary>
     /// True for an action that holds steps of its own: it is a block in the macro rather than
     /// something the run just does.
     /// </summary>
     private static bool HoldsSteps(ActionDefinition action)
         => action.Parameters.Any(parameter => parameter.Kind is ActionParameterKind.Steps);
-
-    /// <summary>
-    /// Where a block sits in <see cref="BlockOrder"/>. A block that is not on the list — the
-    /// switch case, which is reached through its own parent instead — comes last rather than first.
-    /// </summary>
-    private static int BlockRank(ActionDefinition action)
-        => Array.IndexOf(BlockOrder, action.Key) is var at && at >= 0 ? at : BlockOrder.Length;
-
-    private void Group(string key, string title, Lucide.Avalonia.LucideIconKind? icon,
-        IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
-        => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, Cards(actions), open, note));
-
-    /// <summary>
-    /// The actions as the cards the picker shows, with the one being edited already marked. The
-    /// mark is put on here rather than on the entry, because the catalogue is shared by every
-    /// dialog while what is being built belongs to this one.
-    /// </summary>
-    private IReadOnlyList<ActionCardViewModel> Cards(IReadOnlyList<ActionDefinition> actions)
-        => [.. actions.Select(action => new ActionCardViewModel
-        {
-            Definition = action,
-            IsSelected = action.Key == SelectedDefinition?.Key,
-            Accent = CategoryAccent(PickerCategory(action.Category)),
-        })];
-
-    /// <summary>Adds a heading that divides the picker into parts rather than holding actions.</summary>
-    private void Section(string key, string title, string note)
-        => ActionGroups.Add(new ActionGroupViewModel(key, title, null, [], open: false, note,
-            section: true));
-
-    /// <summary>True when an action answers to what has been typed: its key, name or description.</summary>
-    private static bool Matches(ActionDefinition action, string search)
-        => search.Length == 0
-           || action.Key.Contains(search, StringComparison.OrdinalIgnoreCase)
-           || action.LocalName.Contains(search, StringComparison.OrdinalIgnoreCase)
-           || action.LocalDescription.Contains(search, StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>What a category of the catalogue is called in the interface language.</summary>
-    private static string CategoryName(ActionCategory category)
-        => Strings.Get("Add.Category." + category, category.ToString());
-
-    /// <summary>
-    /// Notes an action as just used, moving it to the front. The list is kept short because a
-    /// "recently used" group that grows without end is only another long list.
-    /// </summary>
-    private static void Note(ActionDefinition action)
-    {
-        RecentlyUsed.RemoveAll(key => string.Equals(key, action.Key, StringComparison.Ordinal));
-        RecentlyUsed.Insert(0, action.Key);
-        if (RecentlyUsed.Count > RecentLimit)
-        {
-            RecentlyUsed.RemoveRange(RecentLimit, RecentlyUsed.Count - RecentLimit);
-        }
-    }
 
     /// <summary>
     /// Variable names the pickers offer: the ones the editor already knows about plus
@@ -2472,9 +2071,6 @@ public partial class AddActionViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save()
     {
-        // An action that made it onto a step is one the user really reached for, which is what the
-        // "recently used" group is about.
-        Note(SelectedDefinition!);
         CommitGlobalVariable();
         CloseRequested?.Invoke(BuildStep());
     }

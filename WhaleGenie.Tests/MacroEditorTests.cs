@@ -858,7 +858,6 @@ public class MacroEditorTests
 
             var action = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             Assert.IsType<ActionEditorView>(action.Content);
-            Assert.False(action.StaysOpen);
             action.Close();
         });
     }

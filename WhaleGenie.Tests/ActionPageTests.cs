@@ -634,7 +634,7 @@ public class ActionPageTests
             owner.Show();
             Dispatcher.UIThread.RunJobs();
 
-            var dialog = new ActionEditorWindow();
+            var dialog = new ActionEditorWindow(null, ActionCatalog.PlaceableActions);
             dialog.ShowOver(owner);
             Dispatcher.UIThread.RunJobs();
 

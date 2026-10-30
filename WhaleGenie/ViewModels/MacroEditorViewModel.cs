@@ -83,9 +83,6 @@ public partial class MacroEditorViewModel : ViewModelBase
                 LabelKey = "Palette.RunMacro", Key = "runMacro" },
     ];
 
-    /// <summary>Palette id of the entry that opens the add-action dialog.</summary>
-    private const string AddStepPaletteKey = "add";
-
     private readonly List<MacroStep> _selection = [];
 
     /// <summary>
@@ -1559,9 +1556,6 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         switch (action.Key)
         {
-            case AddStepPaletteKey:
-                NewStepCommand.Execute(null);
-                break;
             case "edit":
                 EditSelectedCommand.Execute(null);
                 break;
@@ -1648,6 +1642,15 @@ public partial class MacroEditorViewModel : ViewModelBase
     { Owner: { } owner, Parameter: { } parameter }
         ? ChoicesFor(owner, parameter)
         : null;
+
+    /// <summary>
+    /// The same list as a value rather than an option, for the places that hand the catalogue to a
+    /// dialog: a step added at the top level may be any action the palette offers, so that is what
+    /// an unrestricted place comes to. The dialog is never given "no list" — that is how it came to
+    /// offer the whole catalogue beside a form whose action had already been decided.
+    /// </summary>
+    public IReadOnlyList<ActionDefinition> AddableActions
+        => InsertChoices ?? ActionCatalog.RunnableActions;
 
     private static IReadOnlyList<ActionDefinition>? ChoicesFor(MacroStep owner, StepParameter parameter)
     {
