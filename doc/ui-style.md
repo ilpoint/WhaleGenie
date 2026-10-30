@@ -358,7 +358,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 这一句不在表的任何一格里面，所以必须单独问。
 
 只有**多态族**需要列出同现组合——带 `.selected` / `.problem` / `.chosen` / `.Current` / `.Occupied` 这类可叠加
-修饰的那几族（`Border.Card.Selectable`、`Border.Card.Thin`、`Button.Tile`、`ListBox.List ListBoxItem`）。
+修饰的那几族（`Border.Card.Selectable`、`Border.Card.Thin`、`ListBox.List ListBoxItem`）。
 **没有可叠加修饰的族，答"不同现"即可**，不必每族写一段。
 
 ### 窗口级样式不许与库类同名
@@ -399,7 +399,6 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Button.Key.Small` | Button | 同 `Key`，字号 `UiCaption`(11) | 同 `Key` | 同 | 同 | — | 同 | 双色环 | 层 3。侧边那些长词的键，一格降字号 |
 | `Button.Key` + `Fill`（**不建类**） | — | `Width=NaN` + `HorizontalAlignment=Stretch` | — | — | — | — | — | — | **布局属性留元素上**：它表达"这一键撑满所在的格子"，不是外观常项 |
 | `Button.Thumb` | Button | `Pad1` · `RadiusControl` · 1px | `SurfaceSunken` · — · `BorderControl` | — · — · `AccentText` | — · — · `AccentText` | — | — · — · `BorderSubtle` | 双色环 | 层 3 |
-| `Button.Tile` | Button | MinH64 · `PadChip` · `RadiusControl` · 1px | `SurfaceCard` · `TextPrimary` · `BorderSubtle` | `SurfaceHover` · — · — | `SurfacePressed` · — · — | `.Occupied` → 底 `SurfaceHover`（只改底）；`.Current` → 描边 1px `AccentText`（只改描边，**不改粗细**） | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
 | `Button.Field` | Button | H34 · `PadField` · `RadiusControl` · 1px · `UiBody` · 左对齐 | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `SurfaceControlPressed` · — · — | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（输入框形状的按钮） |
 
 ### 导航
