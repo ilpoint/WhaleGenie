@@ -70,41 +70,6 @@
                 </Animation>
             </Style.Animations>
         </Style>
-        <Style Selector="ToggleButton.EndKeyChip">
-            <Setter Property="MinWidth" Value="36" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Padding" Value="8,0" />
-            <Setter Property="Margin" Value="0,0,6,5" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked">
-            <Setter Property="Background" Value="#2E5F8A" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E5F8A" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E5F8A" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E5F8A" />
-        </Style>
-
         <!-- Step list: rows keep the card look and gain a selection highlight. -->
         <Style Selector="ListBox.StepList">
             <Setter Property="Background" Value="Transparent" />
@@ -863,7 +828,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:HotstringEndKeyOption">
-                                                <ToggleButton Classes="EndKeyChip"
+                                                <ToggleButton Classes="Chip Key"
                                                               Content="{Binding Label}"
                                                               IsChecked="{Binding IsChecked, Mode=TwoWay}" />
                                             </DataTemplate>

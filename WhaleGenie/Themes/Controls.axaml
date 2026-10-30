@@ -415,6 +415,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
     </Style>
 
+
     <!-- 键位芯片：按下去要亮，所以四态自己写。 -->
     <Style Selector="ToggleButton.Chip.Key">
         <Setter Property="Width" Value="32" />
@@ -428,11 +429,11 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="ToggleButton.Chip.Key:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip.Key:pointerover:not(:checked) /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
     </Style>
-    <Style Selector="ToggleButton.Chip.Key:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="ToggleButton.Chip.Key:pressed:not(:checked) /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
@@ -440,6 +441,19 @@
     <Style Selector="ToggleButton.Chip.Key:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+    <!--
+      键位芯片的选中态必须也写在**控件**这一层。模板把 presenter 的 `Background` 绑给控件自己的
+      `Background`，那条绑定是"本地值"，样式写在 presenter 上会被它压掉——所以只写 presenter 的话，
+      选中时屏幕上还是未选中的底色（实测读到 `#2A2A2A`，正是 `SurfaceField`）。
+    -->
+    <Style Selector="ToggleButton.Chip.Key:checked">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ToggleButton.Chip.Key:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
     </Style>
 
     <!--
