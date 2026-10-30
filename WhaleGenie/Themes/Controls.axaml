@@ -93,6 +93,7 @@
       STATIC ListBox.List.Boxed
       STATIC ListBox.List.Pill
       STATIC CheckBox.Field
+      STATIC Border.Row
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -120,6 +121,8 @@
       VARIANT Disabled
       STATE selected
       STATE Occupied
+      STATE Picked
+      STATE DropTarget
       STATE Current
 
       这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
@@ -1230,6 +1233,37 @@
       区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
       组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。
     -->
+    <!--
+      可点行：一行能被点、也(有时)能被放东西。**两个状态是两个意思**，不是一个意思的两种颜色：
+
+      - `.Picked`：**下一笔点击会落进这一行**——所以改的是"底"（整行亮起来）；
+      - `.DropTarget`：**东西正拖到这一行上面**——所以改的是"边"（描一圈，不盖住底）。
+
+      两者可以同时成立（拖到一个已选中的行上），所以**一个改底、一个改边，互不覆盖**。
+      这正是不把它们做成"一个状态两个色"的理由：做成两色就只能显示一个。
+    -->
+    <Style Selector="Border.Row">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+    </Style>
+    <Style Selector="Border.Row:pointerover">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+    </Style>
+    <Style Selector="Border.Row.Picked">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderThickness" Value="3,1,1,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+    </Style>
+    <Style Selector="Border.Row.DropTarget">
+        <!-- **只改边、不改厚度。** 厚度归 `.Picked` 管（它用左边 3px 表示"整行"）；
+             两边都设厚度的话，晚写的会把早写的盖掉——拖动到已选中的行上时，左边那条就消失了，
+             而界面**看起来仍然正常**。 -->
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
     <Style Selector="Border.Section">
         <Setter Property="Padding" Value="{DynamicResource Space4}" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />

@@ -126,23 +126,6 @@
 
         <!-- One line of the formula. Picking is what a click does, so the line says when it is the
              one the next click from the palette goes into. -->
-        <Style Selector="Border.Row">
-            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SurfacePanel}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="6,3" />
-            <Setter Property="Margin" Value="0,0,0,3" />
-        </Style>
-        <Style Selector="Border.Row.picked">
-            <Setter Property="Background" Value="{DynamicResource InfoSurface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Info}" />
-        </Style>
-        <Style Selector="Border.Row.drop">
-            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-        </Style>
-
         <!--
           参数名**不给颜色**：`AppLabel ≡ Warning`（同值）意味着"参数名"和"警告"共用一个琥珀，
           那会让读者以为这处出了什么问题。改由**字重**承担"这是一个名字"——与
@@ -201,8 +184,8 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionItemViewModel">
                                     <Border Classes="Row"
-                                            Classes.picked="{Binding IsSelected}"
-                                            Classes.drop="{Binding IsDropTarget}"
+                                            Classes.Picked="{Binding IsSelected}"
+                                            Classes.DropTarget="{Binding IsDropTarget}"
                                             Margin="{Binding Indent}"
                                             DragDrop.AllowDrop="True"
                                             PointerPressed="OnRowPressed">

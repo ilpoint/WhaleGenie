@@ -386,6 +386,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Button.Primary` | Button | H32 · `PadControlWide` · `RadiusControl` · `UiBody` 600 | `AccentFill` · `TextOnAccent` · — | `AccentFillHover` · `TextOnAccent` · — | `AccentFillPressed` · `TextOnAccent` · — | — | `SurfaceControl` · `TextDisabled` · — | 双色环 | 层 3 覆盖层 1 |
 | `Button.Secondary` | Button | H30 · `PadControl` · `RadiusControl` · `UiBody` · 1px | `SurfaceControl` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · `TextPrimary` · `BorderControl` | — | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | **层 1 给四态**；层 3 只补度量与 disabled 去色 |
 | `Button.Ghost` | Button | 24×24 · `Pad0` · `RadiusControl` | `Transparent` · `TextSecondary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 全写 |
+| `Border.Row` | Border | 无边框(1px 透明) · `PadRow` · `RadiusControl` | `SurfacePanel` · — · 透明 | `OverlayHover` · — · 透明 | 同 hover | `.Picked`：`AccentSurface` + 左 3px `AccentFill`；`.DropTarget`：边 1px `AccentText` | — | 单色底 | 层 3；**两通道可同时成立** |
 | `Button.Pill` | Button | 只改 `CornerRadius=12`（24 高的一半） | 不设（修饰） |
 | `TextBlock.Mono` | TextBlock | 只设 `FontFamily=UiCodeFont`，**不设前景** | 不设（修饰） |
 | `Button.GroupToggle` | Button | 全宽 · `PadChip` · `RadiusControl` · `UiBodySmallSize` 600 · 左对齐 | `Transparent` · `TextSecondary` | `SurfaceField` · `TextPrimary` | 同 hover | — | — · `TextDisabled` | — | 单色底 | 层 3 |
