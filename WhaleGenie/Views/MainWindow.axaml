@@ -66,9 +66,6 @@
         <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
-        <Style Selector="Button.LabeledToolButton.Active /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E7D5A" />
-        </Style>
 
         <!-- The always-on-top switch lights up while it is holding the window above the rest. -->
         <Style Selector="Button.Chrome.Icon.Pinned /template/ ContentPresenter">
@@ -105,23 +102,6 @@
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
         </Style>
 
-        <Style Selector="Button.DockButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="BorderThickness" Value="0,0,0,2" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="CornerRadius" Value="0" />
-            <Setter Property="Padding" Value="4,7" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.DockButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.DockButton.On">
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="#4EA4E8" />
-        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="36,30,*,Auto">
@@ -378,19 +358,19 @@
             <!-- Trigger dock -->
             <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="2"
                   Margin="0,0,0,8">
-                <Button Grid.Column="0" Classes="DockButton" Classes.On="{Binding IsKeysDock}"
+                <Button Grid.Column="0" Classes="Tab Root" Classes.selected="{Binding IsKeysDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Keys"
                         Content="{Binding [Main.Dock.Keys], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="1" Classes="DockButton" Classes.On="{Binding IsInterfaceDock}"
+                <Button Grid.Column="1" Classes="Tab Root" Classes.selected="{Binding IsInterfaceDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Interface"
                         Content="{Binding [Main.Dock.Interface], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="2" Classes="DockButton" Classes.On="{Binding IsHotstringDock}"
+                <Button Grid.Column="2" Classes="Tab Root" Classes.selected="{Binding IsHotstringDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Hotstring"
                         Content="{Binding [Main.Dock.Hotstring], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="3" Classes="DockButton" Classes.On="{Binding IsMenuDock}"
+                <Button Grid.Column="3" Classes="Tab Root" Classes.selected="{Binding IsMenuDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Menu"
                         Content="{Binding [Main.Dock.Menu], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="4" Classes="DockButton" Classes.On="{Binding IsOtherDock}"
+                <Button Grid.Column="4" Classes="Tab Root" Classes.selected="{Binding IsOtherDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Other"
                         Content="{Binding [Main.Dock.Other], Source={x:Static loc:Strings.Current}}" />
             </Grid>
