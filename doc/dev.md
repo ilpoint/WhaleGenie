@@ -458,6 +458,12 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
 剩下验不了的只有"好不好看"：配色偏没偏、层次够不够仍要人看一次。`--theme-probe`（只在本机 Debug 有效）
 那个窗口就是为此留的，评审完连同分支一起删掉。
 
+**`DataTemplate` 里不要写 `Name`。** 模板里的 `x:Name` 注册进的是**同一个名字域**，不是每个实例一份：
+第一次实例化没事，第二次就抛 `Control with the name 'KeyField' already registered`。症状是运行到时
+才炸、栈里指着模板而不是指着那一行，而且**只有第二次打开才出现**——第一次手工点一遍是绿的。
+要按元素找，用 `Classes` 加 `DataContext` 匹配（`ActionDialogTests` 找 `KeyField` 就是这么改的）；
+真需要名字，用 `x:Name` 之外的定位方式，或者把名字挪到模板外的宿主元素上。
+
 ### 手动项
 
 无头会话走的是 Avalonia 自己的输入管线，不是系统里的鼠标与键盘：真的注入按键、抓屏取色这类事情在那里验不了，
