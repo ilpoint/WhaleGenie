@@ -675,6 +675,16 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `GlobalVariablesWindow` 的 `List > ListBoxItem` | 底边 1px 分隔线 | 行分隔线"底边独占"，`List` 给不了 |
 | `LookWindow` 的 `Border.MarkRow` | 底 `AppDock` · 透明占位边 1px | `Card.Thin` 是 `SurfaceCard` + 实边；并过去会把无边框行变成有边框 |
 
+**主窗扫出来的第三批（`MainWindow`，四条都留本窗）**。这四条的价值不在"留下"，在**写清它们缺的是什么**——
+等"缺变体一次定"那轮，这些描述就是判据；只写"和库里的不一样"等于没写。
+
+| 类 | 缺的是什么 |
+|---|---|
+| `Button.ToolButton` | **圆形图标钮**：24×24 与 `Ghost` 同尺寸，但**圆角 12（正圆）**、悬停 `AppBorder`。**圆角是形状不是值**——它不是 `Ghost` 的另一档 |
+| `Button.LabeledToolButton` | **工具栏上的带底文字钮**：H24 与 `Chrome.Labeled` 一致，但那个是标题栏用的（透明，叠在标题栏上），这个要有底（`AppControl`）。**两个位置，两种底** |
+| `Button.BottomButton` | **底部条专用钮**：`Padding="14,10"` 没有档，而它撑起了底部条的高度——改内距就是改布局 |
+| `Button.CardButton` | **26 方钮**：26×26 不在任何档上（`Ghost` 24、`Icon` 34×32） |
+
 **手调痕迹。** 199 处带左右偏移的 `Margin`，集中在 `MacroEditorWindow`(42)、`ActionEditorView`(41)、
 `SettingsWindow`(28)、`RunWindow`(25)。其中 `2,12,0,6`(11)、`2,5,0,0`(10)、`2,8,0,0`(9)、`2,4,0,0`(8)
 是典型的"往右让 2px 才对齐"——**不判违规**：它们在表达这一行里某个元素比旁边高半个字、要让 2px 才
