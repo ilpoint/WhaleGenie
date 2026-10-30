@@ -464,6 +464,17 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
 要按元素找，用 `Classes` 加 `DataContext` 匹配（`ActionDialogTests` 找 `KeyField` 就是这么改的）；
 真需要名字，用 `x:Name` 之外的定位方式，或者把名字挪到模板外的宿主元素上。
 
+**按类名找元素时，别忘了继承关系。** `OfType<Button>()` 会把 `CheckBox`、`ToggleButton` 一起捞进来
+（`CheckBox : ToggleButton : Button`）。所以给勾选项也挂上 `Field` 那天，"按 `Classes.Contains("Field")`
+找那个按钮"从唯一变成两个，`Single()` 当场抛 `Sequence contains more than one matching element`——
+**选择器分得开（`Button.Field` / `CheckBox.Field` 各自独立），只按类名找的测试分不开。**
+判据：凡是"按类名找控件"的定位，先问一句"这个类名会不会落到同族的别的类型上"，要排就写成
+`button is not ToggleButton` 这种显式排除，别指望类名唯一。
+
+这是"同一个词两种载体"的第四种形状（前三种是 `Cell`、`VariableList`、`MenuCell`），
+前三次是**不同控件撞名**、这次是**同一族里有继承关系**。四次里有三次是先绿后红——
+**改类名或加类名之后，跑一次全量，别只跑那一扇窗的用例。**
+
 ### 手动项
 
 无头会话走的是 Avalonia 自己的输入管线，不是系统里的鼠标与键盘：真的注入按键、抓屏取色这类事情在那里验不了，
