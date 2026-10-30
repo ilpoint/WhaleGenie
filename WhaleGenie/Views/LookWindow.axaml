@@ -78,7 +78,7 @@
                                    TextWrapping="Wrap" />
                         <TextBlock Name="LookingLine" FontSize="12" Foreground="{DynamicResource TextTertiary}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="OutcomeLine" FontSize="12" Foreground="#E0B080"
+                        <TextBlock Name="OutcomeLine" FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap" />
                         <TextBlock Name="NoteLine" FontSize="12" Classes="Code"
                                    TextWrapping="Wrap" IsVisible="False" />

@@ -62,9 +62,9 @@
         </Grid>
 
         <StackPanel Grid.Row="4" Margin="20,16,20,0" Spacing="6">
-            <TextBlock Foreground="#C9C9C9" FontSize="12.5" TextWrapping="Wrap"
+            <TextBlock Foreground="{DynamicResource TextSecondary}" FontSize="12.5" TextWrapping="Wrap"
                        Text="{Binding Summary}" />
-            <TextBlock Foreground="#7F7F7F" FontSize="12" TextWrapping="Wrap"
+            <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap"
                        Text="{Binding Detail}" IsVisible="{Binding HasDetail}" />
         </StackPanel>
 

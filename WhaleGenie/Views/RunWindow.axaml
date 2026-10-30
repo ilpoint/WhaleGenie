@@ -33,7 +33,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="MinHeight" Value="30" />
@@ -166,7 +166,7 @@
         <!-- Taking one value away: small, and sitting at the end of the row it belongs to. -->
         <Style Selector="Button.CopyButton">
             <Setter Property="Background" Value="{DynamicResource BorderControl}" />
-            <Setter Property="Foreground" Value="#CFCFCF" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Padding" Value="8,0" />
@@ -261,18 +261,20 @@
                     </StackPanel>
                     <Border Grid.Column="6" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
                             CornerRadius="4"
-                            Background="#3A2A10" BorderBrush="#8A6A2A" BorderThickness="1"
+                            Background="{DynamicResource WarningSurface}"
+                            BorderBrush="{DynamicResource Warning}" BorderThickness="1"
                             VerticalAlignment="Center"
                             IsVisible="{Binding IsSpeedAdjusted}"
                             ToolTip.Tip="{Binding [Run.SpeedTip], Source={x:Static loc:Strings.Current}}">
-                        <TextBlock FontSize="11.5" Foreground="#E0B080" Text="{Binding SpeedNote}" />
+                        <TextBlock FontSize="11.5" Foreground="{DynamicResource Warning}"
+                                   Text="{Binding SpeedNote}" />
                     </Border>
                     <!-- Whose turn it is at the input door. Two macros running at once are two
                          hands on one keyboard, and this is the line that says which of them is
                          sending keys right now. -->
                     <TextBlock Grid.Column="7" Name="InputOwnerText" Margin="12,0,0,0"
                                VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
+                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource Warning}"
                                IsVisible="{Binding ShowsInputOwner}"
                                Text="{Binding InputOwnerLine}" />
                     <!-- Which run has the one shared browser. It is a different door from input:
@@ -469,8 +471,8 @@
                                                                     <DataTemplate x:DataType="vm:RunAttemptViewModel">
                                                                         <StackPanel Margin="0,1,0,0">
                                                                             <TextBlock Text="{Binding Note}"
-                                                                                       FontSize="11"
-                                                                                       Foreground="#CFCFCF" />
+                                                                                       FontSize="12"
+                                                                                       Foreground="{DynamicResource TextTertiary}" />
                                                                             <TextBlock Text="{Binding Failure}"
                                                                                        FontSize="11"
                                                                                        Foreground="{DynamicResource Danger}"
@@ -618,8 +620,8 @@
                 <DataTemplate x:DataType="vm:StepOutcome">
                     <Grid ColumnDefinitions="150,*,60" Margin="0,0,0,3"
                           ToolTip.Tip="{Binding Name}">
-                        <TextBlock Text="{Binding Label}" FontSize="11.5"
-                                   Foreground="#CFCFCF"
+                        <TextBlock Text="{Binding Label}" FontSize="12"
+                                   Foreground="{DynamicResource TextTertiary}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
                                    FontFamily="{DynamicResource UiCodeFont}"
@@ -653,8 +655,8 @@
     <ItemsControl ItemsSource="{Binding Triggers}">
         <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:TriggerWatchLine">
-                <TextBlock Text="{Binding Text}" FontSize="11.5"
-                           Foreground="#CFCFCF" TextWrapping="Wrap"
+                <TextBlock Text="{Binding Text}" FontSize="12"
+                           Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                            Margin="0,1,0,1" />
             </DataTemplate>
         </ItemsControl.ItemTemplate>
@@ -681,7 +683,7 @@
         <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:RunLineViewModel">
                 <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
-                    <TextBlock Text="{Binding Time}" FontSize="11" Foreground="#7A7A7A"
+                    <TextBlock Text="{Binding Time}" FontSize="11" Foreground="{DynamicResource TextTertiary}"
                                Margin="0,0,8,0" />
                     <SelectableTextBlock Text="{Binding Text}" FontSize="11.5"
                                          Foreground="{Binding Color}"
