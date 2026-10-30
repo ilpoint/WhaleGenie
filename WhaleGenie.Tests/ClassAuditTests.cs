@@ -226,13 +226,20 @@ public class ClassAuditTests
     }
 
     /// <summary>
-    /// 每个窗自己声明、却找不到任何消费者的类名，带回它定义在哪个文件。
-    /// 只查窗口/控件本地的样式：库里的类（`Controls.axaml`）是全仓共用的，不在这个范围。
+    /// 声明了、却找不到任何消费者的类名，带回它定义在哪个文件。
+    ///
+    /// **声明源有两处，都要扫**：`Themes/*.axaml` 是共享库（`Controls.axaml` 里的选择器就是类的声明），
+    /// `Views/*.axaml` 是窗口本地样式。**只扫后者会让整个共享库免检**——
+    /// 实见过：`Button.Rail` 声明在库里、视图里一处没用，而这条检查报 0，因为 `Themes/` 不在枚举范围。
+    ///
+    /// 两者的"消费者"来源不同：窗口本地的类可以在**同一个文件**里被用；
+    /// 库里的类只能被**别处**用——所以库声明永远不拿自身文本当消费者来源，否则自己满足自己。
     /// </summary>
     private static Dictionary<string, string> Unused()
     {
         var root = RepositoryRoot();
         var views = Path.Combine(root, "WhaleGenie", "Views");
+        var themes = Path.Combine(root, "WhaleGenie", "Themes");
         var tests = Path.Combine(root, "WhaleGenie.Tests");
 
         // 全部 .cs（含 Views 与 Runtime）与全部测试，拼成一份可搜的文本
@@ -242,8 +249,19 @@ public class ClassAuditTests
             .Select(File.ReadAllText));
         var testCode = string.Join("\n", Directory.EnumerateFiles(tests, "*.cs").Select(File.ReadAllText));
 
+        // 库声明能被哪些地方的 `Classes=` 满足：所有视图 + App.axaml（**不含库自身**）
+        var useSites = string.Join("\n", Directory.EnumerateFiles(views, "*.axaml")
+            .Concat(Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie"), "*.axaml",
+                SearchOption.TopDirectoryOnly))
+            .Select(File.ReadAllText));
+
         var unused = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var path in Directory.EnumerateFiles(views, "*.axaml"))
+        var declarations = Directory.EnumerateFiles(themes, "*.axaml")
+            .Select(path => (Path: path, IsLibrary: true))
+            .Concat(Directory.EnumerateFiles(views, "*.axaml")
+                .Select(path => (Path: path, IsLibrary: false)));
+
+        foreach (var (path, isLibrary) in declarations)
         {
             var text = File.ReadAllText(path);
             var name = Path.GetFileName(path);
@@ -255,7 +273,9 @@ public class ClassAuditTests
                     foreach (var token in chain)
                     {
                         // 只有"带修饰的那一层"可能是死的；基类那一层由父选择器共用
-                        if (HasConsumer(text, testCode, code, token))
+                        // 库里的类：消费者在别处；窗口本地的类：消费者也可能在同一个文件里
+                        var consumers = isLibrary ? useSites : text + "\n" + useSites;
+                        if (HasConsumer(consumers, testCode, code, token))
                         {
                             continue;
                         }
