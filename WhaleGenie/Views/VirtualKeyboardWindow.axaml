@@ -17,45 +17,6 @@
         WindowDecorations="BorderOnly"
         Background="{DynamicResource AppBackdrop}">
 
-    <Window.Styles>
-        <!-- One key of the keyboard. The cap shows the name the step will carry, which is how a
-             key reads everywhere else in the program, and it is sized to be read at a glance
-             rather than hunted for. -->
-        <Style Selector="Button.Key">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <!-- The keys to the side of the letters, where the cap has a long word on it and no room
-             to grow into: one step down in size, still readable. -->
-        <Style Selector="Button.Key.Small">
-            <Setter Property="FontSize" Value="11" />
-        </Style>
-        <!-- A key that takes the whole cell it stands in. The blocks at the side of the letters are
-             grids whose cells are the keys; a key of its own width would float in the middle of its
-             column instead of lining up with the keys above and below it. -->
-        <Style Selector="Button.Key.Cell">
-            <Setter Property="Width" Value="NaN" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-        </Style>
-        <Style Selector="Button.Key:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.Key:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
-        </Style>
-
-        <!-- A named button in the title bar, for finishing rather than dismissing. -->
-    </Window.Styles>
-
     <Grid RowDefinitions="38,*">
 
         <!-- Title bar -->
@@ -221,21 +182,21 @@
                              the gap a keyboard leaves between the two. -->
                         <Grid ColumnDefinitions="64,58,60" RowDefinitions="32,32,32,32,32,32"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key Small Cell" Content="PrintScreen" Tag="PrintScreen" />
-                            <Button Grid.Column="1" Classes="Key Small Cell" Content="ScrollLock" Tag="ScrollLock" />
-                            <Button Grid.Column="2" Classes="Key Small Cell" Content="Pause" Tag="Pause" />
-                            <Button Grid.Row="1" Classes="Key Small Cell" Content="Insert" Tag="Insert" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small Cell" Content="Home" Tag="Home" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small Cell" Content="PageUp" Tag="PageUp" />
-                            <Button Grid.Row="2" Classes="Key Small Cell" Content="Delete" Tag="Delete" />
-                            <Button Grid.Row="2" Grid.Column="1" Classes="Key Small Cell" Content="End" Tag="End" />
-                            <Button Grid.Row="2" Grid.Column="2" Classes="Key Small Cell" Content="PageDown" Tag="PageDown" />
-                            <Button Grid.Row="4" Grid.Column="1" Classes="Key Cell" FontSize="14"
+                            <Button Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="PrintScreen" Tag="PrintScreen" />
+                            <Button Grid.Column="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="ScrollLock" Tag="ScrollLock" />
+                            <Button Grid.Column="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Pause" Tag="Pause" />
+                            <Button Grid.Row="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Insert" Tag="Insert" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Home" Tag="Home" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="PageUp" Tag="PageUp" />
+                            <Button Grid.Row="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Delete" Tag="Delete" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="End" Tag="End" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="PageDown" Tag="PageDown" />
+                            <Button Grid.Row="4" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14"
                                     Content="↑" Tag="Up" />
-                            <Button Grid.Row="5" Classes="Key Cell" FontSize="14" Content="←" Tag="Left" />
-                            <Button Grid.Row="5" Grid.Column="1" Classes="Key Cell" FontSize="14"
+                            <Button Grid.Row="5" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14" Content="←" Tag="Left" />
+                            <Button Grid.Row="5" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14"
                                     Content="↓" Tag="Down" />
-                            <Button Grid.Row="5" Grid.Column="2" Classes="Key Cell" FontSize="14"
+                            <Button Grid.Row="5" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14"
                                     Content="→" Tag="Right" />
                         </Grid>
 
@@ -243,25 +204,25 @@
                              number pad has them. -->
                         <Grid ColumnDefinitions="52,52,52,52" RowDefinitions="32,32,32,32,32"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key Small Cell" Content="NumLock" Tag="NumLock" />
-                            <Button Grid.Column="1" Classes="Key Cell" Content="/" Tag="NumPadDivide" />
-                            <Button Grid.Column="2" Classes="Key Cell" Content="*" Tag="NumPadMultiply" />
-                            <Button Grid.Column="3" Classes="Key Cell" Content="-" Tag="NumPadSubtract" />
-                            <Button Grid.Row="1" Classes="Key Cell" Content="7" Tag="NumPad7" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Cell" Content="8" Tag="NumPad8" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Cell" Content="9" Tag="NumPad9" />
-                            <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key Cell"
+                            <Button Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="NumLock" Tag="NumLock" />
+                            <Button Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="/" Tag="NumPadDivide" />
+                            <Button Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="*" Tag="NumPadMultiply" />
+                            <Button Grid.Column="3" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="-" Tag="NumPadSubtract" />
+                            <Button Grid.Row="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="7" Tag="NumPad7" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="8" Tag="NumPad8" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="9" Tag="NumPad9" />
+                            <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch"
                                     Content="+" Tag="NumPadAdd" Height="68" />
-                            <Button Grid.Row="2" Classes="Key Cell" Content="4" Tag="NumPad4" />
-                            <Button Grid.Row="2" Grid.Column="1" Classes="Key Cell" Content="5" Tag="NumPad5" />
-                            <Button Grid.Row="2" Grid.Column="2" Classes="Key Cell" Content="6" Tag="NumPad6" />
-                            <Button Grid.Row="3" Classes="Key Cell" Content="1" Tag="NumPad1" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key Cell" Content="2" Tag="NumPad2" />
-                            <Button Grid.Row="3" Grid.Column="2" Classes="Key Cell" Content="3" Tag="NumPad3" />
-                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small Cell"
+                            <Button Grid.Row="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="4" Tag="NumPad4" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="5" Tag="NumPad5" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="6" Tag="NumPad6" />
+                            <Button Grid.Row="3" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="1" Tag="NumPad1" />
+                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="2" Tag="NumPad2" />
+                            <Button Grid.Row="3" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="3" Tag="NumPad3" />
+                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch"
                                     Content="Enter" Tag="NumPadEnter" Height="68" />
-                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key Cell" Content="0" Tag="NumPad0" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key Cell" Content="." Tag="NumPadDecimal" />
+                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="0" Tag="NumPad0" />
+                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="." Tag="NumPadDecimal" />
                         </Grid>
                     </StackPanel>
                 </Grid>

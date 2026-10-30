@@ -472,6 +472,44 @@
     </Style>
 
     <!--
+      键帽：`Button` 侧的对应物。`ToggleButton.Chip.Key` 是同一个尺寸的开关版（键盘上的
+      结束键用那个），而**按钮版一直缺着**——虚拟键盘那一族本来就有 138 处这样的键。
+      尺寸 32×32 与开关版一致；按下走 `AccentFillPressed`（品牌橙就是它），不用 `AccentFill`
+      ——后者是静息的强调底。
+    -->
+    <Style Selector="Button.Key">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Key:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+    </Style>
+    <Style Selector="Button.Key:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillPressed}" />
+    </Style>
+    <Style Selector="Button.Key:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+
+    <!-- 键帽的小字档：侧边那些长词的键，一格降字号，仍可读。 -->
+    <Style Selector="Button.Key.Small">
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+    </Style>
+
+    <!--
       文本族的其余七类。层次靠字号与字重，不靠亮度——`FieldLabel.Strong` 就是替掉原来那套
       "用更白的颜色表示强调"的做法。间距长在标题自己身上：上方与下方间隙不同，`Spacing` 给不了。
 
