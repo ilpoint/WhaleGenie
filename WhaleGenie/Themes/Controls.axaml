@@ -97,6 +97,7 @@
       STATIC GridSplitter.Split
       STATIC Button.Thumb
       STATIC Button.Square
+      STATIC Button.Secondary.Block
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -649,6 +650,18 @@
     </Style>
 
     <!-- 次按钮：外观四个状态由层 1 的 Button* 键给，这里只给度量与字重。 -->
+    <!--
+      成块排列的次按钮（动作选择器里那一格一格的卡片）。
+      **它只多一件事**：一格与下一格之间的缝（`Margin`）。标题色不用在这儿再给一遍——
+      `Secondary` 那一族的四态前景色由层 1 给（`TextPrimary`），内层 `TextBlock` 继承它。
+      原本这两件都写在元素上，同一个窗里就出现了"左栏写元素、右栏写类"的两套来源；
+      搬到类里之后，尺寸的来源只剩一处。
+      **缝保持 6，不改值**：先让"来源"统一，"值该多大"是另一件事，一次只改一件。
+    -->
+    <Style Selector="Button.Secondary.Block">
+        <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+
     <Style Selector="Button.Secondary">
         <Setter Property="Height" Value="30" />
         <Setter Property="Padding" Value="{DynamicResource PadControl}" />

@@ -69,6 +69,11 @@ foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
             {
                 ReportSeams(frame);
             }
+
+            if (name == "ActionEditor")
+            {
+                ReportPitch(window);
+            }
             saved.Add((path, sample));
 
             window.Close();
@@ -149,7 +154,23 @@ static IEnumerable<(string Name, Func<Window> Make)> Screens()
 
         return new MacroMenuWindow(layout, NoActions(), "notepad");
     });
-    yield return ("ActionEditor", () => new ActionEditorWindow());
+    yield return ("ActionEditor", () =>
+    {
+        var window = new ActionEditorWindow();
+        window.Opened += (_, _) =>
+        {
+            // 动作卡片要有分类才渲染：点第一个分类栏钮（`Rail`），否则列表是空的、量不到行距。
+            var rail = window.GetVisualDescendants()
+                .OfType<Button>()
+                .FirstOrDefault(button => button.Classes.Contains("Rail"));
+            if (rail is not null)
+            {
+                rail.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                Dispatcher.UIThread.RunJobs();
+            }
+        };
+        return window;
+    });
     yield return ("Main", () => new MainWindow());
 }
 
@@ -168,6 +189,52 @@ static Color SamplePixel(Avalonia.Media.Imaging.WriteableBitmap frame)
 }
 
 static string Sample_Text(Color colour) => $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}";
+
+// 两栏的行距：**相邻两格上沿之间的 y 差**，取中位数。
+// 判据不是"必须相等"——按钮多一道缝、一条边框，就该比行大一点；
+// 判据是"这个差能不能用一个原因解释"。
+static void ReportPitch(Window window)
+{
+    static double? Median(IEnumerable<double> values)
+    {
+        var sorted = values.OrderBy(value => value).ToList();
+        return sorted.Count == 0 ? null : sorted[sorted.Count / 2];
+    }
+
+    static IEnumerable<double> Pitch(IEnumerable<Control> controls, Visual root)
+    {
+        var tops = controls
+            .Select(control => control.TranslatePoint(default, root))
+            .Where(point => point is not null)
+            .Select(point => Math.Round(point!.Value.Y, 1))
+            .Distinct()
+            .OrderBy(y => y)
+            .ToList();
+
+        for (var index = 1; index < tops.Count; index++)
+        {
+            yield return tops[index] - tops[index - 1];
+        }
+    }
+
+    var blocks = window.GetVisualDescendants()
+        .OfType<Button>()
+        .Where(button => button.Classes.Contains("Block"))
+        .ToList();
+
+    var rows = window.GetVisualDescendants()
+        .OfType<Border>()
+        .Where(border => border.Classes.Contains("Row"))
+        .ToList();
+
+    var blockPitch = Median(Pitch(blocks, window));
+    var rowPitch = Median(Pitch(rows, window));
+
+    Console.WriteLine($"    · 左栏动作卡片（Block）{blocks.Count} 个，行距中位数 = "
+        + (blockPitch is { } b ? $"{b:0.#} px" : "取不到"));
+    Console.WriteLine($"    · 右栏行（Row）{rows.Count} 个，行距中位数 = "
+        + (rowPitch is { } r ? $"{r:0.#} px" : "取不到"));
+}
 
 // 在窗口中部扫一行，把连续同色的段打出来。
 // 用来回答"那条缝到底多宽"——**缝是"列宽"和"条宽"里更大的那个**，

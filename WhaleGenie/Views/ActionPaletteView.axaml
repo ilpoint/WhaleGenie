@@ -8,11 +8,11 @@
 
     <UserControl.Resources>
         <DataTemplate x:Key="PaletteCardButton" x:DataType="vm:ActionPaletteCardViewModel">
-            <Button Classes="Secondary" Margin="0,0,6,6"
+            <!-- 间距与标题色都在 `Secondary.Block` 里；这里只留这个卡片自己的东西（描边、提示）。 -->
+            <Button Classes="Secondary Block"
                     BorderBrush="{Binding Accent}"
                     ToolTip.Tip="{Binding Description}">
-                <TextBlock Text="{Binding Title}" FontSize="13"
-                           Foreground="{DynamicResource TextPrimary}"
+                <TextBlock Text="{Binding Title}"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center" />
             </Button>
@@ -68,7 +68,7 @@
                                                         Data="{Binding Icon}"
                                                         Stroke="{Binding Accent}"
                                                         StrokeThickness="1.4" />
-                                        <TextBlock Text="{Binding Short}" FontSize="11"
+                                        <TextBlock Text="{Binding Short}"
                                                    HorizontalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
