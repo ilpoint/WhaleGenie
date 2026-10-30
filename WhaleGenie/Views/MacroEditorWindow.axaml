@@ -231,20 +231,6 @@
         <Style Selector="Button.Ghost.Tiny:pointerover views|IconView">
             <Setter Property="Stroke" Value="#FF8A5C" />
         </Style>
-        <Style Selector="Button.AddChildButton">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Padding" Value="8,0" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.AddChildButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
 
         <!-- Record toggle, idle: dark plate with a red dot. -->
         <Style Selector="Button.RecordButton">
@@ -293,19 +279,6 @@
         <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
-        <Style Selector="Button.TabCloseButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="3" />
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="18" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TabCloseButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
 
         <!-- 图标块：外观全由 `Button.Icon` 给（34×32 逐格一致），这里只补"图标本身用什么色、
              多粗"——图元不是控件，词汇表管不到它的描边。 -->
@@ -335,36 +308,6 @@
         </Style>
         <Style Selector="Button.Icon.primary:disabled views|IconView">
             <Setter Property="Stroke" Value="{DynamicResource TextDisabled}" />
-        </Style>
-
-        <Style Selector="Button.SaveButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.SaveButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-
-        <!-- The way into a run from here: the same weight as Save, because writing a macro and
-             trying it are the two things this window is for. -->
-        <Style Selector="Button.RunButton">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="#585858" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Height" Value="34" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RunButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </Window.Styles>
 
@@ -1005,7 +948,7 @@
                                    Foreground="#7FC97F" FontSize="11.5"
                                    Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="6" Margin="12,8,12,12">
-                            <Button Name="SaveButton" Classes="SaveButton" Height="34"
+                            <Button Name="SaveButton" Classes="Primary"
                                     Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}">
                                 <StackPanel Orientation="Horizontal" Spacing="6"
                                             HorizontalAlignment="Center">
@@ -1016,7 +959,7 @@
                                     <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Button>
-                            <Button Grid.Column="1" Name="RunDebugButton" Classes="RunButton" Height="34"
+                            <Button Grid.Column="1" Name="RunDebugButton" Classes="Secondary"
                                     Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
                                 <StackPanel Orientation="Horizontal" Spacing="6"
                                             HorizontalAlignment="Center">
@@ -1055,7 +998,7 @@
                                             Stroke="#E06C75" StrokeThickness="1.4"
                                             Data="{x:Static vm:AppIcons.WarningTriangle}" />
                             <Button Grid.Column="2" Name="CloseDocumentButton"
-                                    Classes="TabCloseButton"
+                                    Classes="Ghost Tiny"
                                     IsVisible="{Binding !IsCurrent}"
                                     ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"
                                     PointerPressed="OnDocumentTabClosePressed"
@@ -1240,7 +1183,7 @@
                                                      Text="{Binding HeadLabel}" />
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
-                                          <Button Classes="AddChildButton"
+                                          <Button Classes="Secondary" Height="28"
                                                   ToolTip.Tip="{Binding AddHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
                                                   CommandParameter="{Binding}">
