@@ -228,8 +228,9 @@ public class ActionPaletteCategoryTests
             var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
 
             var button = palette.GetVisualDescendants().OfType<Button>()
-                .First(candidate => candidate.Classes.Contains("ActionCard"));
-            Assert.Equal(32, button.Height);
+                .First(candidate => candidate.DataContext is ActionPaletteCardViewModel
+                    && candidate.Classes.Contains("Secondary"));
+            Assert.Equal(30, button.Height);
             Assert.NotNull(button.GetVisualAncestors().OfType<WrapPanel>().FirstOrDefault());
             Assert.False(string.IsNullOrWhiteSpace(ToolTip.GetTip(button) as string));
 

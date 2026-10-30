@@ -997,7 +997,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ActionCardViewModel">
-                            <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
+                            <Button Classes="Secondary" Margin="0,0,6,6" Classes.selected="{Binding IsSelected}"
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
                                 <TextBlock Text="{Binding Definition.LocalName}" FontSize="13"
@@ -1070,26 +1070,9 @@
         </Style>
 
         <!-- One action in the picker: a card holding its name, laid out a grid to a group. -->
-        <Style Selector="Button.ActionCard">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="11,0" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Margin" Value="0,0,6,6" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <!-- The one the dialog is about reads as chosen, so the list on the left always says what
              the fields on the right are fields of. -->
-        <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
+        <Style Selector="Button.Secondary.selected /template/ ContentPresenter">
             <Setter Property="Background" Value="#3A2A22" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>

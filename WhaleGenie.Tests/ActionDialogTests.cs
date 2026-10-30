@@ -2694,8 +2694,8 @@ public class ActionDialogTests
 
             // Clicking a card in the list is the same thing as choosing that action.
             var card = window.GetVisualDescendants().OfType<Button>()
-                .First(button => button.Classes.Contains("ActionCard")
-                    && button.DataContext is ActionCardViewModel { Key: "input.mouseMove" });
+                .First(button => button.DataContext is ActionCardViewModel { Key: "input.mouseMove" }
+                    && button.Classes.Contains("Secondary"));
             card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 

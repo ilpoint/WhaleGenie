@@ -8,7 +8,7 @@
 
     <UserControl.Resources>
         <DataTemplate x:Key="PaletteCardButton" x:DataType="vm:ActionPaletteCardViewModel">
-            <Button Classes="ActionCard"
+            <Button Classes="Secondary" Margin="0,0,6,6"
                     BorderBrush="{Binding Accent}"
                     ToolTip.Tip="{Binding Description}">
                 <TextBlock Text="{Binding Title}" FontSize="13"
@@ -50,22 +50,6 @@
         </Style>
         <Style Selector="Button.Category:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
-        </Style>
-        <Style Selector="Button.ActionCard">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="11,0" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Margin" Value="0,0,6,6" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
     </UserControl.Styles>
 

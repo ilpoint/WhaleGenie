@@ -231,15 +231,7 @@
         </Style>
 
         <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
-        <Style Selector="Button.RowButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Width" Value="16" />
-            <Setter Property="Height" Value="16" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RowButton views|IconView">
+        <Style Selector="Button.Ghost.Tiny views|IconView">
             <Setter Property="Stroke" Value="{DynamicResource AppMuted}" />
             <Setter Property="StrokeThickness" Value="1.2" />
             <Setter Property="FitToBounds" Value="True" />
@@ -247,10 +239,7 @@
             <Setter Property="Height" Value="10" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.RowButton /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.RowButton:pointerover views|IconView">
+        <Style Selector="Button.Ghost.Tiny:pointerover views|IconView">
             <Setter Property="Stroke" Value="#FF8A5C" />
         </Style>
         <Style Selector="Button.AddChildButton">
@@ -1257,7 +1246,7 @@
                                           ToolTip.Tip="{Binding IdHint}"
                                           IsVisible="{Binding IsStep}">
                                       <StackPanel Orientation="Horizontal" Spacing="6">
-                                          <Button Classes="RowButton" IsVisible="{Binding CanFold}"
+                                          <Button Classes="Ghost Tiny" VerticalAlignment="Center" IsVisible="{Binding CanFold}"
                                                   ToolTip.Tip="{Binding FoldHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
                                                   CommandParameter="{Binding}">
