@@ -46,7 +46,7 @@ public sealed class PublicMacroLibraryWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("PublicMacroManager.Title");
-        Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
+        Background = Brush("SurfaceWindow");
 
         var newButton = Button(Strings.Get("PublicMacroManager.New"), OnNew);
         var editButton = Button(Strings.Get("PublicMacroManager.Edit"), OnEdit);
@@ -61,15 +61,14 @@ public sealed class PublicMacroLibraryWindow : Window
         var closeButton = Button(Strings.Get("Common.Close"), (_, _) => Close());
         _status = new TextBlock
         {
-            Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160)),
-            TextWrapping = TextWrapping.Wrap,
+            Classes = { "Hint" },
             VerticalAlignment = VerticalAlignment.Center,
         };
         if (loadError is not null)
         {
             _status.Text = loadError;
         }
-        _list = new ListBox { ItemsSource = _rows, Margin = new Thickness(0, 10, 0, 10) };
+        _list = new ListBox { ItemsSource = _rows, Classes = { "List" } };
         _list.DoubleTapped += async (_, _) => await EditSelected();
         _list.ItemTemplate = new FuncDataTemplate<Row>((row, _) =>
             new StackPanel
@@ -80,16 +79,13 @@ public sealed class PublicMacroLibraryWindow : Window
                     new TextBlock
                     {
                         Text = row.Title,
-                        FontSize = 13,
+                        Classes = { "Body" },
                         FontWeight = FontWeight.SemiBold,
-                        Foreground = Brush("AppTextStrong", Colors.White),
                     },
                     new TextBlock
                     {
                         Text = row.Description,
-                        FontSize = 11.5,
-                        Foreground = Brush("AppMuted", Colors.Gray),
-                        TextWrapping = TextWrapping.Wrap,
+                        Classes = { "Hint" },
                     },
                 },
             });
@@ -103,10 +99,7 @@ public sealed class PublicMacroLibraryWindow : Window
         var heading = new TextBlock
         {
             Text = Strings.Get("PublicMacroManager.Title"),
-            FontSize = 15,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brush("AppTextStrong", Colors.White),
-            Margin = new Thickness(0, 0, 0, 10),
+            Classes = { "Title" },
         };
         var footer = new Grid
         {
@@ -115,11 +108,14 @@ public sealed class PublicMacroLibraryWindow : Window
         };
         Grid.SetColumn(closeButton, 1);
 
-        Content = new Grid
+        Content = new Border
         {
-            Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
-            Children = { heading, buttons, _list, footer },
+            Padding = new Thickness(16),
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
+                Children = { heading, buttons, _list, footer },
+            },
         };
         Grid.SetRow(buttons, 1);
         Grid.SetRow(_list, 2);
@@ -338,10 +334,8 @@ public sealed class PublicMacroLibraryWindow : Window
         return button;
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
+    private static IBrush? Brush(string key)
+        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
