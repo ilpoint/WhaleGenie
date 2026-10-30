@@ -1030,15 +1030,6 @@
             <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
             <Setter Property="Margin" Value="2,3,5,6" />
         </Style>
-        <Style Selector="Border.GroupBox">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,4,12,14" />
-            <Setter Property="Margin" Value="0,16,0,0" />
-        </Style>
-
         <Style Selector="ComboBox.ActionSelect">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -1226,7 +1217,7 @@
                         <StackPanel>
 
                     <!-- What the step is: what it looks for, where, how soon, and what it does. -->
-                    <Border Classes="GroupBox" IsVisible="{Binding OnBase}">
+                    <Border Classes="Sunken" IsVisible="{Binding OnBase}" Margin="0,16,0,0">
                         <StackPanel>
                             <!-- Every step may carry a note, and a note is part of what the step
                                  is, so it is the first line here rather than something to go
@@ -1313,7 +1304,7 @@
                     <!-- How the step does it: the ways of recognising things, the tuning, the
                          format. Nothing here is needed to say what the step is, so it is on a page
                          of its own rather than in the way of the usual few fields. -->
-                    <Border Classes="GroupBox" IsVisible="{Binding OnAdvanced}">
+                    <Border Classes="Sunken" IsVisible="{Binding OnAdvanced}" Margin="0,16,0,0">
                         <StackPanel>
                             <ItemsControl ItemsSource="{Binding AdvancedRows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
@@ -1323,7 +1314,7 @@
                     <!-- What the step hands over. These are the results the engine works out while
                          it runs: tick the ones the macro should keep, and each becomes a variable of
                          its own for a later step to read. -->
-                    <Border Classes="GroupBox" IsVisible="{Binding OnReturns}">
+                    <Border Classes="Sunken" IsVisible="{Binding OnReturns}" Margin="0,16,0,0">
                         <StackPanel>
                             <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,8"
                                        Text="{Binding [Add.Page.ReturnsHint], Source={x:Static loc:Strings.Current}}" />
@@ -1332,7 +1323,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
+                    <Border Classes="Sunken" IsVisible="{Binding OnOther}" Margin="0,16,0,0">
                         <StackPanel>
                             <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,12"
                                        IsVisible="{Binding IsBlock}"
@@ -1439,7 +1430,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
+                    <Border Classes="Sunken" IsVisible="{Binding OnOther}" Margin="0,16,0,0">
                         <StackPanel>
                             <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,12,0,10"
                                        Text="{Binding [Add.JsonNode], Source={x:Static loc:Strings.Current}}" />

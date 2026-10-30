@@ -50,15 +50,10 @@
             <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
         </Style>
 
-        <Style Selector="ListBox.VariableList > ListBoxItem">
-            <Setter Property="Background" Value="Transparent" />
+        <Style Selector="ListBox.List > ListBoxItem">
+            <!-- The library gives rows no divider; this list reads as a table of names and needs one. -->
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="9,8" />
-        </Style>
-        <Style Selector="ListBox.VariableList > ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
         </Style>
     </Window.Styles>
 
@@ -110,7 +105,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <ListBox Grid.Row="2" Name="VariableList" Classes="VariableList"
+                    <ListBox Grid.Row="2" Name="VariableList" Classes="List"
                              ItemsSource="{Binding Shown}"
                              SelectedItem="{Binding Selected, Mode=TwoWay}">
                         <ListBox.ItemTemplate>

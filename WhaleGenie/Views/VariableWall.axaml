@@ -31,7 +31,7 @@
         <Style Selector="Button.VarButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
-        <Style Selector="ScrollViewer.VariableList /template/ ScrollBar#PART_VerticalScrollBar">
+        <Style Selector="ScrollViewer.VarWallScroll /template/ ScrollBar#PART_VerticalScrollBar">
             <Setter Property="Width" Value="8" />
             <Setter Property="MinWidth" Value="8" />
         </Style>
@@ -73,7 +73,7 @@
 
         <!-- The variables themselves: one button each, so the wall is something to point at rather
              than a name to type. Hovering one puts everything about it on the line below. -->
-        <ScrollViewer Grid.Row="2" Name="VariableList" Classes="VariableList"
+        <ScrollViewer Grid.Row="2" Name="VariableList" Classes="VarWallScroll"
                       MaxHeight="{Binding ListMaxHeight}"
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
