@@ -21,22 +21,6 @@
         <vm:DelayScaleViewModel />
     </Design.DataContext>
 
-    <Window.Styles>
-        <Style Selector="Button.PresetButton">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PresetButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-    </Window.Styles>
 
     <Grid RowDefinitions="38,Auto,Auto,Auto,*,Auto">
         <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
@@ -63,7 +47,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ScalePresetChoice">
-                    <Button Classes="PresetButton" Content="{Binding Label}" Command="{Binding Command}" />
+                    <Button Classes="Secondary" Content="{Binding Label}" Command="{Binding Command}" />
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
