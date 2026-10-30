@@ -323,22 +323,6 @@
         </Style>
 
         <!-- Plain parameter input, without the spin buttons a NumericUpDown would add -->
-        <Style Selector="Button.KeyFieldButton">
-            <Setter Property="Height" Value="34" />
-            <Setter Property="Padding" Value="9,0" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.KeyFieldButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="ComboBox.OptionSelect">
             <Setter Property="Background" Value="{DynamicResource AppField}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -1002,7 +986,7 @@
                             <StackPanel IsVisible="{Binding IsHotstringTrigger}">
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Editor.Hotstring], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="KeyFieldButton"
+                                <Button Classes="Field"
                                         Content="{Binding HotstringTextDisplay}"
                                         ToolTip.Tip="{Binding [Editor.HotstringKeyboard], Source={x:Static loc:Strings.Current}}"
                                         Click="OnOpenHotstringKeyboard" />

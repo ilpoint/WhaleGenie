@@ -104,7 +104,7 @@
                      laid out on screen, while capture takes the key pressed on the physical
                      keyboard instead of hunting for it on the drawing. -->
                 <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <Button Classes="KeyFieldButton"
+                    <Button Classes="Field"
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
@@ -123,7 +123,7 @@
                 <!-- A combination is built the same way the keyboard drawn on screen builds it:
                      one key at a time, so the keys pressed are joined to what is already there. -->
                 <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <Button Classes="KeyFieldButton"
+                    <Button Classes="Field"
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
@@ -617,7 +617,7 @@
                                      pushes the numbers off the side. -->
                                 <StackPanel Margin="0,0,0,8" Spacing="6">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                                        <Button Classes="KeyFieldButton"
+                                        <Button Classes="Field"
                                                 Content="{Binding KeysDisplay}"
                                                 ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickKeyRow" />
@@ -1123,22 +1123,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
-        <Style Selector="Button.KeyFieldButton">
-            <Setter Property="Height" Value="34" />
-            <Setter Property="Padding" Value="9,0" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.KeyFieldButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
         <Style Selector="TextBox.JsonPreview">
             <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -1151,40 +1135,8 @@
         </Style>
 
         <!-- Variable name: free text with the known variables offered as suggestions. -->
-        <Style Selector="Button.AddButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.AddButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-        <Style Selector="Button.AddButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#5A3226" />
-        </Style>
-
         <!-- A named button in the title bar, for the one thing the dialog can do besides hand the
              step back: run it. It is wider than the window buttons because it says what it is. -->
-        <Style Selector="Button.TitleBarAction">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.TitleBarAction:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-        </Style>
     </UserControl.Styles>
 
     <Grid Name="FormRoot" RowDefinitions="38,*">
@@ -1533,7 +1485,7 @@
                 <Button Grid.Column="2" Classes="Secondary" Height="38" MinWidth="92"
                         Content="{Binding CancelLabel}"
                         Margin="8,0,0,0" Command="{Binding CancelCommand}" />
-                <Button Grid.Column="3" Classes="AddButton" Content="{Binding CommitLabel}" Height="38" MinWidth="110"
+                <Button Grid.Column="3" Classes="Primary" Content="{Binding CommitLabel}" MinWidth="110"
                         Margin="8,0,0,0" Command="{Binding SaveCommand}" />
             </Grid>
         </Grid>

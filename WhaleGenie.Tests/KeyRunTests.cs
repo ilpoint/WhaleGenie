@@ -345,7 +345,7 @@ public class KeyRunTests
     private static Button FindKeyField(Window window, object data)
         => window.GetVisualDescendants().OfType<Button>().Single(candidate =>
             candidate.IsEffectivelyVisible
-            && candidate.Classes.Contains("KeyFieldButton")
+            && candidate.Classes.Contains("Field")
             && Equals(candidate.DataContext, data));
 
     /// <summary>Presses one key of the physical keyboard on the window the form stands in.</summary>

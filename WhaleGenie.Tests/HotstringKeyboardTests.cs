@@ -201,7 +201,7 @@ public class HotstringKeyboardTests
             Dispatcher.UIThread.RunJobs();
 
             var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
-                button.Classes.Contains("KeyFieldButton")
+                button.Classes.Contains("Field")
                 && ReferenceEquals(editor, button.DataContext));
             Assert.Equal("a␠b", field.Content);
 
@@ -337,7 +337,7 @@ public class HotstringKeyboardTests
     private static void OpenKeyboard(MacroEditorWindow window)
     {
         var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
-            button.Classes.Contains("KeyFieldButton"));
+            button.Classes.Contains("Field"));
         field.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
     }

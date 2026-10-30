@@ -54,19 +54,6 @@
         </Style>
 
         <!-- A named button in the title bar, for finishing rather than dismissing. -->
-        <Style Selector="Button.TitleBarAction">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
@@ -83,7 +70,7 @@
                         VerticalAlignment="Center">
                 <!-- The keyboard stays up while a combination is built, so it needs a word for
                      "this is the combination I meant", which is not the same as closing it away. -->
-                <Button Classes="TitleBarAction" Name="DoneButton"
+                <Button Classes="Chrome Labeled" Name="DoneButton"
                         Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
                 <!-- Each window is put away on its own: the keyboard covers whatever the keys are
                      being read off, and putting it away leaves the add-action window as it was. -->

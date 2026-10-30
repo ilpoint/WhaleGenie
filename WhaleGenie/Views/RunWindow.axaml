@@ -71,21 +71,6 @@
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="MinHeight" Value="30" />
         </Style>
-        <Style Selector="Button.AddButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.AddButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-        <Style Selector="Button.AddButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#5A3226" />
-        </Style>
         <Style Selector="Button.RemoveButton">
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />

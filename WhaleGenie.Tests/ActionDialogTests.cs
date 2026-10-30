@@ -2794,7 +2794,7 @@ public class ActionDialogTests
 
             var field = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
-                    && button.Classes.Contains("KeyFieldButton")
+                    && button.Classes.Contains("Field")
                     && ReferenceEquals(keys, button.DataContext));
             Assert.NotNull(field);
             Assert.Equal(Strings.Get("Add.ChooseKeys"), field.Content);
@@ -2977,7 +2977,7 @@ public class ActionDialogTests
 
             var keyboardField = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
-                    && button.Classes.Contains("KeyFieldButton")
+                    && button.Classes.Contains("Field")
                     && ReferenceEquals(field, button.DataContext));
             Assert.NotNull(keyboardField);
             Assert.Equal(Strings.Get("Add.ChooseKey"), keyboardField.Content);
@@ -3001,7 +3001,7 @@ public class ActionDialogTests
 
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
                     .Where(button => button.IsEffectivelyVisible),
-                button => button.Classes.Contains("KeyFieldButton")
+                button => button.Classes.Contains("Field")
                     && button.DataContext is StepParameterViewModel { IsKey: true });
         });
     }
