@@ -345,7 +345,7 @@
                                                         <CheckBox IsChecked="{Binding IsEnabled}"
                                                                   VerticalAlignment="Center" />
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock FontSize="12.5"
+                                                            <TextBlock Classes="Note"
                                                                        Foreground="{DynamicResource AppText}"
                                                                        Text="{Binding KindLabel}" />
                                                             <TextBlock Classes="Note"
@@ -459,7 +459,7 @@
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Border Background="{DynamicResource AppField}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                                             CornerRadius="5" Padding="11,8">
-                                        <TextBlock Text="{Binding BindKeyDisplay}" FontSize="12.5"
+                                        <TextBlock Classes="Note" Text="{Binding BindKeyDisplay}"
                                                    Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
                                     </Border>
                                     <Button Grid.Column="1" Classes="Secondary" Margin="8,0,0,0" Height="34"
@@ -523,8 +523,8 @@
                                                Text="{Binding [Editor.ColorTolerance], Source={x:Static loc:Strings.Current}}" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBox Classes="Field" Width="90" Text="{Binding ColorTolerance}" />
-                                        <TextBlock Text="%" FontSize="12.5" Foreground="{DynamicResource AppMuted}"
-                                                   VerticalAlignment="Center" />
+                                        <TextBlock Classes="Note" Text="%"
+                                                   Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
 
@@ -620,8 +620,8 @@
                                     <Border Background="{DynamicResource AppField}"
                                             BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                                             CornerRadius="5" Padding="10,7">
-                                        <TextBlock Text="{Binding WindowTargetSummary}" FontSize="12.5"
-                                                   Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                                        <TextBlock Classes="Hint" Text="{Binding WindowTargetSummary}"
+                                                   Foreground="{DynamicResource AppText}" />
                                     </Border>
                                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
@@ -705,7 +705,7 @@
                                     <TextBlock Classes="FieldLabel" Margin="2,8,0,5"
                                                Text="{Binding [Editor.InterfaceHotkey], Source={x:Static loc:Strings.Current}}" />
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                        <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                        <TextBlock Classes="Note" VerticalAlignment="Center"
                                                    Foreground="{DynamicResource AppText}"
                                                    Text="{Binding InterfaceToggleHotkeyDisplay}" />
                                         <Button Grid.Column="1" Classes="Secondary" Height="32" Padding="10,0"
@@ -789,7 +789,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <views:NumberBox Width="112" Height="30" Value="{Binding IdleSeconds}"
                                                    Minimum="1" Maximum="86400" Increment="10" FormatString="0" />
-                                    <TextBlock FontSize="12.5" Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center"
+                                    <TextBlock Classes="Note" Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center"
                                                Text="{Binding [Schedule.Unit.Seconds], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
@@ -882,7 +882,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroDocumentPageViewModel">
                         <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="4">
-                            <TextBlock Text="{Binding Title}" FontSize="12.5" />
+                            <TextBlock Classes="Note" Text="{Binding Title}" />
                             <views:IconView Grid.Column="1" Width="12" Height="12"
                                             IsVisible="{Binding HasProblem}"
                                             Stroke="#E06C75" StrokeThickness="1.4"
@@ -1156,7 +1156,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
                                                     <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Cursor}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1171,7 +1171,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
                                                     <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Mouse}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1186,7 +1186,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
                                                     <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Keyboard}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1201,7 +1201,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
                                                     <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Clock}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1216,7 +1216,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
                                                     <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GameController}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1233,7 +1233,7 @@
                                                         Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
                                                 <!-- Funnel: input from elsewhere is filtered out -->
                                                 <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Filter}" />
-                                                <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                <TextBlock Classes="Note" VerticalAlignment="Center"
                                                            Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
                                             </StackPanel>
                                             <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1249,12 +1249,14 @@
                                                 HorizontalAlignment="Center"
                                                 IsEnabled="{Binding RecordDelays}"
                                                 Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                        <TextBlock Classes="FieldLabel" FontSize="12.5" Margin="0"
+                                        <!-- 这一处和它右边那个数字框是同一行，所以不要 `GapField` 的下边距：
+                                             原来是 `FieldLabel` + `Margin="0"` 顶掉它，正好等于 `Body`。 -->
+                                        <TextBlock Classes="Body"
                                                    Text="{Binding [Editor.IgnoreDelays], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
                                         <views:NumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
                                                        Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppMuted}"
+                                        <TextBlock Classes="Note" Foreground="{DynamicResource AppMuted}"
                                                    Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
