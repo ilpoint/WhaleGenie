@@ -120,6 +120,7 @@ public partial class OffsetPickerWindow : Window
         {
             Width = 11,
             Height = 11,
+            // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
             BorderBrush = new SolidColorBrush(Color.Parse("#E0A030")),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(6),

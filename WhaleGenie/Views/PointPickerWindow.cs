@@ -97,6 +97,7 @@ public sealed class PointPickerWindow : Window
         _crosshair.Children.Add(_vertical);
         _crosshair.Children.Add(_horizontal);
 
+        // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
         _outline.BorderBrush = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
         _readout = new Border
         {

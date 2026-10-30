@@ -159,6 +159,7 @@ public sealed class ElementPickerWindow : Window
     private void Build()
     {
         Title = Strings.Get("Element.Title");
+        // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
         Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
         WindowDecorations = WindowDecorations.None;
         CanResize = false;

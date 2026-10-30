@@ -184,6 +184,7 @@ public partial class RegionPickerWindow : Window
         };
         foreach (var line in new[] { _arrowShaft, _arrowLeft, _arrowRight })
         {
+            // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
             line.Stroke = new SolidColorBrush(Color.Parse("#FF3B30"));
             line.StrokeThickness = 3;
         }
