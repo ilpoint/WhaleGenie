@@ -259,9 +259,11 @@
         <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280" MinWidth="280" />
-                <ColumnDefinition Width="16" />
+                <!-- 列宽 = 分隔条的宽度（6）。**列比条宽的那部分会露出窗口底色**，
+                     看起来就是一条更粗的缝——条本身没问题，是列宽在管观感。 -->
+                <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="*" MinWidth="480" />
-                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="360" MinWidth="360" />
             </Grid.ColumnDefinitions>
 

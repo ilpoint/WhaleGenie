@@ -64,6 +64,11 @@ foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
             // **读渲染出来的像素**，不读 `window.Background`：有些窗（菜单、拾取器）窗口底本来就是
             // `Transparent`，真正的底色画在内层面板上。像素是唯一不骗人的证据。
             var sample = SamplePixel(frame);
+
+            if (name == "MacroEditor")
+            {
+                ReportSeams(frame);
+            }
             saved.Add((path, sample));
 
             window.Close();
@@ -163,6 +168,52 @@ static Color SamplePixel(Avalonia.Media.Imaging.WriteableBitmap frame)
 }
 
 static string Sample_Text(Color colour) => $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}";
+
+// 在窗口中部扫一行，把连续同色的段打出来。
+// 用来回答"那条缝到底多宽"——**缝是"列宽"和"条宽"里更大的那个**，
+// 而 `GridSplitter.Bounds` 只告诉你条多宽。
+static void ReportSeams(Avalonia.Media.Imaging.WriteableBitmap frame)
+{
+    using var buffer = frame.Lock();
+    var y = buffer.Size.Height / 2;
+    var runs = new List<(Color Colour, int Length)>();
+    Color? previous = null;
+    var length = 0;
+
+    unsafe
+    {
+        var row = (byte*)buffer.Address + (y * buffer.RowBytes);
+        for (var x = 0; x < buffer.Size.Width; x++)
+        {
+            var pixel = row + (x * 4);
+            var colour = Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]);
+            if (previous is { } before && before == colour)
+            {
+                length++;
+                continue;
+            }
+
+            if (previous is { } finished && length >= 4)
+            {
+                runs.Add((finished, length));
+            }
+
+            previous = colour;
+            length = 1;
+        }
+
+        if (previous is { } last && length >= 4)
+        {
+            runs.Add((last, length));
+        }
+    }
+
+    Console.WriteLine($"    · y={y} 的缝隙（≥4px 的段）：");
+    foreach (var (colour, count) in runs)
+    {
+        Console.WriteLine($"        {Sample_Text(colour)} × {count}");
+    }
+}
 
 static MenuWindowActions NoActions() => new(
     OpenMacroEditor: _ => { },
