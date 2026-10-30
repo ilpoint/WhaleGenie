@@ -92,6 +92,7 @@
       STATIC ListBox.List.Bare
       STATIC ListBox.List.Boxed
       STATIC ListBox.List.Pill
+      STATIC CheckBox.Field
       STATIC TextBlock.Body
       STATIC TextBlock.Code
       STATIC TextBox.Code
@@ -375,6 +376,19 @@
 
     <Style Selector="TextBox.Code.ReadOnly">
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+
+    <!--
+      勾选项是"字段族"的成员，不是新的字号档：它与 `TextBox.Field` / `ComboBox.Field` 常常同排、
+      同在一个面板里，文字本来就该跟输入框一样是 `UiBody`(13)。之前这一族缺它，不是设计选择，是漏了。
+      勾选框本身的几何交给 Fluent 模板，我们只给字号与前景；四态里只有禁用要写。
+    -->
+    <Style Selector="CheckBox.Field">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="CheckBox.Field:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
 
     <!-- 输入框形状的按钮：它没有层 1 可借，所以四态自己写。 -->

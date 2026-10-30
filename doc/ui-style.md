@@ -414,6 +414,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `ComboBox.Field` | ComboBox | H30 · `PadField` · `RadiusControl` · 1px · `MinWidth=0` | `SurfaceField` · `TextPrimary` · `BorderControl` | **层 1**，层 3 只补 H30 与 `MinWidth`（`MinWidth=0` 是"能缩多窄由父容器说了算"；不给它，Fluent 的下拉最小宽会让窄列撑开） |
 | `ComboBox.Field.Cell` | ComboBox | **H24** · `PadCell` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | 层 1 给四态，层 3 只补度量。**与 `TextBox.Field.Cell` 对称**：公式行里两种格子并排，差 6px 看得出来 |
 | `AutoCompleteBox.Field` | AutoCompleteBox | H30 · `PadField` · `RadiusControl` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | 层 3 + 必须带 `AutoCompleteBox.Field TextBox { Background: Transparent }`，否则双边框 |
+| `CheckBox.Field` | CheckBox | `UiBody`(13) · 勾选框几何不动 | `TextPrimary`（禁用 `TextDisabled`） | 层 3：**字段族的成员，不是新字号档**——它与 `TextBox.Field` / `ComboBox.Field` 同排同面板，文字本该同尺寸；之前这一族缺它，是漏了不是选择 |
 
 ### 表格、空状态、拾取器
 

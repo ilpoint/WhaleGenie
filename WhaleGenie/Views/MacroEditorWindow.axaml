@@ -442,7 +442,7 @@
                                         <CheckBox Name="TriggerOnceCheck"
                                                   Margin="2,10,0,0"
                                                   IsVisible="{Binding ShowsTriggerOnce}"
-                                                  Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                                  Foreground="{DynamicResource AppMuted}" Classes="Field"
                                                   Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                                   IsChecked="{Binding TriggerOnce}" />
                                     </StackPanel>
@@ -498,7 +498,7 @@
 
                                     <CheckBox Margin="0,10,0,0"
                                               Content="{Binding [Editor.UseCursorPosition], Source={x:Static loc:Strings.Current}}"
-                                              Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                              Foreground="{DynamicResource AppMuted}" Classes="Field"
                                               IsChecked="{Binding UseCursorPosition}" />
                                 </StackPanel>
 
@@ -588,7 +588,7 @@
                                 <TextBox Classes="Field" Text="{Binding WatchFilter}"
                                          PlaceholderText="*" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
                                           Content="{Binding [Editor.WatchSubfolders], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding WatchSubfolders}" />
 
@@ -735,13 +735,13 @@
                                 <TextBlock Margin="2,8,0,0" FontSize="12" FontWeight="SemiBold"
                                            Foreground="#8FC7F0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.HotstringMouseResetHint], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
                                           Content="{Binding [Editor.HotstringCase], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringCaseSensitive}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
                                           Content="{Binding [Editor.HotstringInsideWord], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringInsideWord}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
                                           Content="{Binding [Editor.HotstringRequireEnd], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringRequireEnd}" />
                                 <StackPanel Margin="22,4,0,0" IsEnabled="{Binding HotstringRequireEnd}">
@@ -773,10 +773,10 @@
                                     <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.HotstringEndCharsHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
                                           Content="{Binding [Editor.HotstringErase], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringEraseTyped}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
                                           IsEnabled="{Binding HotstringEraseTyped}"
                                           Content="{Binding [Editor.HotstringKeepEnd], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringKeepEnd}" />
@@ -816,7 +816,7 @@
                                     <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
 
-                                    <CheckBox Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                    <CheckBox Foreground="{DynamicResource AppMuted}" Classes="Field"
                                               Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
                                               IsChecked="{Binding ExclusiveInput}" />
 
