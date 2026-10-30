@@ -708,11 +708,14 @@
             </Border>
 
             <!-- ===================== The macro's own question ===================== -->
-            <Border Grid.Row="4" Background="#162C3A" BorderBrush="#6590C8" BorderThickness="1"
+            <!-- 提问框：**一个状态**（正在等你回答），所以走状态族 —— 底 `InfoSurface`、边与字 `Info`。
+                 这是"状态用状态色"的正面用法；固定琥珀那种（见上方 `Status`）是反面。 -->
+            <Border Grid.Row="4" Background="{DynamicResource InfoSurface}"
+                    BorderBrush="{DynamicResource Info}" BorderThickness="1"
                     CornerRadius="6" Margin="14,10,14,0" Padding="14,10"
                     IsVisible="{Binding IsAskingUser}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="#A8D0F0"
+                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource Info}"
                                TextWrapping="Wrap" />
                     <TextBox Text="{Binding AnswerText}" FontSize="12.5"
                              IsVisible="{Binding WantsTypedAnswer}" />
