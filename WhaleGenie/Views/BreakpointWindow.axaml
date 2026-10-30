@@ -15,7 +15,7 @@
         WindowDecorations="BorderOnly">
 
     <Window.Styles>
-        <Style Selector="TextBlock.Field">
+        <Style Selector="TextBlock.BreakpointValue">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Foreground" Value="{DynamicResource AppText}" />
         </Style>
@@ -34,7 +34,7 @@
             </Grid>
 
             <StackPanel Spacing="6">
-                <TextBlock Classes="Field"
+                <TextBlock Classes="BreakpointValue"
                            Text="{Binding [Run.BreakpointWhenLabel], Source={x:Static loc:Strings.Current}}" />
                 <!-- The same box the action form uses for a condition: names and functions complete
                      as they are typed, and the builder stands beside it. -->
@@ -61,7 +61,7 @@
             </StackPanel>
 
             <StackPanel Spacing="6">
-                <TextBlock Classes="Field"
+                <TextBlock Classes="BreakpointValue"
                            Text="{Binding [Run.BreakpointHitsLabel], Source={x:Static loc:Strings.Current}}" />
                 <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
                     <NumericUpDown Name="HitsBox" Value="{Binding HitTimes}" Minimum="1" Maximum="1000000"
