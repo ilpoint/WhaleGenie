@@ -33,10 +33,10 @@
     </Window.Resources>
 
     <Window.Styles>
-        <!-- Custom title bar buttons -->
-        <Style Selector="Button.Chrome.Icon.Active /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E7D5A" />
-        </Style>
+        <!-- 这里曾经有两条 `.Active`（`Chrome.Icon.Active` / `LabeledToolButton.Active`），
+             零消费者已删——`Chrome.Icon` 那条旁边的注释写着 "No Active state: there is no server
+             in this window to be on or off."，**注释说状态不存在，样式却还在**。
+             删它们不产生任何视觉变化（本来就不匹配元素），留这句是让将来找 `Active` 的人知道这里删过。 -->
 
         <!-- Top-right round tool buttons -->
         <Style Selector="Button.ToolButton">
