@@ -112,7 +112,7 @@ public partial class HotstringKeyboardWindow : Window
         };
         var shift = new Button
         {
-            Classes = { "CharKey" },
+            Classes = { "Secondary" },
             MinWidth = 92,
             Content = Strings.Get("HotstringKeyboard.Shift"),
         };
@@ -144,7 +144,7 @@ public partial class HotstringKeyboardWindow : Window
             {
                 var backspace = new Button
                 {
-                    Classes = { "CharKey" },
+                    Classes = { "Secondary" },
                     MinWidth = 78,
                     Content = Strings.Get("HotstringKeyboard.Backspace"),
                 };
@@ -154,7 +154,7 @@ public partial class HotstringKeyboardWindow : Window
                 continue;
             }
 
-            var button = new Button { Classes = { "CharKey" }, Content = key.Normal };
+            var button = new Button { Classes = { "Secondary" }, Content = key.Normal };
             button.Click += (_, _) => Append(_shift ? key.Shifted : key.Normal);
             _characterButtons.Add((button, key));
             row.Children.Add(button);
@@ -167,7 +167,7 @@ public partial class HotstringKeyboardWindow : Window
     {
         var button = new Button
         {
-            Classes = { "CharKey" },
+            Classes = { "Secondary" },
             MinWidth = width,
             Content = label,
         };
