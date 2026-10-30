@@ -87,9 +87,12 @@
         <Style Selector="Border.RunRow:pointerover">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
+        <!-- 运行位置族：**只改底色与边，不改前景**——它标记的是"位置"，不是"这段文字是什么"。
+             原来那对棕红/琥珀是"一色两用"（同一个琥珀也当语法色用），换成状态族里的 `Warning`
+             与 `WarningSurface`。 -->
         <Style Selector="Border.RunRow.current">
-            <Setter Property="Background" Value="#3A2A16" />
-            <Setter Property="BorderBrush" Value="#C8A165" />
+            <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
         </Style>
 
         <!-- 步骤正文：`#E4E4E4` 与正文色差 4%，肉眼不可辨，等于没上色 -->
@@ -97,9 +100,10 @@
             <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
+        <!-- 容器步的标题：字重承担"这是一层"，颜色回到正文色 —— 与 `StepLabel` 同一条裁定 -->
         <Style Selector="TextBlock.StepLabel.container">
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#F2E4C8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
 
         <Style Selector="Button.Fold">
