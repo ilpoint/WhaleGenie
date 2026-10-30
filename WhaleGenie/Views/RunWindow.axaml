@@ -447,7 +447,7 @@
                                                         <!-- What the breakpoint waits for, when it waits
                                                              for anything. -->
                                                         <TextBlock Text="{Binding ConditionNote}" FontSize="11.5"
-                                                                   Foreground="#D8B36A" TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                                                                    IsVisible="{Binding HasCondition}" />
                                                         <!-- What this step came to, whether or not the
                                                              macro keeps any of it: a value nobody
@@ -593,7 +593,7 @@
                         <TextBlock Text="{Binding Display}" FontSize="12" Classes="Code"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
-                                   Foreground="#D6C08A" />
+                                   Foreground="{DynamicResource TextSecondary}" />
                         <TextBlock Grid.Column="2" Text="{Binding LocalType}" FontSize="11.5"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextTertiary}" />

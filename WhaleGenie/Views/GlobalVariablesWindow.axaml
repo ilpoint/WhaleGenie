@@ -229,8 +229,9 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <!-- 这么改名会出问题：**"这么做会不行" → Warning**（对未来操作的提醒，当前状态没问题）。 -->
                                 <TextBlock Text="{Binding RenameWarning}" TextWrapping="Wrap"
-                                           Foreground="#D6C08A"
+                                           Foreground="{DynamicResource Warning}"
                                            IsVisible="{Binding HasRenameWarning}" />
                             </StackPanel>
                         </ScrollViewer>

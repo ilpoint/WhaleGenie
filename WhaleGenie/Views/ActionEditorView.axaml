@@ -862,7 +862,8 @@
                          IsEnabled="{Binding !Given}" />
                 <TextBlock Classes="Hint" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="0,3,0,0" />
-                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="#D8B36A"
+                <!-- 用到了还没声明的参数：**"现在就不行" → Danger**（与字段不合法同类）。 -->
+                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
                            Margin="0,3,0,0" IsVisible="{Binding IsUndeclared}"
                            Text="{Binding [Add.CallArgumentUndeclared], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
@@ -887,8 +888,9 @@
                             ToolTip.Tip="{Binding [Add.NameMakeUniqueHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnMakeReturnNameUnique" />
                 </Grid>
+                <!-- 名字已被占用：**"现在就不行" → Danger**。 -->
                 <TextBlock Classes="Hint" Text="{Binding NameWarning}" TextWrapping="Wrap"
-                           Foreground="#D8B36A" Margin="26,4,0,0"
+                           Foreground="{DynamicResource Danger}" Margin="26,4,0,0"
                            IsVisible="{Binding IsNameTaken}" />
             </StackPanel>
         </DataTemplate>
@@ -1156,7 +1158,11 @@
                                         IsVisible="{Binding IsPresent}" Click="OnSelectPage">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
-                                        <Ellipse Width="6" Height="6" Fill="#E0A030"
+                                        <!-- **结构改进待办**：一个没有文字的圆点，用颜色表达"这里有一条附注"，
+                                             读者只能靠颜色猜。颜色是这套界面最贵的资源，不该承载"有没有附注"
+                                             这种**可以画出来**的信息。应改成有形状的图标或加 tooltip。
+                                             本轮先落 `Info`（"有附加信息"是信息，不是警告）。 -->
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource Info}"
                                                  VerticalAlignment="Center"
                                                  IsVisible="{Binding HasDot}" />
                                     </StackPanel>

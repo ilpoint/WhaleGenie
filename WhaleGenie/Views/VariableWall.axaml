@@ -84,7 +84,7 @@
                                         Background="{DynamicResource SurfacePanel}" CornerRadius="3"
                                         Padding="5,1">
                                     <TextBlock Text="{Binding PersistenceBadge}" FontSize="10.5"
-                                               Foreground="#D6C08A" />
+                                               Foreground="{DynamicResource TextSecondary}" />
                                 </Border>
                             </StackPanel>
                             <ToolTip.Placement>Right</ToolTip.Placement>
