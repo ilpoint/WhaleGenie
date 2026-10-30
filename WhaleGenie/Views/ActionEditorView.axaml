@@ -1047,26 +1047,6 @@
         </Style>
 
         <!-- One page of a step's settings. -->
-        <Style Selector="Button.PageTab">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="Height" Value="32" />
-        </Style>
-        <Style Selector="Button.PageTab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-        </Style>
-        <Style Selector="Button.PageTab.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-        </Style>
-
-
         <!-- Variable name: free text with the known variables offered as suggestions. -->
         <!-- A named button in the title bar, for the one thing the dialog can do besides hand the
              step back: run it. It is wider than the window buttons because it says what it is. -->
@@ -1142,7 +1122,7 @@
                                 <!-- A page holding something that is not the value it starts on
                                      carries a mark, so a step that behaves unusually says so from
                                      the tab rather than only on the page it is on. -->
-                                <Button Classes="PageTab" Classes.selected="{Binding IsOpen}"
+                                <Button Classes="Tab Inline Boxed" Classes.selected="{Binding IsOpen}"
                                         IsVisible="{Binding IsPresent}" Click="OnSelectPage">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />

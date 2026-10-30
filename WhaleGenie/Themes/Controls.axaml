@@ -891,7 +891,8 @@
 
     <!-- 行内页签·带框：靠描边站住，选中时底色抬到卡片色、文字转强调色，所以不跟强调底冲突。 -->
     <Style Selector="Button.Tab.Inline.Boxed">
-        <Setter Property="Height" Value="28" />
+        <!-- 32：`ActionEditorView` 的页签要装"标题 + 附注点"，28 装不下那一行。 -->
+        <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="{DynamicResource PadControl}" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
@@ -1260,6 +1261,10 @@
 
       两者可以同时成立（拖到一个已选中的行上），所以**一个改底、一个改边，互不覆盖**。
       这正是不把它们做成"一个状态两个色"的理由：做成两色就只能显示一个。
+
+      **通道不是靠约定，是靠归属**：`.Picked` 管**厚度**（左边 3px），`.DropTarget` **只管颜色**。
+      谁再想加第三个状态，先看这两条占满了没有——**底 1 个（`Picked`）、边 1 个（`DropTarget`），
+      只剩"左条归属"没被单独占用**。加之前先定"这一条归谁"，别默认还有地方。
     -->
     <Style Selector="Border.Row">
         <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
