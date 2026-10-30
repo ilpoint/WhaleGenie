@@ -620,14 +620,14 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 单个孩子的缩进，所以它只能留在元素上；六个窗口同值说明它是个常项，值得一个名字（`Indent*`），
 **但那是新造词，等词汇表裁定，本轮不建**。
 
-**已裁定的例外（留窗口里，不是漏网）**。这几处都"没有第二处需求"，所以不进词汇表，但要有账：
+**已裁定的例外（留窗口里，不是漏网）**。这几处都"没有第二处需求"，所以不进词汇表，但要有账。
+（原先还有一条"11px/400 的尾标"——它已经升成 `TextBlock.Caption`，不在例外里了。）
 
 | 位置 | 是什么 | 为什么留 |
 |---|---|---|
 | `MacroEditorWindow` 的 `Button.RecordButton` | 录音红板（六个红棕）+ "录制中"的脉冲动画 | **动画表"进行中"**，词汇表里没有这种表达；要立族得先有第二处需要（比如"录制屏幕""采样中"） |
 | `MacroEditorWindow` 的 `Border.DropTarget` | 半透明落点 + `.Rejected` | 细边框落点标记，半透明是为了看见底下的内容——与 `Card.Target` 的"整卡接管"是两种表达，见 `Controls.axaml` 里那句注释 |
 | `MacroEditorWindow` 的 `Border.StepHead` / `StepFoot` | 块的"头/尾"两条线，`StepFoot` 是**左 2px 竖线** | `Border` 四边共用一支笔，左条画不出来——这是已知限制，不是没想到（要画就得加元素，属结构改动） |
-| `MacroEditorWindow` 的 `TextBlock.StepFootLabel` | 11px / **400** 字重的尾标 | 词汇表里 11px 的两个类都是 600；并过去是"加重"不是"回落"。等第二个"11px 正文重"出现再加类 |
 | `MacroEditorWindow` 的命令入口 `Width="44"` | 比同级图标块宽 10 | 高度能收敛到 28/30/32，宽度没有对应的档；这是"这一格更要醒目"的存量度量 |
 
 **标题栏的 `12,0` 与 `8,0`。** 分别出现在 16 与 17 个窗口，形态完全一致（`StackPanel … Margin="12,0"`
