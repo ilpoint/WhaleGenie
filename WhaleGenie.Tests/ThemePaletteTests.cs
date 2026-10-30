@@ -111,7 +111,7 @@ public class ThemePaletteTests
     }
 
     [Fact]
-    public void Applying_a_custom_accent_writes_both_shapes_and_the_old_key_follows()
+    public void Applying_a_custom_accent_writes_both_shapes()
     {
         Ui.Run(() =>
         {
@@ -125,10 +125,6 @@ public class ThemePaletteTests
                 Assert.Equal(tokens.Fill, ColorAt("AccentFillColor", ThemeVariant.Dark));
                 Assert.Equal(tokens.Text, ColorAt("AccentText", ThemeVariant.Dark));
                 Assert.Equal(tokens.Surface, ColorAt("AccentSurface", ThemeVariant.Dark));
-
-                // The twenty-three windows still ask for AppAccent, so the colour they get has to be
-                // the same one: a custom accent that left them on the old colour would look ignored.
-                Assert.Equal(tokens.Fill, ColorAt("AppAccent", ThemeVariant.Dark));
             }
             finally
             {

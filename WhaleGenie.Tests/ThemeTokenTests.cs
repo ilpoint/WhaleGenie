@@ -43,15 +43,6 @@ public class ThemeTokenTests
         "PickerScrim", "PickerTargetScrim", "PickerReadout", "PickerEdgeDark", "PickerEdgeLight",
     ];
 
-    /// <summary>The old names the twenty-three windows still use.</summary>
-    private static readonly string[] LegacyKeys =
-    [
-        "AppSurface", "AppBackdrop", "AppChrome", "AppField", "AppBorder", "AppText",
-        "AppTextStrong", "AppMuted", "AppAccent", "AppControl", "AppGroup", "AppHover",
-        "AppDock", "AppSelected", "AppLabel", "AppInfo", "AppInfoSoft", "AppWarning",
-        "AppDanger", "AppSuccess", "AppAccentSoft", "AppAccentHover",
-    ];
-
     [Fact]
     public void Every_token_resolves_in_both_variants()
     {
@@ -85,73 +76,6 @@ public class ThemeTokenTests
                     ((ISolidColorBrush)Brush(token, ThemeVariant.Light)!).Color);
             }
         });
-    }
-
-    [Fact]
-    public void Every_legacy_key_resolves_in_both_variants()
-    {
-        Ui.Run(() =>
-        {
-            foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
-            {
-                foreach (var key in LegacyKeys)
-                {
-                    Assert.NotNull(Brush(key, variant));
-                }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Where each old name lands. The old keys carry no colour of their own any more, so this is
-    /// also the check that the table in LegacyKeys.axaml points where it says it does.
-    /// </summary>
-    private static readonly (string Old, string Token)[] Mapped =
-    [
-        ("AppBackdrop", "SurfaceWindow"),
-        ("AppChrome", "SurfaceChrome"),
-        ("AppSurface", "SurfacePanel"),
-        ("AppDock", "SurfacePanel"),
-        ("AppField", "SurfaceField"),
-        ("AppBorder", "BorderControl"),
-        ("AppControl", "SurfaceControl"),
-        ("AppGroup", "SurfaceSunken"),
-        ("AppHover", "SurfaceHover"),
-        ("AppSelected", "AccentSurface"),
-        ("AppAccentSoft", "AccentSurface"),
-        ("AppAccent", "AccentFill"),
-        ("AppAccentHover", "AccentFillHover"),
-        ("AppText", "TextPrimary"),
-        ("AppTextStrong", "TextPrimary"),
-        ("AppMuted", "TextTertiary"),
-        ("AppLabel", "Warning"),
-        ("AppWarning", "Warning"),
-        ("AppInfo", "Info"),
-        ("AppInfoSoft", "InfoSurface"),
-        ("AppDanger", "Danger"),
-        ("AppSuccess", "Success"),
-    ];
-
-    [Fact]
-    public void Every_legacy_key_paints_the_token_it_stands_for()
-    {
-        Ui.Run(() =>
-        {
-            foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
-            {
-                foreach (var (oldKey, token) in Mapped)
-                {
-                    Assert.Equal(Colour(token, variant), Colour(oldKey, variant));
-                }
-            }
-        });
-    }
-
-    private static Color Colour(string key, ThemeVariant variant)
-    {
-        var brush = Brush(key, variant);
-        Assert.NotNull(brush);
-        return Assert.IsAssignableFrom<ISolidColorBrush>(brush!).Color;
     }
 
     /// <summary>
@@ -246,22 +170,17 @@ public class ThemeTokenTests
     }
 
     [Fact]
-    public void The_lists_above_match_the_dictionaries_they_describe()
+    public void The_lists_above_match_the_dictionary_they_describe()
     {
-        // The three arrays are a second copy of what the two dictionaries declare, and a second copy
-        // is what drifts. These read the dictionaries themselves: a key added there and forgotten
+        // The two arrays are a second copy of what the dictionary declares, and a second copy
+        // is what drifts. This reads the dictionary itself: a key added there and forgotten
         // here would otherwise go untested, and a key renamed in one place only would keep passing
         // the checks above, which walk this array rather than the file.
         var tokens = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "Tokens.axaml");
-        var legacy = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "LegacyKeys.axaml");
 
         Assert.Equal(
             Tokens.Concat(PickerTokens).ToHashSet(StringComparer.Ordinal),
             Declared(tokens, "SolidColorBrush"));
-
-        Assert.Equal(
-            LegacyKeys.ToHashSet(StringComparer.Ordinal),
-            Declared(legacy, "SolidColorBrush"));
     }
 
     /// <summary>

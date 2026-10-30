@@ -5,7 +5,6 @@
     <!--
       每个颜色先写成 Color，再派生一把落在同一个 Color 上的 Brush。两把键并存不是为了让人挑一把：
       画笔要用 Brush，叠 alpha、算对比度、写测试要的是 Color，而两者的值只能有一处十六进制。
-      旧键（LegacyKeys.axaml）也指向这些 Color，所以 22 个 App* 与新令牌不会各写一遍颜色。
     -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
