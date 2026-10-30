@@ -349,9 +349,17 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `ListBox.List.Bare ListBoxItem` | ListBoxItem | `Pad0` | 六态全 `Transparent`（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
 | `ListBox.List.Bare.Gapped ListBoxItem` | ListBoxItem | `Pad0` · 下边距 **6**（行距） | 同 `.Bare` | — | — | — | — | 双色环 | 层 3。**行距只能长在行上**：`ListBox` 没有 `Spacing`，`ItemsControl` 的面板不是我们能一致拿到的入口；代价是末行也多 6px |
 
-**行选择器用后代（空格），不用子代（`>`）。** `ListBoxItem` 的真实位置是
-`ListBox > ItemsPresenter > 面板 > ListBoxItem`，`>` 从 `ListBox` 出发匹配不到任何行——**而且不报错**，
-行会安静地保持 Fluent 默认外观。`App.axaml` 里既有的 `ListBox.Dock ListBoxItem` 用的也是空格。
+**行选择器用后代（空格）还是子代（`>`），两种都能用——但别按"视觉树"去推断。**
+这一节原先写的是"`ListBoxItem` 的真实位置是 `ListBox > ItemsPresenter > 面板 > ListBoxItem`，
+`>` 从 `ListBox` 出发匹配不到任何行"，**这是错的**：Avalonia 的 `>` 看的是**逻辑父级**，
+而 `ListBoxItem` 的逻辑父级就是 `ListBox`（容器是 `ItemsControl` 的逻辑子元素，面板只是视觉父级）。
+
+实测（`GlobalVariablesWindow` 的 `FilterList`，一个 `WrapPanel` 作 `ItemsPanel` 的列表）：
+`ListBox.FilterList > ListBoxItem` 上写的 `Padding="8,5"` / `Margin="0,0,4,4"` / `CornerRadius="4"`
+逐项读到了行上——**规则是生效的**。
+
+这纠正的是一种很危险的推法：按视觉树推断"这条规则匹配不到"，然后把**还活着的样式当死样式删掉**。
+要判一条行样式有没有生效，只有两条路：读行上的属性（无头会话可做），或在真机上并排看。
 
 列表行的选中态**文字统一 `TextPrimary`**，不改纯白。
 

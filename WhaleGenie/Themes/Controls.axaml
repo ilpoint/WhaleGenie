@@ -1033,8 +1033,10 @@
       ——这是"读错观察点"的写侧版本。Fluent 的模板把行的底与边框画在 `ContentPresenter` 上，
       所以选择器一律 `/template/ ContentPresenter`。
 
-      选择器用后代（空格）不用子代（`>`）：行的真实位置是
-      `ListBox > ItemsPresenter > 面板 > ListBoxItem`，写 `>` 匹配不到，而这个错不报错。
+      选择器用后代（空格）还是子代（`>`）都能用——**别按视觉树推断**。`>` 看的是**逻辑父级**，
+      而 `ListBoxItem` 的逻辑父级就是 `ListBox`（容器是 `ItemsControl` 的逻辑子元素，面板只是视觉父级）。
+      这一节原先写的是"写 `>` 匹配不到"，**实测是错的**（`GlobalVariablesWindow` 的 `FilterList`
+      用 `>` 写的那几条逐项生效）。要判一条行样式活没活，读行上的属性，别按树推。
 
       `.Bare` 不是可选项：`Border.Card.*` 放进 `ListBoxItem` 之后两层都会画底（行有 hover/selected
       底、卡片自己也有），所以先有"行全透明"这一档，卡片才敢往里放。写 `Border.Card.*` 之前先确认
