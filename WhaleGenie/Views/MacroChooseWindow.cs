@@ -65,24 +65,18 @@ public sealed class MacroChooseWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get(Head);
-        Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
+        Background = ThemeBrush.Of("SurfaceWindow");
 
         var heading = new TextBlock
         {
             Text = Strings.Get(Head),
-            FontSize = 15,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brush("AppTextStrong", Colors.White),
-            Margin = new Thickness(0, 0, 0, 4),
+            Classes = { "Title" },
         };
 
         var hint = new TextBlock
         {
             Text = Strings.Get(kind == MacroChooseKind.Export ? "Export.Hint" : "Import.Hint"),
-            FontSize = 11.5,
-            Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160)),
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 0, 0, 10),
+            Classes = { "Hint" },
         };
 
         var rows = new StackPanel { Spacing = 1 };
@@ -93,19 +87,15 @@ public sealed class MacroChooseWindow : Window
 
         _counts = new TextBlock
         {
-            FontSize = 11.5,
-            Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160)),
-            TextWrapping = TextWrapping.Wrap,
+            Classes = { "Hint" },
             VerticalAlignment = VerticalAlignment.Center,
         };
 
         _note = new TextBlock
         {
-            FontSize = 11.5,
-            Foreground = Brush("Warning", Color.FromRgb(224, 108, 117)),
-            TextWrapping = TextWrapping.Wrap,
+            Classes = { "Hint" },
+            Foreground = ThemeBrush.Of("Warning"),
             IsVisible = false,
-            Margin = new Thickness(0, 6, 0, 0),
         };
 
         _all = new CheckBox
@@ -210,7 +200,6 @@ public sealed class MacroChooseWindow : Window
             IsChecked = node.IsChecked,
             IsEnabled = !node.IsCovered,
             Margin = new Thickness(Depth(node) * 18, 0, 0, 0),
-            FontSize = 12.5,
         };
 
         box.IsCheckedChanged += (_, _) =>
@@ -284,14 +273,12 @@ public sealed class MacroChooseWindow : Window
         _note.Text = Strings.Get((_intoLibrary ?? _selection.OnlySubMacros)
             ? "Import.ToLibrary"
             : "Import.ToProject");
-        _note.Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160));
+        _note.Foreground = ThemeBrush.Of("TextTertiary");
         _note.IsVisible = true;
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
+    private static IBrush? Brush(string key)
+        => Application.Current?.TryFindResource(key, out var found) == true ? found as IBrush : null;
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
