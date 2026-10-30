@@ -19,29 +19,12 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBox.FilterInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="9,7" />
-        </Style>
 
-        <Style Selector="ListBox.WindowList">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="4" />
-        </Style>
-        <Style Selector="ListBox.WindowList ListBoxItem">
-            <Setter Property="Padding" Value="8,6" />
-            <Setter Property="CornerRadius" Value="4" />
-        </Style>
-        <Style Selector="ListBox.WindowList ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
+        <!-- 选中用实心强调底（`#C8401C` 就是 `AccentFill` 本身，零变化），压过 `List` 的
+             `AccentSurface`：这一列是"挑一个窗口"，选中的那一条要一眼认出来。 -->
+        <Style Selector="ListBox.List.Boxed ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         </Style>
     </Window.Styles>
 
@@ -63,7 +46,7 @@
 
         <!-- What the list is narrowed down to -->
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="16,14,16,0">
-            <TextBox Classes="FilterInput" Name="FilterBox"
+            <TextBox Classes="Field" Name="FilterBox"
                      Text="{Binding Filter}"
                      PlaceholderText="{Binding [WindowPicker.Filter], Source={x:Static loc:Strings.Current}}" />
             <Button Grid.Column="1" Classes="Secondary" Height="34" MinWidth="76"
@@ -74,7 +57,7 @@
 
         <!-- The windows that are open -->
         <Grid Grid.Row="2" Margin="16,10,16,0">
-            <ListBox Classes="WindowList" Name="WindowList"
+            <ListBox Classes="List Boxed" Name="WindowList"
                      ItemsSource="{Binding Windows}"
                      SelectedItem="{Binding Selected}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
