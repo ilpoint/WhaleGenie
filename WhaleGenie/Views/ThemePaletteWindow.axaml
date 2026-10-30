@@ -22,13 +22,6 @@
         <vm:ThemePaletteViewModel />
     </Design.DataContext>
 
-    <Window.Styles>
-        <Style Selector="TextBlock.Hint">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-    </Window.Styles>
 
     <Grid RowDefinitions="38,*,Auto">
         <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
