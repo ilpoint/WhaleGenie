@@ -746,6 +746,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         // about the variables, because there is nothing else to show.
         Page = _steps.Count == 0 ? RunPage.Variables : RunPage.Debug;
         Status = _steps.Count == 0 ? Strings.Get("Run.Empty") : Strings.Get("Run.Ready");
+        StatusKindValue = RunStatusKind.Ready;
 
         // Whether there is anything to run is only known here, and the window was drawn before that
         // when a macro is loaded into one that had none: the toolbar and the run buttons are drawn
@@ -973,6 +974,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     [ObservableProperty]
     public partial string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 这次运行"处在什么状态"。**文字说是什么，这个说该怎么画**——
+    /// 原来只有文字、颜色写死成琥珀，于是"已完成"和"出问题了"长得一样。
+    /// </summary>
+    public RunStatusKind StatusKindValue { get; private set; } = RunStatusKind.Ready;
 
     /// <summary>Set while a failure is waiting for the user to choose what happens next.</summary>
     [ObservableProperty]
@@ -1203,6 +1210,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         IsBusy = true;
         Status = Strings.Get("Run.Running");
+        StatusKindValue = RunStatusKind.Running;
         IsAsking = false;
         IsAskingUser = false;
         CurrentId = null;
@@ -1253,6 +1261,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             RefreshVariables();
             RefreshStepOutcomes();
             Status = Lines.Count > 0 ? Lines[^1].Text : Strings.Get("Run.Ready");
+            // 跑完了：成功与失败要分开，否则这一行永远一个颜色。
+            StatusKindValue = result is { Succeeded: false } ? RunStatusKind.Failed : RunStatusKind.Done;
             _capture?.Finish(result, result?.Status.ToString() ?? Status);
             _capture = null;
         }
@@ -1284,6 +1294,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         _stopAtNextStep = false;
         Status = Strings.Get("Run.Paused");
+        StatusKindValue = RunStatusKind.Paused;
 
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _gate = gate;
@@ -1296,6 +1307,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         OnPropertyChanged(nameof(IsPaused));
         SkipStepCommand.NotifyCanExecuteChanged();
         Status = Strings.Get("Run.Running");
+        StatusKindValue = RunStatusKind.Running;
 
         if (!go)
         {

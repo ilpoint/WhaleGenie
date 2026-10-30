@@ -4,6 +4,7 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="700"
@@ -17,6 +18,11 @@
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
+
+    <Window.Resources>
+        <!-- 运行状态 → 状态的画刷。状态由 VM 的种类给，颜色不再写死在 XAML 里。 -->
+        <conv:RunStatusBrushConverter x:Key="RunStatusBrush" />
+    </Window.Resources>
 
     <Window.Styles>
 
@@ -247,7 +253,10 @@
                             Content="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding SkipStepCommand}" />
                     <StackPanel Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center">
-                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
+                        <!-- 运行状态：**颜色由状态种类给**（跑完=成功、出错=危险、暂停=警告、其余=灰）。
+                             原来这里写死琥珀，于是"已完成"和"出问题了"长得一样。 -->
+                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="12"
+                                   Foreground="{Binding StatusKindValue, Converter={StaticResource RunStatusBrush}}"
                                    Text="{Binding Status}" />
                     </StackPanel>
                     <Border Grid.Column="6" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
