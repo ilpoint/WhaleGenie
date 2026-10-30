@@ -280,7 +280,7 @@ GapEmpty       = 0,32,0,32    （空状态的上下留白；它的父容器给�
 原先 4 处参数槽标签用琥珀色与普通标签区分。琥珀色已并进 `Warning`，若跟着变警告色，会把"警告"稀释成
 "标签"——这是不可逆的语义损耗。
 
-裁定：`TextBlock.FieldLabel.Strong` = `UiBodySize` 600 + `TextPrimary`。
+裁定："与正文同行的加强" = `UiBodySize` 600 + `TextPrimary`（**不另立类**：`FieldLabel.Strong` 曾是空类，已删）。
 
 > **颜色表达状态，字重表达结构。**
 
@@ -294,7 +294,7 @@ GapEmpty       = 0,32,0,32    （空状态的上下留白；它的父容器给�
 | 情形 | 类 | 值 |
 |---|---|---|
 | 独立成行的标题（面板标题、对话框标题） | `TextBlock.Title` | `UiSubtitleSize`(15) 600 · `TextPrimary` |
-| 与正文同行的加强（"变量名："这类） | `TextBlock.FieldLabel.Strong` | `UiBodySize`(13) 600 · `TextPrimary` |
+| 与正文同行的加强（"变量名："这类） | `TextBlock.FieldLabel` + `FontWeight=600` | `UiBodySize`(13) 600 · `TextPrimary` |
 
 判据是"它有没有自己的一行"。混着用一个类会把行内加强也抬到 15px，打乱行高。
 
@@ -386,6 +386,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Button.Primary` | Button | H32 · `PadControlWide` · `RadiusControl` · `UiBody` 600 | `AccentFill` · `TextOnAccent` · — | `AccentFillHover` · `TextOnAccent` · — | `AccentFillPressed` · `TextOnAccent` · — | — | `SurfaceControl` · `TextDisabled` · — | 双色环 | 层 3 覆盖层 1 |
 | `Button.Secondary` | Button | H30 · `PadControl` · `RadiusControl` · `UiBody` · 1px | `SurfaceControl` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · `TextPrimary` · `BorderControl` | — | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | **层 1 给四态**；层 3 只补度量与 disabled 去色 |
 | `Button.Ghost` | Button | 24×24 · `Pad0` · `RadiusControl` | `Transparent` · `TextSecondary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 全写 |
+| `Button.Square` | Button | 80×80 · `PadChip` · `RadiusContainer` · **图标 22 居中、无文字** | `SurfacePanel` · — · `BorderSubtle` | `OverlayHover` · — · `BorderSubtle` | 同 hover | — | — | 单色底 | 层 3；**全名走 tooltip** |
 | `Border.Row` | Border | 无边框(1px 透明) · `PadRow` · `RadiusControl` | `SurfacePanel` · — · 透明 | `OverlayHover` · — · 透明 | 同 hover | `.Picked`：`AccentSurface` + 左 3px `AccentFill`；`.DropTarget`：边 1px `AccentText` | — | 单色底 | 层 3；**两通道可同时成立** |
 | `Button.Pill` | Button | 只改 `CornerRadius=12`（24 高的一半） | 不设（修饰） |
 | `TextBlock.Mono` | TextBlock | 只设 `FontFamily=UiCodeFont`，**不设前景** | 不设（修饰） |
@@ -479,7 +480,6 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `TextBlock.SectionHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` · `GapSectionHeader` | `TextTertiary`（单行短标签） |
 | `TextBlock.FieldLabel` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · `GapField` | `TextSecondary` |
 | `TextBlock.Body` | TextBlock | `UiBodySize` 400 · `UiBodyLine` · 下边距无 | `TextSecondary` |
-| `TextBlock.FieldLabel.Strong` | TextBlock | `UiBodySize` 600 · `UiBodyLine` | `TextPrimary` |
 | `TextBlock.Hint` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `TextTertiary` |
 | `TextBlock.Note` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · **`TextWrapping=NoWrap`** | `TextTertiary`（单行附注：同一档字号与颜色，与 `Hint` 的差别只是不折行。判据：有句读或超过 20 字用 `Hint`，否则用 `Note`） |
 | `TextBlock.Problem` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `Warning` |

@@ -207,36 +207,21 @@ public sealed class MenuIconPickerWindow : Window
 
     private static Button IconButton(MenuIconOption option)
     {
-        // 80×80 的图标砖：词表里没有这一档（`Tile` 是 64 高），所以尺寸留元素、记缺变体。
-        // 砖与砖之间的 1px 缝由外层的 `Spacing`/内缩管，这里不再写 `Margin`。
+        // 图标砖：尺寸、内距、圆角、边都交给 `Button.Square`（80×80 恒等，见该类注释）。
+        // **砖上没有文字**——标签是 Lucide 的枚举名（18 字符 ≈ 108px，可用只有 64px），
+        // 显示出来只会是 `CircleQuestion…` 这种残词；全名走 tooltip（下面那行）。
         var button = new Button
         {
-            Width = 80,
-            Height = 80,
-            Padding = new Thickness(3),
-            CornerRadius = new CornerRadius(5),
-            Content = new StackPanel
+            Classes = { "Square" },
+            Content = new IconView
             {
-                Spacing = 4,
-                Children =
-                {
-                    new IconView
-                    {
-                        Width = 30,
-                        Height = 30,
-                        Data = option.Kind,
-                        Stroke = ThemeBrush.Of("TextPrimary"),
-                        StrokeThickness = 1.5,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                    },
-                    new TextBlock
-                    {
-                        Text = option.Label,
-                        Classes = { "Caption" },
-                        TextAlignment = TextAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                    },
-                },
+                Width = 22,
+                Height = 22,
+                Data = option.Kind,
+                Stroke = ThemeBrush.Of("TextPrimary"),
+                StrokeThickness = 1.5,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
             },
         };
         button.Classes.Add("MenuIconChoice");
