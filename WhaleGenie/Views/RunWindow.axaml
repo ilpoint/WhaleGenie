@@ -154,7 +154,7 @@
             <Setter Property="Padding" Value="1" />
         </Style>
         <Style Selector="Button.LookThumb:pointerover /template/ ContentPresenter">
-            <Setter Property="BorderBrush" Value="#C8A165" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
         </Style>
 
         <!-- Taking one value away: small, and sitting at the end of the row it belongs to. -->
@@ -502,7 +502,8 @@
                                                                                               Margin="{Binding Indent}">
                                                                                             <TextBlock Text="{Binding Name}"
                                                                                                        FontSize="11"
-                                                                                                       Foreground="#8FB3D9" />
+                                                                                                       FontFamily="{DynamicResource UiCodeFont}"
+                                                                                                       Foreground="{DynamicResource TextPrimary}" />
                                                                                             <SelectableTextBlock Grid.Column="1"
                                                                                                        Margin="8,0,0,0"
                                                                                                        Text="{Binding Value}"
@@ -612,7 +613,8 @@
                                    Foreground="#CFCFCF"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
-                                   Foreground="#8FB3D9"
+                                   FontFamily="{DynamicResource UiCodeFont}"
+                                   Foreground="{DynamicResource TextPrimary}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="11.5"
                                    Foreground="{Binding Color}" />

@@ -150,7 +150,7 @@
                                            Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="#7BC17B"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
                                            Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
                                 <Button Classes="Secondary" Name="DriverInstallButton" Height="32"
                                         HorizontalAlignment="Left" Margin="2,10,0,0"
@@ -171,7 +171,7 @@
                                            Text="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="#7BC17B"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
                                            Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
                                 <Button Classes="Secondary" Name="AdminRestartButton" Height="32"
                                         HorizontalAlignment="Left" Margin="2,10,0,0"

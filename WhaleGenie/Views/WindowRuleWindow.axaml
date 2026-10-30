@@ -22,7 +22,7 @@
 
             <Border Grid.Row="2" Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="12">
                 <StackPanel Spacing="4">
-                    <TextBlock Name="Status" FontSize="12.5" Foreground="#8FC7F0" TextWrapping="Wrap" />
+                    <TextBlock Name="Status" FontSize="12.5" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
                     <TextBlock Name="HandleText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
                     <TextBlock Name="TitleText" FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" />

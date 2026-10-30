@@ -55,7 +55,7 @@
 
                 <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                            Text="{Binding [HotstringKeyboard.Hint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#8FC7F0" TextWrapping="Wrap"
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"
                            Text="{Binding [Editor.HotstringMouseResetHint], Source={x:Static loc:Strings.Current}}" />
 
                 <StackPanel Name="KeyRows" Spacing="7" />
