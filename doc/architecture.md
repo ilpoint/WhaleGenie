@@ -16,31 +16,25 @@
 2. **宏操作的是真机器，不是假机器**，所以"怎么操作"必须能被替换成替身——否则引擎的每一条用例都要真的点一下桌面。
 3. **AI 会改用户的宏**，所以写入要经过草稿、校验、预览，且每次调用要留审计。
 
-## 二、四个工程与依赖方向
+## 二、三个工程与依赖方向
 
 ```
-  WhaleGenie（界面 + 应用层 + MCP 宿主）
-      ├──► WhaleGenie.Model（宏、步骤、触发器、变量、文案、包格式）
-      │         └──► WhaleGenie.Core（引擎 + 设备契约 + 表达式 + 录制）
-      └──► WhaleGenie.Core
+  WhaleGenie（界面 + 应用层 + 领域模型 + MCP 宿主）
+      └──► WhaleGenie.Core（引擎 + 设备契约 + 表达式 + 录制）
                        └──► WhaleGenie.GraphicsCapture（D3D/DXGI 取画面，叶子）
 
-  测试：WhaleGenie.Tests → WhaleGenie（间接拿到 Model 与 Core）
+  测试：WhaleGenie.Tests → WhaleGenie
         WhaleGenie.Core.Tests → WhaleGenie.Core
         WhaleGenie.GraphicsCapture.Tests → GraphicsCapture
 ```
 
-`WhaleGenie.Model` 存在是为了"宏格式不只被这个界面用"：它只引用 `WhaleGenie.Core` 与
-`CommunityToolkit.Mvvm`，不认识 Avalonia，也不认识应用层。一个命令行工具要读写 `.wgmacro`，
-引这两个工程就够——这件事验过：仓库外一个只引用 `WhaleGenie.Model` 的控制台程序存了一条宏、
-读了回来，全程没有界面。
-
-不过仓库里**还没有**这样的工具：没有 CLI 工程、没有命令。能力齐了，入口没建。
+宏的文件模型（`Models/`）、包格式（`Storage/MacroPackage.cs`）与两份文案表（`Localization/`）住在界面工程里。
+代价写在明面上：**要用它们，就得连同 Avalonia 一起编译**。这是拿"少一层工程"换来的，对当前形态（一个界面、
+一个入口）划算；真要出一个不加载界面的命令行工具，这三块随时可以再拆出去。
 
 | 工程 | 是什么 | 依赖 | 明确不依赖 |
 | --- | --- | --- | --- |
-| `WhaleGenie` | Avalonia 界面、应用层（包、触发器、恢复、变量桥接）、MCP 宿主与全部工具 | Core、Model | 不反向依赖任何测试工程 |
-| `WhaleGenie.Model` | 宏与步骤、触发器、变量声明、动作展示清单与两份文案表 | Core、CommunityToolkit.Mvvm | Avalonia、应用层（`Runtime`） |
+| `WhaleGenie` | Avalonia 界面、应用层（包、触发器、恢复、变量桥接）、宏与步骤、触发器、变量声明、动作展示清单与两份文案表、MCP 宿主与全部工具 | Core | 不反向依赖任何测试工程 |
 | `WhaleGenie.Core` | 运行器、步骤与动作目录、表达式、变量、设备契约、录制翻译 | GraphicsCapture | Avalonia、MCP、AI 库（有测试守着） |
 | `WhaleGenie.GraphicsCapture` | 用 Desktop Duplication 与 Windows.Graphics.Capture 取一帧 | Vortice.Direct3D11/DXGI | Core、界面，任何与宏有关的概念 |
 | `WhaleGenie.Tests` | 界面层与 MCP 的用例，跑在 Avalonia 无头会话里 | WhaleGenie | — |
@@ -65,11 +59,9 @@
 
 ### 共享的领域模型放在哪
 
-`WhaleGenie.Model/Models/`（32 文件 8520 行）不是"界面模型"，而是**全域共享的领域层**：`MacroItem`、`MacroStep`、`ProjectTriggers`、`MacroCheck`、动作定义。界面、持久化、MCP、应用层同时引用它。它住在自己的工程里，只依赖 Core 与 CommunityToolkit.Mvvm。
+`Models/`（32 文件 8520 行）不是"界面模型"，而是**全域共享的领域层**：`MacroItem`、`MacroStep`、`ProjectTriggers`、`MacroCheck`、动作定义。界面、持久化、MCP、应用层同时用它。
 
-拆出 `WhaleGenie.Model` 之前，这一处最需要解释：它"名义上在界面工程里，实际上是领域层"，代价是任何要用它的东西都得连同 Avalonia 一起编译。现在这条代价没有了——模型、文案、`.wgmacro` 的读写（`WhaleGenie.Model/Storage/`，`MacroPackage` 与 `MacroPaths`）都在一个不引用界面的工程里，`MacroCheck.Inspect`（1083 行的校验方法）也就能在没有会话的情况下跑。
-
-代价换了个方向：模型看不见界面，所以"只有界面才知道"的事实要由界面注入——`Strings.LoadLanguage` / `SaveLanguage`（谁选的、存在哪）与 `MenuProblems(macros, knowsIcon)`（这个构建里有哪些图标）都是为这个留的口子。两处都是委托，不是引用。
+它住在界面工程里，所以"要用它就得连同 Avalonia 一起编译"是这条选择的全部代价。另一面仍然成立：模型看不见界面，所以"只有界面才知道"的事实要由界面注入——`Strings.LoadLanguage` / `SaveLanguage`（谁选的、存在哪）与 `MenuProblems(macros, knowsIcon)`（这个构建里有哪些图标）都是为这个留的口子。两处都是委托，不是引用。
 
 ## 四、一次操作的路径
 
@@ -146,7 +138,7 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 ### 5.2 步骤有两个形态
 
-- `MacroStep`（`WhaleGenie.Model/Models/`）：编辑态。带 `ActionDefinition`、显示名、子列表、行数据、`StepMeta`。
+- `MacroStep`（`Models/`）：编辑态。带 `ActionDefinition`、显示名、子列表、行数据、`StepMeta`。
 - `ExecutableStep`（`Core/Execution/`）：运行态。只有 `Type`、`Id`、`Meta`、`Parameters`（文本/抖动/子步骤/行）。
 - 转换点唯一：`WhaleGenie/Runtime/MacroStepConverter.ToExecutable()`。有损，且**每次运行都重建**。
 
@@ -255,15 +247,36 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 ### 7.4 文案表
 
-`WhaleGenie.Model/Localization/Strings.cs`（4408 行）是**手写的两份字典**（英文 + 中文），`ActionStrings.cs`（4009 行）是动作的中文文案。没有生成器；`LocalizationTests` 检查键是否齐全、手册是否同步。切换语言时 `RefreshLanguage()` 抛 `PropertyChanged("")` 让所有绑定重读。
+`WhaleGenie/Localization/Strings.cs`（4408 行）是**手写的两份字典**（英文 + 中文），`ActionStrings.cs`（4009 行）是动作的中文文案。没有生成器；`LocalizationTests` 检查键是否齐全、手册是否同步。切换语言时 `RefreshLanguage()` 抛 `PropertyChanged("")` 让所有绑定重读。
 
 界面层近五分之一的体量在这里。这是有意的：文案要能逐条读、逐条改、逐条对账，生成器会把"这句话该怎么说"变成"这个键在哪"。
+
+### 7.5 外观：三层与两条守卫
+
+外观只有一处真源，其余都是它的消费者：
+
+| 层 | 文件 | 写什么 |
+| --- | --- | --- |
+| 层 2 · 令牌 | `WhaleGenie/Themes/Tokens.axaml` | 语义色（38 个 × 深/浅）、字号、间距、圆角。颜色与画笔成对，颜色键名带 `…Color` 后缀。**一色一义**：同一个色值只允许一个语义 |
+| 层 1 · 主题键 | `WhaleGenie/Themes/FluentKeys.axaml` | 覆盖 Fluent 模板自己读的资源键，让裸控件一出生就是这套颜色 |
+| 层 3 · 类 | `WhaleGenie/Themes/Controls.axaml` | 我们自己的控件族（`Button.Secondary`、`Border.Card`…），只补度量与偏离默认的部分。**文件头 137 行是硬规则 + `LAYER1`/`STATIC`/`STATE`/`VARIANT` 四张登记表**，加类之前先读它 |
+
+窗口的底不是某一类控件的外观，所以没有 `Window` 选择器：axaml 窗口写 `Background="{DynamicResource SurfaceWindow}"`，
+纯代码窗口走 `ThemeBrush.Assign`（`DynamicResource` 语义，跟着主题走；`ThemeBrush.Of` 是快照，只能用在不随主题变的地方）。
+
+两条守卫把"规则"变成会红的东西：
+
+- `ControlsRegistryTests`：每个自定义类要么自己画 `:pointerover`，要么在文件头的登记表里有一行；登记的类必须在层 1 找得到同族前缀的键；
+- `StyleVocabularyTests`：可剥离的状态词/变体词是固定词表，与 `Controls.axaml` 头部的 `STATE`/`VARIANT` 登记断言一致。
+
+`/template/` 选择器是这套外观最脆的一处：它按**模板部件名**命中，模板换名字就静默失效（写下来不报错、也不生效）。
+改模板或换主题之前先确认部件名，`Button` 这类内容宿主在 Fluent 下叫 `PART_ContentPresenter`。
 
 ## 八、持久化
 
 ### 8.1 包格式
 
-`.wgmacro` 是一个 zip：`manifest.json`（版本、全局变量声明、触发器）、`README.md`、`nodes/NN-slug.json`（每个宏一份）、`assets/`（图片）。读写全在 `WhaleGenie.Model/Storage/MacroPackage.cs`——在模型工程里，所以一个命令行工具引 Model 与 Core 就能存读包，不需要界面。
+`.wgmacro` 是一个 zip：`manifest.json`（版本、全局变量声明、触发器）、`README.md`、`nodes/NN-slug.json`（每个宏一份）、`assets/`（图片）。读写全在 `WhaleGenie/Storage/MacroPackage.cs`——它和界面同一个工程，所以**没有**一条"引一个库就能读写包"的路：要做无界面的工具，先得把 `Models/`、`Storage/`、`Localization/` 拆出去。
 
 写入是原子的：先写 `.tmp` 再 `File.Move(..., true)`。`FormatVersion` 是 20，`Load` 要求**严格相等**，没有迁移路径——因为开发阶段不保留兼容（见「有意的取舍」）。
 
@@ -399,9 +412,9 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 ## 十四、债务与建议
 
-清债的五个阶段、编辑器状态归位与录制两步都已落地（改动与当时的判断在 git 里），2026-10-29 又拆出
-`WhaleGenie.Model`，并把 `.wgmacro` 的读写下沉进去，同日把测试的假设备拆成一件一个文件。现在剩下的分两类：
-做过判断不做的，以及一个不算债但必须知道的结构事实。
+清债的五个阶段、编辑器状态归位与录制两步都已落地（改动与当时的判断在 git 里），2026-10-29 又把 `.wgmacro`
+的读写下沉到 `Storage/`，同日把测试的假设备拆成一件一个文件。现在剩下的分两类：做过判断不做的，
+以及一个不算债但必须知道的结构事实。
 
 ### 已清掉的一笔：宽替身（2026-10-29）
 
@@ -438,15 +451,16 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 ### 一个结构事实（不是债，但决定了很多事）
 
 4. **引擎不认识宏的文件模型。** `MacroItem`、`ProjectTriggers`、`VariableDefinition` 在
-   `WhaleGenie.Model/Models`（8.5k 行），而 `WhaleGenie.Core` 只认 `ExecutableStep`，转换点唯一
+   `WhaleGenie/Models`（8.5k 行），而 `WhaleGenie.Core` 只认 `ExecutableStep`，转换点唯一
    （`MacroStepConverter`）且每次运行都重建。
 
-   这是有意的，不是没搬完：引擎能独立测试（`Core.Tests` 不引 Model，1460 条用例跑一分多钟）。代价是
+   这是有意的，不是没搬完：引擎能独立测试（`Core.Tests` 不引那个工程，1460 条用例跑一分多钟）。代价是
    引擎里拿不到"这条宏叫什么、声明有没有问题"——要那些，得先转换，或者由调用方在进入引擎之前判断。
 
    这条边界的实际影响现在只剩一处：**界面工程里还留着的包相关代码**是位图（`ImageAssets`）、恢复快照
    （`RecoveryStore` / `RecoveryWriter`，带 Dispatcher）与公共宏库——它们都不是"读写一个包"的必需品。
-   要做无界面的工具，`WhaleGenie.Model` + `WhaleGenie.Core` 这两个工程已经够用。
+   换句话说，`.wgmacro` 的读写今天离不开界面工程；要做无界面的工具，得先把 `Models/`、`Storage/`、
+   `Localization/` 三块拆出去。
 
 ## 附：文件规模地图
 
@@ -454,15 +468,13 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 
 | 位置 | 文件 / 行数 | 一句话 |
 | --- | ---: | --- |
-| `WhaleGenie.Model/Localization/` | 5 / 8572 | 两份手写文案表 + 语言枚举 + 表达式文本 |
-| `WhaleGenie.Model/Models/` | 32 / 8520 | 全域共享的领域层（宏、触发器、校验） |
-| `WhaleGenie/Localization/` | 4 / 506 | 本机设置与语言刷新，贴着界面 |
+| `WhaleGenie/Localization/` | 9 / 9078 | 两份手写文案表 + 语言枚举 + 表达式文本；本机设置与语言刷新 |
+| `WhaleGenie/Models/` | 32 / 8520 | 全域共享的领域层（宏、触发器、校验）与动作展示清单 |
 | `WhaleGenie/Views/` | 78 / 27403 | 20 个窗口、3 个 UserControl，后置代码占一半 |
 | `WhaleGenie/ViewModels/` | 54 / 19245 | 五个大 VM 占 61%，其余是行/选项载体 |
 | `WhaleGenie/Mcp/` | 23 / 7682 | 工具、草稿、资源、体检、审计 |
 | `WhaleGenie/Runtime/` | 31 / 4100 | 触发器、录制翻译、运行宿主、变量桥接 |
-| `WhaleGenie.Model/Storage/` | 2 / 681 | 包格式（`MacroPackage`）与相对路径（`MacroPaths`） |
-| `WhaleGenie/Storage/` | 4 / 1025 | 图片资产、公共宏库、恢复快照 |
+| `WhaleGenie/Storage/` | 6 / 1706 | 包格式（`MacroPackage`、`MacroPaths`）、图片资产、公共宏库、恢复快照 |
 | `WhaleGenie.Core/Execution/` | 27 / 14038 | 运行器与 13 个分部、动作目录、键表 |
 | `WhaleGenie.Core/Devices/` | 25 / 5311 | 契约 + 空对象；`Platform/` 另有 48 文件 14558 行 |
 | `WhaleGenie.Core/Expressions/` | 8 / 3068 | 语法树、求值、函数库 |

@@ -6,7 +6,8 @@
 怎么量性能、代码约定，以及提交、CI 与发布。用这个程序的人看 [manual.md](manual.md)，长期设计约束看
 仓库根目录的 `AGENTS.md`，下一步看 [roadmap.md](roadmap.md)。
 
-**这份文件回答"怎么做"**（动作、纪律、坑）；"做成什么样"（判据、令牌、形态）在 [ui-style.md](ui-style.md)。
+**这份文件回答"怎么做"**（动作、纪律、坑）；"外观怎么定"在 `WhaleGenie/Themes/Controls.axaml` 开头的
+137 行规则与登记表，加上 [architecture.md](architecture.md) 的「7.5 外观：三层与两条守卫」。
 **一条道理只在一处成文，另一处只放一句引用 + 链接**——同一句话在两份里会各自按语境漂移，读的人就不知道该信哪份。
 
 ## 常用命令
@@ -19,14 +20,46 @@ dotnet run --project WhaleGenie                  # 启动程序
 pwsh build/site.ps1                              # 拼出介绍页 _site
 ```
 
-看得见界面，但不必点它——**给视觉问题留证据**：
+看得见界面，但不必点它——**要出图时**，把下面这段存成仓库**外**任意目录里的 `shot.cs`（.NET 10 的文件式程序，
+不建工程、不进仓库），把 `#:project` 换成你本机的仓库路径，`dotnet run shot.cs` 即可：
 
-```powershell
-dotnet run --project tools/Screenshots    # 四个窗 × 深/浅两套 → artifacts/screens/*.png（不进版本库）
+```csharp
+#:property TargetFramework=net10.0-windows10.0.19041
+#:package Avalonia.Headless@12.1.2
+#:project C:/path/to/WhaleGenie/WhaleGenie.csproj
+
+using Avalonia;
+using Avalonia.Headless;
+using Avalonia.Media.Imaging;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using WhaleGenie.Views;
+
+// 与 Program.BuildAvaloniaApp 对齐：真画笔（无头默认的假画笔截不出帧）+ 同一套字体。
+// 少了 WithInterFont，文字度量会和真机不同（中文多行会挤到一起）。
+AppBuilder.Configure<WhaleGenie.App>()
+    .UseSkia()
+    .WithInterFont()
+    .UseHeadless(new AvaloniaHeadlessPlatformOptions
+    {
+        UseHeadlessDrawing = false,
+        ShouldRenderOnUIThread = true,
+    })
+    .SetupWithoutStarting();
+
+Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
+var window = new MainWindow();          // 换别的窗就换这一行
+window.Show();
+Dispatcher.UIThread.RunJobs();          // 先跑完布局，否则截到的是空帧
+
+var frame = window.CaptureRenderedFrame()
+    ?? throw new InvalidOperationException("没有渲染出画面");
+using var stream = File.Create(Path.Combine(Path.GetTempPath(), "whalegenie-ui.png"));
+frame.Save(stream, PngBitmapEncoderOptions.Default);
 ```
 
-它用**真画笔**（`UseHeadlessDrawing = false` + Skia），所以**单独一个工具、不在解决方案里**：
-和测试程序集的假画笔配在一个进程里会打架。**判"改没改到"看它，别让用户当人肉验证机。**
+**这张图只给人看，不当证据用**：没有基线、没有逐字节比对，也不进仓库。能复核的是测试——它们读的是模板里
+被涂色的那个部件（`LayerOneTests`、`ThemedDialogTests`、`ListBoxStyleTests`），不是像素。
 
 量 MCP 的易用性，不必点界面：
 
@@ -126,8 +159,8 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
 拾取器、是否发输入、是否看屏幕、等待与超时来源、返回形状与记录字段；界面保存编辑器种类、标签、
-提示与页面归属（`WhaleGenie.Model/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
-这份清单里：它们在 `WhaleGenie.Model/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
+提示与页面归属（`WhaleGenie/Models/ActionDisplay.json`，由 `ActionCatalog.cs` 投影），只留外观。图标不在
+这份清单里：它们在 `WhaleGenie/Models/AppIcons.cs`，是语义名到 `LucideIconKind` 的映射；
 `IconView` 包装 `Lucide.Avalonia` 的 `LucideIcon`，把旧属性名映射到 `Kind`、`Foreground` 与
 `StrokeWidth`，并把布局的 `Width`、`Height` 同步到 Lucide 的 `Size`，避免旧界面的小图标按 24 像素
 画布裁剪。菜单格子的 `Builtin` 引用只保存 `MenuIconCatalog` 中的稳定键，选择器再映射到常见
@@ -147,11 +180,10 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 | 项目 | 职责 |
 | --- | --- |
-| `WhaleGenie.Core` | 执行引擎。变量、表达式、执行语义、动作语义目录，以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程）。宏包文件模型与 `.wgmacro` 读写在 `WhaleGenie.Model` |
-| `WhaleGenie.Model` | 宏的文件模型与文案：宏、步骤、触发器、变量声明、动作展示清单，以及 `.wgmacro` 的读写（`Storage/MacroPackage.cs`）。只依赖 `WhaleGenie.Core` 与 `CommunityToolkit.Mvvm`——不认识 Avalonia，也不认识应用层 |
+| `WhaleGenie.Core` | 执行引擎。变量、表达式、执行语义、动作语义目录，以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程） |
 | `WhaleGenie.GraphicsCapture` | 从 Windows 拿像素：Graphics Capture、桌面复制（DXGI）、屏幕 GDI 与 PrintWindow 四种取法，以及会话缓存与选路。它不认识引擎的类型，引擎通过 `ProjectReference` 用它 |
-| `WhaleGenie` | 界面与 MCP 宿主。窗口、视图模型、触发器、托盘；动作展示清单在 `WhaleGenie.Model/Models/ActionDisplay.json`，`ActionCatalog.cs` 只把它投影成标签、编辑器种类与页面归属；图标在 `ViewModels/AppIcons.cs`（语义名到 Lucide 枚举），菜单图标键在 `ViewModels/MenuIconCatalog.cs` |
-| `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面；动作行为、读法与输入路由在这里验。宏包往返在 `WhaleGenie.Tests` 里验——那条路要经过项目与编辑器，`WhaleGenie.Model` 自己不带测试工程 |
+| `WhaleGenie` | 界面与 MCP 宿主。窗口、视图模型、触发器、托盘；宏的文件模型与文案也在这一工程里——宏、步骤、触发器、变量声明在 `Models/`，`.wgmacro` 的读写与两份文案表在 `Storage/`、`Localization/`。动作展示清单是 `Models/ActionDisplay.json`，`ActionCatalog.cs` 只把它投影成标签、编辑器种类与页面归属；图标在 `ViewModels/AppIcons.cs`（语义名到 Lucide 枚举），菜单图标键在 `ViewModels/MenuIconCatalog.cs` |
+| `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面；动作行为、读法与输入路由在这里验。宏包往返在 `WhaleGenie.Tests` 里验——那条路要经过项目与编辑器，`MacroPackage` 那一层自己不带测试工程 |
 | `WhaleGenie.GraphicsCapture.Tests` | 画面获取的测试：选路次序、会话缓存与复用、图片落位。真正调用 Windows 的那几条按手动用例过 |
 | `WhaleGenie.Tests` | 界面的测试，跑在 Avalonia 无头平台上；参数页面归属、返回值页、文案完整性与文档对账也在这里 |
 
@@ -319,7 +351,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 类型写 `Text` / `Number` / `Flag` / `List` / `Record` / `Image`，没写就是 `Text`；形参与结果都为空就写空数组。
 同一份声明有两份读法：引擎读 `WhaleGenie.Core/Execution/MacroSignature.cs` 的 `MacroSignature`（名字、默认
-值、是否必填、类型），编辑器与设计期读 `WhaleGenie.Model/Models/MacroCallable.cs` 的 `MacroCallable`（多一列
+值、是否必填、类型），编辑器与设计期读 `WhaleGenie/Models/MacroCallable.cs` 的 `MacroCallable`（多一列
 说明）。两者都由 `MacroItem` 读写，形参与结果各带一个 `ActionReturnType`。
 
 记录类型的形参与结果可以带字段表（`fields: [{name, type}]`，`MacroField`）——它是**可选**字段，不写就是
@@ -586,8 +618,8 @@ DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
 5. **删 `DynamicResource` 的键之前先把引用改完。** 缺失的键不抛错，只静默回落到默认前景——暗色下图标可能暗到
    看不见。顺序永远是"先改引用、后删键"，删完用全局搜索确认零残留，不要靠编译通过来判断。
 6. **往样式里写一个资源键之前，先 grep 它存在。** 命不中只有两种可能：代码该补，或者文档该删；**两者都是真问题，
-   而"跑起来都对"会把它藏住**（透明这类缺失即静默正确的最容易藏）。规范文档里出现的键名同样要逐个核。
-   **同族实例（选择器版）：** 规范里写了 `ListBox.X > ListBoxItem`（`>` 只配**直接子代**），而模板在中间插了一层
+   而"跑起来都对"会把它藏住**（透明这类缺失即静默正确的最容易藏）。样式文件里出现的键名同样要逐个核。
+   **同族实例（选择器版）：** 某处写过 `ListBox.X > ListBoxItem`（`>` 只配**直接子代**），而模板在中间插了一层
    ——**选择器配不到元素，样式静默不生效**，症状与"键不存在"完全一样。所以键存在之后还要问第二句：
    **这个选择器配得到元素吗**（拿实际元素去对，别只看声明写得对不对）。
 7. **验外观要读模板里被涂色的那个部件，不是控件自身的属性。** 控件自身的 `Background` 在任何伪类下都只有静息值；
@@ -693,7 +725,7 @@ DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
     > **写不成命令的判断 → 必须由别人看**（"这句注释读起来像不像在推卸""这个措辞会不会让人误解"
     > "这个档位名会不会诱导下一个人排档"）。两类都不能省，但**不能混**：把"写不成命令的"当自查，等于没查。
 
-    实证：本轮自己抓到的三处（`.picked/.drop` 能否同现、§5 十三条里六条判错、位置指认错）背后都有命令可跑；
+    实证：本轮自己抓到的三处（`.picked/.drop` 能否同现、缺变体清单十三条里六条判错、位置指认错）背后都有命令可跑；
     被对方抓到的三处（`#8FB3D9` 主客颠倒、`#C8A165` 一色四义、S/M/L 排档）全是"读起来对不对"——没有命令可跑。
     **所以"抓到"与"仔细"无关，与"有没有命令"有关。**
 
@@ -715,8 +747,8 @@ DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
    代码里（`Classes.Add`/初始化器）。**只查一种会得出"它已不在"的错误结论，而那个结论会被写进文档**——
    标错的作废记录比不标更糟：它让人以为东西已经不在，于是不会去看。
 
-23. **"加类"这个动作有前置检查，它先红给你看，别绕过它。** 库里加一个类会同时惊动两条用例：
-   `ControlsRegistryTests`（自己画 hover，或进登记表）与 `SpecClassTests`（spec 表里要有一行）。
+23. **"加类"这个动作有前置检查，它先红给你看，别绕过它。** 库里加一个类会惊动
+   `ControlsRegistryTests`（自己画 hover，或进登记表）；写了没登记、也没画 hover 的类会在这里先红。
    **先失败、后补是正确的顺序**——它们是"加类"这个动作的护栏，不是障碍。
    配合第 20 条：**登记表本身也要能被对账**（"登记了但库里没有"与"库里有但没登记"两种错都不会自己暴露）。
 

@@ -5,8 +5,7 @@
 
 文档各有唯一职责，同一件事只在一个地方写：`README.md` 给刚来的人；`doc/manual.md` 给用程序的人，
 **用户看到的行为以它为准**；`doc/dev.md` 给改这个仓库的人（命令、工程结构、依赖、测试分层、发布）；
-`doc/architecture.md` 讲工程划分、依赖方向、主链路与债务；`doc/ui-style.md` 是界面的施工图——令牌、
-组件族与六种状态，加窗口、加控件照它写；`doc/roadmap.md` 只写还没做的事；
+`doc/architecture.md` 讲工程划分、依赖方向、主链路与债务；`doc/roadmap.md` 只写还没做的事；
 `doc/mcp-usability.md` 是一次自检的指标与遗留项；这份文件讲规范与必须守住的约定。
 改过什么在 git 里，不在此重复；重构留下的、还会约束后续改动的判断在 `doc/roadmap.md` 的「上一轮留下的约束」。
 
@@ -16,12 +15,11 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 滚轮、手柄按键、像素颜色、窗口或进程的出现触发它。游戏宏是第一批用途，办公向的文件、数据与网页能力同样
 是一等公民。
 
-四个产品工程，依赖只朝一个方向（三个测试工程不在此列）：
+三个产品工程，依赖只朝一个方向（三个测试工程不在此列）：
 
 - `WhaleGenie.Core`：执行引擎。动作语义目录、变量、表达式，以及所有真正碰机器的设备。不感知界面。
-- `WhaleGenie.Model`：宏的文件模型与文案，`.wgmacro` 的读写也在里面（`Storage/MacroPackage.cs`）。
-  只有两个引用（Core 与 `CommunityToolkit.Mvvm`）——加一条就是拆错了。
-- `WhaleGenie`：界面与 MCP 服务器。窗口、视图模型、触发器、工具。
+- `WhaleGenie`：界面与 MCP 服务器。窗口、视图模型、触发器、工具，以及宏的文件模型与文案——宏、步骤、
+  触发器、变量声明在 `Models/`，`.wgmacro` 的读写与两份文案表在 `Storage/`、`Localization/`。
 - `WhaleGenie.GraphicsCapture`：只从 Windows 拿像素，不认识引擎的类型。
 
 引擎里不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、
