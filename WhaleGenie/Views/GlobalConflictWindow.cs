@@ -43,24 +43,18 @@ public sealed class GlobalConflictWindow : Window
         WindowDecorations = WindowDecorations.BorderOnly;
         ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("GlobalConflict.Title");
-        Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
+        Background = ThemeBrush.Of("SurfaceWindow");
 
         var heading = new TextBlock
         {
             Text = Strings.Get("GlobalConflict.Title"),
-            FontSize = 15,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brush("AppTextStrong", Colors.White),
-            Margin = new Thickness(0, 0, 0, 6),
+            Classes = { "Title" },
         };
 
         var hint = new TextBlock
         {
             Text = Strings.Get("GlobalConflict.Hint"),
-            FontSize = 11.5,
-            Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160)),
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 0, 0, 10),
+            Classes = { "Hint" },
         };
 
         var rows = new StackPanel { Spacing = 10 };
@@ -101,11 +95,14 @@ public sealed class GlobalConflictWindow : Window
         Grid.SetRow(scroll, 2);
         Grid.SetRow(buttons, 3);
 
-        Content = new Grid
+        Content = new Border
         {
-            Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
-            Children = { heading, hint, scroll, buttons },
+            Padding = new Thickness(16),
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
+                Children = { heading, hint, scroll, buttons },
+            },
         };
     }
 
@@ -133,9 +130,8 @@ public sealed class GlobalConflictWindow : Window
         var title = new TextBlock
         {
             Text = $"{name}  ·  {existing.Type} / {decision.Arriving.Type}",
-            FontSize = 13,
+            Classes = { "Body" },
             FontWeight = FontWeight.SemiBold,
-            Foreground = Brush("AppTextStrong", Colors.White),
         };
 
         var options = new ComboBox
@@ -170,19 +166,15 @@ public sealed class GlobalConflictWindow : Window
             panel.Children.Add(new TextBlock
             {
                 Text = Strings.Format("GlobalConflict.Scripts", string.Join("、", scripts)),
-                FontSize = 11,
-                Foreground = Brush("Warning", Color.FromRgb(224, 108, 117)),
-                TextWrapping = TextWrapping.Wrap,
+                Classes = { "Caption" },
+                Foreground = ThemeBrush.Of("Warning"),
             });
         }
 
         return panel;
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
+
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
