@@ -23,19 +23,14 @@
           这里只留三样它给不了的：`MinWidth` 是"窄键也要能看清字"的存量度量；按下那个橙与禁用态
           的底是这一族自己的表达，**等"按下＝强调"定案再收**。
         -->
+        <!-- 只剩一条：`MinWidth` 是"窄键也要能看清字"的存量度量，宽度不在三档里，记缺变体。
+             按下用 `AccentFillPressed`（品牌橙就是它，静息强调底是另一支），禁用态直接用
+             `Secondary` 自带的 `TextDisabled` / `SurfaceControl`——窗口里那两处是临时值，不成档。 -->
         <Style Selector="Button.Secondary">
             <Setter Property="MinWidth" Value="40" />
         </Style>
         <Style Selector="Button.Secondary:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
-        </Style>
-        <!-- A control the step being edited cannot name: a stick is not a button, and only the
-             ones this step is about are worth clicking. -->
-        <Style Selector="Button.Secondary:disabled">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-        </Style>
-        <Style Selector="Button.Secondary:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
+            <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
         </Style>
 
     </Window.Styles>
