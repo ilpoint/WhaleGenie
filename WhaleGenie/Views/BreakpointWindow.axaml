@@ -50,10 +50,10 @@
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
                 </Grid>
-                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="#E06C75"
+                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="{DynamicResource Danger}"
                            Text="{Binding ExpressionMessage}"
                            IsVisible="{Binding ShowExpressionError}" />
-                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="#7FC97F"
+                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="{DynamicResource Success}"
                            Text="{Binding ExpressionMessage}"
                            IsVisible="{Binding ShowExpressionSuccess}" />
                 <TextBlock Classes="Hint"

@@ -42,7 +42,7 @@
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
         </Style>
         <Style Selector="Button.Tab.active">
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         </Style>
 
         <Style Selector="Border.VarRow">
@@ -175,22 +175,22 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.Breakpoint.on">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
         <!-- 断点的红色要压过悬停与按下的颜色：主题把这两态画在 ContentPresenter 上，只给 Button
              自己上色的话，指针还停在圆点上时那一点的先后看不出来 —— 点完要等鼠标移开才变红。 -->
         <Style Selector="Button.Breakpoint.on /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
         <Style Selector="Button.Breakpoint.on:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
         <Style Selector="Button.Breakpoint.on:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
 
         <Style Selector="Button.LookThumb">
@@ -496,7 +496,7 @@
                                                                            Foreground="{DynamicResource AppMuted}" />
                                                             </StackPanel>
                                                             <TextBlock Text="{Binding FailureNote}" FontSize="11.5"
-                                                                       Foreground="#E06C75" TextWrapping="Wrap"
+                                                                       Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
                                                                        IsVisible="{Binding HasFailure}" />
                                                             <TextBlock Text="{Binding AttemptsHeader}" FontSize="11"
                                                                        Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
@@ -511,7 +511,7 @@
                                                                                        Foreground="#CFCFCF" />
                                                                             <TextBlock Text="{Binding Failure}"
                                                                                        FontSize="11"
-                                                                                       Foreground="#E06C75"
+                                                                                       Foreground="{DynamicResource Danger}"
                                                                                        TextWrapping="Wrap"
                                                                                        IsVisible="{Binding HasFailure}" />
                                                                         </StackPanel>

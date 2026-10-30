@@ -112,7 +112,7 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="Button.Tab.on">
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         </Style>
         <Style Selector="Button.Tab.on /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />

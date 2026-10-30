@@ -354,12 +354,12 @@
                                IsVisible="{Binding IsDurationFormula}" />
                     <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
-                               Foreground="#E06C75"
+                               Foreground="{DynamicResource Danger}"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionError}" />
                     <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
-                               Foreground="#7FC97F"
+                               Foreground="{DynamicResource Success}"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
@@ -550,11 +550,11 @@
                                     </Grid>
 
                                     <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
-                                               Foreground="#E06C75"
+                                               Foreground="{DynamicResource Danger}"
                                                Text="{Binding CellMessage}"
                                                IsVisible="{Binding ShowCellError}" />
                                     <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
-                                               Foreground="#7FC97F"
+                                               Foreground="{DynamicResource Success}"
                                                Text="{Binding CellMessage}"
                                                IsVisible="{Binding ShowCellResult}" />
 
@@ -828,12 +828,12 @@
                     </Grid>
                     <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
-                               Foreground="#E06C75"
+                               Foreground="{DynamicResource Danger}"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionError}" />
                     <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
-                               Foreground="#7FC97F"
+                               Foreground="{DynamicResource Success}"
                                Text="{Binding ExpressionMessage}"
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
@@ -1274,7 +1274,7 @@
                                               Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
                                               ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
                                     <TextBlock Text="{Binding GlobalVariableProblem}" TextWrapping="Wrap"
-                                               Foreground="#E06C75"
+                                               Foreground="{DynamicResource Danger}"
                                                IsVisible="{Binding HasGlobalVariableProblem}" />
                                 </StackPanel>
                             </Border>
@@ -1437,14 +1437,14 @@
                     <TextBlock Classes="Hint" TextWrapping="Wrap"
                                Text="{Binding ValidationMessage}"
                                IsVisible="{Binding !ValidationIsProblem}" />
-                    <TextBlock VerticalAlignment="Center" Foreground="#E06C75"
+                    <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Danger}"
                                FontWeight="SemiBold" TextWrapping="Wrap"
                                Text="{Binding ValidationMessage}"
                                IsVisible="{Binding ValidationIsProblem}" />
                     <!-- What just happened: what a run did, so a step that is meant to do something
                          visible and a step that did nothing can be told apart, or why a step did not
                          go where it was being put. -->
-                    <TextBlock Foreground="#7FC97F" TextWrapping="Wrap"
+                    <TextBlock Foreground="{DynamicResource Success}" TextWrapping="Wrap"
                                Text="{Binding Notice}"
                                IsVisible="{Binding ShowsNotice}" />
                     <TextBlock Foreground="#E5C07B" TextWrapping="Wrap"

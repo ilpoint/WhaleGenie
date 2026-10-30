@@ -57,7 +57,7 @@
         <Style Selector="Path.RecordIndicator.Stop">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
-            <Setter Property="Fill" Value="#FFFFFF" />
+            <Setter Property="Fill" Value="{DynamicResource TextOnAccent}" />
             <Style.Animations>
                 <!-- Slow pulse so an in-progress recording is obvious at a glance. -->
                 <Animation Duration="0:0:1.2" IterationCount="INFINITE" PlaybackDirection="Alternate">
@@ -75,7 +75,7 @@
         <Style Selector="views|IconView.ProblemMark">
             <Setter Property="Width" Value="15" />
             <Setter Property="Height" Value="15" />
-            <Setter Property="Stroke" Value="#E0A23C" />
+            <Setter Property="Stroke" Value="{DynamicResource Warning}" />
             <Setter Property="StrokeThickness" Value="1.4" />
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -93,7 +93,7 @@
         </Style>
         <Style Selector="Border.DropTarget.Rejected">
             <Setter Property="Background" Value="#33E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
 
         <!-- The two ends of a block: the line its steps start under, and the line that closes it.
@@ -835,7 +835,7 @@
                          beside it loads the steps and stops in its own window. -->
                     <StackPanel Grid.Row="1">
                         <TextBlock Name="SavedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
-                                   Foreground="#7FC97F"
+                                   Foreground="{DynamicResource Success}"
                                    Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="6" Margin="12,8,12,12">
                             <Button Name="SaveButton" Classes="Primary"
@@ -885,7 +885,7 @@
                             <TextBlock Classes="Note" Text="{Binding Title}" />
                             <views:IconView Grid.Column="1" Width="12" Height="12"
                                             IsVisible="{Binding HasProblem}"
-                                            Stroke="#E06C75" StrokeThickness="1.4"
+                                            Stroke="{DynamicResource Danger}" StrokeThickness="1.4"
                                             Data="{x:Static vm:AppIcons.WarningTriangle}" />
                             <Button Grid.Column="2" Name="CloseDocumentButton"
                                     Classes="Ghost Tiny"

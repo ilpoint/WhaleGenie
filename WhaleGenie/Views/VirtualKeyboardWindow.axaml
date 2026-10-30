@@ -53,7 +53,7 @@
                      inside a width of their own, so a long sentence never widens the keyboard it is
                      sitting above. -->
                 <StackPanel Spacing="4" MaxWidth="900">
-                    <TextBlock Name="FillingLine" Foreground="#7FC97F" FontSize="12.5"
+                    <TextBlock Name="FillingLine" Foreground="{DynamicResource Success}" FontSize="12.5"
                                TextWrapping="Wrap" />
                     <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap"
                                Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />

@@ -111,7 +111,7 @@
                             <DataTemplate x:DataType="vm:VariableDefinitionDraft">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                     <views:IconView Width="13" Height="13" Margin="0,2,0,0"
-                                                   Stroke="#E06C75" StrokeThickness="1.4"
+                                                   Stroke="{DynamicResource Danger}" StrokeThickness="1.4"
                                                    FitToBounds="True"
                                                    IsVisible="{Binding HasProblem}"
                                                    ToolTip.Tip="{Binding [GlobalVariables.HasProblemHint], Source={x:Static loc:Strings.Current}}"
@@ -122,7 +122,7 @@
                                         <TextBlock Text="{Binding LocalType}" FontSize="11.5"
                                                    Foreground="{DynamicResource AppMuted}" />
                                         <TextBlock Text="{Binding [VarWall.Persistent], Source={x:Static loc:Strings.Current}}"
-                                                   FontSize="10.5" Foreground="#7FC97F"
+                                                   FontSize="10.5" Foreground="{DynamicResource Success}"
                                                    IsVisible="{Binding PersistValue}" />
                                     </StackPanel>
                                 </Grid>
@@ -265,7 +265,7 @@
                   ColumnSpacing="8" Margin="0,0,0,14">
                 <TextBlock Name="ProblemStatus" Text="{Binding ValidationMessage}"
                            TextWrapping="Wrap" VerticalAlignment="Center"
-                           Foreground="#E06C75"
+                           Foreground="{DynamicResource Danger}"
                            IsVisible="{Binding HasValidationProblem}" />
                 <Button Grid.Column="1" Name="CancelButton" Classes="Secondary"
                         Height="36" MinWidth="92" Content="{Binding CancelLabel}"

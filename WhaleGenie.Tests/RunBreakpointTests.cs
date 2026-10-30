@@ -211,7 +211,8 @@ public class RunBreakpointTests
             var selector = $"Button.Breakpoint.on{state} /template/ ContentPresenter";
             var at = markup.IndexOf(selector, StringComparison.Ordinal);
             Assert.True(at >= 0, $"少了这样一条样式：{selector}");
-            Assert.Contains("#E06C75", markup[at..(at + 240)], StringComparison.Ordinal);
+            // 同上：断点那条红已换成 `Danger` 令牌，钉令牌而不是字面值。
+            Assert.Contains("{DynamicResource Danger}", markup[at..(at + 260)], StringComparison.Ordinal);
         }
     }
 
