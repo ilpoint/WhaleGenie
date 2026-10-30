@@ -204,8 +204,11 @@ public class HotstringKeyboardTests
             editor.HotstringText = "a b";
             Dispatcher.UIThread.RunJobs();
 
+            // `CheckBox` 也是 `Button`（`CheckBox : ToggleButton : Button`），而勾选项现在也挂 `Field`，
+            // 所以"按类名找按钮"必须把开关族排掉，否则同一个 `Field` 会给出两个答案。
             var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
-                button.Classes.Contains("Field")
+                button is not ToggleButton
+                && button.Classes.Contains("Field")
                 && ReferenceEquals(editor, button.DataContext));
             Assert.Equal("a␠b", field.Content);
 
@@ -341,7 +344,8 @@ public class HotstringKeyboardTests
     private static void OpenKeyboard(MacroEditorWindow window)
     {
         var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
-            button.Classes.Contains("Field"));
+            button is not ToggleButton
+            && button.Classes.Contains("Field"));
         field.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
     }

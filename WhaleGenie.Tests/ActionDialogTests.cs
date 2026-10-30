@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -2794,6 +2795,7 @@ public class ActionDialogTests
 
             var field = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
+                    && button is not ToggleButton
                     && button.Classes.Contains("Field")
                     && ReferenceEquals(keys, button.DataContext));
             Assert.NotNull(field);
@@ -2977,6 +2979,7 @@ public class ActionDialogTests
 
             var keyboardField = window.GetVisualDescendants().OfType<Button>()
                 .FirstOrDefault(button => button.IsEffectivelyVisible
+                    && button is not ToggleButton
                     && button.Classes.Contains("Field")
                     && ReferenceEquals(field, button.DataContext));
             Assert.NotNull(keyboardField);
@@ -3001,7 +3004,8 @@ public class ActionDialogTests
 
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
                     .Where(button => button.IsEffectivelyVisible),
-                button => button.Classes.Contains("Field")
+                button => button is not ToggleButton
+                    && button.Classes.Contains("Field")
                     && button.DataContext is StepParameterViewModel { IsKey: true });
         });
     }

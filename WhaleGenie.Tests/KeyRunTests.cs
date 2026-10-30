@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -345,6 +346,7 @@ public class KeyRunTests
     private static Button FindKeyField(Window window, object data)
         => window.GetVisualDescendants().OfType<Button>().Single(candidate =>
             candidate.IsEffectivelyVisible
+            && candidate is not ToggleButton
             && candidate.Classes.Contains("Field")
             && Equals(candidate.DataContext, data));
 
