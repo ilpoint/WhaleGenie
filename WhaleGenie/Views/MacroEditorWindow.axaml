@@ -307,45 +307,34 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
-        <!-- Flat grey button used by Set Key / Record / the action palette -->
-        <Style Selector="Button.PaletteButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="34" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,5,5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PaletteButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.PaletteButton views|IconView">
-            <Setter Property="Stroke" Value="{DynamicResource AppText}" />
+        <!-- 图标块：外观全由 `Button.Icon` 给（34×32 逐格一致），这里只补"图标本身用什么色、
+             多粗"——图元不是控件，词汇表管不到它的描边。 -->
+        <Style Selector="Button.Icon views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
             <Setter Property="StrokeThickness" Value="1.5" />
         </Style>
 
-        <!-- The run-and-debug entry wears the debug violet so it is easy to find. -->
-        <Style Selector="Button.PaletteButton.primary">
-            <Setter Property="Background" Value="#6A4FC9" />
+        <!-- 命令入口按裁定回落到强调色：它和别的调色板钮不靠色相区分，靠位置与文案。
+             那 44 的宽是"这一格更要醒目"的存量度量，留在这里并记账（宽度不在三档里，
+             但它不是高度，收敛规则管不到它）。 -->
+        <Style Selector="Button.Icon.primary">
             <Setter Property="Width" Value="44" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary /template/ ContentPresenter">
-            <Setter Property="Background" Value="#6A4FC9" />
+        <Style Selector="Button.Icon.primary /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#7C61DB" />
+        <Style Selector="Button.Icon.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3450" />
+        <Style Selector="Button.Icon.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary views|IconView">
-            <Setter Property="Stroke" Value="#F2EEFF" />
+        <Style Selector="Button.Icon.primary views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
             <Setter Property="StrokeThickness" Value="1.7" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:disabled views|IconView">
-            <Setter Property="Stroke" Value="#7B7396" />
+        <Style Selector="Button.Icon.primary:disabled views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextDisabled}" />
         </Style>
 
         <Style Selector="Button.SaveButton">
@@ -1107,7 +1096,7 @@
                  </ItemsControl.ItemsPanel>
                  <ItemsControl.ItemTemplate>
                      <DataTemplate x:DataType="vm:MacroAction">
-                        <Button Classes="PaletteButton" Classes.primary="{Binding IsPrimary}"
+                        <Button Classes="Icon" Margin="0,0,5,5" Classes.primary="{Binding IsPrimary}"
                                ToolTip.Tip="{Binding Label}"
                                ToolTip.ShowOnDisabled="True"
                                IsEnabled="{Binding IsEnabled}"
