@@ -92,9 +92,10 @@
             <Setter Property="BorderBrush" Value="#C8A165" />
         </Style>
 
+        <!-- 步骤正文：`#E4E4E4` 与正文色差 4%，肉眼不可辨，等于没上色 -->
         <Style Selector="TextBlock.StepLabel">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.StepLabel.container">
             <Setter Property="FontWeight" Value="SemiBold" />

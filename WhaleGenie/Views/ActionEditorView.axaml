@@ -1020,9 +1020,13 @@
              on the way past, so it is quieter and smaller than a group heading. -->
         <!-- The mark on a field that is read as one value: small, and in the colour the interface
              already uses for a name it made itself. -->
+        <!--
+          公式标记：`ƒ` 字形自己表意（"这个值由程序算出"），颜色只需**比正文弱**。
+          原来那个蓝会被读成"语法高亮"，而这套界面没有语法高亮。
+        -->
         <Style Selector="TextBlock.FormulaMark">
-            <Setter Property="Foreground" Value="#8FB3D9" />
-            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
             <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
             <Setter Property="Margin" Value="2,3,5,6" />
         </Style>
@@ -1045,9 +1049,11 @@
         <!-- One action in the picker: a card holding its name, laid out a grid to a group. -->
         <!-- The one the dialog is about reads as chosen, so the list on the left always says what
              the fields on the right are fields of. -->
+        <!-- 被选中的次按钮**不是危险态**：`#3A2A22` 与 `DangerSurface` 值接近，语义完全不同。
+             选中态全仓只有一种表达——底 `AccentSurface`、边 `AccentFill`。 -->
         <Style Selector="Button.Secondary.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A2A22" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <!-- One page of a step's settings. -->
@@ -1070,16 +1076,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
-        <Style Selector="TextBox.JsonPreview">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#A9D6A9" />
-            <Setter Property="FontFamily" Value="Consolas" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="10,8" />
-        </Style>
 
         <!-- Variable name: free text with the known variables offered as suggestions. -->
         <!-- A named button in the title bar, for the one thing the dialog can do besides hand the
@@ -1390,7 +1386,7 @@
                         <StackPanel>
                             <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,12,0,10"
                                        Text="{Binding [Add.JsonNode], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Classes="JsonPreview" Text="{Binding JsonPreview, Mode=OneWay}"
+                            <TextBox Classes="Code ReadOnly" Text="{Binding JsonPreview, Mode=OneWay}"
                                      IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
                                      MinHeight="150" MaxHeight="360"
                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
