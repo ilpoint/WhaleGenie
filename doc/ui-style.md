@@ -595,6 +595,14 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
     `FormulaMark`（`Style` setter），据此判成"来源标记"；查了四处才发现主用法是**标识符**（`StepId`/`Name`/
     `MetaSummary`），`FormulaMark` 只是**借**它的色。**主客一颠倒，落的令牌就错一整族。**
 
+    **动作要做到什么程度，由处数决定**——"带动作"如果不带深度，动作就会停在第一处：
+
+    | 处数 | 判它的方法 |
+    |---|---|
+    | **1 处** | 读那一处就够 |
+    | **2–4 处** | **全读**：可能不是同一件事（`#C8A165` 4 处就是 4 种语义） |
+    | **5 处以上** | 先按"用得最多"分组，再逐组读代表 |
+
 ## 迁移前置条件（动第一个窗口之前必须定）
 
 `Views/` 里已有本地类与本表的类同名：`Classes="Cell"`、`Classes="Card"`、`Classes="Key Small Cell"`——
