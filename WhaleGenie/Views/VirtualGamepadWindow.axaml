@@ -18,33 +18,23 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <!-- One control of the controller, sitting where the hand finds it and carrying the name
-             the step writes for it. -->
-        <Style Selector="Button.Control">
+        <!--
+          手柄上的一个键：度量与四态并给 `Button.Secondary`（H30 一致、字号 12 → 13），
+          这里只留三样它给不了的：`MinWidth` 是"窄键也要能看清字"的存量度量；按下那个橙与禁用态
+          的底是这一族自己的表达，**等"按下＝强调"定案再收**。
+        -->
+        <Style Selector="Button.Secondary">
             <Setter Property="MinWidth" Value="40" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="Padding" Value="8,0" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.Control:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.Control:pressed /template/ ContentPresenter">
+        <Style Selector="Button.Secondary:pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="#C8401C" />
         </Style>
         <!-- A control the step being edited cannot name: a stick is not a button, and only the
              ones this step is about are worth clicking. -->
-        <Style Selector="Button.Control:disabled">
+        <Style Selector="Button.Secondary:disabled">
             <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
         </Style>
-        <Style Selector="Button.Control:disabled /template/ ContentPresenter">
+        <Style Selector="Button.Secondary:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppSurface}" />
         </Style>
 
@@ -75,28 +65,28 @@
                      sit under the fingers. -->
                 <StackPanel Spacing="8" HorizontalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Button Classes="Control" Content="LT" Tag="lt" Width="84" />
-                        <Button Classes="Control" Content="LB" Tag="lb" Width="84" />
+                        <Button Classes="Secondary" Content="LT" Tag="lt" Width="84" />
+                        <Button Classes="Secondary" Content="LB" Tag="lb" Width="84" />
                     </StackPanel>
 
-                    <Button Classes="Control" Content="LS" Tag="ls" Width="120" Height="52" />
+                    <Button Classes="Secondary" Content="LS" Tag="ls" Width="120" Height="52" />
 
                     <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
                           ColumnSpacing="4" RowSpacing="4" HorizontalAlignment="Center">
-                        <Button Grid.Column="1" Classes="Control" Content="↑" Tag="up" Width="40" />
-                        <Button Grid.Row="1" Classes="Control" Content="←" Tag="left" Width="40" />
-                        <Button Grid.Row="1" Grid.Column="2" Classes="Control" Content="→" Tag="right" Width="40" />
-                        <Button Grid.Row="2" Grid.Column="1" Classes="Control" Content="↓" Tag="down" Width="40" />
+                        <Button Grid.Column="1" Classes="Secondary" Content="↑" Tag="up" Width="40" />
+                        <Button Grid.Row="1" Classes="Secondary" Content="←" Tag="left" Width="40" />
+                        <Button Grid.Row="1" Grid.Column="2" Classes="Secondary" Content="→" Tag="right" Width="40" />
+                        <Button Grid.Row="2" Grid.Column="1" Classes="Secondary" Content="↓" Tag="down" Width="40" />
                     </Grid>
                 </StackPanel>
 
                 <!-- The middle of the pad: the two small buttons either side of the guide. -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                        <Button Classes="Control" Content="Back" Tag="back" Width="58" />
-                        <Button Classes="Control" Content="Start" Tag="start" Width="58" />
+                        <Button Classes="Secondary" Content="Back" Tag="back" Width="58" />
+                        <Button Classes="Secondary" Content="Start" Tag="start" Width="58" />
                     </StackPanel>
-                    <Button Classes="Control" Content="Guide" Tag="guide" Width="122"
+                    <Button Classes="Secondary" Content="Guide" Tag="guide" Width="122"
                             HorizontalAlignment="Center" />
                 </StackPanel>
 
@@ -104,19 +94,19 @@
                      stick in place of the d-pad and the left one. -->
                 <StackPanel Grid.Column="2" Spacing="8" HorizontalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Button Classes="Control" Content="RT" Tag="rt" Width="84" />
-                        <Button Classes="Control" Content="RB" Tag="rb" Width="84" />
+                        <Button Classes="Secondary" Content="RT" Tag="rt" Width="84" />
+                        <Button Classes="Secondary" Content="RB" Tag="rb" Width="84" />
                     </StackPanel>
 
                     <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
                           ColumnSpacing="4" RowSpacing="4" HorizontalAlignment="Center">
-                        <Button Grid.Column="1" Classes="Control" Content="Y" Tag="y" Width="40" />
-                        <Button Grid.Row="1" Classes="Control" Content="X" Tag="x" Width="40" />
-                        <Button Grid.Row="1" Grid.Column="2" Classes="Control" Content="B" Tag="b" Width="40" />
-                        <Button Grid.Row="2" Grid.Column="1" Classes="Control" Content="A" Tag="a" Width="40" />
+                        <Button Grid.Column="1" Classes="Secondary" Content="Y" Tag="y" Width="40" />
+                        <Button Grid.Row="1" Classes="Secondary" Content="X" Tag="x" Width="40" />
+                        <Button Grid.Row="1" Grid.Column="2" Classes="Secondary" Content="B" Tag="b" Width="40" />
+                        <Button Grid.Row="2" Grid.Column="1" Classes="Secondary" Content="A" Tag="a" Width="40" />
                     </Grid>
 
-                    <Button Classes="Control" Content="RS" Tag="rs" Width="120" Height="52" />
+                    <Button Classes="Secondary" Content="RS" Tag="rs" Width="120" Height="52" />
                 </StackPanel>
             </Grid>
         </StackPanel>
