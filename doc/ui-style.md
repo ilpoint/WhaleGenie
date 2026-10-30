@@ -513,6 +513,45 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 删掉样式就把它一起删了——**那不是迁移的预期变化，是误删**，而症状是"这段文字怎么跑到左边去了"，
 在密集页面里很难被当成 bug 报上来。
 
+### 并入不管状态
+
+**并入只管外观；状态若没有对应物，就留在窗口里挂在库类上。**
+
+本地类常常是"外观 + 一个状态"两件事压在一个名字里（`ActionCard` / `ActionCard.selected`）。
+外观有对应物、状态没有时，只并外观，状态那条样式留在窗口里，选择器改成挂在新的库类上：
+
+```xml
+<!-- 窗口里留下的那一条：底由 Border.Card.Selectable 给，选中由窗口自己说 -->
+<Style Selector="Border.Card.Selectable.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+</Style>
+```
+
+`MainWindow` 的 `.Active` / `.Pinned` 是同一个模式。判据不是"要不要一起并"，而是**"新词汇表里有没有
+这个状态词"**：`selected` / `chosen` / `problem` 在 `STATE` 清单里，可以并；`.Active` / `.Pinned` 不在，
+留着——**并在窗口外，状态留在窗口里，两件事互不相干**。反过来说，为了让一个状态能并进去而给它改个
+名字（`.Active` → `.selected`），是拿词表去凑现状，症状是同一件事在两个窗口里叫两个名字。
+
+### 每窗标准动作（模板已在 `TextPromptDialog` 上跑通）
+
+前四步只扫不改，第五步才动手。漏一步就有一端静默失效：
+
+1. **扫 `<Styles>`**：逐条问"本表有没有对应物"。有 → 并入（值以本表为准，不以本地为准）；没有 → 留在窗口里。
+2. **扫元素上的裸色值**（`grep -o '"#[0-9A-Fa-f]\{6\}"'`）：换成令牌。语义色优先（`Danger` / `Success` /
+   `Warning` / `Info`），其余按通道（`Surface*` / `Text*` / `Border*`）。**这一扫与本地样式无关**——
+   `TextPromptDialog` 一条本地样式都没有，却有 5 处 `App*`；反过来，色值最密的窗口未必是样式最多的窗口。
+3. **扫元素上的 `Height` / `Width`**：族成员不写尺寸（类里一族一次）。窗口若确实要另一档高度，
+   那是"缺一个变体"，报上去，**不要在元素上留一个数字**。
+4. **查"用了没定义"与名字本身**：`grep` 类名本身（含测试里的 `Classes.Contains("…")`），
+   再看扫出来的类在本表里有没有定义——"挂着类但从未样式化"和"样式化但没人挂"是同一个洞的两面。
+5. **换类 / 删样式**：只换 `Classes`，布局属性留在元素上（见上一条）。
+6. **跑** `dotnet build` + `dotnet test` + `dotnet format --verify-no-changes`，三条都绿才算迁完。
+7. **记账**：删了几条本地样式（列键名）、换了几处 `Classes`、`App*` 与裸色值各减多少、行数变化、
+   还剩什么（没对应物的类，逐个列名）。**还剩什么是这张账的重点**：它直接是下一步要补的词汇。
+
+**已完成（可当参照）**：`ConfirmDialog`、`TextPromptDialog`。两窗都是 0 条本地样式、0 处 `App*`、
+0 处裸色值——`TextPromptDialog` 与本清单同时落地，走的正是上面七步，没有用到第八种判断。
+
 ## 页高预算与「均值模型」的边界
 
 设置窗内容列可用高 **584px**（`Height 700` − 标题 36 − 根页签 40 − 上下边距 40）。
