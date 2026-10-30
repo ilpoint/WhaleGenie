@@ -538,8 +538,9 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 
 1. **扫 `<Styles>`**：逐条问"本表有没有对应物"。有 → 并入（值以本表为准，不以本地为准）；没有 → 留在窗口里。
 2. **扫元素上的裸色值**（`grep -o '"#[0-9A-Fa-f]\{6\}"'`）：换成令牌。语义色优先（`Danger` / `Success` /
-   `Warning` / `Info`），其余按通道（`Surface*` / `Text*` / `Border*`）。**这一扫与本地样式无关**——
-   `TextPromptDialog` 一条本地样式都没有，却有 5 处 `App*`；反过来，色值最密的窗口未必是样式最多的窗口。
+   `Warning` / `Info`），其余按通道（`Surface*` / `Text*` / `Border*`）。**这一扫与本地样式无关**：
+   `TextPromptDialog` 一条本地样式都没有，却有 5 处 `App*`；`RegionPickerWindow` 同样零本地样式，
+   裸色值却有 12 处。按"样式条数"排窗口，排出来的顺序与"离迁完还有多远"不是一回事。
 3. **扫元素上的 `Height` / `Width`**：族成员不写尺寸（类里一族一次）。窗口若确实要另一档高度，
    那是"缺一个变体"，报上去，**不要在元素上留一个数字**。
 4. **查"用了没定义"与名字本身**：`grep` 类名本身（含测试里的 `Classes.Contains("…")`），
