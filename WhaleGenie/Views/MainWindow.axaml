@@ -67,7 +67,9 @@
             <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
-        <!-- The always-on-top switch lights up while it is holding the window above the rest. -->
+        <!-- The always-on-top switch lights up while it is holding the window above the rest.
+             **已裁例外，留本窗**：这个蓝是"置顶"这个状态的标识，两个值（常态/悬停）配套使用。
+             注意它与主题色样里的某个蓝同值——**按值排除会把它误判成"数据"，位置才是判据。** -->
         <Style Selector="Button.Chrome.Icon.Pinned /template/ ContentPresenter">
             <Setter Property="Background" Value="#2E5F8A" />
         </Style>
@@ -424,10 +426,12 @@
                                         <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                                                    VerticalAlignment="Center" />
                                         <!-- Shows while a trigger is running this macro -->
-                                        <Border IsVisible="{Binding IsRunning}" Background="#1E4529"
-                                                BorderBrush="#3FBF57" BorderThickness="1"
+                                        <!-- "运行中"徽标：**状态用状态色**（底/边/字三件同一次改）。 -->
+                                        <Border IsVisible="{Binding IsRunning}"
+                                                Background="{DynamicResource SuccessSurface}"
+                                                BorderBrush="{DynamicResource Success}" BorderThickness="1"
                                                 CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
-                                            <TextBlock FontSize="10.5" Foreground="#8CE7A3"
+                                            <TextBlock FontSize="10.5" Foreground="{DynamicResource Success}"
                                                        Text="{Binding [Main.MacroRunning], Source={x:Static loc:Strings.Current}}" />
                                         </Border>
                                     </StackPanel>

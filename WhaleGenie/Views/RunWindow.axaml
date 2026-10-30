@@ -440,7 +440,7 @@
                                                         <!-- The note the step carries, the same one the
                                                              editor writes under a step. -->
                                                         <TextBlock Text="{Binding Comment}" FontSize="11.5"
-                                                                   Foreground="#8FA88F" TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                                                                    Margin="0,2,0,0"
                                                                    IsVisible="{Binding HasComment}" />
                                                         <!-- What the breakpoint waits for, when it waits
