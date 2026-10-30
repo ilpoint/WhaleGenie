@@ -443,7 +443,10 @@ public class ClassAuditTests
     private static HashSet<string> ClassesAddedInCode(string code)
     {
         var names = new HashSet<string>(StringComparer.Ordinal);
-        foreach (Match match in Regex.Matches(code, @"(?:Add|Set)\(\s*""([^""]+)"""))
+
+        // 必须限定在 `Classes` 上：`Dictionary.Add("Ctrl", …)` / `List.Add("Ctrl")` 也是 `Add("…")`，
+        // 但那是数据不是类名——第一版没限定，`HotkeyNameMapper` 的按键名全被当成类名报了出来。
+        foreach (Match match in Regex.Matches(code, @"Classes\.(?:Add|Set)\(\s*""([^""]+)"""))
         {
             names.Add(match.Groups[1].Value);
         }
@@ -457,6 +460,82 @@ public class ClassAuditTests
         }
 
         return names;
+    }
+
+    // ── 第四条：`.cs` 里 `Classes.Add("X")` 的 X 有没有样式 ───────────────
+    //
+    // 前三条只扫 `Views/*.axaml`。**13 个纯代码窗口一处不在覆盖面里**——它们没有 axaml，
+    // 界面全在 C# 里 `new` 出来，类名也在 C# 里加。`MenuCell` 那次就是在这个盲区里被偶然发现的。
+    //
+    // 对这些窗口检查很便宜：**它们没有本地样式，"用了没定义"就等于"`Classes.Add("X")` 之后
+    // 全仓找不到任何声明了 X 的选择器"**。
+    //
+    // 只报告不失败（与前三条同规矩）；白名单写原因，条目同样会被检查是否过期。
+
+    /// <summary>代码里加的、明知没有本地样式的类，每条写原因。</summary>
+    private static readonly Dictionary<string, string> KnownCodeOnly =
+        new(StringComparer.Ordinal);
+
+    [Fact]
+    public void Classes_added_in_code_have_a_style_somewhere()
+    {
+        var findings = CodeOnlyUnstyled().Where(pair => !KnownCodeOnly.ContainsKey(pair.Key))
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var (name, where) in findings)
+        {
+            _output.WriteLine($"no style for: {name} ({where})");
+        }
+
+        _output.WriteLine($"reported {findings.Count}, whitelisted {KnownCodeOnly.Count}");
+
+        var stale = KnownCodeOnly.Keys.Where(name => !CodeOnlyUnstyled().ContainsKey(name))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+        Assert.True(
+            stale.Count == 0,
+            "these whitelist entries no longer appear, so their reasons need a second look: "
+            + string.Join(", ", stale));
+    }
+
+    /// <summary>代码里加的类名，逐个数有没有任何选择器声明了它。</summary>
+    private static Dictionary<string, string> CodeOnlyUnstyled()
+    {
+        var root = RepositoryRoot();
+        var declared = new HashSet<string>(StringComparer.Ordinal);
+
+        // 全局库 + 每个窗口自己的样式，都算"声明过"
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie"), "*.axaml",
+                     SearchOption.AllDirectories))
+        {
+            var text = File.ReadAllText(path);
+            foreach (var (_, chains) in Declared(text))
+            {
+                foreach (var chain in chains)
+                {
+                    foreach (var token in chain)
+                    {
+                        declared.Add(token);
+                    }
+                }
+            }
+        }
+
+        var findings = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.cs"))
+        {
+            var code = File.ReadAllText(path);
+            foreach (var name in ClassesAddedInCode(code))
+            {
+                if (!declared.Contains(name))
+                {
+                    findings.TryAdd(name, Path.GetFileName(path));
+                }
+            }
+        }
+
+        return findings;
     }
 
     private static string RepositoryRoot([CallerFilePath] string here = "")
