@@ -347,6 +347,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `ListBox.List.Boxed` | ListBox | 1px · `RadiusControl` · `Pad1` | `SurfaceWindow` · — · `BorderControl` | — | — | — | — | — | 层 3 |
 | `ListBox.List.Pill ListBoxItem` | ListBoxItem | H24 · `PadChip` · `RadiusControl` · `UiCaption` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` | `AccentSurface` · `AccentText` · `AccentText` | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
 | `ListBox.List.Bare ListBoxItem` | ListBoxItem | `Pad0` | 六态全 `Transparent`（外观交给子 `Border.Card.Selectable`） | — | — | — | — | 双色环 | 层 3 |
+| `ListBox.List.Bare.Gapped ListBoxItem` | ListBoxItem | `Pad0` · 下边距 **6**（行距） | 同 `.Bare` | — | — | — | — | 双色环 | 层 3。**行距只能长在行上**：`ListBox` 没有 `Spacing`，`ItemsControl` 的面板不是我们能一致拿到的入口；代价是末行也多 6px |
 
 **行选择器用后代（空格），不用子代（`>`）。** `ListBoxItem` 的真实位置是
 `ListBox > ItemsPresenter > 面板 > ListBoxItem`，`>` 从 `ListBox` 出发匹配不到任何行——**而且不报错**，

@@ -70,46 +70,7 @@
                 </Animation>
             </Style.Animations>
         </Style>
-        <!-- Step list: rows keep the card look and gain a selection highlight. -->
-        <Style Selector="ListBox.StepList">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
 
-        <!-- Trigger entries are choices, so the whole card carries the selected state. -->
-        <Style Selector="ListBox.TriggerEntries">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,0,4" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="CornerRadius" Value="5" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-        </Style>
 
         <Style Selector="views|IconView.ProblemMark">
             <Setter Property="Width" Value="15" />
@@ -377,7 +338,7 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Editor.TriggerEntries], Source={x:Static loc:Strings.Current}}" />
-                                    <ListBox Name="TriggerEntries" Classes="TriggerEntries" MaxHeight="180"
+                                    <ListBox Name="TriggerEntries" Classes="List Bare Gapped" MaxHeight="180"
                                              ItemsSource="{Binding TriggerEntries}"
                                              SelectedItem="{Binding SelectedTrigger, Mode=TwoWay}"
                                              SelectionMode="Single"
@@ -1010,7 +971,7 @@
 
                    <!-- Selection is restored after every edit. Following it would drag a long
                         macro from the reader's place to whichever row the rebuild picked last. -->
-                   <ListBox Grid.Row="4" Name="StepList" Classes="StepList"
+                   <ListBox Grid.Row="4" Name="StepList" Classes="List Bare Gapped"
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             AutoScrollToSelectedItem="False"
                             Background="Transparent"

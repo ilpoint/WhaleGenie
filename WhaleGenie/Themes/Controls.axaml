@@ -1104,6 +1104,16 @@
     </Style>
 
     <!--
+      带行距的一档：卡片放进 `List` 里时，行与行之间要留一道缝，而 `ListBox` 没有 `Spacing`
+      （`ItemsControl` 的宿主是面板，我们拿不到它的一致入口），所以行距只能长在 `ListBoxItem` 上。
+      末行也多出这 6px——那是这一档的代价，比"每个窗口自己写一条 Margin"便宜。
+      6 是数字不是令牌：它是这一族内部的一次决定，跟"高度允许族定义里写一次"同一条规矩。
+    -->
+    <Style Selector="ListBox.List.Bare.Gapped ListBoxItem">
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <!--
       区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
       组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。
     -->
