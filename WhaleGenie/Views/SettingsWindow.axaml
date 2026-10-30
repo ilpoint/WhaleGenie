@@ -19,15 +19,6 @@
         <vm:SettingsViewModel />
     </Design.DataContext>
 
-    <Window.Styles>
-        <Style Selector="Border.Section">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="18" />
-            <Setter Property="Margin" Value="0,0,0,12" />
-        </Style>
-    </Window.Styles>
-
     <Grid RowDefinitions="38,Auto,*,Auto">
         <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">

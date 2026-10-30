@@ -277,6 +277,19 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 修饰的那几族（`Border.Card.Selectable`、`Border.Card.Thin`、`Button.Tile`、`ListBox.List ListBoxItem`）。
 **没有可叠加修饰的族，答"不同现"即可**，不必每族写一段。
 
+### 窗口级样式不许与库类同名
+
+**同名即覆盖，而且无声。** 窗口的 `<Window.Styles>` 在 `Application.Styles` 之后，所以窗口里写一条
+`Border.Section` 会把库里的 `Border.Section` **整个顶掉**——库那版对这个窗口一句话都说不上，
+既不报错也不警告。同一个类名在两处有两个定义，读代码的人只会看到其中一处。
+
+`SettingsWindow` 就踩过：窗口里那条 `Border.Section` 用 `AppDock` / padding 18，库版是
+`SurfacePanel` / 16，8 个 `Section` 用的是窗口版，而按规范它们该是库版。处置是删掉窗口那条。
+
+判据：**窗口里写选择器之前，先 `grep` 一遍 `Controls.axaml` 有没有同名的类**。有同名的只有两种合法去向：
+① 那条其实是**状态**（`Border.Card.Selectable.selected`）——这是「并入不管状态」允许的；
+② 库类缺一格度量、而这一窗必须有——那就改库，别让一个窗口偷偷覆盖它。
+
 ### 按钮
 
 | 类名 | 控件 | 尺寸 | 默认 | hover | pressed | selected/on | disabled | focus | 归属 |
@@ -293,6 +306,9 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `ToggleButton.Chip` | ToggleButton | H28 · `PadChip` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceControl` · `TextSecondary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · — · — | checked：`AccentSurface` · `AccentText` · `AccentText` | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | 层 1 四态 + 层 3 覆盖 checked |
 | `ToggleButton.Chip.Key` | ToggleButton | 32×32 · `Pad0` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `AccentFill` · `TextOnAccent` · `AccentFill` | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（键位按下要亮） |
 | `Button.Icon` | Button | 34×32 · `Pad0` · `RadiusControl` | `SurfaceControl` · `TextPrimary` · — | `SurfaceControlHover` · — · — | `SurfaceControlPressed` · — · — | — | — · `TextDisabled` · — | 双色环 | 层 3 |
+| `Button.Key` | Button | 32×32 · `Pad0` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | **`AccentFillPressed`** · `TextOnAccent` · `AccentFillPressed` | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3。**`ToggleButton.Chip.Key` 的按钮侧对应物**（同尺寸的开关版给结束键用）；按下走按下令牌，不用 `AccentFill`（那是静息强调底） |
+| `Button.Key.Small` | Button | 同 `Key`，字号 `UiCaption`(11) | 同 `Key` | 同 | 同 | — | 同 | 双色环 | 层 3。侧边那些长词的键，一格降字号 |
+| `Button.Key` + `Fill`（**不建类**） | — | `Width=NaN` + `HorizontalAlignment=Stretch` | — | — | — | — | — | — | **布局属性留元素上**：它表达"这一键撑满所在的格子"，不是外观常项 |
 | `Button.Thumb` | Button | `Pad1` · `RadiusControl` · 1px | `SurfaceSunken` · — · `BorderControl` | — · — · `AccentText` | — · — · `AccentText` | — | — · — · `BorderSubtle` | 双色环 | 层 3 |
 | `Button.Tile` | Button | MinH64 · `PadChip` · `RadiusControl` · 1px | `SurfaceCard` · `TextPrimary` · `BorderSubtle` | `SurfaceHover` · — · — | `SurfacePressed` · — · — | `.Occupied` → 底 `SurfaceHover`（只改底）；`.Current` → 描边 1px `AccentText`（只改描边，**不改粗细**） | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3 |
 | `Button.Field` | Button | H34 · `PadField` · `RadiusControl` · 1px · `UiBody` · 左对齐 | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `SurfaceControlPressed` · — · — | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（输入框形状的按钮） |
