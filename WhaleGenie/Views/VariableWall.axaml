@@ -16,21 +16,6 @@
     <UserControl.Styles>
         <!-- One variable to point at. It stands the same size and shape as every other card in the
              palettes around it, so the wall reads as one wall rather than as a list apart. -->
-        <Style Selector="Button.VarButton">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Padding" Value="10,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.VarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
         <Style Selector="ScrollViewer.VarWallScroll /template/ ScrollBar#PART_VerticalScrollBar">
             <Setter Property="Width" Value="8" />
             <Setter Property="MinWidth" Value="8" />
@@ -85,7 +70,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:VariableChoice">
-                        <Button Classes="VarButton" Margin="0,0,6,6"
+                        <Button Classes="Secondary" Height="28" Margin="0,0,6,6"
                                 Click="OnChoose"
                                 PointerPressed="OnPressed"
                                 PointerMoved="OnMoved"
@@ -145,7 +130,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:VariableUse">
-                                <Button Classes="VarButton" Height="24" FontSize="11.5"
+                                <Button Classes="Secondary" Height="24" FontSize="11.5"
                                         Margin="0,0,6,6"
                                         Content="{Binding Label}"
                                         ToolTip.Tip="{Binding [VarWall.JumpHint], Source={x:Static loc:Strings.Current}}"
