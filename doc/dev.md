@@ -464,16 +464,22 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
 要按元素找，用 `Classes` 加 `DataContext` 匹配（`ActionDialogTests` 找 `KeyField` 就是这么改的）；
 真需要名字，用 `x:Name` 之外的定位方式，或者把名字挪到模板外的宿主元素上。
 
-**按类名找元素时，别忘了继承关系。** `OfType<Button>()` 会把 `CheckBox`、`ToggleButton` 一起捞进来
-（`CheckBox : ToggleButton : Button`）。所以给勾选项也挂上 `Field` 那天，"按 `Classes.Contains("Field")`
-找那个按钮"从唯一变成两个，`Single()` 当场抛 `Sequence contains more than one matching element`——
-**选择器分得开（`Button.Field` / `CheckBox.Field` 各自独立），只按类名找的测试分不开。**
-判据：凡是"按类名找控件"的定位，先问一句"这个类名会不会落到同族的别的类型上"，要排就写成
-`button is not ToggleButton` 这种显式排除，别指望类名唯一。
+**按类名找元素时，必须同时限定具体类型，不用基类。** 写成 `OfType<CheckBox>()` / `is CheckBox`，
+不写成 `OfType<Button>()` + `Classes.Contains("Field")`。
 
-这是"同一个词两种载体"的第四种形状（前三种是 `Cell`、`VariableList`、`MenuCell`），
-前三次是**不同控件撞名**、这次是**同一族里有继承关系**。四次里有三次是先绿后红——
-**改类名或加类名之后，跑一次全量，别只跑那一扇窗的用例。**
+原因：`CheckBox : ToggleButton : Button`。凡是按基类捞的定位，**加上一个新类就可能从"唯一"变"多个"**
+——而报错是 `Sequence contains more than one matching element`，发生在离改动很远的一扇窗里。
+`Button.Field` 与 `CheckBox.Field` 的选择器各自独立、互不干扰，**只有"按类名 + 基类"的找法分不开**。
+
+实例：给勾选项挂上 `Field` 那天，`OfType<Button>().Single(Classes.Contains("Field"))` 从唯一变两个，
+三条热键用例当场红；同类的四处没红，但同样脆弱，一起排掉了（`is not ToggleButton`）。
+
+这是"同一个词两种载体"的第四种形状（前三种是 `Cell`、`VariableList`、`MenuCell`）：
+前三次是**不同控件撞名**，这一次是**同一族里有继承关系**——最隐蔽，因为选择器那一侧完全正常。
+
+**改类名、加类名之后一律跑全量。** 本窗那几十条用例只能证明"这一窗没坏"，证明不了"别处没坏"；
+而撞名的本质就是"别处会坏"。四次撞名里有三次都是先跑本窗（绿）、后跑全量才发现红——
+这两条要一起有：前一条防"加了新成员就炸"，后一条防"炸了没发现"。
 
 ### 手动项
 
