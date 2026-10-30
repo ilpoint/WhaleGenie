@@ -2158,8 +2158,9 @@ public class ActionDialogTests
             viewModel.SelectAction("input.mouseClick");
             Dispatcher.UIThread.RunJobs();
 
+            // 页签现在是库里的 `Tab Inline Boxed`（原来那个 `PageTab` 是窗口本地的重复实现）。
             var tab = window.GetVisualDescendants().OfType<Button>()
-                .First(button => button.Classes.Contains("PageTab") && button.IsEffectivelyVisible);
+                .First(button => button.Classes.Contains("Boxed") && button.IsEffectivelyVisible);
 
             var corner = tab.TranslatePoint(default, window);
             Assert.NotNull(corner);
