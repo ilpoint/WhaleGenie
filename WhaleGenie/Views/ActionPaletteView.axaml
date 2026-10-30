@@ -20,21 +20,11 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <Style Selector="ListBox.PaletteDocks">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="ListBox.PaletteDocks ListBoxItem">
+        <Style Selector="ListBox.List ListBoxItem">
             <Setter Property="Padding" Value="3,4" />
             <Setter Property="Margin" Value="1,0" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        </Style>
-        <Style Selector="ListBox.PaletteDocks ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="ListBox.PaletteDocks ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
         <Style Selector="Button.Category">
             <Setter Property="Background" Value="Transparent" />
@@ -54,7 +44,7 @@
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppSurface}">
-        <ListBox Grid.Row="0" Name="SourceDock" Classes="PaletteDocks"
+        <ListBox Grid.Row="0" Name="SourceDock" Classes="List"
                  ItemsSource="{Binding Tabs}"
                  SelectedItem="{Binding SelectedTab}" SelectionMode="Single"
                  Margin="4,4,4,2">
