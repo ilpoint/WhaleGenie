@@ -514,7 +514,7 @@
                                                                                               Margin="{Binding Indent}">
                                                                                             <TextBlock Text="{Binding Name}"
                                                                                                        FontSize="11"
-                                                                                                       FontFamily="{DynamicResource UiCodeFont}"
+                                                                                                       Classes="Mono"
                                                                                                        Foreground="{DynamicResource TextPrimary}" />
                                                                                             <SelectableTextBlock Grid.Column="1"
                                                                                                        Margin="8,0,0,0"
@@ -625,7 +625,7 @@
                                    Foreground="{DynamicResource TextTertiary}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
-                                   FontFamily="{DynamicResource UiCodeFont}"
+                                   Classes="Mono"
                                    Foreground="{DynamicResource TextPrimary}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="11.5"

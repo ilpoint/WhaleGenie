@@ -93,6 +93,8 @@
       STATIC ListBox.List.Boxed
       STATIC ListBox.List.Pill
       STATIC CheckBox.Field
+      STATIC Button.Pill
+      STATIC TextBlock.Mono
       STATIC TextBlock.Body
       STATIC TextBlock.Code
       STATIC TextBox.Code
@@ -680,6 +682,45 @@
     </Style>
 
     <!-- 只有图标的动作钮（关窗、折叠）。底色透明，悬停靠叠层，所以它不必知道底下是什么颜色。 -->
+    <!--
+      圆形（药丸）修饰：只把圆角改成"半个高度"，形状与颜色分离。
+      24 高的按钮配 12 的圆角正好是圆——**圆角是形状，不是值**，所以它单独一层，
+      以后 32 高的按钮挂同一个类也还是圆的（值要跟着高度走，这里取 24 的一半）。
+    -->
+    <Style Selector="Button.Pill">
+        <Setter Property="CornerRadius" Value="12" />
+    </Style>
+
+    <!--
+      等宽修饰：**只设字体，不设前景色**。
+      `TextBlock.Code` 把字体和颜色捆在一起，想要"等宽 + 主文字色"就得绕开它手写 `FontFamily`——
+      本轮绕过三次之后把它单独拆出来。**等宽是字形，不该同时决定颜色。**
+    -->
+    <Style Selector="TextBlock.Mono">
+        <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+    </Style>
+
+    <!--
+      分组头：动作选择器里"这一组叫什么"的那一行。
+      它是**按钮**（整行可点、点它收起或展开），但看起来像标题：全宽、透明底、左对齐、小字加粗。
+      与 `Ghost` 的区别不在尺寸，在**它是行不是钮**——所以单独一层，不挂 `Ghost`。
+    -->
+    <Style Selector="Button.GroupToggle">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.GroupToggle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+
     <Style Selector="Button.Ghost">
         <Setter Property="Width" Value="24" />
         <Setter Property="Height" Value="24" />

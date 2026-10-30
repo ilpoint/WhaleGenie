@@ -33,7 +33,7 @@
             <StackPanel Grid.Row="1" Margin="16,0,16,10" Spacing="3">
                 <TextBlock Classes="Hint" TextWrapping="Wrap"
                            Text="{Binding [Offset.Hint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Name="PointText" FontSize="12" FontFamily="{DynamicResource UiCodeFont}"
+                <TextBlock Name="PointText" FontSize="12" Classes="Mono"
                            Foreground="{DynamicResource TextPrimary}" />
             </StackPanel>
 

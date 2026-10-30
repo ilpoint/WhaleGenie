@@ -39,29 +39,22 @@
              删它们不产生任何视觉变化（本来就不匹配元素），留这句是让将来找 `Active` 的人知道这里删过。 -->
 
         <!-- Top-right round tool buttons -->
-        <Style Selector="Button.ToolButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Width" Value="24" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.ToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
-        </Style>
-
         <!-- Tool button that carries a label next to its icon -->
         <Style Selector="Button.LabeledToolButton">
             <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
             <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <!-- 带底的工具栏文字钮：**加一道 1px 边**。不加的话，浅色主题下它与底几乎同色
+             （对比 1.12），看起来像"没有底"。 -->
+        <Style Selector="Button.LabeledToolButton.Filled">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
         </Style>
         <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource BorderControl}" />
@@ -90,20 +83,6 @@
         </Style>
 
         <!-- Macro card action buttons -->
-        <Style Selector="Button.CardButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="26" />
-            <Setter Property="Height" Value="26" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.CardButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
-        </Style>
-
     </Window.Styles>
 
     <Grid RowDefinitions="36,30,*,Auto">
@@ -259,7 +238,7 @@
 
             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
                 <!-- No Active state: there is no server in this window to be on or off. -->
-                <Button Classes="LabeledToolButton" Name="McpButton"
+                <Button Classes="LabeledToolButton Filled" Name="McpButton"
                         Click="OnMcpClicked"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.McpHint], Source={x:Static loc:Strings.Current}}">
@@ -339,7 +318,7 @@
                                    Text="{Binding [Main.Mcp], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
-                <Button Classes="LabeledToolButton" Name="RunDebugButton"
+                <Button Classes="LabeledToolButton Filled" Name="RunDebugButton"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -348,7 +327,7 @@
                                    Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
-                <Button Classes="ToolButton" Name="SettingsButton"
+                <Button Classes="Ghost Pill" Name="SettingsButton"
                         ToolTip.Tip="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                 </Button>
@@ -436,17 +415,17 @@
                                         </Border>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                                        <Button Name="MacroRunDebugButton" Classes="CardButton"
+                                        <Button Name="MacroRunDebugButton" Classes="Ghost"
                                                 ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDebugMacroClicked">
                                             <views:IconView Width="12" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
                                         </Button>
-                                        <Button Classes="CardButton"
+                                        <Button Classes="Ghost"
                                                 ToolTip.Tip="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnEditMacroClicked">
                                             <views:IconView Width="13" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Pencil}" />
                                         </Button>
-                                        <Button Classes="CardButton"
+                                        <Button Classes="Ghost"
                                                 ToolTip.Tip="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDeleteMacroClicked">
                                             <views:IconView Width="13" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
