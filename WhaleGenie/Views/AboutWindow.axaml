@@ -58,6 +58,8 @@
                           ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,6,0,0">
                         <Border Background="{DynamicResource AppSurface}" CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <!-- 扫码需要白底：这个白**不随主题变**，是外部约束不是配色选择。
+                                     所以它留字面值——立令牌会让人以为它可选。 -->
                                 <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
                                     <Image Name="WeChatQr"
                                            Width="190" Height="190" Stretch="Uniform" />
@@ -71,6 +73,8 @@
                         <Border Grid.Column="1" Background="{DynamicResource AppSurface}"
                                 CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <!-- 扫码需要白底：这个白**不随主题变**，是外部约束不是配色选择。
+                                     所以它留字面值——立令牌会让人以为它可选。 -->
                                 <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
                                     <Image Name="AlipayQr"
                                            Width="190" Height="190" Stretch="Uniform" />

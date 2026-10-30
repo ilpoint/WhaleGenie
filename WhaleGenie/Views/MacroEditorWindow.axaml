@@ -122,7 +122,9 @@
             <Setter Property="Stroke" Value="#FF8A5C" />
         </Style>
 
-        <!-- Record toggle, idle: dark plate with a red dot. -->
+        <!-- Record toggle, idle: dark plate with a red dot.
+             这块暗红板是**刻意做深**的（录音族那条例外），所以白字在两套主题下都成立——
+             这里的 `#FFFFFF` 是真·暗底白字，不是"只在暗色主题下对"。要换得连板子一起换。 -->
         <Style Selector="Button.RecordButton">
             <Setter Property="Background" Value="#4A2417" />
             <Setter Property="BorderBrush" Value="#8A4227" />
