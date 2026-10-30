@@ -1275,8 +1275,10 @@
                             <Path Classes="RecordIndicator Stop" Data="M7,7 H17 V17 H7 Z"
                                   IsVisible="{Binding IsRecording}" />
                             <StackPanel VerticalAlignment="Center" Width="112">
+                                <!-- 录制钮的主标签：13.5 是笔误，删掉字号让它继承（默认就是 `UiBodySize` 13）。
+                                     字重留在元素上——它是"这个钮的主标签"，不是某一类通用文本。 -->
                                 <TextBlock Text="{Binding RecordLabel}" HorizontalAlignment="Center"
-                                           FontSize="13.5" FontWeight="SemiBold" />
+                                           FontWeight="SemiBold" />
                                 <TextBlock Text="Ctrl + F10" HorizontalAlignment="Center"
                                            FontSize="11" Foreground="#FFE3D6" />
                             </StackPanel>
