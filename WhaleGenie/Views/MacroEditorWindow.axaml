@@ -192,12 +192,6 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="TextBlock.ProblemSummary">
-            <Setter Property="Foreground" Value="#E0A23C" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="2,0,0,8" />
-        </Style>
         <Style Selector="Border.DropTarget">
             <Setter Property="Background" Value="#33FF6A35" />
             <Setter Property="BorderBrush" Value="#FF6A35" />
@@ -213,11 +207,6 @@
             <Setter Property="Background" Value="{DynamicResource AppSurface}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,2" />
-        </Style>
-        <Style Selector="TextBlock.StepHeadLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.StepFoot">
             <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
@@ -301,38 +290,6 @@
             <Setter Property="BorderThickness" Value="2" />
         </Style>
 
-        <Style Selector="TextBox.NameInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="10,7" />
-        </Style>
-
-        <!-- Plain parameter input, without the spin buttons a NumericUpDown would add -->
-        <Style Selector="ComboBox.OptionSelect">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="10,6" />
-            <Setter Property="MinWidth" Value="0" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-        </Style>
-
-        <Style Selector="Border.ActionCell">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="8,6" />
-        </Style>
-
-        <!-- Groups a section so it reads separately from the settings above it -->
         <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
@@ -419,23 +376,6 @@
         </Style>
         <Style Selector="Button.RunButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.MenuCell">
-            <Setter Property="MinHeight" Value="64" />
-            <Setter Property="Margin" Value="2" />
-            <Setter Property="Padding" Value="6" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.MenuCell.Occupied /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.MenuCell.Current">
-            <Setter Property="BorderBrush" Value="#4EA4E8" />
-            <Setter Property="BorderThickness" Value="2" />
         </Style>
     </Window.Styles>
 
@@ -546,9 +486,9 @@
                                            Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
                             <TextBlock Classes="FieldLabel" Text="{Binding [Editor.MacroName], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Name="NameInput" Classes="NameInput" Text="{Binding Name}"
+                            <TextBox Name="NameInput" Classes="Field" Text="{Binding Name}"
                                      PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="ProblemSummary" Margin="2,4,0,0"
+                            <TextBlock Classes="Problem" Margin="2,4,0,0"
                                        IsVisible="{Binding HasNameProblem}" Text="{Binding NameProblem}" />
                             <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                        Text="{Binding [Editor.MacroDescription], Source={x:Static loc:Strings.Current}}" />
@@ -673,7 +613,7 @@
                                                     IsVisible="{Binding ShowsLoopMode}">
                                             <TextBlock Classes="FieldLabel"
                                                        Text="{Binding [Editor.Loop], Source={x:Static loc:Strings.Current}}" />
-                                            <ComboBox Name="LoopModeSelect" Classes="OptionSelect"
+                                            <ComboBox Name="LoopModeSelect" Classes="Field"
                                                       ItemsSource="{Binding LoopOptions}"
                                                       SelectedIndex="{Binding LoopIndex}" />
                                         </StackPanel>
@@ -685,7 +625,7 @@
                                                   IsChecked="{Binding TriggerOnce}" />
                                     </StackPanel>
 
-                                    <TextBlock Classes="ProblemSummary" Margin="2,6,0,0"
+                                    <TextBlock Classes="Problem" Margin="2,6,0,0"
                                                IsVisible="{Binding HasTriggerProblem}"
                                                Text="{Binding TriggerProblemSummary}" />
 
@@ -715,7 +655,7 @@
                                 <StackPanel Grid.Row="0" Grid.Column="0">
                                     <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                                Text="{Binding [Editor.When], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Name="ColorMatchSelect" Classes="OptionSelect"
+                                    <ComboBox Name="ColorMatchSelect" Classes="Field"
                                               ItemsSource="{Binding ColorMatchOptions}"
                                               SelectedIndex="{Binding ColorMatchIndex}" />
 
@@ -780,7 +720,7 @@
                             <StackPanel IsVisible="{Binding IsTimerTrigger}">
                                 <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                            Text="{Binding [Editor.Schedule], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding ScheduleOptions}"
+                                <ComboBox Classes="Field" ItemsSource="{Binding ScheduleOptions}"
                                           SelectedIndex="{Binding ScheduleIndex}" />
 
                                 <!-- Every so often: how many, and the unit they are counted in -->
@@ -791,7 +731,7 @@
                                       ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                     <views:NumberBox Grid.Column="0" Value="{Binding ScheduleInterval}"
                                                    Minimum="1" Maximum="9999" Increment="1" FormatString="0" />
-                                    <ComboBox Grid.Column="1" Classes="OptionSelect" Width="112"
+                                    <ComboBox Grid.Column="1" Classes="Field" Width="112"
                                               ItemsSource="{Binding ScheduleUnitOptions}"
                                               SelectedIndex="{Binding ScheduleUnitIndex}" />
                                 </Grid>
@@ -817,7 +757,7 @@
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WatchChange], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WatchChangeOptions}"
+                                <ComboBox Classes="Field" ItemsSource="{Binding WatchChangeOptions}"
                                           SelectedIndex="{Binding WatchChangeIndex}" />
 
                                 <!-- Only a watched folder has names inside it to filter and folders below it -->
@@ -843,7 +783,7 @@
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.ProcessWhen], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding ProcessChangeOptions}"
+                                <ComboBox Classes="Field" ItemsSource="{Binding ProcessChangeOptions}"
                                           SelectedIndex="{Binding ProcessChangeIndex}" />
 
                                 <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
@@ -913,7 +853,7 @@
                                 <StackPanel IsVisible="{Binding IsWindowTrigger}">
                                     <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                                Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowChangeOptions}"
+                                    <ComboBox Classes="Field" ItemsSource="{Binding WindowChangeOptions}"
                                               SelectedIndex="{Binding WindowChangeIndex}" />
 
                                     <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
@@ -1182,13 +1122,13 @@
                    <!-- What the design-time check made of the steps, so a problem is known while
                         the macro is being written rather than when a trigger fires it. -->
                    <StackPanel Grid.Row="3" Spacing="2">
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasStepProblems}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasStepProblems}"
                                   Text="{Binding ProblemSummary}" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasDeclarationProblems}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasDeclarationProblems}"
                                   Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasCallImpact}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasCallImpact}"
                                   Text="{Binding CallImpactSummary}" TextWrapping="Wrap" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasNotice}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasNotice}"
                                   Text="{Binding Notice}" TextWrapping="Wrap" />
                    </StackPanel>
 
@@ -1307,7 +1247,7 @@
                                   <Border Classes="StepHead" Margin="{Binding Indent}"
                                           IsVisible="{Binding IsHead}">
                                       <StackPanel Orientation="Horizontal" Spacing="8">
-                                          <TextBlock Classes="StepHeadLabel"
+                                          <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadLabel}" />
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
@@ -1385,11 +1325,11 @@
 
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Editor.PositionCapture], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding PositionCaptureOptions}"
+                                    <ComboBox Classes="Field" ItemsSource="{Binding PositionCaptureOptions}"
                                               SelectedIndex="{Binding PositionCaptureIndex}" Margin="0,0,0,6" />
 
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                        <Border Grid.Row="0" Grid.Column="0" Classes="ActionCell">
+                                        <Border Grid.Row="0" Grid.Column="0" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
@@ -1404,7 +1344,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="0" Grid.Column="1" Classes="ActionCell">
+                                        <Border Grid.Row="0" Grid.Column="1" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
@@ -1419,7 +1359,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="1" Grid.Column="0" Classes="ActionCell">
+                                        <Border Grid.Row="1" Grid.Column="0" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
@@ -1434,7 +1374,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="1" Grid.Column="1" Classes="ActionCell">
+                                        <Border Grid.Row="1" Grid.Column="1" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
@@ -1449,7 +1389,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="2" Grid.Column="0" Classes="ActionCell">
+                                        <Border Grid.Row="2" Grid.Column="0" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
@@ -1465,7 +1405,7 @@
                                         </Border>
                                     </Grid>
 
-                                    <Border Classes="ActionCell" Margin="0,4,0,0">
+                                    <Border Classes="Card" Margin="0,4,0,0">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                         Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">

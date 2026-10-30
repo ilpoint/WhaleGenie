@@ -719,8 +719,10 @@ public class MacroEditorTests
             Assert.Contains("break", ToolTip.GetTip(tip) as string ?? string.Empty);
 
             // The line above the list says there is something to look at.
+            // 本地类 `ProblemSummary` 并进了 `TextBlock.Problem`，标记跟着换——**只改样式不改这里，
+            // 这条断言会去找一个已经不存在的类**，症状是"找不到元素"而不是"样式不对"。
             var summary = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.Classes.Contains("ProblemSummary") && text.IsVisible);
+                text => text.Classes.Contains("Problem") && text.IsVisible);
             Assert.True(summary.IsVisible);
             Assert.False(string.IsNullOrWhiteSpace(summary.Text));
         });

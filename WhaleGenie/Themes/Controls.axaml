@@ -338,6 +338,8 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
 
     <!-- 与 `TextBox.Field.Cell` 对称的 24 档：公式行里两种格子并排，差 6px 看得出来。 -->
