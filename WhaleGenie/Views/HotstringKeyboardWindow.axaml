@@ -12,7 +12,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
         <!-- 上档开着：那个蓝与 `MainWindow` 的置顶蓝同值，是"借用了一个不存在的底色档"，
@@ -23,16 +23,16 @@
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Foreground="{DynamicResource AppText}" FontSize="13"
+                <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13"
                            VerticalAlignment="Center"
                            Text="{Binding [HotstringKeyboard.Title], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
             <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}"
                                 StrokeThickness="1.2" FitToBounds="True"
                                 Data="{x:Static vm:AppIcons.X}" />
             </Button>
@@ -40,20 +40,20 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="20,14" Spacing="12">
-                <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="12">
+                <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="12">
                     <StackPanel Spacing="5">
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiary}"
                                        Text="{Binding [HotstringKeyboard.Preview], Source={x:Static loc:Strings.Current}}" />
                             <TextBlock Grid.Column="1" Name="CountText" FontSize="12"
-                                       Foreground="{DynamicResource AppMuted}" />
+                                       Foreground="{DynamicResource TextTertiary}" />
                         </Grid>
                         <TextBlock Name="PreviewText" FontFamily="Consolas" FontSize="16"
-                                   Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                                   Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
-                <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap"
+                <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                            Text="{Binding [HotstringKeyboard.Hint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#8FC7F0" TextWrapping="Wrap"
                            Text="{Binding [Editor.HotstringMouseResetHint], Source={x:Static loc:Strings.Current}}" />
@@ -61,7 +61,7 @@
                 <StackPanel Name="KeyRows" Spacing="7" />
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,4,0,0">
-                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AppMuted}"
+                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextTertiary}"
                                TextWrapping="Wrap"
                                Text="{Binding [HotstringKeyboard.Selected], Source={x:Static loc:Strings.Current}}" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">

@@ -15,22 +15,22 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
     </Window.Styles>
 
     <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
             <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}"
                                 StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
@@ -38,17 +38,17 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="22,18,22,10" Spacing="16">
                 <TextBlock Name="AboutText" TextWrapping="Wrap"
-                           Foreground="{DynamicResource AppMuted}" FontSize="13" />
+                           Foreground="{DynamicResource TextTertiary}" FontSize="13" />
 
-                <Border Height="1" Background="{DynamicResource AppBorder}" />
+                <Border Height="1" Background="{DynamicResource BorderControl}" />
 
                 <StackPanel Name="SupportPanel" Spacing="9">
                     <TextBlock Text="{Binding [About.SupportTitle], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{DynamicResource AppTextStrong}" FontSize="15"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="15"
                                FontWeight="SemiBold" />
                     <TextBlock Name="SupportText"
                                Text="{Binding [About.SupportText], Source={x:Static loc:Strings.Current}}"
-                               TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}" FontSize="13" />
+                               TextWrapping="Wrap" Foreground="{DynamicResource TextTertiary}" FontSize="13" />
                     <Button Classes="Secondary" Name="SupportButton"
                             Height="30" MinWidth="82" HorizontalAlignment="Left"
                             Content="{Binding [About.SupportButton], Source={x:Static loc:Strings.Current}}"
@@ -56,7 +56,7 @@
 
                     <Grid Name="SupportCodes" IsVisible="False"
                           ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,6,0,0">
-                        <Border Background="{DynamicResource AppSurface}" CornerRadius="6" Padding="12">
+                        <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8" HorizontalAlignment="Center">
                                 <!-- 扫码需要白底：这个白**不随主题变**，是外部约束不是配色选择。
                                      所以它留字面值——立令牌会让人以为它可选。 -->
@@ -65,12 +65,12 @@
                                            Width="190" Height="190" Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Text="{Binding [About.WeChat], Source={x:Static loc:Strings.Current}}"
-                                           Foreground="{DynamicResource AppText}" FontSize="12.5"
+                                           Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
                                            HorizontalAlignment="Center" />
                             </StackPanel>
                         </Border>
 
-                        <Border Grid.Column="1" Background="{DynamicResource AppSurface}"
+                        <Border Grid.Column="1" Background="{DynamicResource SurfacePanel}"
                                 CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8" HorizontalAlignment="Center">
                                 <!-- 扫码需要白底：这个白**不随主题变**，是外部约束不是配色选择。
@@ -80,7 +80,7 @@
                                            Width="190" Height="190" Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Text="{Binding [About.Alipay], Source={x:Static loc:Strings.Current}}"
-                                           Foreground="{DynamicResource AppText}" FontSize="12.5"
+                                           Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
                                            HorizontalAlignment="Center" />
                             </StackPanel>
                         </Border>

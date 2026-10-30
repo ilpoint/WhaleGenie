@@ -50,7 +50,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:VariableFilter">
-                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource AppText}"
+                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                ToolTip.Tip="{Binding Hint}" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -81,7 +81,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <TextBlock Text="{Binding Display}" VerticalAlignment="Center" />
                                 <Border IsVisible="{Binding IsPersistent}"
-                                        Background="{DynamicResource AppDock}" CornerRadius="3"
+                                        Background="{DynamicResource SurfacePanel}" CornerRadius="3"
                                         Padding="5,1">
                                     <TextBlock Text="{Binding PersistenceBadge}" FontSize="10.5"
                                                Foreground="#D6C08A" />
@@ -90,8 +90,8 @@
                             <ToolTip.Placement>Right</ToolTip.Placement>
                             <ToolTip.Tip>
                                 <Border MaxWidth="380" MaxHeight="260"
-                                        Background="{DynamicResource AppSurface}"
-                                        BorderBrush="{DynamicResource AppBorder}"
+                                        Background="{DynamicResource SurfacePanel}"
+                                        BorderBrush="{DynamicResource BorderControl}"
                                         BorderThickness="1" CornerRadius="6" Padding="10,8">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                         <SelectableTextBlock Text="{Binding HoverText}"
@@ -116,7 +116,7 @@
                       VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="4">
                 <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
-                           Foreground="{DynamicResource AppMuted}" />
+                           Foreground="{DynamicResource TextTertiary}" />
 
                 <!-- Pressing one of those steps asks the place the wall stands in to show it. -->
                 <StackPanel Spacing="4" IsVisible="{Binding HasUses}">

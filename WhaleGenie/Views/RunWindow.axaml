@@ -16,15 +16,15 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
 
         <!-- Which half of the window is showing, and the variables half's own pages. -->
 
         <Style Selector="ComboBox.VarSelect">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Foreground" Value="#E4E4E4" />
@@ -42,16 +42,16 @@
                     <Border Background="{TemplateBinding Background}" Padding="2">
                         <Border Name="SplitLine" Width="1" Margin="0,7"
                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                Background="{DynamicResource AppBorder}" />
+                                Background="{DynamicResource BorderControl}" />
                     </Border>
                 </ControlTemplate>
             </Setter>
         </Style>
         <Style Selector="GridSplitter.RunSplit:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
         <Style Selector="GridSplitter.RunSplit:pointerover /template/ Border#SplitLine">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
         <Style Selector="GridSplitter.SplitVertical">
             <Setter Property="Background" Value="Transparent" />
@@ -60,32 +60,32 @@
                     <Border Background="{TemplateBinding Background}" Padding="2">
                         <Border Name="SplitLine" Height="1" Margin="7,0"
                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                Background="{DynamicResource AppBorder}" />
+                                Background="{DynamicResource BorderControl}" />
                     </Border>
                 </ControlTemplate>
             </Setter>
         </Style>
         <Style Selector="GridSplitter.SplitVertical:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
         <Style Selector="GridSplitter.SplitVertical:pointerover /template/ Border#SplitLine">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
 
         <Style Selector="Border.RunRow">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Margin" Value="0,0,0,4" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
         </Style>
         <Style Selector="Border.RunRow:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
         <!-- 运行位置族：**只改底色与边，不改前景**——它标记的是"位置"，不是"这段文字是什么"。
              原来那对棕红/琥珀是"一色两用"（同一个琥珀也当语法色用），换成状态族里的 `Warning`
@@ -123,9 +123,9 @@
             <Setter Property="Height" Value="16" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceHover}" />
         </Style>
         <Style Selector="Button.Breakpoint.on">
             <Setter Property="Background" Value="{DynamicResource Danger}" />
@@ -147,8 +147,8 @@
         </Style>
 
         <Style Selector="Button.LookThumb">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="1" />
@@ -159,7 +159,7 @@
 
         <!-- Taking one value away: small, and sitting at the end of the row it belongs to. -->
         <Style Selector="Button.CopyButton">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
             <Setter Property="Foreground" Value="#CFCFCF" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="FontSize" Value="11" />
@@ -170,11 +170,11 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.CopyButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
     </Window.Styles>
 
-    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
             <!-- ===================== Title bar ===================== -->
@@ -182,7 +182,7 @@
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                        VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="13" Foreground="{DynamicResource AppText}"
+                           FontSize="13" Foreground="{DynamicResource TextPrimary}"
                            Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />
                 <!-- The same four buttons the macro editor carries: a run is watched while the
                      program it drives is in front, so pinning matters here for the same reason. -->
@@ -190,24 +190,24 @@
                     <Button Classes="Chrome Icon Wide Quiet" Name="PinButton"
                             ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="PinIcon" Width="11" Height="11"
-                                        Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
+                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
                                         FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                     </Button>
                     <!-- A run carries on while its window is out of the way, which is what watching
                          the macro work in the program it drives takes. -->
                     <Button Classes="Chrome Icon Wide Quiet" Name="MinimizeButton"
                             ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
+                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                     </Button>
                     <Button Classes="Chrome Icon Wide Quiet" Name="MaximizeButton"
                             ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="MaximizeIcon" Width="10" Height="10"
-                                        Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
+                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
                                         FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                     </Button>
                     <Button Classes="Chrome Icon Wide Quiet" Name="CloseButton"
                             ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -216,7 +216,7 @@
             <!-- Shown only when there is something to run: the window is also the place the
                  variables are managed from, and a run nobody has asked for controls nothing. -->
             <Border Grid.Row="1" Name="RunToolbar"
-                    Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
+                    Background="{DynamicResource SurfaceWindow}" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
                     IsVisible="{Binding HasSteps}">
                 <!-- Buttons, then what the run is doing, then the two notes about this run: how
                      fast it is being played, and whose turn it is at the input door. One column
@@ -282,7 +282,7 @@
             <StackPanel Grid.Row="2" Margin="16,0,14,12" Spacing="9"
                         IsVisible="{Binding !HasSteps}">
                 <TextBlock Name="DebugFromCardNote" TextWrapping="Wrap" FontSize="12"
-                           Foreground="{DynamicResource AppMuted}"
+                           Foreground="{DynamicResource TextTertiary}"
                            Text="{Binding [Run.DebugFromCard], Source={x:Static loc:Strings.Current}}" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <ComboBox Name="MacroPicker" Classes="VarSelect" MinWidth="220"
@@ -321,14 +321,14 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:RunArgumentViewModel">
-                                    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="5"
+                                    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="5"
                                             Padding="10" Margin="0,0,10,8" Width="250">
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="{Binding Label}" FontSize="12"
-                                                       Foreground="{DynamicResource AppText}" />
+                                                       Foreground="{DynamicResource TextPrimary}" />
                                             <TextBox Classes="Field" Text="{Binding Value}" />
                                             <CheckBox FontSize="11.5"
-                                                      Foreground="{DynamicResource AppMuted}"
+                                                      Foreground="{DynamicResource TextTertiary}"
                                                       IsChecked="{Binding Given}"
                                                       Content="{Binding [Run.ArgumentGiven], Source={x:Static loc:Strings.Current}}" />
                                             <TextBlock Text="{Binding Hint}" Classes="Hint"
@@ -410,7 +410,7 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Border Width="22" BorderThickness="1,0,0,0"
-                                                                        BorderBrush="{DynamicResource AppControl}" />
+                                                                        BorderBrush="{DynamicResource SurfaceControl}" />
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
@@ -446,13 +446,13 @@
                                                                 <TextBlock Text="{Binding OutcomeLabel}" FontSize="11.5"
                                                                            Foreground="{Binding OutcomeColor}" />
                                                                 <TextBlock Text="{Binding TimeNote}" FontSize="11.5"
-                                                                           Foreground="{DynamicResource AppMuted}" />
+                                                                           Foreground="{DynamicResource TextTertiary}" />
                                                             </StackPanel>
                                                             <TextBlock Text="{Binding FailureNote}" FontSize="11.5"
                                                                        Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
                                                                        IsVisible="{Binding HasFailure}" />
                                                             <TextBlock Text="{Binding AttemptsHeader}" FontSize="11"
-                                                                       Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
+                                                                       Foreground="{DynamicResource TextTertiary}" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasAttempts}" />
                                                             <ItemsControl ItemsSource="{Binding Attempts}"
                                                                           IsVisible="{Binding HasAttempts}">
@@ -472,7 +472,7 @@
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
                                                             <TextBlock Text="{Binding ResultsHeader}" FontSize="11"
-                                                                       Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
+                                                                       Foreground="{DynamicResource TextTertiary}" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasResults}" />
                                                             <ItemsControl ItemsSource="{Binding Results}"
                                                                           IsVisible="{Binding HasResults}">
@@ -487,7 +487,7 @@
                                                                                            Margin="8,0,0,0"
                                                                                            Text="{Binding Value}"
                                                                                            FontSize="11"
-                                                                                           Foreground="{DynamicResource AppMuted}"
+                                                                                           Foreground="{DynamicResource TextTertiary}"
                                                                                            TextWrapping="Wrap" />
                                                                             </Grid>
                                                                             <!-- A value made of named fields is shown as the fields, one
@@ -507,7 +507,7 @@
                                                                                                        Margin="8,0,0,0"
                                                                                                        Text="{Binding Value}"
                                                                                                        FontSize="11"
-                                                                                                       Foreground="{DynamicResource AppMuted}"
+                                                                                                       Foreground="{DynamicResource TextTertiary}"
                                                                                                        TextWrapping="Wrap" />
                                                                                         </Grid>
                                                                                     </DataTemplate>
@@ -583,10 +583,10 @@
                                    Foreground="#D6C08A" />
                         <TextBlock Grid.Column="2" Text="{Binding LocalType}" FontSize="11.5"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource AppMuted}" />
+                                   Foreground="{DynamicResource TextTertiary}" />
                         <SelectableTextBlock Grid.Column="3" Text="{Binding Value}" FontSize="11.5"
                                              VerticalAlignment="Center" TextWrapping="Wrap"
-                                             Foreground="{DynamicResource AppMuted}" />
+                                             Foreground="{DynamicResource TextTertiary}" />
                         <Button Grid.Column="4" Classes="CopyButton" Margin="4,0,0,0" Width="44"
                                 Padding="6,0" FontSize="11" VerticalAlignment="Center"
                                 Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
@@ -688,11 +688,11 @@
             </Grid>
 
             <!-- ===================== Question ===================== -->
-            <Border Grid.Row="4" Background="{DynamicResource AppAccentSoft}" BorderBrush="{DynamicResource AppLabel}" BorderThickness="1"
+            <Border Grid.Row="4" Background="{DynamicResource AccentSurface}" BorderBrush="{DynamicResource Warning}" BorderThickness="1"
                     CornerRadius="6" Margin="14,10,14,0" Padding="14,10"
                     IsVisible="{Binding IsAsking}">
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource AppWarning}"
+                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource Warning}"
                                TextWrapping="Wrap" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                         <Button Classes="Primary" Content="{Binding [Run.AskRetry], Source={x:Static loc:Strings.Current}}"

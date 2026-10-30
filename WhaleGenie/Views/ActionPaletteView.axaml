@@ -12,7 +12,7 @@
                     BorderBrush="{Binding Accent}"
                     ToolTip.Tip="{Binding Description}">
                 <TextBlock Text="{Binding Title}" FontSize="13"
-                           Foreground="{DynamicResource AppTextStrong}"
+                           Foreground="{DynamicResource TextPrimary}"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center" />
             </Button>
@@ -31,7 +31,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Width" Value="48" />
             <Setter Property="Height" Value="50" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -39,11 +39,11 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.Category:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppSurface}">
+    <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource SurfacePanel}">
         <ListBox Grid.Row="0" Name="SourceDock" Classes="List"
                  ItemsSource="{Binding Tabs}"
                  SelectedItem="{Binding SelectedTab}" SelectionMode="Single"
@@ -58,10 +58,10 @@
                     <StackPanel Spacing="2" HorizontalAlignment="Center">
                         <views:IconView Width="13" Height="13" Data="{Binding Icon}"
                                         HorizontalAlignment="Center"
-                                        Stroke="{DynamicResource AppText}" StrokeThickness="1.4" />
+                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4" />
                         <TextBlock Text="{Binding Label}" FontSize="10.5" TextWrapping="Wrap"
                                    TextAlignment="Center"
-                                   Foreground="{DynamicResource AppText}" />
+                                   Foreground="{DynamicResource TextPrimary}" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -70,7 +70,7 @@
         <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
             <Border Grid.Column="0" Name="BasicCategoryDock" Width="66"
                     IsVisible="{Binding IsBasicDock}"
-                    Background="{DynamicResource AppChrome}">
+                    Background="{DynamicResource SurfaceChrome}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8,12,8">
                         <ItemsControl.ItemTemplate>
@@ -105,7 +105,7 @@
                                     <StackPanel Margin="0,0,0,8">
                                         <TextBlock Text="{Binding Title}" FontSize="11.5"
                                                    FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource AppMuted}"
+                                                   Foreground="{DynamicResource TextTertiary}"
                                                    Margin="2,2,0,6"
                                                    IsVisible="{Binding HasTitle}" />
                                         <ItemsControl ItemsSource="{Binding Cards}"
@@ -123,7 +123,7 @@
                     </ScrollViewer>
 
                     <TextBlock IsVisible="{Binding HasNoCards}" Text="{Binding EmptyText}"
-                               Foreground="{DynamicResource AppMuted}" FontSize="12"
+                               Foreground="{DynamicResource TextTertiary}" FontSize="12"
                                TextWrapping="Wrap" HorizontalAlignment="Center"
                                VerticalAlignment="Center" TextAlignment="Center" />
                 </Grid>

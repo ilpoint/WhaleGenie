@@ -9,7 +9,7 @@
         MinWidth="380"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        Background="{DynamicResource AppBackdrop}"
+        Background="{DynamicResource SurfaceWindow}"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly">
@@ -17,17 +17,17 @@
     <Window.Styles>
         <Style Selector="TextBlock.BreakpointValue">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
     </Window.Styles>
 
-    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <StackPanel Margin="18,14,18,16" Spacing="12">
 
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="{Binding [Run.BreakpointTitle], Source={x:Static loc:Strings.Current}}"
                            FontSize="13" FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
+                           Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" Classes="Secondary" Height="26" Padding="10,0" FontSize="11.5"
                         Content="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
                         Command="{Binding ClearCommand}" />
@@ -67,7 +67,7 @@
                     <NumericUpDown Name="HitsBox" Value="{Binding HitTimes}" Minimum="1" Maximum="1000000"
                                    Increment="1" FormatString="0" FontSize="12.5" Width="130" />
                     <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12"
-                               Foreground="{DynamicResource AppMuted}"
+                               Foreground="{DynamicResource TextTertiary}"
                                Text="{Binding [Run.BreakpointHitsUnit], Source={x:Static loc:Strings.Current}}" />
                     <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="Hint"
                                Margin="4,0,0,0"

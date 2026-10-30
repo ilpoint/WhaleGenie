@@ -16,7 +16,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
 
@@ -31,16 +31,16 @@
     <Grid RowDefinitions="38,Auto,*,Auto">
 
         <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
+                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                            VerticalAlignment="Center" />
             </StackPanel>
 
             <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
 
@@ -64,16 +64,16 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:WindowEntry">
                         <StackPanel>
-                            <TextBlock Text="{Binding Title}" FontSize="12.5" Foreground="{DynamicResource AppText}"
+                            <TextBlock Text="{Binding Title}" FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                        TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{DynamicResource AppMuted}"
+                            <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{DynamicResource TextTertiary}"
                                        TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <TextBlock Text="{Binding EmptyMessage}" FontSize="12.5" Foreground="{DynamicResource AppMuted}"
+            <TextBlock Text="{Binding EmptyMessage}" FontSize="12.5" Foreground="{DynamicResource TextTertiary}"
                        TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center"
                        IsVisible="{Binding !HasWindows}" />
         </Grid>
@@ -81,7 +81,7 @@
         <!-- What the choice means, then the buttons -->
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="16,12,16,16" ColumnSpacing="8">
             <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5"
-                       Foreground="{DynamicResource AppMuted}" MaxWidth="280"
+                       Foreground="{DynamicResource TextTertiary}" MaxWidth="280"
                        Text="{Binding MatchHint}" />
             <Button Grid.Column="1" Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"

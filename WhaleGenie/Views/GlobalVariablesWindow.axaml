@@ -12,14 +12,14 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
     </Window.KeyBindings>
 
     <Window.Styles>
         <Style Selector="TextBlock.SectionLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
@@ -37,16 +37,16 @@
 
         <Style Selector="ListBox.FilterList > ListBoxItem">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="Margin" Value="0,0,4,4" />
         </Style>
         <Style Selector="ListBox.FilterList > ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
         <Style Selector="ListBox.FilterList > ListBoxItem:selected TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
 
         <Style Selector="ListBox.List > ListBoxItem">
@@ -57,17 +57,17 @@
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}"
+                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource TextPrimary}"
                            FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
             <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center"
                     ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}"
                                 StrokeThickness="1.2" FitToBounds="True"
                                 Data="{x:Static vm:AppIcons.X}" />
             </Button>
@@ -75,7 +75,7 @@
 
         <Grid Grid.Row="1" Margin="18,14,18,0" RowDefinitions="Auto,*,Auto" RowSpacing="12">
             <TextBlock Text="{Binding Help}" TextWrapping="Wrap"
-                       FontSize="12" Foreground="{DynamicResource AppMuted}" />
+                       FontSize="12" Foreground="{DynamicResource TextTertiary}" />
 
             <Grid Grid.Row="1" ColumnDefinitions="300,12,*">
                 <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
@@ -120,7 +120,7 @@
                                                FontFamily="Consolas" TextWrapping="Wrap" />
                                     <StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Right">
                                         <TextBlock Text="{Binding LocalType}" FontSize="11.5"
-                                                   Foreground="{DynamicResource AppMuted}" />
+                                                   Foreground="{DynamicResource TextTertiary}" />
                                         <TextBlock Text="{Binding [VarWall.Persistent], Source={x:Static loc:Strings.Current}}"
                                                    FontSize="10.5" Foreground="{DynamicResource Success}"
                                                    IsVisible="{Binding PersistValue}" />
@@ -139,7 +139,7 @@
                 </Grid>
 
                 <Border Grid.Column="2" Padding="16" CornerRadius="6"
-                        Background="{DynamicResource AppField}">
+                        Background="{DynamicResource SurfaceField}">
                     <Grid>
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
@@ -220,12 +220,12 @@
                                            Text="{Binding [GlobalVariables.Uses], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Text="{Binding [GlobalVariables.NoUses], Source={x:Static loc:Strings.Current}}"
                                            IsVisible="{Binding !Editor.HasUses}"
-                                           Foreground="{DynamicResource AppMuted}" />
+                                           Foreground="{DynamicResource TextTertiary}" />
                                 <ItemsControl ItemsSource="{Binding Editor.Uses}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="models:VariableUse">
                                             <TextBlock Text="{Binding Label}" TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource AppMuted}" />
+                                                       Foreground="{DynamicResource TextTertiary}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -239,7 +239,7 @@
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Spacing="10" MaxWidth="360">
                             <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource AppMuted}"
+                                       Foreground="{DynamicResource TextTertiary}"
                                        TextAlignment="Center" />
                             <Button Classes="Secondary" Height="32" MinWidth="120"
                                     HorizontalAlignment="Center"
@@ -250,7 +250,7 @@
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Spacing="10" MaxWidth="360">
                             <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource AppMuted}"
+                                       Foreground="{DynamicResource TextTertiary}"
                                        TextAlignment="Center" />
                             <Button Classes="Secondary" Height="32" MinWidth="120"
                                     HorizontalAlignment="Center"

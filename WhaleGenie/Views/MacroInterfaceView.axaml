@@ -25,7 +25,7 @@
             <ItemsControl ItemsSource="{Binding Parameters}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroParameterRow">
-                        <Border Background="{DynamicResource AppField}" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                        <Border Background="{DynamicResource SurfaceField}" CornerRadius="4" Padding="8" Margin="0,0,0,6">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                                   RowSpacing="4" ColumnSpacing="6">
                                 <TextBox Grid.Row="0" Text="{Binding Name}"
@@ -90,8 +90,8 @@
                                 <Border Grid.Row="4" Grid.ColumnSpan="2" CornerRadius="4" Padding="8"
                                         Margin="0,4,0,0"
                                         IsVisible="{Binding IsRecord}"
-                                        Background="{DynamicResource AppBackdrop}"
-                                        BorderBrush="{DynamicResource AppBorder}"
+                                        Background="{DynamicResource SurfaceWindow}"
+                                        BorderBrush="{DynamicResource BorderControl}"
                                         BorderThickness="1">
                                     <StackPanel Spacing="4">
                                         <TextBlock Classes="Hint" TextWrapping="Wrap"
@@ -147,7 +147,7 @@
             <ItemsControl ItemsSource="{Binding Results}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroResultRow">
-                        <Border Background="{DynamicResource AppField}" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                        <Border Background="{DynamicResource SurfaceField}" CornerRadius="4" Padding="8" Margin="0,0,0,6">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto"
                                   RowSpacing="4" ColumnSpacing="6">
                                 <TextBox Grid.Row="0" Text="{Binding Name}"
@@ -187,8 +187,8 @@
                                 <Border Grid.Row="3" Grid.ColumnSpan="2" CornerRadius="4" Padding="8"
                                         Margin="0,4,0,0"
                                         IsVisible="{Binding IsRecord}"
-                                        Background="{DynamicResource AppBackdrop}"
-                                        BorderBrush="{DynamicResource AppBorder}"
+                                        Background="{DynamicResource SurfaceWindow}"
+                                        BorderBrush="{DynamicResource BorderControl}"
                                         BorderThickness="1">
                                     <StackPanel Spacing="4">
                                         <TextBlock Classes="Hint" TextWrapping="Wrap"

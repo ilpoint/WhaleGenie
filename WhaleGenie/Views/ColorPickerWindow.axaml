@@ -12,9 +12,9 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
-    <Border BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" CornerRadius="8" Padding="12">
+    <Border BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" CornerRadius="8" Padding="12">
         <StackPanel Spacing="10">
             <!-- A 21x21 patch of screen, with every pixel drawn as a 12x12 block -->
             <Canvas Width="252" Height="252" HorizontalAlignment="Center" ClipToBounds="True">
@@ -24,19 +24,19 @@
                 <Border Name="Target" Width="12" Height="12"
                         BorderBrush="#FF3B30" BorderThickness="2"
                         Canvas.Left="120" Canvas.Top="120" IsHitTestVisible="False" />
-                <Border Width="252" Height="252" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                <Border Width="252" Height="252" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                         Canvas.Left="0" Canvas.Top="0" IsHitTestVisible="False" />
             </Canvas>
 
             <Border Name="ColourChip" Height="36" CornerRadius="5"
-                    BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" Background="#000000" />
+                    BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" Background="#000000" />
 
             <TextBlock Name="ColourText" FontSize="19" Foreground="#F0F0F0"
                        FontFamily="Consolas,Menlo,monospace" HorizontalAlignment="Center" />
-            <TextBlock Name="RgbText" FontSize="14" Foreground="{DynamicResource AppMuted}" HorizontalAlignment="Center" />
-            <TextBlock Name="PointText" FontSize="14" Foreground="{DynamicResource AppMuted}" HorizontalAlignment="Center" />
+            <TextBlock Name="RgbText" FontSize="14" Foreground="{DynamicResource TextTertiary}" HorizontalAlignment="Center" />
+            <TextBlock Name="PointText" FontSize="14" Foreground="{DynamicResource TextTertiary}" HorizontalAlignment="Center" />
 
-            <TextBlock FontSize="13" Foreground="{DynamicResource AppMuted}" Width="252" TextWrapping="Wrap"
+            <TextBlock FontSize="13" Foreground="{DynamicResource TextTertiary}" Width="252" TextWrapping="Wrap"
                        HorizontalAlignment="Center" TextAlignment="Center"
                        Text="{Binding [Picker.ConfirmHint], Source={x:Static loc:Strings.Current}}" />
         </StackPanel>

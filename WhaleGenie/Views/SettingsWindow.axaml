@@ -13,28 +13,28 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:SettingsViewModel />
     </Design.DataContext>
 
     <Grid RowDefinitions="38,Auto,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding [Settings.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
             <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}"
                                 StrokeThickness="1.2" FitToBounds="True"
                                 Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
 
-        <Grid Grid.Row="1" Background="{DynamicResource AppDock}" ColumnDefinitions="*,*,*"
+        <Grid Grid.Row="1" Background="{DynamicResource SurfacePanel}" ColumnDefinitions="*,*,*"
               Margin="14,8,14,0">
             <Button Grid.Column="0" Name="SystemRootButton" Classes="Tab Root"
                     Classes.selected="{Binding IsSystemRoot}"
@@ -48,7 +48,7 @@
         </Grid>
 
         <Grid Grid.Row="2" ColumnDefinitions="180,*" Margin="14,8,14,0">
-            <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
+            <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
                 <StackPanel Spacing="3">
                     <StackPanel IsVisible="{Binding IsSystemRoot}">
                         <Button Name="GeneralNavButton" Classes="Tab Side"
@@ -99,7 +99,7 @@
                                     <StackPanel>
                                         <TextBlock Classes="Note"
                                                    Text="{Binding [Settings.SystemHotkey], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                    Text="{Binding SystemHotkeyDisplay}" />
                                     </StackPanel>
                                     <Button Grid.Column="1" Classes="Secondary" Height="30"
@@ -114,7 +114,7 @@
                                 <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.HotkeySupport], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource AppWarning}"
+                                           Foreground="{DynamicResource Warning}"
                                            Text="{Binding SystemHotkeyProblem}"
                                            IsVisible="{Binding SystemHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                             </StackPanel>
@@ -134,7 +134,7 @@
                                 <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
                                 <CheckBox Margin="2,16,0,0" Name="PreloadOcrCheck"
-                                          Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
                                           IsChecked="{Binding PreloadOcr}"
                                           Content="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
@@ -189,7 +189,7 @@
                             <TextBlock Classes="FieldLabel"
                                        Text="{Binding [Settings.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                <TextBlock FontSize="13" Foreground="{DynamicResource AppText}"
+                                <TextBlock FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                            VerticalAlignment="Center" Text="{Binding MenuLauncherDisplay}" />
                                 <Button Grid.Column="1" Name="CaptureMenuLauncherButton"
                                         Classes="Secondary" Height="32"
@@ -220,9 +220,9 @@
                                             <TextBlock Text="{Binding Summary}" FontSize="12.5"
                                                        TextTrimming="CharacterEllipsis" />
                                             <TextBlock Grid.Column="1" Text="{Binding PageCountLabel}"
-                                                       FontSize="10.5" Foreground="{DynamicResource AppMuted}" />
+                                                       FontSize="10.5" Foreground="{DynamicResource TextTertiary}" />
                                             <TextBlock Grid.Column="2" Text="{Binding [Settings.MenuRuleDefault], Source={x:Static loc:Strings.Current}}"
-                                                       FontSize="10.5" Foreground="{DynamicResource AppMuted}"
+                                                       FontSize="10.5" Foreground="{DynamicResource TextTertiary}"
                                                        IsVisible="{Binding IsDefault}" />
                                         </Grid>
                                     </DataTemplate>
@@ -247,7 +247,7 @@
                                         Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                             <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource AppWarning}"
+                                       Foreground="{DynamicResource Warning}"
                                        Text="{Binding MenuRuleProblem}" />
                             <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />

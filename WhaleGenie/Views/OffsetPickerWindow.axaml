@@ -12,12 +12,12 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
     </Window.Styles>
 
-    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
 
             <!-- title bar -->
@@ -25,7 +25,7 @@
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                        VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="13" Foreground="{DynamicResource AppText}"
+                           FontSize="13" Foreground="{DynamicResource TextPrimary}"
                            Text="{Binding [Offset.Title], Source={x:Static loc:Strings.Current}}" />
                 <Button Grid.Column="2" Classes="Chrome Icon Wide Quiet" Content="✕" Click="OnCancel" />
             </Grid>
@@ -36,18 +36,18 @@
                 <TextBlock Name="PointText" FontSize="12" Foreground="#E0B080" />
             </StackPanel>
 
-            <Border Grid.Row="2" Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="16,0,16,10"
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceWindow}" CornerRadius="6" Margin="16,0,16,10"
                     ClipToBounds="True">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Auto">
-                    <Canvas Name="Board" Background="{DynamicResource AppBackdrop}" HorizontalAlignment="Left"
+                    <Canvas Name="Board" Background="{DynamicResource SurfaceWindow}" HorizontalAlignment="Left"
                             VerticalAlignment="Top" PointerPressed="OnPickPoint" />
                 </ScrollViewer>
             </Border>
 
             <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="16,0,16,14">
                 <TextBlock Name="Status" VerticalAlignment="Center" FontSize="11.5"
-                           Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                           Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap" />
                 <Button Grid.Column="1" Classes="Primary" IsEnabled="False" Name="Confirm"
                         Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                         Click="OnConfirm" />

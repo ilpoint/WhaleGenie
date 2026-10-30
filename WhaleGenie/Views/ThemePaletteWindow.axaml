@@ -16,7 +16,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:ThemePaletteViewModel />
@@ -24,15 +24,15 @@
 
 
     <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding [Theme.Palette.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
             <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
+                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}"
                                 StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
@@ -41,7 +41,7 @@
             <StackPanel Grid.Row="0" Spacing="4">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{DynamicResource AppText}" FontSize="12.5"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
                                VerticalAlignment="Center" />
                     <ToggleSwitch IsChecked="{Binding BaseLight}"
                                   OnContent="{Binding [Theme.Base.Light], Source={x:Static loc:Strings.Current}}"
@@ -53,9 +53,9 @@
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{Binding [Theme.Accent], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppTextStrong}" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" FontWeight="SemiBold"
                            VerticalAlignment="Center" />
-                <TextBlock Text="{Binding AccentHex}" Foreground="{DynamicResource AppMuted}"
+                <TextBlock Text="{Binding AccentHex}" Foreground="{DynamicResource TextTertiary}"
                            FontSize="12" VerticalAlignment="Center" />
             </StackPanel>
 
@@ -77,12 +77,12 @@
                 <Border Grid.Column="1" Background="{Binding SurfacePreview}" CornerRadius="4"
                         Height="38" Padding="8,0">
                     <TextBlock Text="{Binding [Theme.Preview.Selected], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{DynamicResource AppText}" FontSize="12"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <Border Grid.Column="2" Background="{DynamicResource AppBackdrop}" CornerRadius="4"
+                <Border Grid.Column="2" Background="{DynamicResource SurfaceWindow}" CornerRadius="4"
                         Height="38" Padding="8,0"
-                        BorderBrush="{DynamicResource AppBorder}" BorderThickness="1">
+                        BorderBrush="{DynamicResource BorderControl}" BorderThickness="1">
                     <TextBlock Text="{Binding [Theme.Preview.AccentText], Source={x:Static loc:Strings.Current}}"
                                Foreground="{Binding TextPreview}" FontSize="12" FontWeight="SemiBold"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -94,7 +94,7 @@
                            Text="{Binding [Theme.Accent.Hint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Classes="Hint"
                            Text="{Binding [Theme.Palette.Hint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Classes="Hint" Foreground="{DynamicResource AppDanger}"
+                <TextBlock Classes="Hint" Foreground="{DynamicResource Danger}"
                            IsVisible="{Binding !AccentUsable}"
                            Text="{Binding [Theme.Accent.Rejected], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>

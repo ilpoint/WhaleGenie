@@ -9,38 +9,38 @@
         ShowActivated="False"
         Topmost="True"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource AppBackdrop}">
-    <Border Background="{DynamicResource AppSurface}" CornerRadius="8" Padding="20">
+        Background="{DynamicResource SurfaceWindow}">
+    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="8" Padding="20">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
             <TextBlock Grid.Row="0" FontSize="17" FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppTextStrong}"
+                       Foreground="{DynamicResource TextPrimary}"
                        Text="{Binding [WindowRule.Title], Source={x:Static loc:Strings.Current}}" />
 
             <TextBlock Grid.Row="1" TextWrapping="Wrap" FontSize="12.5"
-                       Foreground="{DynamicResource AppMuted}"
+                       Foreground="{DynamicResource TextTertiary}"
                        Text="{Binding [WindowRule.CaptureHint], Source={x:Static loc:Strings.Current}}" />
 
-            <Border Grid.Row="2" Background="{DynamicResource AppField}" CornerRadius="5" Padding="12">
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="12">
                 <StackPanel Spacing="4">
                     <TextBlock Name="Status" FontSize="12.5" Foreground="#8FC7F0" TextWrapping="Wrap" />
-                    <TextBlock Name="HandleText" FontSize="11.5" Foreground="{DynamicResource AppMuted}" />
-                    <TextBlock Name="TitleText" FontSize="12" Foreground="{DynamicResource AppText}"
+                    <TextBlock Name="HandleText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
+                    <TextBlock Name="TitleText" FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" />
-                    <TextBlock Name="ProcessText" FontSize="11.5" Foreground="{DynamicResource AppMuted}" />
-                    <TextBlock Name="ClassText" FontSize="11.5" Foreground="{DynamicResource AppMuted}" />
+                    <TextBlock Name="ProcessText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
+                    <TextBlock Name="ClassText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
                 </StackPanel>
             </Border>
 
             <StackPanel Grid.Row="3" Name="RuleFields" IsVisible="False" Spacing="8">
                 <Grid ColumnDefinitions="180,*" ColumnSpacing="10">
                     <TextBlock VerticalAlignment="Center" FontSize="12.5"
-                               Foreground="{DynamicResource AppMuted}"
+                               Foreground="{DynamicResource TextTertiary}"
                                Text="{Binding [WindowRule.How], Source={x:Static loc:Strings.Current}}" />
                     <ComboBox Grid.Column="1" Name="HowBox" />
                 </Grid>
                 <Grid ColumnDefinitions="180,*" ColumnSpacing="10">
                     <TextBlock VerticalAlignment="Center" FontSize="12.5"
-                               Foreground="{DynamicResource AppMuted}"
+                               Foreground="{DynamicResource TextTertiary}"
                                Text="{Binding [WindowRule.MatchText], Source={x:Static loc:Strings.Current}}" />
                     <TextBox Grid.Column="1" Name="MatchBox" />
                 </Grid>
@@ -53,10 +53,10 @@
                               Content="{Binding [WindowRule.Multiline], Source={x:Static loc:Strings.Current}}" />
                 </WrapPanel>
                 <TextBlock Name="HandleHint" IsVisible="False" FontSize="11.5" TextWrapping="Wrap"
-                           Foreground="{DynamicResource AppMuted}"
+                           Foreground="{DynamicResource TextTertiary}"
                            Text="{Binding [WindowRule.HandleHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Name="PreviewText" FontSize="11.5" TextWrapping="Wrap"
-                           Foreground="{DynamicResource AppMuted}" />
+                           Foreground="{DynamicResource TextTertiary}" />
             </StackPanel>
 
             <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">

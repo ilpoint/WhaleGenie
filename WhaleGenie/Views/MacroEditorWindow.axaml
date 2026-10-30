@@ -17,7 +17,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:MacroEditorViewModel />
@@ -41,7 +41,7 @@
         <Style Selector="views|IconView.RecordIcon">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
-            <Setter Property="Stroke" Value="{DynamicResource AppText}" />
+            <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
             <Setter Property="StrokeThickness" Value="1.4" />
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -107,19 +107,19 @@
         </Style>
 
         <Style Selector="Border.StepHead">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,2" />
         </Style>
         <Style Selector="Border.StepFoot">
-            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceHover}" />
             <Setter Property="BorderThickness" Value="2,0,0,0" />
             <Setter Property="Padding" Value="8,1" />
         </Style>
 
         <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
         <Style Selector="Button.Ghost.Tiny views|IconView">
-            <Setter Property="Stroke" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Stroke" Value="{DynamicResource TextTertiary}" />
             <Setter Property="StrokeThickness" Value="1.2" />
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="Width" Value="10" />
@@ -177,7 +177,7 @@
         </Style>
 
         <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
 
         <!-- 图标块：外观全由 `Button.Icon` 给（34×32 逐格一致），这里只补"图标本身用什么色、
@@ -214,10 +214,10 @@
     <Grid RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center"
+                <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center"
                            Text="{Binding [Editor.Title], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
 
@@ -225,22 +225,22 @@
                 <Button Classes="Chrome Icon" Name="PinButton"
                         ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="PinIcon" Width="11" Height="11"
-                                    Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
+                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
                                     FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="MaximizeButton"
                         ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="MaximizeIcon" Width="10" Height="10"
-                                    Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
+                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
                                     FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="CloseButton"
                         ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -260,7 +260,7 @@
                 <Button Grid.Row="1" Classes="Secondary" Height="34" Margin="4,2,4,4"
                         Click="OnShowRecording">
                     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
                         <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -274,16 +274,16 @@
                     <RowDefinition Height="3*" MinHeight="240" />
                 </Grid.RowDefinitions>
                 <Border Grid.Row="0" Name="VariableCenterPanel"
-                        Background="{DynamicResource AppSurface}" CornerRadius="6"
+                        Background="{DynamicResource SurfacePanel}" CornerRadius="6"
                         Padding="12,12,12,8">
                     <Grid RowDefinitions="Auto,*">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <StackPanel>
                                 <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
-                                           FontWeight="SemiBold" Foreground="{DynamicResource AppTextStrong}"
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
                                            Margin="4,0,0,2" />
                                 <TextBlock Classes="Hint" Text="{Binding VariableCenter.Help}"
-                                           Foreground="{DynamicResource AppMuted}"
+                                           Foreground="{DynamicResource TextTertiary}"
                                            Margin="4,0,0,8" />
                             </StackPanel>
                             <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="Secondary"
@@ -302,19 +302,19 @@
                               Cursor="SizeNorthSouth" />
 
                 <Border Grid.Row="2" Name="MacroSettingsDrawer"
-                        IsVisible="True" Background="{DynamicResource AppSurface}" CornerRadius="6">
+                        IsVisible="True" Background="{DynamicResource SurfacePanel}" CornerRadius="6">
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="2,0,0,10">
                                 <views:IconView Width="15" Height="15"
-                                                Stroke="{DynamicResource AppTextStrong}"
+                                                Stroke="{DynamicResource TextPrimary}"
                                                 StrokeThickness="1.4" FitToBounds="True"
                                                 Data="{x:Static vm:AppIcons.Settings}" />
                                 <TextBlock Grid.Column="1" Name="MacroSettingsTitle"
                                            VerticalAlignment="Center"
                                            FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource AppTextStrong}"
+                                           Foreground="{DynamicResource TextPrimary}"
                                            Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
                             <TextBlock Classes="FieldLabel" Text="{Binding [Editor.MacroName], Source={x:Static loc:Strings.Current}}" />
@@ -327,10 +327,10 @@
                             <TextBox Name="DescriptionInput" Text="{Binding Description}"
                                      PlaceholderText="{Binding [Editor.DescriptionPlaceholder], Source={x:Static loc:Strings.Current}}" />
                             <Border Margin="0,8,0,0" Padding="9,7" CornerRadius="5"
-                                    Background="{DynamicResource AppField}"
+                                    Background="{DynamicResource SurfaceField}"
                                     IsVisible="{Binding HasOrigin}">
                                 <TextBlock Classes="Hint" Text="{Binding OriginLabel}"
-                                           Foreground="{DynamicResource AppMuted}" />
+                                           Foreground="{DynamicResource TextTertiary}" />
                             </Border>
                             <Button Classes="Secondary" Height="32" Margin="0,8,0,0"
                                     HorizontalAlignment="Left"
@@ -356,10 +356,10 @@
                                                                   VerticalAlignment="Center" />
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <TextBlock Classes="Note"
-                                                                       Foreground="{DynamicResource AppText}"
+                                                                       Foreground="{DynamicResource TextPrimary}"
                                                                        Text="{Binding KindLabel}" />
                                                             <TextBlock Classes="Note"
-                                                                       Foreground="{DynamicResource AppMuted}"
+                                                                       Foreground="{DynamicResource TextTertiary}"
                                                                        TextTrimming="CharacterEllipsis"
                                                                        Text="{Binding Summary}" />
                                                         </StackPanel>
@@ -369,7 +369,7 @@
                                                                 Command="{Binding $parent[ListBox].((vm:MacroEditorViewModel)DataContext).RemoveTriggerCommand}"
                                                                 CommandParameter="{Binding}">
                                                             <views:IconView Width="10" Height="10"
-                                                                            Stroke="{DynamicResource AppText}"
+                                                                            Stroke="{DynamicResource TextPrimary}"
                                                                             StrokeThickness="1.3"
                                                                             FitToBounds="True"
                                                                             Data="{x:Static vm:AppIcons.X}" />
@@ -386,14 +386,14 @@
                                         <Button.Content>
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <views:IconView Width="13" Height="13"
-                                                                Stroke="{DynamicResource AppText}"
+                                                                Stroke="{DynamicResource TextPrimary}"
                                                                 StrokeThickness="1.4"
                                                                 FitToBounds="True"
                                                                 Data="{x:Static vm:AppIcons.Plus}" />
                                                 <TextBlock VerticalAlignment="Center"
                                                            Text="{Binding [Editor.AddTrigger], Source={x:Static loc:Strings.Current}}" />
                                                 <views:IconView Width="10" Height="10"
-                                                                Stroke="{DynamicResource AppMuted}"
+                                                                Stroke="{DynamicResource TextTertiary}"
                                                                 StrokeThickness="1.3"
                                                                 FitToBounds="True"
                                                                 Data="{x:Static vm:AppIcons.ChevronDown}" />
@@ -451,7 +451,7 @@
                                         <CheckBox Name="TriggerOnceCheck"
                                                   Margin="2,10,0,0"
                                                   IsVisible="{Binding ShowsTriggerOnce}"
-                                                  Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                                  Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                                   Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                                   IsChecked="{Binding TriggerOnce}" />
                                     </StackPanel>
@@ -466,10 +466,10 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                            Text="{Binding [Editor.BindKey], Source={x:Static loc:Strings.Current}}" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <Border Background="{DynamicResource AppField}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                    <Border Background="{DynamicResource SurfaceField}" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                                             CornerRadius="5" Padding="11,8">
                                         <TextBlock Classes="Note" Text="{Binding BindKeyDisplay}"
-                                                   Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                                     </Border>
                                     <Button Grid.Column="1" Classes="Secondary" Margin="8,0,0,0" Height="34"
                                             Content="{Binding SetKeyLabel}"
@@ -507,7 +507,7 @@
 
                                     <CheckBox Margin="0,10,0,0"
                                               Content="{Binding [Editor.UseCursorPosition], Source={x:Static loc:Strings.Current}}"
-                                              Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                              Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                               IsChecked="{Binding UseCursorPosition}" />
                                 </StackPanel>
 
@@ -519,12 +519,12 @@
                                                  MinWidth="84" Text="{Binding HexColor}" />
                                         <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                                                 Background="{Binding HexColor, Converter={StaticResource HexBrush}}"
-                                                BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
+                                                BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
                                         <Button Grid.Column="2" Classes="Secondary" Name="PickColorButton"
                                                 Width="38" Height="33" Padding="0"
                                                 ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickColorClicked">
-                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
+                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
                                         </Button>
                                     </Grid>
 
@@ -533,7 +533,7 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBox Classes="Field" Width="90" Text="{Binding ColorTolerance}" />
                                         <TextBlock Classes="Note" Text="%"
-                                                   Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
 
@@ -597,7 +597,7 @@
                                 <TextBox Classes="Field" Text="{Binding WatchFilter}"
                                          PlaceholderText="*" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.WatchSubfolders], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding WatchSubfolders}" />
 
@@ -626,11 +626,11 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [WindowRule.Title], Source={x:Static loc:Strings.Current}}" />
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                                    <Border Background="{DynamicResource AppField}"
-                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                    <Border Background="{DynamicResource SurfaceField}"
+                                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                                             CornerRadius="5" Padding="10,7">
                                         <TextBlock Classes="Hint" Text="{Binding WindowTargetSummary}"
-                                                   Foreground="{DynamicResource AppText}" />
+                                                   Foreground="{DynamicResource TextPrimary}" />
                                     </Border>
                                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
@@ -657,7 +657,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:WindowPreviewRow">
                                                 <StackPanel Margin="2,0,0,0">
-                                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
+                                                    <TextBlock FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                                                TextTrimming="CharacterEllipsis"
                                                                Text="{Binding Title}" />
                                                     <StackPanel Orientation="Horizontal" Spacing="5"
@@ -705,7 +705,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Margin="0,0,6,4" Padding="7,3" CornerRadius="4"
-                                                        Background="{DynamicResource AppField}">
+                                                        Background="{DynamicResource SurfaceField}">
                                                     <TextBlock Classes="Note" Text="{Binding}" />
                                                 </Border>
                                             </DataTemplate>
@@ -715,7 +715,7 @@
                                                Text="{Binding [Editor.InterfaceHotkey], Source={x:Static loc:Strings.Current}}" />
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                         <TextBlock Classes="Note" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource AppText}"
+                                                   Foreground="{DynamicResource TextPrimary}"
                                                    Text="{Binding InterfaceToggleHotkeyDisplay}" />
                                         <Button Grid.Column="1" Classes="Secondary" Height="32" Padding="10,0"
                                                 Click="OnSetInterfaceHotkey"
@@ -727,7 +727,7 @@
                                     <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.InterfaceHotkeySupport], Source={x:Static loc:Strings.Current}}" />
                                     <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                               Foreground="{DynamicResource AppWarning}"
+                                               Foreground="{DynamicResource Warning}"
                                                Text="{Binding InterfaceHotkeyProblem}"
                                                IsVisible="{Binding InterfaceHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                 </StackPanel>
@@ -744,13 +744,13 @@
                                 <TextBlock Margin="2,8,0,0" FontSize="12" FontWeight="SemiBold"
                                            Foreground="#8FC7F0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.HotstringMouseResetHint], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringCase], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringCaseSensitive}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringInsideWord], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringInsideWord}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringRequireEnd], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringRequireEnd}" />
                                 <StackPanel Margin="22,4,0,0" IsEnabled="{Binding HotstringRequireEnd}">
@@ -782,10 +782,10 @@
                                     <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.HotstringEndCharsHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringErase], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringEraseTyped}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           IsEnabled="{Binding HotstringEraseTyped}"
                                           Content="{Binding [Editor.HotstringKeepEnd], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringKeepEnd}" />
@@ -798,7 +798,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <views:NumberBox Width="112" Height="30" Value="{Binding IdleSeconds}"
                                                    Minimum="1" Maximum="86400" Increment="10" FormatString="0" />
-                                    <TextBlock Classes="Note" Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center"
+                                    <TextBlock Classes="Note" Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center"
                                                Text="{Binding [Schedule.Unit.Seconds], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
@@ -825,7 +825,7 @@
                                     <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
 
-                                    <CheckBox Foreground="{DynamicResource AppMuted}" Classes="Field"
+                                    <CheckBox Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                               Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
                                               IsChecked="{Binding ExclusiveInput}" />
 
@@ -852,7 +852,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6"
                                             HorizontalAlignment="Center">
                                     <views:IconView Width="13" Height="13"
-                                                    Stroke="{DynamicResource AppText}"
+                                                    Stroke="{DynamicResource TextPrimary}"
                                                     StrokeThickness="1.3" FitToBounds="True"
                                                     Data="{x:Static vm:AppIcons.Save}" />
                                     <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}" />
@@ -863,7 +863,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6"
                                             HorizontalAlignment="Center">
                                     <views:IconView Width="13" Height="13"
-                                                    Stroke="{DynamicResource AppText}"
+                                                    Stroke="{DynamicResource TextPrimary}"
                                                     StrokeThickness="1.3" FitToBounds="True"
                                                     Data="{x:Static vm:AppIcons.BugPlay}" />
                                     <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}" />
@@ -877,7 +877,7 @@
 
 <!-- Middle: the step documents and their current list. -->
      <Border Grid.Column="2" Name="DocumentPanel"
-             Background="{DynamicResource AppSurface}" CornerRadius="6">
+             Background="{DynamicResource SurfacePanel}" CornerRadius="6">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="18,16">
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
             <ListBox Name="DocumentTabs" ItemsSource="{Binding Documents}"
@@ -903,7 +903,7 @@
                                     PointerPressed="OnDocumentTabClosePressed"
                                     Click="OnCloseDocumentTab">
                                 <views:IconView Width="9" Height="9"
-                                                Stroke="{DynamicResource AppMuted}"
+                                                Stroke="{DynamicResource TextTertiary}"
                                                 StrokeThickness="1.3" FitToBounds="True"
                                                 Data="{x:Static vm:AppIcons.X}" />
                             </Button>
@@ -919,7 +919,7 @@
                     Click="OnExportDocumentClicked">
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <views:IconView Width="12" Height="12"
-                                    Stroke="{DynamicResource AppMuted}"
+                                    Stroke="{DynamicResource TextTertiary}"
                                     StrokeThickness="1.4" FitToBounds="True"
                                     Data="{x:Static vm:AppIcons.ExternalLink}" />
                     <TextBlock
@@ -966,7 +966,7 @@
                    <!-- Empty state -->
                    <StackPanel Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
                                IsVisible="{Binding !HasSteps}" IsHitTestVisible="False">
-                       <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="13"
+                       <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="13"
                                   Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
                                   HorizontalAlignment="Center" />
                        <TextBlock Text="{Binding [Editor.NoStepsHint], Source={x:Static loc:Strings.Current}}"
@@ -1023,14 +1023,14 @@
                                                   CommandParameter="{Binding}">
                                               <views:IconView StrokeThickness="1.4" FitToBounds="True" Data="{Binding FoldIcon}" />
                                           </Button>
-                                          <views:IconView Width="16" Height="16" Stroke="{DynamicResource AppText}"
+                                          <views:IconView Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
                                                           StrokeThickness="1.5" Data="{Binding Icon}"
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <StackPanel VerticalAlignment="Center">
                                               <StackPanel Orientation="Horizontal" Spacing="6">
                                                   <TextBlock Text="{Binding DisplayName}" FontSize="13"
                                                              FontWeight="SemiBold"
-                                                             Foreground="{DynamicResource AppTextStrong}" />
+                                                             Foreground="{DynamicResource TextPrimary}" />
                                                   <!-- 跳过是**状态**，走 `Warning`；颜色由 `Badge.Warning` 给 -->
                                                   <Border Classes="Badge Warning"
                                                           VerticalAlignment="Center"
@@ -1087,7 +1087,7 @@
                                                   CommandParameter="{Binding}">
                                               <StackPanel Orientation="Horizontal" Spacing="5">
                                                   <views:IconView Width="14" Height="14"
-                                                                  Stroke="{DynamicResource AppText}"
+                                                                  Stroke="{DynamicResource TextPrimary}"
                                                                   StrokeThickness="1.6"
                                                                   FitToBounds="True"
                                                   Data="{x:Static vm:AppIcons.ArrowDown}" />
@@ -1120,7 +1120,7 @@
                                BorderThickness="3,0,0,0" IsVisible="False">
                            <TextBlock Name="DropHintText" Margin="10,0"
                                       VerticalAlignment="Center"
-                                      Foreground="{DynamicResource AppTextStrong}"
+                                      Foreground="{DynamicResource TextPrimary}"
                                       FontSize="12" TextWrapping="Wrap" />
                        </Border>
                    </Canvas>
@@ -1136,7 +1136,7 @@
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                           Cursor="SizeWestEast" />
 
-            <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource AppSurface}"
+            <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource SurfacePanel}"
                     CornerRadius="6" IsVisible="False">
                 <StackPanel Margin="20,18" Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
@@ -1264,7 +1264,7 @@
                                                    VerticalAlignment="Center" />
                                         <views:NumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
                                                        Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
-                                        <TextBlock Classes="Note" Foreground="{DynamicResource AppMuted}"
+                                        <TextBlock Classes="Note" Foreground="{DynamicResource TextTertiary}"
                                                    Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>

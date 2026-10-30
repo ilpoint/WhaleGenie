@@ -39,7 +39,7 @@
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:DurationUnit">
                             <TextBlock Text="{Binding Label}"
-                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                       FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
@@ -139,13 +139,13 @@
 
                 <!-- A window is one field even though it remembers several things. The button
                      captures the window in front after F1 and edits the matching rule there. -->
-                <Border IsVisible="{Binding IsWindowRule}" Background="{DynamicResource AppField}"
-                        BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                <Border IsVisible="{Binding IsWindowRule}" Background="{DynamicResource SurfaceField}"
+                        BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                         CornerRadius="5" Padding="10,8">
                     <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                         <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Text="{Binding WindowRuleSummary}" FontSize="12.5"
-                                       Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
                             <TextBlock Classes="Hint" TextWrapping="Wrap"
                                        Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
@@ -311,7 +311,7 @@
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:DurationUnit">
                                 <TextBlock Text="{Binding Label}"
-                                           FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                           FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -371,12 +371,12 @@
                              PlaceholderText="{Binding Placeholder}" />
                     <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                             Background="{Binding Text, Converter={StaticResource HexBrush}}"
-                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
+                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
                     <Button Grid.Column="2" Classes="Secondary" Name="PickColourButton"
                             Width="38" Height="33" Padding="0"
                             ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickParameterColor">
-                        <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
+                        <views:IconView Width="17" Height="17" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
                     </Button>
                     <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding OffersFormula}"
@@ -413,7 +413,7 @@
                     </Grid>
 
                     <Border IsVisible="{Binding HasThumbnail}" Margin="0,8,0,0"
-                            Background="{DynamicResource AppBackdrop}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            Background="{DynamicResource SurfaceWindow}" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                             CornerRadius="5" Padding="4" HorizontalAlignment="Left">
                         <Image Source="{Binding Thumbnail}" MaxWidth="240" MaxHeight="110"
                                Stretch="Uniform" />
@@ -430,7 +430,7 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6"
                                       Margin="0,0,0,4">
                                     <Border Grid.Column="0" Width="54" Height="34"
-                                            Background="{DynamicResource AppBackdrop}" BorderBrush="{DynamicResource AppBorder}"
+                                            Background="{DynamicResource SurfaceWindow}" BorderBrush="{DynamicResource BorderControl}"
                                             BorderThickness="1" CornerRadius="4" Padding="2">
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                                     </Border>
@@ -499,7 +499,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:WindowPreviewRow">
                                 <StackPanel Margin="2,0,0,0">
-                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
+                                    <TextBlock FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                                TextTrimming="CharacterEllipsis"
                                                Text="{Binding Title}" />
                                     <StackPanel Orientation="Horizontal" Spacing="5"
@@ -686,7 +686,7 @@
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate x:DataType="models:ActionParameterOption">
                                                     <TextBlock Text="{Binding Display}"
-                                                               FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                                               FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
@@ -744,7 +744,7 @@
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:ActionParameterOption">
                                 <TextBlock Text="{Binding Display}"
-                                           FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                           FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -776,7 +776,7 @@
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:ActionParameterOption">
                             <TextBlock Text="{Binding Display}"
-                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                       FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
@@ -853,7 +853,7 @@
             <StackPanel Margin="0,0,0,14">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                               Foreground="{DynamicResource AppTextStrong}" />
+                               Foreground="{DynamicResource TextPrimary}" />
                     <CheckBox Grid.Column="1" IsChecked="{Binding Given}"
                               Content="{Binding [Add.CallArgumentGiven], Source={x:Static loc:Strings.Current}}"
                               ToolTip.Tip="{Binding [Add.CallArgumentGivenHint], Source={x:Static loc:Strings.Current}}" />
@@ -975,11 +975,11 @@
                 <Button Classes="GroupToggle" Click="OnToggleActionGroup"
                         IsVisible="{Binding HasActions}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <views:IconView Width="10" Height="8" VerticalAlignment="Center" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{Binding Caret}" />
-                        <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}"
+                        <views:IconView Width="10" Height="8" VerticalAlignment="Center" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.2" FitToBounds="True" Data="{Binding Caret}" />
+                        <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}"
                                         StrokeThickness="1.4" FitToBounds="True" Data="{Binding Icon}"
                                         VerticalAlignment="Center" IsVisible="{Binding HasIcon}" />
-                        <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="{DynamicResource AppText}"
+                        <TextBlock Text="{Binding Header}" FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
@@ -1001,7 +1001,7 @@
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
                                 <TextBlock Text="{Binding Definition.LocalName}" FontSize="13"
-                                           Foreground="{DynamicResource AppTextStrong}" />
+                                           Foreground="{DynamicResource TextPrimary}" />
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -1043,7 +1043,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
         <Style Selector="Button.GroupToggle:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
         </Style>
 
         <!-- One action in the picker: a card holding its name, laid out a grid to a group. -->
@@ -1059,21 +1059,21 @@
         <!-- One page of a step's settings. -->
         <Style Selector="Button.PageTab">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="Height" Value="32" />
         </Style>
         <Style Selector="Button.PageTab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
         </Style>
         <Style Selector="Button.PageTab.selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
         </Style>
 
 
@@ -1085,10 +1085,10 @@
     <Grid Name="FormRoot" RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Name="FormHeader" Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Name="FormHeader" Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
+                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                            VerticalAlignment="Center" />
             </StackPanel>
 
@@ -1097,10 +1097,10 @@
                      that is the question the dialog is open to answer, and closing it to ask loses
                      the half-written step on the way. -->
                 <Button Classes="Chrome Icon" Name="MinimizeButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -1137,7 +1137,7 @@
                 <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,0,0,0">
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
                         <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource AppTextStrong}" />
+                                   Foreground="{DynamicResource TextPrimary}" />
                         <TextBlock Classes="Hint" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -1201,12 +1201,12 @@
                             </StackPanel>
 
                             <Border IsVisible="{Binding ShowsGlobalPersistence}"
-                                    Background="{DynamicResource AppGroup}" CornerRadius="5"
+                                    Background="{DynamicResource SurfaceSunken}" CornerRadius="5"
                                     Padding="10" Margin="2,4,0,8">
                                 <StackPanel Spacing="7">
                                     <TextBlock Text="{Binding [GlobalVariables.Definition], Source={x:Static loc:Strings.Current}}"
                                                FontWeight="SemiBold"
-                                               Foreground="{DynamicResource AppTextStrong}" />
+                                               Foreground="{DynamicResource TextPrimary}" />
                                     <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
                                         <TextBlock Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
@@ -1232,7 +1232,7 @@
                                     <TextBlock Margin="138,0,0,0"
                                                Text="{Binding GlobalVariableDraft.DefaultPreview}"
                                                TextWrapping="Wrap" FontSize="11.5"
-                                               Foreground="{DynamicResource AppMuted}" />
+                                               Foreground="{DynamicResource TextTertiary}" />
                                     <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
                                         <TextBlock Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
@@ -1333,7 +1333,7 @@
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="models:ActionParameterOption">
                                                 <TextBlock Text="{Binding Display}"
-                                                           FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                                           FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
@@ -1349,7 +1349,7 @@
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="models:ActionParameterOption">
                                             <TextBlock Text="{Binding Display}"
-                                                       FontSize="12.5" Foreground="{DynamicResource AppText}" />
+                                                       FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>

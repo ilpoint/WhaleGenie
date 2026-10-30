@@ -15,16 +15,16 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Grid RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding [KeyPad.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
@@ -37,11 +37,11 @@
                      being read off, and putting it away leaves the add-action window as it was. -->
                 <Button Classes="Chrome Icon" Name="MinimizeButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="CloseButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -55,7 +55,7 @@
                 <StackPanel Spacing="4" MaxWidth="900">
                     <TextBlock Name="FillingLine" Foreground="{DynamicResource Success}" FontSize="12.5"
                                TextWrapping="Wrap" />
-                    <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap"
+                    <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap"
                                Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
 
