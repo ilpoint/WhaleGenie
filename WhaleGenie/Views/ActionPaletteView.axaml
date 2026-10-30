@@ -26,21 +26,6 @@
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
-        <Style Selector="Button.Category">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="50" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.Category:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource SurfacePanel}">
@@ -75,7 +60,7 @@
                     <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8,12,8">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ActionCategoryChoice">
-                                <Button Classes="Category" ToolTip.Tip="{Binding Label}"
+                                <Button Classes="Rail" ToolTip.Tip="{Binding Label}"
                                         Click="OnPickCategory">
                                     <StackPanel Spacing="2" HorizontalAlignment="Center"
                                                 VerticalAlignment="Center">

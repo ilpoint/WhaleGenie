@@ -95,8 +95,6 @@
       STATIC CheckBox.Field
       STATIC Border.Row
       STATIC Button.Square
-      STATIC Button.Thumb
-      STATIC GridSplitter.Split
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -176,28 +174,6 @@
     </Style>
     <Style Selector="Button.Icon:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-
-    <!-- 滑块钮：只有描边，没有底——它压在一个已经上了色的条上。 -->
-    <!--
-      **词表预留，无消费者**（不删：删库类不可逆，而它是"缩略图按钮"这一族的现成形状）。
-      等什么：一个"可点的缩略图"场景——`ImageRowViewModel` 里有缩略图**数据**，但那一行现在不自绘按钮。
-    -->
-    <Style Selector="Button.Thumb">
-        <Setter Property="Padding" Value="{DynamicResource Pad1}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
-    <Style Selector="Button.Thumb:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-    </Style>
-    <Style Selector="Button.Thumb:pressed /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-    </Style>
-    <Style Selector="Button.Thumb:disabled /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
 
     <!--
@@ -1095,25 +1071,6 @@
         <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
         <Setter Property="Margin" Value="{DynamicResource GapDivider}" />
     </Style>
-
-    <!--
-      拖动分隔条：6px 宽、平时透明，指针压上去才亮。规范写"hover 居中 2px `AccentFill`"——居中
-      2px 得有一个子元素才画得出来（`GridSplitter` 自己的 `Background` 铺满 6px），所以这里是
-      **整条 6px 变强调色**，不是居中的 2px。要严格居中就得在窗口里加元素，属于结构改动。
-    -->
-    <!--
-      **词表预留，无消费者——而且这里有一处真缺陷**：`MacroEditorWindow` 用了 3 个 `GridSplitter`，
-      但**它们都没挂 `Classes="Split"`**，所以这三条样式一条也没生效，那三根分隔条现在露出 Fluent 默认外观。
-      等什么：要么给那 3 个元素挂上类（**那才是这类样式该有的用法**），要么删掉这三条。
-    -->
-    <Style Selector="GridSplitter.Split">
-        <Setter Property="Width" Value="6" />
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="GridSplitter.Split:pointerover">
-        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
-    </Style>
-
     <!--
       列表一族：四个壳 + 两种行。
 

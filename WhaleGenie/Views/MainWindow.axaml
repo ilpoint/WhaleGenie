@@ -397,9 +397,12 @@
                                         <Panel Width="9" Height="9" VerticalAlignment="Center">
                                             <!-- 启用 / 停用两个点：**状态用状态色**。
                                                  注意 `#3FBF57` 与主题色样里的某个绿同值——按值排除会把这一处误判成"数据"。 -->
-                                            <Ellipse Width="9" Height="9" Fill="{DynamicResource Success}"
+                                            <!-- 状态圆点挂类，不再在元素上设色——**让 `Ellipse.Dot` 这一族有真消费者**，
+                                                 否则"圆点该长什么样"没有地方可查，下一个人会再造一个。
+                                                 尺寸取族的 8（原来是 9），这是可见变化。 -->
+                                            <Ellipse Classes="Dot Success"
                                                      IsVisible="{Binding IsEnabled}" />
-                                            <Ellipse Width="9" Height="9" Fill="{DynamicResource Danger}"
+                                            <Ellipse Classes="Dot Danger"
                                                      IsVisible="{Binding !IsEnabled}" />
                                         </Panel>
                                         <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontSize="13"

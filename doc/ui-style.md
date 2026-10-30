@@ -398,7 +398,6 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Button.Key` | Button | 32×32 · `Pad0` · `RadiusControl` · `UiBodySmall` · 1px | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | **`AccentFillPressed`** · `TextOnAccent` · `AccentFillPressed` | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3。**`ToggleButton.Chip.Key` 的按钮侧对应物**（同尺寸的开关版给结束键用）；按下走按下令牌，不用 `AccentFill`（那是静息强调底） |
 | `Button.Key.Small` | Button | 同 `Key`，字号 `UiCaption`(11) | 同 `Key` | 同 | 同 | — | 同 | 双色环 | 层 3。侧边那些长词的键，一格降字号 |
 | `Button.Key` + `Fill`（**不建类**） | — | `Width=NaN` + `HorizontalAlignment=Stretch` | — | — | — | — | — | — | **布局属性留元素上**：它表达"这一键撑满所在的格子"，不是外观常项 |
-| `Button.Thumb` | Button | `Pad1` · `RadiusControl` · 1px | `SurfaceSunken` · — · `BorderControl` | — · — · `AccentText` | — · — · `AccentText` | — | — · — · `BorderSubtle` | 双色环 | 层 3 |
 | `Button.Field` | Button | H34 · `PadField` · `RadiusControl` · 1px · `UiBody` · 左对齐 | `SurfaceField` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · — · `BorderControlHover` | `SurfaceControlPressed` · — · — | — | — · `TextDisabled` · `BorderSubtle` | 双色环 | 层 3（输入框形状的按钮） |
 
 ### 导航
@@ -432,7 +431,6 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Border.Badge.Warning` | Border | 同 `Border.Badge` | `WarningSurface` · （文字自带） · — | 内层文字 `Warning` | 层 3 |
 | `Border.Badge.Danger` | Border | 同 `Border.Badge` | `DangerSurface` · （文字自带） · — | 内层文字 `Danger` | 层 3 |
 | `Border.Divider` | Border | 高 1px · 上下 `Space3` | `BorderSubtle` | — | 层 3 |
-| `GridSplitter.Split` | GridSplitter | 宽 6px | `Transparent` | hover **整条** 6px `AccentFill`（不居中）；可聚焦。**已知偏差的原因不是属性缺失**：`GridSplitter` 有 `Background`，但**没有内容层**——居中那条 2px 线得靠子元素画，而它的模板里没有能放子元素的层。要严格居中就得加那一层，属结构改动 × 22 个窗口；真机若太扎眼，迁移时再议，**不为它造元素** | 层 3 |
 
 `Border.Card.Thin` / `.Selectable` / `.Target` 是**修饰**：只改状态，不改壳。判断一个新需求属于容器还是修饰，
 问"我要装东西时会不会想到它"——会，是容器；不会，是修饰。
