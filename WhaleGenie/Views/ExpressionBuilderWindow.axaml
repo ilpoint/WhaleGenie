@@ -143,9 +143,15 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
         </Style>
 
+        <!--
+          参数名**不给颜色**：`AppLabel ≡ Warning`（同值）意味着"参数名"和"警告"共用一个琥珀，
+          那会让读者以为这处出了什么问题。改由**字重**承担"这是一个名字"——与
+          `TextBlock.FieldLabel.Strong` 同一套判断（字重不是值的微调，是"这一处要更强"）。
+        -->
         <Style Selector="TextBlock.ArgLabel">
-            <Setter Property="Foreground" Value="{DynamicResource Warning}" />
-            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
         </Style>
 
         <!-- What is typed into a place. It is a box rather than a label because filling a place in

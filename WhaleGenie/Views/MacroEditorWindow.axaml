@@ -1031,28 +1031,27 @@
                                                   <TextBlock Text="{Binding DisplayName}" FontSize="13"
                                                              FontWeight="SemiBold"
                                                              Foreground="{DynamicResource AppTextStrong}" />
-                                                  <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
+                                                  <!-- 跳过是**状态**，走 `Warning`；颜色由 `Badge.Warning` 给 -->
+                                                  <Border Classes="Badge Warning"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding IsSkipped}">
-                                                      <TextBlock Text="{Binding SkipLabel}" Classes="Caption"
-                                                                 Foreground="#D8B36A" />
+                                                      <TextBlock Text="{Binding SkipLabel}" Classes="Caption" />
                                                   </Border>
-                                                  <Border Background="#2C3A46" CornerRadius="3" Padding="5,0"
+                                                  <!-- id 是**标识**不是状态，用中性徽标 -->
+                                                  <Border Classes="Badge"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding HasId}">
                                                       <TextBlock Text="{Binding Id}" Classes="Caption"
-                                                                 FontFamily="Consolas,Menlo,monospace"
-                                                                 Foreground="#8FB3D9" />
+                                                                 FontFamily="Consolas,Menlo,monospace" />
                                                   </Border>
                                                   <!-- Where this step's input goes. It costs
                                                        different things in each of the three ways,
                                                        so it is read off the row like the name. -->
-                                                  <Border Background="#26332A" CornerRadius="3" Padding="5,0"
+                                                  <Border Classes="Badge Info"
                                                           VerticalAlignment="Center"
                                                           ToolTip.Tip="{Binding InputMarkHint}"
                                                           IsVisible="{Binding HasInputMark}">
-                                                      <TextBlock Text="{Binding InputMark}" Classes="Caption"
-                                                                 Foreground="#8FD9A8" />
+                                                      <TextBlock Text="{Binding InputMark}" Classes="Caption" />
                                                   </Border>
                                               </StackPanel>
                                               <TextBlock Text="{Binding Detail}" Classes="Hint"

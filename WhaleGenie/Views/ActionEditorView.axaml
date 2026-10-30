@@ -1420,7 +1420,7 @@
                     <TextBlock Foreground="{DynamicResource Success}" TextWrapping="Wrap"
                                Text="{Binding Notice}"
                                IsVisible="{Binding ShowsNotice}" />
-                    <TextBlock Foreground="#E5C07B" TextWrapping="Wrap"
+                    <TextBlock Foreground="{DynamicResource Warning}" TextWrapping="Wrap"
                                Text="{Binding Notice}"
                                IsVisible="{Binding ShowsWarning}" />
                 </StackPanel>
