@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- 不在解决方案里：它用 Skia 真画笔，和测试程序集的 UseHeadlessDrawing 是两套配置，
+         分开跑才不会互相影响。 -->
+    <AssembleConfigurationSpecificOutput>false</AssembleConfigurationSpecificOutput>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" Version="12.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\WhaleGenie\WhaleGenie.csproj" />
+  </ItemGroup>
+
+</Project>

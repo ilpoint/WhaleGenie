@@ -1,0 +1,180 @@
+// 截图工具：把几个窗口按深/浅两套主题各渲染一次，存成 PNG。
+//
+// 为什么单独一个工具而不放进测试：这里要 **真画笔**（`UseHeadlessDrawing = false` + Skia），
+// 而 `WhaleGenie.Tests` 全程用无头的假画笔。两套全局配置在同一个进程里会打架。
+//
+// 跑法：dotnet run --project tools/Screenshots
+// 输出：artifacts/screens/<窗口>-<dark|light>.png（已在 .gitignore 里忽略）
+
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using WhaleGenie.ViewModels;
+using WhaleGenie.Models;
+using WhaleGenie.Views;
+
+var outputDir = Path.Combine(
+    AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "screens");
+outputDir = Path.GetFullPath(outputDir);
+Directory.CreateDirectory(outputDir);
+
+AppBuilder.Configure<WhaleGenie.App>()
+    .UseSkia()
+    .UseHeadless(new AvaloniaHeadlessPlatformOptions
+    {
+        UseHeadlessDrawing = false,
+        ShouldRenderOnUIThread = true,
+    })
+    .SetupWithoutStarting();
+
+var failures = new List<string>();
+var saved = new List<(string Path, Color Sample)>();
+
+foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
+{
+    Application.Current!.RequestedThemeVariant = variant;
+
+    foreach (var (name, make) in Screens())
+    {
+        try
+        {
+            var window = make();
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var frame = window.CaptureRenderedFrame();
+            if (frame is null)
+            {
+                failures.Add($"{name}-{variant.Key}: 没截到帧");
+                window.Close();
+                continue;
+            }
+
+            var path = Path.Combine(outputDir, $"{name}-{variant.Key}.png");
+            using (var stream = File.Create(path))
+            {
+                frame.Save(stream, PngBitmapEncoderOptions.Default);
+            }
+
+            // **读渲染出来的像素**，不读 `window.Background`：有些窗（菜单、拾取器）窗口底本来就是
+            // `Transparent`，真正的底色画在内层面板上。像素是唯一不骗人的证据。
+            var sample = SamplePixel(frame);
+            saved.Add((path, sample));
+
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
+        catch (Exception error)
+        {
+            failures.Add($"{name}-{variant.Key}: {error.GetType().Name}: {error.Message}");
+        }
+    }
+}
+
+Console.WriteLine($"输出目录：{outputDir}");
+foreach (var (path, sample) in saved)
+{
+    Console.WriteLine($"  {Path.GetFileName(path),-34} 取样像素={Sample_Text(sample)}");
+}
+
+// 同一窗口两套主题的**渲染结果**必须不同——这就是 `DynamicResource` 生效的证据。
+// 读像素而不是读 `window.Background`：菜单/拾取器那类窗的窗口底本来就是 `Transparent`，
+// 真正的底色画在内层面板上。
+foreach (var group in saved.GroupBy(item => Path.GetFileNameWithoutExtension(item.Path).Split('-')[0]))
+{
+    var colours = group.Select(item => item.Sample).Distinct().ToList();
+    Console.WriteLine(colours.Count > 1
+        ? $"  ✓ {group.Key}: 两套主题渲染结果不同（DynamicResource 生效）"
+        : $"  ✗ {group.Key}: 两套主题渲染结果相同（{Sample_Text(colours[0])}）—— 可能用了快照，没跟着主题变");
+}
+
+if (failures.Count > 0)
+{
+    Console.WriteLine("\n失败：");
+    foreach (var failure in failures)
+    {
+        Console.WriteLine("  " + failure);
+    }
+
+    return 1;
+}
+
+return 0;
+
+static IEnumerable<(string Name, Func<Window> Make)> Screens()
+{
+    yield return ("MacroEditor", () =>
+    {
+        var window = new MacroEditorWindow();
+        window.Opened += (_, _) =>
+        {
+            // 分隔条到底多宽：**读渲染后的 Bounds**，不读 `Width`（那是"要多少"，
+            // Bounds 是"实际多少"，两者不同就说明有别的东西在管它——列宽、MinWidth、样式）。
+            foreach (var splitter in window.GetVisualDescendants()
+                         .OfType<Avalonia.Controls.GridSplitter>())
+            {
+                Console.WriteLine(
+                    $"    · 分隔条 [{string.Join(' ', splitter.Classes)}] "
+                    + $"Width={splitter.Width} MinWidth={splitter.MinWidth} "
+                    + $"Bounds={splitter.Bounds.Width:0.#}×{splitter.Bounds.Height:0.#}");
+            }
+        };
+        return window;
+    });
+    yield return ("MacroMenu", () =>
+    {
+        // 一个格子里放一个宏：空页面会让它按下标取格子时越界。
+        var macro = new WhaleGenie.Models.MacroItem { Name = "one", Description = "截图用" };
+        var entry = new WhaleGenie.Models.TriggerEntry
+        {
+            Kind = WhaleGenie.Models.TriggerKind.Menu,
+            MacroName = macro.Name,
+        };
+        var cell = new WhaleGenie.Models.MenuRuntimeCell(
+            0, 0, null, entry, macro);
+
+        var layout = new MenuRuntimeLayout(
+            [new MenuRuntimePage("common", false, string.Empty, [cell])],
+            [new MenuRuntimePage("default", true, "Default", [])]);
+
+        return new MacroMenuWindow(layout, NoActions(), "notepad");
+    });
+    yield return ("ActionEditor", () => new ActionEditorWindow());
+    yield return ("Main", () => new MainWindow());
+}
+
+// 取窗口内一个固定的内部点（画布中心偏上），它的颜色就是"这个窗看起来是什么颜色"。
+static Color SamplePixel(Avalonia.Media.Imaging.WriteableBitmap frame)
+{
+    using var buffer = frame.Lock();
+    var x = Math.Min(buffer.Size.Width - 1, Math.Max(0, buffer.Size.Width / 2));
+    var y = Math.Min(buffer.Size.Height - 1, Math.Max(0, buffer.Size.Height / 4));
+    unsafe
+    {
+        var row = (byte*)buffer.Address + (y * buffer.RowBytes);
+        var pixel = row + (x * 4);          // BGRA8888
+        return Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]);
+    }
+}
+
+static string Sample_Text(Color colour) => $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}";
+
+static MenuWindowActions NoActions() => new(
+    OpenMacroEditor: _ => { },
+    DebugMacro: _ => { },
+    OpenSettings: () => { },
+    RestoreForeground: () => { },
+    AddCurrentWindowRule: () => Task.FromResult<MenuRuntimeLayout?>(null),
+    BlockCurrentWindow: () => Task.FromResult(false),
+    AddCommonPage: () => Task.FromResult<MenuRuntimeLayout?>(null),
+    RemoveCommonPage: _ => Task.FromResult<MenuRuntimeLayout?>(null),
+    AddContextPage: _ => Task.FromResult<MenuRuntimeLayout?>(null),
+    RemoveContextPage: _ => Task.FromResult<MenuRuntimeLayout?>(null),
+    ChooseMacro: _ => Task.FromResult<MenuRuntimeLayout?>(null),
+    ChooseIcon: _ => Task.FromResult<MenuRuntimeLayout?>(null),
+    Move: (_, _) => Task.FromResult<MenuRuntimeLayout?>(null));
