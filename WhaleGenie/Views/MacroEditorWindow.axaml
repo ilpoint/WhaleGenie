@@ -272,8 +272,8 @@
                                 <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
                                            FontWeight="SemiBold" Foreground="{DynamicResource AppTextStrong}"
                                            Margin="4,0,0,2" />
-                                <TextBlock Text="{Binding VariableCenter.Help}" FontSize="11.5"
-                                           TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}"
+                                <TextBlock Classes="Hint" Text="{Binding VariableCenter.Help}"
+                                           Foreground="{DynamicResource AppMuted}"
                                            Margin="4,0,0,8" />
                             </StackPanel>
                             <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="Secondary"
@@ -319,8 +319,8 @@
                             <Border Margin="0,8,0,0" Padding="9,7" CornerRadius="5"
                                     Background="{DynamicResource AppField}"
                                     IsVisible="{Binding HasOrigin}">
-                                <TextBlock Text="{Binding OriginLabel}" TextWrapping="Wrap"
-                                           FontSize="11.5" Foreground="{DynamicResource AppMuted}" />
+                                <TextBlock Classes="Hint" Text="{Binding OriginLabel}"
+                                           Foreground="{DynamicResource AppMuted}" />
                             </Border>
                             <Button Classes="Secondary" Height="32" Margin="0,8,0,0"
                                     HorizontalAlignment="Left"
@@ -348,7 +348,7 @@
                                                             <TextBlock FontSize="12.5"
                                                                        Foreground="{DynamicResource AppText}"
                                                                        Text="{Binding KindLabel}" />
-                                                            <TextBlock FontSize="11.5"
+                                                            <TextBlock Classes="Note"
                                                                        Foreground="{DynamicResource AppMuted}"
                                                                        TextTrimming="CharacterEllipsis"
                                                                        Text="{Binding Summary}" />
@@ -697,7 +697,7 @@
                                             <DataTemplate>
                                                 <Border Margin="0,0,6,4" Padding="7,3" CornerRadius="4"
                                                         Background="{DynamicResource AppField}">
-                                                    <TextBlock FontSize="11.5" Text="{Binding}" />
+                                                    <TextBlock Classes="Note" Text="{Binding}" />
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -834,8 +834,8 @@
                     <!-- Save stays in this window; the title-bar close is the way out. The run
                          beside it loads the steps and stops in its own window. -->
                     <StackPanel Grid.Row="1">
-                        <TextBlock Name="SavedNotice" IsVisible="False" Margin="14,4,14,0"
-                                   Foreground="#7FC97F" FontSize="11.5"
+                        <TextBlock Name="SavedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
+                                   Foreground="#7FC97F"
                                    Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="6" Margin="12,8,12,12">
                             <Button Name="SaveButton" Classes="Primary"
@@ -913,7 +913,7 @@
                                     Stroke="{DynamicResource AppMuted}"
                                     StrokeThickness="1.4" FitToBounds="True"
                                     Data="{x:Static vm:AppIcons.ExternalLink}" />
-                    <TextBlock FontSize="11.5"
+                    <TextBlock
                                Text="{Binding [Editor.ExportDocument], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
             </Button>
