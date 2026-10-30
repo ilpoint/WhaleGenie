@@ -111,11 +111,17 @@
         <Style Selector="Button.ExprTab:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
-        <Style Selector="Button.Tab.on">
+        <!--
+          这两条原来写的是 `Button.Tab.on`，而元素上挂的是 `ExprTab` + `on`——**`Tab` 与 `ExprTab`
+          是两个不同的类名，选择器一次都没命中**。所以两个页签的"选中"从来没有出现过强调底，
+          两边看起来一样。（"写了选择器但类名差一个字"这一类，静态检查也看不见：`on` 确实在用，
+          `Tab` 在别的窗里也确实在用。）
+        -->
+        <Style Selector="Button.ExprTab.on">
             <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         </Style>
-        <Style Selector="Button.Tab.on /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+        <Style Selector="Button.ExprTab.on /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <!-- One line of the formula. Picking is what a click does, so the line says when it is the
