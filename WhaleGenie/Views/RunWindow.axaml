@@ -19,7 +19,7 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.ColumnHeader">
+        <Style Selector="TextBlock.RunColumnHeader">
             <Setter Property="Foreground" Value="#8A8A8A" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Margin" Value="10,0,0,4" />
@@ -87,7 +87,7 @@
 
         <!-- The edge between two halves: a hairline down the middle of the band that is dragged, so
              nothing looks stuck to either panel, and it lights up when the pointer is on it. -->
-        <Style Selector="GridSplitter.Split">
+        <Style Selector="GridSplitter.RunSplit">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <ControlTemplate>
@@ -99,10 +99,10 @@
                 </ControlTemplate>
             </Setter>
         </Style>
-        <Style Selector="GridSplitter.Split:pointerover">
+        <Style Selector="GridSplitter.RunSplit:pointerover">
             <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
         </Style>
-        <Style Selector="GridSplitter.Split:pointerover /template/ Border#SplitLine">
+        <Style Selector="GridSplitter.RunSplit:pointerover /template/ Border#SplitLine">
             <Setter Property="Background" Value="{DynamicResource AppAccent}" />
         </Style>
         <Style Selector="GridSplitter.SplitVertical">
@@ -587,7 +587,7 @@
                     </Grid>
                 </Border>
 
-                <GridSplitter Grid.Column="1" Name="RunSplitter" Classes="Split"
+                <GridSplitter Grid.Column="1" Name="RunSplitter" Classes="RunSplit"
                               ResizeDirection="Columns" />
                 <Grid Grid.Column="2" Margin="10,0,0,0">
                     <Grid.RowDefinitions>
@@ -610,13 +610,13 @@
                    Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
         <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,4" ColumnSpacing="6"
               IsVisible="{Binding HasVariables}">
-            <TextBlock Classes="ColumnHeader" Margin="0,0,0,4"
+            <TextBlock Classes="RunColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="1" Classes="ColumnHeader" Margin="0,0,0,4"
+            <TextBlock Grid.Column="1" Classes="RunColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="2" Classes="ColumnHeader" Margin="0,0,0,4"
+            <TextBlock Grid.Column="2" Classes="RunColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="3" Classes="ColumnHeader" Margin="0,0,0,4"
+            <TextBlock Grid.Column="3" Classes="RunColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
         </Grid>
         <ItemsControl ItemsSource="{Binding Variables}">
