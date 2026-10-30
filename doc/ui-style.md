@@ -685,6 +685,14 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Button.BottomButton` | **底部条专用钮**：`Padding="14,10"` 没有档，而它撑起了底部条的高度——改内距就是改布局 |
 | `Button.CardButton` | **26 方钮**：26×26 不在任何档上（`Ghost` 24、`Icon` 34×32） |
 
+**表达式编辑器扫出来的（第四批）**。两条都不是"缺一档尺寸"，是**缺一个品类**：
+
+| 位置 | 缺的是什么 |
+|---|---|
+| `ExpressionBuilderWindow` 的 `Border.Row` + `.picked` / `.drop` | **双通道行**：`.picked`（已经选进这批）走 **Info** 通道、`.drop`（正拖到这上面）走 **Accent** 通道。**这是两个状态，不是一个状态的两个色**——库里 `Card.Thin` 只有 `chosen` 一档，并过去会丢掉其中一个 |
+| `ExpressionBuilderWindow` 的 `TextBlock.ArgLabel` | **参数名的琥珀**：`AppLabel ≡ Warning`（同值），但"参数名"是**语法高亮**，不是提醒。**一色两用**——`Syntax` 组要解决的第一件事就是把它拆成两个语义 |
+| `TextBox.ExprInput` / `TextBox.Filter` | **公式输入框的底**：现在用 `SurfaceWindow`（"底色"），而 `TextBox.Field` 用 `SurfaceField`（"字段底"）。两个角色，等灰阶/底色那轮定 |
+
 **手调痕迹。** 199 处带左右偏移的 `Margin`，集中在 `MacroEditorWindow`(42)、`ActionEditorView`(41)、
 `SettingsWindow`(28)、`RunWindow`(25)。其中 `2,12,0,6`(11)、`2,5,0,0`(10)、`2,8,0,0`(9)、`2,4,0,0`(8)
 是典型的"往右让 2px 才对齐"——**不判违规**：它们在表达这一行里某个元素比旁边高半个字、要让 2px 才

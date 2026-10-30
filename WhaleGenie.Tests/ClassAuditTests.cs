@@ -295,6 +295,170 @@ public class ClassAuditTests
         return Regex.IsMatch(tests, $@"Contains\(\s*""{escaped}""");
     }
 
+    // ── 第三条：选择器到底配不配得到元素 ──────────────────────────────────
+    //
+    // 前两条问的都是"这个词有没有人用"。样式真正要问的是**这条选择器会不会命中**——
+    // 这一次就栽在这上面：`Button.Tab.on` 里的两个词各自都有消费者（`on` 在绑定里、`Tab` 在
+    // `SettingsWindow`），**但从来没有同时出现在同一个元素上**，于是两个页签的选中态一直是空的。
+    //
+    // 前三条（用了没定义 / 定义了没人用 / 样式在 A 窗消费者在 B 窗）的共同弱点是**按词看**；
+    // 这一条**按组合看**：选择器声明的类名集合，必须整套出现在某个同类型元素的类名集合里。
+    //
+    // 同样只报告不失败。白名单要写原因，并且**在 /template/ 里用的选择器不在此列**——
+    // 模板内部的元素不写在 XAML 的 `Classes=` 上，静态比对必然报。
+
+    /// <summary>已知"配不上但没问题"的选择器，每条写原因。条目同样会被检查是否过期。</summary>
+    private static readonly Dictionary<string, string> KnownUnmatched =
+        new(StringComparer.Ordinal);
+
+    [Fact]
+    public void Selectors_that_cannot_match_an_element_are_reported_with_what_differs()
+    {
+        var findings = Unmatched().Where(pair => !KnownUnmatched.ContainsKey(pair.Key))
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var (selector, detail) in findings)
+        {
+            _output.WriteLine($"cannot match: {selector} — {detail}");
+        }
+
+        _output.WriteLine($"reported {findings.Count}, whitelisted {KnownUnmatched.Count}");
+
+        var stale = KnownUnmatched.Keys.Where(selector => !Unmatched().ContainsKey(selector))
+            .OrderBy(selector => selector, StringComparer.Ordinal)
+            .ToList();
+        Assert.True(
+            stale.Count == 0,
+            "these whitelist entries no longer appear, so their reasons need a second look: "
+            + string.Join(", ", stale));
+    }
+
+    private static Dictionary<string, string> Unmatched()
+    {
+        var root = RepositoryRoot();
+        var findings = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml"))
+        {
+            var text = File.ReadAllText(path);
+            var codeFile = path + ".cs";   // axaml 的代码后置是 `X.axaml.cs`，不是 `X.cs`
+            var code = File.Exists(codeFile) ? File.ReadAllText(codeFile) : string.Empty;
+            var fromCode = ClassesAddedInCode(code);
+
+            // 每个元素（含选择器里的类型）身上有哪些类：`Classes="…"` 与 `Classes.名字=` 都算
+            var onElements = Elements(text, fromCode);
+            if (onElements.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (Match match in Regex.Matches(text, @"Selector=""([^""]+)"""))
+            {
+                var raw = match.Groups[1].Value;
+
+                // 模板内部的元素不写在 `Classes=` 上，比对必然失手——跳过，并在注释里说明
+                if (raw.Contains("/template/", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var head = raw.Split('>')[0].Split(' ')[0].Split(',')[0].Split(':')[0].Trim();
+                var parts = head.Split('.');
+                if (parts.Length < 3)
+                {
+                    // 只带一个类的选择器由前两条管；这一条只管"组合"
+                    continue;
+                }
+
+                var type = parts[0];
+                var wanted = parts.Skip(1).ToArray();
+                if (!onElements.TryGetValue(type, out var sets))
+                {
+                    findings.TryAdd(raw, $"{type} 在这个窗口里一个都没有");
+                    continue;
+                }
+
+                if (sets.Any(set => wanted.All(step => set.Contains(step, StringComparer.Ordinal))))
+                {
+                    continue;
+                }
+
+                // 差在哪：把这个类型上出现过的类名集合里，覆盖最多那一组摊开给人看
+                var nearest = sets
+                    .OrderByDescending(set => set.Count(step => wanted.Contains(step, StringComparer.Ordinal)))
+                    .First();
+                var missing = wanted.Where(step => !nearest.Contains(step, StringComparer.Ordinal)).ToList();
+                findings.TryAdd(
+                    raw,
+                    missing.Count == 0
+                        ? "没有任何元素同时带着这些类"
+                        : $"最接近的元素是 [{string.Join(' ', nearest)}]，缺 [{string.Join(' ', missing)}]");
+            }
+        }
+
+        return findings;
+    }
+
+    /// <summary>按控件类型收集元素身上的类名集合（含代码里加的类）。</summary>
+    private static Dictionary<string, List<HashSet<string>>> Elements(string xaml, IEnumerable<string> fromCode)
+    {
+        var result = new Dictionary<string, List<HashSet<string>>>(StringComparer.Ordinal);
+        foreach (Match tag in Regex.Matches(xaml, @"<([A-Za-z][\w:.]*)((?:[^>""']|""[^""]*""|'[^']*')*)>"))
+        {
+            var type = tag.Groups[1].Value;
+            var attrs = tag.Groups[2].Value;
+            var set = new HashSet<string>(StringComparer.Ordinal);
+
+            var classes = Regex.Match(attrs, @"Classes=""([^""]+)""");
+            if (classes.Success)
+            {
+                foreach (var name in classes.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    set.Add(name);
+                }
+            }
+
+            // `Classes.on="{Binding …}"`：绑定的那一档也算这个元素可能带的类
+            foreach (Match bound in Regex.Matches(attrs, @"Classes\.([A-Za-z][\w]*)\s*="))
+            {
+                set.Add(bound.Groups[1].Value);
+            }
+
+            // 代码里给这个窗加过的类，静态分不清加到哪个元素上，就当作每个元素都可能带
+            set.UnionWith(fromCode);
+
+            if (!result.TryGetValue(type, out var list))
+            {
+                result[type] = list = [];
+            }
+
+            list.Add(set);
+        }
+
+        return result;
+    }
+
+    /// <summary>代码里给控件加过的类名：`Classes.Add("X")`、`Classes = { "X" }`、`Classes.Set("X", …)`。</summary>
+    private static HashSet<string> ClassesAddedInCode(string code)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match match in Regex.Matches(code, @"(?:Add|Set)\(\s*""([^""]+)"""))
+        {
+            names.Add(match.Groups[1].Value);
+        }
+
+        foreach (Match match in Regex.Matches(code, @"Classes\s*=\s*\{([^}]*)\}"))
+        {
+            foreach (Match name in Regex.Matches(match.Groups[1].Value, @"""([^""]+)"""))
+            {
+                names.Add(name.Groups[1].Value);
+            }
+        }
+
+        return names;
+    }
+
     private static string RepositoryRoot([CallerFilePath] string here = "")
     {
         var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
