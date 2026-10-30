@@ -26,8 +26,11 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
+        <!-- 已挑进这一批：绿认 `Success`。`#3FBF5F` 是另一支绿，而 `Card.Thin.chosen` 已经用
+             `Success` 表达同一个状态——**同状态两个色，会让人以为有区别**。颜色会淡一点，这是
+             有意的：语义一致优先于色相不变。 -->
         <Style Selector="Border.MarkRow.chosen">
-            <Setter Property="BorderBrush" Value="#3FBF5F" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
         </Style>
 
         <!-- The writing the step read, in a box it can be copied out of. -->
