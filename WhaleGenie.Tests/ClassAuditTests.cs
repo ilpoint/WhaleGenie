@@ -81,7 +81,7 @@ public class ClassAuditTests
 
             foreach (Match tag in Regex.Matches(text, @"<([A-Za-z][\w:.]*)((?:[^>""']|""[^""]*""|'[^']*')*)>"))
             {
-                var type = tag.Groups[1].Value;
+                var type = tag.Groups[1].Value.Split('|', ':')[^1];
                 var classes = Regex.Match(tag.Groups[2].Value, @"Classes=""([^""]+)""");
                 if (!classes.Success)
                 {
@@ -235,6 +235,30 @@ public class ClassAuditTests
     /// 两者的"消费者"来源不同：窗口本地的类可以在**同一个文件**里被用；
     /// 库里的类只能被**别处**用——所以库声明永远不拿自身文本当消费者来源，否则自己满足自己。
     /// </summary>
+    /// <summary>
+    /// 一个类型有两种写法：选择器写 `views|IconView`，XAML 标签写 `views:IconView`。
+    ///
+    /// **归一少做一处，"没消费者"就会报错一处**——而这类假阳性最坏的后果不是噪音，
+    /// 是**让人把整条检查关掉**。所以这里放一条用例盯着它：`RecordIcon` 是
+    /// `IconView` 上一个真在用的类（`MacroEditorWindow` 里挂了它），只要归一半，
+    /// 它就会冒进死名单。
+    /// </summary>
+    [Fact]
+    public void A_namespaced_control_finds_its_consumer_across_both_spellings()
+    {
+        var unused = Unused();
+
+        Assert.DoesNotContain(unused.Keys, name => name.EndsWith(".RecordIcon", StringComparison.Ordinal));
+
+        // 两种写法都要能**被认出来**：`views|IconView` 与 `views:IconView` 归一后是同一个类型。
+        Assert.Equal(
+            "IconView",
+            "views|IconView".Split('|', ':')[^1]);
+        Assert.Equal(
+            "IconView",
+            "views:IconView".Split('|', ':')[^1]);
+    }
+
     private static Dictionary<string, string> Unused()
     {
         var root = RepositoryRoot();
@@ -273,9 +297,11 @@ public class ClassAuditTests
                     foreach (var token in chain)
                     {
                         // 只有"带修饰的那一层"可能是死的；基类那一层由父选择器共用
-                        // 库里的类：消费者在别处；窗口本地的类：消费者也可能在同一个文件里
+                        // **按"前缀链"判，不按单词判。** 词会串门：`Button.Pill` 一出现，
+                        // `Classes="Ghost Pill"` 就被当成 `ListBox.List.Pill` 的消费者——
+                        // 而那个 `Pill` 属于按钮，不属于列表。**符号不承载身份，链才承载。**
                         var consumers = isLibrary ? useSites : text + "\n" + useSites;
-                        if (HasConsumer(consumers, testCode, code, token))
+                        if (HasChainConsumer(consumers, testCode, code, type, chain))
                         {
                             continue;
                         }
@@ -287,6 +313,29 @@ public class ClassAuditTests
         }
 
         return unused;
+    }
+
+    /// <summary>
+    /// 这条**前缀链**有没有消费者：某个同类型元素身上带着链里**所有**这些类。
+    /// 按单词判会把不同族的同名修饰算混——见 `Button.Pill` 与 `ListBox.List.Pill`。
+    /// </summary>
+    private static bool HasChainConsumer(string xaml, string tests, string code, string type, string[] chain)
+    {
+        // 代码里加的类、测试按类名找元素：这两处按词判是安全的（它们没有"前缀链"可言）
+        if (chain.Any(token => tests.Contains($"Contains(\"{token}\"", StringComparison.Ordinal)))
+        {
+            return true;
+        }
+
+        // 代码加的类（`Classes.Add` / `.Set` / 初始化器）静态分不清加到哪个元素上，
+        // 就当作**每个元素都可能带**——这是既有的宽处理，宁可漏报不可误报。
+        // **类型名有两种写法，匹配前统一归一**：选择器写 `views|IconView`，XAML 标签写 `views:IconView`。
+        // 不归一的话，凡是命名空间限定的控件（`views|IconView`）都会被误报成"没消费者"——
+        // 而假阳性最坏的后果是**让人把整条检查关掉**。
+        var bare = type.Split('|', ':')[^1];
+        var onElements = Elements(xaml, ClassesAddedInCode(code));
+        return onElements.TryGetValue(bare, out var sets)
+            && sets.Any(set => chain.All(step => set.Contains(step, StringComparer.Ordinal)));
     }
 
     private static bool HasConsumer(string xaml, string tests, string code, string name)
@@ -426,7 +475,7 @@ public class ClassAuditTests
         var result = new Dictionary<string, List<HashSet<string>>>(StringComparer.Ordinal);
         foreach (Match tag in Regex.Matches(xaml, @"<([A-Za-z][\w:.]*)((?:[^>""']|""[^""]*""|'[^']*')*)>"))
         {
-            var type = tag.Groups[1].Value;
+            var type = tag.Groups[1].Value.Split('|', ':')[^1];
             var attrs = tag.Groups[2].Value;
             var set = new HashSet<string>(StringComparer.Ordinal);
 

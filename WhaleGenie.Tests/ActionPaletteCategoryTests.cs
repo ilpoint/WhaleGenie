@@ -167,7 +167,8 @@ public class ActionPaletteCategoryTests
             Assert.NotNull(rail);
             Assert.True(rail!.IsVisible);
             var buttons = rail.GetVisualDescendants().OfType<Button>()
-                .Where(button => button.Classes.Contains("Category"))
+                // 分类栏那颗方钮：原来是窗口本地的 `Category`，现在并进库里的 `Button.Rail`。
+                .Where(button => button.Classes.Contains("Rail"))
                 .ToList();
             Assert.Equal(model.Categories.Count, buttons.Count);
             var allButton = buttons.First(button =>
