@@ -709,7 +709,12 @@ DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
 
 27. **改类名之前，先 grep 测试与代码里的旧名。** `Classes.Contains("旧名")`、`Classes.Add("旧名")` 都是把手。
    实见两次：`PageTab → Tab.Inline.Boxed` 打断了 `ActionDialogTests`；`Category → Rail` 打断了
-   `ActionPaletteCategoryTests`（`Expected 11 / Actual 0`）。**删类会打断，改名同样会**。
+   `ActionPaletteCategoryTests`（`Expected 11 / Actual 0`）。**"改类名"与"删类"在打断把手上完全等价**，
+   而这轮两种都撞过。
+
+28. **凡是"换"的动作，落地后 grep 一次旧名，必须为 0。** "换类/改名/迁移"都有**两半**——**删旧的 + 加新的**。
+   做完一半时，**屏幕上往往看不出问题**，所以不会有人回头。实见两次"报了没做"都不是懒，是"改了一部分就以为改完了"：
+   `#BFE3BF` 是统计了没替换，`Category → Rail` 是删了本地定义没换元素。**这条比"仔细点"可执行。**
 
 两条与记录有关的：
 
