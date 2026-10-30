@@ -70,7 +70,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:VariableChoice">
-                        <Button Classes="Secondary" Height="28" Margin="0,0,6,6"
+                        <Button Classes="Secondary Block Chip"
                                 Click="OnChoose"
                                 PointerPressed="OnPressed"
                                 PointerMoved="OnMoved"

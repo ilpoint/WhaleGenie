@@ -239,11 +239,13 @@ static void ReportPitch(Window window)
         .Where(border => border.Classes.Contains("Row"))
         .ToList();
 
-    // 变量墙那几行也是 `Secondary`，但它们不带 `Block`（高度写在元素上是 28）。
+    // 变量片：`Block` 管缝、`Chip` 管高度（28）——两者分开，才好说清"哪一段来自哪个类"。
     var wallRows = window.GetVisualDescendants()
         .OfType<Button>()
-        .Where(button => button.Classes.Contains("Secondary") && !button.Classes.Contains("Block"))
+        .Where(button => button.Classes.Contains("Chip"))
         .ToList();
+
+    blocks = blocks.Where(button => !button.Classes.Contains("Chip")).ToList();
 
     var blockPitch = Median(Pitch(blocks, window));
     var rowPitch = Median(Pitch(rows, window));
@@ -253,7 +255,14 @@ static void ReportPitch(Window window)
         + (blockPitch is { } b ? $"{b:0.#} px" : "取不到"));
     Console.WriteLine($"    · 右栏行（Row）{rows.Count} 个，行距中位数 = "
         + (rowPitch is { } r ? $"{r:0.#} px" : "取不到"));
-    Console.WriteLine($"    · 右栏变量行（Secondary 非 Block）{wallRows.Count} 个，行距中位数 = "
+    static double? MedianHeight(IEnumerable<Control> controls)
+    {
+        var heights = controls.Select(control => Math.Round(control.Bounds.Height, 1)).OrderBy(h => h).ToList();
+        return heights.Count == 0 ? null : heights[heights.Count / 2];
+    }
+
+    Console.WriteLine($"    · 左栏动作卡片高度中位数 = {(MedianHeight(blocks) is { } bh ? $"{bh:0.#} px" : "取不到")}；右栏变量片高度中位数 = {(MedianHeight(wallRows) is { } wh ? $"{wh:0.#} px" : "取不到")}");
+    Console.WriteLine($"    · 右栏变量片（Chip）{wallRows.Count} 个，行距中位数 = "
         + (wallPitch is { } w ? $"{w:0.#} px" : "取不到"));
 }
 

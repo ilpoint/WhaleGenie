@@ -98,6 +98,7 @@
       STATIC Button.Thumb
       STATIC Button.Square
       STATIC Button.Secondary.Block
+      STATIC Button.Secondary.Chip
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -670,6 +671,19 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
+
+    <!--
+      变量选择用的"片"：比动作卡片矮 2px。**28 是这一族的度量，不是这一处的例外**——
+      它原本写在元素上，于是同一个窗里出现"左栏高度来自类、右栏写在元素"的两套来源。
+      高度用 `Height`，并且**这一条必须排在 `Secondary` 之后**：Avalonia 对同是样式来源的 setter
+      按"后写覆盖先写"决定，**不比类名个数**——写在前面时 `Secondary` 的 30 会赢，实测行距因此是 36 而不是 34。
+    -->
+    <Style Selector="Button.Secondary.Chip">
+        <!-- **必须是 `Height` 不是 `MinHeight`**：`Secondary` 给了 `Height=30`，
+             只给 `MinHeight=28` 压不住它（28 小于 30，等于没写）——实测行距因此从 34 变成 36。 -->
+        <Setter Property="Height" Value="28" />
+    </Style>
+
 
     <!-- 只有图标的动作钮（关窗、折叠）。底色透明，悬停靠叠层，所以它不必知道底下是什么颜色。 -->
     <!--
