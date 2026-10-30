@@ -130,8 +130,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:VariableUse">
-                                <Button Classes="Secondary" Height="24" FontSize="11.5"
-                                        Margin="0,0,6,6"
+                                <Button Classes="Secondary Block Chip Dense"
                                         Content="{Binding Label}"
                                         ToolTip.Tip="{Binding [VarWall.JumpHint], Source={x:Static loc:Strings.Current}}"
                                         Command="{Binding $parent[ItemsControl].((vm:VariableWallViewModel)DataContext).JumpCommand}"

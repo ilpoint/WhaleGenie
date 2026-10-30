@@ -387,6 +387,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `Button.Secondary` | Button | H30 · `PadControl` · `RadiusControl` · `UiBody` · 1px | `SurfaceControl` · `TextPrimary` · `BorderControl` | `SurfaceControlHover` · `TextPrimary` · `BorderControlHover` | `SurfaceControlPressed` · `TextPrimary` · `BorderControl` | — | `SurfaceControl` · `TextDisabled` · `BorderSubtle` | 双色环 | **层 1 给四态**；层 3 只补度量与 disabled 去色 |
 | `Button.Secondary.Block` | Button | 继承 `Secondary`，只加 `Margin="0,0,6,6"`（格与格之间的缝） | 同 `Secondary` |
 | `Button.Secondary.Chip` | Button | 继承 `Secondary`，`Height="28"`（**压回 28，`MinHeight` 压不住 `Secondary` 的 30**） | 同 `Secondary` |
+| `Button.Secondary.Chip.Dense` | Button | 继承 `Chip`，`Height="24"` · `FontSize="11.5"`（用途列的小片，**值保持原样**） | 同 `Secondary` |
 | `Button.Thumb` | Button | 24×24 · `Pad0` · `RadiusControl`（**词表预留**：等"可拖动的缩略图/比例手柄"，否则是 `Ghost` 的重复） | `Transparent` · `TextSecondary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · — · — | — | — · `TextDisabled` · — | 双色环 | 层 3 |
 | `GridSplitter.Split` | GridSplitter | 6px · `SurfaceControl`（**已接上**：`MacroEditorWindow` 三根分隔条挂此类） | `SurfacePanel` · — · — | `AccentFill` · — · — | — | — | — | 单色底 | 层 3 |
 | `Button.Ghost` | Button | 24×24 · `Pad0` · `RadiusControl` | `Transparent` · `TextSecondary` · — | `OverlayHover` · `TextPrimary` · — | `OverlayPressed` · `TextPrimary` · — | `AccentSurface` · `AccentText` · — | — · `TextDisabled` · — | 双色环 | 层 3 全写 |

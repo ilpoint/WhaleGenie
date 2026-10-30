@@ -99,6 +99,7 @@
       STATIC Button.Square
       STATIC Button.Secondary.Block
       STATIC Button.Secondary.Chip
+      STATIC Button.Secondary.Chip.Dense
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -682,6 +683,17 @@
         <!-- **必须是 `Height` 不是 `MinHeight`**：`Secondary` 给了 `Height=30`，
              只给 `MinHeight=28` 压不住它（28 小于 30，等于没写）——实测行距因此从 34 变成 36。 -->
         <Setter Property="Height" Value="28" />
+    </Style>
+
+    <!--
+      更小的变量片：用在"这个变量被谁用过"那一列。**24 与 11.5 都保持原值**，
+      只是从元素搬进类。**同样排在 `Chip` 之后**——它要压掉 `Chip` 的 28。
+      类名用 `Dense` 而不是 `Compact`：`Compact` 是 `Tab.Root.Compact` 的词，**同一个词属于两族会让
+      "这条选择器配不配得到元素"那条检查判错**（它按词匹配，分不清前缀链）。
+    -->
+    <Style Selector="Button.Secondary.Chip.Dense">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="FontSize" Value="11.5" />
     </Style>
 
 
