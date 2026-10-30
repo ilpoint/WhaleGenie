@@ -97,6 +97,7 @@
       STATIC TextBox.Code
       STATIC StackPanel.Empty
       STATIC Ellipse.Dot
+      STATIC TextBlock.Caption
       STATIC TextBlock.ColumnHeader
       STATIC TextBlock.FieldLabel
       STATIC TextBlock.GroupHeader
@@ -510,6 +511,19 @@
         <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
         <Setter Property="Foreground" Value="{DynamicResource Warning}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--
+      说明性小字：11px、**400** 字重、三级灰。它和 `ColumnHeader` 同字号同颜色，差别就是字重——
+      `ColumnHeader` 是"列的标题"（600），`Caption` 是"说明性的小字"（400）。中文里两个都叫小字，
+      所以名字要能区分字重，`Caption` 比 `Small` 好。
+      它立起来的依据是频次不是偏好：`10.5` 10 处 / 6 窗、`11px` 那 19 处 / 6 窗里有一部分是 400，
+      这已经够"≥3 窗即常项"。
+    -->
+    <Style Selector="TextBlock.Caption">
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiCaptionLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
     </Style>
 
     <Style Selector="TextBlock.ColumnHeader">

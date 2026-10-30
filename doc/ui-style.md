@@ -372,6 +372,7 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 | `TextBlock.Note` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · **`TextWrapping=NoWrap`** | `TextTertiary`（单行附注：同一档字号与颜色，与 `Hint` 的差别只是不折行。判据：有句读或超过 20 字用 `Hint`，否则用 `Note`） |
 | `TextBlock.Problem` | TextBlock | `UiBodySmallSize` · `UiBodySmallLine` · `TextWrapping=Wrap` | `Warning` |
 | `TextBlock.ColumnHeader` | TextBlock | `UiCaptionSize` 600 · `UiCaptionLine` | `TextTertiary` |
+| `TextBlock.Caption` | TextBlock | `UiCaptionSize` **400** · `UiCaptionLine` | `TextTertiary`（说明性小字：与 `ColumnHeader` 同字号同色，**差别是字重**——那一类是"列的标题"(600)，这一类是正文重的说明文字；名字要能区分字重，所以叫 `Caption` 不叫 `Small`） |
 | `TextBlock.Code` | TextBlock / SelectableTextBlock | `UiCodeFont` · `UiBodySmallSize` · `FontFeatures=tnum` | `TextPrimary` |
 
 `FieldLabel` 的下边距是"标签 → 控件"的间距；**正文不设下边距，间距由父容器给**。正文借 `FieldLabel`
