@@ -662,6 +662,19 @@ Border.Card.Selectable:pointerover:not(.selected)   /* 选中时不显示 hover 
 都是"行距"，差别是漂移不是意图，并成 `List.Bare.Gapped` 的 6；要保留 4 就得开 `Gapped.Tight`，
 为一个 2px 差开一档不值——这和"不为长度为一的令牌开名字"是同一条。
 
+**小窗扫出来的第二批候选（尺寸不在三档、库类给不了的）**。小窗那 8 个文件做完时收的，
+每一处都"只有一个用处"，所以留本窗，但尺寸本身说明词表缺档：
+
+| 位置 | 尺寸 | 说明 |
+|---|---|---|
+| `ActionPaletteView` 的 `Button.Category` | 48×50 · 11 / 600 | **带固定尺寸的网格类别钮**，`Tile` 是 64 高、`Icon` 是 34×32，都不对；按钮上的"小字半粗"也没有对应物 |
+| `VirtualGamepadWindow` 的 `Button.Control` | `MinWidth=40` | 窄键要能看清字；宽度没有档 |
+| `HotstringKeyboardWindow` 的 `Button.Secondary` | `Height=36` · `MinWidth` 104/80 | 字符键比标准钮高一档 |
+| `VariableWall` 的 `VarWallScroll` | 滚动条宽 8 | 库没有"窄滚动条"这一档 |
+| `VariableWall` 的芯片行 | `Padding="4,2"` · `Margin="0,0,3,3"` | 五组名字挤一行，`List` 的 H32 + `PadRow` 放不下 |
+| `GlobalVariablesWindow` 的 `List > ListBoxItem` | 底边 1px 分隔线 | 行分隔线"底边独占"，`List` 给不了 |
+| `LookWindow` 的 `Border.MarkRow` | 底 `AppDock` · 透明占位边 1px | `Card.Thin` 是 `SurfaceCard` + 实边；并过去会把无边框行变成有边框 |
+
 **手调痕迹。** 199 处带左右偏移的 `Margin`，集中在 `MacroEditorWindow`(42)、`ActionEditorView`(41)、
 `SettingsWindow`(28)、`RunWindow`(25)。其中 `2,12,0,6`(11)、`2,5,0,0`(10)、`2,8,0,0`(9)、`2,4,0,0`(8)
 是典型的"往右让 2px 才对齐"——**不判违规**：它们在表达这一行里某个元素比旁边高半个字、要让 2px 才
