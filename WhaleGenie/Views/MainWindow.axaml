@@ -17,7 +17,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -41,7 +41,7 @@
         <!-- Top-right round tool buttons -->
         <Style Selector="Button.ToolButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Width" Value="24" />
             <Setter Property="Height" Value="24" />
@@ -50,13 +50,13 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.ToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
         <!-- Tool button that carries a label next to its icon -->
         <Style Selector="Button.LabeledToolButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Height" Value="24" />
             <Setter Property="Padding" Value="10,0" />
@@ -64,7 +64,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
         <!-- The always-on-top switch lights up while it is holding the window above the rest. -->
@@ -77,20 +77,20 @@
 
         <!-- Bottom buttons -->
         <Style Selector="Button.BottomButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="14,10" />
             <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="Button.BottomButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
         <!-- Macro card action buttons -->
         <Style Selector="Button.CardButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="26" />
             <Setter Property="Height" Value="26" />
@@ -99,7 +99,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.CardButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
     </Window.Styles>
@@ -107,11 +107,11 @@
     <Grid RowDefinitions="36,30,*,Auto">
 
         <!-- ============ Custom title bar ============ -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
                    Margin="8,5" VerticalAlignment="Center" HorizontalAlignment="Left" />
 
-            <TextBlock Grid.Column="1" Foreground="{DynamicResource AppText}" FontSize="13"
+            <TextBlock Grid.Column="1" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                        Text="{Binding WindowTitle}"
                        VerticalAlignment="Center" Margin="4,0" />
 
@@ -119,129 +119,129 @@
                 <Button Classes="Chrome Icon" Name="ThemeButton"
                         ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
                         Click="OnToggleTheme">
-                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Sun}" />
+                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Sun}" />
                 </Button>                <Button Classes="Chrome Icon" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
-                    <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
+                    <views:IconView Width="11" Height="11" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="HelpButton" Content="?" FontWeight="Bold"
                         FontSize="13"
                         ToolTip.Tip="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                         Click="OnAboutClicked" />
                 <Button Classes="Chrome Icon" Name="MinimizeButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
                 </Button>
                 <Button Classes="Chrome Icon" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
 
         <!-- ============ Menu bar ============ -->
-        <Grid Grid.Row="1" Background="{DynamicResource AppBackdrop}" ColumnDefinitions="Auto,Auto,*,Auto">
+        <Grid Grid.Row="1" Background="{DynamicResource SurfaceWindow}" ColumnDefinitions="Auto,Auto,*,Auto">
             <Menu Background="Transparent" VerticalAlignment="Center" Margin="4,0">
                 <MenuItem Header="{Binding [Main.File], Source={x:Static loc:Strings.Current}}"
-                          FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
+                          FontSize="13" Foreground="{DynamicResource TextPrimary}" Padding="10,4">
                     <MenuItem Header="{Binding [Main.OpenProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Folder}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Folder}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.SaveProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnSaveProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Save}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Save}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.SaveProjectAs], Source={x:Static loc:Strings.Current}}"
                               Click="OnSaveProjectAsClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FilePlus}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FilePlus}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Import], Source={x:Static loc:Strings.Current}}"
                               Click="OnImportClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Download}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Download}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.ExportMacro], Source={x:Static loc:Strings.Current}}"
                               Click="OnExportMacrosClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.ExternalLink}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.ExternalLink}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenCurrentLocation], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenLocationClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Search}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Search}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.ReloadCurrent], Source={x:Static loc:Strings.Current}}"
                               Click="OnReloadCurrentClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenDirectory], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenDirectoryClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FolderOpen}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FolderOpen}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.CloseAll], Source={x:Static loc:Strings.Current}}"
                               Click="OnCloseAllClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator />
                     <MenuItem Header="{Binding [Main.Exit], Source={x:Static loc:Strings.Current}}"
                               Click="OnExitClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
 
                 <MenuItem Header="{Binding [Main.Help], Source={x:Static loc:Strings.Current}}"
-                          FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
+                          FontSize="13" Foreground="{DynamicResource TextPrimary}" Padding="10,4">
                     <MenuItem Header="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}"
                               Click="OnSettingsClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.WhatsNew], Source={x:Static loc:Strings.Current}}"
                               Click="OnWhatsNewClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Sparkle}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Sparkle}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Updates], Source={x:Static loc:Strings.Current}}"
                               Click="OnUpdatesClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Feedback], Source={x:Static loc:Strings.Current}}"
                               Click="OnFeedbackClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Message}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Message}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.GetStarted], Source={x:Static loc:Strings.Current}}"
                               Click="OnGetStartedClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.QuestionMark}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.QuestionMark}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                               Click="OnAboutClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Info}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Info}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
@@ -249,9 +249,9 @@
 
             <StackPanel Grid.Column="1" Spacing="8" Orientation="Horizontal" Margin="8,0"
                         VerticalAlignment="Center">
-                <Border Width="1" Height="14" Background="{DynamicResource AppBorder}" />
+                <Border Width="1" Height="14" Background="{DynamicResource BorderControl}" />
                 <TextBlock Name="VersionText" Text="{Binding Version}"
-                           Foreground="{DynamicResource AppMuted}" FontSize="12"
+                           Foreground="{DynamicResource TextTertiary}" FontSize="12"
                            VerticalAlignment="Center" />
             </StackPanel>
 
@@ -263,16 +263,16 @@
                         ToolTip.Tip="{Binding [Main.McpHint], Source={x:Static loc:Strings.Current}}">
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedRight">
-                            <Border Background="{DynamicResource AppSurface}" CornerRadius="6"
+                            <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6"
                                     Padding="12" Width="420">
                                 <StackPanel Spacing="8">
                                     <TextBlock FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource AppText}"
+                                               Foreground="{DynamicResource TextPrimary}"
                                                Text="{Binding [Mcp.Title], Source={x:Static loc:Strings.Current}}" />
                                     <!-- The switches are not a server: they decide what the client
                                          is allowed to do, and the block below is rewritten with
                                          the matching arguments. Nobody types a flag by hand. -->
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                TextWrapping="Wrap"
                                                Text="{Binding [Mcp.Intro], Source={x:Static loc:Strings.Current}}" />
                                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -280,7 +280,7 @@
                                                       IsChecked="{Binding Mcp.AllowControl, Mode=TwoWay}"
                                                       OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
                                                       OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                    VerticalAlignment="Center"
                                                    Text="{Binding [Mcp.Control], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
@@ -289,19 +289,19 @@
                                                       IsChecked="{Binding Mcp.AllowRun, Mode=TwoWay}"
                                                       OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
                                                       OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                    VerticalAlignment="Center"
                                                    Text="{Binding [Mcp.Run], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                TextWrapping="Wrap"
                                                Text="{Binding [Mcp.GrantsNote], Source={x:Static loc:Strings.Current}}" />
-                                    <Border Background="{DynamicResource AppField}" CornerRadius="5"
-                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                    <Border Background="{DynamicResource SurfaceField}" CornerRadius="5"
+                                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                                             Padding="10,8">
                                         <SelectableTextBlock FontFamily="Consolas,Menlo,monospace"
                                                              FontSize="11.5"
-                                                             Foreground="{DynamicResource AppText}"
+                                                             Foreground="{DynamicResource TextPrimary}"
                                                              TextWrapping="Wrap"
                                                              Text="{Binding Mcp.Config}" />
                                     </Border>
@@ -309,11 +309,11 @@
                                         <Button Classes="Secondary" Height="28" Padding="10,0"
                                                 Click="OnCopyMcpConfig"
                                                 Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                        <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                    VerticalAlignment="Center"
                                                    Text="{Binding Mcp.Status}" />
                                     </StackPanel>
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                TextWrapping="Wrap"
                                                Text="{Binding [Mcp.CopyConfigHint], Source={x:Static loc:Strings.Current}}" />
                                     <!-- What the client did to this machine is a question the person
@@ -329,10 +329,10 @@
                         </Flyout>
                     </Button.Flyout>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}"
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}"
                                         StrokeThickness="1.4" FitToBounds="True"
                                         Data="{x:Static vm:AppIcons.Sparkle}" />
-                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"
                                    Text="{Binding [Main.Mcp], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
@@ -341,14 +341,14 @@
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
-                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"
                                    Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
                 <Button Classes="ToolButton" Name="SettingsButton"
                         ToolTip.Tip="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
+                    <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -378,8 +378,8 @@
             <!-- Search box -->
             <TextBox Grid.Row="1" Text="{Binding SearchText}"
                      PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
-                     Background="{DynamicResource AppDock}" BorderBrush="{DynamicResource AppDock}"
-                     Foreground="{DynamicResource AppText}" FontSize="13"
+                     Background="{DynamicResource SurfacePanel}" BorderBrush="{DynamicResource SurfacePanel}"
+                     Foreground="{DynamicResource TextPrimary}" FontSize="13"
                      CornerRadius="4" Padding="10,7" />
 
             <!-- Macro list -->
@@ -395,7 +395,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:MacroItem">
-                        <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                        <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <!-- The same three things the card's own buttons do, where a right click
                                  goes looking for them. -->
                             <Border.ContextMenu>
@@ -419,7 +419,7 @@
                                             <Ellipse Width="9" Height="9" Fill="#D8451B"
                                                      IsVisible="{Binding !IsEnabled}" />
                                         </Panel>
-                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AppText}" FontSize="13"
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                                                    VerticalAlignment="Center" />
                                         <!-- Shows while a trigger is running this macro -->
                                         <Border IsVisible="{Binding IsRunning}" Background="#1E4529"
@@ -433,37 +433,37 @@
                                         <Button Name="MacroRunDebugButton" Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDebugMacroClicked">
-                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
+                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
                                         </Button>
                                         <Button Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnEditMacroClicked">
-                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Pencil}" />
+                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Pencil}" />
                                         </Button>
                                         <Button Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDeleteMacroClicked">
-                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
+                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
 
-                                <Border Grid.Row="1" Background="{DynamicResource AppDock}" CornerRadius="4" Margin="0,8,0,0"
+                                <Border Grid.Row="1" Background="{DynamicResource SurfacePanel}" CornerRadius="4" Margin="0,8,0,0"
                                         Padding="12,9"
                                         Opacity="{Binding IsEnabled, Converter={StaticResource CardOpacity}}">
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                         <!-- One badge for the entry set: a macro may now have several. -->
-                                        <Border Grid.Column="0" Background="{DynamicResource AppHover}" CornerRadius="4"
+                                        <Border Grid.Column="0" Background="{DynamicResource SurfaceHover}" CornerRadius="4"
                                                 Width="28" Height="28" VerticalAlignment="Center">
                                             <Panel>
-                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GridFour}" />
+                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GridFour}" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                            <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                        TextWrapping="Wrap" MaxLines="2"
                                                        Text="{Binding TriggerSummaries}" />
-                                            <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                            <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding Action}" />
                                         </StackPanel>
@@ -480,9 +480,9 @@
             <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="5"
                         IsVisible="{Binding !HasMacros}" IsHitTestVisible="False">
                 <TextBlock Text="{Binding [Main.EmptyTitle], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppMuted}" FontSize="13" HorizontalAlignment="Center" />
+                           Foreground="{DynamicResource TextTertiary}" FontSize="13" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding [Main.EmptyHint], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppMuted}" FontSize="11.5" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextTertiary}" FontSize="11.5" HorizontalAlignment="Center"
                            TextAlignment="Center" />
             </StackPanel>
 
@@ -491,7 +491,7 @@
                        IsVisible="{Binding HasNoMatch}"
                        IsHitTestVisible="False"
                        Text="{Binding [Main.NoMatch], Source={x:Static loc:Strings.Current}}"
-                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
+                       Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
         </Grid>
 
         <!-- ============ Bottom buttons ============ -->
@@ -502,7 +502,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding SystemLabel}" FontSize="12" Foreground="White" />
-                        <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiary}"
                                    TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                    Text="{Binding SystemHint}" />
                     </StackPanel>
