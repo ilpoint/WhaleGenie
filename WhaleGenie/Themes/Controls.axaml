@@ -1111,8 +1111,12 @@
       底、卡片自己也有），所以先有"行全透明"这一档，卡片才敢往里放。写 `Border.Card.*` 之前先确认
       `.Bare` 在。
     -->
-<Style Selector="GridSplitter.Split">
-        <Setter Property="Width" Value="6" />
+<!--
+      **样式只管外观，尺寸留给元素。** 分隔条的朝向是**布局决定的**：竖条有宽、横条有高。
+      样式统一给 `Width=6` 必然错一半——横向条会被压成 6px 宽，可抓的地方缩成中间一小条，
+      **而且不报任何错**。宽高属于"使用场景"，不属于"外观"。
+    -->
+    <Style Selector="GridSplitter.Split">
         <Setter Property="Background" Value="Transparent" />
     </Style>
 <Style Selector="GridSplitter.Split:pointerover">

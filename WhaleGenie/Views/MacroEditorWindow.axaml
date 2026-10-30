@@ -308,7 +308,7 @@
                     </Grid>
                 </Border>
 
-                <GridSplitter Grid.Row="1" Height="8" Classes="Split" Background="Transparent"
+                <GridSplitter Grid.Row="1" Height="6" Classes="Split" Background="Transparent"
                               ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                               Cursor="SizeNorthSouth" />
 
@@ -1139,11 +1139,11 @@
                </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="1" Width="16" Classes="Split" Background="Transparent"
+            <GridSplitter Grid.Column="1" Width="6" Classes="Split" Background="Transparent"
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                           Cursor="SizeWestEast" />
 
-            <GridSplitter Grid.Column="3" Width="16" Classes="Split" Background="Transparent"
+            <GridSplitter Grid.Column="3" Width="6" Classes="Split" Background="Transparent"
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                           Cursor="SizeWestEast" />
 
