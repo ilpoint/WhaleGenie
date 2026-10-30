@@ -70,7 +70,7 @@ foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
                 ReportSeams(frame);
             }
 
-            if (name == "ActionEditor")
+            if (name is "ActionEditor" or "MacroEditor")
             {
                 ReportPitch(window);
             }
@@ -121,6 +121,18 @@ static IEnumerable<(string Name, Func<Window> Make)> Screens()
     yield return ("MacroEditor", () =>
     {
         var window = new MacroEditorWindow();
+        window.Opened += (_, _) =>
+        {
+            // 动作卡片要有分类才渲染。
+            var rail = window.GetVisualDescendants()
+                .OfType<Button>()
+                .FirstOrDefault(button => button.Classes.Contains("Rail"));
+            if (rail is not null)
+            {
+                rail.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                Dispatcher.UIThread.RunJobs();
+            }
+        };
         window.Opened += (_, _) =>
         {
             // 分隔条到底多宽：**读渲染后的 Bounds**，不读 `Width`（那是"要多少"，
@@ -227,13 +239,22 @@ static void ReportPitch(Window window)
         .Where(border => border.Classes.Contains("Row"))
         .ToList();
 
+    // 变量墙那几行也是 `Secondary`，但它们不带 `Block`（高度写在元素上是 28）。
+    var wallRows = window.GetVisualDescendants()
+        .OfType<Button>()
+        .Where(button => button.Classes.Contains("Secondary") && !button.Classes.Contains("Block"))
+        .ToList();
+
     var blockPitch = Median(Pitch(blocks, window));
     var rowPitch = Median(Pitch(rows, window));
+    var wallPitch = Median(Pitch(wallRows, window));
 
     Console.WriteLine($"    · 左栏动作卡片（Block）{blocks.Count} 个，行距中位数 = "
         + (blockPitch is { } b ? $"{b:0.#} px" : "取不到"));
     Console.WriteLine($"    · 右栏行（Row）{rows.Count} 个，行距中位数 = "
         + (rowPitch is { } r ? $"{r:0.#} px" : "取不到"));
+    Console.WriteLine($"    · 右栏变量行（Secondary 非 Block）{wallRows.Count} 个，行距中位数 = "
+        + (wallPitch is { } w ? $"{w:0.#} px" : "取不到"));
 }
 
 // 在窗口中部扫一行，把连续同色的段打出来。
