@@ -490,6 +490,10 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
 只能人过一遍。所以**能在无头里跑到的部分要有用例**，只留人眼能判的给手动。下列各项每项按环境（Windows 版本、
 DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果三项记进提交信息；只写"已手动过"不算结论。
 
+- **浅色主题下这三处小字能不能读**（三级灰落完之后最淡的三处，**只有真机能判**）：
+  ① `VariableWall` 芯片上的字（三级灰压 `SurfaceField`）；② `DelayScaleWindow` 那行附注（压 `SurfacePanel`）；
+  ③ **`RunWindow` 的时间戳**（11px + 三级灰 + 压 `SurfacePanel`）——**这条最容易糊：小字、最淡的灰、面板底**。
+  判据是"**读得出来**"，不是"看着还行"。
 - **两套主题各看一次这两处的对比度**（**只有真机能判**：令牌名对不对读代码能判，浅灰底上黑字够不够清楚判不了）：
   ① 设置窗 `PageTab.selected` 的**选中页签**（底 `AppBorder`、字 `TextPrimary`）；
   ② 主窗 `BottomButton` 的**底部按钮**（底 `AppControl`、字 `TextPrimary`）。

@@ -281,7 +281,8 @@
                          a macro can be typing while another is reading the page. -->
                     <TextBlock Grid.Column="8" Name="BrowserOwnerText" Margin="12,0,0,0"
                                VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FB8D9"
+                               TextTrimming="CharacterEllipsis" FontSize="12"
+                               Foreground="{DynamicResource Warning}"
                                IsVisible="{Binding ShowsBrowserOwner}"
                                Text="{Binding BrowserOwnerLine}" />
                 </Grid>
