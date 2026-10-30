@@ -31,16 +31,6 @@
         </Style>
 
         <!-- The writing the step read, in a box it can be copied out of. -->
-        <Style Selector="TextBox.ReadText">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="MinHeight" Value="58" />
-        </Style>
     </Window.Styles>
 
     <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
@@ -122,7 +112,7 @@
                                         Click="OnCopyText"
                                         Content="{Binding [Look.CopyText], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
-                            <TextBox Name="ReadText" Classes="ReadText" IsReadOnly="True"
+                            <TextBox Name="ReadText" Classes="Code" IsReadOnly="True"
                                      AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="150" />
                         </StackPanel>
                     </Grid>
