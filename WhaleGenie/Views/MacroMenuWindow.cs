@@ -432,7 +432,9 @@ public sealed class MacroMenuWindow : Window
         _searchHost.IsHitTestVisible = open;
         _search.Focusable = open;
         _search.IsTabStop = open;
-        _searchButton.Classes.Set("On", open);
+        // 这个窗没有 axaml，声明不了本地样式；"开"的状态一直是由下面这行 `Background` 画的。
+        // 原来还有一行给按钮贴了个"开"的类名，它从来没配到过任何样式，已删。
+        // （注释里不写那个调用的原文：扫描按文本找类名，写在注释里会被当成真的加类。）
         _searchButton.Background = open
             ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
             : Brushes.Transparent;
@@ -458,7 +460,6 @@ public sealed class MacroMenuWindow : Window
         }
 
         _pinned = pinned;
-        _pinButton.Classes.Set("On", pinned);
         _pinButton.Background = pinned
             ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
             : Brushes.Transparent;
@@ -845,6 +846,9 @@ public sealed class MacroMenuWindow : Window
             VerticalContentAlignment = VerticalAlignment.Center,
             Cursor = ButtonCursor,
         };
+
+        // 这个类没有样式，但它**有用**：六个菜单测试按 `Classes.Contains("MenuCell")` 找格子。
+        // 删它会把测试变成"找不到元素"——**"没有样式"不等于"没人用"**，测试也是消费者。
         button.Classes.Add("MenuCell");
         return button;
     }

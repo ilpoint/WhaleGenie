@@ -522,13 +522,20 @@ public class ClassAuditTests
             }
         }
 
+        // **测试也是消费者。** 六个菜单测试按 `Classes.Contains("MenuCell")` 找格子，
+        // 按 `MenuIconChoice` 找图标钮——它们没有样式，但删了会让测试变成"找不到元素"。
+        // "没有样式"不等于"没人用"：这条检查问的是样式，答案必须把"用途"也算进来。
+        var tests = string.Join("\n", Directory.EnumerateFiles(
+            Path.Combine(root, "WhaleGenie.Tests"), "*.cs").Select(File.ReadAllText));
+
         var findings = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.cs"))
         {
             var code = File.ReadAllText(path);
             foreach (var name in ClassesAddedInCode(code))
             {
-                if (declared.Contains(name))
+                if (declared.Contains(name)
+                    || Regex.IsMatch(tests, $@"Contains\(\s*""{Regex.Escape(name)}"""))
                 {
                     continue;
                 }
