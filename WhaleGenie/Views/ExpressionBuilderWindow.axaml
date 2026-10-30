@@ -17,7 +17,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:ExpressionBuilderViewModel />
@@ -31,10 +31,10 @@
         <!-- One part of the palette, and the box the whole palette stands in: reading what can go
              into a formula means seeing where one kind of thing stops and the next begins. -->
         <Style Selector="TextBox.ExprInput">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="9,7" />
@@ -43,10 +43,10 @@
         <!-- A box that only narrows what is under it: smaller than the box a formula is written in,
              because it holds a word at a time rather than a formula. -->
         <Style Selector="TextBox.Filter">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,5" />
@@ -58,9 +58,9 @@
              They are all one size, so the palette reads as a wall of things to point at rather than
              as a handful of different walls. -->
         <Style Selector="Button.ExprOption">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="FontSize" Value="12.5" />
@@ -73,16 +73,16 @@
             <Setter Property="Cursor" Value="Hand" />
         </Style>
         <Style Selector="Button.ExprOption:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
 
         <!-- A function is a thing to pick up and put down, not a colour swatch: it reads like the
              action buttons in the macro editor, so the words stay dark and the group colour does not compete
              with them. -->
         <Style Selector="Button.FnCard">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="13" />
@@ -93,14 +93,14 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FnCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
 
         <!-- Which page of the builder is in front. The two read as a switch rather than as a pair
              of buttons, because the left half of the window changes the moment one is pressed. -->
         <Style Selector="Button.ExprTab">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Height" Value="26" />
@@ -109,7 +109,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.ExprTab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
         <!--
           这两条原来写的是 `Button.Tab.on`，而元素上挂的是 `ExprTab` + `on`——**`Tab` 与 `ExprTab`
@@ -127,24 +127,24 @@
         <!-- One line of the formula. Picking is what a click does, so the line says when it is the
              one the next click from the palette goes into. -->
         <Style Selector="Border.Row">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppSurface}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="6,3" />
             <Setter Property="Margin" Value="0,0,0,3" />
         </Style>
         <Style Selector="Border.Row.picked">
-            <Setter Property="Background" Value="{DynamicResource AppInfoSoft}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppInfo}" />
+            <Setter Property="Background" Value="{DynamicResource InfoSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Info}" />
         </Style>
         <Style Selector="Border.Row.drop">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <Style Selector="TextBlock.ArgLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
+            <Setter Property="Foreground" Value="{DynamicResource Warning}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
 
@@ -153,17 +153,17 @@
     </Window.Styles>
 
     <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
+                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                            VerticalAlignment="Center" />
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
                         VerticalAlignment="Center">
                 <Button Classes="Chrome Icon" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -186,7 +186,7 @@
                 <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"
                               IsVisible="{Binding IsTreePage}">
                     <StackPanel>
-                        <TextBlock Classes="Hint" Foreground="{DynamicResource AppWarning}" TextWrapping="Wrap"
+                        <TextBlock Classes="Hint" Foreground="{DynamicResource Warning}" TextWrapping="Wrap"
                                    Margin="2,0,0,6" Text="{Binding TreeCannotRead}"
                                    IsVisible="{Binding TextUnreadable}" />
                         <ItemsControl Name="TreeRows" ItemsSource="{Binding Rows}"
@@ -330,7 +330,7 @@
 
                 <StackPanel Name="HintBlock" Spacing="3" Margin="2,0,0,10">
                     <TextBlock Classes="Hint" TextWrapping="Wrap"
-                               Foreground="{DynamicResource AppWarning}"
+                               Foreground="{DynamicResource Warning}"
                                Text="{Binding PaletteNotice}"
                                IsVisible="{Binding HasPaletteNotice}" />
                     <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding PaletteHint}" />
@@ -347,7 +347,7 @@
                                 <TextBlock Classes="Note" TextWrapping="Wrap"
                                            Text="{Binding TreePreviewHeader}"
                                            IsVisible="{Binding IsTreePage}" />
-                                <TextBlock Classes="Note" TextWrapping="Wrap" Foreground="{DynamicResource AppText}"
+                                <TextBlock Classes="Note" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimary}"
                                            Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
                             </StackPanel>
                         </ScrollViewer>
@@ -357,18 +357,18 @@
                                 <!-- The formula said in plain Chinese: a reader who does not follow
                                      the formula can still check the logic against it. -->
                                 <TextBlock Name="SayingLine" Classes="Note" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource AppInfo}" Text="{Binding Saying}"
+                                           Foreground="{DynamicResource Info}" Text="{Binding Saying}"
                                            IsVisible="{Binding ShowsSaying}" />
                                 <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding TreeMessage}"
                                            IsVisible="{Binding ShowTreeNote}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
                                            Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
                                            Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
                                 <!-- What the page written out by hand has to say about the text. -->
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
                                            Text="{Binding Message}" IsVisible="{Binding ShowError}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
                                            Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
                             </StackPanel>
                         </ScrollViewer>
@@ -394,7 +394,7 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionFunctionFilter">
                                     <TextBlock Text="{Binding Label}" FontSize="12"
-                                               Foreground="{DynamicResource AppText}" />
+                                               Foreground="{DynamicResource TextPrimary}" />
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -418,7 +418,7 @@
                                                     BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
                                                     Click="OnInsertFunction">
                                                 <TextBlock Text="{Binding Heading}"
-                                                           Foreground="{DynamicResource AppTextStrong}" />
+                                                           Foreground="{DynamicResource TextPrimary}" />
                                                 <!-- What a card cannot say: how the call is written in
                                                      the reader's own language, how many places it asks
                                                      for, one line saying what it does, and one line
@@ -426,13 +426,13 @@
                                                 <ToolTip.Tip>
                                                     <StackPanel MaxWidth="360" Spacing="4">
                                                         <TextBlock Text="{Binding Heading}" FontSize="12.5"
-                                                                   Foreground="{DynamicResource AppText}" />
+                                                                   Foreground="{DynamicResource TextPrimary}" />
                                                         <TextBlock Text="{Binding WrittenAs}" FontSize="12"
-                                                                   Foreground="{DynamicResource AppInfo}" TextWrapping="Wrap" />
+                                                                   Foreground="{DynamicResource Info}" TextWrapping="Wrap" />
                                                         <TextBlock Text="{Binding ArityNote}" FontSize="11.5"
-                                                                   Foreground="{DynamicResource AppInfo}" />
+                                                                   Foreground="{DynamicResource Info}" />
                                                         <TextBlock Text="{Binding Hint}" FontSize="12"
-                                                                   Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap" />
                                                         <ItemsControl ItemsSource="{Binding Arguments}"
                                                                       Margin="0,2,0,0">
                                                             <ItemsControl.ItemTemplate>
@@ -441,11 +441,11 @@
                                                                           ColumnSpacing="6" Margin="0,3,0,0">
                                                                         <TextBlock Text="{Binding Label}"
                                                                                    FontSize="11.5"
-                                                                                   Foreground="{DynamicResource AppLabel}" />
+                                                                                   Foreground="{DynamicResource Warning}" />
                                                                         <TextBlock Grid.Column="1"
                                                                                    Text="{Binding Hint}"
                                                                                    FontSize="11.5"
-                                                                                   Foreground="{DynamicResource AppMuted}"
+                                                                                   Foreground="{DynamicResource TextTertiary}"
                                                                                    TextWrapping="Wrap" />
                                                                     </Grid>
                                                                 </DataTemplate>
