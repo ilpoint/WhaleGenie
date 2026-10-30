@@ -89,18 +89,6 @@
         <Style Selector="ListBox.StepList ListBoxItem:selected /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>
-        <!-- The row look lives here, not on the element, so the selected state can win. -->
-        <Style Selector="Border.StepRow">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="10,8" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-            <Setter Property="BorderBrush" Value="#FF6A35" />
-        </Style>
 
         <!-- Trigger entries are choices, so the whole card carries the selected state. -->
         <Style Selector="ListBox.TriggerEntries">
@@ -122,26 +110,7 @@
         <Style Selector="ListBox.TriggerEntries ListBoxItem:selected /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppSelected}" />
         </Style>
-        <Style Selector="Border.TriggerCard">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="8,6" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem:selected Border.TriggerCard">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="#FF6A35" />
-        </Style>
 
-        <!-- A step the design-time check is unhappy about: the row keeps its place and gains an
-             amber edge and mark, so what is wrong is visible without opening anything. -->
-        <Style Selector="Border.StepRow.problem">
-            <Setter Property="BorderBrush" Value="#C8913C" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow.problem">
-            <Setter Property="BorderBrush" Value="#FFB45C" />
-        </Style>
         <Style Selector="views|IconView.ProblemMark">
             <Setter Property="Width" Value="15" />
             <Setter Property="Height" Value="15" />
@@ -415,7 +384,7 @@
                                              Background="Transparent" BorderThickness="0" Padding="0">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate x:DataType="models:TriggerEntry">
-                                                <Border Classes="TriggerCard">
+                                                <Border Classes="Card Selectable">
                                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                                         <CheckBox IsChecked="{Binding IsEnabled}"
                                                                   VerticalAlignment="Center" />
@@ -1077,7 +1046,7 @@
                               <Panel>
                                   <!-- A step, indented by how deep it sits. A block carries a
                                        fold arrow, so what is inside it can be put away. -->
-                                  <Border Classes="StepRow" Classes.problem="{Binding HasProblem}"
+                                  <Border Classes="Card Selectable" Classes.problem="{Binding HasProblem}"
                                           Opacity="{Binding RowOpacity}"
                                           Margin="{Binding Indent}"
                                           ToolTip.Tip="{Binding IdHint}"
