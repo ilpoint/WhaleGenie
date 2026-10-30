@@ -19,48 +19,9 @@
         Background="{DynamicResource AppBackdrop}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.RunColumnHeader">
-            <Setter Property="Foreground" Value="#8A8A8A" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Margin" Value="10,0,0,4" />
-        </Style>
 
         <!-- Which half of the window is showing, and the variables half's own pages. -->
-        <Style Selector="Button.Tab">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,6" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.Tab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-        </Style>
-        <Style Selector="Button.Tab.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-        </Style>
-        <Style Selector="Button.Tab.active">
-            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-        </Style>
 
-        <Style Selector="Border.VarRow">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="10,8" />
-            <Setter Property="Margin" Value="0,0,0,5" />
-        </Style>
-        <Style Selector="TextBox.VarInput">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="8,5" />
-            <Setter Property="MinHeight" Value="30" />
-        </Style>
         <Style Selector="ComboBox.VarSelect">
             <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
@@ -70,19 +31,6 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="MinHeight" Value="30" />
-        </Style>
-        <Style Selector="Button.RemoveButton">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RemoveButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#B03A1A" />
         </Style>
 
         <!-- The edge between two halves: a hairline down the middle of the band that is dragged, so
@@ -610,13 +558,13 @@
                    Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
         <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,4" ColumnSpacing="6"
               IsVisible="{Binding HasVariables}">
-            <TextBlock Classes="RunColumnHeader" Margin="0,0,0,4"
+            <TextBlock Classes="ColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="1" Classes="RunColumnHeader" Margin="0,0,0,4"
+            <TextBlock Grid.Column="1" Classes="ColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="2" Classes="RunColumnHeader" Margin="0,0,0,4"
+            <TextBlock Grid.Column="2" Classes="ColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Grid.Column="3" Classes="RunColumnHeader" Margin="0,0,0,4"
+            <TextBlock Grid.Column="3" Classes="ColumnHeader" Margin="0,0,0,4"
                        Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
         </Grid>
         <ItemsControl ItemsSource="{Binding Variables}">
