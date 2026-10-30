@@ -179,6 +179,122 @@ public class ClassAuditTests
         return chains.ToDictionary(pair => pair.Key, pair => (IEnumerable<string[]>)pair.Value);
     }
 
+    // ── 第二条：定义了没人用 ────────────────────────────────────────────────
+    //
+    // 与上面那条成对。上面查"挂了类但没样式"（屏幕上少一段，报告扫描能发现）；这一条查
+    // "写了样式但没人挂"（代码里多一段没人走的，**没有任何检查会发现**）。
+    //
+    // 实见：`RunWindow` 32 条里有 6 条从没被用过——`VarRow`、`VarInput` 全仓零出现，
+    // `Button.Tab` 的消费者在另一个窗、够不着。它们能活到今天，就是因为缺这一条。
+    //
+    // 消费者要数三处，漏第三处会把"测试在用的类"判成死的：
+    //   ① XAML 的 `Classes="…"`（含组合写法）与 `Classes.名字=`（绑定式加类）
+    //   ② `.cs` 里的 `Classes.Add("…")` / `Classes = { "…" }` / `Classes.Set("…")`
+    //   ③ 测试里的 `Contains("…")`（按类名找元素）
+    //
+    // **只报告，不失败**：静态数不出"运行时拼出来的类名"，误报会让人把检查关掉。
+    // 唯一会失败的是白名单自己过期——与上面那条同一个理由。
+
+    /// <summary>
+    /// 已知"没有消费者也没问题"的类，每条必须写原因。与上一条的白名单同规矩：**它也在被检查**——
+    /// 条目不再出现时同样要报，因为那说明原因可能已经不成立。
+    /// </summary>
+    private static readonly Dictionary<string, string> KnownUnused =
+        new(StringComparer.Ordinal);
+
+    [Fact]
+    public void Styles_without_a_consumer_are_reported_and_the_whitelist_is_checked()
+    {
+        var findings = Unused().Where(pair => !KnownUnused.ContainsKey(pair.Key))
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var (name, where) in findings)
+        {
+            _output.WriteLine($"no consumer for: {name} ({where})");
+        }
+
+        _output.WriteLine($"reported {findings.Count}, whitelisted {KnownUnused.Count}");
+
+        var stale = KnownUnused.Keys.Where(name => !Unused().ContainsKey(name))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+        Assert.True(
+            stale.Count == 0,
+            "these whitelist entries no longer appear, so their reasons need a second look: "
+            + string.Join(", ", stale));
+    }
+
+    /// <summary>
+    /// 每个窗自己声明、却找不到任何消费者的类名，带回它定义在哪个文件。
+    /// 只查窗口/控件本地的样式：库里的类（`Controls.axaml`）是全仓共用的，不在这个范围。
+    /// </summary>
+    private static Dictionary<string, string> Unused()
+    {
+        var root = RepositoryRoot();
+        var views = Path.Combine(root, "WhaleGenie", "Views");
+        var tests = Path.Combine(root, "WhaleGenie.Tests");
+
+        // 全部 .cs（含 Views 与 Runtime）与全部测试，拼成一份可搜的文本
+        var code = string.Join("\n", Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Select(File.ReadAllText));
+        var testCode = string.Join("\n", Directory.EnumerateFiles(tests, "*.cs").Select(File.ReadAllText));
+
+        var unused = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(views, "*.axaml"))
+        {
+            var text = File.ReadAllText(path);
+            var name = Path.GetFileName(path);
+
+            foreach (var (type, chains) in Declared(text))
+            {
+                foreach (var chain in chains)
+                {
+                    foreach (var token in chain)
+                    {
+                        // 只有"带修饰的那一层"可能是死的；基类那一层由父选择器共用
+                        if (HasConsumer(text, testCode, code, token))
+                        {
+                            continue;
+                        }
+
+                        unused.TryAdd($"{type}.{string.Join('.', chain)}", name);
+                    }
+                }
+            }
+        }
+
+        return unused;
+    }
+
+    private static bool HasConsumer(string xaml, string tests, string code, string name)
+    {
+        var escaped = Regex.Escape(name);
+
+        // ① XAML：组合写法里出现这个词，或绑定式加类
+        if (Regex.IsMatch(xaml, $@"Classes=""[^""]*\b{escaped}\b[^""]*"""))
+        {
+            return true;
+        }
+
+        if (Regex.IsMatch(xaml, $@"Classes\.{escaped}="))
+        {
+            return true;
+        }
+
+        // ② 代码里加类：Add / 初始化器 / Set
+        if (Regex.IsMatch(code, $@"(?:Add|Set)\(\s*""{escaped}""")
+            || Regex.IsMatch(code, $@"Classes\s*=\s*\{{[^}}]*""{escaped}"""))
+        {
+            return true;
+        }
+
+        // ③ 测试按类名找元素
+        return Regex.IsMatch(tests, $@"Contains\(\s*""{escaped}""");
+    }
+
     private static string RepositoryRoot([CallerFilePath] string here = "")
     {
         var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
