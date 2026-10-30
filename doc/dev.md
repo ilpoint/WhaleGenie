@@ -598,6 +598,15 @@ DPI、显示器数量、Edge/Python/AutoHotkey 版本）、步骤与观察结果
    实见于 `VariableFieldPickerWindow`：换 6 处类、删 9 行赋值；验收标准就是"这个 `.cs` 里
    `FontSize =` / `Margin =` / `Foreground =` 一处都没有"。
    它与"删样式前先看它还带了什么"是一对：**一个防漏删，一个防漏加。**
+13. **`Brush(key, fallback)` 里的 fallback 是裸值温床。** 它**平时不生效**（资源在就不走它），
+   **换主题也不跟着变**，却让人以为"这里的颜色已经处理过"——**不起作用，但让人以为起作用**，
+   比写死在 `Foreground=` 上更坏（那个至少还在起作用）。
+   所以扫裸值不能只 grep `"#RRGGBB"`：**参数位置上的 `Color.FromRgb` / `Color.FromArgb`
+   要单独看**。这一条已做成报告扫描（`ClassAuditTests` 的第五条），按"直接设色 / 回退参数"分开列。
+
+14. **换类之后，删掉那些"和类表达同一件事"的属性。** `Opacity = 0.62` 配 `Caption`（三级灰）
+   是**把事情说了两遍**：叠加之后比设计意图更暗。与"一色两用"同族——那次是两种含义共用一个值，
+   这次是两种手段共用一个效果。同类还有 `FontWeight`、`TextWrapping`、`TextTrimming`。
 
 两条与记录有关的：
 

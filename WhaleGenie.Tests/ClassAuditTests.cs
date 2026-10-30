@@ -555,6 +555,58 @@ public class ClassAuditTests
         return findings;
     }
 
+    // ── 第五条：C# 里的裸色值（含藏在回退参数里的） ─────────────────────
+    //
+    // 窗口里那批靠 grep `"#RRGGBB"` 就够；C# 里不够——**`Brush(key, Color.FromRgb(…))` 的 fallback
+    // 是裸值温床**：平时走资源看不出问题，回退值藏在参数里、不在显眼位置。
+    // 实见于 `MenuMacroPickerWindow`：那处 `#202020` 既不起作用（资源在就不走它）、
+    // 换主题时也不跟着变——**不起作用，但让人以为起作用**。
+    //
+    // 所以这条按"值出现在哪"分类报：直接设色 vs 回退参数，后者要单独看。
+    // 只报告不失败（与其余几条同规矩）。
+
+    [Fact]
+    public void Bare_colours_in_code_are_reported_with_where_they_sit()
+    {
+        var root = RepositoryRoot();
+        var views = Path.Combine(root, "WhaleGenie", "Views");
+        var direct = new List<string>();
+        var fallback = new List<string>();
+
+        foreach (var path in Directory.EnumerateFiles(views, "*.cs"))
+        {
+            var lines = File.ReadAllLines(path);
+            for (var index = 0; index < lines.Length; index++)
+            {
+                var line = lines[index];
+                if (!Regex.IsMatch(line, @"Color\.(?:FromRgb|FromArgb|Parse)\("))
+                {
+                    continue;
+                }
+
+                var where = $"{Path.GetFileName(path)}:{index + 1}";
+                // `Brush("Key", Color.FromRgb(…))` / `TryFindResource … ?? Color.…`：落在回退位置的
+                var isFallback = Regex.IsMatch(line, @"Brush\([^)]*Color\.(?:FromRgb|FromArgb)")
+                    || index > 0 && Regex.IsMatch(lines[index - 1], @"Brush\([^)]*$");
+                (isFallback ? fallback : direct).Add(where);
+            }
+        }
+
+        foreach (var where in direct.OrderBy(text => text, StringComparer.Ordinal))
+        {
+            _output.WriteLine($"bare colour (set directly): {where}");
+        }
+
+        foreach (var where in fallback.OrderBy(text => text, StringComparer.Ordinal))
+        {
+            _output.WriteLine($"bare colour (fallback parameter): {where}");
+        }
+
+        _output.WriteLine(
+            $"direct {direct.Count}, fallback {fallback.Count} — fallback 那些平时不生效，"
+            + "换主题也不跟着变，却让人以为颜色已经处理过");
+    }
+
     private static string RepositoryRoot([CallerFilePath] string here = "")
     {
         var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
