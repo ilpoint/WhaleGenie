@@ -28,16 +28,14 @@
     <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
   </PropertyGroup>
 
-  <Target Name="DropPublishSymbols" AfterTargets="ComputeFilesToPublish"
-          Condition="'$(Configuration)' == 'Release'">
+  <Target Name="DropPublishSymbols" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
     <!-- SkiaSharp 与 HarfBuzzSharp 把原生库的 pdb 当作内容文件抄进发布目录，属性关不掉。 -->
     <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish->WithMetadataValue('Extension', '.pdb'))" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish-&gt;WithMetadataValue('Extension', '.pdb'))" />
     </ItemGroup>
   </Target>
 
-  <Target Name="MoveNativeLibrariesIntoLib" AfterTargets="Publish"
-          Condition="'$(PublishSingleFile)' == 'true'">
+  <Target Name="MoveNativeLibrariesIntoLib" AfterTargets="Publish" Condition="'$(PublishSingleFile)' == 'true'">
     <!--
       单文件发布之后发布目录里剩下的 dll 全是原生库。Windows 与这些库自己都按文件名找它们，
       exe 启动时会把 lib 交给 Windows 的查找路径，所以直接发布也得到和便携包一样的形状。
@@ -46,8 +44,7 @@
       <_PublishedNativeLibrary Include="$(PublishDir)*.dll" />
     </ItemGroup>
     <MakeDir Directories="$(PublishDir)lib" />
-    <Move SourceFiles="@(_PublishedNativeLibrary)" DestinationFolder="$(PublishDir)lib"
-          Condition="'@(_PublishedNativeLibrary)' != ''" />
+    <Move SourceFiles="@(_PublishedNativeLibrary)" DestinationFolder="$(PublishDir)lib" Condition="'@(_PublishedNativeLibrary)' != ''" />
   </Target>
 
   <ItemGroup>
@@ -71,6 +68,8 @@
       ASP.NET Core is not referenced here at all. The SDK supplies the protocol, the transport over
       a pair of streams, and tool discovery. Nothing of this reaches WhaleGenie.Core.
     -->
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+    <PackageReference Include="FluentAvaloniaUI" Version="3.1.0" />
     <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
   </ItemGroup>

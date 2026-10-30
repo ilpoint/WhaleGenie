@@ -35,6 +35,13 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/AvaloniaUI/Avalonia>
 - Avalonia.Controls.ColorPicker — MIT
   <https://github.com/AvaloniaUI/Avalonia>
+- Avalonia.Controls.DataGrid — MIT
+  <https://github.com/AvaloniaUI/Avalonia>
+- FluentAvalonia（FluentAvaloniaUI）— MIT
+  <https://github.com/amwx/FluentAvalonia>
+  它把 WinUI 的控件与模板带到 Avalonia；WinUI 与 Avalonia 均为 MIT。
+- MicroCom.Runtime — MIT
+  <https://github.com/kekekeks/MicroCom>
   Avalonia.Fonts.Inter 里带的是 Inter 字体，字体本身按 SIL OFL 1.1 授权：
   <https://github.com/rsms/inter>
 - Avalonia.Angle.Windows.Natives（OpenGL 后端，ANGLE 的 libGLESv2）— BSD-3-Clause
