@@ -1093,7 +1093,7 @@
         </Style>
         <Style Selector="Button.PageTab.selected /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 

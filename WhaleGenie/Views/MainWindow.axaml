@@ -81,7 +81,7 @@
         <!-- Bottom buttons -->
         <Style Selector="Button.BottomButton">
             <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="14,10" />
             <Setter Property="FontSize" Value="13" />
