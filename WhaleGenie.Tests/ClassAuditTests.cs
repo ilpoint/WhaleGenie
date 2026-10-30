@@ -528,10 +528,20 @@ public class ClassAuditTests
             var code = File.ReadAllText(path);
             foreach (var name in ClassesAddedInCode(code))
             {
-                if (!declared.Contains(name))
+                if (declared.Contains(name))
                 {
-                    findings.TryAdd(name, Path.GetFileName(path));
+                    continue;
                 }
+
+                // 报错信息里给候选，等于把排查的一步省掉：`On` 与 `.on` 差大小写，
+                // 人读代码时不会逐字比大小写，但扫描可以。
+                var near = declared.FirstOrDefault(candidate =>
+                    string.Equals(candidate, name, StringComparison.OrdinalIgnoreCase));
+                findings.TryAdd(
+                    name,
+                    near is null
+                        ? Path.GetFileName(path)
+                        : $"{Path.GetFileName(path)} — 最接近的是 .{near}（大小写不同）");
             }
         }
 
