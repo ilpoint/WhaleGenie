@@ -84,10 +84,16 @@ public class LanguageRefreshTests
             Assert.True(model.Types.Count > 0, "the interface has no kinds to label");
             english = model.Types[0].Label;
             Assert.False(string.IsNullOrWhiteSpace(english), "the English label came out empty");
+            Assert.Equal(Language.English, Strings.Current.Language);
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
+            // Checked before the refresh, not after: if the switch never took, the labels would
+            // come out equal for a reason that has nothing to do with refreshing, and the failure
+            // would blame the wrong thing.
+            Assert.Equal(Language.Chinese, Strings.Current.Language);
+
             model!.RefreshLanguage();
             var chinese = model.Types[0].Label;
 
