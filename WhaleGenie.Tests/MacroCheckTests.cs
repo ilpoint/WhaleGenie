@@ -11,6 +11,7 @@ namespace WhaleGenie.Tests;
 /// mistakes a run would otherwise report late or hide, so the cases here are the ones it decides
 /// from the steps alone — and the ones it must keep quiet about.
 /// </summary>
+[RestoreSharedState]
 public class MacroCheckTests
 {
     private static MacroStep Step(string type, params StepParameter[] parameters)
@@ -48,6 +49,34 @@ public class MacroCheckTests
         => Step("control.runMacro", Text("macro", macro), Results(wants));
 
     /// <summary>The results a step hands over, one row each, named the way the file writes them.</summary>
+    /// <summary>What a call passes, one row per argument, written the way a call is written.</summary>
+    private static StepParameter Arguments(params (string Name, string Value)[] arguments)
+        => ArgumentRows(arguments, given: false);
+
+    /// <summary>The same rows, each saying the empty value is the value it passes.</summary>
+    private static StepParameter ArgumentsGiven(params (string Name, string Value)[] arguments)
+        => ArgumentRows(arguments, given: true);
+
+    private static StepParameter ArgumentRows(
+        (string Name, string Value)[] arguments, bool given)
+        => new()
+        {
+            Name = FieldNames.Arguments,
+            Kind = ActionParameterKind.Arguments,
+            Rows =
+            [
+                .. arguments.Select(argument => new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        [FieldNames.Name] = argument.Name,
+                        [FieldNames.Value] = argument.Value,
+                        [FieldNames.Given] = given ? "true" : "false",
+                    },
+                }),
+            ],
+        };
+
     private static StepParameter Results(params string[] names)
         => Returned([.. names.Select(name => (name, name))]);
 
@@ -87,6 +116,22 @@ public class MacroCheckTests
     private static IReadOnlyList<MacroProblem> Against(string ownName, MacroCallable[] macros,
         params MacroStep[] steps)
         => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros));
+
+    /// <summary>
+    /// A call to a submacro is a call to a macro of this document. With the submacro in the list
+    /// the check has nothing to say about it; with nothing in the list the step is a call into
+    /// thin air, which is what it used to say about a submacro that was right there in the file.
+    /// </summary>
+    [Fact]
+    public void A_call_to_a_submacro_is_known_when_the_submacro_is()
+    {
+        var call = Step("control.runMacro", Text("macro", "里面"));
+
+        Assert.DoesNotContain(Against("外面", [Callable("里面")], call), problem =>
+            problem.Code == "MacroNotFound");
+        Assert.Contains(Against("外面", [], call), problem =>
+            problem.Code == "MacroNotFound");
+    }
 
     /// <summary>
     /// A step that sends keys, written the way the file writes one. What it sends does not matter to
@@ -201,69 +246,6 @@ public class MacroCheckTests
         var quiet = Step("script.ahk",
             Text("script", "Print(\"hi\")"), Flag("sendsInput", false));
         Assert.Empty(Inspect(quiet));
-    }
-
-    /// <summary>
-    /// 启动那一步必须说清楚句柄写进哪个变量；等待与取消那两步必须说清楚句柄从哪来；
-    /// 等全部那一步必须给出一列句柄。
-    /// </summary>
-    [Fact]
-    public void A_background_run_without_a_handle_is_marked()
-    {
-        var call = Step("control.startMacro", Text("macro", "后台"));
-        var wait = Step("control.waitMacro");
-        var cancel = Step("control.cancelMacro");
-        var waitAll = Step("control.waitAll");
-
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
-            Assert.Single(Against("当前", [Callable("后台")], call)).Message);
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
-            Assert.Single(Inspect(wait)).Message);
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
-            Assert.Single(Inspect(cancel)).Message);
-        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandles"),
-            Assert.Single(Inspect(waitAll)).Message);
-
-        var named = Step("control.startMacro", Text("macro", "后台"),
-            Name("runHandleName", "job"));
-        Assert.Empty(Against("当前", [Callable("后台")], named));
-    }
-
-    /// <summary>
-    /// 后台运行的结果要到等待之后才有值：在启动与等待之间读它，编辑期就标出来。
-    /// </summary>
-    [Fact]
-    public void Reading_a_background_result_before_the_wait_is_marked()
-    {
-        var started = Step("control.startMacro", Text("macro", "后台"),
-            Name("runHandleName", "job"), Results("结果"));
-        var early = Step("control.setVariable",
-            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
-        var wait = Step("control.waitMacro", Text("runHandle", "$job"));
-        var late = Step("control.setVariable",
-            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
-
-        var problems = Against("当前", [Callable("后台", [], ["结果"])], started, early, wait, late);
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == early);
-        Assert.Equal(Strings.Format("Editor.Problem.ResultBeforeWait", "结果"), problem.Message);
-        Assert.DoesNotContain(problems, candidate => candidate.Step == late);
-    }
-
-    [Fact]
-    public void Cancelling_a_background_run_does_not_settle_its_results()
-    {
-        var started = Step("control.startMacro", Text("macro", "后台"),
-            Name("runHandleName", "job"), Results("结果"));
-        var cancel = Step("control.cancelMacro", Text("runHandle", "$job"));
-        var read = Step("control.setVariable",
-            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
-
-        var problems = Against("当前", [Callable("后台", [], ["结果"])], started, cancel, read);
-
-        Assert.Contains(problems, problem =>
-            problem.Step == read
-            && problem.Message == Strings.Format("Editor.Problem.ResultBeforeWait", "结果"));
     }
 
     [Fact]
@@ -413,6 +395,105 @@ public class MacroCheckTests
         Assert.Empty(Against("自己", [], Repeat(Call("自己"))));
     }
 
+    /// <summary>
+    /// A record whose declaration names its fields is checkable while the macro is written; one that
+    /// names none is not, because checking against names nobody wrote down would be a guess.
+    /// </summary>
+    private static MacroCallable WithRecord(string name,
+        params (string Name, ActionReturnType Type)[] fields)
+        => new(name,
+            [
+                new MacroParameter
+                {
+                    Name = "点",
+                    Type = ActionReturnType.Record,
+                    Required = true,
+                    Fields = [.. fields.Select(field => new MacroField
+                    {
+                        Name = field.Name,
+                        Type = field.Type,
+                    })],
+                },
+            ], []);
+
+    [Fact]
+    public void A_field_a_declared_record_has_is_left_alone()
+        => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [Set("左", "field($点, \"x\")")],
+            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            [])));
+
+    [Fact]
+    public void A_field_a_declared_record_does_not_have_is_marked()
+    {
+        var step = Set("左", "field($点, \"z\")");
+
+        var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
+            [step],
+            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            [])));
+
+        // The mark names the field that is not there and the ones that are: "wrong field" without
+        // the list would leave the author guessing at the spelling.
+        Assert.Equal("UnknownField", problem.Code);
+        Assert.Same(step, problem.Step);
+        Assert.Contains("z", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("x, y", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_record_that_names_no_fields_is_not_checked()
+        => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [Set("左", "field($点, \"随便\")")],
+            WithRecord("自己"),
+            [])));
+
+    [Fact]
+    public void A_record_a_call_hands_back_is_checked_by_the_called_macro()
+    {
+        var called = new MacroCallable("找图",
+            [new MacroParameter { Name = "图", Required = true }],
+            [
+                new MacroResult
+                {
+                    Name = "命中",
+                    Type = ActionReturnType.Record,
+                    Fields =
+                    [
+                        new MacroField { Name = "left", Type = ActionReturnType.Number },
+                        new MacroField { Name = "top", Type = ActionReturnType.Number },
+                    ],
+                },
+            ]);
+
+        var call = Step("control.runMacro", Text("macro", "找图"), Arguments(("图", "a.png")),
+            Results("命中"));
+
+        // Reading a field of a record a call handed back is checked against the called macro's
+        // declaration: nowhere else says what is in it.
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [call, Set("左", "field($命中, \"left\")")], Callable("自己"), [called])));
+
+        var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
+            [call, Set("左", "field($命中, \"middle\")")], Callable("自己"), [called])));
+        Assert.Equal("UnknownField", problem.Code);
+    }
+
+
+    [Fact]
+    public void Two_calls_side_by_side_writing_one_name_are_marked()
+    {
+        var steps = new[]
+        {
+            Step("control.runMacro", Text("macro", "甲"), Results("一")),
+            Step("control.runMacro", Text("macro", "甲"), Results("一")),
+        };
+
+        var problem = Assert.Single(Against("自己", [Callable("甲", results: ["一"])], steps),
+            candidate => candidate.Code == "DuplicateResultName");
+        Assert.Same(steps[1], problem.Step);
+    }
+
     [Fact]
     public void A_call_that_names_no_macro_is_reported()
         => Assert.Single(Against("自己", [Callable("另一个")], Call("")));
@@ -421,7 +502,7 @@ public class MacroCheckTests
     public void A_call_that_fills_in_a_name_the_called_macro_never_declared_is_reported()
     {
         var passed = Step("control.runMacro",
-            Text("macro", "另一个"), Value("arg.别的", "1"));
+            Text("macro", "另一个"), Arguments(("别的", "1")));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], passed);
         var problem = Assert.Single(problems, candidate =>
@@ -451,7 +532,7 @@ public class MacroCheckTests
     public void A_given_marker_for_an_undeclared_argument_is_marked()
     {
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Flag("arg.别的.given", true));
+            Text("macro", "另一个"), ArgumentsGiven(("别的", "")));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
 
@@ -463,7 +544,7 @@ public class MacroCheckTests
     public void A_given_marker_beside_a_value_is_marked()
     {
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Value("arg.次数", "1"), Flag("arg.次数.given", true));
+            Text("macro", "另一个"), ArgumentsGiven(("次数", "1")));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
 
@@ -482,7 +563,7 @@ public class MacroCheckTests
                 Type = ActionReturnType.Number,
             }], []);
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Text("arg.数量", "不是数"));
+            Text("macro", "另一个"), Arguments(("数量", "不是数")));
 
         var problems = Against("自己", [called], call);
 
@@ -578,26 +659,6 @@ public class MacroCheckTests
 
         Assert.Empty(MacroCheck.DeclarationProblems(byScript));
         Assert.Empty(MacroCheck.DeclarationProblems(inOut));
-    }
-
-    /// <summary>
-    /// A background run started while the macro is inside a browser hold waits for the one page for
-    /// good when the called macro also reaches the browser. The called macro here is the macro
-    /// itself, so the check has to follow its own steps rather than an empty declaration.
-    /// </summary>
-    [Fact]
-    public void A_self_call_is_followed_when_the_macro_uses_the_browser()
-    {
-        var start = Step("control.startMacro",
-            Text("macro", "自己"), Text("runHandleName", "job"));
-        var hold = Step("control.holdBrowser", Steps("steps", start));
-        var browse = Step("browser.goTo", Text("url", "https://example.com"));
-        var own = new MacroCallable("自己", [], [], [hold, browse]);
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([hold, browse], own, []));
-
-        Assert.Contains(problems, problem =>
-            problem.Step == start && problem.Message == Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
     }
 
     [Fact]
@@ -851,7 +912,7 @@ public class MacroCheckTests
         var target = new MacroCallable("整理",
             [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }], []);
         var call = Step("control.runMacro", Text("macro", "整理"),
-            Text(MacroCallFields.Argument("窗口"), "$sys.date"));
+            Arguments(("窗口", "$sys.date")));
 
         var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [target]));
         var problem = Assert.Single(problems, candidate => candidate.Step == call);
@@ -911,38 +972,6 @@ public class MacroCheckTests
         Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
     }
 
-    /// <summary>先要按住浏览器那一页，启动一个用浏览器的后台运行会一直等下去，写宏时就标出来。</summary>
-    [Fact]
-    public void Starting_a_browser_run_inside_a_dialog_is_marked()
-    {
-        var child = Callable("用页面", null, null,
-            Step("browser.click", Text("pageSelector", "#submit")));
-        var start = Step("control.startMacro", Text("macro", "用页面"),
-            Name("runHandleName", "job"));
-        var dialog = Step("browser.dialog", Text("dialogHow", "accept"), Steps("body", start));
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([dialog], null, [child]));
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == start);
-        Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
-    }
-
-    /// <summary>A block that holds the browser door is the same answer as a dialog for a start inside it.</summary>
-    [Fact]
-    public void Starting_a_browser_run_inside_a_held_browser_is_marked()
-    {
-        var child = Callable("用页面", null, null,
-            Step("browser.click", Text("pageSelector", "#submit")));
-        var start = Step("control.startMacro", Text("macro", "用页面"),
-            Name("runHandleName", "job"));
-        var hold = Step("control.holdBrowser", Steps("steps", start));
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([hold], null, [child]));
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == start);
-        Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
-    }
-
     /// <summary>两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。</summary>
     [Fact]
     public void A_circle_of_calls_does_not_make_the_analysis_run_forever()
@@ -985,7 +1014,6 @@ public class MacroCheckTests
     [InlineData("sys.loopIndex")]
     [InlineData("sys.anything")]
     [InlineData("step.abcd.outcome")]
-    [InlineData("step.abcd.error")]
     public void A_variable_using_a_name_the_run_keeps_is_reported(string name)
     {
         var step = Set(name, "1");

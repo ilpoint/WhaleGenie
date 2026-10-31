@@ -1,179 +1,96 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
         xmlns:cp="using:Avalonia.Controls"
-        xmlns:models="using:WhaleGenie.Models"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="780" d:DesignHeight="620"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
         x:Class="WhaleGenie.Views.ThemePaletteWindow"
         x:DataType="vm:ThemePaletteViewModel"
         Title="WhaleGenie"
-        Width="780" Height="680"
+        Width="560" Height="420"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:ThemePaletteViewModel />
     </Design.DataContext>
 
-    <Window.Styles>
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.ColorRow">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="7,5" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        </Style>
-        <Style Selector="Button.ColorRow:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.ColorRow.selected">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-        </Style>
-        <Style Selector="TextBlock.GroupName">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="8,12,0,5" />
-        </Style>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-    </Window.Styles>
 
-    <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding [Theme.Palette.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
+    <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" Margin="16,12" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+            <StackPanel Grid.Row="0" Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
+                               VerticalAlignment="Center" />
+                    <ToggleSwitch IsChecked="{Binding BaseLight}"
+                                  OnContent="{Binding [Theme.Base.Light], Source={x:Static loc:Strings.Current}}"
+                                  OffContent="{Binding [Theme.Base.Dark], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Theme.Base.Hint], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
-            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
-                    Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
-                                StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
-            </Button>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding [Theme.Accent], Source={x:Static loc:Strings.Current}}"
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding AccentHex}" Foreground="{DynamicResource TextTertiary}"
+                           FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <cp:ColorView Grid.Row="2" Color="{Binding Accent, Mode=TwoWay}"
+                          IsAlphaEnabled="False" IsAlphaVisible="False"
+                          IsColorPreviewVisible="True" IsColorPaletteVisible="True"
+                          IsColorSpectrumVisible="True" IsHexInputVisible="True"
+                          IsColorComponentsVisible="True" IsComponentSliderVisible="True"
+                          IsComponentTextInputVisible="True"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+            <!-- 三张预览卡就是这套强调色落地的三个地方：实心按钮、选中行、放在窗口底上的强调文字。 -->
+            <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <Border Background="{Binding FillPreview}" CornerRadius="4" Height="38" Padding="8,0">
+                    <TextBlock Text="{Binding [Theme.Preview.Primary], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextOnAccent}" FontSize="12"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border Grid.Column="1" Background="{Binding SurfacePreview}" CornerRadius="4"
+                        Height="38" Padding="8,0">
+                    <TextBlock Text="{Binding [Theme.Preview.Selected], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border Grid.Column="2" Background="{DynamicResource SurfaceWindow}" CornerRadius="4"
+                        Height="38" Padding="8,0"
+                        BorderBrush="{DynamicResource BorderControl}" BorderThickness="1">
+                    <TextBlock Text="{Binding [Theme.Preview.AccentText], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{Binding TextPreview}" FontSize="12" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <StackPanel Grid.Row="4" Spacing="4">
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Theme.Accent.Hint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Theme.Palette.Hint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Hint" Foreground="{DynamicResource Danger}"
+                           IsVisible="{Binding !AccentUsable}"
+                           Text="{Binding [Theme.Accent.Rejected], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="270,16,*" Margin="16">
-            <Border Background="{DynamicResource AppSurface}" CornerRadius="6">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="6,4,6,8">
-                        <ItemsControl ItemsSource="{Binding Groups}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ThemeColorGroupViewModel">
-                                    <StackPanel>
-                                        <TextBlock Classes="GroupName" Text="{Binding Label}" />
-                                        <ItemsControl ItemsSource="{Binding Entries}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:ThemeColorEntryViewModel">
-                                                    <Button Classes="ColorRow"
-                                                            Classes.selected="{Binding IsSelected}"
-                                                            Click="OnSelectColor">
-                                                        <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="7">
-                                                            <Border Width="18" Height="18" CornerRadius="4"
-                                                                    Background="{Binding Swatch}"
-                                                                    BorderBrush="{DynamicResource AppBorder}"
-                                                                    BorderThickness="1" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding Label}"
-                                                                       Foreground="{DynamicResource AppText}"
-                                                                       FontSize="12.5" VerticalAlignment="Center" />
-                                                            <TextBlock Grid.Column="2" Text="{Binding Hex}"
-                                                                       Foreground="{DynamicResource AppMuted}"
-                                                                       FontSize="11.5" VerticalAlignment="Center" />
-                                                        </Grid>
-                                                    </Button>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <Border Grid.Column="2" Background="{DynamicResource AppSurface}" CornerRadius="6" Padding="16">
-                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
-                    <StackPanel Grid.Row="0" Spacing="2">
-                        <TextBlock Text="{Binding SelectedEntry.Label}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource AppTextStrong}" />
-                        <TextBlock Text="{Binding SelectedEntry.Hex}" FontSize="12"
-                                   Foreground="{DynamicResource AppMuted}" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="1" Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
-                                       Foreground="{DynamicResource AppMuted}" FontSize="12.5"
-                                       VerticalAlignment="Center" />
-                            <ToggleSwitch IsChecked="{Binding BaseLight}"
-                                          OnContent="{Binding [Theme.Base.Light], Source={x:Static loc:Strings.Current}}"
-                                          OffContent="{Binding [Theme.Base.Dark], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding [Theme.Base.Hint], Source={x:Static loc:Strings.Current}}"
-                                   Foreground="{DynamicResource AppMuted}" FontSize="11.5"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <cp:ColorView Grid.Row="2" Color="{Binding SelectedEntry.Color, Mode=TwoWay}"
-                                  IsAlphaEnabled="False" IsAlphaVisible="False"
-                                  IsColorPreviewVisible="True" IsColorPaletteVisible="True"
-                                  IsColorSpectrumVisible="True" IsHexInputVisible="True"
-                                  IsColorComponentsVisible="True" IsComponentSliderVisible="True"
-                                  IsComponentTextInputVisible="True"
-                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-
-                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
-                        <Button Classes="FlatButton" Height="32"
-                                Content="{Binding [Theme.ResetColor], Source={x:Static loc:Strings.Current}}"
-                                Command="{Binding ResetSelectedCommand}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="32"
-                                Content="{Binding [Theme.ResetAll], Source={x:Static loc:Strings.Current}}"
-                                Command="{Binding ResetAllCommand}" />
-                        <Button Grid.Column="3" Classes="FlatButton" Height="32"
-                                Content="{Binding [Theme.Done], Source={x:Static loc:Strings.Current}}"
-                                Click="OnDone" />
-                    </Grid>
-                </Grid>
-            </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="16,0,16,14">
+            <Button Classes="Secondary" Height="32"
+                    Content="{Binding [Theme.ResetAccent], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ResetAccentCommand}" />
+            <Button Grid.Column="2" Classes="Secondary" Height="32"
+                    Content="{Binding [Theme.Done], Source={x:Static loc:Strings.Current}}"
+                    Click="OnDone" />
         </Grid>
-
-        <TextBlock Grid.Row="2" Margin="18,0,18,14" TextWrapping="Wrap"
-                   Foreground="{DynamicResource AppMuted}" FontSize="11.5"
-                   Text="{Binding [Theme.Palette.Hint], Source={x:Static loc:Strings.Current}}" />
     </Grid>
-</Window>
+</views:AppWindow>

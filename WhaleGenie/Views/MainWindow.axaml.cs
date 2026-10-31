@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -18,15 +19,15 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : AppWindow
 {
     /// <summary>Runs the macros the list is waiting for; null until the window is open.</summary>
     private MacroTriggerService? _triggers;
@@ -71,6 +72,12 @@ public partial class MainWindow : Window
     /// </summary>
     private RunWindow? _runDebug;
 
+    /// <summary>
+    /// The run-and-debug window on screen, or null while there is none. A property so that a check
+    /// can see which window the button opened without going through the desktop's own list.
+    /// </summary>
+    internal RunWindow? RunDebug => _runDebug;
+
     /// <summary>Whether the pin on the menu bar is holding the window above the other windows.</summary>
     private bool _alwaysOnTop;
 
@@ -79,7 +86,7 @@ public partial class MainWindow : Window
 
     private readonly HashSet<string> _globalHeld = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
-    private readonly TriggerRuntimeSnapshotStore _runtimeTriggers = new();
+    private TriggerRuntime? _runtime;
     private GlobalHotkeyPlan _globalHotkeyPlan = GlobalHotkeyPlan.Empty;
 
     /// <summary>Set by the tray once the answer to the leaving question is "go".</summary>
@@ -127,8 +134,30 @@ public partial class MainWindow : Window
     internal Func<RecoveryContents, Task<ConfirmChoice>> AskToRecover { get; set; }
 
     public MainWindow()
+        : this(null)
     {
+    }
+
+    /// <summary>
+    /// The triggers, built when something first needs them. A window that is only read for its
+    /// bindings should not put a key hook on the machine; the program hands in the one the container
+    /// built, so opening the window never builds a second.
+    /// </summary>
+    private TriggerRuntime Runtime => _runtime ??= new TriggerRuntime(SharedDevices.Current);
+
+    /// <summary>
+    /// The window over the run's own triggers. The program hands in the one the container built, so
+    /// the service that starts a run is the same one the window shows the state of.
+    /// </summary>
+    internal MainWindow(TriggerRuntime? runtime)
+    {
+        _runtime = runtime;
         InitializeComponent();
+
+        // 标题栏归库，但这一扇的内容伸进标题栏：那条 40px 的行里放着置顶钮，整条都可以拖动。
+        // 系统按钮由库画在它上面，行尾留出了它们的宽度。
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
 
         AskToSaveProject = () => ConfirmDialog.ShowAsync(this,
             Strings.Get("Main.UnsavedTitle"),
@@ -142,18 +171,6 @@ public partial class MainWindow : Window
             Strings.Get("Recover.Restore"),
             Strings.Get("Recover.Discard"),
             height: 280);
-
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close();
-        }
 
         var addMacroButton = this.FindControl<Button>("AddMacroButton");
         if (addMacroButton is not null)
@@ -193,8 +210,14 @@ public partial class MainWindow : Window
         _alwaysOnTop = !_alwaysOnTop;
         Topmost = _alwaysOnTop;
 
-        // Lights the button up and swaps its hint, so the state is readable at a glance.
-        button.Classes.Set("Pinned", _alwaysOnTop);
+        // Two ways to read the state: the icon changes (`Pin` when free, `PinOff` when pinned) and the
+        // button takes the accent while it is on. The hint says what the next press does.
+        button.Classes.Set("pinned", _alwaysOnTop);
+        if (button.Content is IconView icon)
+        {
+            icon.Data = _alwaysOnTop ? AppIcons.PinOff : AppIcons.Pin;
+        }
+
         ToolTip.SetTip(button, Strings.Get(_alwaysOnTop ? "Main.AlwaysOnTopCancel" : "Main.AlwaysOnTop"));
     }
 
@@ -378,7 +401,7 @@ public partial class MainWindow : Window
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
         PublishRuntimeState(viewModel);
-        _triggers = new MacroTriggerService(() => _runtimeTriggers.Current, SharedDevices.Current);
+        _triggers = Runtime.Triggers;
         _triggers.Ask = AskAboutFailedStep;
         _triggers.AskUser = AskWhatTheMacroWantsToKnow;
         _triggers.StatusChanged += OnTriggerStatusChanged;
@@ -463,7 +486,7 @@ public partial class MainWindow : Window
 
     private void PublishRuntimeState(MainViewModel viewModel)
     {
-        _runtimeTriggers.Publish(viewModel.Triggers, [.. viewModel.Macros]);
+        Runtime.Publish(viewModel.Triggers, [.. viewModel.Macros]);
         Volatile.Write(ref _globalHotkeyPlan, GlobalHotkeyPlan.From(viewModel));
     }
 
@@ -1311,7 +1334,11 @@ public partial class MainWindow : Window
         }
 
         _triggers.StatusChanged -= OnTriggerStatusChanged;
-        _triggers.Dispose();
+
+        // The container owns the service, so this only stops it: the window that shows what a
+        // trigger did is going away, and nothing should keep triggering behind it.
+        _triggers.IsEnabled = false;
+        _triggers.StopAll();
         _triggers = null;
     }
 
@@ -1329,7 +1356,10 @@ public partial class MainWindow : Window
 
         if (_runDebug is { } open)
         {
-            open.Activate();
+            // The window is put away rather than gone: it may have been minimized to the taskbar
+            // or hidden by the scope that took the screen away for a moment. Bring it back before
+            // anything else, or the run it is showing goes on with nobody watching.
+            open.BringBack();
             if (macro is not null)
             {
                 await open.DebugAsync(macro);
@@ -1362,7 +1392,11 @@ public partial class MainWindow : Window
             }
         };
 
-        window.ShowOver(this);
+        // The run window stands beside the list rather than under it: the list goes into the
+        // notification area whenever it is minimized, and an owned window would be taken down
+        // with it — a run being watched would lose the window watching it, and the button that
+        // opens it would find a window that is not on the screen.
+        window.ShowAsPeer(this);
 
         if (macro is not null)
         {
@@ -1463,6 +1497,7 @@ public partial class MainWindow : Window
         try
         {
             viewModel.OpenPackage(path);
+            LocalSettings.StoreLastProject(path);
         }
         catch (Exception error)
         {
@@ -1470,14 +1505,188 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OnImportProjectClicked(object? sender, RoutedEventArgs e)
+    /// <summary>
+    /// Imports from a package: the window shows what is inside it, and what was ticked decides
+    /// where it goes. Macros join this project; submacros ticked on their own go to the public
+    /// library, because that is where something a macro calls belongs.
+    /// </summary>
+    private async void OnImportClicked(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel viewModel)
         {
             return;
         }
 
-        var path = await PickPackageAsync(Strings.Get("Main.ImportProjectTitle"));
+        var path = await PickPackageAsync(Strings.Get("Main.ImportTitle"));
+        if (path is null)
+        {
+            return;
+        }
+
+        PackageContents contents;
+        try
+        {
+            // Pictures land in this project's folder: the file being imported is not where the
+            // macros will be working from. A name already used there is compared by content, so an
+            // arriving picture never replaces one another macro looks for.
+            contents = MacroPackage.Load(path, ImageAssets.FolderFor(viewModel.CurrentPath));
+        }
+        catch (Exception error)
+        {
+            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+            return;
+        }
+
+        var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import, contents.Macros,
+            contents.Triggers, contents.Globals, fileName: Path.GetFileName(path));
+        if (nodes is null || nodes.Count == 0)
+        {
+            return;
+        }
+
+        var chosen = nodes.Select(node => node.Macro).ToList();
+
+        try
+        {
+            if (nodes.All(node => node.IsSub))
+            {
+                var added = MacroImport.IntoLibrary(chosen, AppPaths.PublicMacroLibrary);
+                await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"),
+                    Strings.Format("Import.LibraryAdded",
+                        string.Join("、", added.Select(entry => entry.Macro.Name))),
+                    Strings.Get("Common.Ok"), null, false);
+                return;
+            }
+
+            // What to do about a variable both sides declare is a question, not a default: the wrong
+            // answer is a macro that reads somebody else's number without saying so.
+            var decisions = MacroImport.Decisions(chosen, contents.Globals);
+            if (!await GlobalConflictWindow.ShowAsync(this, decisions, chosen))
+            {
+                return;
+            }
+
+            var report = MacroImport.IntoProject(viewModel, contents, chosen, decisions);
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"), ReportText(report),
+                Strings.Get("Common.Ok"), null, false, height: 320);
+        }
+        catch (Exception error)
+        {
+            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+        }
+    }
+
+    /// <summary>
+    /// What the import did, in the order a person checks it: what arrived, what had to be renamed,
+    /// what happened to the variables, and what now needs their attention.
+    /// </summary>
+    private static string ReportText(ImportReport report)
+    {
+        var lines = new List<string>();
+
+        if (report.Added.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportMacros",
+                string.Join("、", report.Added.Select(macro => macro.Name))));
+        }
+
+        if (report.RenamedMacros.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportRenamed",
+                string.Join("、", report.RenamedMacros.Select(pair => $"{pair.Was} → {pair.Now}"))));
+        }
+
+        var globals = new List<string>();
+        if (report.GlobalsAdded.Count > 0)
+        {
+            globals.Add(Strings.Format("Import.GlobalAdded", string.Join("、", report.GlobalsAdded)));
+        }
+
+        if (report.GlobalsRenamed.Count > 0)
+        {
+            globals.Add(Strings.Format("Import.GlobalRenamed", string.Join("、", report.GlobalsRenamed)));
+        }
+
+        if (report.GlobalsOverwritten.Count > 0)
+        {
+            globals.Add(Strings.Format("Import.GlobalOverwritten",
+                string.Join("、", report.GlobalsOverwritten)));
+        }
+
+        if (report.GlobalsKept.Count > 0)
+        {
+            globals.Add(Strings.Format("Import.GlobalKept", string.Join("、", report.GlobalsKept)));
+        }
+
+        if (globals.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportGlobals", string.Join("；", globals)));
+        }
+
+        if (report.DuplicateTriggers.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportDuplicates",
+                string.Join("；", report.DuplicateTriggers)));
+        }
+
+        if (report.ScriptsToCheck.Count > 0)
+        {
+            lines.Add(Strings.Format("Import.ReportScripts", string.Join("；", report.ScriptsToCheck)));
+        }
+
+        return lines.Count == 0 ? Strings.Get("Import.ReportNothing") : string.Join("\n", lines);
+    }
+
+    /// <summary>
+    /// Writes one macro out as a file of its own. The pictures it looks for travel inside the file,
+    /// so the person it is handed to does not have to be told what to copy as well.
+    /// </summary>
+    /// <summary>
+    /// Exports from the file menu: the same window as the card's own menu, with nothing ticked, for
+    /// a person who wants to pick several macros rather than start from one of them.
+    /// </summary>
+    private async void OnExportMacrosClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            await ExportMacrosAsync(viewModel, []);
+        }
+    }
+
+    /// <summary>
+    /// Writes the macro a card was right-clicked on. The window opens with it ticked, because that
+    /// is what the click meant; the rest of the list is there for a change of mind.
+    /// </summary>
+    private async void OnExportMacroClicked(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is Control { DataContext: MacroItem macro }
+            && DataContext is MainViewModel viewModel)
+        {
+            await ExportMacrosAsync(viewModel, [macro]);
+        }
+    }
+
+    /// <summary>
+    /// Writes the chosen macros into a package: the macros with the submacros inside them, the
+    /// global variables they read, the trigger entries that start them and the pictures they look
+    /// for. A project's own macros are copied first, because writing a package rewrites the trigger
+    /// table of what it is handed.
+    /// </summary>
+    private async Task ExportMacrosAsync(MainViewModel viewModel, IReadOnlyList<MacroItem> preselected)
+    {
+        var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Export, viewModel.Macros,
+            viewModel.Triggers, preselected: preselected);
+        if (nodes is null || nodes.Count == 0)
+        {
+            return;
+        }
+
+        var selection = nodes.Select(node => node.Macro).ToList();
+
+        var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
+            selection[0].Name);
         if (path is null)
         {
             return;
@@ -1485,11 +1694,13 @@ public partial class MainWindow : Window
 
         try
         {
-            viewModel.ImportPackage(path);
+            MacroPackage.Save(path, MacroBundle.Copies(selection),
+                MacroBundle.Take(viewModel.Triggers, selection),
+                MacroBundle.UsedGlobals(selection), AppVersion.Text);
         }
         catch (Exception error)
         {
-            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+            await ReportAsync(Strings.Get("Main.ExportMacroTitle"), path, error);
         }
     }
 
@@ -1527,6 +1738,7 @@ public partial class MainWindow : Window
         try
         {
             viewModel.OpenPackage(path);
+            LocalSettings.StoreLastProject(path);
         }
         catch (Exception error)
         {
@@ -1620,6 +1832,7 @@ public partial class MainWindow : Window
         try
         {
             viewModel.SavePackage(path);
+            LocalSettings.StoreLastProject(path);
             return true;
         }
         catch (Exception error)
@@ -1718,20 +1931,6 @@ public partial class MainWindow : Window
         => WebPage.Open(Manual.Where());
 
     /// <summary>
-    /// Switches the whole application between the light and dark variants and remembers the choice.
-    /// </summary>
-    private void OnToggleTheme(object? sender, RoutedEventArgs e)
-    {
-        var current = ThemeController.Load();
-        var next = current with
-        {
-            Mode = current.BaseLight ? ThemeMode.Dark : ThemeMode.Light,
-        };
-
-        ThemeController.Apply(next);
-        ThemeController.Save(next);
-    }
-    /// <summary>
     /// Gives the flyout its window's data context. A flyout's content is not part of the window's
     /// visual tree, so the bindings that name the MCP view model need this one hand-off. The button
     /// only opens the flyout; the switch inside it owns the start and stop.
@@ -1745,52 +1944,24 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// MCP's save tool needs a package path. If this project has none yet, ask before starting the
-    /// server: choosing a location saves the project, "open anyway" starts MCP so a draft can still
-    /// be written, and cancelling leaves MCP off.
-    /// </summary>
-    internal async Task<bool> EnsureProjectSavedForMcpAsync()
-    {
-        if (DataContext is not MainViewModel viewModel)
-        {
-            return false;
-        }
-
-        if (viewModel.CurrentPath is { Length: > 0 })
-        {
-            return true;
-        }
-
-        var choice = await ConfirmDialog.ShowAsync(this,
-            Strings.Get("Mcp.SaveTitle"),
-            Strings.Get("Mcp.SaveMessage"),
-            Strings.Get("Mcp.SaveChoose"),
-            Strings.Get("Mcp.OpenAnyway"));
-
-        if (choice == ConfirmChoice.Primary)
-        {
-            return await SaveAsAsync(viewModel);
-        }
-
-        return choice == ConfirmChoice.Secondary;
-    }
-
-    /// <summary>
-    /// Copies a client config that points at the address the switch just opened. The endpoint is
-    /// the only thing the external client needs: this server deliberately has no token.
+    /// Copies the block a client's configuration file wants: this program's path and the flag that
+    /// makes it speak MCP. The client starts the process itself, so there is no address to paste.
     /// </summary>
     private async void OnCopyMcpConfig(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel { Mcp.Endpoint.Length: > 0 } viewModel
-            || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        if (DataContext is not MainViewModel viewModel)
         {
             return;
         }
 
-        var config = $"{{\n  \"mcpServers\": {{\n    \"whalegenie\": {{\n"
-            + $"      \"type\": \"http\",\n      \"url\": \"{viewModel.Mcp.Endpoint}\"\n"
-            + "    }\n  }\n}\n";
-        await clipboard.SetTextAsync(config);
+        if (viewModel.Mcp.Executable.Length == 0
+            || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        {
+            viewModel.Mcp.ShowNoProgram();
+            return;
+        }
+
+        await clipboard.SetTextAsync(viewModel.Mcp.Config);
         viewModel.Mcp.ShowCopied();
     }
 
@@ -1993,6 +2164,29 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// A card's right-click menu carries no data of its own: its four items are written out in XAML
+    /// and used to inherit the card's macro because the menu sat in the card's logical tree. Under a
+    /// theme that presents the menu inside a popup, that tree stops at the menu, every item arrives
+    /// with a null DataContext, and the four handlers read that as "no macro" and quietly do nothing.
+    /// Stamping it here keeps their one rule — the sender's DataContext is the macro — true.
+    /// </summary>
+    internal static void StampMenu(ContextMenu menu, object? data)
+    {
+        foreach (var item in menu.Items.OfType<MenuItem>())
+        {
+            item.DataContext = data;
+        }
+    }
+
+    private void OnCardMenuOpening(object? sender, CancelEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+        {
+            StampMenu(menu, menu.DataContext);
+        }
+    }
+
     private void OnEditMacroClicked(object? sender, RoutedEventArgs e)
     {
         e.Handled = true;
@@ -2072,16 +2266,6 @@ public partial class MainWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 36)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 
     private static NativePoint? GetCursorPosition()
     {

@@ -1,6 +1,10 @@
+using System;
+using System.IO;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -54,6 +58,70 @@ public class MacroNameTests
         viewModel.AddMacro(new MacroItem());
 
         Assert.Equal("Macro 6", viewModel.Macros[1].Name);
+    }
+
+    /// <summary>
+    /// A name that is taken gets the day attached, and a day that is taken as well gets a count: the
+    /// rule has to answer with a name nobody has, not with a name that is nearly free.
+    /// </summary>
+    [Fact]
+    public void A_taken_name_gets_the_day_and_then_a_count()
+    {
+        var day = new DateTime(2026, 10, 26);
+
+        Assert.Equal("整理", MacroNames.Free("整理", ["别的"], day));
+        Assert.Equal("整理 (2026-10-26)", MacroNames.Free("整理", ["整理"], day));
+        Assert.Equal("整理 (2026-10-26) 2",
+            MacroNames.Free("整理", ["整理", "整理 (2026-10-26)"], day));
+        Assert.Equal("2026-10-26", MacroNames.Free("", ["整理"], day));
+    }
+
+    /// <summary>
+    /// Importing a package that holds a macro this project already has: both are work, so the one
+    /// arriving now keeps its steps under a dated name rather than living unreachable behind a name
+    /// a call resolves to the other macro.
+    /// </summary>
+    [Fact]
+    public void Importing_a_macro_whose_name_is_taken_dates_the_one_that_arrives()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            var path = Path.Combine(folder, "incoming.wgmacro");
+            var incoming = new MacroItem { Name = "整理" };
+            incoming.Steps.Add(new MacroStep
+            {
+                Type = "control.delay",
+                Parameters =
+                [new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Value = "5" }]
+            });
+            MacroPackage.Save(path, [incoming], [], "test");
+
+            var contents = MacroPackage.Load(path);
+            var project = new MainViewModel();
+            project.AddMacro(new MacroItem { Name = "整理" });
+            MacroImport.IntoProject(project, contents, contents.Macros,
+                MacroImport.Decisions(contents.Macros, contents.Globals));
+
+            Assert.Equal(2, project.Macros.Count);
+            Assert.Equal("整理", project.Macros[0].Name);
+            var arrived = project.Macros[1];
+            Assert.StartsWith("整理 (", arrived.Name, StringComparison.Ordinal);
+            Assert.Single(arrived.Steps);
+
+            // Its trigger entries follow the new name, or the entry and the macro would disagree
+            // about which macro the package brought.
+            Assert.NotEmpty(arrived.Triggers);
+            Assert.All(arrived.Triggers,
+                entry => Assert.Equal(arrived.Name, entry.MacroName));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]

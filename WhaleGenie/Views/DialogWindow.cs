@@ -40,14 +40,36 @@ internal static class DialogWindow
 
     /// <summary>
     /// Shows a window beside <paramref name="owner"/> rather than under it: the pin is still
-    /// matched, but the window is not owned, so the owner going away does not take it with it. The
-    /// macro editor is the one that needs this — the main window steps aside into the notification
-    /// area while a macro is being written, and an owned window would go with it.
+    /// matched, but the window is not owned, so the owner going away does not take it with it.
+    /// Two windows need this — the macro editor and the run-and-debug window — because the main
+    /// window steps aside into the notification area while a macro is being written or watched,
+    /// and an owned window would go with it.
     /// </summary>
     public static void ShowAsPeer(this Window window, Window owner)
     {
         Pin(window, owner);
         window.Show();
+    }
+
+    /// <summary>
+    /// Puts a window that is still open back on the screen in front of the person asking for it.
+    /// A window that is hidden cannot be brought to the front — Windows only raises what is
+    /// already there — and a window that was minimized to the taskbar comes back as a taskbar
+    /// entry rather than as the window itself.
+    /// </summary>
+    public static void BringBack(this Window window)
+    {
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        if (!window.IsVisible)
+        {
+            window.Show();
+        }
+
+        window.Activate();
     }
 
     /// <summary>

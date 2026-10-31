@@ -496,10 +496,11 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>
     /// The capture button's text: what it is about to take, and what to do once it is waiting.
-    /// A single key and a combination are different questions, so the button says which one.
+    /// A single key answers the question on its own, so the button says what to press; a
+    /// combination keeps taking keys until it is told to stop, so the button says how to stop.
     /// </summary>
     public string KeyCaptureLabel => IsCapturingKey
-        ? Strings.Get(IsKeys ? "Add.PressCombination" : "Add.PressKey")
+        ? Strings.Get(IsKeys ? "Add.StopKeyCapture" : "Add.PressKey")
         : Strings.Get(IsKeys ? "Add.SetCombination" : "Editor.SetKey");
 
     /// <summary>

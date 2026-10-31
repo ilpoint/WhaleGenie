@@ -44,7 +44,41 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector"));
         }
 
+        // What turned up, handed over the way uia.read hands over the same thing: a step that waited
+        // for a box and then reads it is two queries for one answer, and the second one can find a
+        // different element than the one that made the wait end.
+        if (Wants(step, "element") && _devices.Ui.Facts(query) is { } found)
+        {
+            Give(step, "element", ElementRecord(found));
+        }
+
         Log(LogLevel.Info, depth, step.Type, LogKeys.ElementFound, ReadText(step, "uiSelector"));
+    }
+
+    /// <summary>
+    /// One element as a record: what it says about itself and where it is. Shared by reading an
+    /// element and by waiting for one, so both spell the same fields the same way.
+    /// </summary>
+    private static Value ElementRecord(UiElementFacts facts)
+    {
+        var middle = Middle(facts.Location, facts.Size);
+        return Value.FromRecord(
+        [
+            (FieldNames.Enabled, Value.FromBool(facts.Enabled)),
+            (FieldNames.Visible, Value.FromBool(facts.Visible)),
+            (FieldNames.Value, Value.FromText(facts.Value)),
+            (FieldNames.Name, Value.FromText(facts.Name)),
+            (FieldNames.AutomationId, Value.FromText(facts.AutomationId)),
+            (FieldNames.ControlType, Value.FromText(facts.ControlType)),
+            (FieldNames.X, Value.FromNumber(middle.X)),
+            (FieldNames.Y, Value.FromNumber(middle.Y)),
+            (FieldNames.Left, Value.FromNumber(facts.Location.X)),
+            (FieldNames.Top, Value.FromNumber(facts.Location.Y)),
+            (FieldNames.Width, Value.FromNumber(facts.Size.Width)),
+            (FieldNames.Height, Value.FromNumber(facts.Size.Height)),
+            (FieldNames.Box, Value.FromText(
+                $"{facts.Location.X},{facts.Location.Y},{facts.Size.Width},{facts.Size.Height}")),
+        ]);
     }
 
     /// <summary>
@@ -153,24 +187,7 @@ public sealed partial class MacroRunner
         var facts = _devices.Ui.Facts(Query(step))
             ?? throw new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector"));
 
-        var middle = Middle(facts.Location, facts.Size);
-        Give(step, "element", Value.FromRecord(
-        [
-            (FieldNames.Enabled, Value.FromBool(facts.Enabled)),
-            (FieldNames.Visible, Value.FromBool(facts.Visible)),
-            (FieldNames.Value, Value.FromText(facts.Value)),
-            (FieldNames.Name, Value.FromText(facts.Name)),
-            (FieldNames.AutomationId, Value.FromText(facts.AutomationId)),
-            (FieldNames.ControlType, Value.FromText(facts.ControlType)),
-            (FieldNames.X, Value.FromNumber(middle.X)),
-            (FieldNames.Y, Value.FromNumber(middle.Y)),
-            (FieldNames.Left, Value.FromNumber(facts.Location.X)),
-            (FieldNames.Top, Value.FromNumber(facts.Location.Y)),
-            (FieldNames.Width, Value.FromNumber(facts.Size.Width)),
-            (FieldNames.Height, Value.FromNumber(facts.Size.Height)),
-            (FieldNames.Box, Value.FromText(
-                $"{facts.Location.X},{facts.Location.Y},{facts.Size.Width},{facts.Size.Height}")),
-        ]));
+        Give(step, "element", ElementRecord(facts));
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.ReadElement, ReadText(step, "uiSelector"), facts.Value);
     }

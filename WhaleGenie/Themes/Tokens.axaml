@@ -1,0 +1,316 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="using:System">
+
+    <!--
+      每个颜色先写成 Color，再派生一把落在同一个 Color 上的 Brush。两把键并存不是为了让人挑一把：
+      画笔要用 Brush，叠 alpha、算对比度、写测试要的是 Color，而两者的值只能有一处十六进制。
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <!-- 表面 -->
+            <Color x:Key="SurfaceWindowColor">#1C1C1C</Color>
+            <Color x:Key="SurfaceChromeColor">#232323</Color>
+            <Color x:Key="SurfaceSunkenColor">#1E1E1E</Color>
+            <Color x:Key="SurfacePanelColor">#262626</Color>
+            <Color x:Key="SurfaceFieldColor">#2A2A2A</Color>
+            <Color x:Key="SurfaceCardColor">#2E2E2E</Color>
+            <Color x:Key="SurfaceFlyoutColor">#363636</Color>
+            <Color x:Key="SurfaceHoverColor">#383838</Color>
+            <Color x:Key="SurfacePressedColor">#424242</Color>
+            <Color x:Key="SurfaceControlColor">#333333</Color>
+            <Color x:Key="SurfaceControlHoverColor">#3D3D3D</Color>
+            <Color x:Key="SurfaceControlPressedColor">#2B2B2B</Color>
+
+            <!-- 文字 -->
+            <Color x:Key="TextPrimaryColor">#F2F2F2</Color>
+            <Color x:Key="TextSecondaryColor">#B8B8B8</Color>
+            <Color x:Key="TextTertiaryColor">#A8A8A8</Color>
+            <Color x:Key="TextDisabledColor">#6E6E6E</Color>
+            <Color x:Key="TextOnAccentColor">#FFFFFF</Color>
+
+            <!-- 边框与焦点 -->
+            <Color x:Key="BorderSubtleColor">#303030</Color>
+            <Color x:Key="BorderControlColor">#555555</Color>
+            <Color x:Key="BorderControlHoverColor">#6E6E6E</Color>
+            <Color x:Key="BorderStrongColor">#767676</Color>
+            <Color x:Key="FocusRingColor">#F2F2F2</Color>
+            <Color x:Key="FocusRingInnerColor">#000000</Color>
+
+            <!-- 强调 -->
+            <Color x:Key="AccentFillColor">#C8401C</Color>
+            <Color x:Key="AccentFillHoverColor">#CE4822</Color>
+            <Color x:Key="AccentFillPressedColor">#A92F0D</Color>
+            <Color x:Key="AccentTextColor">#FF7A50</Color>
+            <Color x:Key="AccentSurfaceColor">#3A2118</Color>
+
+            <!-- 状态 -->
+            <Color x:Key="SuccessColor">#7FC97F</Color>
+            <Color x:Key="SuccessSurfaceColor">#1D3324</Color>
+            <Color x:Key="WarningColor">#E0A060</Color>
+            <Color x:Key="WarningSurfaceColor">#3A2C15</Color>
+            <Color x:Key="DangerColor">#F07A84</Color>
+            <Color x:Key="DangerSurfaceColor">#3A2024</Color>
+            <Color x:Key="InfoColor">#8FB3D9</Color>
+            <Color x:Key="InfoSurfaceColor">#1F2C3A</Color>
+
+            <!-- 叠在任意表面上的悬停/按下，带 alpha -->
+            <Color x:Key="OverlayHoverColor">#14FFFFFF</Color>
+            <Color x:Key="OverlayPressedColor">#24FFFFFF</Color>
+
+            <!-- 标题栏关闭键的悬停底：WinUI 在同一处用的就是这个红，深浅两套都用它，
+                 因为"这一下是关窗"不该随主题换说法。 -->
+            <Color x:Key="CaptionCloseHoverColor">#C42B1C</Color>
+
+            <!-- 表面 -->
+            <SolidColorBrush x:Key="SurfaceWindow" Color="{StaticResource SurfaceWindowColor}" />
+            <SolidColorBrush x:Key="SurfaceChrome" Color="{StaticResource SurfaceChromeColor}" />
+            <SolidColorBrush x:Key="SurfaceSunken" Color="{StaticResource SurfaceSunkenColor}" />
+            <SolidColorBrush x:Key="SurfacePanel" Color="{StaticResource SurfacePanelColor}" />
+            <SolidColorBrush x:Key="SurfaceField" Color="{StaticResource SurfaceFieldColor}" />
+            <SolidColorBrush x:Key="SurfaceCard" Color="{StaticResource SurfaceCardColor}" />
+            <SolidColorBrush x:Key="SurfaceFlyout" Color="{StaticResource SurfaceFlyoutColor}" />
+            <SolidColorBrush x:Key="SurfaceHover" Color="{StaticResource SurfaceHoverColor}" />
+            <SolidColorBrush x:Key="SurfacePressed" Color="{StaticResource SurfacePressedColor}" />
+            <SolidColorBrush x:Key="SurfaceControl" Color="{StaticResource SurfaceControlColor}" />
+            <SolidColorBrush x:Key="SurfaceControlHover" Color="{StaticResource SurfaceControlHoverColor}" />
+            <SolidColorBrush x:Key="SurfaceControlPressed" Color="{StaticResource SurfaceControlPressedColor}" />
+
+            <!-- 文字 -->
+            <SolidColorBrush x:Key="TextPrimary" Color="{StaticResource TextPrimaryColor}" />
+            <SolidColorBrush x:Key="TextSecondary" Color="{StaticResource TextSecondaryColor}" />
+            <SolidColorBrush x:Key="TextTertiary" Color="{StaticResource TextTertiaryColor}" />
+            <SolidColorBrush x:Key="TextDisabled" Color="{StaticResource TextDisabledColor}" />
+            <SolidColorBrush x:Key="TextOnAccent" Color="{StaticResource TextOnAccentColor}" />
+
+            <!-- 边框与焦点 -->
+            <SolidColorBrush x:Key="BorderSubtle" Color="{StaticResource BorderSubtleColor}" />
+            <SolidColorBrush x:Key="BorderControl" Color="{StaticResource BorderControlColor}" />
+            <SolidColorBrush x:Key="BorderControlHover" Color="{StaticResource BorderControlHoverColor}" />
+            <SolidColorBrush x:Key="BorderStrong" Color="{StaticResource BorderStrongColor}" />
+            <SolidColorBrush x:Key="FocusRing" Color="{StaticResource FocusRingColor}" />
+            <SolidColorBrush x:Key="FocusRingInner" Color="{StaticResource FocusRingInnerColor}" />
+
+            <!-- 强调 -->
+            <SolidColorBrush x:Key="AccentFill" Color="{StaticResource AccentFillColor}" />
+            <SolidColorBrush x:Key="AccentFillHover" Color="{StaticResource AccentFillHoverColor}" />
+            <SolidColorBrush x:Key="AccentFillPressed" Color="{StaticResource AccentFillPressedColor}" />
+            <SolidColorBrush x:Key="AccentText" Color="{StaticResource AccentTextColor}" />
+            <SolidColorBrush x:Key="AccentSurface" Color="{StaticResource AccentSurfaceColor}" />
+
+            <!-- 状态 -->
+            <SolidColorBrush x:Key="Success" Color="{StaticResource SuccessColor}" />
+            <SolidColorBrush x:Key="SuccessSurface" Color="{StaticResource SuccessSurfaceColor}" />
+            <SolidColorBrush x:Key="Warning" Color="{StaticResource WarningColor}" />
+            <SolidColorBrush x:Key="WarningSurface" Color="{StaticResource WarningSurfaceColor}" />
+            <SolidColorBrush x:Key="Danger" Color="{StaticResource DangerColor}" />
+            <SolidColorBrush x:Key="DangerSurface" Color="{StaticResource DangerSurfaceColor}" />
+            <SolidColorBrush x:Key="Info" Color="{StaticResource InfoColor}" />
+            <SolidColorBrush x:Key="InfoSurface" Color="{StaticResource InfoSurfaceColor}" />
+
+            <!-- 叠层 -->
+            <SolidColorBrush x:Key="OverlayHover" Color="{StaticResource OverlayHoverColor}" />
+            <SolidColorBrush x:Key="OverlayPressed" Color="{StaticResource OverlayPressedColor}" />
+            <SolidColorBrush x:Key="CaptionCloseHover" Color="{StaticResource CaptionCloseHoverColor}" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <!-- 表面 -->
+            <Color x:Key="SurfaceWindowColor">#F3F2F0</Color>
+            <Color x:Key="SurfaceChromeColor">#E9E7E3</Color>
+            <Color x:Key="SurfaceSunkenColor">#EFEDE8</Color>
+            <Color x:Key="SurfacePanelColor">#FBFAF8</Color>
+            <Color x:Key="SurfaceFieldColor">#FFFFFF</Color>
+            <Color x:Key="SurfaceCardColor">#FFFFFF</Color>
+            <Color x:Key="SurfaceFlyoutColor">#FFFFFF</Color>
+            <Color x:Key="SurfaceHoverColor">#E8E5E0</Color>
+            <Color x:Key="SurfacePressedColor">#DCD8D0</Color>
+            <Color x:Key="SurfaceControlColor">#E4E1DB</Color>
+            <Color x:Key="SurfaceControlHoverColor">#DAD6CE</Color>
+            <Color x:Key="SurfaceControlPressedColor">#CFCAC1</Color>
+
+            <!-- 文字 -->
+            <Color x:Key="TextPrimaryColor">#1B1815</Color>
+            <Color x:Key="TextSecondaryColor">#4C4640</Color>
+            <Color x:Key="TextTertiaryColor">#676058</Color>
+            <Color x:Key="TextDisabledColor">#A8A096</Color>
+            <Color x:Key="TextOnAccentColor">#FFFFFF</Color>
+
+            <!-- 边框与焦点 -->
+            <Color x:Key="BorderSubtleColor">#E0DCD4</Color>
+            <Color x:Key="BorderControlColor">#C4BFB5</Color>
+            <Color x:Key="BorderControlHoverColor">#A9A296</Color>
+            <Color x:Key="BorderStrongColor">#8C857A</Color>
+            <Color x:Key="FocusRingColor">#1B1815</Color>
+            <Color x:Key="FocusRingInnerColor">#FFFFFF</Color>
+
+            <!-- 强调 -->
+            <Color x:Key="AccentFillColor">#C8401C</Color>
+            <Color x:Key="AccentFillHoverColor">#CE4822</Color>
+            <Color x:Key="AccentFillPressedColor">#A92F0D</Color>
+            <Color x:Key="AccentTextColor">#A93110</Color>
+            <Color x:Key="AccentSurfaceColor">#FBE9E2</Color>
+
+            <!-- 状态 -->
+            <Color x:Key="SuccessColor">#256B42</Color>
+            <Color x:Key="SuccessSurfaceColor">#E4F1E8</Color>
+            <Color x:Key="WarningColor">#7A4E0C</Color>
+            <Color x:Key="WarningSurfaceColor">#F8EEDB</Color>
+            <Color x:Key="DangerColor">#A22F2F</Color>
+            <Color x:Key="DangerSurfaceColor">#F8E3E3</Color>
+            <Color x:Key="InfoColor">#2F6F9F</Color>
+            <Color x:Key="InfoSurfaceColor">#E3EDF6</Color>
+
+            <!-- 叠在任意表面上的悬停/按下，带 alpha -->
+            <Color x:Key="OverlayHoverColor">#0F000000</Color>
+            <Color x:Key="OverlayPressedColor">#1A000000</Color>
+
+            <!-- 标题栏关闭键的悬停底。与深色同一支红：WinUI 在这里也不按主题换。 -->
+            <Color x:Key="CaptionCloseHoverColor">#C42B1C</Color>
+
+            <!-- 表面 -->
+            <SolidColorBrush x:Key="SurfaceWindow" Color="{StaticResource SurfaceWindowColor}" />
+            <SolidColorBrush x:Key="SurfaceChrome" Color="{StaticResource SurfaceChromeColor}" />
+            <SolidColorBrush x:Key="SurfaceSunken" Color="{StaticResource SurfaceSunkenColor}" />
+            <SolidColorBrush x:Key="SurfacePanel" Color="{StaticResource SurfacePanelColor}" />
+            <SolidColorBrush x:Key="SurfaceField" Color="{StaticResource SurfaceFieldColor}" />
+            <SolidColorBrush x:Key="SurfaceCard" Color="{StaticResource SurfaceCardColor}" />
+            <SolidColorBrush x:Key="SurfaceFlyout" Color="{StaticResource SurfaceFlyoutColor}" />
+            <SolidColorBrush x:Key="SurfaceHover" Color="{StaticResource SurfaceHoverColor}" />
+            <SolidColorBrush x:Key="SurfacePressed" Color="{StaticResource SurfacePressedColor}" />
+            <SolidColorBrush x:Key="SurfaceControl" Color="{StaticResource SurfaceControlColor}" />
+            <SolidColorBrush x:Key="SurfaceControlHover" Color="{StaticResource SurfaceControlHoverColor}" />
+            <SolidColorBrush x:Key="SurfaceControlPressed" Color="{StaticResource SurfaceControlPressedColor}" />
+
+            <!-- 文字 -->
+            <SolidColorBrush x:Key="TextPrimary" Color="{StaticResource TextPrimaryColor}" />
+            <SolidColorBrush x:Key="TextSecondary" Color="{StaticResource TextSecondaryColor}" />
+            <SolidColorBrush x:Key="TextTertiary" Color="{StaticResource TextTertiaryColor}" />
+            <SolidColorBrush x:Key="TextDisabled" Color="{StaticResource TextDisabledColor}" />
+            <SolidColorBrush x:Key="TextOnAccent" Color="{StaticResource TextOnAccentColor}" />
+
+            <!-- 边框与焦点 -->
+            <SolidColorBrush x:Key="BorderSubtle" Color="{StaticResource BorderSubtleColor}" />
+            <SolidColorBrush x:Key="BorderControl" Color="{StaticResource BorderControlColor}" />
+            <SolidColorBrush x:Key="BorderControlHover" Color="{StaticResource BorderControlHoverColor}" />
+            <SolidColorBrush x:Key="BorderStrong" Color="{StaticResource BorderStrongColor}" />
+            <SolidColorBrush x:Key="FocusRing" Color="{StaticResource FocusRingColor}" />
+            <SolidColorBrush x:Key="FocusRingInner" Color="{StaticResource FocusRingInnerColor}" />
+
+            <!-- 强调 -->
+            <SolidColorBrush x:Key="AccentFill" Color="{StaticResource AccentFillColor}" />
+            <SolidColorBrush x:Key="AccentFillHover" Color="{StaticResource AccentFillHoverColor}" />
+            <SolidColorBrush x:Key="AccentFillPressed" Color="{StaticResource AccentFillPressedColor}" />
+            <SolidColorBrush x:Key="AccentText" Color="{StaticResource AccentTextColor}" />
+            <SolidColorBrush x:Key="AccentSurface" Color="{StaticResource AccentSurfaceColor}" />
+
+            <!-- 状态 -->
+            <SolidColorBrush x:Key="Success" Color="{StaticResource SuccessColor}" />
+            <SolidColorBrush x:Key="SuccessSurface" Color="{StaticResource SuccessSurfaceColor}" />
+            <SolidColorBrush x:Key="Warning" Color="{StaticResource WarningColor}" />
+            <SolidColorBrush x:Key="WarningSurface" Color="{StaticResource WarningSurfaceColor}" />
+            <SolidColorBrush x:Key="Danger" Color="{StaticResource DangerColor}" />
+            <SolidColorBrush x:Key="DangerSurface" Color="{StaticResource DangerSurfaceColor}" />
+            <SolidColorBrush x:Key="Info" Color="{StaticResource InfoColor}" />
+            <SolidColorBrush x:Key="InfoSurface" Color="{StaticResource InfoSurfaceColor}" />
+
+            <!-- 叠层 -->
+            <SolidColorBrush x:Key="OverlayHover" Color="{StaticResource OverlayHoverColor}" />
+            <SolidColorBrush x:Key="OverlayPressed" Color="{StaticResource OverlayPressedColor}" />
+            <SolidColorBrush x:Key="CaptionCloseHover" Color="{StaticResource CaptionCloseHoverColor}" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!--
+      拾取器令牌不跟随主题：框选、取色、点拾取、元素拾取、窗口规则这五个窗口站着的时候，屏幕上的
+      像素与它们画出来的遮罩是同一件事，遮罩的浓淡一跟着明暗变，取到的颜色与截出来的图就跟着变。
+      所以这五个键只在下面写一份，明暗同值；不要为了"整齐"把它们搬进上面的两套变体里。
+    -->
+    <Color x:Key="PickerScrimColor">#7F000000</Color>
+    <Color x:Key="PickerTargetScrimColor">#55000000</Color>
+    <Color x:Key="PickerReadoutColor">#E61E1E1E</Color>
+    <Color x:Key="PickerEdgeDarkColor">#B3000000</Color>
+    <Color x:Key="PickerEdgeLightColor">#FFFFFF</Color>
+
+    <SolidColorBrush x:Key="PickerScrim" Color="{StaticResource PickerScrimColor}" />
+    <SolidColorBrush x:Key="PickerTargetScrim" Color="{StaticResource PickerTargetScrimColor}" />
+    <SolidColorBrush x:Key="PickerReadout" Color="{StaticResource PickerReadoutColor}" />
+    <SolidColorBrush x:Key="PickerEdgeDark" Color="{StaticResource PickerEdgeDarkColor}" />
+    <SolidColorBrush x:Key="PickerEdgeLight" Color="{StaticResource PickerEdgeLightColor}" />
+
+    <!-- 字体、字号、间距、圆角：与明暗无关，只写一份 -->
+    <FontFamily x:Key="UiFont">Inter, Microsoft YaHei UI, Microsoft YaHei, Segoe UI</FontFamily>
+    <FontFamily x:Key="UiCodeFont">Consolas, Cascadia Mono, monospace</FontFamily>
+
+    <sys:Double x:Key="UiCaptionSize">11</sys:Double>
+    <sys:Double x:Key="UiCaptionLine">15</sys:Double>
+    <sys:Double x:Key="UiBodySmallSize">12</sys:Double>
+    <sys:Double x:Key="UiBodySmallLine">16</sys:Double>
+    <sys:Double x:Key="UiBodySize">13</sys:Double>
+    <sys:Double x:Key="UiBodyLine">18</sys:Double>
+    <sys:Double x:Key="UiSubtitleSize">15</sys:Double>
+    <sys:Double x:Key="UiSubtitleLine">20</sys:Double>
+    <sys:Double x:Key="UiTitleSize">18</sys:Double>
+    <sys:Double x:Key="UiTitleLine">24</sys:Double>
+    <sys:Double x:Key="UiDisplaySize">24</sys:Double>
+    <sys:Double x:Key="UiDisplayLine">30</sys:Double>
+
+    <!--
+      间距用 Thickness 而不是 Double：Padding 与 Margin 直接吃它，Spacing 要的是 Double 时
+      绑定到 Thickness 上取不到值，所以间距一律落在 Padding/Margin 上。
+    -->
+    <Thickness x:Key="Space1">4</Thickness>
+    <Thickness x:Key="Space2">8</Thickness>
+    <Thickness x:Key="Space3">12</Thickness>
+    <Thickness x:Key="Space4">16</Thickness>
+    <Thickness x:Key="Space6">24</Thickness>
+    <Thickness x:Key="Space8">32</Thickness>
+
+    <!--
+      复合内边距。上面那组间距都是单值，表达不了"只横向 12"这种内边距，少了这一组，样式里就只能写
+      `Padding="12,0"` 的裸值。名字按用法的族来分，不按数字：`PadControl` 改一次，所有次按钮一起变。
+    -->
+    <Thickness x:Key="Pad0">0</Thickness>
+    <Thickness x:Key="Pad1">1</Thickness>
+    <Thickness x:Key="PadChrome">8,0</Thickness>
+    <Thickness x:Key="PadControl">12,0</Thickness>
+    <Thickness x:Key="PadControlWide">16,0</Thickness>
+    <Thickness x:Key="PadField">8,6</Thickness>
+    <Thickness x:Key="PadCell">6,1</Thickness>
+    <Thickness x:Key="PadChip">8,2</Thickness>
+    <Thickness x:Key="PadRow">8,4</Thickness>
+    <Thickness x:Key="PadSection">16</Thickness>
+
+    <!--
+      两处允许的 Margin。纵向间距本该由父容器的 Spacing 承担，但这两个间隙没有能用它的父容器：
+      区块之间不相邻（`GapSection`），标签到它管着的那个控件之间也隔着一层模板（`GapField`）。
+      规范要求"标签的下边距"长在标签身上，所以这里是 Margins 的第二个、也是最后一个例外。
+    -->
+    <Thickness x:Key="GapSection">0,0,0,12</Thickness>
+    <Thickness x:Key="GapField">0,0,0,8</Thickness>
+    <!--
+      分隔线两侧的间隙。第三个 `Gap*`，理由同前两个：分隔线常常是 `Grid` 里独立的一行，与它上面
+      下面的内容不在同一个 `StackPanel` 里，没有 `Spacing` 可给。
+    -->
+    <Thickness x:Key="GapDivider">0,12,0,12</Thickness>
+    <!--
+      标题的三处间距，都同时有"上"和"下"，而且上大于下。父容器的 `Spacing` 只能给等值，
+      所以这三处只能长在标题自己身上——这也是"新增 `Gap*` 之前先说明为什么 `Spacing` 做不到"
+      那个规矩要的答案。
+    -->
+    <Thickness x:Key="GapPageHeader">0,24,0,16</Thickness>
+    <Thickness x:Key="GapGroupHeader">0,24,0,8</Thickness>
+    <Thickness x:Key="GapSectionHeader">0,16,0,4</Thickness>
+    <!-- 空状态那一段的上下留白：它自己是容器，上下都是 32，没有父容器能给出这个值。 -->
+    <Thickness x:Key="GapEmpty">0,32,0,32</Thickness>
+
+    <!--
+      `StackPanel.Spacing` 要的是 `Double`，而 `Space*` 是 `Thickness`——类型不同，不能互用，
+      规范里写"`Spacing` `Space2`"是把两个名字当成同一个值了。这里补一个 `Double` 版。
+    -->
+    <sys:Double x:Key="StackGap">8</sys:Double>
+
+    <CornerRadius x:Key="RadiusControl">4</CornerRadius>
+    <CornerRadius x:Key="RadiusContainer">6</CornerRadius>
+    <CornerRadius x:Key="RadiusOverlay">8</CornerRadius>
+</ResourceDictionary>

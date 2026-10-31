@@ -57,9 +57,9 @@ public sealed record MacroSignature(
     {
         var problems = new List<(MacroSignatureFault, string)>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        Collect(Arguments.Select(argument => argument.Name), seen, problems, arguments: true);
+        Collect(Arguments.Select(argument => argument.Name), seen, problems);
         seen.Clear();
-        Collect(Results.Select(result => result.Name), seen, problems, arguments: false);
+        Collect(Results.Select(result => result.Name), seen, problems);
 
         // A required argument with a default has two answers to "what if the call leaves it
         // out": the declaration says the call must fill it in, and the default says it need
@@ -84,7 +84,7 @@ public sealed record MacroSignature(
     }
 
     private static void Collect(IEnumerable<string> names, HashSet<string> seen,
-        List<(MacroSignatureFault Fault, string Name)> problems, bool arguments)
+        List<(MacroSignatureFault Fault, string Name)> problems)
     {
         foreach (var written in names)
         {
@@ -98,15 +98,6 @@ public sealed record MacroSignature(
             if (!VariableText.IsName(name))
             {
                 problems.Add((MacroSignatureFault.InvalidName, name));
-                continue;
-            }
-
-            // An argument named `x.given` would put its own value in the field the call uses to
-            // say "x was supplied empty", so the call could not tell the two apart.
-            if (arguments && name.EndsWith(MacroCallFields.GivenSuffix,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                problems.Add((MacroSignatureFault.ConflictingName, name));
                 continue;
             }
 
@@ -136,42 +127,9 @@ public enum MacroSignatureFault
     /// <summary>The name cannot be read as a variable: a space, a leading digit, or similar.</summary>
     InvalidName,
 
-    /// <summary>The name is readable but collides with the call's supplied-empty marker.</summary>
-    ConflictingName,
-
     DuplicateName,
     ReservedName,
 
     /// <summary>A required argument also has a default, so omitting it has two answers.</summary>
     RequiredWithDefault,
-}
-
-/// <summary>
-/// What a call writes the values it passes under. The called macro's argument names are its own,
-/// so they go under a prefix instead of standing beside the call's own settings: a caller that
-/// happens to have a value called <c>macro</c> or <c>returns</c> cannot then write over the name of
-/// the macro being called or the list of what it asks to have back.
-/// </summary>
-public static class MacroCallFields
-{
-    /// <summary>What the parameter holding the value passed for one argument starts with.</summary>
-    public const string ArgumentPrefix = "arg.";
-
-    /// <summary>The end of the marker that says an argument was supplied as an empty value.</summary>
-    public const string GivenSuffix = ".given";
-
-    /// <summary>The call's parameter for one argument of the called macro.</summary>
-    public static string Argument(string name) => ArgumentPrefix + name;
-
-    /// <summary>
-    /// The call parameter that says "this value was supplied even though it is empty". A field
-    /// that is left out or empty means the macro's default or its missing-argument failure; the
-    /// marker is what turns an empty field into an explicit empty value.
-    /// </summary>
-    public static string Given(string name) => Argument(name) + GivenSuffix;
-
-    /// <summary>True when the call parameter is the supplied-empty marker for an argument.</summary>
-    public static bool IsGiven(string name)
-        => name.EndsWith(GivenSuffix, StringComparison.Ordinal)
-           && name.StartsWith(ArgumentPrefix, StringComparison.Ordinal);
 }

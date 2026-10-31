@@ -1,6 +1,7 @@
 using System;
 using Avalonia.Input;
-using WhaleGenie.Execution;
+using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Views;
 

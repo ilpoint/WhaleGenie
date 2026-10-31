@@ -211,9 +211,14 @@ public class BrowserActionTests : IDisposable
 
         Assert.Equal("2", device.Evaluate("() => document.querySelectorAll('.row').length", 5000));
 
-        // Writing comes back written as JSON, which is what makes the result one shape whatever the
-        // script handed over.
-        Assert.Equal("\"报告\"", device.Evaluate("() => document.title", 5000));
+        // A string comes back as the string itself, without the quotes JSON would put round it: an
+        // address or a name answered by the page is the common case, and the quotes used to travel
+        // into whatever read the value next.
+        Assert.Equal("报告", device.Evaluate("() => document.title", 5000));
+
+        // Everything else stays JSON, which is the only text that carries a number, a flag, a list
+        // or a record with its shape intact.
+        Assert.Equal("true", device.Evaluate("() => document.querySelectorAll('.row').length === 2", 5000));
 
         // A record keeps its shape, so a macro reads one field of it rather than cutting the text up.
         var record = device.Evaluate(

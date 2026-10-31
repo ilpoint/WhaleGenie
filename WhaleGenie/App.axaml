@@ -2,35 +2,32 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="WhaleGenie.App"
              xmlns:local="using:WhaleGenie"
+             xmlns:conv="using:WhaleGenie.Converters"
              xmlns:styling="using:Avalonia.Styling"
+             xmlns:fa="using:FluentAvalonia.Styling"
              RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
 
+    <!--
+      颜色只有一套，写在 Themes/Tokens.axaml 里，按 ThemeVariant 分红；Fluent 模板自己读的键由
+      Themes/FluentKeys.axaml 覆盖成这里的值。两份字典都在这里合并进来，所以设计器预览与运行时
+      看到的是同一处颜色，不会像从前那样 XAML 与 ThemePalette.cs 各抄一份再慢慢走散。运行时唯一
+      会被改写的是自定义强调色那五个令牌：ThemePalette.Apply 把它们的 Color 与 Brush 两种形状
+      写进 Application.Resources 盖住这里，非自定义时再摘掉。
+    -->
     <Application.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="AppSurface" Color="#292929" />
-            <SolidColorBrush x:Key="AppBackdrop" Color="#1E1E1E" />
-            <SolidColorBrush x:Key="AppChrome" Color="#202020" />
-            <SolidColorBrush x:Key="AppField" Color="#2E2E2E" />
-            <SolidColorBrush x:Key="AppBorder" Color="#3A3A3A" />
-            <SolidColorBrush x:Key="AppText" Color="#E8E8E8" />
-            <SolidColorBrush x:Key="AppTextStrong" Color="#F5F5F5" />
-            <SolidColorBrush x:Key="AppMuted" Color="#9A9A9A" />
-            <SolidColorBrush x:Key="AppAccent" Color="#C8401C" />
-            <SolidColorBrush x:Key="AppControl" Color="#404040" />
-            <SolidColorBrush x:Key="AppGroup" Color="#1F1F1F" />
-            <SolidColorBrush x:Key="AppHover" Color="#3C3C3C" />
-            <SolidColorBrush x:Key="AppDock" Color="#2A2A2A" />
-            <SolidColorBrush x:Key="AppSelected" Color="#4A2A20" />
-            <SolidColorBrush x:Key="AppLabel" Color="#C8A165" />
-            <SolidColorBrush x:Key="AppInfo" Color="#8FB3D9" />
-            <SolidColorBrush x:Key="AppInfoSoft" Color="#2B3A4A" />
-            <SolidColorBrush x:Key="AppWarning" Color="#E0A060" />
-            <SolidColorBrush x:Key="AppDanger" Color="#E06C75" />
-            <SolidColorBrush x:Key="AppSuccess" Color="#7FC97F" />
-            <SolidColorBrush x:Key="AppAccentSoft" Color="#4A342E" />
-            <SolidColorBrush x:Key="AppAccentHover" Color="#D9502A" />
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://WhaleGenie/Themes/Tokens.axaml" />
+                <ResourceInclude Source="avares://WhaleGenie/Themes/FluentKeys.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+              数字输入框的空值：主题的控件用 `NaN` 说"空着"，我们的设置用 `null` 说同一件事。
+              每条绑到数字框的 Value 都过这一个转换器，所以它放在应用级，而不是每个视图各抄一份。
+            -->
+            <conv:NumberFieldValueConverter x:Key="Number" />
         </ResourceDictionary>
     </Application.Resources>
 
@@ -39,32 +36,55 @@
     </Application.DataTemplates>
 
     <Application.Styles>
-        <FluentTheme />
+        <!--
+          Compact 收紧 Fluent 自己的行高与控件内边距（表格行、列表项、菜单项都跟着变）。
+          我们只覆盖颜色与圆角，密度用它给的，不再自己写一套行高。
+        -->
+        <fa:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="False" />
+
+        <!--
+          层 3 排在这里：同样是 `Button`，我们写的类比主题里的更靠后，选择器也更具体，所以压得住。
+          放在 FluentTheme 之前会被它盖回去，而且不报错。
+        -->
+        <StyleInclude Source="avares://WhaleGenie/Themes/Controls.axaml" />
+
+        <!--
+          取色器的主题只有 Avalonia 自己带，库没有给 `ColorView` 做配套。不放这一条的后果在出图上
+          看得很清楚：调色板顶部三个页签只剩图标、选中条是白的——它退回默认主题，和周围不是一套。
+          这一份 `StyleInclude` 只装 ColorPicker 一族（`ColorView`/`ColorPicker`/`ColorSpectrum`），
+          不是整套 Fluent 主题，所以不会把 `FluentAvaloniaTheme` 顶掉。
+        -->
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
 
         <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the
              expression builder's list of functions each stand one on screen, and one control with
              one look is worth a style above both windows rather than two that drift apart. -->
         <Style Selector="ListBox.Dock ListBoxItem">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="11,3" />
             <Setter Property="Margin" Value="0,0,6,6" />
+            <!--
+              The theme gives every list item a minimum width of 88 pixels. It is invisible until
+              the labels are short: "全部" wants 30 and gets 88, so five chips need 452 pixels in a
+              336 pixel column. That is not a density we chose, it is a size nobody wrote.
+            -->
+            <Setter Property="MinWidth" Value="0" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <!-- What comes up when the pointer rests on something. It is painted here rather than in a
              window because a tooltip is not drawn inside the window it belongs to: it stands in a
              popup of its own, where the window's styles do not reach it. -->
         <Style Selector="ToolTip">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="10,9" />

@@ -13,7 +13,7 @@ namespace WhaleGenie.Views;
 /// The picker a field opens to fill itself in with a variable. It reads and reports; the field
 /// that opened it keeps the text and puts it in where the caret is.
 /// </summary>
-public partial class VariablePickerWindow : Window
+public partial class VariablePickerWindow : AppWindow
 {
     public VariablePickerWindow()
         : this(new VariablePickerViewModel())
@@ -27,11 +27,6 @@ public partial class VariablePickerWindow : Window
         DataContext = viewModel;
         Title = viewModel.Header;
         viewModel.CloseRequested += Close;
-
-        if (this.FindControl<Button>("CloseButton") is { } closeButton)
-        {
-            closeButton.Click += (_, _) => Close(null);
-        }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
@@ -70,14 +65,5 @@ public partial class VariablePickerWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

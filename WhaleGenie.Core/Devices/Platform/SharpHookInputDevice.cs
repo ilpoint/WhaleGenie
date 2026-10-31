@@ -34,24 +34,22 @@ public sealed class SharpHookInputDevice : IInputDevice
     public void KeyPress(string key, int holdMs)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
-        _simulator.SimulateKeyPress(code);
-        Rest(holdMs, 50);
-        _simulator.SimulateKeyRelease(code);
+        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WindowsKeyStrokes.Press(code, key, Hold(holdMs));
     }
 
     public void KeyDown(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
-        _simulator.SimulateKeyPress(code);
+        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WindowsKeyStrokes.Down(code, key);
     }
 
     public void KeyUp(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
-        _simulator.SimulateKeyRelease(code);
+        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WindowsKeyStrokes.Up(code, key);
     }
 
     public void Hotkey(IReadOnlyList<string> keys, int holdMs)
@@ -62,8 +60,8 @@ public sealed class SharpHookInputDevice : IInputDevice
             var code = Code(key);
             codes.Add(code);
 
-            // The gate speaks the names the trigger compares, which keep a modifier's side.
-            WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
+            // Every name the key can come back as, so a chord is not answered by its own keys.
+            WhaleGenieInputGate.Note(SharpKeys.Key(code));
         }
 
         if (codes.Count == 0)
@@ -71,18 +69,20 @@ public sealed class SharpHookInputDevice : IInputDevice
             throw new DeviceActionException(RunKeys.EmptyChord);
         }
 
-        // Press in order, hold so the target sees the whole chord, release in reverse.
+        // Press in order, hold so the target sees the whole chord, release in reverse. Each key
+        // goes out as itself, extended flag and all: a chord of Alt and the arrow keys is a
+        // different chord to the receiving window when the arrows arrive as the number pad.
         foreach (var code in codes)
         {
-            _simulator.SimulateKeyPress(code);
+            WindowsKeyStrokes.Down(code, SharpKeys.Name(code, sided: true));
             Thread.Sleep(10);
         }
 
-        Rest(holdMs, 50);
+        Thread.Sleep(Hold(holdMs));
 
         for (var index = codes.Count - 1; index >= 0; index--)
         {
-            _simulator.SimulateKeyRelease(codes[index]);
+            WindowsKeyStrokes.Up(codes[index], SharpKeys.Name(codes[index], sided: true));
         }
     }
 
@@ -99,17 +99,10 @@ public sealed class SharpHookInputDevice : IInputDevice
             WhaleGenieInputGate.Note(character.ToString());
         }
 
-        if (intervalMs <= 0)
-        {
-            _simulator.SimulateTextEntry(text);
-            return;
-        }
-
-        foreach (var character in text)
-        {
-            _simulator.SimulateTextEntry(character.ToString());
-            Thread.Sleep(intervalMs);
-        }
+        // Text goes out as characters rather than as the keys they sit on: a key press is read by
+        // the layout, and by an input method before that, so on this machine "Hello" would arrive
+        // as 和梁哦 through a Chinese input method.
+        WindowsKeyStrokes.TypeText(text, intervalMs);
     }
 
     public void MoveMouse(int x, int y, int durationMs) => Glide(Cursor, new ScreenPoint(x, y), durationMs);
@@ -262,8 +255,24 @@ public sealed class SharpHookInputDevice : IInputDevice
         }
     }
 
+    /// <summary>How long a key is held when the step asked for no hold: long enough to be seen.</summary>
+    private static int Hold(int holdMs) => holdMs > 0 ? holdMs : 50;
+
+    /// <summary>
+    /// The code a macro's key name stands for. A name the library knows but Windows has no key for
+    /// is refused rather than handed over: a code Windows numbers nothing for arrives as no key at
+    /// all, and a step that says which key it could not press is worth more than one that quietly
+    /// does nothing.
+    /// </summary>
     private static KeyCode Code(string key)
-        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+    {
+        var code = SharpKeys.ResolveCode(key)
+            ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+
+        return WindowsKeys.CanBePressed(code)
+            ? code
+            : throw new DeviceActionException(RunKeys.KeyNotPressable, key);
+    }
 
     private static MouseButton Button(string button) => button.Trim().ToLowerInvariant() switch
     {
@@ -275,7 +284,4 @@ public sealed class SharpHookInputDevice : IInputDevice
     };
 
     private static short Clamp(int value) => (short)Math.Clamp(value, short.MinValue, short.MaxValue);
-
-    private static void Rest(int milliseconds, int fallback)
-        => Thread.Sleep(milliseconds > 0 ? milliseconds : fallback);
 }

@@ -8,13 +8,13 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class SettingsWindow : Window
+public partial class SettingsWindow : AppWindow
 {
     private readonly SettingsViewModel _viewModel;
     private MenuRuleRow? _ruleDragSource;
@@ -36,12 +36,6 @@ public partial class SettingsWindow : Window
             project: project, packagePath: packagePath);
         DataContext = _viewModel;
         Title = Strings.Get("Settings.Title");
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close();
-        }
 
         var doneButton = this.FindControl<Button>("DoneButton");
         if (doneButton is not null)
@@ -67,12 +61,9 @@ public partial class SettingsWindow : Window
         this.FindControl<Button>("EditMenuRuleButton")!.IsEnabled = project is not null;
         this.FindControl<Button>("RemoveMenuRuleButton")!.IsEnabled = project is not null;
 
-        this.FindControl<Button>("SystemRootButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.General);
-        this.FindControl<Button>("TriggersRootButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
-        this.FindControl<Button>("AppearanceRootButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Appearance, SettingsSubPage.Theme);
+        // The three roots are a tab control now: picking one is the selection, and the binding on
+        // its SelectedIndex writes the same enum a SetPage call would. The sub-pages inside a root
+        // are still buttons, because they share one tab's content area.
         this.FindControl<Button>("GeneralNavButton")!.Click += (_, _) =>
             _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.General);
         this.FindControl<Button>("CaptureNavButton")!.Click += (_, _) =>
@@ -114,7 +105,7 @@ public partial class SettingsWindow : Window
     {
         if (_viewModel.IsCapturingSystemHotkey)
         {
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 e.Handled = true;
                 return;
@@ -134,7 +125,7 @@ public partial class SettingsWindow : Window
 
         if (_viewModel.IsCapturingMenuLauncher)
         {
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 e.Handled = true;
                 return;
@@ -161,7 +152,7 @@ public partial class SettingsWindow : Window
 
     private void OnPreviewKeyUp(object? sender, KeyEventArgs e)
     {
-        if (_viewModel.IsCapturingHotkey && IsModifier(e.Key))
+        if (_viewModel.IsCapturingHotkey && HotkeyNameMapper.IsModifier(e.Key))
         {
             e.Handled = true;
         }
@@ -170,6 +161,14 @@ public partial class SettingsWindow : Window
     private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!_viewModel.IsCapturingMenuLauncher)
+        {
+            return;
+        }
+
+        // A press on the buttons of the hotkey row is the user cancelling or clearing, not a
+        // mouse button to record. The handler runs on the way down, before the button sees the
+        // click, so swallowing it here left the capture impossible to stop with the mouse.
+        if (IsHotkeyButton(e.Source))
         {
             return;
         }
@@ -192,6 +191,27 @@ public partial class SettingsWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>Whether a press landed on one of the buttons that set, cancel or clear a hotkey.</summary>
+    private static bool IsHotkeyButton(object? source)
+    {
+        var names = new[]
+        {
+            "CaptureSystemHotkeyButton", "ClearSystemHotkeyButton",
+            "CaptureMenuLauncherButton", "ClearMenuLauncherButton",
+        };
+
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Button button && button.Name is { } name
+                && names.Contains(name, StringComparer.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void OnPreviewPointerWheel(object? sender, PointerWheelEventArgs e)
     {
         if (!_viewModel.IsCapturingMenuLauncher)
@@ -208,7 +228,8 @@ public partial class SettingsWindow : Window
 
     private async Task AddMenuRuleAsync()
     {
-        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current) is { } rule)
+        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current.Windows,
+            SharedDevices.Current.Hook) is { } rule)
         {
             _viewModel.AddMenuRule(rule);
         }
@@ -222,7 +243,8 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current, row.Rule) is { } rule)
+        if (await WindowRuleWindow.PickAsync(this, SharedDevices.Current.Windows,
+            SharedDevices.Current.Hook, row.Rule) is { } rule)
         {
             _viewModel.UpdateMenuRule(row, rule);
         }
@@ -312,10 +334,6 @@ public partial class SettingsWindow : Window
         return item?.DataContext as MenuRuleRow;
     }
 
-    private static bool IsModifier(Key key)
-        => key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
-            or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin;
-
     private static string Chord(Key key, KeyModifiers held)
         => HotkeyNameMapper.Chord(key, held);
 
@@ -336,13 +354,5 @@ public partial class SettingsWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
+
 }

@@ -54,9 +54,28 @@ public static class ActionCategoryPresentation
             _ => "#B9B3A8",
         }));
 
+    /// <summary>Line-art icon shared by every action of a category.</summary>
+    public static LucideIconKind? IconFor(ActionCategory category) => category switch
+    {
+        ActionCategory.Control => AppIcons.Workflow,
+        ActionCategory.File => AppIcons.File,
+        ActionCategory.Data => AppIcons.Variable,
+        ActionCategory.Clipboard => AppIcons.Clipboard,
+        ActionCategory.Process => AppIcons.Cpu,
+        ActionCategory.System => AppIcons.Settings,
+        ActionCategory.Window => AppIcons.AppWindow,
+        ActionCategory.Input => AppIcons.Keyboard,
+        ActionCategory.Vision => AppIcons.Eye,
+        ActionCategory.Ocr => AppIcons.TextScan,
+        ActionCategory.Uia => AppIcons.CursorClick,
+        ActionCategory.Browser => AppIcons.Browser,
+        ActionCategory.Script => AppIcons.Code,
+        _ => null,
+    };
+
     public static LucideIconKind Icon(ActionCategory? category)
         => category is { } value
-            ? ActionCatalog.IconFor(value) ?? AppIcons.GridFour
+            ? IconFor(value) ?? AppIcons.GridFour
             : AppIcons.GridFour;
 
     public static IReadOnlyList<ActionCategoryChoice> BasicCategories() =>

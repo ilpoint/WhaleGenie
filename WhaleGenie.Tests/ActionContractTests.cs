@@ -17,27 +17,6 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ActionContractTests
 {
-    [Fact]
-    public void Only_macro_calls_take_their_signature_from_the_called_macro()
-    {
-        var fromCall = ActionSemanticsCatalog.All
-            .Where(action => action.SignatureSource is ActionSignatureSource.CalledMacro)
-            .Select(action => action.Key)
-            .Order(StringComparer.Ordinal)
-            .ToList();
-
-        Assert.Equal(["control.runMacro", "control.startMacro"], fromCall);
-        Assert.All(ActionSemanticsCatalog.All.Where(action =>
-                action.SignatureSource is ActionSignatureSource.CalledMacro),
-            action =>
-            {
-                Assert.NotNull(action.Parameter("macro"));
-                Assert.Equal(ActionValueShape.Rows, action.Parameter("returns")?.Shape);
-            });
-        Assert.All(ActionSemanticsCatalog.All.Where(action =>
-                action.SignatureSource is ActionSignatureSource.Own),
-            action => Assert.DoesNotContain(action.Key, fromCall, StringComparer.Ordinal));
-    }
 
     [Fact]
     public void Coordinates_and_window_rules_have_one_shape()
@@ -792,9 +771,9 @@ public class ActionContractTests
     }
 
     /// <summary>
-    /// Every row list says which columns a row may hold. The five shapes are the ones the editor
-    /// writes today; a list that grows a column without the catalogue saying so would pass the
-    /// design-time check and be dropped at the run.
+    /// Every row list says which columns a row may hold. The shapes listed here are the ones the
+    /// editor writes today; a list that grows a column without the catalogue saying so would pass
+    /// the design-time check and be dropped at the run.
     /// </summary>
     [Fact]
     public void Every_rows_field_declares_the_columns_its_rows_may_hold()
@@ -802,6 +781,7 @@ public class ActionContractTests
         var schemas = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["returns"] = ["key", "name"],
+            ["arguments"] = ["name", "value", "given"],
             ["region"] = ["text", "x", "y", "width", "height"],
             ["narrow"] = ["how", "value"],
             ["images"] = ["image"],
@@ -857,7 +837,8 @@ public class ActionContractTests
         ActionParameterKind.Steps => ActionValueShape.Steps,
         ActionParameterKind.Region or ActionParameterKind.KeySequence
             or ActionParameterKind.Images or ActionParameterKind.Returns
-            or ActionParameterKind.Narrow => ActionValueShape.Rows,
+            or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+            => ActionValueShape.Rows,
         ActionParameterKind.Image => ActionValueShape.Image,
         ActionParameterKind.Record => ActionValueShape.Record,
         ActionParameterKind.Point => ActionValueShape.Point,

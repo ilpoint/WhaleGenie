@@ -12,7 +12,7 @@ namespace WhaleGenie.Views;
 /// one part of a window, so the picker is opened for that part and hands that part back, leaving it
 /// editable: a title that changes with the document has to be shortened by hand.
 /// </summary>
-public partial class WindowPickerWindow : Window
+public partial class WindowPickerWindow : AppWindow
 {
     private bool _done;
 
@@ -29,12 +29,6 @@ public partial class WindowPickerWindow : Window
         DataContext = viewModel;
         viewModel.CloseRequested += OnCloseRequested;
         Title = viewModel.Header;
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => OnCloseRequested(null);
-        }
 
         // Double-clicking a row is the fastest way through a list this short.
         var list = this.FindControl<ListBox>("WindowList");
@@ -97,14 +91,5 @@ public partial class WindowPickerWindow : Window
         Close(title);
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

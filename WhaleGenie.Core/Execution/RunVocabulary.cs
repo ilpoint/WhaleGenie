@@ -8,7 +8,7 @@ namespace WhaleGenie.Core.Execution;
 /// <summary>
 /// The three vocabularies a run writes: failure keys the macro can branch on, log keys that word a
 /// line of the run log, and the status keys a whole run ends with. Keeping them apart is what makes
-/// <c>step.&lt;id&gt;.error</c> a stable answer rather than a sentence.
+/// <c>caught.key</c> a stable answer rather than a sentence.
 /// </summary>
 public static class RunVocabulary
 {
@@ -66,7 +66,6 @@ public static class RunKeys
     public const string BrowserNoAttribute = "Run.BrowserNoAttribute";
     public const string BrowserNoDialog = "Run.BrowserNoDialog";
     public const string BrowserNoNewTab = "Run.BrowserNoNewTab";
-    public const string BrowserRunWhileHeld = "Run.BrowserRunWhileHeld";
     public const string BrowserNoScript = "Run.BrowserNoScript";
     public const string BrowserNoSelector = "Run.BrowserNoSelector";
     public const string BrowserNoTab = "Run.BrowserNoTab";
@@ -75,8 +74,6 @@ public static class RunKeys
     public const string BrowserTabNeedsText = "Run.BrowserTabNeedsText";
     public const string BrowserTooFew = "Run.BrowserTooFew";
     public const string CaptureFailed = "Run.CaptureFailed";
-    public const string ChildStillRunning = "Run.ChildStillRunning";
-    public const string ChildStopped = "Run.ChildStopped";
     public const string ClipboardBusy = "Run.ClipboardBusy";
     public const string ClipboardTimeout = "Run.ClipboardTimeout";
     public const string ClipboardWriteFailed = "Run.ClipboardWriteFailed";
@@ -84,6 +81,7 @@ public static class RunKeys
     public const string ContinueOutsideLoop = "Run.ContinueOutsideLoop";
     public const string DetectNotFound = "Run.DetectNotFound";
     public const string DeviceFailed = "Run.DeviceFailed";
+    public const string DuplicateArgument = "Run.DuplicateArgument";
     public const string ElementNotATable = "Run.ElementNotATable";
     public const string ElementNotCheckable = "Run.ElementNotCheckable";
     public const string ElementNotClickable = "Run.ElementNotClickable";
@@ -103,9 +101,16 @@ public static class RunKeys
     public const string FileNotFound = "Run.FileNotFound";
     public const string FolderNotFound = "Run.FolderNotFound";
     public const string GlobalMustExist = "Run.GlobalMustExist";
+
+    /// <summary>An argument was both given a value and marked as supplied empty.</summary>
+    public const string GivenWithValue = "Run.GivenWithValue";
     public const string ImageNotFound = "Run.ImageNotFound";
     public const string IndexOutOfRange = "Run.IndexOutOfRange";
     public const string ItemNotFound = "Run.ItemNotFound";
+
+    /// <summary>The key name is a real one, but no keystroke on this machine can carry it.</summary>
+    public const string KeyNotPressable = "Run.KeyNotPressable";
+
     public const string LayoutNotFound = "Run.LayoutNotFound";
     public const string LayoutNotSwitched = "Run.LayoutNotSwitched";
     public const string LockRefused = "Run.LockRefused";
@@ -114,7 +119,6 @@ public static class RunKeys
     public const string MissingArgument = "Run.MissingArgument";
     public const string MissingCondition = "Run.MissingCondition";
     public const string MissingField = "Run.MissingField";
-    public const string MissingHandle = "Run.MissingHandle";
     public const string MissingImage = "Run.MissingImage";
     public const string MissingInterpreter = "Run.MissingInterpreter";
     public const string MissingItem = "Run.MissingItem";
@@ -152,8 +156,6 @@ public static class RunKeys
     public const string NoPython = "Run.NoPython";
     public const string NoSuchColumn = "Run.NoSuchColumn";
     public const string NoSuchProcess = "Run.NoSuchProcess";
-    public const string NoRunsToWait = "Run.NoRunsToWait";
-    public const string NoSuchRun = "Run.NoSuchRun";
     public const string NoSuchStep = "Run.NoSuchStep";
     public const string NotAList = "Run.NotAList";
     public const string NotALookingStep = "Run.NotALookingStep";
@@ -177,8 +179,12 @@ public static class RunKeys
     public const string SoundRefused = "Run.SoundRefused";
     public const string StepFailedByMacro = "Run.StepFailedByMacro";
     public const string TextNotFound = "Run.TextNotFound";
+
+    /// <summary>No window took the text that was typed.</summary>
+    public const string TextNotTyped = "Run.TextNotTyped";
+
     public const string Timeout = "Run.Timeout";
-    public const string TooManyRuns = "Run.TooManyRuns";
+    public const string UndeclaredArgument = "Run.UndeclaredArgument";
     public const string UndeclaredResult = "Run.UndeclaredResult";
     public const string UnknownBrightnessAction = "Run.UnknownBrightnessAction";
     public const string UnknownGamepadButton = "Run.UnknownGamepadButton";

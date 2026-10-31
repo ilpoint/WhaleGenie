@@ -6,10 +6,10 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -28,7 +28,7 @@ public class WindowRulePickerTests
             var hook = new KeyHook();
             var windows = new WindowsForChecks().Add(7, "Game", "game", "GameClass");
             var devices = new ChecksDevices { Windows = windows, Hook = hook };
-            var picker = new WindowRuleWindow(devices, null);
+            var picker = new WindowRuleWindow(devices.Windows, devices.Hook, null);
             try
             {
                 picker.Show();
@@ -69,7 +69,7 @@ public class WindowRulePickerTests
             var windows = new WindowsForChecks().Add(8, "WhaleGenie", own, "Window");
             var hook = new KeyHook();
             var devices = new ChecksDevices { Windows = windows, Hook = hook };
-            var picker = new WindowRuleWindow(devices, null);
+            var picker = new WindowRuleWindow(devices.Windows, devices.Hook, null);
             try
             {
                 picker.Show();
@@ -101,7 +101,7 @@ public class WindowRulePickerTests
         {
             var windows = new WindowsForChecks().Add(7, "Game", "game", "GameClass");
             var devices = new ChecksDevices { Windows = windows, Hook = new KeyHook() };
-            var picker = new WindowRuleWindow(devices,
+            var picker = new WindowRuleWindow(devices.Windows, devices.Hook,
                 new WindowRule(Title: "Game", Process: "game", ClassName: "GameClass",
                     Handle: 7, How: WindowHow.Handle));
             try
@@ -131,7 +131,7 @@ public class WindowRulePickerTests
             var screen = new ScreenAt(new ScreenPoint(50, 60));
             var windows = new WindowsForChecks().Add(9, "Game", "game", "GameClass").ClientAt(9, 10, 20);
             var devices = new ChecksDevices { Screen = screen, Windows = windows, Hook = hook };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
@@ -174,7 +174,7 @@ public class WindowRulePickerTests
                 Ui = new UiAt(new UiElementInfo("Open", "open", "Button", "Button",
                     new ScreenPoint(40, 50), new ScreenSize(12, 12), "Game")),
             };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
@@ -208,7 +208,7 @@ public class WindowRulePickerTests
             var windows = new WindowsForChecks().Add(9, "Game", "game", "GameClass")
                 .ClientAt(9, 10, 20);
             var devices = new ChecksDevices { Screen = screen, Windows = windows, Hook = hook };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();
@@ -256,7 +256,7 @@ public class WindowRulePickerTests
             var windows = new WindowsForChecks().Add(9, "Game", "game", "GameClass")
                 .ClientAt(9, 10, 20);
             var devices = new ChecksDevices { Screen = screen, Windows = windows, Hook = hook };
-            var picker = new PointPickerWindow(devices, new WindowRule(Title: "Game"));
+            var picker = new PointPickerWindow(devices.Screen, devices.Windows, devices.Ui, devices.Hook, new WindowRule(Title: "Game"));
             try
             {
                 picker.Show();

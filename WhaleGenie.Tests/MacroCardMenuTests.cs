@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Models;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -70,6 +71,13 @@ public class MacroCardMenuTests
             // what says which macro the menu belongs to.
             card.ContextMenu!.Open(card);
             Dispatcher.UIThread.RunJobs();
+
+            // The menu inherits the card's macro; its items inherit nothing, because the menu is
+            // presented inside a popup that sits outside the card's logical tree. The window stamps
+            // the menu's own DataContext onto every item when it opens — the four handlers read the
+            // sender's DataContext, and a null there means a menu that looks right and does nothing.
+            Assert.Same(macro, card.ContextMenu.DataContext);
+            MainWindow.StampMenu(card.ContextMenu, card.ContextMenu.DataContext);
             Assert.Same(macro, item.DataContext);
 
             card.ContextMenu.Close();

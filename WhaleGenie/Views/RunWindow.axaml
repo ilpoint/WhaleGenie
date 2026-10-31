@@ -1,9 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="700"
@@ -13,157 +14,111 @@
         Width="980" Height="700"
         MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Window.Resources>
+        <!-- 运行状态 → 状态的画刷。状态由 VM 的种类给，颜色不再写死在 XAML 里。 -->
+        <conv:RunStatusBrushConverter x:Key="RunStatusBrush" />
+    </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="#E4E4E4" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-        </Style>
-        <Style Selector="TextBlock.ColumnHeader">
-            <Setter Property="Foreground" Value="#8A8A8A" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Margin" Value="10,0,0,4" />
-        </Style>
 
         <!-- Which half of the window is showing, and the variables half's own pages. -->
-        <Style Selector="Button.Tab">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,6" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.Tab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-        </Style>
-        <Style Selector="Button.Tab.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-        </Style>
-        <Style Selector="Button.Tab.active">
-            <Setter Property="Foreground" Value="#FFFFFF" />
-        </Style>
 
-        <Style Selector="Border.VarRow">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="10,8" />
-            <Setter Property="Margin" Value="0,0,0,5" />
-        </Style>
-        <Style Selector="TextBox.VarInput">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="8,5" />
-            <Setter Property="MinHeight" Value="30" />
-        </Style>
         <Style Selector="ComboBox.VarSelect">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="MinHeight" Value="30" />
         </Style>
-        <Style Selector="Button.AddButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.AddButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-        <Style Selector="Button.AddButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#5A3226" />
-        </Style>
-        <Style Selector="Button.RemoveButton">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RemoveButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#B03A1A" />
-        </Style>
 
-        <Style Selector="Button.TitleBarButton">
+        <!-- The edge between two halves: a hairline down the middle of the band that is dragged, so
+             nothing looks stuck to either panel, and it lights up when the pointer is on it. -->
+        <Style Selector="GridSplitter.RunSplit">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" Padding="2">
+                        <Border Name="SplitLine" Width="1" Margin="0,7"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                Background="{DynamicResource BorderControl}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
         </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+        <Style Selector="GridSplitter.RunSplit:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+        <Style Selector="GridSplitter.RunSplit:pointerover /template/ Border#SplitLine">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        </Style>
+        <Style Selector="GridSplitter.SplitVertical">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" Padding="2">
+                        <Border Name="SplitLine" Height="1" Margin="7,0"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                Background="{DynamicResource BorderControl}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="GridSplitter.SplitVertical:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+        <Style Selector="GridSplitter.SplitVertical:pointerover /template/ Border#SplitLine">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
 
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentHover}" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
+        <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
 
         <Style Selector="Border.RunRow">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Margin" Value="0,0,0,4" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
         </Style>
+        <Style Selector="Border.RunRow:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <!-- 运行位置族：**只改底色与边，不改前景**——它标记的是"位置"，不是"这段文字是什么"。
+             原来那对棕红/琥珀是"一色两用"（同一个琥珀也当语法色用），换成状态族里的 `Warning`
+             与 `WarningSurface`。 -->
         <Style Selector="Border.RunRow.current">
-            <Setter Property="Background" Value="#3A2A16" />
-            <Setter Property="BorderBrush" Value="#C8A165" />
+            <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+        </Style>
+
+        <!-- 步骤正文：`#E4E4E4` 与正文色差 4%，肉眼不可辨，等于没上色 -->
+        <Style Selector="TextBlock.StepLabel">
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <!-- 容器步的标题：字重承担"这是一层"，颜色回到正文色 —— 与 `StepLabel` 同一条裁定 -->
+        <Style Selector="TextBlock.StepLabel.container">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+
+        <Style Selector="Button.Fold">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
 
         <Style Selector="Button.Breakpoint">
@@ -171,50 +126,44 @@
             <Setter Property="Height" Value="16" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceHover}" />
         </Style>
         <Style Selector="Button.Breakpoint.on">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
         <!-- 断点的红色要压过悬停与按下的颜色：主题把这两态画在 ContentPresenter 上，只给 Button
              自己上色的话，指针还停在圆点上时那一点的先后看不出来 —— 点完要等鼠标移开才变红。 -->
         <Style Selector="Button.Breakpoint.on /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
         <Style Selector="Button.Breakpoint.on:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
         <Style Selector="Button.Breakpoint.on:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
-        </Style>
-
-        <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
 
         <Style Selector="Button.LookThumb">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="1" />
         </Style>
         <Style Selector="Button.LookThumb:pointerover /template/ ContentPresenter">
-            <Setter Property="BorderBrush" Value="#C8A165" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
         </Style>
 
         <!-- Taking one value away: small, and sitting at the end of the row it belongs to. -->
         <Style Selector="Button.CopyButton">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="#CFCFCF" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Padding" Value="8,0" />
@@ -224,30 +173,34 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.CopyButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
     </Window.Styles>
 
-    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
+        <Grid RowDefinitions="40,Auto,Auto,*,Auto,Auto">
 
-            <!-- ===================== Title bar ===================== -->
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,10,10,8">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
-                       VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="13" Foreground="{DynamicResource AppText}"
-                           Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-                    <!-- A run carries on while its window is out of the way, which is what watching
-                         the macro work in the program it drives takes. -->
-                    <Button Classes="TitleBarButton" Name="MinimizeButton"
-                            ToolTip.Tip="{Binding [Run.Minimize], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
-                    </Button>
-                    <Button Classes="TitleBarButton" Name="CloseButton"
-                            ToolTip.Tip="{Binding [Run.Close], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+            <!--
+              ===================== 标题栏（内容扩展进标题栏） =====================
+              库不再画图标与标题，这一行自己画；右边是与系统按钮同尺寸的置顶钮，行尾留出它们的宽度。
+              一次运行常要在被驱动的程序前面看着，所以置顶在这里要够方便。
+            -->
+            <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
+                            VerticalAlignment="Center">
+                    <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                    <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                               VerticalAlignment="Center"
+                               Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
+                            VerticalAlignment="Center">
+                    <Button Classes="Caption" Name="PinButton"
+                            ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
+                        <views:IconView Name="PinIcon" Width="14" Height="14"
+                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4"
+                                        FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -256,7 +209,7 @@
             <!-- Shown only when there is something to run: the window is also the place the
                  variables are managed from, and a run nobody has asked for controls nothing. -->
             <Border Grid.Row="1" Name="RunToolbar"
-                    Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
+                    Background="{DynamicResource SurfaceWindow}" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
                     IsVisible="{Binding HasSteps}">
                 <!-- Buttons, then what the run is doing, then the two notes about this run: how
                      fast it is being played, and whose turn it is at the input door. One column
@@ -264,75 +217,62 @@
                      that last column — two of these landing on top of each other is how the note
                      about the input door came to be drawn over the speed badge. -->
                 <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
-                    <Button Classes="PrimaryButton" Name="RunButton"
+                    <Button Classes="Primary" Name="RunButton"
                             Content="{Binding [Run.Run], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding RunCommand}"
                             ToolTip.Tip="{Binding [Run.RunTip], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0"
+                    <Button Grid.Column="1" Classes="Secondary" Margin="8,0,0,0"
                             Content="{Binding [Run.Step], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding StepCommand}"
                             ToolTip.Tip="{Binding [Run.StepTip], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="2" Classes="FlatButton" Margin="8,0,0,0"
+                    <Button Grid.Column="2" Classes="Secondary" Margin="8,0,0,0"
                             Content="{Binding [Run.Continue], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding ContinueCommand}"
                             ToolTip.Tip="{Binding [Run.ContinueTip], Source={x:Static loc:Strings.Current}}" />
-                    <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
+                    <Button Grid.Column="3" Classes="Secondary" Margin="8,0,0,0"
                             Content="{Binding [Run.Stop], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding StopCommand}"
                             ToolTip.Tip="{Binding [Run.StopTip], Source={x:Static loc:Strings.Current}}" />
                     <!-- Skipping the step a breakpoint stopped in front of lives here as well as in
                          the dot's own menu: where it is wanted is right after a run has stopped, and
                          that is when this window is being looked at, not the dot. -->
-                    <Button Grid.Column="4" Classes="FlatButton" Name="SkipStepButton" Margin="8,0,0,0"
+                    <Button Grid.Column="4" Classes="Secondary" Name="SkipStepButton" Margin="8,0,0,0"
                             Content="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding SkipStepCommand}" />
                     <StackPanel Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center">
-                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
+                        <!-- 运行状态：**颜色由状态种类给**（跑完=成功、出错=危险、暂停=警告、其余=灰）。
+                             原来这里写死琥珀，于是"已完成"和"出问题了"长得一样。 -->
+                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="12"
+                                   Foreground="{Binding StatusKindValue, Converter={StaticResource RunStatusBrush}}"
                                    Text="{Binding Status}" />
-                        <!-- What is still running behind this macro: a call started with waiting
-                             turned off belongs to this run until it is waited for. -->
-                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="11.5" Foreground="#8FB8D9"
-                                   IsVisible="{Binding HasChildren}"
-                                   Text="{Binding ChildrenLine}" />
                     </StackPanel>
                     <Border Grid.Column="6" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
                             CornerRadius="4"
-                            Background="#3A2A10" BorderBrush="#8A6A2A" BorderThickness="1"
+                            Background="{DynamicResource WarningSurface}"
+                            BorderBrush="{DynamicResource Warning}" BorderThickness="1"
                             VerticalAlignment="Center"
                             IsVisible="{Binding IsSpeedAdjusted}"
                             ToolTip.Tip="{Binding [Run.SpeedTip], Source={x:Static loc:Strings.Current}}">
-                        <TextBlock FontSize="11.5" Foreground="#E0B080" Text="{Binding SpeedNote}" />
+                        <TextBlock FontSize="11.5" Foreground="{DynamicResource Warning}"
+                                   Text="{Binding SpeedNote}" />
                     </Border>
                     <!-- Whose turn it is at the input door. Two macros running at once are two
                          hands on one keyboard, and this is the line that says which of them is
                          sending keys right now. -->
                     <TextBlock Grid.Column="7" Name="InputOwnerText" Margin="12,0,0,0"
                                VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
+                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource Warning}"
                                IsVisible="{Binding ShowsInputOwner}"
                                Text="{Binding InputOwnerLine}" />
                     <!-- Which run has the one shared browser. It is a different door from input:
                          a macro can be typing while another is reading the page. -->
                     <TextBlock Grid.Column="8" Name="BrowserOwnerText" Margin="12,0,0,0"
                                VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FB8D9"
+                               TextTrimming="CharacterEllipsis" FontSize="12"
+                               Foreground="{DynamicResource Warning}"
                                IsVisible="{Binding ShowsBrowserOwner}"
                                Text="{Binding BrowserOwnerLine}" />
                 </Grid>
-            </Border>
-
-            <!-- ===================== Which half is showing ===================== -->
-            <Border Grid.Row="2" Name="PageTabs"
-                    Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10" Padding="8,6"
-                    IsVisible="{Binding HasSteps}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Button Classes="Tab" Classes.active="{Binding IsDebugPage}"
-                            Command="{Binding SelectPageCommand}" CommandParameter="Debug"
-                            Content="{Binding [Run.Page.Debug], Source={x:Static loc:Strings.Current}}" />
-                    <Button Classes="Tab" Classes.active="{Binding IsVariablesPage}"
-                            Command="{Binding SelectPageCommand}" CommandParameter="Variables"
-                            Content="{Binding [Run.Page.Variables], Source={x:Static loc:Strings.Current}}" />
-                </StackPanel>
             </Border>
 
             <!-- Opened from the button on its own there is nothing to debug, and this is how a
@@ -341,7 +281,7 @@
             <StackPanel Grid.Row="2" Margin="16,0,14,12" Spacing="9"
                         IsVisible="{Binding !HasSteps}">
                 <TextBlock Name="DebugFromCardNote" TextWrapping="Wrap" FontSize="12"
-                           Foreground="{DynamicResource AppMuted}"
+                           Foreground="{DynamicResource TextTertiary}"
                            Text="{Binding [Run.DebugFromCard], Source={x:Static loc:Strings.Current}}" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <ComboBox Name="MacroPicker" Classes="VarSelect" MinWidth="220"
@@ -355,18 +295,17 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Button Classes="PrimaryButton" Name="StartDebugButton"
+                    <Button Classes="Primary" Name="StartDebugButton"
                             Content="{Binding [Run.StartDebug], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding StartDebugCommand}" />
                 </StackPanel>
             </StackPanel>
 
             <!-- ===================== Steps, variables and log ===================== -->
-            <Grid Grid.Row="3" ColumnDefinitions="340,*" RowDefinitions="Auto,*"
-                  Margin="14,0,14,0" IsVisible="{Binding IsDebugPage}">
+            <Grid Grid.Row="3" RowDefinitions="Auto,*" Margin="14,0,14,0">
                 <!-- A direct run has no caller to fill the declaration in, so the values it is
                      asked for are put here before the run starts. A trigger supplies none. -->
-                <Border Grid.Row="0" Grid.ColumnSpan="2" Name="RunArgumentsPanel"
+                <Border Grid.Row="0" Name="RunArgumentsPanel"
                         Classes="Panel" Padding="12,10" Margin="0,0,0,10"
                         IsVisible="{Binding HasArguments}">
                     <StackPanel Spacing="8">
@@ -381,17 +320,17 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:RunArgumentViewModel">
-                                    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="5"
+                                    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="5"
                                             Padding="10" Margin="0,0,10,8" Width="250">
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="{Binding Label}" FontSize="12"
-                                                       Foreground="{DynamicResource AppText}" />
-                                            <TextBox Classes="VarInput" Text="{Binding Value}" />
+                                                       Foreground="{DynamicResource TextPrimary}" />
+                                            <TextBox Classes="Field" Text="{Binding Value}" />
                                             <CheckBox FontSize="11.5"
-                                                      Foreground="{DynamicResource AppMuted}"
+                                                      Foreground="{DynamicResource TextTertiary}"
                                                       IsChecked="{Binding Given}"
                                                       Content="{Binding [Run.ArgumentGiven], Source={x:Static loc:Strings.Current}}" />
-                                            <TextBlock Text="{Binding Hint}" Classes="Muted"
+                                            <TextBlock Text="{Binding Hint}" Classes="Hint"
                                                        TextWrapping="Wrap" />
                                         </StackPanel>
                                     </Border>
@@ -402,7 +341,13 @@
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Row="1" Classes="Panel">
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="260" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="*" MinWidth="320" />
+                    </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Classes="Panel" MinWidth="240">
                     <Grid RowDefinitions="Auto,*">
                         <TextBlock Classes="SectionHeader"
                                    Text="{Binding [Run.Steps], Source={x:Static loc:Strings.Current}}" />
@@ -410,13 +355,18 @@
                              standing in front of is kept in view as it moves. -->
                         <ScrollViewer Grid.Row="1" Name="StepScroll" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            IsVisible="{Binding !HasSteps}"
                                            Text="{Binding [Run.Empty], Source={x:Static loc:Strings.Current}}" />
                                 <ItemsControl Name="StepList" ItemsSource="{Binding Steps}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
-                                            <Border Classes="RunRow" Classes.current="{Binding IsCurrent}">
+                                            <Border Classes="RunRow" Classes.current="{Binding IsCurrent}"
+                                                    IsVisible="{Binding IsShown}">
+                                                <ToolTip.Tip>
+                                                    <TextBlock Text="{Binding Tooltip}" TextWrapping="Wrap"
+                                                               MaxWidth="460" FontSize="12" />
+                                                </ToolTip.Tip>
                                                 <!-- The breakpoint's three things are asked for on the
                                                      row itself: the dot on the left is 16 pixels, and
                                                      a menu only it carries is a menu most people
@@ -438,7 +388,7 @@
                                                                   Click="OnBreakpointMenuClicked" Tag="clear" />
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
-                                                <Grid ColumnDefinitions="24,*,Auto">
+                                                <Grid ColumnDefinitions="24,Auto,*,Auto">
                                                     <Button Classes="Breakpoint" Classes.on="{Binding HasBreakpoint}"
                                                             VerticalAlignment="Center"
                                                             IsVisible="{Binding CanBreak}"
@@ -446,15 +396,45 @@
                                                             Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleBreakpointCommand}"
                                                             CommandParameter="{Binding}">
                                                     </Button>
-                                                    <StackPanel Grid.Column="1" Margin="{Binding Indent}">
-                                                        <TextBlock Text="{Binding Label}" FontSize="12"
-                                                                   Foreground="#E4E4E4" />
-                                                        <TextBlock Text="{Binding Detail}" Classes="Muted"
+                                                    <!-- One guide line for each level above this step: the
+                                                         list is flat, and these are what show that a step
+                                                         sits inside a group, a loop or a branch. -->
+                                                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Guides}"
+                                                                  VerticalAlignment="Stretch">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel Orientation="Horizontal" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Width="22" BorderThickness="1,0,0,0"
+                                                                        BorderBrush="{DynamicResource SurfaceControl}" />
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <StackPanel Grid.Column="2" Margin="2,0,0,0">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <Button Classes="Fold" Content="{Binding Marker}"
+                                                                    VerticalAlignment="Center"
+                                                                    IsVisible="{Binding IsContainer}"
+                                                                    Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleFoldCommand}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <TextBlock Text="{Binding Label}" Classes="StepLabel"
+                                                                       Classes.container="{Binding IsContainer}" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Detail}" Classes="Hint"
                                                                    TextWrapping="Wrap" />
+                                                        <!-- The note the step carries, the same one the
+                                                             editor writes under a step. -->
+                                                        <TextBlock Text="{Binding Comment}" FontSize="11.5"
+                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
+                                                                   Margin="0,2,0,0"
+                                                                   IsVisible="{Binding HasComment}" />
                                                         <!-- What the breakpoint waits for, when it waits
                                                              for anything. -->
                                                         <TextBlock Text="{Binding ConditionNote}" FontSize="11.5"
-                                                                   Foreground="#D8B36A" TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                                                                    IsVisible="{Binding HasCondition}" />
                                                         <!-- What this step came to, whether or not the
                                                              macro keeps any of it: a value nobody
@@ -465,13 +445,13 @@
                                                                 <TextBlock Text="{Binding OutcomeLabel}" FontSize="11.5"
                                                                            Foreground="{Binding OutcomeColor}" />
                                                                 <TextBlock Text="{Binding TimeNote}" FontSize="11.5"
-                                                                           Foreground="{DynamicResource AppMuted}" />
+                                                                           Foreground="{DynamicResource TextTertiary}" />
                                                             </StackPanel>
                                                             <TextBlock Text="{Binding FailureNote}" FontSize="11.5"
-                                                                       Foreground="#E06C75" TextWrapping="Wrap"
+                                                                       Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
                                                                        IsVisible="{Binding HasFailure}" />
                                                             <TextBlock Text="{Binding AttemptsHeader}" FontSize="11"
-                                                                       Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
+                                                                       Foreground="{DynamicResource TextTertiary}" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasAttempts}" />
                                                             <ItemsControl ItemsSource="{Binding Attempts}"
                                                                           IsVisible="{Binding HasAttempts}">
@@ -479,11 +459,11 @@
                                                                     <DataTemplate x:DataType="vm:RunAttemptViewModel">
                                                                         <StackPanel Margin="0,1,0,0">
                                                                             <TextBlock Text="{Binding Note}"
-                                                                                       FontSize="11"
-                                                                                       Foreground="#CFCFCF" />
+                                                                                       FontSize="12"
+                                                                                       Foreground="{DynamicResource TextTertiary}" />
                                                                             <TextBlock Text="{Binding Failure}"
                                                                                        FontSize="11"
-                                                                                       Foreground="#E06C75"
+                                                                                       Foreground="{DynamicResource Danger}"
                                                                                        TextWrapping="Wrap"
                                                                                        IsVisible="{Binding HasFailure}" />
                                                                         </StackPanel>
@@ -491,7 +471,7 @@
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
                                                             <TextBlock Text="{Binding ResultsHeader}" FontSize="11"
-                                                                       Foreground="{DynamicResource AppMuted}" Margin="0,2,0,0"
+                                                                       Foreground="{DynamicResource TextTertiary}" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasResults}" />
                                                             <ItemsControl ItemsSource="{Binding Results}"
                                                                           IsVisible="{Binding HasResults}">
@@ -506,7 +486,7 @@
                                                                                            Margin="8,0,0,0"
                                                                                            Text="{Binding Value}"
                                                                                            FontSize="11"
-                                                                                           Foreground="{DynamicResource AppMuted}"
+                                                                                           Foreground="{DynamicResource TextTertiary}"
                                                                                            TextWrapping="Wrap" />
                                                                             </Grid>
                                                                             <!-- A value made of named fields is shown as the fields, one
@@ -521,12 +501,13 @@
                                                                                               Margin="{Binding Indent}">
                                                                                             <TextBlock Text="{Binding Name}"
                                                                                                        FontSize="11"
-                                                                                                       Foreground="#8FB3D9" />
+                                                                                                       Classes="Mono"
+                                                                                                       Foreground="{DynamicResource TextPrimary}" />
                                                                                             <SelectableTextBlock Grid.Column="1"
                                                                                                        Margin="8,0,0,0"
                                                                                                        Text="{Binding Value}"
                                                                                                        FontSize="11"
-                                                                                                       Foreground="{DynamicResource AppMuted}"
+                                                                                                       Foreground="{DynamicResource TextTertiary}"
                                                                                                        TextWrapping="Wrap" />
                                                                                         </Grid>
                                                                                     </DataTemplate>
@@ -559,387 +540,197 @@
                     </Grid>
                 </Border>
 
-                <Grid Grid.Row="1" Grid.Column="1" Margin="12,0,0,0" RowDefinitions="Auto,*,Auto,Auto,Auto,1.2*">
-                    <TextBlock Classes="SectionHeader"
-                               Text="{Binding [Run.Variables], Source={x:Static loc:Strings.Current}}" />
-                    <Border Grid.Row="1" Classes="Panel" Padding="12,10">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel>
-                                <TextBlock Classes="Muted"
-                                           IsVisible="{Binding !HasVariables}"
-                                           Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
-                                <ItemsControl ItemsSource="{Binding Variables}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:WatchedVariable">
-                                            <Grid ColumnDefinitions="150,60,*,Auto" Margin="0,0,0,3">
-                                                <TextBlock Text="{Binding Display}" FontSize="12" Foreground="#BFE3BF" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
-                                                           Foreground="#D6C08A" />
-                                                <SelectableTextBlock Grid.Column="2" Text="{Binding Value}"
-                                                                     FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                                                     TextWrapping="Wrap" />
-                                                <Button Grid.Column="3" Classes="CopyButton" Margin="8,0,0,0"
-                                                        Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                        Click="OnCopyValueClicked" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                <GridSplitter Grid.Column="1" Name="RunSplitter" Classes="RunSplit"
+                              ResizeDirection="Columns" />
+                <Grid Grid.Column="2" Margin="10,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*" MinHeight="130" />
+                        <RowDefinition Height="5" />
+                        <RowDefinition Height="3*" MinHeight="150" />
+                    </Grid.RowDefinitions>
 
-                                <!-- One of these for every step of the macro, so it stays folded away. -->
-                                <Button Classes="FlatButton" Margin="0,10,0,6" Height="24" Padding="10,0"
-                                        FontSize="11.5" HorizontalAlignment="Left"
-                                        IsVisible="{Binding HasStepOutcomes}"
-                                        Content="{Binding StepOutcomeHeader}"
-                                        Command="{Binding ToggleStepOutcomesCommand}" />
-                                <ItemsControl ItemsSource="{Binding StepOutcomes}"
-                                              IsVisible="{Binding ShowStepOutcomes}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:StepOutcome">
-                                            <Grid ColumnDefinitions="150,*,60" Margin="0,0,0,3"
-                                                  ToolTip.Tip="{Binding Name}">
-                                                <TextBlock Text="{Binding Label}" FontSize="11.5"
-                                                           Foreground="#CFCFCF"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
-                                                           Foreground="#8FB3D9"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="11.5"
-                                                           Foreground="{Binding Color}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Border>
+                    <!-- What the macro works with. The title is inside the panel it belongs to, so a
+                         drag of the splitter moves a whole area rather than a heading left behind. -->
+                    <Border Grid.Row="0" Classes="Panel" Padding="12,8">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Classes="SectionHeader" Margin="0,0,0,6"
+                                       Text="{Binding [Run.Variables], Source={x:Static loc:Strings.Current}}" />
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
 
-                    <!-- What the armed triggers are waiting for. It is beside the log because
-                         "my macro did not run" is answered by this list and by nothing else. -->
-                    <TextBlock Grid.Row="2" Classes="SectionHeader" Margin="0,12,0,8"
-                               IsVisible="{Binding HasTriggers}"
-                               ToolTip.Tip="{Binding [Run.TriggersHint], Source={x:Static loc:Strings.Current}}"
-                               Text="{Binding [Run.Triggers], Source={x:Static loc:Strings.Current}}" />
-                    <Border Grid.Row="3" Classes="Panel" Padding="12,8" MaxHeight="110"
-                            IsVisible="{Binding HasTriggers}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Triggers}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:TriggerWatchLine">
-                                        <TextBlock Text="{Binding Text}" FontSize="11.5"
-                                                   Foreground="#CFCFCF" TextWrapping="Wrap"
-                                                   Margin="0,1,0,1" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-
-                    <!-- The whole log at once, for the same reason a row has its own button: what is
-                         written here is usually wanted somewhere else. -->
-                    <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,*" Margin="0,12,0,8">
-                        <TextBlock Classes="SectionHeader" Margin="0,0,0,0" VerticalAlignment="Center"
-                                   Text="{Binding [Run.Log], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="1" Classes="CopyButton" Margin="10,0,0,0" Height="22"
-                                Name="CopyLog"
-                                Content="{Binding [Run.CopyLog], Source={x:Static loc:Strings.Current}}"
-                                Click="OnCopyLogClicked" />
+    <StackPanel>
+        <TextBlock Classes="Hint"
+                   IsVisible="{Binding !HasVariables}"
+                   Text="{Binding [Run.NoVariables], Source={x:Static loc:Strings.Current}}" />
+        <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,4" ColumnSpacing="6"
+              IsVisible="{Binding HasVariables}">
+            <TextBlock Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="1" Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="2" Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="3" Classes="ColumnHeader" Margin="0,0,0,4"
+                       Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Variables}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:WatchedVariable">
+                    <Grid ColumnDefinitions="*,50,56,1.4*,48" Margin="0,0,0,3" ColumnSpacing="6"
+                          ToolTip.Tip="{Binding Display}">
+                        <TextBlock Text="{Binding Display}" FontSize="12" Classes="Code"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
+                                   Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="2" Text="{Binding LocalType}" FontSize="11.5"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextTertiary}" />
+                        <SelectableTextBlock Grid.Column="3" Text="{Binding Value}" FontSize="11.5"
+                                             VerticalAlignment="Center" TextWrapping="Wrap"
+                                             Foreground="{DynamicResource TextTertiary}" />
+                        <Button Grid.Column="4" Classes="CopyButton" Margin="4,0,0,0" Width="44"
+                                Padding="6,0" FontSize="11" VerticalAlignment="Center"
+                                Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
+                                Click="OnCopyValueClicked" />
                     </Grid>
-                    <Border Grid.Row="5" Classes="Panel" Padding="12,10">
-                        <ScrollViewer Name="LogScroll" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Lines}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:RunLineViewModel">
-                                        <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
-                                            <TextBlock Text="{Binding Time}" FontSize="11" Foreground="#7A7A7A"
-                                                       Margin="0,0,8,0" />
-                                            <SelectableTextBlock Text="{Binding Text}" FontSize="11.5"
-                                                                 Foreground="{Binding Color}"
-                                                                 TextWrapping="Wrap" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- One of these for every step of the macro, so it stays folded away. -->
+        <Button Classes="Secondary" Margin="0,10,0,6" Height="24" Padding="10,0"
+                FontSize="11.5" HorizontalAlignment="Left"
+                IsVisible="{Binding HasStepOutcomes}"
+                Content="{Binding StepOutcomeHeader}"
+                Command="{Binding ToggleStepOutcomesCommand}" />
+        <ItemsControl ItemsSource="{Binding StepOutcomes}"
+                      IsVisible="{Binding ShowStepOutcomes}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:StepOutcome">
+                    <Grid ColumnDefinitions="150,*,60" Margin="0,0,0,3"
+                          ToolTip.Tip="{Binding Name}">
+                        <TextBlock Text="{Binding Label}" FontSize="12"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
+                                   Classes="Mono"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="11.5"
+                                   Foreground="{Binding Color}" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
                     </Border>
+
+                    <GridSplitter Grid.Row="1" Name="WatchSplitter" Classes="SplitVertical"
+                                  ResizeDirection="Rows" />
+
+                    <Grid Grid.Row="2" RowDefinitions="Auto,*">
+                        <!-- What the armed triggers are waiting for. It is beside the log because
+                             "my macro did not run" is answered by this list and by nothing else. -->
+                        <Border Grid.Row="0" Classes="Panel" Padding="12,8" Margin="0,0,0,8"
+                                MaxHeight="120" IsVisible="{Binding HasTriggers}">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Classes="SectionHeader" Margin="0,0,0,4"
+                                           ToolTip.Tip="{Binding [Run.TriggersHint], Source={x:Static loc:Strings.Current}}"
+                                           Text="{Binding [Run.Triggers], Source={x:Static loc:Strings.Current}}" />
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+
+    <ItemsControl ItemsSource="{Binding Triggers}">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TriggerWatchLine">
+                <TextBlock Text="{Binding Text}" FontSize="12"
+                           Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
+                           Margin="0,1,0,1" />
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- The whole log at once, for the same reason a row has its own button: what is
+                             written here is usually wanted somewhere else. -->
+                        <Border Grid.Row="1" Classes="Panel" Padding="12,8">
+                            <Grid RowDefinitions="Auto,*">
+                                <Grid ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,6">
+                                    <TextBlock Classes="SectionHeader" Margin="0,0,0,0" VerticalAlignment="Center"
+                                               Text="{Binding [Run.Log], Source={x:Static loc:Strings.Current}}" />
+                                    <Button Grid.Column="1" Classes="CopyButton" Margin="10,0,0,0" Height="22"
+                                            Name="CopyLog"
+                                            Content="{Binding [Run.CopyLog], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnCopyLogClicked" />
+                                </Grid>
+                                <ScrollViewer Grid.Row="1" Name="LogScroll" VerticalScrollBarVisibility="Auto">
+
+    <ItemsControl ItemsSource="{Binding Lines}">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RunLineViewModel">
+                <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
+                    <TextBlock Text="{Binding Time}" FontSize="11" Foreground="{DynamicResource TextTertiary}"
+                               Margin="0,0,8,0" />
+                    <SelectableTextBlock Text="{Binding Text}" FontSize="11.5"
+                                         Foreground="{Binding Color}"
+                                         TextWrapping="Wrap" />
+                </StackPanel>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
                 </Grid>
             </Grid>
 
-            <!-- ===================== Variables ===================== -->
-            <!-- The other half of the window: which variables exist, and the shared ones' own
-                 fields. A macro may read them and change a global one; creating one is done here. -->
-            <ScrollViewer Grid.Row="3" Padding="18,0,18,10" VerticalScrollBarVisibility="Auto"
-                          IsVisible="{Binding IsVariablesPage}">
-                <StackPanel>
-                    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button Classes="Tab" Classes.active="{Binding IsCurrentTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="Current"
-                                        Content="{Binding [Variable.Tab.Current], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Tab" Classes.active="{Binding IsLocalTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="Local"
-                                        Content="{Binding [Variable.Tab.Local], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Tab" Classes.active="{Binding IsGlobalTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="Global"
-                                        Content="{Binding [Variable.Tab.Global], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Tab" Classes.active="{Binding IsSystemTab}"
-                                        Command="{Binding SelectTabCommand}" CommandParameter="System"
-                                        Content="{Binding [Variable.Tab.System], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-
-                            <Button Grid.Column="2" Classes="FlatButton" Height="28" Padding="12,0"
-                                    VerticalAlignment="Center"
-                                    Content="{Binding [Variable.Refresh], Source={x:Static loc:Strings.Current}}"
-                                    Command="{Binding RefreshCommand}" />
-                        </Grid>
-                    </Border>
-
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,4,0,0"
-                               Text="{Binding [Variable.Note], Source={x:Static loc:Strings.Current}}" />
-
-                    <!-- ===================== Variables in use ===================== -->
-                    <StackPanel IsVisible="{Binding IsCurrentTab}">
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
-                            <TextBlock Classes="Muted" TextWrapping="Wrap" VerticalAlignment="Center"
-                                       Text="{Binding [Variable.CurrentHint], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                                      Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                      IsChecked="{Binding ShowSystemVariables}"
-                                      Content="{Binding [Variable.ShowSystem], Source={x:Static loc:Strings.Current}}" />
-                        </Grid>
-                        <TextBlock Classes="Muted" Margin="0,10,0,0" TextWrapping="Wrap"
-                                   Text="{Binding [Variable.NoneUsed], Source={x:Static loc:Strings.Current}}"
-                                   IsVisible="{Binding !HasCurrentVariables}" />
-                        <Grid ColumnDefinitions="170,64,110,150,*,Auto" Margin="0,10,0,0">
-                            <TextBlock Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="1" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Scope], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="2" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.UsedBy], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="3" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="4" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding CurrentVariables}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="models:VariableDefinition">
-                                    <Border Classes="VarRow">
-                                        <Grid ColumnDefinitions="170,64,110,150,*,Auto">
-                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
-                                                       FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
-                                            <Border Grid.Column="1" Background="{DynamicResource AppDock}" CornerRadius="3"
-                                                    Padding="6,2" HorizontalAlignment="Left"
-                                                    VerticalAlignment="Top">
-                                                <TextBlock Text="{Binding LocalScope}" Foreground="#D6C08A"
-                                                           FontSize="11" />
-                                            </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding LocalOwner}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
-                                            <SelectableTextBlock Grid.Column="3" Text="{Binding CurrentValue}"
-                                                                 Foreground="#E4C48A" FontFamily="Consolas"
-                                                                 FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="4" Text="{Binding LocalDescription}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
-                                            <Button Grid.Column="5" Classes="CopyButton" Margin="8,0,0,0"
-                                                    VerticalAlignment="Top"
-                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                    Click="OnCopyValueClicked" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- ===================== Local variables ===================== -->
-                    <StackPanel IsVisible="{Binding IsLocalTab}">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,12,0,0"
-                                   Text="{Binding [Variable.LocalsHint], Source={x:Static loc:Strings.Current}}" />
-
-                        <TextBlock Classes="Muted" Margin="0,10,0,0" TextWrapping="Wrap"
-                                   Text="{Binding [Variable.NoLocals], Source={x:Static loc:Strings.Current}}"
-                                   IsVisible="{Binding !HasLocalVariables}" />
-
-                        <ItemsControl ItemsSource="{Binding LocalVariables}" Margin="0,10,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:MacroVariableGroup">
-                                    <StackPanel Margin="0,0,0,10">
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,0,0,5">
-                                            <TextBlock Text="{Binding MacroName}" Foreground="{DynamicResource AppText}"
-                                                       FontSize="12.5" FontWeight="SemiBold" />
-                                            <Border Background="{DynamicResource AppDock}" CornerRadius="3" Padding="6,2">
-                                                <TextBlock Foreground="#D6C08A" FontSize="11"
-                                                           Text="{Binding [Variable.Scope.Local], Source={x:Static loc:Strings.Current}}" />
-                                            </Border>
-                                        </StackPanel>
-                                        <ItemsControl ItemsSource="{Binding Variables}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="models:VariableDefinition">
-                                                    <Border Classes="VarRow">
-                                                        <Grid ColumnDefinitions="230,110,*,Auto">
-                                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
-                                                                       FontFamily="Consolas" FontSize="12"
-                                                                       TextWrapping="Wrap" />
-                                                            <SelectableTextBlock Grid.Column="1"
-                                                                                 Text="{Binding CurrentValue}"
-                                                                                 Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                                                                 TextWrapping="Wrap" />
-                                                            <TextBlock Grid.Column="2" Text="{Binding LocalDescription}"
-                                                                       Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                                                       TextWrapping="Wrap" />
-                                                            <Button Grid.Column="3" Classes="CopyButton"
-                                                                    Margin="8,0,0,0" VerticalAlignment="Top"
-                                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                                    Click="OnCopyValueClicked" />
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- ===================== Shared variables ===================== -->
-                    <StackPanel IsVisible="{Binding IsGlobalTab}">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,12,0,0"
-                                   Text="{Binding [Variable.GlobalsHint], Source={x:Static loc:Strings.Current}}" />
-
-                        <ItemsControl ItemsSource="{Binding Globals}" Margin="0,10,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:RunGlobalVariable">
-                                    <Border Classes="VarRow">
-                                        <Grid ColumnDefinitions="190,100,150,*,110,Auto" ColumnSpacing="8">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Display}" FontFamily="Consolas"
-                                                           Foreground="#BFE3BF" TextWrapping="Wrap" />
-                                                <TextBlock Classes="Muted" Text="{Binding Description}"
-                                                           TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding LocalType}"
-                                                       VerticalAlignment="Top" Foreground="{DynamicResource AppMuted}" />
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Classes="ColumnHeader"
-                                                           Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
-                                                <SelectableTextBlock Text="{Binding CurrentValue}"
-                                                                     TextWrapping="Wrap"
-                                                                     Foreground="{DynamicResource AppText}" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="3">
-                                                <TextBlock Classes="ColumnHeader"
-                                                           Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}" />
-                                                <SelectableTextBlock Text="{Binding DefaultValue}"
-                                                                     TextWrapping="Wrap"
-                                                                     Foreground="{DynamicResource AppMuted}" />
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="4" Text="{Binding PersistenceText}"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource AppMuted}" />
-                                            <Button Grid.Column="5" Classes="CopyButton"
-                                                    VerticalAlignment="Top"
-                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                    Click="OnCopyValueClicked" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <TextBlock Classes="Muted" Margin="0,8,0,0"
-                                   Text="{Binding [Variable.NoGlobals], Source={x:Static loc:Strings.Current}}"
-                                   IsVisible="{Binding !HasGlobals}" />
-
-                    </StackPanel>
-
-                    <!-- ===================== System variables ===================== -->
-                    <StackPanel IsVisible="{Binding IsSystemTab}">
-                        <!-- Read-only is the one thing to know about these, and it is easy to try to
-                             edit them anyway, so the line says so in red rather than in passing. -->
-                        <TextBlock TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#E06C75"
-                                   FontWeight="SemiBold"
-                                   Text="{Binding [Variable.SystemHint], Source={x:Static loc:Strings.Current}}" />
-                        <Grid ColumnDefinitions="210,70,170,*,Auto" Margin="0,10,0,0">
-                            <TextBlock Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="1" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="2" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Grid.Column="3" Classes="ColumnHeader"
-                                       Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding SystemVariables}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="models:VariableDefinition">
-                                    <Border Classes="VarRow">
-                                        <Grid ColumnDefinitions="210,70,170,*,Auto">
-                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
-                                                       FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="1" Text="{Binding LocalType}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" />
-                                            <SelectableTextBlock Grid.Column="2" Text="{Binding CurrentValue}"
-                                                                 Foreground="#E4C48A" FontFamily="Consolas"
-                                                                 FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="3" Text="{Binding LocalDescription}"
-                                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" />
-                                            <Button Grid.Column="4" Classes="CopyButton" Margin="8,0,0,0"
-                                                    VerticalAlignment="Top"
-                                                    Content="{Binding [Run.CopyValue], Source={x:Static loc:Strings.Current}}"
-                                                    Click="OnCopyValueClicked" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
-
             <!-- ===================== Question ===================== -->
-            <Border Grid.Row="4" Background="{DynamicResource AppAccentSoft}" BorderBrush="{DynamicResource AppLabel}" BorderThickness="1"
+            <Border Grid.Row="4" Background="{DynamicResource AccentSurface}" BorderBrush="{DynamicResource Warning}" BorderThickness="1"
                     CornerRadius="6" Margin="14,10,14,0" Padding="14,10"
                     IsVisible="{Binding IsAsking}">
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource AppWarning}"
+                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource Warning}"
                                TextWrapping="Wrap" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                        <Button Classes="PrimaryButton" Content="{Binding [Run.AskRetry], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Primary" Content="{Binding [Run.AskRetry], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerCommand}" CommandParameter="retry" />
-                        <Button Classes="FlatButton" Content="{Binding [Run.AskSkip], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Secondary" Content="{Binding [Run.AskSkip], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerCommand}" CommandParameter="skip" />
-                        <Button Classes="FlatButton" Content="{Binding [Run.AskStop], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Secondary" Content="{Binding [Run.AskStop], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerCommand}" CommandParameter="stop" />
                     </StackPanel>
                 </Grid>
             </Border>
 
             <!-- ===================== The macro's own question ===================== -->
-            <Border Grid.Row="4" Background="#162C3A" BorderBrush="#6590C8" BorderThickness="1"
+            <!-- 提问框：**一个状态**（正在等你回答），所以走状态族 —— 底 `InfoSurface`、边与字 `Info`。
+                 这是"状态用状态色"的正面用法；固定琥珀那种（见上方 `Status`）是反面。 -->
+            <Border Grid.Row="4" Background="{DynamicResource InfoSurface}"
+                    BorderBrush="{DynamicResource Info}" BorderThickness="1"
                     CornerRadius="6" Margin="14,10,14,0" Padding="14,10"
                     IsVisible="{Binding IsAskingUser}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="#A8D0F0"
+                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource Info}"
                                TextWrapping="Wrap" />
                     <TextBox Text="{Binding AnswerText}" FontSize="12.5"
                              IsVisible="{Binding WantsTypedAnswer}" />
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                        <Button Classes="PrimaryButton" Content="{Binding [Run.AnswerOk], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Primary" Content="{Binding [Run.AnswerOk], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerUserCommand}" CommandParameter="ok" />
-                        <Button Classes="FlatButton" Content="{Binding [Run.AnswerCancel], Source={x:Static loc:Strings.Current}}"
+                        <Button Classes="Secondary" Content="{Binding [Run.AnswerCancel], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding AnswerUserCommand}" CommandParameter="cancel" />
                     </StackPanel>
                 </StackPanel>
             </Border>
 
             <!-- ===================== Footer ===================== -->
-            <Button Grid.Row="5" Classes="FlatButton" HorizontalAlignment="Right" Margin="14,12,14,14"
+            <Button Grid.Row="5" Classes="Secondary" HorizontalAlignment="Right" Margin="14,12,14,14"
                     Content="{Binding [Run.Close], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CloseCommand}" />
         </Grid>
     </Border>
-</Window>
+</views:AppWindow>

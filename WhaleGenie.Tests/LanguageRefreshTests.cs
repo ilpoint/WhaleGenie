@@ -1,3 +1,4 @@
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -8,6 +9,7 @@ namespace WhaleGenie.Tests;
 /// reads through the table's indexer. These pin the parts that keep a copy: the editor's trigger
 /// list, the picker's dock and pages, and the words on a macro card.
 /// </summary>
+[RestoreSharedState]
 public class LanguageRefreshTests
 {
     [Fact]
@@ -30,23 +32,20 @@ public class LanguageRefreshTests
     }
 
     [Fact]
-    public void The_action_picker_relabels_its_dock_and_pages()
+    public void The_action_form_relabels_its_pages()
     {
         AddActionViewModel? form = null;
-        string? dock = null;
         string? page = null;
 
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
-            form = new AddActionViewModel();
-            dock = form.Categories[1].Label;
+            form = new AddActionViewModel(ActionCatalog.RunnableActions);
             page = form.Pages[0].Title;
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             form!.RefreshLanguage();
-            Assert.NotEqual(dock, form.Categories[1].Label);
             Assert.NotEqual(page, form.Pages[0].Title);
         }));
     }
@@ -79,13 +78,32 @@ public class LanguageRefreshTests
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             model = new MacroInterfaceViewModel(new MacroEditorViewModel());
+
+            // A model with no kinds would make the check below fail on an index rather than say
+            // what went wrong; and an empty label would make "it changed" true for the wrong
+            // reason. Both are stated here so a failure names the thing that was missing.
+            Assert.True(model.Types.Count > 0, "the interface has no kinds to label");
             english = model.Types[0].Label;
+            Assert.False(string.IsNullOrWhiteSpace(english), "the English label came out empty");
+            Assert.Equal(Language.English, Strings.Current.Language);
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
+            // Checked before the refresh, not after: if the switch never took, the labels would
+            // come out equal for a reason that has nothing to do with refreshing, and the failure
+            // would blame the wrong thing.
+            Assert.Equal(Language.Chinese, Strings.Current.Language);
+
             model!.RefreshLanguage();
-            Assert.NotEqual(english, model.Types[0].Label);
+            var chinese = model.Types[0].Label;
+
+            // Said out loud rather than through Assert.NotEqual: this one has failed once in a
+            // whole-suite run and passed on its own, so the message has to carry enough to tell a
+            // stale label from a language that was never switched.
+            Assert.True(chinese != english,
+                $"the label did not change: english='{english}' chinese='{chinese}' "
+                + $"language={Strings.Current.Language}");
         }));
     }
 

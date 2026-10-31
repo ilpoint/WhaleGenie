@@ -1,7 +1,14 @@
+using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 // The headless session is one thread carrying one Avalonia application. Two test classes that
 // start at the same time race to set that up, and the one that loses is told its own dispatcher
@@ -48,6 +55,55 @@ internal static class Ui
         => Session.Dispatch(body, CancellationToken.None)
             .GetAwaiter()
             .GetResult();
+
+    /// <summary>
+    /// Waits for something the interface does on its own schedule — a dialog that is about to open,
+    /// a window that is about to close — by pumping the dispatcher until it is true.
+    /// </summary>
+    /// <remarks>
+    /// The alternative, "sleep 20ms and assert", turns a slow machine into a failing check: the whole
+    /// suite takes minutes, and the same wait that is generous on its own is not generous at the end
+    /// of a long run. This waits for the thing itself and gives up with the reason it was waiting,
+    /// so a real failure reads as one.
+    /// </remarks>
+    public static async Task Until(Func<bool> condition, string because, int timeoutMs = 3000)
+    {
+        for (var waited = 0; waited < timeoutMs && !condition(); waited += 10)
+        {
+            await Task.Delay(10);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        Assert.True(condition(), because);
+    }
+
+    /// <summary>
+    /// Closes a window and answers the "unsaved work" question it asks on the way out.
+    /// </summary>
+    /// <remarks>
+    /// The question is modal, so it runs a nested dispatcher loop inside the dispatch the check is
+    /// standing in. A check that walks away from that loop leaves it behind, and the next dispatch
+    /// on this thread dies with "You've caused dispatcher loop" — on whichever check happens to be
+    /// next rather than the one that opened it. The window that asks owns its prompt, so what is
+    /// answered here is that window's own owned windows.
+    /// </remarks>
+    public static void CloseAndAnswer(Window window)
+    {
+        window.Close();
+        AnswerUnsavedWork(window);
+    }
+
+    /// <summary>Dismisses the question <paramref name="window"/> is showing about unsaved work.</summary>
+    public static void AnswerUnsavedWork(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        foreach (var prompt in window.OwnedWindows.OfType<ConfirmDialog>().ToList())
+        {
+            ((ConfirmDialogViewModel)prompt.DataContext!).CancelCommand.Execute(null);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
 }
 
 /// <summary>

@@ -143,7 +143,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 10000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "condition",
@@ -1476,7 +1476,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "SignatureSource": "CalledMacro",
     "Parameters": [
       {
@@ -1484,11 +1484,39 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": false,
+        "Required": true,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
+      },
+      {
+        "Name": "arguments",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Value",
+            "Required": false
+          },
+          {
+            "Name": "given",
+            "Role": "Flag",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "returns",
@@ -1515,374 +1543,6 @@
       }
     ],
     "Returns": []
-  },
-  {
-    "Key": "control.startMacro",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": false,
-    "TimeoutSource": "None",
-    "TimeoutField": "",
-    "StepTimeoutMs": 0,
-    "SignatureSource": "CalledMacro",
-    "Parameters": [
-      {
-        "Name": "macro",
-        "Shape": "Text",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "runHandleName",
-        "Shape": "Text",
-        "ReadMode": "VariableName",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.MissingHandle"
-      },
-      {
-        "Name": "returns",
-        "Shape": "Rows",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "Columns": [
-          {
-            "Name": "key",
-            "Role": "Key",
-            "Required": true
-          },
-          {
-            "Name": "name",
-            "Role": "Name",
-            "Required": true
-          }
-        ]
-      }
-    ],
-    "Returns": [
-      {
-        "Key": "run",
-        "Type": "Record",
-        "Primary": true,
-        "Fields": [
-          {
-            "Name": "id",
-            "Type": "Text"
-          },
-          {
-            "Name": "macro",
-            "Type": "Text"
-          },
-          {
-            "Name": "status",
-            "Type": "Text"
-          },
-          {
-            "Name": "error",
-            "Type": "Text"
-          },
-          {
-            "Name": "results",
-            "Type": "List"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "Key": "control.waitMacro",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": true,
-    "TimeoutSource": "Step",
-    "TimeoutField": "",
-    "StepTimeoutMs": 60000,
-    "Parameters": [
-      {
-        "Name": "runHandle",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.MissingHandle"
-      }
-    ],
-    "Returns": []
-  },
-  {
-    "Key": "control.runStatus",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": false,
-    "TimeoutSource": "None",
-    "TimeoutField": "",
-    "StepTimeoutMs": 0,
-    "Parameters": [
-      {
-        "Name": "runHandle",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.MissingHandle"
-      },
-      {
-        "Name": "returns",
-        "Shape": "Rows",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "Columns": [
-          {
-            "Name": "key",
-            "Role": "Key",
-            "Required": true
-          },
-          {
-            "Name": "name",
-            "Role": "Name",
-            "Required": true
-          }
-        ]
-      }
-    ],
-    "Returns": [
-      {
-        "Key": "status",
-        "Type": "Text",
-        "Primary": true
-      },
-      {
-        "Key": "running",
-        "Type": "Flag"
-      },
-      {
-        "Key": "error",
-        "Type": "Text"
-      }
-    ]
-  },
-  {
-    "Key": "control.cancelMacro",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": true,
-    "TimeoutSource": "Step",
-    "TimeoutField": "",
-    "StepTimeoutMs": 5000,
-    "Parameters": [
-      {
-        "Name": "runHandle",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.MissingHandle"
-      },
-      {
-        "Name": "returns",
-        "Shape": "Rows",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "Columns": [
-          {
-            "Name": "key",
-            "Role": "Key",
-            "Required": true
-          },
-          {
-            "Name": "name",
-            "Role": "Name",
-            "Required": true
-          }
-        ]
-      }
-    ],
-    "Returns": [
-      {
-        "Key": "stopped",
-        "Type": "Flag",
-        "Primary": true
-      }
-    ]
-  },
-  {
-    "Key": "control.waitAll",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": true,
-    "TimeoutSource": "Step",
-    "TimeoutField": "",
-    "StepTimeoutMs": 60000,
-    "Parameters": [
-      {
-        "Name": "runHandles",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "returns",
-        "Shape": "Rows",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "Columns": [
-          {
-            "Name": "key",
-            "Role": "Key",
-            "Required": true
-          },
-          {
-            "Name": "name",
-            "Role": "Name",
-            "Required": true
-          }
-        ]
-      }
-    ],
-    "Returns": [
-      {
-        "Key": "count",
-        "Type": "Number",
-        "Primary": true
-      }
-    ]
-  },
-  {
-    "Key": "control.waitAny",
-    "Category": "Control",
-    "Hidden": false,
-    "SendsInput": false,
-    "LooksAtScreen": false,
-    "Waits": true,
-    "TimeoutSource": "Step",
-    "TimeoutField": "",
-    "StepTimeoutMs": 60000,
-    "Parameters": [
-      {
-        "Name": "runHandles",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "returns",
-        "Shape": "Rows",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "Columns": [
-          {
-            "Name": "key",
-            "Role": "Key",
-            "Required": true
-          },
-          {
-            "Name": "name",
-            "Role": "Name",
-            "Required": true
-          }
-        ]
-      }
-    ],
-    "Returns": [
-      {
-        "Key": "handle",
-        "Type": "Record",
-        "Primary": true,
-        "Fields": [
-          {
-            "Name": "id",
-            "Type": "Text"
-          },
-          {
-            "Name": "macro",
-            "Type": "Text"
-          },
-          {
-            "Name": "status",
-            "Type": "Text"
-          },
-          {
-            "Name": "error",
-            "Type": "Text"
-          },
-          {
-            "Name": "results",
-            "Type": "List"
-          }
-        ]
-      },
-      {
-        "Key": "index",
-        "Type": "Number",
-        "Primary": false
-      }
-    ]
   },
   {
     "Key": "file.readText",
@@ -3809,7 +3469,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "returns",
@@ -3852,7 +3512,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 1500,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "shortcut",
@@ -4124,7 +3784,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "id",
@@ -4417,7 +4077,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 30000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "commandFile",
@@ -5918,7 +5578,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "key",
@@ -9076,7 +8736,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -9474,7 +9134,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -10117,7 +9777,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -10664,7 +10324,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -11612,7 +11272,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -11997,7 +11657,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -13215,7 +12875,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -14057,6 +13717,29 @@
         "ChildKeys": []
       },
       {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      },
+      {
         "Name": "intervalMs",
         "Shape": "Number",
         "Unit": "Milliseconds",
@@ -14070,7 +13753,67 @@
         "ChildKeys": []
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "element",
+        "Type": "Record",
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "enabled",
+            "Type": "Flag"
+          },
+          {
+            "Name": "visible",
+            "Type": "Flag"
+          },
+          {
+            "Name": "value",
+            "Type": "Text"
+          },
+          {
+            "Name": "name",
+            "Type": "Text"
+          },
+          {
+            "Name": "automationId",
+            "Type": "Text"
+          },
+          {
+            "Name": "controlType",
+            "Type": "Text"
+          },
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          }
+        ]
+      }
+    ]
   },
   {
     "Key": "uia.click",
@@ -14081,7 +13824,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "window",
@@ -14150,7 +13893,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 5000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "window",
@@ -14859,7 +14602,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 15000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "url",
@@ -15786,7 +15529,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 15000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "pageSelector",
@@ -15866,7 +15609,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 15000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "urlMatch",
@@ -15909,7 +15652,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 15000,
+    "StepTimeoutMs": 10000,
     "Parameters": [
       {
         "Name": "loadState",
@@ -16017,7 +15760,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 15000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "pageSelector",
@@ -16417,7 +16160,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "sendsInput",
@@ -16601,7 +16344,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "sendsInput",
@@ -16784,7 +16527,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "sendsInput",
@@ -16881,7 +16624,7 @@
     "Waits": true,
     "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 60000,
+    "StepTimeoutMs": 600000,
     "Parameters": [
       {
         "Name": "sendsInput",

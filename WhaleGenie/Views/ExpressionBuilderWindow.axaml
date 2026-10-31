@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
@@ -7,17 +7,14 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="720"
+        mc:Ignorable="d" d:DesignWidth="1140" d:DesignHeight="720"
         x:Class="WhaleGenie.Views.ExpressionBuilderWindow"
         x:DataType="vm:ExpressionBuilderViewModel"
         Title="WhaleGenie"
-        Width="1080" Height="720"
-        MinWidth="900" MinHeight="540"
+        Width="1140" Height="720"
+        MinWidth="960" MinHeight="540"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:ExpressionBuilderViewModel />
@@ -28,36 +25,13 @@
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="Margin" Value="2,0,0,6" />
-        </Style>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
-
         <!-- One part of the palette, and the box the whole palette stands in: reading what can go
              into a formula means seeing where one kind of thing stops and the next begins. -->
-        <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,10" />
-        </Style>
-        <Style Selector="Border.Divider">
-            <Setter Property="Height" Value="1" />
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="Margin" Value="0,14,0,12" />
-        </Style>
-
         <Style Selector="TextBox.ExprInput">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="9,7" />
@@ -66,10 +40,10 @@
         <!-- A box that only narrows what is under it: smaller than the box a formula is written in,
              because it holds a word at a time rather than a formula. -->
         <Style Selector="TextBox.Filter">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,5" />
@@ -80,10 +54,10 @@
         <!-- One thing that can be put into the formula: an operator, a plain value, or a function.
              They are all one size, so the palette reads as a wall of things to point at rather than
              as a handful of different walls. -->
-        <Style Selector="Button.Card">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+        <Style Selector="Button.ExprOption">
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="FontSize" Value="12.5" />
@@ -93,18 +67,19 @@
             <Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
         </Style>
-        <Style Selector="Button.Card:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        <Style Selector="Button.ExprOption:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
 
-        <!-- A function is a thing to click, not a colour swatch: it reads like the action buttons
-             in the macro editor, so the words stay dark and the group colour does not compete
+        <!-- A function is a thing to pick up and put down, not a colour swatch: it reads like the
+             action buttons in the macro editor, so the words stay dark and the group colour does not compete
              with them. -->
         <Style Selector="Button.FnCard">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="13" />
@@ -115,14 +90,14 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.FnCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
 
         <!-- Which page of the builder is in front. The two read as a switch rather than as a pair
              of buttons, because the left half of the window changes the moment one is pressed. -->
-        <Style Selector="Button.Tab">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+        <Style Selector="Button.ExprTab">
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Height" Value="26" />
@@ -130,151 +105,50 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.Tab:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        <Style Selector="Button.ExprTab:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
-        <Style Selector="Button.Tab.on">
-            <Setter Property="Foreground" Value="#FFFFFF" />
+        <!--
+          这两条原来写的是 `Button.Tab.on`，而元素上挂的是 `ExprTab` + `on`——**`Tab` 与 `ExprTab`
+          是两个不同的类名，选择器一次都没命中**。所以两个页签的"选中"从来没有出现过强调底，
+          两边看起来一样。（"写了选择器但类名差一个字"这一类，静态检查也看不见：`on` 确实在用，
+          `Tab` 在别的窗里也确实在用。）
+        -->
+        <Style Selector="Button.ExprTab.on">
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
         </Style>
-        <Style Selector="Button.Tab.on /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+        <Style Selector="Button.ExprTab.on /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
 
         <!-- One line of the formula. Picking is what a click does, so the line says when it is the
              one the next click from the palette goes into. -->
-        <Style Selector="Border.Row">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppSurface}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="6,3" />
-            <Setter Property="Margin" Value="0,0,0,3" />
-        </Style>
-        <Style Selector="Border.Row.picked">
-            <Setter Property="Background" Value="{DynamicResource AppInfoSoft}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppInfo}" />
-        </Style>
-        <Style Selector="Border.Row.drop">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-        </Style>
-
-        <Style Selector="Border.Chip">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="7,2" />
-        </Style>
-        <Style Selector="Border.Chip TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-        </Style>
-
+        <!--
+          参数名**不给颜色**：`AppLabel ≡ Warning`（同值）意味着"参数名"和"警告"共用一个琥珀，
+          那会让读者以为这处出了什么问题。改由**字重**承担"这是一个名字"——与
+          `TextBlock.FieldLabel.Strong` 同一套判断（字重不是值的微调，是"这一处要更强"）。
+        -->
         <Style Selector="TextBlock.ArgLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
-            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
         </Style>
 
         <!-- What is typed into a place. It is a box rather than a label because filling a place in
              is what the page is for, and it looks empty on purpose until something is typed. -->
-        <Style Selector="TextBox.Cell">
-            <Setter Property="Background" Value="{DynamicResource AppBackdrop}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="6,1" />
-            <Setter Property="MinHeight" Value="24" />
-        </Style>
-
-        <Style Selector="Button.RowButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Width" Value="22" />
-            <Setter Property="Height" Value="22" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RowButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentHover}" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
-        </Style>
-
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
-                        VerticalAlignment="Center">
-                <Button Classes="TitleBarButton" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnDefinitions="*,18,400" Margin="16,12,16,0">
+    <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="*,18,450" Margin="16,12,16,0">
             <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
-                    <Button Classes="Tab" Classes.on="{Binding IsTreePage}"
+                    <Button Classes="ExprTab" Classes.on="{Binding IsTreePage}"
                             Content="{Binding TreeTab}" Click="OnShowTree" />
-                    <Button Classes="Tab" Classes.on="{Binding IsTextPage}"
+                    <Button Classes="ExprTab" Classes.on="{Binding IsTextPage}"
                             Content="{Binding TextTab}" Click="OnShowText" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="1" Classes="Muted" Margin="2,10,0,0" TextWrapping="Wrap"
+                <TextBlock Grid.Row="1" Classes="Hint" Margin="2,10,0,0" TextWrapping="Wrap"
                            Text="{Binding TreeHelp}" IsVisible="{Binding IsTreePage}" />
 
                 <!-- The structure page: one line to a piece of the formula, moved across by how deep
@@ -283,7 +157,7 @@
                 <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"
                               IsVisible="{Binding IsTreePage}">
                     <StackPanel>
-                        <TextBlock Classes="Muted" Foreground="{DynamicResource AppWarning}" TextWrapping="Wrap"
+                        <TextBlock Classes="Hint" Foreground="{DynamicResource Warning}" TextWrapping="Wrap"
                                    Margin="2,0,0,6" Text="{Binding TreeCannotRead}"
                                    IsVisible="{Binding TextUnreadable}" />
                         <ItemsControl Name="TreeRows" ItemsSource="{Binding Rows}"
@@ -292,8 +166,8 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionItemViewModel">
                                     <Border Classes="Row"
-                                            Classes.picked="{Binding IsSelected}"
-                                            Classes.drop="{Binding IsDropTarget}"
+                                            Classes.Picked="{Binding IsSelected}"
+                                            Classes.DropTarget="{Binding IsDropTarget}"
                                             Margin="{Binding Indent}"
                                             DragDrop.AllowDrop="True"
                                             PointerPressed="OnRowPressed">
@@ -302,19 +176,30 @@
                                                        Text="{Binding Label}"
                                                        IsVisible="{Binding HasLabel}"
                                                        ToolTip.Tip="{Binding LabelHint}" />
-                                            <TextBox Classes="Cell" Width="150"
+                                            <TextBox Classes="Field Cell" Width="{Binding CellWidth}"
                                                      Text="{Binding Literal}"
                                                      PlaceholderText="{Binding HoleHint}"
-                                                     IsVisible="{Binding IsTyped}" />
-                                            <Border Classes="Chip" IsVisible="{Binding ShowsToken}">
+                                                     IsVisible="{Binding IsTextBox}" />
+                                            <!-- A yes or a no is ticked, a comparison is picked from
+                                                 the words it may hold: one text line for all of them
+                                                 made compare() read as six numbers to type. -->
+                                            <CheckBox IsVisible="{Binding IsFlag}"
+                                                      IsChecked="{Binding FlagValue}"
+                                                      ToolTip.Tip="{Binding LabelHint}" />
+                                            <ComboBox Classes="Field Cell" Width="{Binding CellWidth}"
+                                                      ItemsSource="{Binding Choices}"
+                                                      SelectedItem="{Binding ChosenWord}"
+                                                      PlaceholderText="{Binding HoleHint}"
+                                                      IsVisible="{Binding IsChoice}" />
+                                            <Border Classes="Tag" IsVisible="{Binding ShowsToken}">
                                                 <TextBlock Text="{Binding Token}"
                                                            ToolTip.Tip="{Binding LabelHint}" />
                                             </Border>
-                                            <Button Classes="RowButton" Content="+"
+                                            <Button Classes="Ghost" Content="+"
                                                     IsVisible="{Binding CanAddChild}"
                                                     ToolTip.Tip="{Binding AddHint}"
                                                     Click="OnAddChild" />
-                                            <Button Classes="RowButton" Content="−"
+                                            <Button Classes="Ghost" Content="−"
                                                     IsVisible="{Binding CanDropChild}"
                                                     ToolTip.Tip="{Binding DropHint}"
                                                     Click="OnDropChild" />
@@ -326,133 +211,149 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- The page the formula is written out on: the buttons beside it put their text where
-                     the caret is, which is what this page has always done. -->
-                <Grid Grid.Row="2" Margin="0,8,0,0" RowDefinitions="Auto,Auto,*"
+                <!-- The page written out by hand: the way back in for a formula that is easier to type
+                     than to build. What is typed here changes nothing until the button under it is
+                     pressed, so a hand-built structure can never be lost to a stray keystroke. -->
+                <Grid Grid.Row="2" Margin="0,8,0,0" RowDefinitions="Auto,Auto,*,Auto"
                       IsVisible="{Binding IsTextPage}">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Help}" />
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding Help}" />
                     <TextBlock Grid.Row="1" Classes="FieldLabel" Margin="2,14,0,6"
                                Text="{Binding ExpressionHeader}" />
                     <TextBox Grid.Row="2" Name="ExpressionBox" Classes="ExprInput"
                              AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
                              VerticalAlignment="Stretch"
                              PlaceholderText="{Binding Placeholder}"
-                             Text="{Binding Expression}" />
+                             Text="{Binding Written}" />
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                        <Button Classes="Secondary" Height="30" Name="RebuildButton"
+                                Content="{Binding [ExprBuilder.Rebuild], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [ExprBuilder.RebuildHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding RebuildCommand}" />
+                        <TextBlock Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Text="{Binding WrittenMessage}" />
+                    </StackPanel>
                 </Grid>
 
-                <!-- What the formula comes to, said under it: what is picked, how the formula is
-                     written out, the same thing in plain Chinese, and whatever the page has to say
-                     about it. -->
-                <Border Grid.Row="3" Classes="Panel" Margin="0,10,0,0">
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Picked}"
-                                   IsVisible="{Binding IsTreePage}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap"
-                                   Text="{Binding TreePreviewHeader}"
-                                   IsVisible="{Binding IsTreePage}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppText}"
-                                   Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
-                        <!-- The formula said in plain Chinese, right under the formula it was read
-                             from: a reader who does not follow the formula can still check the logic
-                             against it. -->
-                        <TextBlock Name="SayingLine" Classes="Muted" TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AppInfo}" Text="{Binding Saying}"
-                                   IsVisible="{Binding ShowsSaying}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
-                                   IsVisible="{Binding ShowTreeNote}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
-                                   Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
-                                   Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
-                        <!-- What the page written out by hand has to say about the text: the structure
-                             page has said its own piece above, and two lines about the same formula
-                             would be one line too many. -->
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
-                                   Text="{Binding Message}" IsVisible="{Binding ShowError}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
-                                   Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
-                    </StackPanel>
+                <!-- The cards that build a formula: names, plain values and operators, along the
+                     bottom of the page they are dragged onto, which leaves the tree the full height
+                     of the window. -->
+                <Border Grid.Row="3" Name="BuildPanel" Classes="Panel" Margin="0,10,0,0" MaxHeight="260">
+                    <Grid ColumnDefinitions="*,16,*">
+                        <!-- What is written into a formula: operators, and the plain values they can
+                             be applied to. -->
+                        <ScrollViewer Grid.Column="0" Name="BuildLeft" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
+                                <!-- An operator is dragged onto the line it should wrap; a click only
+                                     says so. -->
+                                <ItemsControl ItemsSource="{Binding TreeOperators}"
+                                              IsVisible="{Binding IsTreePage}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TreeOperator">
+                                            <Button Classes="ExprOption" Content="{Binding Token}"
+                                                    ToolTip.Tip="{Binding Hint}" Click="OnWrapWithOperator" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <StackPanel IsVisible="{Binding IsTreePage}">
+                                    <Border Classes="Divider" />
+                                    <TextBlock Classes="FieldLabel" Text="{Binding ValuesHeader}" />
+                                    <ItemsControl ItemsSource="{Binding Values}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ValueChoice">
+                                                <Button Classes="ExprOption" Content="{Binding Label}"
+                                                        ToolTip.Tip="{Binding Hint}" Click="OnPickValue" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- And the names they can be made of, on the other half. -->
+                        <ScrollViewer Grid.Column="2" Name="BuildRight" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel" Text="{Binding VariablesHeader}" />
+                                <!-- The variables read as the same wall of buttons the picker beside
+                                     a field shows, and hovering one says what it is. -->
+                                <views:VariableWall DataContext="{Binding Wall}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
             </Grid>
 
-            <!-- Everything that can be put into the formula, a section at a time: the sections keep
-                 the same order from one visit to the next, so what is being looked for is found
-                 where it was left. -->
-            <Border Grid.Column="2" Classes="Panel">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
-                        <!-- On the structure page an operator wraps what is picked; on the page written
-                             out by hand it is dropped in at the caret, exactly as it always was. -->
-                        <ItemsControl ItemsSource="{Binding TreeOperators}"
-                                      IsVisible="{Binding IsTreePage}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:TreeOperator">
-                                    <Button Classes="Card" Content="{Binding Token}"
-                                            ToolTip.Tip="{Binding Hint}" Click="OnWrapWithOperator" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+            <!-- The right side: what the page has to say at the top right, the functions along the
+                 bottom. A card goes where it is let go, so the line that says so sits above both
+                 walls rather than inside either. -->
+            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
 
-                        <!-- The operators read as a wall of cards that wrap, and each one says what it
-                             does on hover. A list with a description beside every button would push
-                             the variable wall below the fold, which is what made the dialog too tall. -->
-                        <ItemsControl ItemsSource="{Binding Operators}"
-                                      IsVisible="{Binding IsTextPage}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ExpressionOperator">
-                                    <Button Classes="Card" Content="{Binding Token}"
-                                            ToolTip.Tip="{Binding Hint}" Click="OnInsertOperator" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                <StackPanel Name="HintBlock" Spacing="3" Margin="2,0,0,10">
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Warning}"
+                               Text="{Binding PaletteNotice}"
+                               IsVisible="{Binding HasPaletteNotice}" />
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding PaletteHint}" />
+                </StackPanel>
 
-                        <StackPanel IsVisible="{Binding IsTreePage}">
-                            <Border Classes="Divider" />
-                            <TextBlock Classes="FieldLabel" Text="{Binding ValuesHeader}" />
-                            <ItemsControl ItemsSource="{Binding Values}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ValueChoice">
-                                        <Button Classes="Card" Content="{Binding Label}"
-                                                ToolTip.Tip="{Binding Hint}" Click="OnPickValue" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
+                <!-- What the formula comes to: what is picked and how the formula is written on the
+                     left, what it means and what the page has to say on the right. -->
+                <Border Grid.Row="1" Name="FormulaPanel" Classes="Panel">
+                    <Grid ColumnDefinitions="*,14,*">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="Note" TextWrapping="Wrap" Text="{Binding Picked}"
+                                           IsVisible="{Binding IsTreePage}" />
+                                <TextBlock Classes="Note" TextWrapping="Wrap"
+                                           Text="{Binding TreePreviewHeader}"
+                                           IsVisible="{Binding IsTreePage}" />
+                                <TextBlock Classes="Note" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimary}"
+                                           Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
+                            </StackPanel>
+                        </ScrollViewer>
 
-                        <Border Classes="Divider" />
-                        <TextBlock Classes="FieldLabel" Text="{Binding VariablesHeader}" />
-                        <!-- The variables read as the same wall of buttons the picker beside a field
-                             shows: one click drops the name in, and hovering one says what it is. A
-                             list behind a dropdown made the reader open it, read a name, and hope. -->
-                        <views:VariableWall DataContext="{Binding Wall}" />
+                        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                            <StackPanel Spacing="4">
+                                <!-- The formula said in plain Chinese: a reader who does not follow
+                                     the formula can still check the logic against it. -->
+                                <TextBlock Name="SayingLine" Classes="Note" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Info}" Text="{Binding Saying}"
+                                           IsVisible="{Binding ShowsSaying}" />
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding TreeMessage}"
+                                           IsVisible="{Binding ShowTreeNote}" />
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
+                                           Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
+                                           Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
+                                <!-- What the page written out by hand has to say about the text. -->
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
+                                           Text="{Binding Message}" IsVisible="{Binding ShowError}" />
+                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
+                                           Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
 
-                        <Border Classes="Divider" />
+                <!-- What the language can already do, so a formula is not written from memory. The
+                     dock narrows the wall to one group, and each card is painted in the colour of its
+                     group: the dock and the colour are what tell the groups apart, so no heading has
+                     to. How the call is written and what each argument is for are one hover away. -->
+                <Border Grid.Row="2" Name="FunctionPanel" Classes="Panel" Margin="0,10,0,0">
+                    <Grid RowDefinitions="Auto,Auto,Auto,*">
                         <TextBlock Classes="FieldLabel" Text="{Binding FunctionsHeader}" />
-                        <!-- What the language can already do, so a formula is not written from memory.
-                             The dock narrows the wall to one group, which is the same control the
-                             variable wall above narrows itself with, and each card is painted in the
-                             colour of the group its function belongs to: the dock and the colour are
-                             what tell the groups apart, so no heading has to. How the call is written
-                             and what each argument is for are one hover away — names alone would leave
-                             trim, slice and substring looking like the same thing, and written on the
-                             card they would be a paragraph per function. -->
-                        <ListBox Classes="Dock" ItemsSource="{Binding FunctionFilters}"
+                        <ListBox Grid.Row="1" Classes="Dock" ItemsSource="{Binding FunctionFilters}"
                                  SelectedItem="{Binding SelectedFunctionFilter}" SelectionMode="Single"
                                  Background="Transparent" BorderThickness="0" Padding="0"
                                  Margin="0,0,0,8">
@@ -464,78 +365,85 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionFunctionFilter">
                                     <TextBlock Text="{Binding Label}" FontSize="12"
-                                               Foreground="{DynamicResource AppText}" />
+                                               Foreground="{DynamicResource TextPrimary}" />
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <TextBox Classes="Filter"
+                        <TextBox Grid.Row="2" Classes="Filter"
                                  PlaceholderText="{Binding FunctionsFilterHint}"
                                  Text="{Binding FunctionFilter}" />
-                        <TextBlock Classes="Muted" Margin="2,0,0,8" TextWrapping="Wrap"
-                                   IsVisible="{Binding HasNoFunctionMatch}"
-                                   Text="{Binding [ExprBuilder.NoFunctionFound], Source={x:Static loc:Strings.Current}}" />
-                        <ItemsControl ItemsSource="{Binding Functions}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
-                                    <Button Classes="Card FnCard"
-                                            BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
-                                            Click="OnInsertFunction">
-                                        <TextBlock Text="{Binding Heading}"
-                                                   Foreground="{DynamicResource AppTextStrong}" />
-                                        <!-- What a card cannot say: how the call is written in the
-                                             reader's own language, one line saying what it does, and one
-                                             line for each argument it takes. -->
-                                        <ToolTip.Tip>
-                                            <StackPanel MaxWidth="360" Spacing="4">
-                                                <TextBlock Text="{Binding Heading}" FontSize="12.5"
-                                                           Foreground="{DynamicResource AppText}" />
-                                                <TextBlock Text="{Binding WrittenAs}" FontSize="12"
-                                                           Foreground="{DynamicResource AppInfo}" TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Hint}" FontSize="12"
-                                                           Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
-                                                <ItemsControl ItemsSource="{Binding Arguments}"
-                                                              Margin="0,2,0,0">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="vm:FunctionArgument">
-                                                            <Grid ColumnDefinitions="Auto,*"
-                                                                  ColumnSpacing="6" Margin="0,3,0,0">
-                                                                <TextBlock Text="{Binding Label}"
-                                                                           FontSize="11.5"
-                                                                           Foreground="{DynamicResource AppLabel}" />
-                                                                <TextBlock Grid.Column="1"
-                                                                           Text="{Binding Hint}"
-                                                                           FontSize="11.5"
-                                                                           Foreground="{DynamicResource AppMuted}"
-                                                                           TextWrapping="Wrap" />
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
-                                        </ToolTip.Tip>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
+                        <ScrollViewer Grid.Row="3" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Classes="Hint" Margin="2,0,0,8" TextWrapping="Wrap"
+                                           IsVisible="{Binding HasNoFunctionMatch}"
+                                           Text="{Binding [ExprBuilder.NoFunctionFound], Source={x:Static loc:Strings.Current}}" />
+                                <ItemsControl ItemsSource="{Binding Functions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
+                                            <Button Classes="ExprOption FnCard"
+                                                    BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
+                                                    Click="OnInsertFunction">
+                                                <TextBlock Text="{Binding Heading}"
+                                                           Foreground="{DynamicResource TextPrimary}" />
+                                                <!-- What a card cannot say: how the call is written in
+                                                     the reader's own language, how many places it asks
+                                                     for, one line saying what it does, and one line
+                                                     for each argument it takes. -->
+                                                <ToolTip.Tip>
+                                                    <StackPanel MaxWidth="360" Spacing="4">
+                                                        <TextBlock Text="{Binding Heading}" FontSize="12.5"
+                                                                   Foreground="{DynamicResource TextPrimary}" />
+                                                        <TextBlock Text="{Binding WrittenAs}" FontSize="12"
+                                                                   Foreground="{DynamicResource Info}" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding ArityNote}" FontSize="11.5"
+                                                                   Foreground="{DynamicResource Info}" />
+                                                        <TextBlock Text="{Binding Hint}" FontSize="12"
+                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap" />
+                                                        <ItemsControl ItemsSource="{Binding Arguments}"
+                                                                      Margin="0,2,0,0">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:FunctionArgument">
+                                                                    <Grid ColumnDefinitions="Auto,*"
+                                                                          ColumnSpacing="6" Margin="0,3,0,0">
+                                                                        <TextBlock Text="{Binding Label}"
+                                                                                   FontSize="11.5"
+                                                                                   Foreground="{DynamicResource Warning}" />
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding Hint}"
+                                                                                   FontSize="11.5"
+                                                                                   Foreground="{DynamicResource TextTertiary}"
+                                                                                   TextWrapping="Wrap" />
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </ToolTip.Tip>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="16,10,16,14">
-            <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="16,10,16,14">
+            <Button Grid.Column="1" Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
-            <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="110"
+            <Button Grid.Column="2" Classes="Primary" Height="36" MinWidth="110"
                     Margin="8,0,0,0"
                     IsEnabled="{Binding CanConfirm}"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ConfirmCommand}" />
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>

@@ -38,6 +38,30 @@ public class ActionPaletteCategoryTests
         Assert.Null(palette.SelectedCategory!.Value);
     }
 
+    /// <summary>
+    /// The submacro dock lists what the document has, not only what it already calls: a submacro
+    /// that was just made and saved is exactly the one somebody wants to call next.
+    /// </summary>
+    [Fact]
+    public void The_submacro_dock_lists_the_submacros_the_document_has()
+    {
+        var palette = new ActionPaletteViewModel();
+        var sub = new MacroItem { Name = "收尾", Description = "收个尾" };
+
+        palette.SetSources(null, [sub], []);
+        palette.SelectDock(ActionPaletteDock.SubMacros);
+
+        var card = Assert.Single(palette.Cards);
+        Assert.Equal("收尾", card.Title);
+        Assert.Equal("收个尾", card.Description);
+        Assert.False(palette.HasNoCards);
+
+        // With none at all, the dock says what to do about it rather than looking broken.
+        palette.SetSources(null, [], []);
+        Assert.True(palette.HasNoCards);
+        Assert.Equal(Strings.Get("Palette.NoSubMacros"), palette.EmptyText);
+    }
+
     [Fact]
     public void Choosing_a_category_filters_actions_and_keeps_the_choice_across_docks()
     {
@@ -97,6 +121,36 @@ public class ActionPaletteCategoryTests
         Assert.Contains(palette.Cards, card => card.Key == windowKey);
     }
 
+    /// <summary>
+    /// A submacro that is part of the document shows up in the dock as soon as the editor opens,
+    /// and a run started from the editor can reach it — the two halves that were missing between
+    /// "the file has a submacro" and "a step can call it".
+    /// </summary>
+    [Fact]
+    public void A_submacro_in_the_document_shows_in_the_dock_and_runs()
+    {
+        Ui.Run(() =>
+        {
+            var sub = new MacroItem { Name = "收尾" };
+            var macro = new MacroItem { Name = "外面" };
+            macro.SubMacros.Add(sub);
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
+            var model = (ActionPaletteViewModel)palette.DataContext!;
+            model.SelectDock(ActionPaletteDock.SubMacros);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(model.Cards, card => card.Title == "收尾");
+            Assert.NotNull(window.BuildLibrary().Steps("收尾"));
+
+            window.Close();
+        });
+    }
+
     [Fact]
     public void The_category_rail_belongs_only_to_the_basic_dock()
     {
@@ -113,7 +167,8 @@ public class ActionPaletteCategoryTests
             Assert.NotNull(rail);
             Assert.True(rail!.IsVisible);
             var buttons = rail.GetVisualDescendants().OfType<Button>()
-                .Where(button => button.Classes.Contains("Category"))
+                // 分类栏那颗方钮：原来是窗口本地的 `Category`，现在并进库里的 `Button.Rail`。
+                .Where(button => button.Classes.Contains("Rail"))
                 .ToList();
             Assert.Equal(model.Categories.Count, buttons.Count);
             var allButton = buttons.First(button =>
@@ -174,8 +229,9 @@ public class ActionPaletteCategoryTests
             var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
 
             var button = palette.GetVisualDescendants().OfType<Button>()
-                .First(candidate => candidate.Classes.Contains("ActionCard"));
-            Assert.Equal(32, button.Height);
+                .First(candidate => candidate.DataContext is ActionPaletteCardViewModel
+                    && candidate.Classes.Contains("Secondary"));
+            Assert.Equal(30, button.Height);
             Assert.NotNull(button.GetVisualAncestors().OfType<WrapPanel>().FirstOrDefault());
             Assert.False(string.IsNullOrWhiteSpace(ToolTip.GetTip(button) as string));
 

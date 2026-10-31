@@ -1,6 +1,6 @@
 using System;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
 
@@ -16,8 +16,19 @@ public class RunLogTests
             "Log.Started", []), "开始");
         capture.Add(new LogEntry(DateTimeOffset.Now, LogLevel.Info, 0, string.Empty,
             LogKeys.FailureLog, ["C:\\logs\\failure.log"]), "失败日志");
-        capture.Finish(new RunResult(RunStatus.Failed, "Run.Test", "detail", 3), "失败",
-            [new RunLogOutcome("step.k3f9.outcome", "第 1 步", "failed")]);
+        capture.Ran(new StepRun
+        {
+            StepId = "k3f9",
+            StepType = "vision.findImage",
+            Outcome = "ok",
+            Results =
+            [
+                new StepResult("found", "命中", "true"),
+                new StepResult("match", string.Empty, "{\"x\":10,\"y\":20}"),
+            ],
+        });
+
+        capture.Finish(new RunResult(RunStatus.Failed, "Run.Test", "detail", 3), "失败");
 
         var run = Assert.Single(RunLogStore.Recent());
         Assert.Equal("测试", run.Macro);
@@ -25,7 +36,37 @@ public class RunLogTests
         Assert.Equal(2, run.Lines.Count);
         Assert.Equal("C:\\logs\\failure.log", run.FailureLogPath);
         Assert.Equal("Run.Test", run.Key);
-        Assert.Single(run.Outcomes);
+
+        // A step's answer is kept even when the macro never kept it: what it worked out is what a
+        // reader compares against what they expected.
+        var outcome = Assert.Single(run.Outcomes);
+        Assert.Equal("k3f9", outcome.StepId);
+        Assert.Equal("vision.findImage", outcome.StepType);
+        Assert.Equal("ok", outcome.Outcome);
+        Assert.Equal(2, outcome.Results.Count);
+        Assert.True(outcome.Results[0].Kept);
+        Assert.False(outcome.Results[1].Kept);
+        Assert.Equal("match", outcome.Results[1].Key);
+    }
+
+    /// <summary>An answer too long to be one line comes back shortened rather than whole.</summary>
+    [Fact]
+    public void A_very_long_answer_is_shortened()
+    {
+        RunLogStore.Clear();
+        var capture = RunLogStore.Begin("长值", "debug");
+        capture.Ran(new StepRun
+        {
+            StepId = "aaaa",
+            StepType = "file.readText",
+            Outcome = "ok",
+            Results = [new StepResult("text", "内容", new string('x', 1000))],
+        });
+        capture.Finish(new RunResult(RunStatus.Completed, string.Empty, string.Empty, 1), "完成");
+
+        var outcome = Assert.Single(Assert.Single(RunLogStore.Recent()).Outcomes);
+        Assert.Equal(301, outcome.Results[0].Value.Length);
+        Assert.EndsWith("…", outcome.Results[0].Value, StringComparison.Ordinal);
     }
 
     [Fact]

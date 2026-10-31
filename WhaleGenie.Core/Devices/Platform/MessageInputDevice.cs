@@ -59,43 +59,43 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
 
     public void KeyPress(string key, int holdMs)
     {
-        var virtualKey = VirtualKey(key);
+        var stroke = StrokeFor(key);
         var target = KeyboardTarget();
-        Down(target, virtualKey);
+        Down(target, stroke);
         Sleep(holdMs);
-        Up(target, virtualKey);
+        Up(target, stroke);
     }
 
     public void KeyDown(string key)
     {
         var target = KeyboardTarget();
         _keyTarget = target;
-        Down(target, VirtualKey(key));
+        Down(target, StrokeFor(key));
     }
 
     public void KeyUp(string key)
     {
         var target = _keyTarget ?? KeyboardTarget();
         _keyTarget = null;
-        Up(target, VirtualKey(key));
+        Up(target, StrokeFor(key));
     }
 
     public void Hotkey(IReadOnlyList<string> keys, int holdMs)
     {
         var target = KeyboardTarget();
-        var codes = new List<int>();
+        var strokes = new List<Stroke>();
         foreach (var key in keys)
         {
-            var virtualKey = VirtualKey(key);
-            codes.Add(virtualKey);
-            Down(target, virtualKey);
+            var stroke = StrokeFor(key);
+            strokes.Add(stroke);
+            Down(target, stroke);
         }
 
         Sleep(holdMs);
 
-        for (var index = codes.Count - 1; index >= 0; index--)
+        for (var index = strokes.Count - 1; index >= 0; index--)
         {
-            Up(target, codes[index]);
+            Up(target, strokes[index]);
         }
     }
 
@@ -269,39 +269,48 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         Post(window, message, extra << 16, Packed(x, y));
     }
 
-    private static void Down(IntPtr target, int virtualKey)
+    private static void Down(IntPtr target, Stroke stroke)
     {
-        Post(target, IsAlt(virtualKey) ? WmSysKeyDown : WmKeyDown, virtualKey,
-            KeyParameter(virtualKey, down: true));
+        Post(target, IsAlt(stroke.VirtualKey) ? WmSysKeyDown : WmKeyDown, stroke.VirtualKey,
+            KeyParameter(stroke, down: true));
     }
 
-    private static void Up(IntPtr target, int virtualKey)
+    private static void Up(IntPtr target, Stroke stroke)
     {
-        Post(target, IsAlt(virtualKey) ? WmSysKeyUp : WmKeyUp, virtualKey,
-            KeyParameter(virtualKey, down: false));
+        Post(target, IsAlt(stroke.VirtualKey) ? WmSysKeyUp : WmKeyUp, stroke.VirtualKey,
+            KeyParameter(stroke, down: false));
     }
 
-    /// <summary>The virtual key code a macro's key name stands for.</summary>
-    private static int VirtualKey(string key)
+    /// <summary>
+    /// One key of a macro's, as a posted message spells it: the code Windows numbers it with, and
+    /// whether the message carries the extended flag. Both are needed, because one key code can be
+    /// two keys — the number pad's Enter and the Enter in the middle of the keyboard are both 0x0D,
+    /// and the flag is what says which of them was pressed.
+    /// </summary>
+    private readonly record struct Stroke(int VirtualKey, bool Extended);
+
+    /// <summary>The key a macro's name stands for, refused when Windows has no such key.</summary>
+    private static Stroke StrokeFor(string key)
     {
         // A posted key message carries the code Windows numbers the key with, which is not the code
         // the hook library numbers it with: sending the library's own code would press another key.
         var code = SharpKeys.ResolveCode(key)
             ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
-        return WindowsKeys.VirtualKey(code)
-            ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+        return new Stroke(
+            WindowsKeys.VirtualKey(code)
+                ?? throw new DeviceActionException(RunKeys.KeyNotPressable, key),
+            WindowsKeys.IsExtended(code));
     }
 
     private static bool IsAlt(int virtualKey) => virtualKey is VkAlt or VkMenu;
 
     /// <summary>The state word a key message carries: scan code, repeat count, extended flag.</summary>
-    private static int KeyParameter(int virtualKey, bool down)
+    private static int KeyParameter(Stroke stroke, bool down)
     {
-        var scan = (int)(MapVirtualKey((uint)virtualKey, 0) & 0xFF);
-        var bits = 1 | (scan << 16);
+        var bits = 1 | (WindowsKeys.ScanCode((ushort)stroke.VirtualKey) << 16);
 
-        if (IsExtended(virtualKey))
+        if (stroke.Extended)
         {
             bits |= 1 << 24;
         }
@@ -314,10 +323,6 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         return bits;
     }
 
-    /// <summary>The keys that carry the extended flag, which tells them apart from numpad keys.</summary>
-    private static bool IsExtended(int virtualKey) => virtualKey is
-        0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28
-        or 0x2C or 0x2D or 0x2E or 0x5B or 0x5C or 0x5D or 0x6F or 0x90 or 0xA3 or 0xA5;
 
     /// <summary>
     /// The control on the target window's GUI thread that would receive a key press: the focused
@@ -380,10 +385,11 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
            && (candidate == window || GetAncestor(candidate, GaRoot) == window);
 
     /// <summary>
-    /// A child that says it wants typed characters is the one a person would be typing into.
-    /// The second pass accepts the ordinary focusable control when no child answers that question.
+    /// A child that says it wants typed characters is the one a person would be typing into, and
+    /// null when the window has no such child: a game draws in its one window and has none, so the
+    /// window itself is where its keys go.
     /// </summary>
-    private IntPtr FindKeyboardChild(bool wantsChars)
+    private IntPtr? FindKeyboardChild(bool wantsChars)
     {
         var found = IntPtr.Zero;
         bool Visit(IntPtr child, IntPtr _)
@@ -403,7 +409,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         }
 
         EnumChildWindows(window, Visit, IntPtr.Zero);
-        return found;
+        return found == IntPtr.Zero ? null : found;
     }
 
     private static bool WantsKeyboard(IntPtr child)

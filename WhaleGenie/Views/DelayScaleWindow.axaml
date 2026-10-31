@@ -1,9 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="470" d:DesignHeight="330"
@@ -12,89 +13,18 @@
         Title="WhaleGenie"
         Width="470" Height="330"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:DelayScaleViewModel />
     </Design.DataContext>
 
-    <Window.Styles>
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
 
-        <Style Selector="Button.PresetButton">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="Height" Value="30" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PresetButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <TextBlock Grid.Row="0" Margin="20,16,20,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextTertiary}" FontSize="13" Text="{Binding Explanation}" />
 
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-    </Window.Styles>
-
-    <Grid RowDefinitions="38,Auto,Auto,Auto,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}" FontSize="13"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-
-            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
-                    Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
-            </Button>
-        </Grid>
-
-        <TextBlock Grid.Row="1" Margin="20,16,20,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource AppMuted}" FontSize="13" Text="{Binding Explanation}" />
-
-        <ItemsControl Grid.Row="2" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
+        <ItemsControl Grid.Row="1" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" />
@@ -102,35 +32,35 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ScalePresetChoice">
-                    <Button Classes="PresetButton" Content="{Binding Label}" Command="{Binding Command}" />
+                    <Button Classes="Secondary" Content="{Binding Label}" Command="{Binding Command}" />
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Grid Grid.Row="3" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-            <TextBlock Grid.Column="0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+        <Grid Grid.Row="2" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+            <TextBlock Grid.Column="0" Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
                        VerticalAlignment="Center" Text="×" />
-            <views:NumberBox Grid.Column="1" Value="{Binding Factor}" Minimum="0.1" Maximum="10"
-                           Increment="0.1" FormatString="0.##" Width="130" />
-            <TextBlock Grid.Column="2" Foreground="{DynamicResource AppText}" FontSize="15" FontWeight="SemiBold"
+            <fa:FANumberBox Grid.Column="1" Value="{Binding Factor, Converter={StaticResource Number}}" Minimum="0.1" Maximum="10"
+                           SmallChange="0.1" SimpleNumberFormat="0.##" Width="130" />
+            <TextBlock Grid.Column="2" Foreground="{DynamicResource TextPrimary}" FontSize="15" FontWeight="SemiBold"
                        VerticalAlignment="Center" Text="{Binding Display}" />
         </Grid>
 
-        <StackPanel Grid.Row="4" Margin="20,16,20,0" Spacing="6">
-            <TextBlock Foreground="#C9C9C9" FontSize="12.5" TextWrapping="Wrap"
+        <StackPanel Grid.Row="3" Margin="20,16,20,0" Spacing="6">
+            <TextBlock Foreground="{DynamicResource TextSecondary}" FontSize="12.5" TextWrapping="Wrap"
                        Text="{Binding Summary}" />
-            <TextBlock Foreground="#7F7F7F" FontSize="12" TextWrapping="Wrap"
+            <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap"
                        Text="{Binding Detail}" IsVisible="{Binding HasDetail}" />
         </StackPanel>
 
-        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8"
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Right" Margin="20,0,20,20">
-            <Button Classes="PrimaryButton" Height="36" MinWidth="92"
+            <Button Classes="Primary" Height="36" MinWidth="92"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ConfirmCommand}" />
-            <Button Classes="FlatButton" Height="36" MinWidth="92"
+            <Button Classes="Secondary" Height="36" MinWidth="92"
                     Content="{Binding [Confirm.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
         </StackPanel>
     </Grid>
-</Window>
+</views:AppWindow>

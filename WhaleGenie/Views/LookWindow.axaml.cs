@@ -26,7 +26,7 @@ namespace WhaleGenie.Views;
 /// after, and the scores. This is the window that answers "为什么没找到" — it shows what the
 /// machine was actually looking at, which a line of text in a log cannot.
 /// </summary>
-public partial class LookWindow : Window
+public partial class LookWindow : AppWindow
 {
     /// <summary>How small a mark may be drawn: a colour hit is one pixel of a whole screen.</summary>
     private const double SmallestMark = 9;
@@ -110,7 +110,6 @@ public partial class LookWindow : Window
         _textPanel = this.FindControl<StackPanel>("TextPanel");
 
         Title = Strings.Get("Look.Title");
-        ShowFullScreenLabel();
         FillHeader(look);
         FillText(look);
         ShowNeedle();
@@ -286,9 +285,19 @@ public partial class LookWindow : Window
         SetStatus(Strings.Get("Look.AgainBusy"));
         try
         {
-            // Off the thread that draws the window, the same way the dialog's own run does it, and
-            // through the same entrance: looking and nothing else — no click, no key, no variable.
-            var outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
+            // Out of the way first: this window covers the very screen the step is looking at, and a
+            // look taken with it standing finds the window rather than what is behind it. Same
+            // entrance as the dialog's own run — looking and nothing else: no click, no key, no
+            // variable — and the window comes back when the look is done.
+            LookOutcome outcome;
+            using (var aside = AppWindows.StepAside(this))
+            {
+                // Waited for, not assumed: hiding is one call, but the desktop still holds the frame
+                // that had these windows in it until it has drawn again.
+                await AppWindows.SettleAsync();
+                outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
+            }
+
             if (outcome.Look is { } look)
             {
                 Refill(look);
@@ -544,6 +553,10 @@ public partial class LookWindow : Window
         }
     }
 
+    /// <summary>
+    /// 盖在画面上的半透明罩。**留字面值，不走令牌**：它必须能透出底下的截图，
+    /// 而令牌表里没有"半透明填充"这一档（已记进待立族）。换成不透明令牌就等于把画面盖住。
+    /// </summary>
     private static IBrush Wash(LookRole role) => role switch
     {
         LookRole.Hit => new SolidColorBrush(Color.FromArgb(46, 63, 191, 95)),
@@ -551,12 +564,16 @@ public partial class LookWindow : Window
         _ => Brushes.Transparent,
     };
 
-    private static IBrush Line(LookRole role) => new SolidColorBrush(role switch
+    /// <summary>
+    /// 框的描边。**外观是逐行算的、不走类**（`MarkRow` 也一样）：选中的、候选的、目标的外观各不相同，
+    /// 类描述的是"这一类长什么样"，两件事。但**颜色走语义令牌**——这是"用类"与"自绘"之间的第三态。
+    /// </summary>
+    private static IBrush? Line(LookRole role) => ThemeBrush.Of(role switch
     {
-        LookRole.Hit => Color.Parse("#3FBF5F"),
-        LookRole.Candidate => Color.Parse("#E0A030"),
-        LookRole.Target => Color.Parse("#FF3B30"),
-        _ => Color.Parse("#8A8A8A"),
+        LookRole.Hit => "Success",
+        LookRole.Candidate => "Warning",
+        LookRole.Target => "Danger",
+        _ => "TextTertiary",
     });
 
     /// <summary>
@@ -614,7 +631,10 @@ public partial class LookWindow : Window
             // that for itself.
             Height = LabelHeight,
             FontSize = 11,
-            Foreground = new SolidColorBrush(Color.Parse("#F0F0F0")),
+            // **约束**：此标签的前景色假定底是深色薄板（见下一行的 `rgba(200,20,20,20)`）。
+            // 挪到浅色底上必须同时换前景——否则白字直接消失。
+            Foreground = ThemeBrush.Of("TextPrimary") ?? Brushes.White,
+            // 自绘：浮在截图上的深色薄板，要透出一点底下的画面，令牌表里没有这一档。
             Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)),
             Padding = new Thickness(3, 0),
         };
@@ -667,14 +687,14 @@ public partial class LookWindow : Window
         {
             Text = Strings.Get("Look.Role." + box.Role),
             FontSize = 12,
-            Foreground = new SolidColorBrush(Color.Parse("#E4E4E4")),
+            Foreground = ThemeBrush.Of("TextPrimary"),
         });
 
         words.Children.Add(new TextBlock
         {
             Text = Detail(box),
             FontSize = 11.5,
-            Foreground = new SolidColorBrush(Color.Parse("#9A9A9A")),
+            Foreground = ThemeBrush.Of("TextTertiary"),
             TextWrapping = TextWrapping.Wrap,
         });
 
@@ -686,7 +706,9 @@ public partial class LookWindow : Window
             {
                 Text = box.Label,
                 FontSize = 11.5,
-                Foreground = new SolidColorBrush(Color.Parse("#BFE3BF")),
+                // "这是程序读出来的内容"——由**等宽**说，不由绿色说：
+                // 绿在这套界面已经表示"成功"，再借一次就是两种含义共用一个色。
+                Classes = { "Code" },
                 TextWrapping = TextWrapping.Wrap,
             });
         }
@@ -699,7 +721,7 @@ public partial class LookWindow : Window
             {
                 Text = short_,
                 FontSize = 11.5,
-                Foreground = new SolidColorBrush(Color.Parse("#D8B36A")),
+                Foreground = ThemeBrush.Of("Warning"),
                 TextWrapping = TextWrapping.Wrap,
             });
         }
@@ -711,7 +733,8 @@ public partial class LookWindow : Window
         {
             Text = box.Role == LookRole.Area ? string.Empty : Score(box.Match.Score, _look.Kind),
             FontSize = 12,
-            Foreground = new SolidColorBrush(Color.Parse("#E0B080")),
+            // 分数是附注级读数，与详情同档；要区分靠位置和标签，不靠颜色。
+            Foreground = ThemeBrush.Of("TextSecondary"),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             Margin = new Thickness(6, 0, 0, 0),
         };
@@ -795,49 +818,15 @@ public partial class LookWindow : Window
 
     // -------------------------------------------------------------------- commands
 
-    private void OnClose(object? sender, RoutedEventArgs e) => Close();
-
     /// <summary>
-    /// Puts the window away without closing it, so what was found can be held up against the screen
-    /// it came from and read again afterwards.
+    /// Fills the screen, or leaves it: a reference picture and a screenful of hits are read at their
+    /// own size. No button of its own — the title bar's maximize is the button, and F11 does it from
+    /// the keyboard.
     /// </summary>
-    private void OnMinimize(object? sender, RoutedEventArgs e)
-    {
-        // A window filling the screen has no title bar to come back to, so it is put back to its
-        // normal size first; minimizing straight out of full screen leaves a taskbar button that
-        // restores it full screen with nothing to close it with.
-        if (WindowState == WindowState.FullScreen)
-        {
-            ToggleFullScreen();
-        }
-
-        WindowState = WindowState.Minimized;
-    }
-
-    /// <summary>
-    /// Whether the window fills the screen, which is how a reference picture and a screenful of
-    /// hits are read: a window shrunk to fit a monitor shows neither at its own size.
-    /// </summary>
-    private void OnToggleFullScreen(object? sender, RoutedEventArgs e) => ToggleFullScreen();
-
     private void ToggleFullScreen()
-    {
-        WindowState = WindowState == WindowState.FullScreen
+        => WindowState = WindowState == WindowState.FullScreen
             ? WindowState.Normal
             : WindowState.FullScreen;
-        ShowFullScreenLabel();
-    }
-
-    /// <summary>The button says what it will do next, so there is nothing to remember.</summary>
-    private void ShowFullScreenLabel()
-    {
-        if (this.FindControl<Button>("FullScreen") is { } button)
-        {
-            button.Content = Strings.Get(WindowState == WindowState.FullScreen
-                ? "Look.FullScreenExit"
-                : "Look.FullScreen");
-        }
-    }
 
     private void OnZoomIn(object? sender, RoutedEventArgs e) => Zoom(LookGeometry.Step(_zoom, true), true);
 
@@ -986,6 +975,8 @@ public partial class LookWindow : Window
     /// </summary>
     internal Canvas SavedBoard(double zoom, bool marks)
     {
+        // 自绘：**这是"图还没画上去时的画布"**，不是界面色。别把它当"深色背景令牌"换掉——
+        // 换掉之后图一出来，底下会透出别的颜色。
         var board = new Canvas { Background = new SolidColorBrush(Color.Parse("#141414")) };
         Picture(board, zoom);
         if (!marks)
@@ -1040,20 +1031,4 @@ public partial class LookWindow : Window
         board.Children.Add(picture);
     }
 
-    /// <summary>
-    /// The window is moved by dragging the title bar it draws itself, the way every window here is.
-    /// A window filling the screen has nowhere to be moved to, and pulling one out of full screen
-    /// would leave it in a state its own button no longer describes.
-    /// </summary>
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && WindowState != WindowState.FullScreen
-            && e.GetPosition(this).Y <= TitleBarStrip)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

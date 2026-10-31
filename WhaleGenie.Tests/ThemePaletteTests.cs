@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Styling;
 using WhaleGenie;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
@@ -11,48 +11,166 @@ using WhaleGenie.Views;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// The custom palette has to keep the built-in values intact, and a custom value that cannot be
-/// read must fall back to the variant underneath rather than make a window invisible.
+/// A custom theme is one accent colour, and everything else is derived from it. The checks pin the
+/// three things that make that safe: what the derivation produces, that a colour which cannot be
+/// made readable is refused rather than painted, and that a refusal falls back to the variant's own
+/// accent instead of leaving a window with no colour at all.
 /// </summary>
 [Collection("Theme")]
+[RestoreSharedState]
 public class ThemePaletteTests
 {
+    private static readonly Color WindowDark = Color.Parse("#1C1C1C");
+
+    private static readonly Color WindowLight = Color.Parse("#F3F2F0");
+
     [Fact]
-    public void The_built_in_palettes_still_have_the_same_values()
+    public void The_built_in_accent_derives_a_set_each_part_of_which_is_readable()
     {
-        Assert.Equal(22, ThemePalette.Brushes.Count);
+        Assert.True(ThemePalette.TryDerive(Color.Parse(ThemePalette.DefaultAccent), light: false, out var dark));
+        Assert.True(ThemePalette.Contrast(dark.Fill, Colors.White) >= 4.5);
+        Assert.True(ThemePalette.Contrast(dark.Text, WindowDark) >= 4.5);
 
-        var dark = ThemePalette.Defaults(light: false);
-        var light = ThemePalette.Defaults(light: true);
+        // On a dark window hover goes towards the light and pressed away from it.
+        Assert.True(Lightness(dark.Hover) > Lightness(dark.Fill));
+        Assert.True(Lightness(dark.Pressed) < Lightness(dark.Fill));
 
-        Assert.Equal("#292929", dark["AppSurface"]);
-        Assert.Equal("#FAF8F4", light["AppSurface"]);
-        Assert.Equal("#C8401C", dark["AppAccent"]);
-        Assert.Equal("#2B2723", light["AppText"]);
+        // The faint surface is the accent laid over the window, and it stays opaque so whatever it
+        // is drawn on cannot show through and change it.
+        Assert.Equal(255, dark.Surface.A);
+        Assert.True(Lightness(dark.Surface) > Lightness(WindowDark));
+    }
 
-        Assert.All(ThemePalette.Brushes, brush =>
+    [Fact]
+    public void The_light_base_derives_the_other_way()
+    {
+        Assert.True(ThemePalette.TryDerive(Color.Parse(ThemePalette.DefaultAccent), light: true, out var light));
+        Assert.True(ThemePalette.Contrast(light.Fill, Colors.White) >= 4.5);
+        Assert.True(ThemePalette.Contrast(light.Text, WindowLight) >= 4.5);
+
+        Assert.True(Lightness(light.Hover) < Lightness(light.Fill));
+        Assert.True(Lightness(light.Text) < Lightness(light.Fill));
+        Assert.True(Lightness(light.Surface) < Lightness(WindowLight));
+    }
+
+    [Fact]
+    public void A_picked_color_is_moved_until_white_text_fits_on_it()
+    {
+        var picked = Color.Parse("#FF7043");
+        Assert.True(ThemePalette.TryDerive(picked, light: false, out var tokens));
+
+        Assert.True(ThemePalette.Contrast(tokens.Fill, Colors.White) >= 4.5);
+        Assert.NotEqual(picked, tokens.Fill);
+    }
+
+    [Fact]
+    public void A_color_that_cannot_be_made_readable_is_refused()
+    {
+        // White cannot carry white text at any lightness within reach of the colour it started as.
+        Assert.False(ThemePalette.TryDerive(Colors.White, light: false, out _));
+        Assert.False(ThemePalette.TryDerive(Colors.White, light: true, out _));
+    }
+
+    /// <summary>
+    /// Dark colours on the dark window get their accent text lifted as far as it takes, rather than
+    /// being refused. These two numbers are the whole evidence for that choice: they are what the
+    /// limit on the accent text is worth, and if the limit is ever tightened back to the fill's one
+    /// the derivation starts refusing both of these and this check goes red.
+    /// </summary>
+    [Theory]
+    [InlineData("#000000", "#858585", 4.62)]
+    [InlineData("#112233", "#4C88C4", 4.57)]
+    public void A_dark_accent_keeps_its_text_lifted_rather_than_refused(string accent, string text, double contrast)
+    {
+        Assert.True(ThemePalette.TryDerive(Color.Parse(accent), light: false, out var tokens));
+
+        Assert.Equal(Color.Parse(text), tokens.Text);
+        Assert.Equal(contrast, Math.Round(ThemePalette.Contrast(tokens.Text, WindowDark), 2));
+    }
+
+    [Fact]
+    public void An_unreadable_or_unparsable_accent_falls_back_to_the_built_in_one()
+    {
+        Ui.Run(() =>
         {
-            Assert.NotEqual(brush.LabelKey, Strings.Get(brush.LabelKey));
-            Assert.NotEqual(brush.GroupKey, Strings.Get(brush.GroupKey));
+            var original = ThemeController.Load();
+            try
+            {
+                foreach (var text in new[] { "not a color", null, "#FFFFFF" })
+                {
+                    ThemePalette.Apply(new ThemeSelection(ThemeMode.Custom, false, text));
+                    Assert.Equal(
+                        Color.Parse(ThemePalette.DefaultAccent),
+                        ColorAt("AccentFill", ThemeVariant.Dark));
+                }
+            }
+            finally
+            {
+                ThemeController.Apply(original);
+            }
         });
     }
 
     [Fact]
-    public void A_custom_color_wins_and_a_bad_one_falls_back_to_the_base_variant()
+    public void Applying_a_custom_accent_writes_both_shapes()
     {
-        var brushes = ThemePalette.Brushes.ToDictionary(brush => brush.Key);
-        var selection = new ThemeSelection(ThemeMode.Custom, false,
-            new Dictionary<string, string>
+        Ui.Run(() =>
+        {
+            var original = ThemeController.Load();
+            try
             {
-                ["AppAccent"] = "#112233",
-                ["AppSurface"] = "not a color",
-            });
+                Assert.True(ThemePalette.TryDerive(Color.Parse("#112233"), light: false, out var tokens));
+                ThemePalette.Apply(new ThemeSelection(ThemeMode.Custom, false, "#112233"));
 
-        Assert.Equal(Color.Parse("#112233"), ThemePalette.Resolve(brushes["AppAccent"], selection));
-        Assert.Equal(Color.Parse("#292929"), ThemePalette.Resolve(brushes["AppSurface"], selection));
-        Assert.True(ThemePalette.TryParse("#AABBCC", out var parsed));
-        Assert.Equal(Color.Parse("#AABBCC"), parsed);
-        Assert.False(ThemePalette.TryParse("nope", out _));
+                Assert.Equal(tokens.Fill, ColorAt("AccentFill", ThemeVariant.Dark));
+                Assert.Equal(tokens.Fill, ColorAt("AccentFillColor", ThemeVariant.Dark));
+                Assert.Equal(tokens.Text, ColorAt("AccentText", ThemeVariant.Dark));
+                Assert.Equal(tokens.Surface, ColorAt("AccentSurface", ThemeVariant.Dark));
+            }
+            finally
+            {
+                ThemeController.Apply(original);
+            }
+        });
+    }
+
+    [Fact]
+    public void The_editor_shows_one_accent_and_the_base_it_sits_on()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new ThemePaletteViewModel(new ThemeSelection(ThemeMode.Custom, false, "#112233"));
+
+            Assert.Equal("#112233", editor.AccentHex);
+            Assert.False(editor.BaseLight);
+            Assert.True(editor.AccentUsable);
+        });
+    }
+
+    [Fact]
+    public void The_editor_says_so_when_the_picked_color_is_refused()
+    {
+        Ui.Run(() =>
+        {
+            var original = ThemeController.Load();
+            try
+            {
+                var editor = new ThemePaletteViewModel(new ThemeSelection(ThemeMode.Custom, false, "#112233"));
+
+                editor.Accent = Colors.White;
+
+                Assert.False(editor.AccentUsable);
+
+                // The previews keep showing what the program is actually painting with.
+                Assert.Equal(
+                    Color.Parse(ThemePalette.DefaultAccent),
+                    ColorAt("AccentFill", ThemeVariant.Dark));
+            }
+            finally
+            {
+                ThemeController.Apply(original);
+            }
+        });
     }
 
     [Fact]
@@ -98,44 +216,16 @@ public class ThemePaletteTests
         });
     }
 
-    [Fact]
-    public void Applying_a_custom_palette_changes_the_live_resource()
+    private static Color ColorAt(string key, ThemeVariant variant)
     {
-        Ui.Run(() =>
+        Assert.True(Application.Current!.TryGetResource(key, variant, out var value));
+        return value switch
         {
-            var original = ThemeController.Load();
-            try
-            {
-                var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false))
-                {
-                    ["AppAccent"] = "#123456",
-                };
-                ThemePalette.Apply(new ThemeSelection(ThemeMode.Custom, false, colors));
-
-                var brush = Assert.IsType<SolidColorBrush>(
-                    Application.Current!.Resources["AppAccent"]);
-                Assert.Equal(Color.Parse("#123456"), brush.Color);
-            }
-            finally
-            {
-                ThemeController.Apply(original);
-            }
-        });
+            Color colour => colour,
+            ISolidColorBrush brush => brush.Color,
+            _ => throw new InvalidOperationException(key + " is not a color"),
+        };
     }
 
-    [Fact]
-    public void The_editor_lists_every_color_in_its_group()
-    {
-        Ui.Run(() =>
-        {
-            var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false));
-            var editor = new ThemePaletteViewModel(
-                new ThemeSelection(ThemeMode.Custom, false, colors));
-
-            Assert.Equal(22, editor.Entries.Count);
-            Assert.Equal(3, editor.Groups.Count);
-            Assert.Equal("AppSurface", editor.SelectedEntry.Key);
-            Assert.All(editor.Groups, group => Assert.NotEmpty(group.Entries));
-        });
-    }
+    private static double Lightness(Color colour) => colour.ToHsl().L;
 }

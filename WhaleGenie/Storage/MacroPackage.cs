@@ -35,7 +35,13 @@ public static class MacroPackage
     /// </summary>
     public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
-    public const int FormatVersion = 19;
+    /// <summary>
+    /// Bumped when what a field means changes, not only when a field is added. 20 is the version
+    /// where a call writes what it passes as an argument row list rather than one parameter per
+    /// argument: a 19 package's <c>arg.*</c> keys would be read as fields the action does not have,
+    /// so it is refused rather than half-read.
+    /// </summary>
+    public const int FormatVersion = 20;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";
@@ -95,6 +101,15 @@ public static class MacroPackage
                 SaveInto(archive, fullPath, macros, triggers, globals, appVersion);
             }
 
+            // The package being replaced is kept beside it as .bak. A save that turns out to be wrong
+            // is the one mistake nobody can undo from inside the program, and the copy costs a single
+            // file write. Every path that saves — the window's own Ctrl+S and the MCP tool alike —
+            // comes through here, so none of them can forget it.
+            if (File.Exists(fullPath))
+            {
+                File.Copy(fullPath, fullPath + ".bak", true);
+            }
+
             File.Move(temporary, fullPath, true);
         }
         catch
@@ -108,8 +123,63 @@ public static class MacroPackage
         }
     }
 
+    /// <summary>
+    /// Gives every macro after the first one of its name a suffix saying when it was read, so a
+    /// package that carries two macros of one name still arrives as two macros. The first one keeps
+    /// the name, because that is the one the file’s call sites and triggers were written against.
+    /// </summary>
+    internal static void Disambiguate(IReadOnlyList<MacroItem> macros, DateTime when)
+    {
+        // Taken names start as every name the file has, not just the ones seen so far: a macro whose
+        // own name happens to be the suffixed form must not be pushed aside by the suffix.
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in macros)
+        {
+            if (macro.Name.Trim() is { Length: > 0 } name)
+            {
+                taken.Add(name);
+            }
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in macros)
+        {
+            var name = macro.Name.Trim();
+            if (name.Length == 0)
+            {
+                // An unnamed macro is the declaration editor's problem; there is nothing to make
+                // unique about a name nobody has.
+                continue;
+            }
+
+            macro.Name = name;
+            if (seen.Add(name))
+            {
+                continue;
+            }
+
+            macro.Name = MacroNames.Free(name, taken, when);
+            taken.Add(macro.Name);
+        }
+    }
+
     /// <summary>Reads a package file back into macros and shared variables.</summary>
-    public static PackageContents Load(string path)
+    public static PackageContents Load(string path) => Load(path, AssetFolderFor(path), reuseExisting: true);
+
+    /// <summary>
+    /// Reads a package, putting the pictures it carries into <paramref name="assetFolder"/>.
+    /// </summary>
+    /// <remarks>
+    /// An import is not the same reader as an open. Opening a project finds a folder that belongs to
+    /// that project, where a picture already there is the one the macro means. A file that arrives
+    /// from elsewhere is unpacked into somebody else's folder, so a name already taken is not
+    /// evidence of the same picture: the bytes are compared, and a different picture is kept beside
+    /// the old one rather than quietly replacing what another macro looks for.
+    /// </remarks>
+    public static PackageContents Load(string path, string assetFolder)
+        => Load(path, assetFolder, reuseExisting: false);
+
+    private static PackageContents Load(string path, string assetFolder, bool reuseExisting)
     {
         var fullPath = Path.GetFullPath(path);
         using var stream = File.OpenRead(fullPath);
@@ -132,7 +202,7 @@ public static class MacroPackage
                 + $"{FormatVersion}.");
         }
 
-        var assets = new AssetExtractor(archive, AssetFolderFor(fullPath));
+        var assets = new AssetExtractor(archive, assetFolder, reuseExisting);
         var macros = new List<MacroItem>();
 
         foreach (var item in manifest["macros"] as JsonArray ?? [])
@@ -158,6 +228,13 @@ public static class MacroPackage
             macro.IsEnabled = ReadBool(entry, "enabled", true);
             macros.Add(macro);
         }
+
+        // Two macros with one name can only come from a file somebody edited by hand: the editor
+        // refuses to save a second macro under a name that is taken. They are still two macros with
+        // their own steps, so the later one is given the date it was read on and both are kept —
+        // dropping one, which is what a name-keyed table would do, loses work and leaves every call
+        // to that name meaning whichever happened to be read first.
+        Disambiguate(macros, DateTime.Now);
 
         var triggers = ProjectTriggers.FromJson(ReadObject(archive, TriggersEntry));
         ExpandMenuIcons(triggers, assets.Expand);
@@ -344,8 +421,11 @@ public static class MacroPackage
         return slug.Length == 0 ? "macro" : slug[..Math.Min(slug.Length, 40)];
     }
 
-    /// <summary>Rewrites every <c>image</c> value through <paramref name="map"/>.</summary>
-    private static void RewriteAssets(JsonNode? node, Func<string, string> map)
+    /// <summary>
+    /// Rewrites every <c>image</c> value through <paramref name="map"/>. Shared with the export,
+    /// which writes a package of its own out of a few chosen macros.
+    /// </summary>
+    internal static void RewriteAssets(JsonNode? node, Func<string, string> map)
     {
         switch (node)
         {
@@ -444,7 +524,7 @@ public static class MacroPackage
         => value.Length == 0 ? fallback : value;
 
     /// <summary>Copies referenced images into the package as it is written.</summary>
-    private sealed class AssetCollector
+    internal sealed class AssetCollector
     {
         private readonly ZipArchive _archive;
         private readonly string _sourceFolder;
@@ -527,12 +607,64 @@ public static class MacroPackage
     {
         private readonly ZipArchive _archive;
         private readonly string _folder;
+        private readonly bool _reuseExisting;
         private readonly Dictionary<string, string> _mapped = new(StringComparer.OrdinalIgnoreCase);
 
-        public AssetExtractor(ZipArchive archive, string folder)
+        public AssetExtractor(ZipArchive archive, string folder, bool reuseExisting)
         {
             _archive = archive;
             _folder = folder;
+            _reuseExisting = reuseExisting;
+        }
+
+        /// <summary>
+        /// A picture that belongs to this folder already: what is there is the one the macro means,
+        /// so the file is only written when the folder has nothing under that name.
+        /// </summary>
+        private string Keep(string name, ZipArchiveEntry entry)
+        {
+            var target = Path.Combine(_folder, name);
+            if (!File.Exists(target))
+            {
+                Directory.CreateDirectory(_folder);
+                entry.ExtractToFile(target, true);
+            }
+
+            return target;
+        }
+
+        /// <summary>
+        /// A picture arriving from somewhere else: the same bytes under the name are shared, and
+        /// different ones are written beside it under a number of their own.
+        /// </summary>
+        private string KeepApart(string name, ZipArchiveEntry entry)
+        {
+            byte[] arriving;
+            using (var source = entry.Open())
+            using (var buffer = new MemoryStream())
+            {
+                source.CopyTo(buffer);
+                arriving = buffer.ToArray();
+            }
+
+            Directory.CreateDirectory(_folder);
+            var stem = Path.GetFileNameWithoutExtension(name);
+            var extension = Path.GetExtension(name);
+            for (var counter = 1; ; counter++)
+            {
+                var candidate = counter == 1 ? name : $"{stem}-{counter}{extension}";
+                var target = Path.Combine(_folder, candidate);
+                if (!File.Exists(target))
+                {
+                    File.WriteAllBytes(target, arriving);
+                    return target;
+                }
+
+                if (File.ReadAllBytes(target).SequenceEqual(arriving))
+                {
+                    return target;
+                }
+            }
         }
 
         public string Expand(string value)
@@ -554,14 +686,10 @@ public static class MacroPackage
             }
 
             // Only the file name is used, so a crafted package cannot escape the folder.
-            var target = Path.Combine(_folder, Path.GetFileName(value));
-            if (!File.Exists(target))
-            {
-                Directory.CreateDirectory(_folder);
-                entry.ExtractToFile(target, true);
-            }
-
-            var resolved = Path.GetFullPath(target);
+            var name = Path.GetFileName(value);
+            var resolved = Path.GetFullPath(_reuseExisting
+                ? Keep(name, entry)
+                : KeepApart(name, entry));
             _mapped[value] = resolved;
             return resolved;
         }

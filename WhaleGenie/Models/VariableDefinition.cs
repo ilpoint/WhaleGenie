@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;

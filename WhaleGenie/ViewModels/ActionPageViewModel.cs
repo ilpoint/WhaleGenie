@@ -20,10 +20,6 @@ public partial class ActionPageViewModel : ViewModelBase
     /// <summary>Name shown on the tab, in the interface language.</summary>
     public string Title => Strings.Get(TitleKey);
 
-    /// <summary>True while this is the page on screen.</summary>
-    [ObservableProperty]
-    public partial bool IsOpen { get; set; }
-
     /// <summary>
     /// True when this page holds something that is not the value it starts on. The tab then carries
     /// a mark, so a step whose behaviour differs from the ordinary is not edited blind: what was

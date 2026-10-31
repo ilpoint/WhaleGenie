@@ -19,7 +19,7 @@ namespace WhaleGenie.Views;
 /// are aiming at: a template with a health bar above the head is exactly the case where clicking
 /// the match's middle is wrong, and the offset that fixes it is hard to work out in the head.
 /// </summary>
-public partial class OffsetPickerWindow : Window
+public partial class OffsetPickerWindow : AppWindow
 {
     /// <summary>How big the picture is drawn, so a small template can be aimed at by eye.</summary>
     private const double Room = 420;
@@ -120,6 +120,7 @@ public partial class OffsetPickerWindow : Window
         {
             Width = 11,
             Height = 11,
+            // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
             BorderBrush = new SolidColorBrush(Color.Parse("#E0A030")),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(6),
@@ -225,14 +226,5 @@ public partial class OffsetPickerWindow : Window
     /// The window is moved by dragging the title bar it draws itself, the way every window here is:
     /// a window with no decorations has no other part that acts like one.
     /// </summary>
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= TitleBarStrip)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

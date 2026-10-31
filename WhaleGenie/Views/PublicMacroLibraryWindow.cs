@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -9,16 +10,16 @@ using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
 /// <summary>Lists, creates, edits and removes the callable macros shared by every project.</summary>
-public sealed class PublicMacroLibraryWindow : Window
+public sealed class PublicMacroLibraryWindow : AppWindow
 {
     private sealed record Row(PublicMacroEntry Entry)
     {
@@ -42,29 +43,30 @@ public sealed class PublicMacroLibraryWindow : Window
         MinHeight = 420;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("PublicMacroManager.Title");
-        Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
+        ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 
         var newButton = Button(Strings.Get("PublicMacroManager.New"), OnNew);
         var editButton = Button(Strings.Get("PublicMacroManager.Edit"), OnEdit);
         var deleteButton = Button(Strings.Get("PublicMacroManager.Delete"), OnDelete);
+        var importButton = Button(Strings.Get("PublicMacroManager.ImportFile"), OnImportFile);
+        var exportButton = Button(Strings.Get("PublicMacroManager.ExportFile"), OnExportFile);
         newButton.IsEnabled = !_locked;
         editButton.IsEnabled = !_locked;
         deleteButton.IsEnabled = !_locked;
+        importButton.IsEnabled = !_locked;
+        exportButton.IsEnabled = !_locked;
         var closeButton = Button(Strings.Get("Common.Close"), (_, _) => Close());
         _status = new TextBlock
         {
-            Foreground = Brush("AppMuted", Color.FromRgb(160, 160, 160)),
-            TextWrapping = TextWrapping.Wrap,
+            Classes = { "Hint" },
             VerticalAlignment = VerticalAlignment.Center,
         };
         if (loadError is not null)
         {
             _status.Text = loadError;
         }
-        _list = new ListBox { ItemsSource = _rows, Margin = new Thickness(0, 10, 0, 10) };
+        _list = new ListBox { ItemsSource = _rows, Classes = { "List" } };
         _list.DoubleTapped += async (_, _) => await EditSelected();
         _list.ItemTemplate = new FuncDataTemplate<Row>((row, _) =>
             new StackPanel
@@ -75,16 +77,13 @@ public sealed class PublicMacroLibraryWindow : Window
                     new TextBlock
                     {
                         Text = row.Title,
-                        FontSize = 13,
+                        Classes = { "Body" },
                         FontWeight = FontWeight.SemiBold,
-                        Foreground = Brush("AppTextStrong", Colors.White),
                     },
                     new TextBlock
                     {
                         Text = row.Description,
-                        FontSize = 11.5,
-                        Foreground = Brush("AppMuted", Colors.Gray),
-                        TextWrapping = TextWrapping.Wrap,
+                        Classes = { "Hint" },
                     },
                 },
             });
@@ -93,15 +92,12 @@ public sealed class PublicMacroLibraryWindow : Window
         {
             Orientation = Orientation.Horizontal,
             Spacing = 7,
-            Children = { newButton, editButton, deleteButton },
+            Children = { newButton, editButton, deleteButton, importButton, exportButton },
         };
         var heading = new TextBlock
         {
             Text = Strings.Get("PublicMacroManager.Title"),
-            FontSize = 15,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brush("AppTextStrong", Colors.White),
-            Margin = new Thickness(0, 0, 0, 10),
+            Classes = { "Title" },
         };
         var footer = new Grid
         {
@@ -110,11 +106,14 @@ public sealed class PublicMacroLibraryWindow : Window
         };
         Grid.SetColumn(closeButton, 1);
 
-        Content = new Grid
+        Content = new Border
         {
-            Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
-            Children = { heading, buttons, _list, footer },
+            Padding = new Thickness(16),
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
+                Children = { heading, buttons, _list, footer },
+            },
         };
         Grid.SetRow(buttons, 1);
         Grid.SetRow(_list, 2);
@@ -196,6 +195,76 @@ public sealed class PublicMacroLibraryWindow : Window
         Save();
     }
 
+    /// <summary>
+    /// Takes macros from a file into the library. The same window as the project's import, with the
+    /// destination decided by where it was opened from: from here, whatever is ticked becomes a
+    /// library entry, named so the library stays valid.
+    /// </summary>
+    private async void OnImportFile(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var path = await PackagePicker.PickAsync(this, Strings.Get("PublicMacroManager.ImportTitle"));
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var contents = MacroPackage.Load(path,
+                PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
+            var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import,
+                contents.Macros, contents.Triggers, contents.Globals,
+                fileName: Path.GetFileName(path), intoLibrary: true);
+            if (nodes is null || nodes.Count == 0)
+            {
+                return;
+            }
+
+            var added = MacroImport.IntoLibrary([.. nodes.Select(node => node.Macro)],
+                AppPaths.PublicMacroLibrary);
+            _entries = PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary);
+            RefreshRows();
+            _status.Text = Strings.Format("PublicMacroManager.Imported",
+                string.Join("、", added.Select(entry => entry.Macro.Name)));
+        }
+        catch (Exception error)
+        {
+            _status.Text = Strings.Format("PublicMacroManager.SaveFailed", error.Message);
+        }
+    }
+
+    /// <summary>
+    /// Writes one entry out as a package holding that one macro, pictures and all, so it can be
+    /// given to somebody who does not share this library. It leaves as a submacro: that is what a
+    /// public macro is. Its triggers stay behind, because a library entry is called, not started.
+    /// </summary>
+    private async void OnExportFile(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_list.SelectedItem is not Row row)
+        {
+            _status.Text = Strings.Get("PublicMacroManager.PickFirst");
+            return;
+        }
+
+        var path = await PackagePicker.AskWhereAsync(this,
+            Strings.Get("PublicMacroManager.ExportTitle"), row.Entry.Macro.Name);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var copy = MacroItem.FromJson(row.Entry.Macro.ToSubMacroJson());
+            MacroPackage.Save(path, [copy], [], AppVersion.Text);
+            _status.Text = Strings.Format("PublicMacroManager.Exported", Path.GetFileName(path));
+        }
+        catch (Exception error)
+        {
+            _status.Text = Strings.Format("PublicMacroManager.SaveFailed", error.Message);
+        }
+    }
+
     private void Save()
     {
         try
@@ -263,10 +332,6 @@ public sealed class PublicMacroLibraryWindow : Window
         return button;
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

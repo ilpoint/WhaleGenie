@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -20,12 +21,12 @@ namespace WhaleGenie.Tests;
 public class NumberBoxTests
 {
     /// <summary>The two buttons a number box puts beside its digits, by the names the theme uses.</summary>
-    private static IReadOnlyList<Button> Spinners(NumericUpDown box)
+    private static IReadOnlyList<Button> Spinners(FANumberBox box)
         => [.. box.GetVisualDescendants().OfType<Button>().Where(button =>
-            button.Name is "PART_IncreaseButton" or "PART_DecreaseButton")];
+            button.Name is "UpSpinButton" or "DownSpinButton")];
 
     [Fact]
-    public void The_spin_buttons_of_a_number_box_stay_small()
+    public void A_number_box_keeps_its_spin_buttons_out_of_the_text_row()
     {
         Ui.Run(() =>
         {
@@ -39,18 +40,11 @@ public class NumberBoxTests
 
             foreach (var box in boxes)
             {
-                var spinners = Spinners(box);
-                Assert.Equal(2, spinners.Count);
-                Assert.All(spinners, spinner =>
-                {
-                    // The buttons sit in a column at the right and are read as a pair; wide ones take
-                    // the room the digits need, and in a row of four numbers they crowd what is beside
-                    // them out of the page.
-                    Assert.True(spinner.Bounds.Width <= 18,
-                        $"the spin button is {spinner.Bounds.Width} wide");
-                    Assert.True(spinner.Bounds.Height <= 18,
-                        $"the spin button is {spinner.Bounds.Height} tall");
-                });
+                // The buttons belong to a popup that opens when the field is focused. In a row of
+                // four numbers they used to sit inside the field itself, squeezed to 16×15 by hand
+                // because the theme's buttons did not fit — this is the theme saying it for us.
+                Assert.Equal(FANumberBoxSpinButtonPlacementMode.Compact, box.SpinButtonPlacementMode);
+                Assert.All(Spinners(box), spinner => Assert.False(spinner.IsEffectivelyVisible));
             }
         });
     }
@@ -80,9 +74,9 @@ public class NumberBoxTests
         {
             var window = Open("window.move");
             var wide = Parameter(window, "width");
-            var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+            var box = window.GetVisualDescendants().OfType<FANumberBox>()
                 .First(one => ReferenceEquals(one.DataContext, wide));
-            box.Value = null;
+            box.Value = double.NaN;
             Dispatcher.UIThread.RunJobs();
 
             // A window side is answered by being left empty: the window keeps what it has there,
@@ -97,8 +91,8 @@ public class NumberBoxTests
             // empty follows the screen's refresh rate, which is why it is not written down as a 0.
             var delay = Open("control.delay");
             var ms = Parameter(delay, "ms");
-            delay.GetVisualDescendants().OfType<NumericUpDown>()
-                .First(one => ReferenceEquals(one.DataContext, ms)).Value = null;
+            delay.GetVisualDescendants().OfType<FANumberBox>()
+                .First(one => ReferenceEquals(one.DataContext, ms)).Value = double.NaN;
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(string.Empty, ms.CurrentText);
@@ -117,11 +111,11 @@ public class NumberBoxTests
         {
             var window = Open("input.mouseMove");
             var x = Parameter(window, "x");
-            var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+            var box = window.GetVisualDescendants().OfType<FANumberBox>()
                 .First(one => ReferenceEquals(one.DataContext, x));
 
-            Assert.Equal(-100000m, box.Minimum);
-            box.Value = -40m;
+            Assert.Equal(-100000d, box.Minimum);
+            box.Value = -40d;
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("-40", x.CurrentText);
         });
@@ -139,11 +133,11 @@ public class NumberBoxTests
             // that displayed its lower bound would look like an answer the step had written down.
             foreach (var name in new[] { "x", "y", "width", "height" })
             {
-                var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+                var box = window.GetVisualDescendants().OfType<FANumberBox>()
                     .First(one => one.IsEffectivelyVisible
                         && ReferenceEquals(one.DataContext, Parameter(window, name)));
 
-                Assert.Null(box.Value);
+                Assert.True(double.IsNaN(box.Value));
                 Assert.True(string.IsNullOrWhiteSpace(box.Text), $"{name} shows \"{box.Text}\"");
             }
         });
@@ -162,7 +156,7 @@ public class NumberBoxTests
 
             Point Place(NumberCellViewModel cell)
             {
-                var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+                var box = window.GetVisualDescendants().OfType<FANumberBox>()
                     .First(b => ReferenceEquals(b.DataContext, cell) && b.IsEffectivelyVisible);
                 return box.TranslatePoint(default, window)!.Value;
             }
@@ -197,7 +191,7 @@ public class NumberBoxTests
             var button = window.GetVisualDescendants().OfType<Button>()
                 .First(pressed => pressed.IsEffectivelyVisible
                     && pressed.Content as string == Strings.Get("Add.PickRegion"));
-            var x = window.GetVisualDescendants().OfType<NumericUpDown>()
+            var x = window.GetVisualDescendants().OfType<FANumberBox>()
                 .First(box => box.IsEffectivelyVisible
                     && ReferenceEquals(box.DataContext, Parameter(window, "x")));
 
@@ -274,7 +268,7 @@ public class NumberBoxTests
             .First(parameter => parameter.Definition.Name == name);
 
     /// <summary>The number boxes that are on screen, which is what the user is looking at.</summary>
-    private static List<NumericUpDown> Boxes(Window window)
-        => [.. window.GetVisualDescendants().OfType<NumericUpDown>()
+    private static List<FANumberBox> Boxes(Window window)
+        => [.. window.GetVisualDescendants().OfType<FANumberBox>()
             .Where(box => box.IsEffectivelyVisible && box.Bounds.Width > 0)];
 }

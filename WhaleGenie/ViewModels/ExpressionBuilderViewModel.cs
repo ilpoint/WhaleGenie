@@ -74,7 +74,14 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             TextUnreadable = !IsTreePage;
         }
 
-        Selected = _root;
+        // Nothing is picked when the page opens: a click from the palette needs a place that was
+        // chosen on purpose, and wrapping whatever happens to be at the top of an existing formula
+        // is how a structure used to appear from nowhere.
+        //
+        // The handwritten page opens on the formula that is there, so it is never a blank box in
+        // front of somebody who wants to change one number of it.
+        Written = _empty ? string.Empty : Preview.Length > 0 ? Preview : Expression;
+
         Redraw();
     }
 
@@ -174,11 +181,73 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsTextPage))]
     [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    [NotifyPropertyChangedFor(nameof(HasUnappliedWritten))]
     [NotifyPropertyChangedFor(nameof(ShowsSaying))]
     public partial bool IsTreePage { get; set; } = true;
 
     /// <summary>True while the page the formula is written out on is the one on show.</summary>
     public bool IsTextPage => !IsTreePage;
+
+    /// <summary>
+    /// What the handwritten page holds. It is a buffer of its own: typing here changes nothing until
+    /// "build the structure from this" is pressed, which is what keeps a hand-built formula safe from
+    /// a stray keystroke.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUnappliedWritten))]
+    [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    public partial string Written { get; set; } = string.Empty;
+
+    /// <summary>What the buffer says when it does not read, or how much it is when it does.</summary>
+    [ObservableProperty]
+    public partial string WrittenMessage { get; set; } = string.Empty;
+
+    /// <summary>True while the buffer holds something the structure does not have yet.</summary>
+    public bool HasUnappliedWritten => Written.Trim().Length > 0
+        && !string.Equals(Written.Trim(), Preview.Trim(), StringComparison.Ordinal);
+
+    partial void OnWrittenChanged(string value) => CheckWritten();
+
+    /// <summary>Says whether what was typed reads, so the button under it is never a guess.</summary>
+    private void CheckWritten()
+    {
+        if (Written.Trim().Length == 0)
+        {
+            WrittenMessage = string.Empty;
+            OnPropertyChanged(nameof(HasUnappliedWritten));
+            OnPropertyChanged(nameof(CanConfirm));
+            return;
+        }
+
+        WrittenMessage = Language.TryParse(Written, out _, out var error)
+            ? Strings.Get("ExprBuilder.WrittenReads")
+            : error is null ? Strings.Get("ExprBuilder.CannotRead") : ExpressionText.Describe(error);
+
+        OnPropertyChanged(nameof(HasUnappliedWritten));
+        OnPropertyChanged(nameof(CanConfirm));
+    }
+
+    /// <summary>
+    /// The one way the buffer reaches the structure: what was typed is read and becomes the formula.
+    /// It is the only direction this page goes, which is what stops written text from quietly
+    /// reshaping a formula that was dragged together.
+    /// </summary>
+    [RelayCommand]
+    private void Rebuild()
+    {
+        if (!Language.TryParse(Written, out var parsed, out _))
+        {
+            CheckWritten();
+            return;
+        }
+
+        Adopt(ExpressionItemViewModel.From(parsed!, Changed));
+        IsTreePage = true;
+        TextUnreadable = false;
+        Refresh();
+        OnPropertyChanged(nameof(HasUnappliedWritten));
+        OnPropertyChanged(nameof(CanConfirm));
+    }
 
     /// <summary>
     /// True while the text page holds something that was meant to be a formula and does not read.
@@ -236,10 +305,14 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>True while the line under the tree is worth showing in green.</summary>
     public bool ShowTreeOk => TreeMessageKind == TreeMessageKind.Ok && TreeMessage.Length > 0;
 
-    /// <summary>What is picked right now, said the way the formula would be written.</summary>
+    /// <summary>
+    /// What is picked right now, said the way the formula would be written. With nothing picked the
+    /// line says what to do about it, because "nothing picked" is the state a click from the palette
+    /// needs an answer for.
+    /// </summary>
     public string Picked => Selected is { } item
         ? Strings.Format("ExprBuilder.Tree.Picked", Language.Render(item.ToNode()))
-        : string.Empty;
+        : Strings.Get("ExprBuilder.NothingPicked");
 
     /// <summary>What is typed into the filter above the function list, empty to show them all.</summary>
     [ObservableProperty]
@@ -260,7 +333,8 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// back a formula with places still to fill in — handing one over would write a step that
     /// cannot run — while the text page leaves it to the user, the way it always has.
     /// </summary>
-    public bool CanConfirm => !IsTreePage || (!TextUnreadable && (_empty || _previewReads));
+    public bool CanConfirm => !HasUnappliedWritten
+        && (IsTextPage || (!TextUnreadable && (_empty || _previewReads)));
 
     partial void OnExpressionChanged(string value) => Recheck();
 
@@ -269,7 +343,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     partial void OnSelectedFunctionFilterChanged(ExpressionFunctionFilter? value) => Refill();
 
     [RelayCommand]
-    private void Confirm() => CloseRequested?.Invoke(IsTreePage && !_empty ? Preview : Expression);
+    private void Confirm() => CloseRequested?.Invoke(_empty ? Expression : Preview);
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
@@ -283,16 +357,16 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             return;
         }
 
-        // The tree and the text are the same formula, so a finished tree is written into the box
-        // and the user carries on from there. A formula with places still to fill in would only put
-        // markers in the box, so the box keeps what it had.
-        if (_root.Holes() == 0 && !_empty)
+        // The box starts from the formula the structure holds, so the page opens on the thing being
+        // edited rather than on nothing. A box that already holds something nobody has built yet is
+        // left alone: coming back to look at the page must not throw away what was typed in it.
+        if (!HasUnappliedWritten)
         {
-            Expression = Preview;
+            Written = _root.Holes() == 0 && !_empty ? Preview : Expression;
         }
-
         TextUnreadable = false;
         IsTreePage = false;
+        CheckWritten();
         Recheck();
     }
 
@@ -309,26 +383,29 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             return;
         }
 
-        if (Language.TryParse(Expression, out var parsed, out _))
-        {
-            Adopt(ExpressionItemViewModel.From(parsed!, Changed));
-            TextUnreadable = false;
-        }
-        else if (string.IsNullOrWhiteSpace(Expression))
-        {
-            Adopt(ExpressionItemViewModel.Hole(Changed));
-            TextUnreadable = false;
-        }
-        else
-        {
-            TextUnreadable = true;
-        }
-
+        // Back to the structure as it stands. What was typed on the other page stays in its buffer,
+        // and reaches the tree only through the button that says so.
         IsTreePage = true;
         Refresh();
+        OnPropertyChanged(nameof(HasUnappliedWritten));
+        OnPropertyChanged(nameof(CanConfirm));
     }
 
-    /// <summary>Picks the piece the next click from the palette goes into.</summary>
+    /// <summary>
+    /// What the palette says when a card was clicked rather than dragged: on the structure page a
+    /// card only ever places by being let go, so the click is answered with that rather than with an
+    /// insertion into whatever happened to be picked.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPaletteNotice))]
+    public partial string PaletteNotice { get; set; } = string.Empty;
+
+    public bool HasPaletteNotice => PaletteNotice.Length > 0;
+
+    /// <summary>What the palette says about itself, all the time: cards are placed by being dragged.</summary>
+    public string PaletteHint => Strings.Get("ExprBuilder.DragHint");
+
+    /// <summary>Picks a piece: it is what a dragged card lands on, and what Delete takes away.</summary>
     public void Select(ExpressionItemViewModel? item)
     {
         if (item is null || ReferenceEquals(Selected, item))
@@ -369,74 +446,19 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Puts a variable the macro holds where the picked piece is.</summary>
-    public void ChooseVariable(string name)
-    {
-        if (TextUnreadable)
-        {
-            return;
-        }
-
-        Fill(ExpressionItemViewModel.Variable(name, Changed));
-    }
-
-    /// <summary>Puts one of the words that stand for a value where the picked piece is.</summary>
-    public void ChooseConstant(string word)
-    {
-        if (TextUnreadable)
-        {
-            return;
-        }
-
-        Fill(ExpressionItemViewModel.Constant(word, Changed));
-    }
+    /// <summary>
+    /// A click on a card puts nothing into the formula. Where a piece goes is decided by where it is
+    /// let go, and a click has no such place: the page says so instead of leaving the click looking
+    /// like it did nothing, or worse, like it had chosen a place of its own.
+    /// </summary>
+    public void SayDrag() => PaletteNotice = Strings.Get("ExprBuilder.DragToPlace");
 
     /// <summary>
-    /// Fills the picked piece with a plain value. A number or a piece of text is typed in place, so
-    /// the button only settles how what is typed there is read.
+    /// Wraps a piece in an operator that was dropped on it: the piece becomes the left operand and a
+    /// place to fill appears on the right, which is the piece of a formula a user writes next.
     /// </summary>
-    public void ChooseValue(ValueChoice choice)
+    private void ApplyOperator(TreeOperator choice, ExpressionItemViewModel target)
     {
-        if (TextUnreadable)
-        {
-            return;
-        }
-
-        var item = Selected ?? _root;
-        switch (choice.Kind)
-        {
-            case ValueChoiceKind.Number when item.IsTyped:
-                item.ReadAsText = false;
-                break;
-            case ValueChoiceKind.Text when item.IsTyped:
-                item.ReadAsText = true;
-                break;
-            case ValueChoiceKind.Number:
-                Fill(ExpressionItemViewModel.Typed(string.Empty, false, Changed));
-                break;
-            case ValueChoiceKind.Text:
-                Fill(ExpressionItemViewModel.Typed(string.Empty, true, Changed));
-                break;
-            default:
-                Fill(ExpressionItemViewModel.Constant(choice.Word, Changed));
-                break;
-        }
-
-        Refresh();
-    }
-
-    /// <summary>
-    /// Wraps the picked piece in an operator: what was picked becomes the left operand and a place
-    /// to fill appears on the right, which is the piece of a formula a user is about to write next.
-    /// </summary>
-    public void ChooseOperator(TreeOperator choice)
-    {
-        if (TextUnreadable)
-        {
-            return;
-        }
-
-        var target = Selected ?? _root;
         switch (choice.Kind)
         {
             case TreeOperatorKind.Binary:
@@ -471,17 +493,31 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Makes the picked piece the first argument of a function, with a place to fill for each of
-    /// the others: a function is chosen to hold what is already there, not to replace it.
+    /// Puts a plain value where one was dropped. A number or a piece of text is typed in place, so
+    /// dropping one on a place only settles how what is typed there is read.
     /// </summary>
-    public void ChooseFunction(ExpressionFunctionChoice choice)
+    private void ApplyValue(ValueChoice choice, ExpressionItemViewModel target)
     {
-        if (TextUnreadable)
+        switch (choice.Kind)
         {
-            return;
+            case ValueChoiceKind.Number when target.IsTyped:
+                target.ReadAsText = false;
+                break;
+            case ValueChoiceKind.Text when target.IsTyped:
+                target.ReadAsText = true;
+                break;
+            case ValueChoiceKind.Number:
+                FillAt(target, ExpressionItemViewModel.Typed(string.Empty, false, Changed));
+                break;
+            case ValueChoiceKind.Text:
+                FillAt(target, ExpressionItemViewModel.Typed(string.Empty, true, Changed));
+                break;
+            default:
+                FillAt(target, ExpressionItemViewModel.Constant(choice.Word, Changed));
+                break;
         }
 
-        Wrap(choice.Function, Selected ?? _root);
+        Redraw();
     }
 
     /// <summary>Adds an argument or an item under a piece that takes more of them.</summary>
@@ -558,6 +594,8 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             return;
         }
 
+        // Something landed, so whatever the last click had to say about dragging is no longer news.
+        PaletteNotice = string.Empty;
         Redraw();
     }
 
@@ -581,6 +619,13 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
             case "fn":
                 return Function(dragging.Value) is not null;
+
+            case "op":
+                return TreeOperators.Any(choice =>
+                    string.Equals(choice.Token, dragging.Value, StringComparison.Ordinal));
+
+            case "val":
+                return int.TryParse(dragging.Value, out var at) && at >= 0 && at < Values.Count;
 
             case "move":
                 return At(dragging.Value) is { } moved && !IsInside(target, moved);
@@ -679,12 +724,10 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanConfirm));
     }
 
-    private void Fill(ExpressionItemViewModel item)
+    private void FillAt(ExpressionItemViewModel target, ExpressionItemViewModel item)
     {
-        var target = Selected ?? _root;
         Replace(target, item);
         Select(item);
-        Redraw();
     }
 
     /// <summary>Lands a dragged payload, reporting whether the tree changed.</summary>
@@ -711,6 +754,25 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
                 }
 
                 Wrap(function, target);
+                return true;
+
+            case ("op", var token):
+                if (TreeOperators.FirstOrDefault(choice =>
+                        string.Equals(choice.Token, token, StringComparison.Ordinal)) is not { } op)
+                {
+                    return false;
+                }
+
+                ApplyOperator(op, target);
+                return true;
+
+            case ("val", var index):
+                if (!int.TryParse(index, out var at) || at < 0 || at >= Values.Count)
+                {
+                    return false;
+                }
+
+                ApplyValue(Values[at], target);
                 return true;
 
             case ("move", var path):
@@ -751,7 +813,27 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
         var kind = payload[..colon];
         var value = payload[(colon + 1)..];
-        return kind is "var" or "const" or "fn" or "move" ? (kind, value) : null;
+        return kind is "var" or "const" or "fn" or "op" or "val" or "move" ? (kind, value) : null;
+    }
+
+    /// <summary>
+    /// Where a plain value sits in the wall, which is all a drag has to carry: the card itself cannot
+    /// travel, so the list is asked for it again when it lands.
+    /// </summary>
+    public string PayloadOf(ValueChoice choice)
+    {
+        var at = 0;
+        foreach (var value in Values)
+        {
+            if (ReferenceEquals(value, choice))
+            {
+                return at.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            at++;
+        }
+
+        return "-1";
     }
 
     /// <summary>The piece a path of child numbers leads to, or nothing when it leads nowhere.</summary>
@@ -871,7 +953,11 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     private void Adopt(ExpressionItemViewModel root)
     {
         _root = root;
-        Selected = root;
+
+        // A tree that has just been read in is not a place the user picked: the next click from the
+        // palette would wrap its whole top, which is the "a structure appeared from nowhere" this
+        // page is meant to have stopped doing.
+        Selected = null;
         Redraw();
     }
 
@@ -888,9 +974,15 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         }
 
         Rows.Clear();
-        if (Selected is null || !Holds(_root, Selected))
+
+        // A piece that is no longer in the tree cannot stay picked, and nothing is picked in its
+        // place: choosing a place is the user's job, and a click from the palette has to have a place
+        // that was chosen rather than one this redraw happened to land on. An empty formula is no
+        // exception — it has one place, but picking it for the user is what made a click insert
+        // wherever the page happened to be looking.
+        if (Selected is not null && !Holds(_root, Selected))
         {
-            Selected = FirstHole(_root) ?? _root;
+            Selected = null;
         }
 
         Walk(_root, 0);
@@ -911,6 +1003,15 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             var (label, hint) = ArgumentName(node, index);
             child.Label = label;
             child.LabelHint = hint;
+
+            // Which argument this line is decides how it is edited: a yes or no is ticked, a
+            // comparison is picked from its words, everything else is typed.
+            child.Stands(
+                node.Kind == ExpressionItemKind.Call ? node.Name : string.Empty,
+                node.Kind == ExpressionItemKind.Call && node.Parameters.Count > 0
+                    ? node.Parameters[Math.Min(index, node.Parameters.Count - 1)]
+                    : null);
+
             Walk(child, depth + 1);
         }
     }
@@ -1211,6 +1312,7 @@ public sealed class ExpressionFunctionChoice
         // The Chinese line lives in the text table and the English one beside the function in the
         // engine, the way the built-in variables are written: one sentence per language, no copies.
         Hint = Strings.Get($"Expr.Fn.{function.Name}", function.Description);
+        ArityNote = NoteArity(function);
     }
 
     /// <summary>The function itself, which is what the structure page builds its lines from.</summary>
@@ -1233,6 +1335,24 @@ public sealed class ExpressionFunctionChoice
 
     /// <summary>How the call is written, said in the reader's own language.</summary>
     public string WrittenAs { get; }
+
+    /// <summary>
+    /// How many places this function asks for, on the card itself: the one thing a card cannot say by
+    /// its name alone, and the reason a six-argument function looked like six numbers to fill in.
+    /// </summary>
+    public string ArityNote { get; }
+
+    /// <summary>The sentence that says how many places a function takes, optional ones included.</summary>
+    private static string NoteArity(ExpressionFunction function) => function switch
+    {
+        { MaxArguments: 0 } => Strings.Get("ExprBuilder.ArityNone"),
+        { MaxArguments: int.MaxValue } => Strings.Format("ExprBuilder.ArityAtLeast",
+            function.MinArguments),
+        { MaxArguments: var most } when most == function.MinArguments =>
+            Strings.Format("ExprBuilder.ArityFixed", most),
+        { MinArguments: var few, MaxArguments: var most } =>
+            Strings.Format("ExprBuilder.ArityRange", few, most - few),
+    };
 
     /// <summary>
     /// What each argument is for, one line each, in the order the call takes them: this is what the

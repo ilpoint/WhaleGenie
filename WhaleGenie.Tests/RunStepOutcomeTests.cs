@@ -67,12 +67,13 @@ public class RunStepOutcomeTests
     }
 
     /// <summary>
-    /// Why a step failed is a value the macro can read: the step that comes after it names
-    /// <c>$step.&lt;id&gt;.error</c> and gets the engine's own name for the failure, which is what
-    /// lets a macro tell one kind of failure from another without reading the log.
+    /// How a step ended is a value the macro can read: the step that comes after it names
+    /// <c>$step.&lt;id&gt;.outcome</c> and gets <c>failed</c>. The reason is deliberately not a
+    /// second value — a macro that needs it catches the failure in a <c>try</c> and reads
+    /// <c>caught.key</c>.
     /// </summary>
     [Fact]
-    public void Why_a_step_failed_is_a_value_the_steps_after_it_can_read()
+    public void The_outcome_a_step_leaves_can_be_read_by_the_step_after_it()
     {
         var why = Ui.RunAsync(async () =>
         {
@@ -100,7 +101,7 @@ public class RunStepOutcomeTests
                     {
                         Name = "value",
                         Kind = ActionParameterKind.Text,
-                        Value = "$step." + broken.Id + ".error",
+                        Value = "$step." + broken.Id + ".outcome",
                     },
                 ],
             };
@@ -115,11 +116,13 @@ public class RunStepOutcomeTests
             }
 
             return (Ending: viewModel.StepOutcomes[0].Value,
-                Reason: viewModel.Variables.FirstOrDefault(row => row.Name == "why")?.Value);
+                Read: viewModel.Variables.FirstOrDefault(row => row.Name == "why")?.Value,
+                Reason: viewModel.Variables.Any(row => row.Name == "step." + broken.Id + ".error"));
         });
 
         Assert.Equal("failed", why.Ending);
-        Assert.Equal("Run.NoDevice", why.Reason);
+        Assert.Equal("failed", why.Read);
+        Assert.False(why.Reason);
     }
 
     [Fact]

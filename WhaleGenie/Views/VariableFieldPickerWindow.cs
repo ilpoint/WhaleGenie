@@ -7,11 +7,12 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
 /// <summary>Asks which field of a record belongs in a scalar parameter.</summary>
-public sealed class VariableFieldPickerWindow : Window
+public sealed class VariableFieldPickerWindow : AppWindow
 {
     public VariableFieldPickerWindow(IReadOnlyList<VariableDragField> fields)
     {
@@ -21,33 +22,31 @@ public sealed class VariableFieldPickerWindow : Window
         MinWidth = 320;
         MinHeight = 260;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        Background = (IBrush?)Application.Current?.Resources["AppBackdrop"] ?? Brushes.Transparent;
+
+        // 窗自己的底：这是"窗体"属性，不是某一类控件的外观，所以拿令牌而不是类（规则 7）。
+        ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 
         var list = new ListBox
         {
             ItemsSource = fields,
             SelectedIndex = fields.Count > 0 ? 0 : -1,
-            Margin = new Thickness(18, 14, 18, 8),
+            Classes = { "List" },
         };
+
+        // 一行 = 名字 + 类型。两个类各自说清"这一行里这是什么"：
+        // `Body` 是主体文字（13）、`Caption` 是说明小字（11）——**层级由类表达，不由字号字面表达**。
         list.ItemTemplate = new FuncDataTemplate<VariableDragField>((field, _) =>
             new StackPanel
             {
                 Spacing = 2,
                 Children =
                 {
-                    new TextBlock
-                    {
-                        Text = field.Name,
-                        FontSize = 13,
-                        Foreground = (IBrush?)Application.Current?.Resources["AppText"] ?? Brushes.White,
-                    },
+                    new TextBlock { Text = field.Name, Classes = { "Body" } },
                     new TextBlock
                     {
                         Text = Strings.Get($"Variable.Type.{ActionReturn.TypeNameOf(field.Type)}",
                             ActionReturn.TypeNameOf(field.Type)),
-                        FontSize = 11.5,
-                        Foreground = (IBrush?)Application.Current?.Resources["AppMuted"] ?? Brushes.Gray,
+                        Classes = { "Caption" },
                     },
                 },
             });
@@ -57,12 +56,14 @@ public sealed class VariableFieldPickerWindow : Window
             Content = Strings.Get("Common.Ok"),
             MinWidth = 88,
             IsDefault = true,
+            Classes = { "Primary" },
         };
         var cancel = new Button
         {
             Content = Strings.Get("Common.Cancel"),
             MinWidth = 88,
             IsCancel = true,
+            Classes = { "Secondary" },
         };
         use.Click += (_, _) => Close(list.SelectedItem as VariableDragField);
         cancel.Click += (_, _) => Close(null);
@@ -72,24 +73,27 @@ public sealed class VariableFieldPickerWindow : Window
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8,
-            Margin = new Thickness(18, 8, 18, 16),
             Children = { cancel, use },
         };
 
-        Content = new Grid
+        // 整页的内缩只有这一处：页边距是"这一页怎么摆"，交给一个容器，而不是每个孩子各写一遍
+        // `Margin`——那是上一轮在窗口里删掉的那种东西，C# 里同样不该写。
+        Content = new Border
         {
-            RowDefinitions = RowDefinitions.Parse("Auto,*,Auto"),
-            Children =
+            Padding = new Thickness(16, 14, 16, 14),
+            Child = new Grid
             {
-                new TextBlock
+                RowDefinitions = RowDefinitions.Parse("Auto,*,Auto"),
+                Children =
                 {
-                    Text = Strings.Get("VariableDrop.ChooseFieldHint"),
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(18, 16, 18, 0),
-                    Foreground = (IBrush?)Application.Current?.Resources["AppMuted"] ?? Brushes.Gray,
+                    new TextBlock
+                    {
+                        Text = Strings.Get("VariableDrop.ChooseFieldHint"),
+                        Classes = { "Hint" },
+                    },
+                    Place(list, 1),
+                    Place(buttons, 2),
                 },
-                Place(list, 1),
-                Place(buttons, 2),
             },
         };
     }

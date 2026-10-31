@@ -80,7 +80,7 @@ public class ViiperServerTests : IDisposable
 
         Assert.Null(ViiperServer.Ensure());
 
-        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine));
+        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine.Screen));
 
         Assert.Equal("Run.NoDriverServer", failure.Key);
     }
@@ -119,7 +119,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void The_keyboard_and_mouse_go_on_the_machine_when_a_step_first_needs_them()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         Assert.Equal(1, _library.Keyboards);
         Assert.Equal(1, _library.Mice);
@@ -131,7 +131,7 @@ public class ViiperServerTests : IDisposable
     {
         // A device that is put on a bus and never attached is one the desktop never hears: it is
         // the difference between a virtual keyboard that types and one that does nothing.
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
         link.ConnectGamepad();
 
         Assert.Equal([true, true, true], _library.AutoAttach);
@@ -144,7 +144,7 @@ public class ViiperServerTests : IDisposable
         // the answer — and nothing would come of the step that needed the pair.
         _library.MouseStarts = false;
 
-        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine));
+        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine.Screen));
 
         Assert.Equal("Run.NoDriverServer", failure.Key);
         Assert.Equal(1, _library.KeyboardsRemoved);
@@ -157,7 +157,7 @@ public class ViiperServerTests : IDisposable
         // off the machine leaves one behind: the bus this program remembers is then gone.
         _library.KeyboardMisses = 1;
 
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         Assert.Equal(1, _library.Keyboards);
         Assert.Equal(1, _library.BusesRemoved);
@@ -167,7 +167,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void A_key_travels_in_the_bit_its_usage_code_names()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         // Shift and S: the modifier keeps its own byte, the key is one bit of the 256 the report has.
         link.SendKeyboard(LibViiper.ModifierLeftShift, [(byte)HidUsage.S, (byte)HidUsage.A]);
@@ -182,7 +182,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void A_key_that_was_let_go_of_is_not_in_the_next_report()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         link.SendKeyboard(0, [(byte)HidUsage.A]);
         link.SendKeyboard(0, []);
@@ -195,7 +195,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void A_mouse_report_carries_how_far_to_go_and_what_is_held()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         link.SendMouse(LibViiper.MouseRight, 10, -5, 1, 0);
 
@@ -211,7 +211,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void The_controller_goes_on_the_machine_when_a_macro_asks_for_one()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         link.ConnectGamepad();
         link.ConnectGamepad();
@@ -222,7 +222,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void A_controller_report_is_the_whole_controller()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         link.ConnectGamepad();
         link.SendGamepad(GamepadState.Neutral with
@@ -246,7 +246,7 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public void A_controller_no_macro_asked_for_is_not_on_the_machine()
     {
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
 
         var failure = Assert.Throws<DeviceActionException>(() => link.SendGamepad(GamepadState.Neutral));
 
@@ -256,12 +256,12 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public async Task The_pair_goes_on_the_machine_at_startup_only_when_the_settings_window_asked()
     {
-        var off = new ViiperDriver(() => _machine);
+        var off = new ViiperDriver(() => _machine.Screen);
         await off.WarmUp();
 
         Assert.Equal(0, _library.Opens);
 
-        var on = new ViiperDriver(() => _machine) { AttachAtStart = true };
+        var on = new ViiperDriver(() => _machine.Screen) { AttachAtStart = true };
         await on.WarmUp();
 
         Assert.Equal(1, _library.Keyboards);
@@ -275,7 +275,7 @@ public class ViiperServerTests : IDisposable
         // cannot pay: the step that needs it says what is missing and what to do about it.
         DriverInput.DriverInstalled = () => false;
 
-        await new ViiperDriver(() => _machine) { AttachAtStart = true }.WarmUp();
+        await new ViiperDriver(() => _machine.Screen) { AttachAtStart = true }.WarmUp();
 
         Assert.Equal(0, _library.Opens);
     }
@@ -283,10 +283,10 @@ public class ViiperServerTests : IDisposable
     [Fact]
     public async Task The_way_out_takes_the_devices_off_the_machine_before_the_server_goes()
     {
-        await new ViiperDriver(() => _machine) { AttachAtStart = true }.WarmUp();
-        SharedDriverInput.Take(_machine).Connect();
+        await new ViiperDriver(() => _machine.Screen) { AttachAtStart = true }.WarmUp();
+        SharedDriverInput.Take(_machine.Screen).Connect();
 
-        new ViiperDriver(() => _machine).Stop();
+        new ViiperDriver(() => _machine.Screen).Stop();
 
         Assert.Equal(
             ["keyboard off", "mouse off", "pad off", "close"],
@@ -300,7 +300,7 @@ public class ViiperServerTests : IDisposable
         // in somebody's shared library takes the whole process down with it — nothing managed can
         // catch that. A run can still be sending when the program is on its way out, so a report that
         // arrives after that has to be refused here instead of being passed on.
-        using var link = ViiperLink.Open(_machine);
+        using var link = ViiperLink.Open(_machine.Screen);
         ViiperServer.Stop();
 
         var failure = Assert.Throws<DeviceActionException>(
@@ -315,7 +315,7 @@ public class ViiperServerTests : IDisposable
     {
         DriverInput.DriverInstalled = () => false;
 
-        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine));
+        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine.Screen));
 
         Assert.Equal("Run.NoDriver", failure.Key);
         Assert.Equal(0, _library.Opens);
@@ -326,7 +326,7 @@ public class ViiperServerTests : IDisposable
     {
         DriverInput.LibraryPresent = () => false;
 
-        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine));
+        var failure = Assert.Throws<DeviceActionException>(() => ViiperLink.Open(_machine.Screen));
 
         Assert.Equal("Run.NoDriverLibrary", failure.Key);
         Assert.Equal(0, _library.Opens);
@@ -466,7 +466,8 @@ public class ViiperServerTests : IDisposable
             // The machine moves the pointer by what a report says — which is what ends the wait for a
             // device that has just been put on it: the pointer being moved and put back is the only
             // thing that can say the machine is listening.
-            _machine.Cursor = new ScreenPoint(_machine.Cursor.X + state.Dx, _machine.Cursor.Y + state.Dy);
+            _machine.Screen.Cursor = new ScreenPoint(_machine.Screen.Cursor.X + state.Dx,
+                _machine.Screen.Cursor.Y + state.Dy);
             return true;
         }
 

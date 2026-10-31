@@ -35,7 +35,7 @@ internal enum GamepadPick
 /// and a step that presses a button has no answer for one, so the controls the question is not
 /// about are left out of it rather than clicking through to a value that means nothing there.
 /// </remarks>
-public partial class VirtualGamepadWindow : Window
+public partial class VirtualGamepadWindow : AppWindow
 {
     /// <summary>The controls each question is about, named the way the step writes them.</summary>
     private static readonly string[] Sticks = ["ls", "rs"];
@@ -55,12 +55,6 @@ public partial class VirtualGamepadWindow : Window
 
         _pick = pick;
         Title = Strings.Get("GamepadPad.Title");
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Take(null);
-        }
 
         if (this.FindControl<TextBlock>("Hint") is { } hint)
         {
@@ -146,14 +140,5 @@ public partial class VirtualGamepadWindow : Window
         Close(value);
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

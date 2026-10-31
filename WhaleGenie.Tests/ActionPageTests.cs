@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -634,7 +636,7 @@ public class ActionPageTests
             owner.Show();
             Dispatcher.UIThread.RunJobs();
 
-            var dialog = new ActionEditorWindow();
+            var dialog = new ActionEditorWindow(null, ActionCatalog.PlaceableActions);
             dialog.ShowOver(owner);
             Dispatcher.UIThread.RunJobs();
 
@@ -655,6 +657,50 @@ public class ActionPageTests
             dialog.Close();
             owner.Close();
             Dispatcher.UIThread.RunJobs();
+        });
+    }
+
+    /// <summary>
+    /// The tabs across the top of the form are the pages, and picking one is a selection rather than
+    /// a click: the strip and `Page` are the same choice said twice. A page with nothing to show is
+    /// not a tab at all — an empty one would look like a page that failed to load.
+    /// </summary>
+    [Fact]
+    public void The_strip_of_tabs_is_the_pages_and_one_of_them_is_chosen()
+    {
+        Ui.Run(() =>
+        {
+            var view = new ActionEditorView { DataContext = Open("vision.findImage") };
+            var window = new Window { Width = 1024, Height = 800, Content = view };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            try
+            {
+                var viewModel = (AddActionViewModel)view.DataContext!;
+                var strip = view.GetVisualDescendants().OfType<TabStrip>().Single();
+                var shown = strip.GetVisualDescendants().OfType<TabStripItem>()
+                    .Count(item => item.IsEffectivelyVisible);
+
+                Assert.Equal(viewModel.Pages.Count(page => page.IsPresent), shown);
+                Assert.Same(viewModel.Page, strip.SelectedItem);
+
+                // Choosing another page moves the strip, and choosing on the strip moves the page.
+                var other = viewModel.Pages.First(page =>
+                    page.IsPresent && !ReferenceEquals(page, viewModel.Page));
+                viewModel.Select(other);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Same(other, strip.SelectedItem);
+
+                var first = viewModel.Pages.First();
+                strip.SelectedItem = first;
+                Dispatcher.UIThread.RunJobs();
+                Assert.Same(first, viewModel.Page);
+            }
+            finally
+            {
+                window.Close();
+            }
         });
     }
 }

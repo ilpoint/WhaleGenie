@@ -162,6 +162,9 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>The name the signature uses, and the line saying what goes in it.</summary>
     public string LabelHint { get; internal set; } = string.Empty;
 
+    /// <summary>The function this line is an argument of, or empty for any line that is not one.</summary>
+    private string _call = string.Empty;
+
     /// <summary>True while this line is the one the next click from the palette goes into.</summary>
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
@@ -214,6 +217,87 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The argument this line stands for, when it sits under a function: it is what says whether the
+    /// line is typed into, ticked, or picked from a few words.
+    /// </summary>
+    public ExpressionParameter? Slot { get; internal set; }
+
+    /// <summary>True for a line that is a yes or a no.</summary>
+    public bool IsFlag => Slot?.Kind is ExpressionParameterKind.Flag
+        && Kind is ExpressionItemKind.Hole or ExpressionItemKind.Text or ExpressionItemKind.Constant;
+
+    /// <summary>True for a line that is one of a few words.</summary>
+    public bool IsChoice => IsTyped && Slot?.Kind is ExpressionParameterKind.Choice;
+
+    /// <summary>The words that may be picked here, each shown in the reader's language.</summary>
+    public IReadOnlyList<ChoiceWord> Choices => [.. (Slot?.Choices ?? [])
+        .Select(word => new ChoiceWord(word, Strings.Get($"Expr.Compare.{word}", word)))];
+
+    /// <summary>The word picked here, held as the pair the box shows rather than as its text.</summary>
+    public ChoiceWord? ChosenWord
+    {
+        get => Choices.FirstOrDefault(word =>
+            string.Equals(word.Word, _literal, StringComparison.Ordinal));
+        set => ChoiceValue = value?.Word;
+    }
+
+    /// <summary>One word a comparison may hold, with the language's name for it beside the word itself.</summary>
+    public sealed record ChoiceWord(string Word, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    /// <summary>True for the lines written by typing, which is everything that is not ticked or picked.</summary>
+    public bool IsTextBox => IsTyped && Slot?.Kind is not (ExpressionParameterKind.Flag
+        or ExpressionParameterKind.Choice);
+
+    /// <summary>A yes-or-no argument, read and written as the word the engine takes.</summary>
+    public bool FlagValue
+    {
+        // A tick already made is a constant, which keeps its word in Name rather than in the box.
+        get => Kind is ExpressionItemKind.Constant
+            ? string.Equals(Name, "true", StringComparison.OrdinalIgnoreCase)
+            : string.Equals(_literal, "true", StringComparison.OrdinalIgnoreCase);
+        set => Literal = value ? "true" : "false";
+    }
+
+    /// <summary>A picked argument, written as the word it was picked from.</summary>
+    public string? ChoiceValue
+    {
+        get => _literal.Length == 0 ? null : _literal;
+        set => Literal = value ?? string.Empty;
+    }
+
+    /// <summary>Tells the line which argument it stands for, and forgets the guess it made before.</summary>
+    internal void Stands(string call, ExpressionParameter? slot)
+    {
+        if (ReferenceEquals(Slot, slot) && string.Equals(_call, call, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _call = call;
+        Slot = slot;
+
+        // Only a line that is filled by typing can change its mind here. A variable, a call or an
+        // operator is what it is whatever argument it was dropped into.
+        if (IsTyped)
+        {
+            SettleKind();
+        }
+
+        OnPropertyChanged(nameof(IsFlag));
+        OnPropertyChanged(nameof(IsChoice));
+        OnPropertyChanged(nameof(IsTextBox));
+        OnPropertyChanged(nameof(Choices));
+        OnPropertyChanged(nameof(ChosenWord));
+        OnPropertyChanged(nameof(HoleHint));
+        OnPropertyChanged(nameof(FlagValue));
+        OnPropertyChanged(nameof(ChoiceValue));
+        OnPropertyChanged(nameof(ChosenWord));
+    }
+
     /// <summary>True for the pieces that are filled by typing in their own line.</summary>
     public bool IsTyped => Kind is ExpressionItemKind.Hole or ExpressionItemKind.Number
         or ExpressionItemKind.Text;
@@ -242,6 +326,12 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>How far this line is moved to the right, one step for each level above it.</summary>
     public Thickness Indent => new(Depth * Step, 0, 0, 0);
 
+    /// <summary>
+    /// How wide the box is. The whole formula gets a wide one — it is the one line that may hold all
+    /// of it — and the lines inside it keep to a width that leaves room for the arguments beside it.
+    /// </summary>
+    public double CellWidth => Parent is null ? 320 : 150;
+
     /// <summary>True while another argument or item may be added under this piece.</summary>
     public bool CanAddChild => Kind switch
     {
@@ -268,8 +358,16 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         ? "ExprBuilder.Tree.DropItem"
         : "ExprBuilder.Tree.DropArgument");
 
-    /// <summary>What an empty place says, which is the one thing there is to say about it.</summary>
-    public string HoleHint => Strings.Get("ExprBuilder.Tree.Hole");
+    /// <summary>
+    /// What an empty place says. Under a function it says what goes in that argument — the box that
+    /// stands for a regular expression has to say so, not "a number or a piece of text", which is the
+    /// same sentence every other box used to carry. The whole formula, with nothing in it yet, shows
+    /// what a formula looks like rather than a word about one operand of it.
+    /// </summary>
+    public string HoleHint => Slot is { } slot
+        && ExpressionText.PlaceholderSaid(_call, slot) is { Length: > 0 } said
+            ? said
+            : Strings.Get(Parent is null ? "ExprBuilder.Tree.Whole" : "ExprBuilder.Tree.Hole");
 
     /// <summary>The piece as the engine's own tree, which is what turns it back into a formula.</summary>
     public ExpressionNode ToNode() => Kind switch
@@ -367,8 +465,17 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         {
             Kind = ExpressionItemKind.Hole;
         }
-        else if (_literalIsText)
+        else if (Slot?.Kind is ExpressionParameterKind.Flag
+            && _literal is "true" or "false")
         {
+            // True and false are words the engine reads as values: writing them as text would hand
+            // the function the four letters instead of the answer.
+            Kind = ExpressionItemKind.Constant;
+            Name = _literal;
+        }
+        else if (_literalIsText || Slot?.Kind is ExpressionParameterKind.Choice)
+        {
+            // A word picked from a comparison is a piece of text by definition: `>` is not a number.
             Kind = ExpressionItemKind.Text;
         }
         else
@@ -382,5 +489,9 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsTyped));
         OnPropertyChanged(nameof(ShowsToken));
         OnPropertyChanged(nameof(IsHole));
+        OnPropertyChanged(nameof(IsTextBox));
+        OnPropertyChanged(nameof(FlagValue));
+        OnPropertyChanged(nameof(ChoiceValue));
+        OnPropertyChanged(nameof(ChosenWord));
     }
 }

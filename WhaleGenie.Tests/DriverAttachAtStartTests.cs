@@ -9,6 +9,7 @@ namespace WhaleGenie.Tests;
 /// choice is stored beside the program, the engine is told about it when the program starts, and
 /// nothing is put on the machine until that switch is on.
 /// </summary>
+[RestoreSharedState]
 public class DriverAttachAtStartTests
 {
     [Fact]

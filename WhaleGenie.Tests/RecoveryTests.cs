@@ -597,14 +597,17 @@ public class RecoveryTests
                         RecoveryStore.Load()!.Editor!.Macro.Steps.Select(step => step.Type));
 
                     // The edit arrives while the draft is already unsaved, which the dirty flag
-                    // says nothing about.
+                    // says nothing about. The store writes on its own clock, so the check waits for
+                    // what it is about to assert rather than for a fixed time: a machine busy with
+                    // other checks used to run out of that time and fail a case that was working.
                     editor.AddStep(new MacroStep { Type = "control.delay" });
-                    await Task.Delay(300);
+                    var written = await Until(() =>
+                        RecoveryStore.Load()?.Editor?.Macro.Steps.Select(step => step.Type).ToArray()
+                            is ["control.log", "control.delay"]);
 
-                    Assert.Equal(["control.log", "control.delay"],
-                        RecoveryStore.Load()!.Editor!.Macro.Steps.Select(step => step.Type));
+                    Assert.True(written, "the draft never took the second step");
 
-                    window.Close();
+                    Ui.CloseAndAnswer(window);
                     Dispatcher.UIThread.RunJobs();
                 });
 
@@ -629,6 +632,26 @@ public class RecoveryTests
     /// pause out instead of the seconds a real one keeps. The wait hands the thread back, which is
     /// what lets the writer's timer fire at all.
     /// </summary>
+    /// <summary>
+    /// Waits for something to become true, rather than for a length of time: the draft is written on
+    /// a timer, and how long that takes is the machine's business, not the check's.
+    /// </summary>
+    private static async Task<bool> Until(Func<bool> holds, int milliseconds = 5000)
+    {
+        var started = Environment.TickCount64;
+        while (!holds())
+        {
+            if (Environment.TickCount64 - started > milliseconds)
+            {
+                return false;
+            }
+
+            await Task.Delay(20);
+        }
+
+        return true;
+    }
+
     private static async Task Briefly(int milliseconds, Func<Task> body)
     {
         var interval = RecoveryWriter.Interval;

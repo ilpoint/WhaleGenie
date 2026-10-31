@@ -165,7 +165,11 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IInputDevice Input { get; set; } = NullDeviceLayer.Instance.Input;
 
-    public IInputRouter Inputs => NullDeviceLayer.Instance.Inputs;
+    /// <summary>
+    /// The router a check hands in, so input can be answered with a device that records what was
+    /// sent instead of one that sends it to the machine.
+    /// </summary>
+    public IInputRouter Inputs { get; set; } = NullDeviceLayer.Instance.Inputs;
 
     public IGamepadDevice Gamepad => NullDeviceLayer.Instance.Gamepad;
 

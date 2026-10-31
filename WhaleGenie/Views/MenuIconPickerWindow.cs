@@ -13,10 +13,12 @@ using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
+using WhaleGenie.ViewModels;
+
 namespace WhaleGenie.Views;
 
 /// <summary>Chooses any Lucide icon or a PNG/JPEG/BMP image for a menu cell.</summary>
-public sealed class MenuIconPickerWindow : Window
+public sealed class MenuIconPickerWindow : AppWindow
 {
     internal const int IconsPerRow = 7;
     internal const int MaximumIconsPerPage = IconsPerRow * 20;
@@ -44,17 +46,15 @@ public sealed class MenuIconPickerWindow : Window
         MinWidth = 500;
         MinHeight = 420;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("Menu.PickIcon");
-        Background = Brush("AppBackdrop", Color.FromRgb(32, 32, 32));
+        ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 
         _searchDelay = new DispatcherTimer(TimeSpan.FromMilliseconds(180),
             DispatcherPriority.Input, (_, _) => ApplySearch(resetPage: true));
         _search = new TextBox
         {
             Height = 36,
-            Margin = new Thickness(12, 12, 12, 8),
+            Classes = { "Field" },
             PlaceholderText = Strings.Get("Menu.IconSearch"),
         };
         _search.TextChanged += (_, _) =>
@@ -91,7 +91,6 @@ public sealed class MenuIconPickerWindow : Window
         });
         _scroll = new ScrollViewer
         {
-            Margin = new Thickness(8, 0, 8, 8),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Content = _icons,
@@ -100,7 +99,7 @@ public sealed class MenuIconPickerWindow : Window
         _empty = new TextBlock
         {
             Text = Strings.Get("Menu.IconNoResults"),
-            Foreground = Brush("AppMuted", Colors.LightGray),
+            Classes = { "Hint" },
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -112,8 +111,7 @@ public sealed class MenuIconPickerWindow : Window
         _pageLabel = new TextBlock
         {
             Name = "MenuIconPageLabel",
-            FontSize = 11,
-            Foreground = Brush("AppMuted", Colors.LightGray),
+            Classes = { "Caption" },
             VerticalAlignment = VerticalAlignment.Center,
             MinWidth = 58,
             TextAlignment = TextAlignment.Center,
@@ -123,7 +121,6 @@ public sealed class MenuIconPickerWindow : Window
             Orientation = Orientation.Horizontal,
             Spacing = 6,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(12, 0, 12, 8),
             Children = { _previousPage, _pageLabel, _nextPage },
         };
 
@@ -131,21 +128,21 @@ public sealed class MenuIconPickerWindow : Window
         {
             Content = Strings.Get("Menu.RemoveIcon"),
             MinWidth = 104,
-            Height = 32,
+            Classes = { "Secondary" },
         };
         remove.Click += (_, _) => Close(new MenuIconReference(MenuIconKind.Builtin, string.Empty));
         var image = new Button
         {
             Content = Strings.Get("Menu.PickImage"),
             MinWidth = 120,
-            Height = 32,
+            Classes = { "Secondary" },
         };
         image.Click += async (_, _) => await PickImageAsync();
         var cancel = new Button
         {
             Content = Strings.Get("Common.Cancel"),
             MinWidth = 88,
-            Height = 32,
+            Classes = { "Secondary" },
         };
         cancel.Click += (_, _) => Close(null);
 
@@ -157,16 +154,20 @@ public sealed class MenuIconPickerWindow : Window
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"),
             ColumnSpacing = 8,
-            Margin = new Thickness(12, 0, 12, 12),
             Children = { remove, image, cancel },
         };
         Grid.SetColumn(image, 1);
         Grid.SetColumn(cancel, 3);
 
-        Content = new Grid
+        // 整页内缩只写这一处（原来搜索框、滚动区、页码条、按钮行各写一条 `Margin`）
+        Content = new Border
         {
-            RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
-            Children = { _search, _pageBar, listArea, buttons },
+            Padding = new Thickness(12),
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
+                Children = { _search, _pageBar, listArea, buttons },
+            },
         };
         Grid.SetRow(_pageBar, 1);
         Grid.SetRow(listArea, 2);
@@ -199,39 +200,26 @@ public sealed class MenuIconPickerWindow : Window
             Content = text,
             MinWidth = 68,
             Height = 28,
+            Classes = { "Secondary" },
         };
 
     private static Button IconButton(MenuIconOption option)
     {
+        // 图标砖：尺寸、内距、圆角、边都交给 `Button.Square`（80×80 恒等，见该类注释）。
+        // **砖上没有文字**——标签是 Lucide 的枚举名（18 字符 ≈ 108px，可用只有 64px），
+        // 显示出来只会是 `CircleQuestion…` 这种残词；全名走 tooltip（下面那行）。
         var button = new Button
         {
-            Width = 80,
-            Height = 80,
-            Margin = new Thickness(1),
-            Padding = new Thickness(3),
-            CornerRadius = new CornerRadius(5),
-            Content = new StackPanel
+            Classes = { "Square" },
+            Content = new IconView
             {
-                Spacing = 4,
-                Children =
-                {
-                    new IconView
-                    {
-                        Width = 30,
-                        Height = 30,
-                        Data = option.Kind,
-                        Stroke = Brush("AppText", Colors.White),
-                        StrokeThickness = 1.5,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                    },
-                    new TextBlock
-                    {
-                        Text = option.Label,
-                        FontSize = 9,
-                        TextAlignment = TextAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                    },
-                },
+                Width = 22,
+                Height = 22,
+                Data = option.Kind,
+                Stroke = ThemeBrush.Of("TextPrimary"),
+                StrokeThickness = 1.5,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
             },
         };
         button.Classes.Add("MenuIconChoice");
@@ -320,8 +308,4 @@ public sealed class MenuIconPickerWindow : Window
         }
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
 }

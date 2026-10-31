@@ -1,9 +1,9 @@
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -96,13 +96,15 @@ public class StepDefaultsTests
             "browser.evaluate",
         ];
 
-        // 会停在原地等的动作：等页面自己走到某一步，比等一个元素要久；下载也在这一档，因为文件
-        // 从页面那边到磁盘上要多久不由这一步说了算。
+        // 会停在原地等的动作与上面的同一档：等页面走到某一步仍然是在等屏幕，统一十秒。下载不
+        // 一样，文件从页面那边到磁盘上要多久不由这一步说了算，它按“等外部”那一档算。
         string[] waiting =
         [
             "browser.goTo", "browser.waitFor", "browser.waitForUrl", "browser.waitForLoad",
-            "browser.download",
         ];
+
+        // 等外部的东西：脚本、程序、下载、人按键，统一十分钟。
+        string[] outside = ["browser.download"];
 
         // 不等任何东西的动作：设一个也用不到，所以不设。
         string[] instant =
@@ -121,7 +123,12 @@ public class StepDefaultsTests
 
             foreach (var key in waiting)
             {
-                Assert.Equal(15000, ActionCatalog.Find(key)!.StepTimeoutMs);
+                Assert.Equal(10000, ActionCatalog.Find(key)!.StepTimeoutMs);
+            }
+
+            foreach (var key in outside)
+            {
+                Assert.Equal(600000, ActionCatalog.Find(key)!.StepTimeoutMs);
             }
 
             foreach (var key in instant)
@@ -140,12 +147,16 @@ public class StepDefaultsTests
     {
         (string Key, int Milliseconds)[] waiting =
         [
-            ("clipboard.waitChange", 5000), ("clipboard.copy", 1500),
-            ("process.waitFor", 10000), ("process.waitExit", 60000),
-            ("command.run", 30000), ("window.waitFor", 10000),
-            ("uia.waitElement", 10000), ("uia.click", 5000), ("uia.invoke", 5000),
-            ("script.run", 60000), ("script.python", 60000),
-            ("script.csharp", 60000), ("script.ahk", 60000),
+            // Two tiers: what waits on the screen, and what waits on a program, a script, a person
+            // or a file to arrive.
+            ("clipboard.copy", 10_000), ("process.waitFor", 10_000),
+            ("window.waitFor", 10_000), ("uia.waitElement", 10_000),
+            ("uia.click", 10_000), ("uia.invoke", 10_000),
+            ("vision.waitImage", 10_000), ("ocr.clickText", 10_000),
+            ("clipboard.waitChange", 600_000), ("process.waitExit", 600_000),
+            ("command.run", 600_000), ("script.run", 600_000), ("script.python", 600_000),
+            ("script.csharp", 600_000), ("script.ahk", 600_000),
+            ("input.waitKey", 600_000), ("control.runMacro", 600_000),
         ];
 
         Ui.Run(() =>

@@ -80,13 +80,11 @@ public class VariableWarningTests
     [Fact]
     public void The_read_only_lines_are_written_in_red()
     {
-        // The dialog that refuses to store into one, and the panel that lists them.
+        // The dialog that refuses to write into one says so in red. The run-and-debug window no
+        // longer lists the variables a macro may not change: it shows the watch list of the macro
+        // in front of it, and editing a variable belongs to the variable center.
         AssertRed(Path.Combine("WhaleGenie", "Views", "ActionEditorView.axaml"),
             "Text=\"{Binding ValidationMessage}\"");
-
-        // The lines that list the variables a macro may not change live in the run-and-debug window.
-        AssertRed(Path.Combine("WhaleGenie", "Views", "RunWindow.axaml"),
-            "Variable.SystemHint");
     }
 
     /// <summary>
@@ -97,8 +95,10 @@ public class VariableWarningTests
     {
         var markup = File.ReadAllText(Path.Combine(Repository(), path));
 
+        // 红从硬编码换成了 `Danger` 令牌（同一个红的语义位置），所以这里找的是令牌而不是字面值。
+        // **钉字面值的用例会在换令牌那天红**，而它想钉的其实是"这一处是红的语义"。
         var red = 0;
-        while ((red = markup.IndexOf("Foreground=\"#E06C75\"", red, StringComparison.Ordinal)) >= 0)
+        while ((red = markup.IndexOf("Foreground=\"{DynamicResource Danger}\"", red, StringComparison.Ordinal)) >= 0)
         {
             var window = markup[red..Math.Min(markup.Length, red + 200)];
             if (window.Contains(binding, StringComparison.Ordinal))

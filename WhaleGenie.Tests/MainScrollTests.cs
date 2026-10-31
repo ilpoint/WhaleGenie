@@ -34,7 +34,13 @@ public class MainScrollTests
             scroll.Offset = new Avalonia.Vector(0, 240);
             Dispatcher.UIThread.RunJobs();
             Assert.True(scroll.Offset.Y > 0);
-            window.Close();
+
+            // Thirty macros nobody saved make this a project with unsaved work, so closing asks.
+            // "Discard" is the answer this check is after: what it looks at is the scroll, and the
+            // window has to really go — otherwise the draft it keeps in the recovery snapshot
+            // outlives the check and turns up in another check's project.
+            window.AskToSaveProject = () => Task.FromResult(ConfirmChoice.Secondary);
+            Ui.CloseAndAnswer(window);
             return true;
         });
     }

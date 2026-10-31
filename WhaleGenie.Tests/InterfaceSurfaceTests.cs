@@ -4,9 +4,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -46,11 +46,19 @@ public class InterfaceSurfaceTests
                 new InterfaceLayout(new WindowRule(Title: "target"), 10, 10));
 
             var completed = 0;
-            surface.MoveCompleted += _ => completed++;
+            var reported = new TaskCompletionSource();
+            surface.MoveCompleted += _ =>
+            {
+                completed++;
+                reported.TrySetResult();
+            };
             surface.BeginDragForCheck();
             surface.Position = new PixelPoint(40, 50);
             surface.Position = new PixelPoint(45, 55);
-            await Task.Delay(300);
+
+            // Waited for rather than slept through: the save lands on a quiet-period timer, and a
+            // fixed sleep is the one thing a loaded machine stretches past that timer.
+            await reported.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
             Assert.Equal(1, completed);
             Assert.False(surface.IsMoving);

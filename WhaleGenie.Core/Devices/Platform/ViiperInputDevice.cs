@@ -595,7 +595,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
         => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
     /// <summary>Tells the parts of the app that watch the keyboard that this press is WhaleGenie's own.</summary>
-    private static void Note(KeyCode code) => WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
+    private static void Note(KeyCode code) => WhaleGenieInputGate.Note(SharpKeys.Key(code));
 
     /// <summary>The virtual mouse's bit for a button, and the name WhaleGenie calls that button by.</summary>
     private static (byte Bit, string Name) Button(string button) => button.Trim().ToLowerInvariant() switch

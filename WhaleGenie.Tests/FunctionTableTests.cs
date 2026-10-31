@@ -225,6 +225,19 @@ public class FunctionTableTests
                 {
                     missing.Add($"{own} (or {shared})");
                 }
+
+                // What the box says while it is empty is a fact about the argument of its own: the
+                // box standing for a regular expression cannot say "a number or a piece of text".
+                var ownPut = $"Expr.Arg.{function.Name}.{parameter.Name}.put";
+                var sharedPut = $"Expr.Arg.{parameter.Name}.put";
+                if (Strings.Chinese.ContainsKey(ownPut) || Strings.Chinese.ContainsKey(sharedPut))
+                {
+                    wanted.Add(Strings.Chinese.ContainsKey(ownPut) ? ownPut : sharedPut);
+                }
+                else
+                {
+                    missing.Add($"{ownPut} (or {sharedPut})");
+                }
             }
         }
 

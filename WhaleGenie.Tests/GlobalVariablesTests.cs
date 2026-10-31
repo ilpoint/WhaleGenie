@@ -4,15 +4,16 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
 /// <summary>The project global editor works on drafts and commits only when Save succeeds.</summary>
+[RestoreSharedState]
 public class GlobalVariablesTests
 {
     [Fact]
@@ -251,7 +252,7 @@ public class GlobalVariablesTests
                 choice.Name == "base" && choice.Group == VariableGroup.Global);
             Assert.DoesNotContain(choices, choice => choice.Name == "derived");
             manager.RemoveCommand.Execute(null);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -344,8 +345,10 @@ public class GlobalVariablesTests
     [Fact]
     public void Run_debug_reads_globals_while_the_variable_center_owns_the_editor()
     {
+        // The debug window shows the variables the macro in front of it uses, and nothing else:
+        // creating or editing a global belongs to the variable center, not to a run.
         var run = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
-        Assert.Contains("vm:RunGlobalVariable", run, System.StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Variables}\"", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("AddGlobalCommand", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("RemoveGlobalCommand", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("NewPersistValue", run, System.StringComparison.Ordinal);
@@ -504,16 +507,15 @@ public class GlobalVariablesTests
             window.FindControl<Button>("RemoveButton")!
                 .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "removing a variable did not ask first");
 
             var confirm = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var prompt = (ConfirmDialogViewModel)confirm.DataContext!;
             Assert.Equal(Strings.Get("GlobalVariables.DeleteTitle"), prompt.Header);
             prompt.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.OwnedWindows.Any(), "the prompt did not close");
 
             Assert.Single(manager.Rows);
             Assert.True(window.IsVisible);
@@ -538,30 +540,27 @@ public class GlobalVariablesTests
 
             window.Close(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "closing a window with unsaved work did not ask anything");
 
             var first = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var firstPrompt = (ConfirmDialogViewModel)first.DataContext!;
             Assert.Equal(Strings.Get("GlobalVariables.UnsavedTitle"), firstPrompt.Header);
             firstPrompt.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.OwnedWindows.Any(), "the prompt did not close");
             Assert.True(window.IsVisible);
 
             window.Close(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "closing it a second time did not ask again");
 
             var second = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var secondPrompt = (ConfirmDialogViewModel)second.DataContext!;
             secondPrompt.SecondaryCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(window.IsVisible);
+            await Ui.Until(() => !window.IsVisible, "discarding did not close the window");
             return true;
         });
     }
@@ -583,14 +582,13 @@ public class GlobalVariablesTests
 
             window.Close(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "closing a window with unsaved work did not ask anything");
             var confirm = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var prompt = (ConfirmDialogViewModel)confirm.DataContext!;
             prompt.PrimaryCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.IsVisible, "saving from the prompt did not close the window");
 
             Assert.Equal("fromClose", Assert.Single(saved!).Name);
             Assert.False(window.IsVisible);
@@ -604,8 +602,9 @@ public class GlobalVariablesTests
         var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
             "GlobalVariablesWindow.axaml"));
 
-        Assert.Contains("WindowDecorations=\"BorderOnly\"", xaml, System.StringComparison.Ordinal);
-        Assert.Contains("Name=\"CloseButton\"", xaml, System.StringComparison.Ordinal);
+        // 外壳是库的 `FAAppWindow`（`views:AppWindow`）：标题栏与关闭键由它画，窗口自己不画。
+        Assert.Contains("<views:AppWindow", xaml, System.StringComparison.Ordinal);
+        Assert.DoesNotContain("Name=\"CloseButton\"", xaml, System.StringComparison.Ordinal);
         Assert.Contains("Name=\"SearchBox\"", xaml, System.StringComparison.Ordinal);
         Assert.Contains("Name=\"ProblemStatus\"", xaml, System.StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding NamePrompt}\"", xaml, System.StringComparison.Ordinal);
@@ -790,10 +789,20 @@ public class GlobalVariablesTests
                 dialog.Close(null);
                 Dispatcher.UIThread.RunJobs();
 
+                // The manager asks about its staged changes before it goes, and that question is
+                // modal. Leaving it standing would both keep the editor from closing cleanly —
+                // it is the manager's owner — and leave a dispatcher loop running for whichever
+                // check is next. "Discard" is the answer this check is after: nothing staged is
+                // written either way, and the window really does go.
+                var prompt = Assert.Single(dialog.OwnedWindows.OfType<ConfirmDialog>());
+                ((ConfirmDialogViewModel)prompt.DataContext!).SecondaryCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+
                 Assert.NotNull(VariableCatalog.FindGlobal("unchanged"));
                 Assert.Null(VariableCatalog.FindGlobal("changed"));
                 Assert.Equal(3, SharedVariables.Current.Values["unchanged"].AsNumber());
-                window.Close(null);
+
+                Ui.CloseAndAnswer(window);
             }
             finally
             {

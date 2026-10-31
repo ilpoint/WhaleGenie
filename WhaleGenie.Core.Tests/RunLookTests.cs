@@ -222,7 +222,8 @@ public class RunLookTests
     [Fact]
     public async Task A_call_that_returns_after_the_budget_is_judged_when_it_returns()
     {
-        var devices = new FakeDeviceLayer { ReadPageDelayMs = 120 };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.PageReadDelay = 120;
         var page = Within(40, Step("browser.readPage"));
         var watched = new Watched();
 
@@ -265,14 +266,15 @@ public class RunLookTests
 
     private static FakeDeviceLayer Screen(int width = 200, int height = 100,
         ImageMatch? match = null)
-        => new()
-        {
-            Desktop = new ScreenLayout(new ScreenArea(0, 0, width, height),
-                [new ScreenDisplay(new ScreenArea(0, 0, width, height), true)]),
-            Match = match,
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Display = new ImageFrame(width, height, new byte[width * height * 4]),
-        };
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, width, height),
+            [new ScreenDisplay(new ScreenArea(0, 0, width, height), true)]);
+        devices.Vision.Match = match;
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Screen.Display = new ImageFrame(width, height, new byte[width * height * 4]);
+        return devices;
+    }
 
     private static async Task<RunResult> Run(ExecutableStep step, FakeDeviceLayer devices,
         Watched? looks = null)
@@ -351,9 +353,9 @@ public class RunLookTests
         var first = new ImageFrame(3, 3, new byte[36]);
         var second = new ImageFrame(4, 4, new byte[64]);
         var devices = Screen();
-        devices.Pictures[@"C:\images\first.png"] = first;
-        devices.Pictures[@"C:\images\second.png"] = second;
-        devices.PictureAnswers = (needle, _) => needle.Width == second.Width
+        devices.Vision.Pictures[@"C:\images\first.png"] = first;
+        devices.Vision.Pictures[@"C:\images\second.png"] = second;
+        devices.Vision.PictureAnswers = (needle, _) => needle.Width == second.Width
             ? [new ImageMatch(0.95, new ScreenPoint(30, 40), new ScreenSize(2, 2))]
             : [];
 
@@ -364,7 +366,7 @@ public class RunLookTests
         var result = await Run(step, devices, looks);
 
         Assert.Equal(RunStatus.Completed, result.Status);
-        Assert.Equal(2, devices.Queries.Count);
+        Assert.Equal(2, devices.Vision.Queries.Count);
         var look = Assert.Single(looks.Seen);
         Assert.Equal(2, look.PictureNumber);
         Assert.Equal(2, look.PictureCount);
@@ -387,9 +389,9 @@ public class RunLookTests
         var first = new ImageFrame(3, 3, new byte[36]);
         var second = new ImageFrame(4, 4, new byte[64]);
         var devices = Screen();
-        devices.Pictures[@"C:\images\first.png"] = first;
-        devices.Pictures[@"C:\images\second.png"] = second;
-        devices.PictureAnswers = (needle, _) => needle.Width == second.Width
+        devices.Vision.Pictures[@"C:\images\first.png"] = first;
+        devices.Vision.Pictures[@"C:\images\second.png"] = second;
+        devices.Vision.PictureAnswers = (needle, _) => needle.Width == second.Width
             ?
             [
                 new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(2, 2)),
@@ -432,7 +434,7 @@ public class RunLookTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MissingImage", result.Key);
-        Assert.Empty(devices.Queries);
+        Assert.Empty(devices.Vision.Queries);
     }
 
     [Fact]
@@ -448,7 +450,7 @@ public class RunLookTests
         Assert.Equal(RunStatus.Failed, result.Status);
         var look = Assert.Single(looks.Seen);
         Assert.Equal(0, look.ChosenIndex);
-        Assert.True(devices.Searches > 1, $"the picture should be looked for more than once, was {devices.Searches}");
+        Assert.True(devices.Vision.Searches > 1, $"the picture should be looked for more than once, was {devices.Vision.Searches}");
     }
 
     [Fact]
@@ -522,7 +524,7 @@ public class RunLookTests
     public async Task Every_line_that_was_read_is_handed_over_and_not_only_the_one_that_matched()
     {
         var devices = Screen();
-        devices.Spans =
+        devices.Ocr.Spans =
         [
             new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30),
             new TextSpan("Cancel", new ScreenPoint(40, 6), new ScreenSize(20, 8), 12),
@@ -548,7 +550,7 @@ public class RunLookTests
     public async Task Reading_a_region_hands_over_the_writing_with_where_it_was_read()
     {
         var devices = Screen();
-        devices.Spans = [new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30)];
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30)];
         var looks = new Watched();
         var step = Recognize(10, 20, 40, 30, Returns("text=text"));
 
@@ -765,7 +767,7 @@ public class RunLookTests
     public async Task The_window_a_step_reads_is_said_before_the_picture_is_taken()
     {
         var devices = Screen();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
         var looks = new Watched();
 
@@ -818,11 +820,20 @@ public class RunLookTests
 
         Assert.Null(outcome.Look);
         Assert.Equal("Run.NotALookingStep", outcome.Key);
-        Assert.True(MacroRunner.CanLook("vision.findImage"));
-        Assert.True(MacroRunner.CanLook("vision.detect"));
-        Assert.True(MacroRunner.CanLook("vision.waitDetect"));
-        Assert.True(MacroRunner.CanLook("vision.clickDetect"));
-        Assert.False(MacroRunner.CanLook("clipboard.writeImage"));
+
+        // The answer is the catalogue's, not a second list kept beside it: that list had drifted, and
+        // three steps the catalogue says look at the screen were told they do not.
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            Assert.Equal(action.LooksAtScreen, MacroRunner.CanLook(action.Key));
+
+            if (action.LooksAtScreen)
+            {
+                // Saying a step can be tried is a promise the trial has to keep.
+                Assert.NotEqual(RunKeys.NotALookingStep,
+                    MacroRunner.LookOnce(Step(action.Key), Screen()).Key);
+            }
+        }
     }
 
     /// <summary>
@@ -833,9 +844,9 @@ public class RunLookTests
     public async Task What_a_detection_step_saw_is_handed_over_box_by_box()
     {
         var devices = Screen(width: 400, height: 300);
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.62, new ScreenPoint(20, 30), new ScreenSize(40, 50), 0, "person"));
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.91, new ScreenPoint(120, 60), new ScreenSize(30, 20), 3, "car"));
         var looks = new Watched();
 
@@ -869,7 +880,7 @@ public class RunLookTests
     public void Trying_the_looking_of_a_detection_click_clicks_nothing()
     {
         var devices = Screen(width: 200, height: 100);
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.7, new ScreenPoint(30, 40), new ScreenSize(10, 10), 0, "person"));
         var step = Step("vision.clickDetect", Param("model", "yolo.onnx"),
             Param("offsetX", "3"), Param("offsetY", "-2"), Param("button", "left"),
@@ -899,6 +910,6 @@ public class RunLookTests
         Assert.NotNull(outcome.Look);
         var look = outcome.Look!;
         Assert.Equal(0, look.ChosenIndex);
-        Assert.Equal(1, devices.Searches);
+        Assert.Equal(1, devices.Vision.Searches);
     }
 }

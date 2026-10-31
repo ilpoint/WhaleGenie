@@ -1,10 +1,11 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
         xmlns:conv="using:WhaleGenie.Converters"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="940" d:DesignHeight="760"
@@ -14,10 +15,7 @@
         Width="1486" Height="800"
         MinWidth="1320" MinHeight="640"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:MacroEditorViewModel />
@@ -37,30 +35,11 @@
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,0,0,10" />
-        </Style>
-        <Style Selector="TextBlock.GroupHeader">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,16,0,9" />
-        </Style>
-        <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="2,2,0,6" />
-        </Style>
         <!-- Line-art icon used beside each recordable action row -->
         <Style Selector="views|IconView.RecordIcon">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
-            <Setter Property="Stroke" Value="{DynamicResource AppText}" />
+            <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
             <Setter Property="StrokeThickness" Value="1.4" />
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -76,7 +55,7 @@
         <Style Selector="Path.RecordIndicator.Stop">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
-            <Setter Property="Fill" Value="#FFFFFF" />
+            <Setter Property="Fill" Value="{DynamicResource TextOnAccent}" />
             <Style.Animations>
                 <!-- Slow pulse so an in-progress recording is obvious at a glance. -->
                 <Animation Duration="0:0:1.2" IterationCount="INFINITE" PlaybackDirection="Alternate">
@@ -89,121 +68,12 @@
                 </Animation>
             </Style.Animations>
         </Style>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip">
-            <Setter Property="MinWidth" Value="36" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Padding" Value="8,0" />
-            <Setter Property="Margin" Value="0,0,6,5" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked">
-            <Setter Property="Background" Value="#2E5F8A" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E5F8A" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E5F8A" />
-        </Style>
-        <Style Selector="ToggleButton.EndKeyChip:checked:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E5F8A" />
-        </Style>
 
-        <!-- Step list: rows keep the card look and gain a selection highlight. -->
-        <Style Selector="ListBox.StepList">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <!-- The row look lives here, not on the element, so the selected state can win. -->
-        <Style Selector="Border.StepRow">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="10,8" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-            <Setter Property="BorderBrush" Value="#FF6A35" />
-        </Style>
 
-        <!-- Trigger entries are choices, so the whole card carries the selected state. -->
-        <Style Selector="ListBox.TriggerEntries">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,0,4" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="CornerRadius" Value="5" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-        </Style>
-        <Style Selector="Border.TriggerCard">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="8,6" />
-        </Style>
-        <Style Selector="ListBox.TriggerEntries ListBoxItem:selected Border.TriggerCard">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="#FF6A35" />
-        </Style>
-
-        <!-- A step the design-time check is unhappy about: the row keeps its place and gains an
-             amber edge and mark, so what is wrong is visible without opening anything. -->
-        <Style Selector="Border.StepRow.problem">
-            <Setter Property="BorderBrush" Value="#C8913C" />
-        </Style>
-        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow.problem">
-            <Setter Property="BorderBrush" Value="#FFB45C" />
-        </Style>
         <Style Selector="views|IconView.ProblemMark">
             <Setter Property="Width" Value="15" />
             <Setter Property="Height" Value="15" />
-            <Setter Property="Stroke" Value="#E0A23C" />
+            <Setter Property="Stroke" Value="{DynamicResource Warning}" />
             <Setter Property="StrokeThickness" Value="1.4" />
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -215,83 +85,63 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="TextBlock.ProblemSummary">
-            <Setter Property="Foreground" Value="#E0A23C" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="2,0,0,8" />
-        </Style>
         <Style Selector="Border.DropTarget">
             <Setter Property="Background" Value="#33FF6A35" />
             <Setter Property="BorderBrush" Value="#FF6A35" />
         </Style>
         <Style Selector="Border.DropTarget.Rejected">
             <Setter Property="Background" Value="#33E06C75" />
-            <Setter Property="BorderBrush" Value="#E06C75" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
         </Style>
 
         <!-- The two ends of a block: the line its steps start under, and the line that closes it.
              They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
+        <!-- 行尾的移除钮：几何交给 `Button.Ghost`（24×24 图标钮），这里只说一件事——
+             **悬停转危红**，"这一下会删掉东西"要看得出来。
+             原先它的样式定义在 `RunWindow` 里，够不着本窗，所以这个钮一直露着 Fluent 默认外观，
+             而测试按类名找得到它、点得动它，于是没人发现。 -->
+        <Style Selector="Button.Ghost.RemoveButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+        </Style>
+
         <Style Selector="Border.StepHead">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,2" />
         </Style>
-        <Style Selector="TextBlock.StepHeadLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
         <Style Selector="Border.StepFoot">
-            <Setter Property="BorderBrush" Value="{DynamicResource AppHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceHover}" />
             <Setter Property="BorderThickness" Value="2,0,0,0" />
             <Setter Property="Padding" Value="8,1" />
         </Style>
-        <Style Selector="TextBlock.StepFootLabel">
-            <Setter Property="Foreground" Value="#8A8A8A" />
-            <Setter Property="FontSize" Value="10.5" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
 
         <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
-        <Style Selector="Button.RowButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Width" Value="16" />
-            <Setter Property="Height" Value="16" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RowButton views|IconView">
-            <Setter Property="Stroke" Value="{DynamicResource AppMuted}" />
+        <Style Selector="Button.Ghost.Tiny views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextTertiary}" />
             <Setter Property="StrokeThickness" Value="1.2" />
             <Setter Property="FitToBounds" Value="True" />
             <Setter Property="Width" Value="10" />
             <Setter Property="Height" Value="10" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.RowButton /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.RowButton:pointerover views|IconView">
+        <Style Selector="Button.Ghost.Tiny:pointerover views|IconView">
             <Setter Property="Stroke" Value="#FF8A5C" />
         </Style>
-        <Style Selector="Button.AddChildButton">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Padding" Value="8,0" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.AddChildButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
 
-        <!-- Record toggle, idle: dark plate with a red dot. -->
+        <!-- Record toggle, idle: dark plate with a red dot.
+             这块暗红板是**刻意做深**的（录音族那条例外），所以白字在两套主题下都成立——
+             这里的 `#FFFFFF` 是真·暗底白字，不是"只在暗色主题下对"。要换得连板子一起换。 -->
+        <!--
+          **录音族 15 处裸值判为"功能身份色"，留字面、不进令牌、不算债务。**
+
+          判据：**它描述"这个功能长什么样" → 数据；它描述"界面通用语义" → 样式。**
+          录音的红板（底 `#4A2417`、边 `#8A4227`、录制中 `#D8451B`、脉冲 `#E23B18`/`#FF6A35`/`#FF8A5C`、
+          浅字 `#FFE3D6`、深底 `#5C2D1C`/`#3D1D12` …）与**动作类别色**同一类：
+          由功能的作者定、不随主题变、是那个东西的标识。**所以跟着功能走，不跟着主题走。**
+
+          为什么不是"等产品决定"：那 15 处只是**一个功能的配色**，不是"界面要不要表达录制中"——
+          后者早就答了（红板 + 脉冲是这一轮唯一表达"正在进行"的手势）。**表述方式已定，配色随它走。**
+        -->
         <Style Selector="Button.RecordButton">
             <Setter Property="Background" Value="#4A2417" />
             <Setter Property="BorderBrush" Value="#8A4227" />
@@ -335,246 +185,63 @@
             <Setter Property="BorderThickness" Value="2" />
         </Style>
 
-        <Style Selector="TextBox.NameInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="10,7" />
+        <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
 
-        <!-- Plain parameter input, without the spin buttons a NumericUpDown would add -->
-        <Style Selector="TextBox.ParamInput">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="8,6" />
-        </Style>
-
-        <Style Selector="Button.KeyFieldButton">
-            <Setter Property="Height" Value="34" />
-            <Setter Property="Padding" Value="9,0" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.KeyFieldButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="ComboBox.OptionSelect">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="10,6" />
-            <Setter Property="MinWidth" Value="0" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-        </Style>
-
-        <Style Selector="Border.ActionCell">
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="8,6" />
-        </Style>
-
-        <!-- Groups a section so it reads separately from the settings above it -->
-        <Style Selector="Border.GroupBox">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="10,10,10,14" />
-            <Setter Property="Margin" Value="0,4,0,0" />
-        </Style>
-
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.TitleBarButton.pinned /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
-        </Style>
-        <Style Selector="Button.TabCloseButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="3" />
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="18" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TabCloseButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <!-- Flat grey button used by Set Key / Record / the action palette -->
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="12,7" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-        </Style>
-        <Style Selector="Button.FlatButton /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="CornerRadius" Value="5" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.FlatButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="Button.PaletteButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="34" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,5,5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PaletteButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.PaletteButton views|IconView">
-            <Setter Property="Stroke" Value="{DynamicResource AppText}" />
+        <!-- 图标块：外观全由 `Button.Icon` 给（34×32 逐格一致），这里只补"图标本身用什么色、
+             多粗"——图元不是控件，词汇表管不到它的描边。 -->
+        <Style Selector="Button.Icon views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
             <Setter Property="StrokeThickness" Value="1.5" />
         </Style>
 
-        <!-- The run-and-debug entry wears the debug violet so it is easy to find. -->
-        <Style Selector="Button.PaletteButton.primary">
-            <Setter Property="Background" Value="#6A4FC9" />
+        <!-- 命令入口按裁定回落到强调色：它和别的调色板钮不靠色相区分，靠位置与文案。
+             那 44 的宽是"这一格更要醒目"的存量度量，留在这里并记账（宽度不在三档里，
+             但它不是高度，收敛规则管不到它）。 -->
+        <Style Selector="Button.Icon.primary">
             <Setter Property="Width" Value="44" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary /template/ ContentPresenter">
-            <Setter Property="Background" Value="#6A4FC9" />
+        <Style Selector="Button.Icon.primary /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#7C61DB" />
+        <Style Selector="Button.Icon.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3A3450" />
+        <Style Selector="Button.Icon.primary:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary views|IconView">
-            <Setter Property="Stroke" Value="#F2EEFF" />
+        <Style Selector="Button.Icon.primary views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
             <Setter Property="StrokeThickness" Value="1.7" />
         </Style>
-        <Style Selector="Button.PaletteButton.primary:disabled views|IconView">
-            <Setter Property="Stroke" Value="#7B7396" />
-        </Style>
-
-        <Style Selector="Button.SaveButton">
-            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.SaveButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-
-        <!-- The way into a run from here: the same weight as Save, because writing a macro and
-             trying it are the two things this window is for. -->
-        <Style Selector="Button.RunButton">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="#585858" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Height" Value="34" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.RunButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.MenuCell">
-            <Setter Property="MinHeight" Value="64" />
-            <Setter Property="Margin" Value="2" />
-            <Setter Property="Padding" Value="6" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.MenuCell.Occupied /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.MenuCell.Current">
-            <Setter Property="BorderBrush" Value="#4EA4E8" />
-            <Setter Property="BorderThickness" Value="2" />
+        <Style Selector="Button.Icon.primary:disabled views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextDisabled}" />
         </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="38,*">
+    <Grid RowDefinitions="40,*">
 
-        <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+        <!--
+          标题栏（内容扩展进标题栏，见 MacroEditorWindow.axaml.cs）：库不再画图标与标题，这一行自己画；
+          右边是与系统按钮同尺寸的置顶钮，行尾留出它们的宽度。拖动由 `AppWindow` 在这条上做。
+        -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
+                        VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center"
+                <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                           VerticalAlignment="Center"
                            Text="{Binding [Editor.Title], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="TitleBarButton" Name="PinButton"
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
+                        VerticalAlignment="Center">
+                <Button Classes="Caption" Name="PinButton"
                         ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Name="PinIcon" Width="11" Height="11"
-                                    Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
-                                    FitToBounds="True" Data="{x:Static models:AppIcons.Pin}" />
-                </Button>
-                <Button Classes="TitleBarButton" Name="MinimizeButton"
-                        ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="TitleBarButton" Name="MaximizeButton"
-                        ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Name="MaximizeIcon" Width="10" Height="10"
-                                    Stroke="{DynamicResource AppText}" StrokeThickness="1.2"
-                                    FitToBounds="True" Data="{x:Static models:AppIcons.Maximize}" />
-                </Button>
-                <Button Classes="TitleBarButton" Name="CloseButton"
-                        ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                    <views:IconView Name="PinIcon" Width="14" Height="14"
+                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4"
+                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -582,19 +249,21 @@
         <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280" MinWidth="280" />
-                <ColumnDefinition Width="16" />
+                <!-- 列宽 = 分隔条的宽度（6）。**列比条宽的那部分会露出窗口底色**，
+                     看起来就是一条更粗的缝——条本身没问题，是列宽在管观感。 -->
+                <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="*" MinWidth="480" />
-                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="360" MinWidth="360" />
             </Grid.ColumnDefinitions>
 
             <!-- Left: the action library. -->
             <Grid Grid.Column="0" Name="ActionLibraryColumn" RowDefinitions="*,Auto">
                 <views:ActionPaletteView Grid.Row="0" Name="ActionPalette" />
-                <Button Grid.Row="1" Classes="FlatButton" Height="34" Margin="4,2,4,4"
+                <Button Grid.Row="1" Classes="Secondary" Height="34" Margin="4,2,4,4"
                         Click="OnShowRecording">
                     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppText}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Record}" />
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
                         <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -608,19 +277,19 @@
                     <RowDefinition Height="3*" MinHeight="240" />
                 </Grid.RowDefinitions>
                 <Border Grid.Row="0" Name="VariableCenterPanel"
-                        Background="{DynamicResource AppSurface}" CornerRadius="6"
+                        Background="{DynamicResource SurfacePanel}" CornerRadius="6"
                         Padding="12,12,12,8">
                     <Grid RowDefinitions="Auto,*">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <StackPanel>
                                 <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
-                                           FontWeight="SemiBold" Foreground="{DynamicResource AppTextStrong}"
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
                                            Margin="4,0,0,2" />
-                                <TextBlock Text="{Binding VariableCenter.Help}" FontSize="11.5"
-                                           TextWrapping="Wrap" Foreground="{DynamicResource AppMuted}"
+                                <TextBlock Classes="Hint" Text="{Binding VariableCenter.Help}"
+                                           Foreground="{DynamicResource TextTertiary}"
                                            Margin="4,0,0,8" />
                             </StackPanel>
-                            <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="FlatButton"
+                            <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="Secondary"
                                     VerticalAlignment="Top" Margin="0,0,2,0"
                                     ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
                                     Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
@@ -631,83 +300,82 @@
                     </Grid>
                 </Border>
 
-                <GridSplitter Grid.Row="1" Height="8" Background="Transparent"
+                <GridSplitter Grid.Row="1" Height="6" Classes="Split" Background="Transparent"
                               ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                               Cursor="SizeNorthSouth" />
 
                 <Border Grid.Row="2" Name="MacroSettingsDrawer"
-                        IsVisible="True" Background="{DynamicResource AppSurface}" CornerRadius="6">
+                        IsVisible="True" Background="{DynamicResource SurfacePanel}" CornerRadius="6">
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="2,0,0,10">
                                 <views:IconView Width="15" Height="15"
-                                                Stroke="{DynamicResource AppTextStrong}"
+                                                Stroke="{DynamicResource TextPrimary}"
                                                 StrokeThickness="1.4" FitToBounds="True"
-                                                Data="{x:Static models:AppIcons.Settings}" />
+                                                Data="{x:Static vm:AppIcons.Settings}" />
                                 <TextBlock Grid.Column="1" Name="MacroSettingsTitle"
                                            VerticalAlignment="Center"
                                            FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource AppTextStrong}"
+                                           Foreground="{DynamicResource TextPrimary}"
                                            Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
                             <TextBlock Classes="FieldLabel" Text="{Binding [Editor.MacroName], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Name="NameInput" Classes="NameInput" Text="{Binding Name}"
+                            <TextBox Name="NameInput" Classes="Field" Text="{Binding Name}"
                                      PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="ProblemSummary" Margin="2,4,0,0"
+                            <TextBlock Classes="Problem" Margin="2,4,0,0"
                                        IsVisible="{Binding HasNameProblem}" Text="{Binding NameProblem}" />
                             <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                        Text="{Binding [Editor.MacroDescription], Source={x:Static loc:Strings.Current}}" />
                             <TextBox Name="DescriptionInput" Text="{Binding Description}"
                                      PlaceholderText="{Binding [Editor.DescriptionPlaceholder], Source={x:Static loc:Strings.Current}}" />
                             <Border Margin="0,8,0,0" Padding="9,7" CornerRadius="5"
-                                    Background="{DynamicResource AppField}"
+                                    Background="{DynamicResource SurfaceField}"
                                     IsVisible="{Binding HasOrigin}">
-                                <TextBlock Text="{Binding OriginLabel}" TextWrapping="Wrap"
-                                           FontSize="11.5" Foreground="{DynamicResource AppMuted}" />
+                                <TextBlock Classes="Hint" Text="{Binding OriginLabel}"
+                                           Foreground="{DynamicResource TextTertiary}" />
                             </Border>
-                            <Button Classes="FlatButton" Height="32" Margin="0,8,0,0"
+                            <Button Classes="Secondary" Height="32" Margin="0,8,0,0"
                                     HorizontalAlignment="Left"
                                     IsVisible="{Binding IsSubMacro}"
                                     Content="{Binding [Editor.DeleteSubMacro], Source={x:Static loc:Strings.Current}}"
                                     Click="OnDeleteSubMacro" />
 
                             <StackPanel IsVisible="{Binding !IsSubMacro}">
-                            <Border Name="TriggerEntriesGroup" Classes="GroupBox">
+                            <Border Name="TriggerEntriesGroup" Classes="Sunken" Margin="0,4,0,0">
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Editor.TriggerEntries], Source={x:Static loc:Strings.Current}}" />
-                                    <ListBox Name="TriggerEntries" Classes="TriggerEntries" MaxHeight="180"
+                                    <ListBox Name="TriggerEntries" Classes="List Bare Gapped" MaxHeight="180"
                                              ItemsSource="{Binding TriggerEntries}"
                                              SelectedItem="{Binding SelectedTrigger, Mode=TwoWay}"
                                              SelectionMode="Single"
                                              Background="Transparent" BorderThickness="0" Padding="0">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate x:DataType="models:TriggerEntry">
-                                                <Border Classes="TriggerCard">
+                                                <Border Classes="Card Selectable">
                                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                                         <CheckBox IsChecked="{Binding IsEnabled}"
                                                                   VerticalAlignment="Center" />
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock FontSize="12.5"
-                                                                       Foreground="{DynamicResource AppText}"
+                                                            <TextBlock Classes="Note"
+                                                                       Foreground="{DynamicResource TextPrimary}"
                                                                        Text="{Binding KindLabel}" />
-                                                            <TextBlock FontSize="11.5"
-                                                                       Foreground="{DynamicResource AppMuted}"
+                                                            <TextBlock Classes="Note"
+                                                                       Foreground="{DynamicResource TextTertiary}"
                                                                        TextTrimming="CharacterEllipsis"
                                                                        Text="{Binding Summary}" />
                                                         </StackPanel>
-                                                        <Button Grid.Column="2" Classes="RemoveButton"
-                                                                Width="24" Height="24"
+                                                        <Button Grid.Column="2" Classes="Ghost RemoveButton"
                                                                 IsVisible="{Binding IsRemovable}"
                                                                 ToolTip.Tip="{Binding [Editor.RemoveTrigger], Source={x:Static loc:Strings.Current}}"
                                                                 Command="{Binding $parent[ListBox].((vm:MacroEditorViewModel)DataContext).RemoveTriggerCommand}"
                                                                 CommandParameter="{Binding}">
                                                             <views:IconView Width="10" Height="10"
-                                                                            Stroke="{DynamicResource AppText}"
+                                                                            Stroke="{DynamicResource TextPrimary}"
                                                                             StrokeThickness="1.3"
                                                                             FitToBounds="True"
-                                                                            Data="{x:Static models:AppIcons.X}" />
+                                                                            Data="{x:Static vm:AppIcons.X}" />
                                                         </Button>
                                                     </Grid>
                                                 </Border>
@@ -716,22 +384,22 @@
                                     </ListBox>
 
                                     <Button Name="AddTriggerButton"
-                                            Classes="FlatButton" Height="32" Padding="11,0"
+                                            Classes="Secondary" Height="32" Padding="11,0"
                                             HorizontalAlignment="Left" Margin="0,7,0,0">
                                         <Button.Content>
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <views:IconView Width="13" Height="13"
-                                                                Stroke="{DynamicResource AppText}"
+                                                                Stroke="{DynamicResource TextPrimary}"
                                                                 StrokeThickness="1.4"
                                                                 FitToBounds="True"
-                                                                Data="{x:Static models:AppIcons.Plus}" />
+                                                                Data="{x:Static vm:AppIcons.Plus}" />
                                                 <TextBlock VerticalAlignment="Center"
                                                            Text="{Binding [Editor.AddTrigger], Source={x:Static loc:Strings.Current}}" />
                                                 <views:IconView Width="10" Height="10"
-                                                                Stroke="{DynamicResource AppMuted}"
+                                                                Stroke="{DynamicResource TextTertiary}"
                                                                 StrokeThickness="1.3"
                                                                 FitToBounds="True"
-                                                                Data="{x:Static models:AppIcons.ChevronDown}" />
+                                                                Data="{x:Static vm:AppIcons.ChevronDown}" />
                                             </StackPanel>
                                         </Button.Content>
                                         <Button.Flyout>
@@ -767,7 +435,7 @@
                                         </Button.Flyout>
                                     </Button>
 
-                                    <TextBlock Classes="Muted" Margin="2,8,0,0"
+                                    <TextBlock Classes="Hint" Margin="2,8,0,0"
                                                IsVisible="{Binding !HasSelectedTrigger}"
                                                Text="{Binding [Editor.NoTriggerSelected], Source={x:Static loc:Strings.Current}}" />
 
@@ -779,19 +447,19 @@
                                                     IsVisible="{Binding ShowsLoopMode}">
                                             <TextBlock Classes="FieldLabel"
                                                        Text="{Binding [Editor.Loop], Source={x:Static loc:Strings.Current}}" />
-                                            <ComboBox Name="LoopModeSelect" Classes="OptionSelect"
+                                            <ComboBox Name="LoopModeSelect" Classes="Field"
                                                       ItemsSource="{Binding LoopOptions}"
                                                       SelectedIndex="{Binding LoopIndex}" />
                                         </StackPanel>
                                         <CheckBox Name="TriggerOnceCheck"
                                                   Margin="2,10,0,0"
                                                   IsVisible="{Binding ShowsTriggerOnce}"
-                                                  Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                                  Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                                   Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
                                                   IsChecked="{Binding TriggerOnce}" />
                                     </StackPanel>
 
-                                    <TextBlock Classes="ProblemSummary" Margin="2,6,0,0"
+                                    <TextBlock Classes="Problem" Margin="2,6,0,0"
                                                IsVisible="{Binding HasTriggerProblem}"
                                                Text="{Binding TriggerProblemSummary}" />
 
@@ -801,12 +469,12 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                            Text="{Binding [Editor.BindKey], Source={x:Static loc:Strings.Current}}" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <Border Background="{DynamicResource AppField}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                    <Border Background="{DynamicResource SurfaceField}" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                                             CornerRadius="5" Padding="11,8">
-                                        <TextBlock Text="{Binding BindKeyDisplay}" FontSize="12.5"
-                                                   Foreground="{DynamicResource AppText}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="Note" Text="{Binding BindKeyDisplay}"
+                                                   Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                                     </Border>
-                                    <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0" Height="34"
+                                    <Button Grid.Column="1" Classes="Secondary" Margin="8,0,0,0" Height="34"
                                             Content="{Binding SetKeyLabel}"
                                             IsEnabled="{Binding !IsRecording}"
                                             ToolTip.Tip="{Binding [Editor.Tip.SetKey], Source={x:Static loc:Strings.Current}}"
@@ -821,7 +489,7 @@
                                 <StackPanel Grid.Row="0" Grid.Column="0">
                                     <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                                Text="{Binding [Editor.When], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Name="ColorMatchSelect" Classes="OptionSelect"
+                                    <ComboBox Name="ColorMatchSelect" Classes="Field"
                                               ItemsSource="{Binding ColorMatchOptions}"
                                               SelectedIndex="{Binding ColorMatchIndex}" />
 
@@ -831,18 +499,18 @@
                                         <TextBlock Grid.Column="0" Classes="FieldLabel"
                                                    Text="{Binding [Editor.X], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" Margin="2,0,0,0" />
-                                        <TextBox Grid.Column="1" Classes="ParamInput"
+                                        <TextBox Grid.Column="1" Classes="Field"
                                                  Text="{Binding ColorPositionX}" />
                                         <TextBlock Grid.Column="2" Classes="FieldLabel"
                                                    Text="{Binding [Editor.Y], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
-                                        <TextBox Grid.Column="3" Classes="ParamInput"
+                                        <TextBox Grid.Column="3" Classes="Field"
                                                  Text="{Binding ColorPositionY}" />
                                     </Grid>
 
                                     <CheckBox Margin="0,10,0,0"
                                               Content="{Binding [Editor.UseCursorPosition], Source={x:Static loc:Strings.Current}}"
-                                              Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                              Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                               IsChecked="{Binding UseCursorPosition}" />
                                 </StackPanel>
 
@@ -850,35 +518,35 @@
                                     <TextBlock Classes="FieldLabel" Margin="2,0,0,6"
                                                Text="{Binding [Editor.HexColor], Source={x:Static loc:Strings.Current}}" />
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                        <TextBox Name="HexColorInput" Classes="ParamInput"
+                                        <TextBox Name="HexColorInput" Classes="Field"
                                                  MinWidth="84" Text="{Binding HexColor}" />
                                         <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                                                 Background="{Binding HexColor, Converter={StaticResource HexBrush}}"
-                                                BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" />
-                                        <Button Grid.Column="2" Classes="FlatButton" Name="PickColorButton"
+                                                BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
+                                        <Button Grid.Column="2" Classes="Secondary" Name="PickColorButton"
                                                 Width="38" Height="33" Padding="0"
                                                 ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickColorClicked">
-                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource AppText}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static models:AppIcons.Dropper}" />
+                                            <views:IconView Width="17" Height="17" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
                                         </Button>
                                     </Grid>
 
                                     <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                                Text="{Binding [Editor.ColorTolerance], Source={x:Static loc:Strings.Current}}" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBox Classes="ParamInput" Width="90" Text="{Binding ColorTolerance}" />
-                                        <TextBlock Text="%" FontSize="12.5" Foreground="{DynamicResource AppMuted}"
-                                                   VerticalAlignment="Center" />
+                                        <TextBox Classes="Field" Width="90" Text="{Binding ColorTolerance}" />
+                                        <TextBlock Classes="Note" Text="%"
+                                                   Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
-                                    <TextBlock Classes="Muted"
+                                    <TextBlock Classes="Hint"
                                                Text="{Binding [Editor.AltXHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Muted" Margin="0,2,0,0"
+                                    <TextBlock Classes="Hint" Margin="0,2,0,0"
                                                Text="{Binding [Editor.AltCHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Muted" Margin="0,2,0,0" Name="PickStatus"
-                                               Foreground="#8FC7F0" />
+                                    <TextBlock Classes="Hint" Margin="0,2,0,0" Name="PickStatus"
+                                               Foreground="{DynamicResource TextSecondary}" />
                                 </StackPanel>
                             </Grid>
 
@@ -886,7 +554,7 @@
                             <StackPanel IsVisible="{Binding IsTimerTrigger}">
                                 <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                            Text="{Binding [Editor.Schedule], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding ScheduleOptions}"
+                                <ComboBox Classes="Field" ItemsSource="{Binding ScheduleOptions}"
                                           SelectedIndex="{Binding ScheduleIndex}" />
 
                                 <!-- Every so often: how many, and the unit they are counted in -->
@@ -895,9 +563,9 @@
                                            Text="{Binding [Editor.Interval], Source={x:Static loc:Strings.Current}}" />
                                 <Grid IsVisible="{Binding IsIntervalSchedule}"
                                       ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                    <views:NumberBox Grid.Column="0" Value="{Binding ScheduleInterval}"
-                                                   Minimum="1" Maximum="9999" Increment="1" FormatString="0" />
-                                    <ComboBox Grid.Column="1" Classes="OptionSelect" Width="112"
+                                    <fa:FANumberBox Grid.Column="0" Value="{Binding ScheduleInterval, Converter={StaticResource Number}}"
+                                                   Minimum="1" Maximum="9999" SmallChange="1" SimpleNumberFormat="0" />
+                                    <ComboBox Grid.Column="1" Classes="Field" Width="112"
                                               ItemsSource="{Binding ScheduleUnitOptions}"
                                               SelectedIndex="{Binding ScheduleUnitIndex}" />
                                 </Grid>
@@ -906,11 +574,11 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            IsVisible="{Binding !IsIntervalSchedule}"
                                            Text="{Binding [Editor.ScheduleTime], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" IsVisible="{Binding !IsIntervalSchedule}"
+                                <TextBox Classes="Field" IsVisible="{Binding !IsIntervalSchedule}"
                                          Text="{Binding ScheduleTime}"
                                          PlaceholderText="{Binding [Editor.ScheduleTimeHint], Source={x:Static loc:Strings.Current}}" />
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.ScheduleNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -918,25 +586,25 @@
                             <StackPanel IsVisible="{Binding IsFileTrigger}">
                                 <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
                                            Text="{Binding [Editor.WatchPath], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding WatchPath}"
+                                <TextBox Classes="Field" Text="{Binding WatchPath}"
                                          PlaceholderText="{Binding [Editor.WatchPathHint], Source={x:Static loc:Strings.Current}}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WatchChange], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WatchChangeOptions}"
+                                <ComboBox Classes="Field" ItemsSource="{Binding WatchChangeOptions}"
                                           SelectedIndex="{Binding WatchChangeIndex}" />
 
                                 <!-- Only a watched folder has names inside it to filter and folders below it -->
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WatchFilter], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding WatchFilter}"
+                                <TextBox Classes="Field" Text="{Binding WatchFilter}"
                                          PlaceholderText="*" />
 
-                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.WatchSubfolders], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding WatchSubfolders}" />
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.WatchNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -944,15 +612,15 @@
                             <StackPanel IsVisible="{Binding IsProcessTrigger}">
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.ProcessName], Source={x:Static loc:Strings.Current}}" />
-                                <TextBox Classes="ParamInput" Text="{Binding ProcessName}"
+                                <TextBox Classes="Field" Text="{Binding ProcessName}"
                                          PlaceholderText="{Binding [Editor.ProcessNameHint], Source={x:Static loc:Strings.Current}}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.ProcessWhen], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding ProcessChangeOptions}"
+                                <ComboBox Classes="Field" ItemsSource="{Binding ProcessChangeOptions}"
                                           SelectedIndex="{Binding ProcessChangeIndex}" />
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.ProcessNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -961,13 +629,13 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [WindowRule.Title], Source={x:Static loc:Strings.Current}}" />
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                                    <Border Background="{DynamicResource AppField}"
-                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                    <Border Background="{DynamicResource SurfaceField}"
+                                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                                             CornerRadius="5" Padding="10,7">
-                                        <TextBlock Text="{Binding WindowTargetSummary}" FontSize="12.5"
-                                                   Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                                        <TextBlock Classes="Hint" Text="{Binding WindowTargetSummary}"
+                                                   Foreground="{DynamicResource TextPrimary}" />
                                     </Border>
-                                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                                             Click="OnPickTriggerWindow" />
@@ -978,10 +646,10 @@
                                      when it fires. -->
                                 <StackPanel Margin="0,8,0,0" Spacing="4">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                        <TextBlock Classes="Hint" VerticalAlignment="Center"
                                                    TextWrapping="Wrap"
                                                    Text="{Binding WindowPreview.Summary}" />
-                                        <Button Grid.Column="1" Classes="FlatButton" Height="28"
+                                        <Button Grid.Column="1" Classes="Secondary" Height="28"
                                                 Padding="10,0"
                                                 Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
@@ -992,14 +660,14 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:WindowPreviewRow">
                                                 <StackPanel Margin="2,0,0,0">
-                                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
+                                                    <TextBlock FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                                                TextTrimming="CharacterEllipsis"
                                                                Text="{Binding Title}" />
                                                     <StackPanel Orientation="Horizontal" Spacing="5"
                                                                 IsVisible="{Binding HasPart}">
-                                                        <TextBlock Classes="Muted" FontSize="11"
+                                                        <TextBlock Classes="Note" FontSize="11"
                                                                    Text="{Binding PartLabel}" />
-                                                        <TextBlock Classes="Muted" FontSize="11"
+                                                        <TextBlock Classes="Note" FontSize="11"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    Text="{Binding Part}" />
                                                     </StackPanel>
@@ -1008,10 +676,10 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                Text="{Binding WindowPreview.More}"
                                                IsVisible="{Binding WindowPreview.HasMore}" />
-                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                Text="{Binding WindowPreview.Note}"
                                                IsVisible="{Binding WindowPreview.HasNote}" />
                                 </StackPanel>
@@ -1019,15 +687,15 @@
                                 <StackPanel IsVisible="{Binding IsWindowTrigger}">
                                     <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                                Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowChangeOptions}"
+                                    <ComboBox Classes="Field" ItemsSource="{Binding WindowChangeOptions}"
                                               SelectedIndex="{Binding WindowChangeIndex}" />
 
-                                    <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.WindowNote], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
                                 <StackPanel IsVisible="{Binding IsInterfaceTrigger}" Margin="0,10,0,0">
-                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                                Text="{Binding [Editor.InterfaceHint], Source={x:Static loc:Strings.Current}}" />
                                     <TextBlock Classes="FieldLabel" Margin="2,10,0,5"
                                                Text="{Binding [Editor.InterfaceMembers], Source={x:Static loc:Strings.Current}}" />
@@ -1040,8 +708,8 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Margin="0,0,6,4" Padding="7,3" CornerRadius="4"
-                                                        Background="{DynamicResource AppField}">
-                                                    <TextBlock FontSize="11.5" Text="{Binding}" />
+                                                        Background="{DynamicResource SurfaceField}">
+                                                    <TextBlock Classes="Note" Text="{Binding}" />
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -1049,20 +717,20 @@
                                     <TextBlock Classes="FieldLabel" Margin="2,8,0,5"
                                                Text="{Binding [Editor.InterfaceHotkey], Source={x:Static loc:Strings.Current}}" />
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                        <TextBlock VerticalAlignment="Center" FontSize="12.5"
-                                                   Foreground="{DynamicResource AppText}"
+                                        <TextBlock Classes="Note" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextPrimary}"
                                                    Text="{Binding InterfaceToggleHotkeyDisplay}" />
-                                        <Button Grid.Column="1" Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Grid.Column="1" Classes="Secondary" Height="32" Padding="10,0"
                                                 Click="OnSetInterfaceHotkey"
                                                 Content="{Binding InterfaceHotkeyButton}" />
-                                        <Button Grid.Column="2" Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Grid.Column="2" Classes="Secondary" Height="32" Padding="10,0"
                                                 Command="{Binding ClearInterfaceHotkeyCommand}"
                                                 Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
                                     </Grid>
-                                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.InterfaceHotkeySupport], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
-                                               Foreground="{DynamicResource AppWarning}"
+                                    <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource Warning}"
                                                Text="{Binding InterfaceHotkeyProblem}"
                                                IsVisible="{Binding InterfaceHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                 </StackPanel>
@@ -1072,20 +740,20 @@
                             <StackPanel IsVisible="{Binding IsHotstringTrigger}">
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Editor.Hotstring], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="KeyFieldButton"
+                                <Button Classes="Field"
                                         Content="{Binding HotstringTextDisplay}"
                                         ToolTip.Tip="{Binding [Editor.HotstringKeyboard], Source={x:Static loc:Strings.Current}}"
                                         Click="OnOpenHotstringKeyboard" />
                                 <TextBlock Margin="2,8,0,0" FontSize="12" FontWeight="SemiBold"
-                                           Foreground="#8FC7F0" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"
                                            Text="{Binding [Editor.HotstringMouseResetHint], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,10,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringCase], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringCaseSensitive}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringInsideWord], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringInsideWord}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringRequireEnd], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringRequireEnd}" />
                                 <StackPanel Margin="22,4,0,0" IsEnabled="{Binding HotstringRequireEnd}">
@@ -1097,30 +765,30 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:HotstringEndKeyOption">
-                                                <ToggleButton Classes="EndKeyChip"
+                                                <ToggleButton Classes="Chip Key"
                                                               Content="{Binding Label}"
                                                               IsChecked="{Binding IsChecked, Mode=TwoWay}" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                        <Button Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Classes="Secondary" Height="32" Padding="10,0"
                                                 Click="OnCaptureHotstringEnd"
                                                 Content="{Binding HotstringEndCaptureButton}" />
-                                        <Button Classes="FlatButton" Height="32" Padding="10,0"
+                                        <Button Classes="Secondary" Height="32" Padding="10,0"
                                                 Command="{Binding ResetHotstringEndCharsCommand}"
                                                 Content="{Binding [Editor.HotstringEndCharsReset], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
-                                    <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
                                                Text="{Binding HotstringEndCaptureStatus}"
                                                IsVisible="{Binding HotstringEndCaptureStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.HotstringEndCharsHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           Content="{Binding [Editor.HotstringErase], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringEraseTyped}" />
-                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                <CheckBox Margin="0,6,0,0" Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                           IsEnabled="{Binding HotstringEraseTyped}"
                                           Content="{Binding [Editor.HotstringKeepEnd], Source={x:Static loc:Strings.Current}}"
                                           IsChecked="{Binding HotstringKeepEnd}" />
@@ -1131,20 +799,20 @@
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.IdleSeconds], Source={x:Static loc:Strings.Current}}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <views:NumberBox Width="112" Height="30" Value="{Binding IdleSeconds}"
-                                                   Minimum="1" Maximum="86400" Increment="10" FormatString="0" />
-                                    <TextBlock FontSize="12.5" Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center"
+                                    <fa:FANumberBox Width="112" Height="30" Value="{Binding IdleSeconds, Converter={StaticResource Number}}"
+                                                   Minimum="1" Maximum="86400" SmallChange="10" SimpleNumberFormat="0" />
+                                    <TextBlock Classes="Note" Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center"
                                                Text="{Binding [Schedule.Unit.Seconds], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
 
-                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Editor.IdleNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                             </StackPanel>
 
                             <!-- Menu placement is project-wide and lives in the runtime menu. -->
                             <StackPanel IsVisible="{Binding IsMenuTrigger}">
-                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
                                            Text="{Binding [Editor.MenuManagedInPanel], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
@@ -1155,21 +823,21 @@
                             <!-- How this macro behaves when it is running at the same time as
                                  another one. It is not a trigger: the same question is asked
                                  whatever starts the macro. -->
-                            <Border Classes="GroupBox">
+                            <Border Classes="Sunken" Margin="0,4,0,0">
                                 <StackPanel>
-                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                    <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
 
-                                    <CheckBox Foreground="{DynamicResource AppMuted}" FontSize="12.5"
+                                    <CheckBox Foreground="{DynamicResource TextTertiary}" Classes="Field"
                                               Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
                                               IsChecked="{Binding ExclusiveInput}" />
 
-                                    <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Editor.ExclusiveInputNote], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Classes="GroupHeader" Margin="0,16,0,9"
+                            <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,16,0,9"
                                        Text="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
                             <ContentControl Name="MacroInterfaceHost" />
                         </StackPanel>
@@ -1178,29 +846,29 @@
                     <!-- Save stays in this window; the title-bar close is the way out. The run
                          beside it loads the steps and stops in its own window. -->
                     <StackPanel Grid.Row="1">
-                        <TextBlock Name="SavedNotice" IsVisible="False" Margin="14,4,14,0"
-                                   Foreground="#7FC97F" FontSize="11.5"
+                        <TextBlock Name="SavedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
+                                   Foreground="{DynamicResource Success}"
                                    Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="6" Margin="12,8,12,12">
-                            <Button Name="SaveButton" Classes="SaveButton" Height="34"
+                            <Button Name="SaveButton" Classes="Primary"
                                     Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}">
                                 <StackPanel Orientation="Horizontal" Spacing="6"
                                             HorizontalAlignment="Center">
                                     <views:IconView Width="13" Height="13"
-                                                    Stroke="{DynamicResource AppText}"
+                                                    Stroke="{DynamicResource TextPrimary}"
                                                     StrokeThickness="1.3" FitToBounds="True"
-                                                    Data="{x:Static models:AppIcons.Save}" />
+                                                    Data="{x:Static vm:AppIcons.Save}" />
                                     <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Button>
-                            <Button Grid.Column="1" Name="RunDebugButton" Classes="RunButton" Height="34"
+                            <Button Grid.Column="1" Name="RunDebugButton" Classes="Secondary"
                                     Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
                                 <StackPanel Orientation="Horizontal" Spacing="6"
                                             HorizontalAlignment="Center">
                                     <views:IconView Width="13" Height="13"
-                                                    Stroke="{DynamicResource AppText}"
+                                                    Stroke="{DynamicResource TextPrimary}"
                                                     StrokeThickness="1.3" FitToBounds="True"
-                                                    Data="{x:Static models:AppIcons.BugPlay}" />
+                                                    Data="{x:Static vm:AppIcons.BugPlay}" />
                                     <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Button>
@@ -1212,11 +880,12 @@
 
 <!-- Middle: the step documents and their current list. -->
      <Border Grid.Column="2" Name="DocumentPanel"
-             Background="{DynamicResource AppSurface}" CornerRadius="6">
+             Background="{DynamicResource SurfacePanel}" CornerRadius="6">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="18,16">
-            <ListBox Grid.Row="0" Name="DocumentTabs" ItemsSource="{Binding Documents}"
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <ListBox Name="DocumentTabs" ItemsSource="{Binding Documents}"
                      SelectionMode="Single" SelectionChanged="OnDocumentTabChanged"
-                     Background="Transparent" Margin="0,0,0,8">
+                     Background="Transparent">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" />
@@ -1225,27 +894,43 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroDocumentPageViewModel">
                         <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="4">
-                            <TextBlock Text="{Binding Title}" FontSize="12.5" />
+                            <TextBlock Classes="Note" Text="{Binding Title}" />
                             <views:IconView Grid.Column="1" Width="12" Height="12"
                                             IsVisible="{Binding HasProblem}"
-                                            Stroke="#E06C75" StrokeThickness="1.4"
-                                            Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                            Stroke="{DynamicResource Danger}" StrokeThickness="1.4"
+                                            Data="{x:Static vm:AppIcons.WarningTriangle}" />
                             <Button Grid.Column="2" Name="CloseDocumentButton"
-                                    Classes="TabCloseButton"
+                                    Classes="Ghost Tiny"
                                     IsVisible="{Binding !IsCurrent}"
                                     ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"
                                     PointerPressed="OnDocumentTabClosePressed"
                                     Click="OnCloseDocumentTab">
                                 <views:IconView Width="9" Height="9"
-                                                Stroke="{DynamicResource AppMuted}"
+                                                Stroke="{DynamicResource TextTertiary}"
                                                 StrokeThickness="1.3" FitToBounds="True"
-                                                Data="{x:Static models:AppIcons.X}" />
+                                                Data="{x:Static vm:AppIcons.X}" />
                             </Button>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TextBlock Grid.Row="1" Classes="SectionHeader"
+            <!-- What is exported is the page that is showing: the macro itself, or the submacro
+                 in front of you with the submacros it holds. -->
+            <Button Grid.Column="1" Name="ExportDocumentButton" Classes="Secondary" Height="26"
+                    Padding="9,0" VerticalAlignment="Center" Margin="8,0,0,0"
+                    ToolTip.Tip="{Binding [Editor.ExportDocumentTip], Source={x:Static loc:Strings.Current}}"
+                    Click="OnExportDocumentClicked">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <views:IconView Width="12" Height="12"
+                                    Stroke="{DynamicResource TextTertiary}"
+                                    StrokeThickness="1.4" FitToBounds="True"
+                                    Data="{x:Static vm:AppIcons.ExternalLink}" />
+                    <TextBlock
+                               Text="{Binding [Editor.ExportDocument], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+            </Button>
+            </Grid>
+            <TextBlock Grid.Row="1" Classes="SectionHeader" HorizontalAlignment="Center"
                        Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
 
              <ItemsControl Grid.Row="2" ItemsSource="{Binding ActionPalette}" Margin="0,0,0,12">
@@ -1255,8 +940,8 @@
                      </ItemsPanelTemplate>
                  </ItemsControl.ItemsPanel>
                  <ItemsControl.ItemTemplate>
-                     <DataTemplate x:DataType="models:MacroAction">
-                        <Button Classes="PaletteButton" Classes.primary="{Binding IsPrimary}"
+                     <DataTemplate x:DataType="vm:MacroAction">
+                        <Button Classes="Icon" Margin="0,0,5,5" Classes.primary="{Binding IsPrimary}"
                                ToolTip.Tip="{Binding Label}"
                                ToolTip.ShowOnDisabled="True"
                                IsEnabled="{Binding IsEnabled}"
@@ -1271,29 +956,29 @@
                    <!-- What the design-time check made of the steps, so a problem is known while
                         the macro is being written rather than when a trigger fires it. -->
                    <StackPanel Grid.Row="3" Spacing="2">
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasStepProblems}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasStepProblems}"
                                   Text="{Binding ProblemSummary}" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasDeclarationProblems}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasDeclarationProblems}"
                                   Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasCallImpact}"
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasCallImpact}"
                                   Text="{Binding CallImpactSummary}" TextWrapping="Wrap" />
-                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasPlacementNotice}"
-                                  Text="{Binding PlacementNotice}" TextWrapping="Wrap" />
+                       <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasNotice}"
+                                  Text="{Binding Notice}" TextWrapping="Wrap" />
                    </StackPanel>
 
                    <!-- Empty state -->
                    <StackPanel Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
                                IsVisible="{Binding !HasSteps}" IsHitTestVisible="False">
-                       <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="13"
+                       <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="13"
                                   Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
                                   HorizontalAlignment="Center" />
                        <TextBlock Text="{Binding [Editor.NoStepsHint], Source={x:Static loc:Strings.Current}}"
-                                  Classes="Muted" HorizontalAlignment="Center" TextAlignment="Center" />
+                                  Classes="Hint" HorizontalAlignment="Center" TextAlignment="Center" />
                    </StackPanel>
 
                    <!-- Selection is restored after every edit. Following it would drag a long
                         macro from the reader's place to whichever row the rebuild picked last. -->
-                   <ListBox Grid.Row="4" Name="StepList" Classes="StepList"
+                   <ListBox Grid.Row="4" Name="StepList" Classes="List Bare Gapped"
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             AutoScrollToSelectedItem="False"
                             Background="Transparent"
@@ -1325,68 +1010,67 @@
                            </ContextMenu>
                        </ListBox.ContextMenu>
                        <ListBox.ItemTemplate>
-                           <DataTemplate x:DataType="models:StepRow">
+                           <DataTemplate x:DataType="vm:StepRow">
                               <Panel>
                                   <!-- A step, indented by how deep it sits. A block carries a
                                        fold arrow, so what is inside it can be put away. -->
-                                  <Border Classes="StepRow" Classes.problem="{Binding HasProblem}"
+                                  <Border Classes="Card Selectable" Classes.problem="{Binding HasProblem}"
                                           Opacity="{Binding RowOpacity}"
                                           Margin="{Binding Indent}"
                                           ToolTip.Tip="{Binding IdHint}"
                                           IsVisible="{Binding IsStep}">
                                       <StackPanel Orientation="Horizontal" Spacing="6">
-                                          <Button Classes="RowButton" IsVisible="{Binding CanFold}"
+                                          <Button Classes="Ghost Tiny" VerticalAlignment="Center" IsVisible="{Binding CanFold}"
                                                   ToolTip.Tip="{Binding FoldHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
                                                   CommandParameter="{Binding}">
                                               <views:IconView StrokeThickness="1.4" FitToBounds="True" Data="{Binding FoldIcon}" />
                                           </Button>
-                                          <views:IconView Width="16" Height="16" Stroke="{DynamicResource AppText}"
+                                          <views:IconView Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
                                                           StrokeThickness="1.5" Data="{Binding Icon}"
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <StackPanel VerticalAlignment="Center">
                                               <StackPanel Orientation="Horizontal" Spacing="6">
                                                   <TextBlock Text="{Binding DisplayName}" FontSize="13"
                                                              FontWeight="SemiBold"
-                                                             Foreground="{DynamicResource AppTextStrong}" />
-                                                  <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
+                                                             Foreground="{DynamicResource TextPrimary}" />
+                                                  <!-- 跳过是**状态**，走 `Warning`；颜色由 `Badge.Warning` 给 -->
+                                                  <Border Classes="Badge Warning"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding IsSkipped}">
-                                                      <TextBlock Text="{Binding SkipLabel}" FontSize="10.5"
-                                                                 Foreground="#D8B36A" />
+                                                      <TextBlock Text="{Binding SkipLabel}" Classes="Caption" />
                                                   </Border>
-                                                  <Border Background="#2C3A46" CornerRadius="3" Padding="5,0"
+                                                  <!-- id 是**标识**不是状态，用中性徽标 -->
+                                                  <Border Classes="Badge"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding HasId}">
-                                                      <TextBlock Text="{Binding Id}" FontSize="10.5"
-                                                                 FontFamily="Consolas,Menlo,monospace"
-                                                                 Foreground="#8FB3D9" />
+                                                      <TextBlock Text="{Binding Id}" Classes="Caption"
+                                                                 FontFamily="Consolas,Menlo,monospace" />
                                                   </Border>
                                                   <!-- Where this step's input goes. It costs
                                                        different things in each of the three ways,
                                                        so it is read off the row like the name. -->
-                                                  <Border Background="#26332A" CornerRadius="3" Padding="5,0"
+                                                  <Border Classes="Badge Info"
                                                           VerticalAlignment="Center"
                                                           ToolTip.Tip="{Binding InputMarkHint}"
                                                           IsVisible="{Binding HasInputMark}">
-                                                      <TextBlock Text="{Binding InputMark}" FontSize="10.5"
-                                                                 Foreground="#8FD9A8" />
+                                                      <TextBlock Text="{Binding InputMark}" Classes="Caption" />
                                                   </Border>
                                               </StackPanel>
-                                              <TextBlock Text="{Binding Detail}" Classes="Muted"
+                                              <TextBlock Text="{Binding Detail}" Classes="Hint"
                                                          TextWrapping="Wrap" />
                                               <TextBlock Text="{Binding Comment}" FontSize="11"
-                                                         Foreground="#C8A165" TextWrapping="Wrap"
+                                                         Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasComment}" />
-                                              <TextBlock Text="{Binding MetaSummary}" FontSize="10.5"
-                                                         Foreground="#8FB3D9" TextWrapping="Wrap"
+                                              <TextBlock Text="{Binding MetaSummary}" Classes="Caption"
+                                                         Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
                                           <Border Classes="ProblemTip" IsVisible="{Binding HasProblem}"
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
                                                               FitToBounds="True"
-                                                              Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                                              Data="{x:Static vm:AppIcons.WarningTriangle}" />
                                           </Border>
                                       </StackPanel>
                                   </Border>
@@ -1396,27 +1080,27 @@
                                   <Border Classes="StepHead" Margin="{Binding Indent}"
                                           IsVisible="{Binding IsHead}">
                                       <StackPanel Orientation="Horizontal" Spacing="8">
-                                          <TextBlock Classes="StepHeadLabel"
+                                          <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadLabel}" />
-                                          <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                          <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
-                                          <Button Classes="AddChildButton"
+                                          <Button Classes="Secondary" Height="28"
                                                   ToolTip.Tip="{Binding AddHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
                                                   CommandParameter="{Binding}">
                                               <StackPanel Orientation="Horizontal" Spacing="5">
                                                   <views:IconView Width="14" Height="14"
-                                                                  Stroke="{DynamicResource AppText}"
+                                                                  Stroke="{DynamicResource TextPrimary}"
                                                                   StrokeThickness="1.6"
                                                                   FitToBounds="True"
-                                                  Data="{x:Static models:AppIcons.ArrowDown}" />
+                                                  Data="{x:Static vm:AppIcons.ArrowDown}" />
                                                   <TextBlock Text="{Binding AddLabel}"
                                                              VerticalAlignment="Center" />
                                               </StackPanel>
                                           </Button>
                                           <TextBlock IsVisible="{Binding IsEmptyList}"
                                                      Text="{Binding EmptyListHint}"
-                                                     Classes="Muted"
+                                                     Classes="Hint"
                                                      VerticalAlignment="Center" />
                                       </StackPanel>
                                   </Border>
@@ -1425,7 +1109,7 @@
                                        the block" never read as the same place. -->
                                   <Border Classes="StepFoot" Margin="{Binding Indent}"
                                           IsVisible="{Binding IsFoot}">
-                                      <TextBlock Classes="StepFootLabel" Text="{Binding FootLabel}" />
+                                      <TextBlock Classes="Caption" VerticalAlignment="Center" Text="{Binding FootLabel}" />
                                   </Border>
                               </Panel>
                            </DataTemplate>
@@ -1439,7 +1123,7 @@
                                BorderThickness="3,0,0,0" IsVisible="False">
                            <TextBlock Name="DropHintText" Margin="10,0"
                                       VerticalAlignment="Center"
-                                      Foreground="{DynamicResource AppTextStrong}"
+                                      Foreground="{DynamicResource TextPrimary}"
                                       FontSize="12" TextWrapping="Wrap" />
                        </Border>
                    </Canvas>
@@ -1447,43 +1131,43 @@
                </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="1" Width="16" Background="Transparent"
+            <GridSplitter Grid.Column="1" Width="6" Classes="Split" Background="Transparent"
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                           Cursor="SizeWestEast" />
 
-            <GridSplitter Grid.Column="3" Width="16" Background="Transparent"
+            <GridSplitter Grid.Column="3" Width="6" Classes="Split" Background="Transparent"
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                           Cursor="SizeWestEast" />
 
-            <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource AppSurface}"
+            <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource SurfacePanel}"
                     CornerRadius="6" IsVisible="False">
                 <StackPanel Margin="20,18" Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="SectionHeader"
+                        <TextBlock Classes="SectionHeader" HorizontalAlignment="Center"
                                    Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="8,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="8,0"
                                 Content="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"
                                 Click="OnCloseRecording" />
                     </Grid>
-                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
                                Text="{Binding [Editor.RecordIdle], Source={x:Static loc:Strings.Current}}" />
-                            <Border Classes="GroupBox">
+                            <Border Classes="Sunken" Margin="0,4,0,0">
                                 <StackPanel>
-                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                    <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
                                                Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
 
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Editor.PositionCapture], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding PositionCaptureOptions}"
+                                    <ComboBox Classes="Field" ItemsSource="{Binding PositionCaptureOptions}"
                                               SelectedIndex="{Binding PositionCaptureIndex}" Margin="0,0,0,6" />
 
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                        <Border Grid.Row="0" Grid.Column="0" Classes="ActionCell">
+                                        <Border Grid.Row="0" Grid.Column="0" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Cursor}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Cursor}" />
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1493,12 +1177,12 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="0" Grid.Column="1" Classes="ActionCell">
+                                        <Border Grid.Row="0" Grid.Column="1" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Mouse}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Mouse}" />
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1508,12 +1192,12 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="1" Grid.Column="0" Classes="ActionCell">
+                                        <Border Grid.Row="1" Grid.Column="0" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Keyboard}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Keyboard}" />
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1523,12 +1207,12 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="1" Grid.Column="1" Classes="ActionCell">
+                                        <Border Grid.Row="1" Grid.Column="1" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Clock}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Clock}" />
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1538,12 +1222,12 @@
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="2" Grid.Column="0" Classes="ActionCell">
+                                        <Border Grid.Row="2" Grid.Column="0" Classes="Card">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                             Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
-                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GameController}" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                    <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GameController}" />
+                                                    <TextBlock Classes="Note" VerticalAlignment="Center"
                                                                Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
                                                 </StackPanel>
                                                 <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1554,13 +1238,13 @@
                                         </Border>
                                     </Grid>
 
-                                    <Border Classes="ActionCell" Margin="0,4,0,0">
+                                    <Border Classes="Card" Margin="0,4,0,0">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
                                                         Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
                                                 <!-- Funnel: input from elsewhere is filtered out -->
-                                                <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Filter}" />
-                                                <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                <views:IconView Classes="RecordIcon" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Filter}" />
+                                                <TextBlock Classes="Note" VerticalAlignment="Center"
                                                            Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
                                             </StackPanel>
                                             <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
@@ -1576,12 +1260,14 @@
                                                 HorizontalAlignment="Center"
                                                 IsEnabled="{Binding RecordDelays}"
                                                 Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                        <TextBlock Classes="FieldLabel" FontSize="12.5" Margin="0"
+                                        <!-- 这一处和它右边那个数字框是同一行，所以不要 `GapField` 的下边距：
+                                             原来是 `FieldLabel` + `Margin="0"` 顶掉它，正好等于 `Body`。 -->
+                                        <TextBlock Classes="Body"
                                                    Text="{Binding [Editor.IgnoreDelays], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
-                                        <views:NumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
-                                                       Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppMuted}"
+                                        <fa:FANumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs, Converter={StaticResource Number}}"
+                                                       Minimum="0" Maximum="60000" SmallChange="10" SimpleNumberFormat="0" />
+                                        <TextBlock Classes="Note" Foreground="{DynamicResource TextTertiary}"
                                                    Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
@@ -1602,14 +1288,16 @@
                             <Path Classes="RecordIndicator Stop" Data="M7,7 H17 V17 H7 Z"
                                   IsVisible="{Binding IsRecording}" />
                             <StackPanel VerticalAlignment="Center" Width="112">
+                                <!-- 录制钮的主标签：13.5 是笔误，删掉字号让它继承（默认就是 `UiBodySize` 13）。
+                                     字重留在元素上——它是"这个钮的主标签"，不是某一类通用文本。 -->
                                 <TextBlock Text="{Binding RecordLabel}" HorizontalAlignment="Center"
-                                           FontSize="13.5" FontWeight="SemiBold" />
+                                           FontWeight="SemiBold" />
                                 <TextBlock Text="Ctrl + F10" HorizontalAlignment="Center"
                                            FontSize="11" Foreground="#FFE3D6" />
                             </StackPanel>
                         </StackPanel>
                     </Button>
-                    <TextBlock Classes="Muted" HorizontalAlignment="Center"
+                    <TextBlock Classes="Hint" HorizontalAlignment="Center"
                                TextAlignment="Center" TextWrapping="Wrap"
                                Text="{Binding RecordStatusText}" />
                 </StackPanel>
@@ -1617,5 +1305,5 @@
 
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>
 

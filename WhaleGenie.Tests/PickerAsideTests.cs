@@ -147,11 +147,11 @@ public class PickerAsideTests
 
             var desk = AppWindows.Open;
             AppWindows.Open = () => [editor, asking];
+            var devices = new ChecksDevices { Screen = machine, Hook = hook };
             Task<ColorPickerWindow.Pick?> picked;
             try
             {
-                picked = ColorPickerWindow.PickAsync(asking,
-                    new ChecksDevices { Screen = machine, Hook = hook });
+                picked = ColorPickerWindow.PickAsync(asking, machine, devices.Input, hook);
             }
             finally
             {
@@ -199,8 +199,7 @@ public class PickerAsideTests
             Task<ElementPickerWindow.Pick?> picked;
             try
             {
-                picked = ElementPickerWindow.PickAsync(asking,
-                    new ChecksDevices { Screen = screen, Ui = ui, Hook = hook });
+                picked = ElementPickerWindow.PickAsync(asking, screen, hook, ui);
             }
             finally
             {
@@ -234,7 +233,7 @@ public class PickerAsideTests
     {
         var (region, away, stillAway, back) = Ui.RunAsync(async () =>
         {
-            var picker = new RegionPickerWindow(new ChecksDevices { Screen = new ScreenForChecks() });
+            var picker = new RegionPickerWindow(new ScreenForChecks(), new ChecksDevices().Windows);
             var editor = OnScreen(new Window());
             var asking = OnScreen(new Window());
 
@@ -296,6 +295,28 @@ public class PickerAsideTests
     }
 
     /// <summary>
+    /// The dialog a step is written in is waited on for its own answer, not for the modal loop it
+    /// is shown in: the pickers above put that window away while they are out, and a hidden modal
+    /// window answers at once with nothing while the step is still being written.
+    /// </summary>
+    [Fact]
+    public void The_action_window_is_waited_on_rather_than_its_modal_loop()
+    {
+        // The action editor is opened from the macro editor, and it carries pickers: its Answer is
+        // what is awaited, because a hidden modal window answers nothing.
+        var editor = Source("MacroEditorWindow.axaml.cs");
+        Assert.Contains("await dialog.Answer", editor, StringComparison.Ordinal);
+        Assert.DoesNotContain("await dialog.ShowDialogOver<MacroStep?>", editor,
+            StringComparison.Ordinal);
+
+        // The run window no longer opens that editor: a breakpoint's condition is written in a panel
+        // of its own, which carries no picker and can be waited on like any small dialog.
+        var run = Source("RunWindow.axaml.cs");
+        Assert.DoesNotContain("ShowDialogOver<MacroStep?>", run, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ActionEditorWindow(", run, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The picture of a rectangle is taken inside the scope, once the screen has been drawn again:
     /// the screen answers with the last frame it drew, which still has the picker on it.
     /// </summary>
@@ -305,7 +326,7 @@ public class PickerAsideTests
         var source = Source("RegionPickerWindow.axaml.cs");
 
         var away = source.IndexOf("using var aside = AppWindows.StepAside(owner);", StringComparison.Ordinal);
-        var waited = source.IndexOf("ScreenComposed.Wait();", StringComparison.Ordinal);
+        var waited = source.IndexOf("await AppWindows.SettleAsync();", StringComparison.Ordinal);
         var picture = source.IndexOf("ImageAssets.Capture(", StringComparison.Ordinal);
 
         Assert.True(away >= 0 && waited > away && picture > waited,
@@ -357,8 +378,24 @@ public class PickerAsideTests
 
         public PixelColor PixelAt(int x, int y) => Colour;
 
+        /// <summary>
+        /// A frame of this screen's colour, because the magnifier now reads a picture of the desk
+        /// rather than asking for one pixel at a time: a stand-in whose pixels say one thing and
+        /// whose pictures say another would be a screen no real machine has.
+        /// </summary>
         public ImageFrame Capture(int x, int y, int width, int height)
-            => new(width, height, new byte[width * height * 4]);
+        {
+            var pixels = new byte[width * height * 4];
+            for (var at = 0; at < pixels.Length; at += 4)
+            {
+                pixels[at] = Colour.B;
+                pixels[at + 1] = Colour.G;
+                pixels[at + 2] = Colour.R;
+                pixels[at + 3] = 0xFF;
+            }
+
+            return new ImageFrame(width, height, pixels);
+        }
 
         public ScreenShot Capture(ScreenCaptureRequest request)
             => NullDeviceLayer.Instance.Screen.Capture(request);

@@ -18,6 +18,37 @@ public class MacroRunnerTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>
+    /// What a call passes: one row per argument, the way a saved step writes it. An argument with
+    /// no row is one the call left out, so it takes its declared default — which is why a test that
+    /// means to pass nothing writes no row at all rather than an empty one.
+    /// </summary>
+    private static ExecutableParameter Args(params (string Name, string Text)[] arguments)
+        => new()
+        {
+            Name = FieldNames.Arguments,
+            Rows = [.. arguments.Select(argument => Row(argument.Name, argument.Text, null))],
+        };
+
+    /// <summary>One argument row, saying whether the empty value is the value.</summary>
+    private static ExecutableParameter ArgRow(string name, string text, bool? given)
+        => new() { Name = FieldNames.Arguments, Rows = [Row(name, text, given)] };
+
+    private static IReadOnlyDictionary<string, string> Row(string name, string text, bool? given)
+    {
+        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [FieldNames.Name] = name,
+            [FieldNames.Value] = text,
+        };
+        if (given is { } written)
+        {
+            row[FieldNames.Given] = written ? "true" : "false";
+        }
+
+        return row;
+    }
+
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
         => SampleFiles.Returns(results);
@@ -895,7 +926,7 @@ public class MacroRunnerTests
         Assert.True(result.Succeeded);
         Assert.Equal("1", store.Local.Values["after"].AsText());
         Assert.False(store.TryGet("never", out _));
-        Assert.Equal(RunKeys.RegexTimeout, store.Local.Values["step.rx01.error"].AsText());
+        Assert.Equal("failed", store.Local.Values["step.rx01.outcome"].AsText());
     }
 
     [Fact]
@@ -2194,216 +2225,6 @@ public class MacroRunnerTests
     }
 
     /// <summary>
-    /// 不等的那次调用立刻交回句柄，后台宏在另一条运行里等着；父宏先把共享变量改成它等的值，
-    /// 再按句柄等它结束并取回结果。若调用把父宏也拖住，这一步永远等不到那个值。
-    /// </summary>
-    [Fact]
-    public async Task A_background_run_returns_a_handle_and_the_parent_carries_on()
-    {
-        var store = Store();
-        store.Global.SetText("go", "false");
-        var library = new Library(
-            ("后台", new MacroSignature([], [new MacroReturn("结果")]),
-            [
-                Step("control.waitUntil", When("condition", Step("condition.compare",
-                    Param("variable", "go"), Param("compareOperator", "equals"),
-                    Param("compareValue", "true")))),
-                Set("结果", "完成"),
-                Step("control.setVariable",
-                    Param("name", "inner"), Param("scope", "local"), Param("value", "只在里面")),
-                Step("control.setVariable",
-                    Param("name", "sharedSeen"), Param("scope", "global"),
-                    Param("value", "看得见")),
-            ]));
-        store.Global.SetText("sharedSeen", "还没写");
-
-        var running = RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "后台"),
-                Param("runHandleName", "job"), Returns("结果=结果")),
-            Step("control.setVariable",
-                Param("name", "go"), Param("scope", "global"), Param("value", "true")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-        ], variables: store, macros: library);
-
-        var finished = await Task.WhenAny(running, Task.Delay(5000));
-        Assert.Same(running, finished);
-
-        var (result, _) = await running;
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("完成", store.Local.Values["结果"].AsText());
-        Assert.Equal("看得见", store.Global.Values["sharedSeen"].AsText());
-
-        // 子宏的局部变量不回到调用者这里。
-        Assert.False(store.Local.Contains("inner"));
-    }
-
-    [Fact]
-    public async Task A_wait_that_runs_out_leaves_the_background_run_going()
-    {
-        var store = Store();
-        var library = new Library(("慢", new MacroSignature([], [new MacroReturn("结果")]),
-            [
-                Step("control.delay", Param("ms", "250")),
-                Set("结果", "晚了"),
-            ]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "慢"),
-                Param("runHandleName", "job"), Returns("结果=结果")),
-            new ExecutableStep
-            {
-                Type = "control.waitMacro",
-                Parameters = [Param("runHandle", "$job")],
-                Meta = new StepMeta { TimeoutMs = 40, OnError = StepErrorAction.Continue },
-            },
-            Step("control.waitMacro", Param("runHandle", "$job")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("晚了", store.Local.Values["结果"].AsText());
-    }
-
-    [Fact]
-    public async Task A_background_run_that_fails_hands_its_key_to_the_wait()
-    {
-        var library = new Library(("坏", MacroSignature.Empty,
-            [Step("control.fail", Param("reason", "boom"))]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "坏"),
-                Param("runHandleName", "job")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-        ], macros: library);
-
-        Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal(RunKeys.StepFailedByMacro, result.Key);
-        Assert.Equal("boom", result.Detail);
-    }
-
-    /// <summary>
-    /// 父宏停下时，没等的后台运行也停；取消之后再过一会儿，它写的值不该出现。
-    /// </summary>
-    [Fact]
-    public async Task Stopping_the_parent_stops_the_background_run()
-    {
-        var store = Store();
-        var library = new Library(("长", MacroSignature.Empty,
-            [
-                Step("control.delay", Param("ms", "5000")),
-                Step("control.setVariable",
-                    Param("name", "finished"), Param("scope", "global"),
-                    Param("value", "1")),
-            ]));
-
-        using var cancel = new CancellationTokenSource();
-        var running = RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "长"),
-                Param("runHandleName", "job")),
-            Step("control.delay", Param("ms", "5000")),
-        ], variables: store, macros: library, token: cancel.Token);
-        cancel.CancelAfter(100);
-        var (result, _) = await running;
-
-        Assert.Equal(RunStatus.Stopped, result.Status);
-
-        await Task.Delay(400);
-        Assert.False(store.Global.Contains("finished"));
-    }
-
-    [Fact]
-    public async Task A_background_call_without_a_handle_is_refused()
-    {
-        var library = new Library(("后台", MacroSignature.Empty, []));
-        var (result, _) = await RunAsync(
-            [Step("control.startMacro", Param("macro", "后台"))],
-            macros: library);
-
-        Assert.Equal(RunKeys.MissingHandle, result.Key);
-    }
-
-    [Fact]
-    public async Task A_handle_that_was_never_started_is_refused()
-    {
-        var (result, _) = await RunAsync(
-            [Step("control.waitMacro", Param("runHandle", "run-nothere"))]);
-
-        Assert.Equal(RunKeys.NoSuchRun, result.Key);
-    }
-
-    [Fact]
-    public async Task A_handle_can_only_be_waited_for_once()
-    {
-        var library = new Library(("快", MacroSignature.Empty, []));
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "快"),
-                Param("runHandleName", "job")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-        ], macros: library);
-
-        Assert.Equal(RunKeys.NoSuchRun, result.Key);
-    }
-
-    /// <summary>
-    /// 句柄是一条记录，说清是哪一次运行、跑的是哪个宏、现在什么状态、会交回哪些名字：父宏读
-    /// field($job, "…") 就能知道，不必等日志或猜全局变量。
-    /// </summary>
-    [Fact]
-    public async Task A_run_handle_says_which_run_it_is_and_what_is_still_owed()
-    {
-        var store = Store();
-        var library = new Library(("慢", new MacroSignature([], [new MacroReturn("结果")]),
-            [Step("control.delay", Param("ms", "250")), Set("结果", "好")]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "慢"),
-                Param("runHandleName", "job"), Returns("结果=结果")),
-            Step("control.setVariable", Param("name", "id"), Param("scope", "local"),
-                Param("value", "field($job, \"id\")")),
-            Step("control.setVariable", Param("name", "macro"), Param("scope", "local"),
-                Param("value", "field($job, \"macro\")")),
-            Step("control.setVariable", Param("name", "status"), Param("scope", "local"),
-                Param("value", "field($job, \"status\")")),
-            Step("control.setVariable", Param("name", "names"), Param("scope", "local"),
-                Param("value", "field($job, \"results\")")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.StartsWith("run-", store.Local.Values["id"].AsText());
-        Assert.Equal("慢", store.Local.Values["macro"].AsText());
-        Assert.Equal("running", store.Local.Values["status"].AsText());
-        Assert.Equal(["结果"],
-            store.Local.Values["names"].AsList().Select(item => item.AsText()));
-        Assert.Equal("好", store.Local.Values["结果"].AsText());
-    }
-
-    /// <summary>等待之后句柄改写成它结束时的样子：状态、失败键与结果名都留在里面。</summary>
-    [Fact]
-    public async Task A_waited_handle_says_how_the_run_ended()
-    {
-        var store = Store();
-        var library = new Library(("快", MacroSignature.Empty, []));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "快"), Param("runHandleName", "job")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-            Step("control.setVariable", Param("name", "status"), Param("scope", "local"),
-                Param("value", "field($job, \"status\")")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("done", store.Local.Values["status"].AsText());
-    }
-
-    /// <summary>
     /// 同步调用也受这一步的「超时」约束：被调用的宏比预算久，这一步报 Run.Timeout，而不是
     /// 一直陪着它跑下去。
     /// </summary>
@@ -2427,90 +2248,6 @@ public class MacroRunnerTests
         Assert.Equal(RunKeys.Timeout, result.Key);
     }
 
-    /// <summary>取消一次后台运行：它停下，之后的步骤不再写，句柄说清它已经停下。</summary>
-    [Fact]
-    public async Task Cancelling_a_background_run_stops_it_and_says_so()
-    {
-        var store = Store();
-        var library = new Library(("长", MacroSignature.Empty,
-            [
-                Step("control.delay", Param("ms", "5000")),
-                Step("control.setVariable", Param("name", "finished"), Param("scope", "global"),
-                    Param("value", "1")),
-            ]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "长"), Param("runHandleName", "job")),
-            Step("control.cancelMacro", Param("runHandle", "$job"), Returns("stopped=stopped")),
-            Step("control.setVariable", Param("name", "status"), Param("scope", "local"),
-                Param("value", "field($job, \"status\")")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(1, N(store, "stopped"));
-        Assert.Equal("stopped", store.Local.Values["status"].AsText());
-        Assert.False(store.Global.Contains("finished"));
-    }
-
-    /// <summary>
-    /// 一次等齐多次后台运行：每个启动时勾的名字都写回，count 说等到几个；同一句柄在列表里
-    /// 出现两次只算一次。
-    /// </summary>
-    [Fact]
-    public async Task Waiting_for_all_background_runs_takes_back_every_result()
-    {
-        var store = Store();
-        var library = new Library(
-            ("一", new MacroSignature([], [new MacroReturn("值")]),
-                [Step("control.delay", Param("ms", "40")), Set("值", "one")]),
-            ("二", new MacroSignature([], [new MacroReturn("值")]),
-                [Step("control.delay", Param("ms", "40")), Set("值", "two")]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
-                Param("value", "list()")),
-            Step("control.startMacro", Param("macro", "一"), Param("runHandleName", "jobOne"),
-                Returns("值=first")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobOne")),
-            Step("control.startMacro", Param("macro", "二"), Param("runHandleName", "jobTwo"),
-                Returns("值=second")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobTwo")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobTwo")),
-            Step("control.waitAll", Param("runHandles", "$jobs"), Returns("count=waited")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(2, N(store, "waited"));
-        Assert.Equal("one", store.Local.Values["first"].AsText());
-        Assert.Equal("two", store.Local.Values["second"].AsText());
-    }
-
-    /// <summary>
-    /// 后台运行失败时，失败键留在句柄里：等待那一步报同一个失败键，捕获之后读句柄也看得见。
-    /// </summary>
-    [Fact]
-    public async Task A_failed_background_run_leaves_its_key_in_the_handle()
-    {
-        var store = Store();
-        var library = new Library(("坏", MacroSignature.Empty,
-            [Step("control.fail", Param("reason", "boom"))]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "job")),
-            Try(
-                Body("body", Step("control.waitMacro", Param("runHandle", "$job"))),
-                Body("catch", Set("status", "field($job, \"status\")"),
-                    Set("error", "field($job, \"error\")"))),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("failed", store.Local.Values["status"].AsText());
-        Assert.Equal(RunKeys.StepFailedByMacro, store.Local.Values["error"].AsText());
-    }
-
     /// <summary>
     /// 同步调用失败时不把半截结果带回来：被调用的宏失败前写下的那一项，调用处读到的是空。
     /// </summary>
@@ -2531,146 +2268,6 @@ public class MacroRunnerTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(string.Empty, store.Local.Values["带回"].AsText());
-    }
-
-    /// <summary>后台运行在等待时报失败时，启动处勾的结果一个都不写回。</summary>
-    [Fact]
-    public async Task A_failed_wait_writes_none_of_the_chosen_results()
-    {
-        var store = Store();
-        var library = new Library(("坏", new MacroSignature([], [new MacroReturn("结果")]),
-            [Set("结果", "半截"), Step("control.fail", Param("reason", "boom"))]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "job"),
-                Returns("结果=带回")),
-            Try(
-                Body("body", Step("control.waitMacro", Param("runHandle", "$job"))),
-                Body("catch")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(string.Empty, store.Local.Values["带回"].AsText());
-    }
-
-    /// <summary>
-    /// 「等待全部」里有一个失败时，别的运行的结果也不写：一次等待要么把整列结果交出来，要么一项都不交。
-    /// </summary>
-    [Fact]
-    public async Task Waiting_for_all_that_fails_writes_none_of_the_results()
-    {
-        var store = Store();
-        var library = new Library(
-            ("好", new MacroSignature([], [new MacroReturn("值")]), [Set("值", "好")]),
-            ("坏", new MacroSignature([], [new MacroReturn("值")]),
-                [Set("值", "半截"), Step("control.fail", Param("reason", "boom"))]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
-                Param("value", "list()")),
-            Step("control.startMacro", Param("macro", "好"), Param("runHandleName", "jobGood"),
-                Returns("值=好值")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobGood")),
-            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "jobBad"),
-                Returns("值=坏值")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobBad")),
-            Try(
-                Body("body", Step("control.waitAll", Param("runHandles", "$jobs"))),
-                Body("catch")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(string.Empty, store.Local.Values["好值"].AsText());
-        Assert.Equal(string.Empty, store.Local.Values["坏值"].AsText());
-    }
-
-    /// <summary>
-    /// 空列表不是“全部等完了”，而是这一步没有指名任何运行；与 waitAny 一样报没有可等的运行。
-    /// </summary>
-    [Fact]
-    public async Task Waiting_for_all_of_an_empty_list_is_a_mistake()
-    {
-        var store = Store();
-        var (result, _) = await RunAsync(
-        [
-            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
-                Param("value", "list()")),
-            Step("control.waitAll", Param("runHandles", "$jobs")),
-        ], variables: store);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal(RunKeys.NoRunsToWait, result.Key);
-    }
-
-    /// <summary>
-    /// 一次全量等待失败时，已经成功的那次运行仍留在句柄表里；调用处可以逐个等待，而不是连句柄
-    /// 都找不到。结果仍然一项都不写，失败的那一步只把整列等待判为失败。
-    /// </summary>
-    [Fact]
-    public async Task A_failed_wait_all_leaves_the_finished_runs_waitable()
-    {
-        var store = Store();
-        var library = new Library(
-            ("好", new MacroSignature([], [new MacroReturn("值")]), [Set("值", "好")]),
-            ("坏", new MacroSignature([], [new MacroReturn("值")]),
-                [Step("control.fail", Param("reason", "boom"))]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
-                Param("value", "list()")),
-            Step("control.startMacro", Param("macro", "好"), Param("runHandleName", "jobGood"),
-                Returns("值=好值")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobGood")),
-            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "jobBad"),
-                Returns("值=坏值")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobBad")),
-            Try(
-                Body("body", Step("control.waitAll", Param("runHandles", "$jobs"))),
-                Body("catch")),
-            Step("control.waitMacro", Param("runHandle", "$jobGood")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("好", store.Local.Values["好值"].AsText());
-        Assert.Equal(string.Empty, store.Local.Values["坏值"].AsText());
-    }
-
-    /// <summary>
-    /// 等待任意一个失败时，失败的句柄也留在表里，之后还能查看它是怎么结束的；成功的那一个才被
-    /// 取走结果并移出表。
-    /// </summary>
-    [Fact]
-    public async Task A_failed_wait_any_leaves_the_failed_handle_readable()
-    {
-        var store = Store();
-        var library = new Library(
-            ("坏", new MacroSignature([], [new MacroReturn("值")]),
-                [Step("control.fail", Param("reason", "boom"))]),
-            ("好", new MacroSignature([], [new MacroReturn("值")]),
-                [Step("control.delay", Param("ms", "5000")), Set("值", "好")]));
-
-        var (result, _) = await RunAsync(
-        [
-            Step("control.setVariable", Param("name", "jobs"), Param("scope", "local"),
-                Param("value", "list()")),
-            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "jobBad"),
-                Returns("值=坏值")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobBad")),
-            Step("control.startMacro", Param("macro", "好"), Param("runHandleName", "jobGood"),
-                Returns("值=好值")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobGood")),
-            Try(
-                Body("body", Step("control.waitAny", Param("runHandles", "$jobs"))),
-                Body("catch")),
-            Step("control.runStatus", Param("runHandle", "$jobBad"), Returns("status=status")),
-        ], variables: store, macros: library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("failed", store.Local.Values["status"].AsText());
-        Assert.Equal(string.Empty, store.Local.Values["好值"].AsText());
     }
 
     /// <summary>
@@ -2845,7 +2442,6 @@ public class MacroRunnerTests
         Assert.Equal("Run.StepFailedByMacro", result.Key);
         Assert.Equal("boom", result.Detail);
         Assert.False(store.TryGet("afterRethrow", out _));
-        Assert.Equal("Run.StepFailedByMacro", store.Local.Values["step.rrrr.error"].AsText());
     }
 
     [Fact]
@@ -2984,9 +2580,9 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Call("双击", Param("arg.n", "$n"), Returns("n=n")),
+            Call("双击", Args(("n", "$n")), Returns("n=n")),
             Set("中间", "$n"),
-            Call("清空", Param("arg.n", "$n"), Returns("n=n")),
+            Call("清空", Args(("n", "$n")), Returns("n=n")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -3002,7 +2598,7 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Call("加一", Param("arg.输入", "$我的数"), Returns("结果=结果")),
+            Call("加一", Args(("输入", "$我的数")), Returns("结果=结果")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -3032,7 +2628,7 @@ public class MacroRunnerTests
             [Set("结果", "$倍数 * 2")]));
 
         var (result, _) = await RunAsync(
-            [Call("倍数", Param("arg.倍数", ""), Returns("结果=结果"))],
+            [Call("倍数", Returns("结果=结果"))],
             variables: store, macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3047,7 +2643,7 @@ public class MacroRunnerTests
             [Set("痕迹", "1")]));
 
         var (result, _) = await RunAsync(
-            [Call("甲", Param("arg.次数", ""))], macros: library);
+            [Call("甲", Args(("次数", "")))], macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal(RunKeys.MissingArgument, result.Key);
@@ -3087,8 +2683,8 @@ public class MacroRunnerTests
             [Set("痕迹", "$数量")]));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
-                Param("arg.数量.given", "true"), Returns("痕迹=取回"))], variables: store,
+            [Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
+                Returns("痕迹=取回"))], variables: store,
             macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3112,6 +2708,41 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_value_passed_to_an_argument_the_macro_does_not_declare_stops_the_call()
+    {
+        var store = Store();
+        var library = new Library(Takes("甲", [], [], Set("痕迹", "1")));
+
+        // The call was written for an older declaration of "甲". The value now has nowhere to go,
+        // and saying so beats running with it quietly dropped.
+        var (result, _) = await RunAsync(
+            [Call("甲", Args(("次数", "3")))], variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.UndeclaredArgument", result.Key);
+        Assert.Equal("次数", result.Detail);
+        Assert.False(store.TryGet("痕迹", out _));
+    }
+
+    [Fact]
+    public async Task An_argument_with_both_a_value_and_the_empty_marker_stops_the_call()
+    {
+        var store = Store();
+        var library = new Library(Takes("甲", ["次数"], [], Set("痕迹", "$次数")));
+
+        // The field says a value and the marker beside it says none. Which one the author meant is
+        // a guess, so the call stops instead of picking.
+        var (result, _) = await RunAsync(
+            [Call("甲", ArgRow("次数", "3", true))],
+            variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.GivenWithValue", result.Key);
+        Assert.Equal("次数", result.Detail);
+        Assert.False(store.TryGet("痕迹", out _));
+    }
+
+    [Fact]
     public async Task A_required_argument_can_be_supplied_as_an_empty_value()
     {
         var store = Store();
@@ -3121,8 +2752,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
-                Param("arg.数量.given", "true"), Returns("痕迹=取回")),
+            Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
+                Returns("痕迹=取回")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3139,8 +2770,8 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
-                Param("arg.数量.given", "true"), Returns("痕迹=取回")),
+            Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
+                Returns("痕迹=取回")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded, result.Key);
@@ -3157,7 +2788,7 @@ public class MacroRunnerTests
             [Set("结果", "$数量")]));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", "不是数"))],
+            [Step("control.runMacro", Param("macro", "甲"), Args(("数量", "不是数")))],
             variables: store, macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -3268,7 +2899,7 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             Set("项目", "list(1, 2, 3)"),
-            Call("数个数", Param("arg.项目", "$项目"), Returns("个数=个数")),
+            Call("数个数", Args(("项目", "$项目")), Returns("个数=个数")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -3302,7 +2933,7 @@ public class MacroRunnerTests
             []));
 
         var (result, _) = await RunAsync(
-            [Call("甲", Param("arg.n", "$source"), Returns("n=n"))], variables: store,
+            [Call("甲", Args(("n", "$source")), Returns("n=n"))], variables: store,
             macros: library);
 
         // The in-out name is the declared one: the argument arrives as n and the same n comes back.
@@ -3418,8 +3049,10 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
             [Call("")], macros: new Library(Plain("甲")));
 
+        // The macro a call names is a required field now, so leaving it empty is answered the same
+        // way every other required field is rather than as a name that was looked for and missed.
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal("Run.MacroNotFound", result.Key);
+        Assert.Equal(RunKeys.MissingField, result.Key);
     }
 
     [Fact]

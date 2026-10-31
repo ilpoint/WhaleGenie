@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -15,41 +16,29 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class MacroEditorWindow : Window
+public partial class MacroEditorWindow : AppWindow
 {
+    /// <summary>What this editor is working on: the project, the macro, the lifted ones, the pages.</summary>
+    private readonly MacroEditorSession _session;
+
     private readonly MacroEditorViewModel _rootViewModel;
     private MacroEditorViewModel _viewModel;
     private readonly ActionPaletteViewModel _palette = new();
-    private readonly ObservableCollection<MacroDocumentPageViewModel> _documents = [];
-    private readonly Dictionary<MacroEditorViewModel, string> _lastEditorNames = [];
     private IReadOnlyList<PublicMacroEntry> _publicMacros = [];
     private string? _publicMacroLoadError;
     private bool _switchingDocuments;
     private MacroDocumentPageViewModel? _pageBeforeTabClose;
-    private PendingSubMacro? _pendingSubMacro;
-    private readonly List<MacroItem> _project;
 
-    /// <summary>
-    /// Macros the editor made while it was open, which is what a lift leaves behind: they join the
-    /// project when the macro that calls them is saved, because until then the call is not saved
-    /// either.
-    /// </summary>
-    private readonly List<MacroItem> _lifted = [];
 
-    /// <summary>The macro being edited, kept apart from the rest of the project so a call it makes
-    /// can be told from a call to another macro.</summary>
-    private readonly MacroItem? _editing;
 
-    /// <summary>Where a picture taken from the screen is put, so it travels with the package.</summary>
-    private readonly string _assetFolder;
 
     /// <summary>
     /// The layer the trials and runs started from here use, handed in by the window this was
@@ -110,7 +99,7 @@ public partial class MacroEditorWindow : Window
     private readonly List<Key> _swallowReleases = [];
 
     /// <summary>The input hook, up only while a recording is in progress.</summary>
-    private IInputRecorder? _recorder;
+
 
     /// <summary>
     /// The controller, read while the editor is waiting for a binding. Windows has no word for a
@@ -123,8 +112,6 @@ public partial class MacroEditorWindow : Window
     private DispatcherTimer? _padTimer;
 
     /// <summary>What the hook has captured so far, in the order it happened.</summary>
-    private readonly List<RecordedInput> _captured = [];
-    private readonly object _captureLock = new();
     private DispatcherTimer? _recordTimer;
 
     /// <summary>Clears the "what the last pick caught" line a moment after it is shown.</summary>
@@ -188,15 +175,15 @@ public partial class MacroEditorWindow : Window
     {
         InitializeComponent();
 
-        _project = [.. project ?? (existing is null ? [] : [existing])];
-        _editing = existing;
-        _assetFolder = ImageAssets.FolderFor(packagePath);
+        _session = new MacroEditorSession(existing,
+            [.. project ?? (existing is null ? [] : [existing])],
+            ImageAssets.FolderFor(packagePath));
         _devices = devices;
         _rootViewModel = new MacroEditorViewModel();
         _rootViewModel.SystemReader = new SystemVariableReader(Layer);
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;
-        _rootViewModel.Documents = _documents;
+        _rootViewModel.Documents = _session.Documents;
         _recovery = new RecoveryWriter(WriteRecovery);
 
         // The window trigger lists the windows its rule picks out right now, and the frames on the
@@ -223,12 +210,12 @@ public partial class MacroEditorWindow : Window
         }
         else
         {
-            _rootViewModel.UseDefaultName(_project.Select(macro => macro.Name));
+            _rootViewModel.UseDefaultName(_session.Project.Select(macro => macro.Name));
         }
 
         BuildDocumentPages();
 
-        _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _project);
+        _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _session.Project);
         if (existing is not null)
         {
             _viewModel.LoadDraftProjectSettings(existing);
@@ -241,6 +228,10 @@ public partial class MacroEditorWindow : Window
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
+
+        // 标题栏归库，内容伸进标题栏：那一行里放鲸鱼、标题与置顶钮，整条都能拖（`AppWindow` 负责拖）。
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
         Opened += (_, _) =>
         {
             if (_initialBindingsSettled)
@@ -373,34 +364,6 @@ public partial class MacroEditorWindow : Window
             };
         }
 
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
-        var maximizeButton = this.FindControl<Button>("MaximizeButton");
-        if (maximizeButton is not null)
-        {
-            maximizeButton.Click += (_, _) =>
-            {
-                WindowState = WindowState == WindowState.Maximized
-                    ? WindowState.Normal
-                    : WindowState.Maximized;
-            };
-        }
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) =>
-            {
-                // Leave the recording state behind before the editor goes away.
-                _closing = true;
-                _viewModel.StopRecording();
-                Close(null);
-            };
-        }
         UpdateTitleBarButtons();
         Strings.Current.LanguageChanged += UpdateTitleBarButtons;
         Closed += (_, _) => Strings.Current.LanguageChanged -= UpdateTitleBarButtons;
@@ -555,7 +518,7 @@ public partial class MacroEditorWindow : Window
     }
 
     private IReadOnlyList<MacroItem> ProjectMacrosForVariableEdits()
-        => [.. _project,
+        => [.. _session.Project,
             .. _documentPages.Select(page => page.Editor.BuildMacro())];
 
     private void ApplyGlobalVariableDrafts(IReadOnlyList<VariableDefinitionDraft> drafts,
@@ -639,21 +602,18 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    private sealed record PendingSubMacro(MacroEditorViewModel Editor,
-        MacroDocumentPageViewModel Page);
-
     private void BuildDocumentPages()
     {
-        _documents.Clear();
+        _session.Documents.Clear();
         _documentPages.Clear();
         var current = new MacroDocumentPageViewModel(_rootViewModel, isCurrent: true);
-        _documents.Add(current);
+        _session.Documents.Add(current);
         _documentPages.Add(current);
 
         var children = _rootViewModel.SubMacros.ToList();
         _rootViewModel.SubMacros.Clear();
         AddChildPages(children);
-        _rootViewModel.Documents = _documents;
+        _rootViewModel.Documents = _session.Documents;
         SettleDocumentIds();
         RefreshDocuments();
         SelectDocument(current);
@@ -672,12 +632,12 @@ public partial class MacroEditorWindow : Window
                 editor.Windows = devices.Windows;
             }
 
-            editor.Documents = _documents;
+            editor.Documents = _session.Documents;
             editor.LoadFrom(child);
             editor.SubMacros.Clear();
             WatchChildEditor(editor);
             var page = new MacroDocumentPageViewModel(editor, isCurrent: false, child);
-            _documents.Add(page);
+            _session.Documents.Add(page);
             _documentPages.Add(page);
             AddChildPages(nested);
         }
@@ -686,7 +646,7 @@ public partial class MacroEditorWindow : Window
     private void AddBlankSubMacro()
     {
         var editor = new MacroEditorViewModel { IsSubMacro = true };
-        editor.Documents = _documents;
+        editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {
             editor.Windows = devices.Windows;
@@ -705,8 +665,8 @@ public partial class MacroEditorWindow : Window
 
     private async void CopyProjectMacroAsSub()
     {
-        var candidates = _project
-            .Where(macro => !ReferenceEquals(macro, _editing))
+        var candidates = _session.Project
+            .Where(macro => !ReferenceEquals(macro, _session.Editing))
             .ToList();
         if (await MenuMacroPickerWindow.ShowAsync(this, candidates,
                 Strings.Get("Editor.PickSubMacro"),
@@ -721,10 +681,36 @@ public partial class MacroEditorWindow : Window
         AddExistingSubMacro(copy);
     }
 
+    /// <summary>
+    /// Writes the page in front to a file of its own: the macro with everything that makes it
+    /// callable, and the pictures it looks for. Triggers stay behind on purpose — they belong to
+    /// the project that runs the macro, and the project it lands in gives it a way to be started.
+    /// </summary>
+    private async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
+    {
+        var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : BuildRootSnapshot();
+        var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
+            macro.Name);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            MacroPackage.Save(path, [macro], MacroBundle.UsedGlobals([macro]), AppVersion.Text);
+        }
+        catch (Exception error)
+        {
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Editor.ExportTitle"),
+                $"{Path.GetFileName(path)}\n{error.Message}", Strings.Get("Common.Ok"), null, false);
+        }
+    }
+
     private void AddExistingSubMacro(MacroItem macro)
     {
         var editor = new MacroEditorViewModel { IsSubMacro = true };
-        editor.Documents = _documents;
+        editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {
             editor.Windows = devices.Windows;
@@ -746,19 +732,30 @@ public partial class MacroEditorWindow : Window
     private void AddChildPage(MacroEditorViewModel editor, MacroItem? source)
     {
         var page = new MacroDocumentPageViewModel(editor, isCurrent: false, source);
-        editor.Documents = _documents;
-        _documents.Add(page);
+        editor.Documents = _session.Documents;
+        _session.Documents.Add(page);
         _documentPages.Add(page);
     }
 
+    /// <summary>
+    /// Gives every step of every open document an id of its own, and says on the page it happened
+    /// to when one had to move: a submacro brought in from elsewhere arrives with the ids it was
+    /// written with, and the caller it was dropped into may already be using them.
+    /// </summary>
     private void SettleDocumentIds()
-        => StepIds.SettleAcross(_documentPages.Select(page => page.Editor.Steps));
+    {
+        var renamed = StepIds.SettleAcross(_documentPages.Select(page => page.Editor.Steps));
+        if (renamed.Count > 0)
+        {
+            _documentPages[^1].Editor.ShowStepIdsRepaired(renamed);
+        }
+    }
 
     private string UniqueSubMacroName(string basis)
     {
         var names = _documentPages
             .Select(page => page.Editor.Name.Trim())
-            .Concat(_project.Select(macro => macro.Name.Trim()))
+            .Concat(_session.Project.Select(macro => macro.Name.Trim()))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var stem = basis.Trim();
         if (stem.Length == 0)
@@ -784,7 +781,7 @@ public partial class MacroEditorWindow : Window
     private void WatchChildEditor(MacroEditorViewModel editor)
     {
         editor.SystemReader = new SystemVariableReader(Layer);
-        _lastEditorNames[editor] = editor.Name;
+        _session.EditorNames[editor] = editor.Name;
         editor.CloseRequested += _ => SaveAll(closeAfterSave: false);
         editor.AddStepRequested += OnAddStepRequested;
         editor.EditStepRequested += OnEditStepRequested;
@@ -810,9 +807,9 @@ public partial class MacroEditorWindow : Window
 
             if (args.PropertyName == nameof(MacroEditorViewModel.Name))
             {
-                var oldName = _lastEditorNames.GetValueOrDefault(editor, string.Empty);
+                var oldName = _session.EditorNames.GetValueOrDefault(editor, string.Empty);
                 var newName = editor.Name.Trim();
-                _lastEditorNames[editor] = editor.Name;
+                _session.EditorNames[editor] = editor.Name;
                 if (oldName.Length > 0 && newName.Length > 0
                     && !string.Equals(oldName, newName, StringComparison.Ordinal))
                 {
@@ -853,8 +850,8 @@ public partial class MacroEditorWindow : Window
 
     private void RefreshProjectCallables()
     {
-        var projectCalls = _project
-            .Where(macro => !ReferenceEquals(macro, _editing))
+        var projectCalls = _session.Project
+            .Where(macro => !ReferenceEquals(macro, _session.Editing))
             .Select(macro => macro.Callable)
             .ToList();
         var sharedChildren = _documentPages
@@ -864,13 +861,22 @@ public partial class MacroEditorWindow : Window
         var inputShared = OtherMacroSendsInput();
         var browserShared = OtherMacroUsesBrowser();
 
+        // The submacros of the document being edited are callable too, and they were nowhere in
+        // this list: the picker beside a call step could not name one, and a step that did name one
+        // was reported as a call to a macro the project does not have. They are gathered by the
+        // same rule the run uses, so a name that works here works there.
+        var subCalls = CallableMacros.Callables(DocumentSubMacros());
+
         foreach (var page in _documentPages)
         {
             var ownName = page.Editor.Name.Trim();
             var calls = projectCalls
                 .Concat(sharedChildren)
+                .Concat(subCalls)
                 .Where(call => !string.Equals(call.Name.Trim(), ownName,
                     StringComparison.OrdinalIgnoreCase))
+                .GroupBy(call => call.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
                 .ToList();
             page.Editor.SetProjectMacros(calls, inputShared, browserShared);
         }
@@ -888,45 +894,32 @@ public partial class MacroEditorWindow : Window
 
     private void RefreshPalette()
     {
-        var called = DirectlyCalledSubMacros(_viewModel);
-        _palette.SetSources(_viewModel.InsertChoices, called, _publicMacros);
+        // Every submacro the document holds, not only the ones already called: the dock is where
+        // one is picked to be called, so it has to show the one that was just written and saved.
+        _palette.SetSources(_viewModel.InsertChoices, DocumentSubMacros(), _publicMacros);
     }
 
-    private IReadOnlyList<MacroItem> DirectlyCalledSubMacros(MacroEditorViewModel editor)
-    {
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var step in editor.Steps)
-        {
-            Collect(step);
-        }
+    /// <summary>
+    /// Every submacro of the document being edited, as the pages hold them: the root editor hands
+    /// its own list over to the pages when the window opens, so the pages are where a submacro
+    /// lives while it is being written.
+    /// </summary>
+    private IReadOnlyList<MacroItem> DocumentSubMacros()
+        =>
+        [
+            .. _documentPages
+                .Where(page => !page.IsCurrent)
+                .Select(page => page.Editor.BuildMacro())
+                .Where(macro => macro.Name.Trim().Length > 0),
+        ];
 
-        return [.. _documentPages
-            .Where(page => !page.IsCurrent && page.Source is not null)
-            .Select(page => page.Editor.BuildMacro())
-            .Where(macro => names.Contains(macro.Name))
-            .GroupBy(macro => macro.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First())];
-
-        void Collect(MacroStep step)
-        {
-            if (step.Type is "control.runMacro" or "control.startMacro")
-            {
-                var name = step.Text("macro").Trim();
-                if (name.Length > 0)
-                {
-                    names.Add(name);
-                }
-            }
-
-            foreach (var parameter in step.StepLists)
-            {
-                foreach (var child in parameter.Steps)
-                {
-                    Collect(child);
-                }
-            }
-        }
-    }
+    /// <summary>The name a call writes for one submacro: its own when that is unique, else 父/子.</summary>
+    private string CallNameFor(MacroItem sub)
+        => CallableMacros.Named(DocumentSubMacros())
+            .FirstOrDefault(pair => string.Equals(pair.Macro.Name, sub.Name,
+                StringComparison.OrdinalIgnoreCase)) is { Name: { } name }
+            ? name
+            : sub.Name;
 
     private void SelectDocument(MacroDocumentPageViewModel page)
     {
@@ -935,7 +928,7 @@ public partial class MacroEditorWindow : Window
         {
             _viewModel = page.Editor;
             DataContext = page.Editor;
-            _viewModel.Documents = _documents;
+            _viewModel.Documents = _session.Documents;
             var tabs = this.FindControl<ListBox>("DocumentTabs");
             if (tabs is not null)
             {
@@ -961,9 +954,9 @@ public partial class MacroEditorWindow : Window
                     StringComparison.OrdinalIgnoreCase)));
         if (page is not null)
         {
-            if (!_documents.Contains(page))
+            if (!_session.Documents.Contains(page))
             {
-                _documents.Add(page);
+                _session.Documents.Add(page);
             }
 
             SelectDocument(page);
@@ -999,7 +992,7 @@ public partial class MacroEditorWindow : Window
         _pageBeforeTabClose = null;
         var closingActive = ReferenceEquals(active, page);
 
-        _documents.Remove(page);
+        _session.Documents.Remove(page);
         SelectDocument(closingActive ? _documentPages[0] : active ?? _documentPages[0]);
         RefreshDocuments();
     }
@@ -1046,7 +1039,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        _documents.Remove(page);
+        _session.Documents.Remove(page);
         _documentPages.Remove(page);
         SelectDocument(_documentPages[0]);
         _rootViewModel.IsDirty = true;
@@ -1059,7 +1052,7 @@ public partial class MacroEditorWindow : Window
     {
         foreach (var step in steps)
         {
-            if (step.Type is "control.runMacro" or "control.startMacro"
+            if (step.Type is "control.runMacro"
                 && string.Equals(step.Text("macro").Trim(), macroName,
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -1079,7 +1072,7 @@ public partial class MacroEditorWindow : Window
     {
         foreach (var step in steps)
         {
-            if (step.Type is "control.runMacro" or "control.startMacro"
+            if (step.Type is "control.runMacro"
                 && step.Parameters.FirstOrDefault(parameter => parameter.Name == "macro")
                     is { } target
                 && string.Equals(target.Value?.Trim(), oldName,
@@ -1346,7 +1339,7 @@ public partial class MacroEditorWindow : Window
     private void OnPreviewKeyUp(object? sender, KeyEventArgs e)
     {
         if (DataContext is MacroEditorViewModel viewModel && viewModel.IsCapturingKey
-            && IsModifier(e.Key))
+            && HotkeyNameMapper.IsModifier(e.Key))
         {
             if (_captureModifiers.Remove(e.Key) && _captureModifiers.Count == 0)
             {
@@ -1382,7 +1375,7 @@ public partial class MacroEditorWindow : Window
                 return;
             }
 
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 if (!_captureModifiers.Contains(e.Key))
                 {
@@ -1409,14 +1402,7 @@ public partial class MacroEditorWindow : Window
 
         if (viewModel.IsCapturingKey)
         {
-            if (viewModel.CaptureContinues && e.Key == Key.Escape)
-            {
-                viewModel.StopKeyCapture();
-                e.Handled = true;
-                return;
-            }
-
-            if (IsModifier(e.Key))
+            if (HotkeyNameMapper.IsModifier(e.Key))
             {
                 // Held back rather than taken: Ctrl, Shift, Alt and Win may be the front of a
                 // combination, and which it was is only known once the capture ends.
@@ -1637,19 +1623,6 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>Whether the key is one of the eight halves of Ctrl, Shift, Alt and Win.</summary>
-    private static bool IsModifier(Key key) => ModifierFlag(key) != KeyModifiers.None;
-
-    /// <summary>The group a modifier key belongs to; None for anything that is not one.</summary>
-    private static KeyModifiers ModifierFlag(Key key) => key switch
-    {
-        Key.LeftCtrl or Key.RightCtrl => KeyModifiers.Control,
-        Key.LeftShift or Key.RightShift => KeyModifiers.Shift,
-        Key.LeftAlt or Key.RightAlt => KeyModifiers.Alt,
-        Key.LWin or Key.RWin => KeyModifiers.Meta,
-        _ => KeyModifiers.None,
-    };
-
     /// <summary>
     /// Everything held when a key was pressed: what the event itself carries, plus the modifiers
     /// this window saw go down, so a modifier pressed before the capture started still counts.
@@ -1659,7 +1632,7 @@ public partial class MacroEditorWindow : Window
         var held = e.KeyModifiers;
         foreach (var modifier in _captureModifiers)
         {
-            held |= ModifierFlag(modifier);
+            held |= HotkeyNameMapper.ModifierFlag(modifier);
         }
 
         return held;
@@ -1684,7 +1657,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        var pick = await ColorPickerWindow.PickAsync(this, Layer);
+        var pick = await ColorPickerWindow.PickAsync(this, Layer.Screen, Layer.Input, Layer.Hook);
         Activate();
 
         if (pick is not { } picked)
@@ -1703,7 +1676,7 @@ public partial class MacroEditorWindow : Window
     /// <summary>Captures the window a window trigger should watch.</summary>
     private async void OnPickTriggerWindow(object? sender, RoutedEventArgs e)
     {
-        if (await WindowRuleWindow.PickAsync(this, Layer, _viewModel.WindowTarget) is { } rule)
+        if (await WindowRuleWindow.PickAsync(this, Layer.Windows, Layer.Hook, _viewModel.WindowTarget) is { } rule)
         {
             _viewModel.UseWindowTarget(rule);
         }
@@ -1768,8 +1741,8 @@ public partial class MacroEditorWindow : Window
     /// <summary>Brings up the window a step is written in, on the place the editor is now.</summary>
     private async void OnAddStepRequested()
     {
-        var actions = _viewModel.InsertChoices;
-        if (actions is { Count: 1 })
+        var actions = _viewModel.AddableActions;
+        if (actions.Count == 1)
         {
             await ShowActionEditor(null, actions, actions[0].Key, null);
             return;
@@ -1781,7 +1754,7 @@ public partial class MacroEditorWindow : Window
 
     /// <summary>The same, preset on the "run another macro" step.</summary>
     private async void OnRunMacroRequested()
-        => await ShowActionEditor(null, null, "control.runMacro", null);
+        => await ShowActionEditor(null, ActionCatalog.ForKeys(["control.runMacro"]), "control.runMacro", null);
 
     /// <summary>
     /// Whether any other macro of this project sends keys or clicks. Two macros that do, running at
@@ -1803,7 +1776,7 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private bool OtherMacroReaches(Func<string, bool> direct)
     {
-        var macros = _project.ToList();
+        var macros = _session.Project.ToList();
 
         bool Walk(MacroStep step, HashSet<string> walking)
         {
@@ -1820,7 +1793,7 @@ public partial class MacroEditorWindow : Window
                 }
             }
 
-            if (step.Type is not ("control.runMacro" or "control.startMacro"))
+            if (step.Type is not "control.runMacro")
             {
                 return false;
             }
@@ -1844,7 +1817,7 @@ public partial class MacroEditorWindow : Window
         }
 
         return macros
-            .Where(macro => !ReferenceEquals(macro, _editing))
+            .Where(macro => !ReferenceEquals(macro, _session.Editing))
             .SelectMany(macro => macro.Steps)
             .Any(step => Walk(step, new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
     }
@@ -1855,23 +1828,22 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private void OnMacroLifted(MacroItem macro)
     {
-        _lifted.Add(macro);
-        _project.Add(macro);
+        _session.Lifted.Add(macro);
+        _session.Project.Add(macro);
         RefreshProjectCallables();
     }
 
     /// <summary>Writes one step in the single, draggable action window.</summary>
     private async Task<MacroStep?> ShowActionEditor(MacroStep? editing,
-        IReadOnlyList<ActionDefinition>? actions, string? presetKey, string? macroName)
+        IReadOnlyList<ActionDefinition> actions, string? presetKey, string? macroName)
     {
         var editingPage = _viewModel;
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
-            MacroCalls(), presetKey, _assetFolder, _viewModel.StepChoices(),
+            MacroCalls(), presetKey, _session.AssetFolder, _viewModel.StepChoices(),
             editing?.Id ?? _viewModel.NewStepId())
         {
             Devices = Layer,
             Macros = BuildLibrary(),
-            ShowPicker = false,
             PlaceStep = (existing, step) => existing is null
                 ? _viewModel.PlacementRefusalForPending(step)
                 : _viewModel.PlacementRefusalForReplacement(existing, step),
@@ -1881,13 +1853,18 @@ public partial class MacroEditorWindow : Window
             dialog.SetMacroCall(macroName);
         }
 
-        var step = await dialog.ShowDialogOver<MacroStep?>(this);
+        // The modal loop is what keeps the editor behind the window out of reach; it is started and
+        // let go, because its own answer is not the step. A picker hides this window while it is
+        // out, and Avalonia answers a hidden modal window at once with nothing — so what is waited
+        // on is the window itself, which says what it was closed with.
+        _ = dialog.ShowDialogOver<MacroStep?>(this);
+        var step = await dialog.Answer;
 
         _viewModel = editingPage;
         DataContext = editingPage;
         if (step is null)
         {
-            _pendingSubMacro = null;
+            _session.Pending = null;
             _viewModel.ClearPendingInsertion();
             return null;
         }
@@ -1898,8 +1875,8 @@ public partial class MacroEditorWindow : Window
             return step;
         }
 
-        var pending = _pendingSubMacro;
-        _pendingSubMacro = null;
+        var pending = _session.Pending;
+        _session.Pending = null;
         _viewModel = editingPage;
         DataContext = editingPage;
         var refusal = _viewModel.AddStepHere(step);
@@ -1909,7 +1886,7 @@ public partial class MacroEditorWindow : Window
             && string.Equals(step.Text("macro").Trim(), pending.Editor.Name,
                 StringComparison.OrdinalIgnoreCase))
         {
-            _documents.Add(pending.Page);
+            _session.Documents.Add(pending.Page);
             _documentPages.Add(pending.Page);
             SettleDocumentIds();
             _rootViewModel.IsDirty = true;
@@ -2018,7 +1995,7 @@ public partial class MacroEditorWindow : Window
     private IReadOnlyList<MacroCallable> MacroCalls()
     {
         var calls = new List<MacroCallable>();
-        foreach (var macro in _project.Where(macro => !ReferenceEquals(macro, _editing)))
+        foreach (var macro in _session.Project.Where(macro => !ReferenceEquals(macro, _session.Editing)))
         {
             if (macro.Name.Length > 0
                 && !calls.Any(call => string.Equals(call.Name, macro.Name,
@@ -2041,6 +2018,18 @@ public partial class MacroEditorWindow : Window
             }
         }
 
+        // And the submacros of this document by the names a run looks them up by, whether or not a
+        // page is open for them: that is the list the 宏 field beside a call step shows.
+        foreach (var callable in CallableMacros.Callables(DocumentSubMacros()))
+        {
+            if (callable.Name.Length > 0
+                && !calls.Any(call => string.Equals(call.Name, callable.Name,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                calls.Add(callable);
+            }
+        }
+
         return calls;
     }
 
@@ -2053,7 +2042,7 @@ public partial class MacroEditorWindow : Window
         var entries = new List<(string Name, IReadOnlyList<ExecutableStep> Steps,
             MacroSignature Signature, bool ExclusiveInput)>();
 
-        foreach (var macro in _project.Where(macro => !ReferenceEquals(macro, _editing)))
+        foreach (var macro in _session.Project.Where(macro => !ReferenceEquals(macro, _session.Editing)))
         {
             if (macro.Name.Length > 0)
             {
@@ -2071,6 +2060,17 @@ public partial class MacroEditorWindow : Window
             {
                 entries.Add((edited.Name, page.Editor.Steps.ToExecutable(),
                     edited.Callable.Signature, edited.ExclusiveInput));
+            }
+        }
+
+        // The submacros of the document as it stands, under the names a call writes: pressing 运行
+        // here has to reach the same macros the saved file would.
+        foreach (var entry in CallableMacros.Entries(DocumentSubMacros()))
+        {
+            if (!entries.Any(known => string.Equals(known.Name, entry.Name,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                entries.Add(entry);
             }
         }
 
@@ -2120,9 +2120,13 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>Opens the same window on an existing step and swaps in the result.</summary>
+    /// <summary>
+    /// Opens the same window on an existing step and swaps in the result. The catalogue it is
+    /// handed includes the actions no longer offered, so a step written before one was retired
+    /// still opens.
+    /// </summary>
     private async void OnEditStepRequested(MacroStep step)
-        => await ShowActionEditor(step, null, null, null);
+        => await ShowActionEditor(step, ActionCatalog.PlaceableActions, null, null);
 
     /// <summary>Confirms the palette's "clear all steps", which cannot be undone.</summary>
     private async void OnClearRequested()
@@ -2167,7 +2171,7 @@ public partial class MacroEditorWindow : Window
     /// of what the session produced, so the project takes it along with the edited macro.
     /// </summary>
     internal IReadOnlyList<MacroItem> LiftedMacros
-        => [.. _lifted.Where(macro => _viewModel.Steps.Any(step => Calls(step, macro.Name)))];
+        => [.. _session.Lifted.Where(macro => _viewModel.Steps.Any(step => Calls(step, macro.Name)))];
 
     /// <summary>True when this step, or any step inside it, calls the named macro.</summary>
     private static bool Calls(MacroStep step, string name)
@@ -2221,7 +2225,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        RecoveryStore.SaveEditor(BuildRootSnapshot(), _editing?.Name ?? string.Empty);
+        RecoveryStore.SaveEditor(BuildRootSnapshot(), _session.Editing?.Name ?? string.Empty);
         _editorInRecovery = true;
     }
 
@@ -2287,10 +2291,6 @@ public partial class MacroEditorWindow : Window
         }
 
         var maximized = WindowState == WindowState.Maximized;
-        if (this.FindControl<Button>("MaximizeButton") is { } maximize)
-        {
-            ToolTip.SetTip(maximize, Strings.Get(maximized ? "Common.Restore" : "Common.Maximize"));
-        }
 
         if (this.FindControl<IconView>("MaximizeIcon") is { } maximizeIcon)
         {
@@ -2326,8 +2326,12 @@ public partial class MacroEditorWindow : Window
             // Closing event and the way out reads the answer there. A handler that ran first and
             // found nothing would take this window for one that had already gone, and would stop
             // the program on top of the very question it is asking.
+            //
+            // The question itself is queued rather than asked here. A modal opened from inside a
+            // closing handler is asked for before the window has finished saying no, and whether
+            // it shows up at all turns out to depend on how the dialog presents itself.
             e.Cancel = true;
-            _ = PromptToSaveAsync();
+            Dispatcher.UIThread.Post(() => _ = PromptToSaveAsync());
         }
 
         base.OnClosing(e);
@@ -2387,33 +2391,11 @@ public partial class MacroEditorWindow : Window
 
     private void StartRecorder()
     {
-        if (_recorder is not null)
-        {
-            return;
-        }
-
-        lock (_captureLock)
-        {
-            _captured.Clear();
-        }
-
         // The recorder comes from the device layer, so a layer handed in by a check records what
         // the check plays into it rather than what a real keyboard is doing.
-        var recorder = Layer.CreateRecorder();
-        recorder.Captured += OnCaptured;
-        recorder.StopRequested += OnRecorderStopRequested;
-        recorder.IgnoreInjected = _viewModel.RecordIgnoreInjected;
-        recorder.RecordController = _viewModel.RecordGamepadButtons;
-
-        try
+        if (!_session.Recording.Start(Layer, _viewModel.RecordIgnoreInjected,
+                _viewModel.RecordGamepadButtons, OnRecorderStopRequested))
         {
-            recorder.Start();
-        }
-        catch (Exception)
-        {
-            recorder.Captured -= OnCaptured;
-            recorder.StopRequested -= OnRecorderStopRequested;
-            recorder.Dispose();
             _viewModel.StopRecording();
             _ = ConfirmDialog.ShowAsync(this,
                 Strings.Get("Editor.RecordActions"),
@@ -2423,7 +2405,6 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        _recorder = recorder;
         StartRecordTimer();
 
         // Out of the way, so the work being recorded is not itself recorded as clicks on the
@@ -2433,34 +2414,16 @@ public partial class MacroEditorWindow : Window
 
     private void StopRecorder(bool announceEmpty = true)
     {
-        var recorder = _recorder;
-        _recorder = null;
-
         _recordTimer?.Stop();
         _recordTimer = null;
 
-        if (recorder is null)
+        if (!_session.Recording.IsRecording)
         {
             return;
         }
 
-        recorder.Captured -= OnCaptured;
-        recorder.StopRequested -= OnRecorderStopRequested;
-        recorder.Stop();
-        recorder.Dispose();
-
-        List<RecordedInput> captured;
-        lock (_captureLock)
-        {
-            captured = [.. _captured];
-            _captured.Clear();
-        }
-
-        IReadOnlyList<MacroStep> steps = captured.Count == 0
-            ? []
-            : RecordingTranslator.Translate(captured, RecordingChoices()).ToSteps();
-
-        _viewModel.AppendSteps(steps);
+        var outcome = _session.Recording.Stop(RecordingChoices());
+        _viewModel.AppendSteps(outcome.Steps);
 
         if (WindowState == WindowState.Minimized)
         {
@@ -2471,21 +2434,13 @@ public partial class MacroEditorWindow : Window
 
         // Nothing at all is worth explaining: input another program sends is left out on
         // purpose, so a recording over a remote session or through another tool looks empty.
-        if (announceEmpty && !_closing && captured.Count == 0)
+        if (announceEmpty && !_closing && outcome.Captured == 0)
         {
             _ = ConfirmDialog.ShowAsync(this,
                 Strings.Get("Editor.RecordActions"),
                 Strings.Get("Editor.RecordEmpty"),
                 Strings.Get("Common.Ok"),
                 showCancel: false);
-        }
-    }
-
-    private void OnCaptured(RecordedInput input)
-    {
-        lock (_captureLock)
-        {
-            _captured.Add(input);
         }
     }
 
@@ -2512,24 +2467,11 @@ public partial class MacroEditorWindow : Window
         _recordTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _recordTimer.Tick += (_, _) =>
         {
-            lock (_captureLock)
-            {
-                _viewModel.ReportRecordedEvents(_captured.Count);
-            }
+            _viewModel.ReportRecordedEvents(_session.Recording.Captured);
         };
         _recordTimer.Start();
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 
     /// <summary>Opens or folds the picked block, which is what the arrow keys do in a tree.</summary>
     private void Fold(bool open)
@@ -2738,7 +2680,7 @@ public partial class MacroEditorWindow : Window
             : "Editor.DropAtPosition";
         _dropInto = null;
 
-        var visible = _stepList.GetVisualDescendants()
+        var boxes = _stepList.GetVisualDescendants()
             .OfType<ListBoxItem>()
             .Select(item => (Item: item, Row: item.DataContext as StepRow))
             .Where(candidate => candidate.Row is { RowIndex: >= 0 })
@@ -2749,6 +2691,51 @@ public partial class MacroEditorWindow : Window
             .OrderBy(candidate => candidate.Row.RowIndex)
             .ToList();
 
+        // Rows sit a few pixels apart, and those pixels used to belong to no row at all: the
+        // pointer fell through them to whichever row the next comparison happened to name, which
+        // is what made the marker jump while it moved down a body. Each row now owns everything up
+        // to the middle of the gap on either side, so every height on the list belongs to exactly
+        // one row.
+        var visible = boxes
+            .Select((box, index) => new DropBox(
+                box.Row,
+                box.Top,
+                box.Height,
+                index == 0 ? double.NegativeInfinity : (boxes[index - 1].Top + boxes[index - 1].Height + box.Top) / 2,
+                index == boxes.Count - 1 ? double.PositiveInfinity : (box.Top + box.Height + boxes[index + 1].Top) / 2))
+            .ToList();
+
+        // A block whose one list is empty is one target from its title to its closing line, the
+        // gaps between those rows included: the rows are separate items, and a pointer in a gap
+        // used to fall through to "before the block" for the row below it.
+        // Whether the drag came from the palette or from a row, an empty body is one place to put it.
+        {
+            var emptyBand = visible
+                .Where(candidate => EmptySingleList(candidate.Row.Step))
+                .GroupBy(candidate => candidate.Row.Step)
+                .Where(band => point.Y >= band.Min(candidate => candidate.ZoneTop)
+                    && point.Y < band.Max(candidate => candidate.ZoneBottom))
+                .OrderBy(band => band.Min(candidate => candidate.ZoneTop))
+                .FirstOrDefault();
+            if (emptyBand is not null)
+            {
+                // The band stands for "inside this block", the same thing the middle of a filled
+                // block means: slot -1 with the block named. Landing it on the block's own row
+                // instead put the action before the block, which looked like a drop that did not
+                // take. The marker is drawn where the body begins, so the band sits inside.
+                var body = emptyBand.OrderBy(candidate => candidate.Row.RowIndex).First();
+                var title = emptyBand.FirstOrDefault(candidate => candidate.Row.IsHead);
+                _dropInto = body.Row.Step;
+                _dropSlot = -1;
+                _dropMarkerY = title.Top;
+                _dropMarkerIndent = (title.Row.Depth + 1) * 18;
+                _dropHintKey = "Editor.DropIntoEmptyList";
+                EvaluateDrop(_dropSlot, _dropInto, actionKey);
+                ShowDropMarker();
+                return;
+            }
+        }
+
         if (visible.Count > 0)
         {
             var last = visible[^1];
@@ -2757,18 +2744,20 @@ public partial class MacroEditorWindow : Window
                 _dropSlot = _viewModel.Rows.Count;
                 _dropMarkerY = last.Top + last.Height;
                 _dropMarkerIndent = 0;
-                _dropHintKey = "Editor.DropAtPosition";
+                _dropHintKey = "Editor.DropAfterStep";
                 EvaluateDrop(_dropSlot, _dropInto, actionKey);
                 ShowDropMarker();
                 return;
             }
         }
 
-        foreach (var (row, top, itemHeight) in visible)
+        foreach (var box in visible)
         {
-            var bottom = top + itemHeight;
-            var height = bottom - top;
-            var inside = point.Y >= top && point.Y < bottom;
+            var row = box.Row;
+            var top = box.Top;
+            var height = box.Height;
+            var bottom = top + height;
+            var inside = point.Y >= box.ZoneTop && point.Y < box.ZoneBottom;
 
             // The middle of a block that runs one list of steps means "put it inside this block".
             // A block with several lists — an if, a try, a switch — leaves it to the row of the
@@ -2790,6 +2779,7 @@ public partial class MacroEditorWindow : Window
                 slot = row.RowIndex;
                 markerY = top;
                 indent = (row.Depth + 1) * 18;
+                hintKey = "Editor.DropAtBlockStart";
                 break;
             }
 
@@ -2799,19 +2789,25 @@ public partial class MacroEditorWindow : Window
                 slot = row.RowIndex;
                 markerY = top;
                 indent = (row.Depth + 1) * 18;
+                hintKey = "Editor.DropAtBlockStart";
                 break;
             }
 
-            // Past the middle of a row means the block goes after it, not before.
+            // Past the middle of a row means the block goes after it, not before. The hint names
+            // what stands at the seam, because "before the loop" and "before the step inside the
+            // loop" are different places and the marker sits at the same place for one of them.
+            var holds = row.CanFold || row.Step.StepLists.Any();
             if (point.Y < top + ((bottom - top) / 2))
             {
                 slot = row.RowIndex;
                 markerY = top;
+                hintKey = holds ? "Editor.DropBeforeBlock" : "Editor.DropBeforeStep";
                 break;
             }
 
             slot = row.RowIndex + 1;
             markerY = bottom;
+            hintKey = holds ? "Editor.DropAfterBlock" : "Editor.DropAfterStep";
         }
 
         _dropSlot = slot;
@@ -2820,6 +2816,17 @@ public partial class MacroEditorWindow : Window
         _dropHintKey = hintKey;
         EvaluateDrop(_dropSlot, _dropInto, actionKey);
         ShowDropMarker();
+    }
+
+    /// <summary>One row of the list: where it is drawn, and the band of heights it answers for.</summary>
+    private readonly record struct DropBox(
+        StepRow Row, double Top, double Height, double ZoneTop, double ZoneBottom);
+
+    /// <summary>A block with one child list that does not hold a step yet.</summary>
+    private static bool EmptySingleList(MacroStep step)
+    {
+        var lists = step.StepLists.ToList();
+        return lists.Count == 1 && lists[0].Steps.Count == 0;
     }
 
     /// <summary>Asks the editor whether the seam under the pointer accepts the proposed step(s).</summary>
@@ -2898,14 +2905,14 @@ public partial class MacroEditorWindow : Window
         }
 
         string? macroName = null;
-        _pendingSubMacro = null;
+        _session.Pending = null;
         if (payload.Kind == ActionPaletteCardKind.SubMacro)
         {
-            macroName = _documentPages
-                .FirstOrDefault(page => !page.IsCurrent
-                    && string.Equals(page.Editor.Name, payload.Key,
-                        StringComparison.OrdinalIgnoreCase))
-                ?.Editor.Name;
+            // A submacro no longer has to be open in a page of its own to be called: it is in the
+            // document, and the dock that offered it is the document's own list.
+            var sub = DocumentSubMacros().FirstOrDefault(macro =>
+                string.Equals(macro.Name, payload.Key, StringComparison.OrdinalIgnoreCase));
+            macroName = sub is null ? null : CallNameFor(sub);
             if (macroName is null)
             {
                 _viewModel.ClearPendingInsertion();
@@ -2922,7 +2929,7 @@ public partial class MacroEditorWindow : Window
             }
         }
 
-        await ShowActionEditor(null, _viewModel.InsertChoices, actionKey, macroName);
+        await ShowActionEditor(null, _viewModel.AddableActions, actionKey, macroName);
         _viewModel = editingPage;
         DataContext = editingPage;
     }
@@ -2946,7 +2953,7 @@ public partial class MacroEditorWindow : Window
             return null;
         }
 
-        var copy = PublicMacroLibrary.CopyToProject(entry, _assetFolder);
+        var copy = PublicMacroLibrary.CopyToProject(entry, _session.AssetFolder);
         copy.Name = UniqueSubMacroName(entry.Macro.Name);
         var editor = new MacroEditorViewModel { IsSubMacro = true };
         if (_devices is { } devices)
@@ -2954,13 +2961,13 @@ public partial class MacroEditorWindow : Window
             editor.Windows = devices.Windows;
         }
 
-        editor.Documents = _documents;
+        editor.Documents = _session.Documents;
         editor.LoadFrom(copy);
         editor.SubMacros.Clear();
         editor.IsDirty = true;
         WatchChildEditor(editor);
         var page = new MacroDocumentPageViewModel(editor, isCurrent: false, copy);
-        _pendingSubMacro = new PendingSubMacro(editor, page);
+        _session.Pending = new PendingSubMacro(editor, page);
         return editor.Name;
     }
 

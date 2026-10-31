@@ -240,7 +240,7 @@ public class DeviceActionTests
 
         // The whole run is written as text into the log folder, under the macro's own name, in the
         // encoding a person can open by double-clicking.
-        var written = Assert.Single(devices.Files);
+        var written = Assert.Single(devices.Files.Store);
         Assert.StartsWith("logs", written.Key);
         Assert.Contains("failure-订单导出-", written.Key);
         Assert.EndsWith(".log", written.Key);
@@ -267,7 +267,7 @@ public class DeviceActionTests
         await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
             .RunAsync([Step("control.repeat", Param("times", "1"), Body("body", Step("nope.unknown")))]);
 
-        var lines = Assert.Single(devices.Files).Value
+        var lines = Assert.Single(devices.Files.Store).Value
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
         // The step inside the block is one level in, which is two more spaces after the time.
@@ -289,7 +289,7 @@ public class DeviceActionTests
         }.RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.StartsWith(folder, Assert.Single(devices.Files).Key, StringComparison.Ordinal);
+        Assert.StartsWith(folder, Assert.Single(devices.Files.Store).Key, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class DeviceActionTests
             .RunAsync([Step("control.delay", Param("ms", "0"))]);
 
         Assert.True(result.Succeeded);
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public class DeviceActionTests
             .RunAsync([Step("control.stop")]);
 
         Assert.Equal(RunStatus.Stopped, result.Status);
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
     }
 
     [Fact]
@@ -328,7 +328,7 @@ public class DeviceActionTests
             .RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
         Assert.Contains(host.Entries, entry => entry.Key == "Log.FailureLogFailed");
     }
 
@@ -342,7 +342,7 @@ public class DeviceActionTests
             RunName = "a/b:c*?d",
         }.RunAsync([Step("nope.unknown")]);
 
-        Assert.Contains("failure-a_b_c__d-", Assert.Single(devices.Files).Key);
+        Assert.Contains("failure-a_b_c__d-", Assert.Single(devices.Files.Store).Key);
     }
 
     [Fact]
@@ -355,7 +355,7 @@ public class DeviceActionTests
             RunName = new string('x', 60),
         }.RunAsync([Step("nope.unknown")]);
 
-        Assert.Contains("failure-" + new string('x', 40) + "-", Assert.Single(devices.Files).Key);
+        Assert.Contains("failure-" + new string('x', 40) + "-", Assert.Single(devices.Files.Store).Key);
     }
 
     [Fact]
@@ -373,15 +373,15 @@ public class DeviceActionTests
 
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         var taken = Path.Combine("logs", $"failure-{stamp}.log");
-        devices.Files[taken] = "an older log";
+        devices.Files.Store[taken] = "an older log";
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
             .RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Contains(devices.Files.Keys,
+        Assert.Contains(devices.Files.Store.Keys,
             path => path.EndsWith($"failure-{stamp}-1.log", StringComparison.Ordinal));
-        Assert.Equal("an older log", devices.Files[taken]);
+        Assert.Equal("an older log", devices.Files.Store[taken]);
     }
 
     /// <summary>
@@ -542,7 +542,7 @@ public class DeviceActionTests
         var (_, devices, _) = await RunAsync(
             [Step("input.keyPress", Param("key", "F5"), Param("holdMs", "10"))]);
 
-        Assert.Equal([InputRoute.Front], devices.Routes);
+        Assert.Equal([InputRoute.Front], devices.Input.Routes);
     }
 
     [Fact]
@@ -556,7 +556,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
 
-        var route = Assert.Single(devices.Routes);
+        var route = Assert.Single(devices.Input.Routes);
         Assert.Equal(InputDelivery.Driver, route.Delivery);
         Assert.Equal(["keyPress F5 10"], devices.Calls);
     }
@@ -565,7 +565,7 @@ public class DeviceActionTests
     public async Task Background_input_is_posted_at_the_window_it_names()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -577,7 +577,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
 
-        var route = Assert.Single(devices.Routes);
+        var route = Assert.Single(devices.Input.Routes);
         Assert.Equal(InputDelivery.Background, route.Delivery);
         Assert.Equal(4242, route.WindowHandle);
     }
@@ -592,9 +592,9 @@ public class DeviceActionTests
     public async Task Background_input_can_name_its_window_by_the_program()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "笔记 - 第 3 关", new ScreenPoint(0, 0),
+        devices.Window.Open.Add(new WindowInfo(4242, "笔记 - 第 3 关", new ScreenPoint(0, 0),
             new ScreenSize(100, 100), false, false));
-        devices.WindowFacts[4242] = ("notepad", "Notepad");
+        devices.Window.Traits[4242] = ("notepad", "Notepad");
 
         var (result, _, _) = await RunAsync(
         [
@@ -604,7 +604,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(4242, Assert.Single(devices.Routes).WindowHandle);
+        Assert.Equal(4242, Assert.Single(devices.Input.Routes).WindowHandle);
     }
 
     /// <summary>
@@ -616,7 +616,7 @@ public class DeviceActionTests
     public async Task Background_input_with_a_pattern_it_cannot_read_stops_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -652,7 +652,7 @@ public class DeviceActionTests
     public async Task A_relative_move_has_no_background_mode()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -674,7 +674,7 @@ public class DeviceActionTests
     public async Task A_bent_relative_move_has_no_background_mode_either()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(4242, "Notepad - notes.txt",
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -686,7 +686,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BadOption", result.Key);
-        Assert.Empty(devices.Paths);
+        Assert.Empty(devices.Input.Paths);
         Assert.Empty(Asked(devices));
     }
 
@@ -696,7 +696,7 @@ public class DeviceActionTests
     [Fact]
     public void Posted_messages_refuse_a_relative_move_at_the_device_too()
     {
-        var device = new MessageInputDevice(IntPtr.Zero, new FakeDeviceLayer());
+        var device = new MessageInputDevice(IntPtr.Zero, new FakeDeviceLayer().Input);
 
         var refused = Assert.Throws<DeviceActionException>(
             () => device.MoveMouseRelative(200, 0, 0));
@@ -720,7 +720,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_with_no_point_uses_where_the_pointer_already_is()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (_, _, _) = await RunAsync(
             [Step("input.mouseClick", Param("button", "left"), Param("x", ""), Param("y", ""))],
             devices);
@@ -736,7 +737,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_told_to_work_at_the_pointer_uses_where_the_pointer_is()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
@@ -754,7 +756,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_mouse_step_can_be_told_to_work_at_the_pointer()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseDoubleClick", Param("button", "left"), Param("useCursor", "true"),
@@ -781,7 +784,7 @@ public class DeviceActionTests
     public async Task A_step_at_the_pointer_does_not_need_the_window_its_numbers_are_counted_from()
     {
         var devices = WithAWindow();
-        devices.Cursor = new ScreenPoint(7, 9);
+        devices.Screen.Cursor = new ScreenPoint(7, 9);
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
@@ -846,7 +849,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_can_put_the_pointer_back_where_it_was()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(300, 400) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(300, 400);
 
         var (result, _, _) = await RunAsync(
         [
@@ -862,7 +866,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_that_was_not_asked_to_put_the_pointer_back_does_not()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(300, 400) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(300, 400);
 
         await RunAsync(
             [Step("input.mouseClick", Param("button", "left"), Param("x", "10"), Param("y", "20"))],
@@ -996,7 +1001,7 @@ public class DeviceActionTests
     public async Task Every_mouse_action_can_land_where_a_record_says()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1093,7 +1098,7 @@ public class DeviceActionTests
     private static FakeDeviceLayer WithAWindow()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad - notes.txt",
             new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
         return devices;
     }
@@ -1131,7 +1136,7 @@ public class DeviceActionTests
     public async Task A_point_can_be_measured_from_inside_the_window_border()
     {
         var devices = WithAWindow();
-        devices.ClientOrigins[1] = new ScreenPoint(1008, 531);
+        devices.Window.ClientOrigins[1] = new ScreenPoint(1008, 531);
 
         var (_, _, _) = await RunAsync(
         [
@@ -1149,7 +1154,7 @@ public class DeviceActionTests
     public async Task A_window_search_returns_a_screen_point_and_a_window_point()
     {
         var devices = WithWindow();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1208,7 +1213,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Contains("click left 5 6 1 0", devices.Calls);
-        Assert.Equal(4, Assert.Single(devices.Routes).WindowHandle);
+        Assert.Equal(4, Assert.Single(devices.Input.Routes).WindowHandle);
     }
 
     [Fact]
@@ -1293,7 +1298,7 @@ public class DeviceActionTests
     public async Task A_drag_can_start_where_something_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1318,7 +1323,7 @@ public class DeviceActionTests
     public async Task Both_ends_of_a_drag_can_each_come_from_their_own_record()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1341,7 +1346,7 @@ public class DeviceActionTests
     public async Task A_scroll_can_happen_where_something_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1363,7 +1368,7 @@ public class DeviceActionTests
     public async Task A_drag_from_a_record_starts_where_the_record_says_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1395,7 +1400,7 @@ public class DeviceActionTests
             Param("anchorMode", "window"), Param("window", "Notepad"));
 
         await RunAsync([step], devices);
-        devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
+        devices.Window.Open[0] = devices.Window.Open[0] with { Location = new ScreenPoint(300, 400) };
         await RunAsync([step], devices);
 
         Assert.Equal(
@@ -1413,7 +1418,7 @@ public class DeviceActionTests
     public async Task A_record_in_a_number_field_is_refused()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1471,7 +1476,7 @@ public class DeviceActionTests
     public async Task A_drag_end_that_is_not_a_place_is_refused()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "name,age\nAda,36\n";
+        devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
 
         var (result, _, _) = await RunAsync(
         [
@@ -1496,7 +1501,7 @@ public class DeviceActionTests
     public async Task A_click_can_go_where_something_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1520,7 +1525,7 @@ public class DeviceActionTests
     public async Task A_record_in_a_mouse_step_says_where_it_is_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1546,7 +1551,7 @@ public class DeviceActionTests
     public async Task A_record_wins_over_numbers_written_beside_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1565,8 +1570,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pixel_can_be_read_where_something_was_just_found()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xAB, 0xCD, 0xEF) };
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xAB, 0xCD, 0xEF);
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1588,7 +1594,7 @@ public class DeviceActionTests
     public async Task A_picture_can_be_taken_of_what_was_just_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1600,7 +1606,7 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
 
         // 截的是命中那一块：左上角 (30,40)，10×20；留下的「位置」说的也是这一块。
-        var asked = devices.Captures[^1];
+        var asked = devices.Screen.Captures[^1];
         Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal("30,40,10,20", Field(store, "cut", "box").AsText());
     }
@@ -1611,12 +1617,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_can_be_aimed_at_what_was_just_found()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FFFFFF,#FFFFFF"),
-            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
-        };
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#FFFFFF");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1627,7 +1631,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
 
-        var asked = devices.Captures[^1];
+        var asked = devices.Screen.Captures[^1];
         Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal("42", store.Local.Values["words"].AsText());
     }
@@ -1640,7 +1644,7 @@ public class DeviceActionTests
     public async Task A_rectangle_from_a_record_says_where_it_is_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1658,11 +1662,11 @@ public class DeviceActionTests
 
         // 前几次是找图那一步自己的事；第一条截图截的是记录自己那一块 (30,40,10,20)，第二条是写出来的
         // 四个数，照旧从窗口角 (1000,500) 量起。
-        Assert.Equal(3, devices.Captures.Count);
-        Assert.Equal((30, 40, 10, 20), (devices.Captures[1].X, devices.Captures[1].Y,
-            devices.Captures[1].Width, devices.Captures[1].Height));
-        Assert.Equal((1010, 520, 30, 40), (devices.Captures[2].X, devices.Captures[2].Y,
-            devices.Captures[2].Width, devices.Captures[2].Height));
+        Assert.Equal(3, devices.Screen.Captures.Count);
+        Assert.Equal((30, 40, 10, 20), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
+            devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
+        Assert.Equal((1010, 520, 30, 40), (devices.Screen.Captures[2].X, devices.Screen.Captures[2].Y,
+            devices.Screen.Captures[2].Width, devices.Screen.Captures[2].Height));
     }
 
 
@@ -1674,7 +1678,7 @@ public class DeviceActionTests
     public async Task A_record_with_no_rectangle_in_it_is_refused_where_a_rectangle_is_read()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "name,age\nAda,36\n";
+        devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
 
         var (result, _, _) = await RunAsync(
         [
@@ -1685,7 +1689,7 @@ public class DeviceActionTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BadRegion", result.Key);
-        Assert.Empty(devices.Captures);
+        Assert.Empty(devices.Screen.Captures);
     }
 
     /// <summary>
@@ -1700,7 +1704,7 @@ public class DeviceActionTests
             Param("anchorMode", "window"), Param("window", "Notepad"));
 
         await RunAsync([step], devices);
-        devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
+        devices.Window.Open[0] = devices.Window.Open[0] with { Location = new ScreenPoint(300, 400) };
         await RunAsync([step], devices);
 
         Assert.Equal(
@@ -1728,7 +1732,7 @@ public class DeviceActionTests
     public async Task A_pixel_can_be_read_from_a_window_corner()
     {
         var devices = WithAWindow();
-        devices.ClientOrigins[1] = new ScreenPoint(1000, 520);
+        devices.Window.ClientOrigins[1] = new ScreenPoint(1000, 520);
 
         var (_, _, _) = await RunAsync(
         [
@@ -1751,7 +1755,7 @@ public class DeviceActionTests
     public async Task Only_the_results_a_step_was_told_to_hand_over_are_written()
     {
         var devices = new FakeDeviceLayer();
-        devices.Match = new ImageMatch(0.75, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+        devices.Vision.Match = new ImageMatch(0.75, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1780,10 +1784,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_hit_hands_over_its_middle_and_its_corner()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 6)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 6));
 
         var (result, _, store) = await RunAsync(
         [
@@ -1813,7 +1815,7 @@ public class DeviceActionTests
     public async Task An_expression_reading_a_result_nobody_asked_for_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.Match = new ImageMatch(0.9, new ScreenPoint(1, 2), new ScreenSize(3, 4));
+        devices.Vision.Match = new ImageMatch(0.9, new ScreenPoint(1, 2), new ScreenSize(3, 4));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1891,10 +1893,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_search_region_can_be_named_by_the_record_a_step_handed_over()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1920,7 +1920,7 @@ public class DeviceActionTests
     public async Task A_region_handed_a_record_reads_where_the_record_says_whatever_the_anchor()
     {
         var devices = WithAWindow();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
 
         var (result, _, _) = await RunAsync(
         [
@@ -1942,7 +1942,7 @@ public class DeviceActionTests
     public async Task A_search_region_can_be_measured_from_a_window_corner()
     {
         var devices = WithAWindow();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
 
         var (_, _, store) = await RunAsync(
         [
@@ -1968,10 +1968,10 @@ public class DeviceActionTests
     public async Task A_step_that_reads_the_screen_can_name_its_window_by_the_program()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "笔记 - 第 3 关", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(1, "笔记 - 第 3 关", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
 
         var (result, _, store) = await RunAsync(
         [
@@ -2010,7 +2010,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_a_pixel_stores_its_colour_both_ways()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xAB, 0xCD, 0xEF) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xAB, 0xCD, 0xEF);
         var (_, _, store) = await RunAsync(
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
@@ -2046,7 +2047,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_is_found_where_the_region_shows_it()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000,#FF0000", "#000000,#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#FF0000", "#000000,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2066,7 +2068,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_share_of_the_region_that_shows_the_colour_can_be_read()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#FF0000", "#000000,#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#FF0000", "#000000,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2086,7 +2089,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_short_of_the_share_asked_for_is_not_found()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000", "#000000,#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000", "#000000,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2107,12 +2111,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_is_found_where_its_colours_sit()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000",
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
                 "#000000,#FF0000,#00FF00",
-                "#000000,#0000FF,#000000"),
-        };
+                "#000000,#0000FF,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2132,12 +2134,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_with_one_colour_out_of_place_is_not_found()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#000000,#000000",
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
                 "#000000,#FF0000,#123456",
-                "#000000,#0000FF,#000000"),
-        };
+                "#000000,#0000FF,#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2153,7 +2153,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_that_is_not_there_leaves_the_result_empty()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
 
         var (result, _, store) = await RunAsync(
             [Step("vision.findColor", Param("color", "#FF0000"), Hit("match", "spot"))],
@@ -2170,13 +2171,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Query_actions_report_false_without_failing()
     {
-        var imageDevices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = null,
-            Spans = [],
-            ElementExists = false,
-        };
+        var imageDevices = new FakeDeviceLayer();
+        imageDevices.Ui.ElementExists = false;
+        imageDevices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        imageDevices.Vision.Match = null;
+        imageDevices.Ocr.Spans = [];
 
         var (result, _, store) = await RunAsync(
         [
@@ -2203,7 +2202,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Pixel_matches_reports_the_comparison_instead_of_failing()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0x10, 0x20, 0x30);
         var (result, _, store) = await RunAsync(
         [
             Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
@@ -2214,7 +2214,7 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.True(store.Local.Values["yes"].AsBool());
 
-        devices.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
+        devices.Screen.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
         var (other, _, otherStore) = await RunAsync(
         [
             Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
@@ -2229,7 +2229,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Browser_exists_asks_once_and_reports_the_state()
     {
-        var devices = new FakeDeviceLayer { BrowserHasElement = true };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.HasElement = true;
         var (result, _, store) = await RunAsync(
         [
             Step("browser.exists", Param("pageSelector", "#ready"),
@@ -2245,7 +2246,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_colour_search_looks_once_and_leaves_the_colour_to_the_wait()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
 
         var (result, _, store) = await RunAsync(
         [
@@ -2264,7 +2266,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Watching_one_pixel_goes_on_when_it_shows_the_colour()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0x00, 0x00) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xFF, 0x00, 0x00);
         var host = new SilentRunHost();
 
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
@@ -2278,7 +2281,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Watching_one_pixel_that_stays_the_wrong_colour_gives_up()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x00, 0x00, 0x00) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0x00, 0x00, 0x00);
 
         var (result, _, _) = await RunAsync(
             [Within(20, Step("vision.waitColor", Param("x", "5"), Param("y", "6"),
@@ -2292,7 +2296,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_second_place_a_colour_shows_is_the_one_a_step_can_take()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000,#FF0000");
 
         var (_, _, store) = await RunAsync(
         [
@@ -2307,7 +2312,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_place_a_colour_shows_can_be_recorded()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000,#FF0000");
 
         var (_, _, store) = await RunAsync(
         [
@@ -2322,9 +2328,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_still_picture_goes_on_once_the_screen_stops_moving()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
         var frames = new Queue<ImageFrame>([Picture("#FFFFFF"), Picture("#00FF00")]);
-        devices.Next = () => frames.Count > 1 ? frames.Dequeue() : frames.Peek();
+        devices.Screen.Next = () => frames.Count > 1 ? frames.Dequeue() : frames.Peek();
 
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
@@ -2342,9 +2349,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_screen_that_never_holds_still_fails_the_step()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000");
         var moving = true;
-        devices.Next = () =>
+        devices.Screen.Next = () =>
         {
             moving = !moving;
             return Picture(moving ? "#FF0000" : "#0000FF");
@@ -2367,9 +2375,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_picture_that_only_drifts_a_little_is_still_a_picture()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#808080") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#808080");
         var frames = new Queue<ImageFrame>([Picture("#838383")]);
-        devices.Next = () => frames.Count > 0 ? frames.Dequeue() : Picture("#838383");
+        devices.Screen.Next = () => frames.Count > 0 ? frames.Dequeue() : Picture("#838383");
 
         var (result, _, _) = await RunAsync(
         [
@@ -2385,9 +2394,9 @@ public class DeviceActionTests
     public async Task A_picture_can_be_taken_by_its_place_on_the_screen()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2407,10 +2416,8 @@ public class DeviceActionTests
     [Fact]
     public async Task How_a_picture_is_looked_for_reaches_the_device()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3));
 
         var (_, _, _) = await RunAsync(
         [
@@ -2420,7 +2427,7 @@ public class DeviceActionTests
                 Hit("match", "where")),
         ], devices);
 
-        var query = Assert.Single(devices.Queries);
+        var query = Assert.Single(devices.Vision.Queries);
         Assert.Equal(MatchAlgorithm.Feature, query.Algorithm);
         Assert.Equal(88d, query.ConfidencePercent);
         Assert.Equal(12, query.MinFeatures);
@@ -2442,10 +2449,8 @@ public class DeviceActionTests
     public async Task The_recognition_algorithm_reaches_the_device(string written,
         MatchAlgorithm expected)
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3));
 
         var (_, _, _) = await RunAsync(
         [
@@ -2456,23 +2461,21 @@ public class DeviceActionTests
                     Param("detectAlgorithm", written), Hit("match", "where")),
         ], devices);
 
-        Assert.Equal(expected, Assert.Single(devices.Queries).Algorithm);
+        Assert.Equal(expected, Assert.Single(devices.Vision.Queries).Algorithm);
     }
 
     /// <summary>Left alone, a search is done the way every macro did it before the fields existed.</summary>
     [Fact]
     public async Task A_picture_search_left_alone_is_still_a_plain_matching_search()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3));
 
         var (_, _, _) = await RunAsync(
             [Step("vision.findImage", Pictures("ok.png"), Hit("match", "where"))],
             devices);
 
-        var query = Assert.Single(devices.Queries);
+        var query = Assert.Single(devices.Vision.Queries);
         Assert.Equal(MatchAlgorithm.Normed, query.Algorithm);
         Assert.Equal(90d, query.ConfidencePercent);
         Assert.Equal(6, query.MinFeatures);
@@ -2487,9 +2490,9 @@ public class DeviceActionTests
     public async Task The_surest_picture_can_be_the_one_taken()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.91, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.91, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2509,9 +2512,9 @@ public class DeviceActionTests
     public async Task The_biggest_picture_can_be_the_one_taken()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(4, 4)));
-        devices.Matches.Add(new ImageMatch(0.91, new ScreenPoint(10, 10), new ScreenSize(120, 40)));
-        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(30, 70), new ScreenSize(40, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(4, 4)));
+        devices.Vision.Matches.Add(new ImageMatch(0.91, new ScreenPoint(10, 10), new ScreenSize(120, 40)));
+        devices.Vision.Matches.Add(new ImageMatch(0.95, new ScreenPoint(30, 70), new ScreenSize(40, 20)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2530,9 +2533,9 @@ public class DeviceActionTests
     private static FakeDeviceLayer TwoPictures(ImageMatch? one, ImageMatch? two)
     {
         var devices = new FakeDeviceLayer();
-        devices.Pictures["one.png"] = Picture("#FF0000");
-        devices.Pictures["two.png"] = Picture("#00FF00");
-        devices.PictureAnswers = (needle, _) => (needle[0, 0].R == 0xFF ? one : two) is { } hit
+        devices.Vision.Pictures["one.png"] = Picture("#FF0000");
+        devices.Vision.Pictures["two.png"] = Picture("#00FF00");
+        devices.Vision.PictureAnswers = (needle, _) => (needle[0, 0].R == 0xFF ? one : two) is { } hit
             ? [hit]
             : [];
         return devices;
@@ -2562,7 +2565,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("6,7", Centre(store, "where"));
-        Assert.Equal(1, devices.Searches);
+        Assert.Equal(1, devices.Vision.Searches);
     }
 
     /// <summary>
@@ -2582,7 +2585,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("41,51", Centre(store, "where"));
-        Assert.Equal(2, devices.Searches);
+        Assert.Equal(2, devices.Vision.Searches);
     }
 
     /// <summary>
@@ -2621,7 +2624,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("6,7", Centre(store, "where"));
-        Assert.Equal(2, devices.Searches);
+        Assert.Equal(2, devices.Vision.Searches);
     }
 
     /// <summary>
@@ -2631,7 +2634,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_pixel_closest_to_the_colour_is_the_one_taken()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#F00000,#FF0000,#FB0000") };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#F00000,#FF0000,#FB0000");
 
         var (_, _, store) = await RunAsync(
         [
@@ -2647,14 +2651,11 @@ public class DeviceActionTests
     [Fact]
     public async Task The_surest_reading_can_be_the_one_taken()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Continue", new ScreenPoint(10, 10), new ScreenSize(30, 8), 12),
                 new TextSpan("Continue", new ScreenPoint(10, 60), new ScreenSize(30, 8), 38),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -2672,14 +2673,11 @@ public class DeviceActionTests
     [Fact]
     public async Task The_widest_reading_can_be_the_one_taken()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Ready", new ScreenPoint(10, 10), new ScreenSize(30, 8), 30),
                 new TextSpan("Ready to go", new ScreenPoint(100, 90), new ScreenSize(80, 8), 30),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -2699,9 +2697,9 @@ public class DeviceActionTests
     public async Task A_shuffled_search_hands_back_one_of_the_places_it_found()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(20, 20), new ScreenSize(1, 1)));
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 30), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(20, 20), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 30), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2717,7 +2715,7 @@ public class DeviceActionTests
     public async Task A_search_can_watch_two_regions_at_once()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2739,9 +2737,9 @@ public class DeviceActionTests
         int clientX = 108, int clientY = 81)
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(handle, title, new ScreenPoint(x, y),
+        devices.Window.Open.Add(new WindowInfo(handle, title, new ScreenPoint(x, y),
             new ScreenSize(width, height), false, false));
-        devices.ClientOrigins[handle] = new ScreenPoint(clientX, clientY);
+        devices.Window.ClientOrigins[handle] = new ScreenPoint(clientX, clientY);
         return devices;
     }
 
@@ -2761,7 +2759,7 @@ public class DeviceActionTests
                 Param("window", "Game"), Parts("image", "shot")),
         ], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((118, 101, 30, 40), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal(4, asked.Window);
         Assert.Equal(CaptureWay.Auto, asked.Method);
@@ -2777,8 +2775,8 @@ public class DeviceActionTests
     public async Task The_way_of_taking_the_picture_is_the_machines_own()
     {
         var devices = WithWindow();
-        devices.Ways.Window = CaptureWay.PrintWindow;
-        devices.Ways.Screen = CaptureWay.DesktopDuplication;
+        devices.Screen.Ways.Window = CaptureWay.PrintWindow;
+        devices.Screen.Ways.Screen = CaptureWay.DesktopDuplication;
 
         await RunAsync(
         [
@@ -2787,8 +2785,8 @@ public class DeviceActionTests
             Capture(1, 1, 2, 2, Parts("image", "screen", "method")),
         ], devices);
 
-        Assert.Equal(CaptureWay.PrintWindow, devices.Captures[0].Method);
-        Assert.Equal(CaptureWay.DesktopDuplication, devices.Captures[1].Method);
+        Assert.Equal(CaptureWay.PrintWindow, devices.Screen.Captures[0].Method);
+        Assert.Equal(CaptureWay.DesktopDuplication, devices.Screen.Captures[1].Method);
     }
 
     /// <summary>
@@ -2810,10 +2808,10 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal((115, 90, 10, 10),
-            (devices.Captures[0].X, devices.Captures[0].Y, devices.Captures[0].Width,
-                devices.Captures[0].Height));
-        Assert.Equal(4, devices.Captures[0].Window);
-        Assert.Equal(0, devices.Captures[1].Window);
+            (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y, devices.Screen.Captures[0].Width,
+                devices.Screen.Captures[0].Height));
+        Assert.Equal(4, devices.Screen.Captures[0].Window);
+        Assert.Equal(0, devices.Screen.Captures[1].Window);
 
         Assert.Equal("graphicsCapture", store.Local.Values["fromWindow.method"].AsText());
         Assert.Equal("gdi", store.Local.Values["fromScreen.method"].AsText());
@@ -2828,7 +2826,7 @@ public class DeviceActionTests
     public async Task A_way_the_machine_cannot_do_is_reported_rather_than_swapped_for_another()
     {
         var devices = WithWindow();
-        devices.Ways.Window = CaptureWay.GraphicsCapture;
+        devices.Screen.Ways.Window = CaptureWay.GraphicsCapture;
         devices.Refusal = new DeviceActionException("Run.NoGraphicsCapture", "this machine has none");
 
         var (result, _, _) = await RunAsync(
@@ -2849,7 +2847,7 @@ public class DeviceActionTests
     public async Task A_step_with_nowhere_to_look_reads_the_whole_window_it_counts_from()
     {
         var devices = WithWindow(handle: 9);
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
@@ -2858,7 +2856,7 @@ public class DeviceActionTests
                 Hit("match", "match")),
         ], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal(9, asked.Window);
         Assert.Equal((108, 81, 400, 300), (asked.X, asked.Y, asked.Width, asked.Height));
     }
@@ -2875,7 +2873,7 @@ public class DeviceActionTests
 
         await RunAsync([CaptureWholeScreen(Parts("image", "shot"))], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
     }
 
@@ -2886,7 +2884,7 @@ public class DeviceActionTests
 
         await RunAsync([RecognizeWholeScreen(Returns("text=words"))], devices);
 
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
     }
 
@@ -2906,11 +2904,11 @@ public class DeviceActionTests
             Step("vision.capture", Param("x", "20"), Param("y", "10"), Parts("image", "shot")),
         ], devices);
 
-        Assert.Equal(2, devices.Captures.Count);
-        Assert.Equal((0, 0, 40, 50), (devices.Captures[0].X, devices.Captures[0].Y,
-            devices.Captures[0].Width, devices.Captures[0].Height));
-        Assert.Equal((20, 10, 80, 40), (devices.Captures[1].X, devices.Captures[1].Y,
-            devices.Captures[1].Width, devices.Captures[1].Height));
+        Assert.Equal(2, devices.Screen.Captures.Count);
+        Assert.Equal((0, 0, 40, 50), (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y,
+            devices.Screen.Captures[0].Width, devices.Screen.Captures[0].Height));
+        Assert.Equal((20, 10, 80, 40), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
+            devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
     }
 
     /// <summary>
@@ -2929,7 +2927,7 @@ public class DeviceActionTests
                 Param("width", "40"), Param("height", "20"), Parts("image", "shot")),
         ], devices);
 
-        var shot = Assert.Single(devices.Captures);
+        var shot = Assert.Single(devices.Screen.Captures);
         Assert.Equal((-30, -10, 40, 20), (shot.X, shot.Y, shot.Width, shot.Height));
     }
 
@@ -2961,7 +2959,7 @@ public class DeviceActionTests
     public async Task A_result_says_which_window_it_came_from()
     {
         var devices = WithWindow();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(2, 2)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(2, 2)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -2982,7 +2980,7 @@ public class DeviceActionTests
     public async Task A_step_that_found_nothing_empties_the_window_it_read()
     {
         var devices = WithWindow();
-        devices.Match = null;
+        devices.Vision.Match = null;
 
         var (_, _, store) = await RunAsync(
         [
@@ -3014,7 +3012,7 @@ public class DeviceActionTests
 
         Assert.DoesNotContain(devices.Calls,
             call => call.StartsWith("pixel ", StringComparison.Ordinal));
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((205, 106, 1, 1), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal(4, asked.Window);
     }
@@ -3031,7 +3029,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Contains("pixel 5 6", devices.Calls);
-        Assert.Empty(devices.Captures);
+        Assert.Empty(devices.Screen.Captures);
     }
 
     /// <summary>
@@ -3043,7 +3041,7 @@ public class DeviceActionTests
     public async Task A_step_may_be_given_the_picture_an_earlier_step_took()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
@@ -3056,7 +3054,7 @@ public class DeviceActionTests
 
         // One reading of the screen between them: the whole of it, because a picture that is to be
         // used again has to hold whatever the next step asks for.
-        var asked = Assert.Single(devices.Captures);
+        var asked = Assert.Single(devices.Screen.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
 
         // Both steps were answered out of that one picture, cut where each of them asked.
@@ -3072,7 +3070,7 @@ public class DeviceActionTests
     public async Task A_step_that_accepts_no_older_picture_reads_the_screen_again()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
@@ -3081,11 +3079,11 @@ public class DeviceActionTests
                 Param("confidence", "90"), Hit("match", "match")),
         ], devices);
 
-        Assert.Equal(2, devices.Captures.Count);
-        Assert.Equal((0, 0, 100, 50), (devices.Captures[0].X, devices.Captures[0].Y,
-            devices.Captures[0].Width, devices.Captures[0].Height));
-        Assert.Equal((30, 5, 10, 10), (devices.Captures[1].X, devices.Captures[1].Y,
-            devices.Captures[1].Width, devices.Captures[1].Height));
+        Assert.Equal(2, devices.Screen.Captures.Count);
+        Assert.Equal((0, 0, 100, 50), (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y,
+            devices.Screen.Captures[0].Width, devices.Screen.Captures[0].Height));
+        Assert.Equal((30, 5, 10, 10), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
+            devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
     }
 
     /// <summary>
@@ -3096,7 +3094,7 @@ public class DeviceActionTests
     public async Task A_picture_older_than_the_step_allows_is_taken_again()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
@@ -3107,7 +3105,7 @@ public class DeviceActionTests
                 Hit("match", "match")),
         ], devices);
 
-        Assert.Equal(2, devices.Captures.Count);
+        Assert.Equal(2, devices.Screen.Captures.Count);
     }
 
     /// <summary>
@@ -3119,7 +3117,7 @@ public class DeviceActionTests
     public async Task A_step_that_names_a_gap_between_looks_waits_it_out()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
 
         var started = Stopwatch.GetTimestamp();
         await RunAsync(
@@ -3140,12 +3138,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_looks_again_as_often_as_the_step_says()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2)),
-            MatchAfter = 3,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2));
+        devices.Vision.MatchAfter = 3;
 
         var started = Stopwatch.GetTimestamp();
         var (result, _, store) = await RunAsync(
@@ -3157,7 +3153,7 @@ public class DeviceActionTests
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Assert.True(result.Succeeded);
         Assert.Equal("2,2", Centre(store, "spot"));
-        Assert.Equal(3, devices.Searches);
+        Assert.Equal(3, devices.Vision.Searches);
         Assert.True(took >= 110, $"three looks 60 ms apart take at least 120 ms, took {took:0}");
     }
 
@@ -3171,11 +3167,9 @@ public class DeviceActionTests
     public async Task A_wait_without_a_gap_of_its_own_looks_on_the_screens_beat()
     {
         // A 240 Hz screen: one refresh every four milliseconds.
-        var devices = new FakeDeviceLayer
-        {
-            Pixel = new PixelColor(0xFF, 0xFF, 0xFF),
-            RefreshMilliseconds = 4,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
+        devices.Screen.RefreshMilliseconds = 4;
 
         var (result, _, _) = await RunAsync(
         [
@@ -3246,10 +3240,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_capture_can_be_searched_for_again()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10));
 
         var (result, _, store) = await RunAsync(
         [
@@ -3268,12 +3260,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_an_image_keeps_looking_until_it_appears()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2)),
-            MatchAfter = 3,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2));
+        devices.Vision.MatchAfter = 3;
 
         var (result, _, store) = await RunAsync(
         [
@@ -3283,17 +3273,15 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("2,2", Centre(store, "spot"));
-        Assert.Equal(3, devices.Searches);
+        Assert.Equal(3, devices.Vision.Searches);
     }
 
     [Fact]
     public async Task Waiting_for_an_image_that_never_appears_fails()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = null,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = null;
 
         var (result, _, _) = await RunAsync(
         [
@@ -3314,7 +3302,7 @@ public class DeviceActionTests
     {
         var looked = 0;
         var devices = new FakeDeviceLayer();
-        devices.PictureAnswers = (_, _) => ++looked == 1
+        devices.Vision.PictureAnswers = (_, _) => ++looked == 1
             ? [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))]
             : [];
 
@@ -3338,7 +3326,7 @@ public class DeviceActionTests
     {
         var looked = 0;
         var devices = new FakeDeviceLayer();
-        devices.PictureAnswers = (_, _) => ++looked == 1
+        devices.Vision.PictureAnswers = (_, _) => ++looked == 1
             ? [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))]
             : [new ImageMatch(0.99, new ScreenPoint(40, 50), new ScreenSize(2, 2))];
 
@@ -3363,7 +3351,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         string? ownerWhileLooking = null;
-        devices.PictureAnswers = (_, _) =>
+        devices.Vision.PictureAnswers = (_, _) =>
         {
             ownerWhileLooking = InputGate.Owner;
             return [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))];
@@ -3377,7 +3365,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(string.Empty, ownerWhileLooking);
-        Assert.Equal("看图", devices.GateAtClick);
+        Assert.Equal("看图", devices.Input.GateAtClick);
         Assert.Equal(string.Empty, InputGate.Owner);
     }
 
@@ -3388,10 +3376,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_on_a_picture_hands_over_where_it_clicked()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2));
 
         var (result, _, store) = await RunAsync(
         [
@@ -3412,7 +3398,7 @@ public class DeviceActionTests
     public async Task A_detected_thing_is_handed_over_with_where_it_is_and_what_it_is()
     {
         var devices = new FakeDeviceLayer();
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.87, new ScreenPoint(30, 40), new ScreenSize(10, 20), 2, "car"));
 
         var (result, _, store) = await RunAsync(
@@ -3443,8 +3429,8 @@ public class DeviceActionTests
 
         // 模型与标签文件的路径都按宏目录解析，交给设备的是解出来的全路径；要认的类一行一个，
         // 置信度写多少就是多少。
-        Assert.Equal(@"G:\fake\models\yolo.onnx", Assert.Single(devices.Models));
-        var query = Assert.Single(devices.DetectionQueries);
+        Assert.Equal(@"G:\fake\models\yolo.onnx", Assert.Single(devices.Detector.Models));
+        var query = Assert.Single(devices.Detector.DetectionQueries);
         Assert.Equal(40, query.ConfidencePercent);
         Assert.Equal(["car", "bus"], query.Labels);
         Assert.Equal(@"G:\fake\classes.txt", query.LabelFile);
@@ -3458,7 +3444,7 @@ public class DeviceActionTests
     public async Task A_detection_in_a_region_counts_from_the_corner_of_that_region()
     {
         var devices = new FakeDeviceLayer();
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.9, new ScreenPoint(5, 6), new ScreenSize(10, 10), 0, "person"));
 
         var (result, _, store) = await RunAsync(
@@ -3478,8 +3464,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_detection_looks_again_until_the_model_finds_something()
     {
-        var devices = new FakeDeviceLayer { DetectAfter = 3 };
-        devices.Detections.Add(
+        var devices = new FakeDeviceLayer();
+        devices.Detector.DetectAfter = 3;
+        devices.Detector.Detections.Add(
             new DetectionHit(0.8, new ScreenPoint(7, 9), new ScreenSize(4, 4), 1, "bicycle"));
 
         var (result, _, store) = await RunAsync(
@@ -3489,7 +3476,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.True(devices.Looks >= 3);
+        Assert.True(devices.Detector.Looks >= 3);
         Assert.Equal("bicycle", Field(store, "spot", "label").AsText());
         Assert.Equal("9,11", Centre(store, "spot"));
     }
@@ -3524,9 +3511,9 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
 
         // 分数最高的那一处在右下角，阅读顺序的第一个在左上角：只要阅读顺序的第一个，就该拿到左上的。
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.95, new ScreenPoint(900, 700), new ScreenSize(20, 20), 0, "person"));
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.6, new ScreenPoint(10, 12), new ScreenSize(20, 20), 5, "bus"));
 
         var (result, _, store) = await RunAsync(
@@ -3538,7 +3525,7 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal("bus", Field(store, "spot", "label").AsText());
         Assert.Equal("20,22", Centre(store, "spot"));
-        Assert.True(Assert.Single(devices.DetectionQueries).Limit > 1);
+        Assert.True(Assert.Single(devices.Detector.DetectionQueries).Limit > 1);
     }
 
     /// <summary>
@@ -3548,7 +3535,7 @@ public class DeviceActionTests
     public async Task Clicking_a_detected_thing_lands_on_the_middle_of_its_box_and_the_offset()
     {
         var devices = new FakeDeviceLayer();
-        devices.Detections.Add(
+        devices.Detector.Detections.Add(
             new DetectionHit(0.95, new ScreenPoint(30, 40), new ScreenSize(10, 20), 0, "person"));
 
         var (result, _, store) = await RunAsync(
@@ -3576,11 +3563,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_model_the_device_refuses_keeps_its_own_reason()
     {
-        var devices = new FakeDeviceLayer
-        {
-            DetectionAnswers = (_, _) =>
-                throw new DeviceActionException("Run.MissingModel", @"models\ghost.onnx"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Detector.DetectionAnswers = (_, _) =>
+                throw new DeviceActionException("Run.MissingModel", @"models\ghost.onnx");
 
         var (result, _, _) = await RunAsync(
             [Step("vision.detect", Param("model", @"models\ghost.onnx"))], devices);
@@ -3589,7 +3574,7 @@ public class DeviceActionTests
         Assert.Equal("Run.MissingModel", result.Key);
         Assert.Equal(@"models\ghost.onnx", result.Detail);
 
-        devices.DetectionAnswers = (_, _) =>
+        devices.Detector.DetectionAnswers = (_, _) =>
             throw new DeviceActionException("Run.BadModelShape", "1x25200x85");
 
         var (shaped, _, _) = await RunAsync(
@@ -3603,11 +3588,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_search_region_is_copied_before_it_is_searched()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2));
 
         var (_, _, store) = await RunAsync(
         [
@@ -3660,14 +3643,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_puts_the_words_in_a_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Ready", new ScreenPoint(1, 2), new ScreenSize(10, 4), 0.9),
                 new TextSpan("Go", new ScreenPoint(20, 2), new ScreenSize(6, 4), 0.8),
-            ],
-        };
+            ];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3682,10 +3662,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Finding_text_reports_where_it_is()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3703,14 +3681,11 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_keep_letter_case()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9),
                 new TextSpan("save", new ScreenPoint(10, 40), new ScreenSize(20, 8), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3728,14 +3703,11 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_leave_out_a_reading_the_model_was_unsure_of()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 12),
                 new TextSpan("Save now", new ScreenPoint(10, 40), new ScreenSize(20, 8), 38),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3762,14 +3734,11 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_insist_on_the_shape_of_what_it_finds()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("HP full", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40),
                 new TextSpan("HP 120/300", new ScreenPoint(0, 20), new ScreenSize(40, 8), 40),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3784,10 +3753,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_shape_that_makes_no_sense_fails_the_step_with_a_sentence()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("HP 120/300", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("HP 120/300", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)];
 
         var (result, _, _) = await RunAsync(
         [
@@ -3806,10 +3773,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_reading_the_model_keeps_getting_wrong_can_be_put_right()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("G0LD l00", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("G0LD l00", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3829,11 +3794,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Writing_can_be_handed_over_in_its_own_colour_alone()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FFFFFF,#00FF00"),
-            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#00FF00");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
 
         var (_, _, _) = await RunAsync(
         [
@@ -3841,7 +3804,7 @@ public class DeviceActionTests
                 Param("colorTolerance", "10"), Returns("text=text")),
         ], devices);
 
-        var handed = Assert.Single(devices.OcrPictures);
+        var handed = Assert.Single(devices.Ocr.OcrPictures);
 
         // The green pixel is not the writing, so it arrives flat white; the white one is.
         Assert.Equal(255, handed[0, 0].R);
@@ -3854,18 +3817,16 @@ public class DeviceActionTests
     [Fact]
     public async Task Without_a_colour_asked_for_the_picture_is_read_as_it_is()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#FFFFFF,#00FF00"),
-            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#00FF00");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
 
         var (_, _, _) = await RunAsync(
         [
             Recognize(0, 0, 2, 1, Returns("text=text")),
         ], devices);
 
-        var handed = Assert.Single(devices.OcrPictures);
+        var handed = Assert.Single(devices.Ocr.OcrPictures);
         Assert.Equal(0, handed[1, 0].R);
         Assert.Equal(255, handed[1, 0].G);
     }
@@ -3873,15 +3834,12 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_can_record_every_place_the_text_was_read()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Total 12", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9),
                 new TextSpan("Other", new ScreenPoint(0, 20), new ScreenSize(20, 8), 0.9),
                 new TextSpan("Total 99", new ScreenPoint(0, 40), new ScreenSize(40, 8), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3908,15 +3866,12 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_that_records_every_place_records_what_each_one_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("Total 12", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9),
                 new TextSpan("Other", new ScreenPoint(0, 20), new ScreenSize(20, 8), 0.9),
                 new TextSpan("Total 99", new ScreenPoint(0, 40), new ScreenSize(40, 8), 0.9),
-            ],
-        };
+            ];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3941,10 +3896,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_click_on_a_line_hands_over_where_it_clicked()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -3961,14 +3914,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_and_finding_can_ask_for_the_numbers_only()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("合计 ¥1,234.50", new ScreenPoint(0, 0), new ScreenSize(80, 12), 0.9),
                 new TextSpan("已完成", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -3989,14 +3939,11 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_can_keep_only_one_kind_of_writing()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("序号 SN-2048 完成", new ScreenPoint(0, 0), new ScreenSize(120, 12), 0.9),
                 new TextSpan("1234", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.8),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4018,15 +3965,12 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_can_keep_only_what_a_pattern_picks_out()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("合计 ¥1,234.50", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9),
                 new TextSpan("已发货", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.8),
                 new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 40), new ScreenSize(110, 12), 0.7),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4048,10 +3992,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Finding_text_reads_the_screen_the_way_the_step_said_to()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("SN-2048", new ScreenPoint(0, 0), new ScreenSize(40, 10), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("SN-2048", new ScreenPoint(0, 0), new ScreenSize(40, 10), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4069,10 +4011,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_the_text_reading_cannot_read_stops_the_step()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 0), new ScreenSize(110, 12), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 0), new ScreenSize(110, 12), 0.9)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -4092,10 +4032,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pattern_left_empty_keeps_everything_that_was_read()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("订单号 88231", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("订单号 88231", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4109,16 +4047,13 @@ public class DeviceActionTests
     [Fact]
     public async Task Recognising_text_can_keep_the_lines_and_columns_it_was_read_in()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans =
-            [
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [
                 new TextSpan("名称", new ScreenPoint(0, 0), new ScreenSize(30, 14), 0.9),
                 new TextSpan("数量", new ScreenPoint(120, 0), new ScreenSize(30, 14), 0.9),
                 new TextSpan("苹果", new ScreenPoint(0, 30), new ScreenSize(30, 14), 0.9),
                 new TextSpan("3", new ScreenPoint(120, 30), new ScreenSize(8, 14), 0.9),
-            ],
-        };
+            ];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4145,10 +4080,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Cleaning_the_picture_up_before_reading_it_keeps_the_positions_on_screen()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Go", new ScreenPoint(20, 10), new ScreenSize(40, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Go", new ScreenPoint(20, 10), new ScreenSize(40, 8), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4157,7 +4090,7 @@ public class DeviceActionTests
         ], devices);
 
         // The picture the OCR was handed was the searched region at twice its size...
-        Assert.Equal([(200, 100)], devices.OcrFrames);
+        Assert.Equal([(200, 100)], devices.Ocr.OcrFrames);
 
         // ...so what it read comes back halved, and the place still means screen pixels: the
         // writing sat at 20,10 and was 40 by 8, so its centre is 40,14 and comes back as 20,7.
@@ -4173,10 +4106,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_text_search_compares_the_way_the_step_says()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Running", new ScreenPoint(0, 0), new ScreenSize(10, 4), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Running", new ScreenPoint(0, 0), new ScreenSize(10, 4), 0.9)];
 
         var (_, _, store) = await RunAsync(
         [
@@ -4208,10 +4139,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_match_mode_that_is_none_of_the_five_stops_the_step()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save the file", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save the file", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9)];
 
         var (refused, _, _) = await RunAsync(
         [
@@ -4236,10 +4165,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Clicking_text_clicks_where_the_words_are()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("OK", new ScreenPoint(10, 20), new ScreenSize(20, 10), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("OK", new ScreenPoint(10, 20), new ScreenSize(20, 10), 0.9)];
 
         var (result, _, _) = await RunAsync(
         [
@@ -4258,7 +4185,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Clicking_text_that_never_shows_says_what_was_never_read()
     {
-        var devices = new FakeDeviceLayer { Spans = [] };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [];
 
         var (result, _, _) = await RunAsync(
         [
@@ -4275,8 +4203,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Looking_for_an_element_reports_true_or_false()
     {
-        var found = new FakeDeviceLayer { ElementExists = true };
-        var missing = new FakeDeviceLayer { ElementExists = false };
+        var found = new FakeDeviceLayer();
+        found.Ui.ElementExists = true;
+        var missing = new FakeDeviceLayer();
+        missing.Ui.ElementExists = false;
 
         ExecutableStep Exists() => Step("uia.exists",
             Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']"),
@@ -4293,17 +4223,46 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_an_element_carries_on_when_it_is_there()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
         var (result, _, _) = await RunAsync(
         [
-            Within(50, Step("uia.waitElement",
+            Within(2000, Step("uia.waitElement",
                 Param("window", "Notepad"),
                 Param("uiSelector", "Button[name='Save']"),
                 Param("pollMs", "1"))),
         ], devices);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.Succeeded, $"{result.Key}: {result.Detail}");
         Assert.Contains("ui Button/Save/", devices.Calls);
+    }
+
+    /// <summary>
+    /// What turned up is handed over, in the same shape reading an element hands it over: a step that
+    /// waits for a box and then reads it asks the same question twice, and the second answer can be a
+    /// different element from the one that ended the wait.
+    /// </summary>
+    [Fact]
+    public async Task Waiting_for_an_element_hands_over_the_one_that_turned_up()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
+        devices.Ui.ElementText = "12 items";
+        devices.Ui.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+            new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2000, Step("uia.waitElement",
+                Param("window", "Notepad"),
+                Param("uiSelector", "Text[name='Count']"),
+                Returns("element=found"))),
+        ], devices);
+
+        Assert.True(result.Succeeded, $"{result.Key}: {result.Detail}");
+        Assert.Equal("12 items", Field(store, "found", "value").AsText());
+        Assert.Equal("countText", Field(store, "found", "automationId").AsText());
+        Assert.Equal("10,20,80,24", Field(store, "found", "box").AsText());
     }
 
     /// <summary>
@@ -4313,8 +4272,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_an_element_hands_over_one_record_about_it()
     {
-        var devices = new FakeDeviceLayer { ElementText = "12 items", ElementEnabled = false };
-        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementText = "12 items";
+        devices.Ui.ElementEnabled = false;
+        devices.Ui.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
 
         var (_, _, store) = await RunAsync(
@@ -4338,11 +4299,14 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_an_element_that_is_not_there_is_refused()
     {
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = false;
+
         var (result, _, store) = await RunAsync(
         [
             Step("uia.read", Param("window", ""), Param("uiSelector", "Text[name='Count']"),
                 Returns("element=found")),
-        ], new FakeDeviceLayer { ElementExists = false });
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ElementNotFound", result.Key);
@@ -4357,7 +4321,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Pressing_an_element_works_it_without_the_mouse()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.invoke", Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']")),
@@ -4374,10 +4339,13 @@ public class DeviceActionTests
     [Fact]
     public async Task Pressing_an_element_that_cannot_be_worked_that_way_is_refused()
     {
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementInvocable = false;
+
         var (result, _, _) = await RunAsync(
         [
             Step("uia.invoke", Param("window", "Notepad"), Param("uiSelector", "Button[name='Save']")),
-        ], new FakeDeviceLayer { ElementInvocable = false });
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ElementNotInvocable", result.Key);
@@ -4387,7 +4355,7 @@ public class DeviceActionTests
     public async Task Finding_an_element_records_where_it_sits_and_which_window_it_is_in()
     {
         var devices = WithAWindow();
-        devices.Elements.Add(new UiElementInfo("Save", "saveButton", "Button", "ButtonClass",
+        devices.Ui.Elements.Add(new UiElementInfo("Save", "saveButton", "Button", "ButtonClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
 
         var (_, _, store) = await RunAsync(
@@ -4426,9 +4394,9 @@ public class DeviceActionTests
     public async Task Recording_every_element_notes_how_many_and_where()
     {
         var devices = new FakeDeviceLayer();
-        devices.Elements.Add(new UiElementInfo("Row 1", "row1", "ListItem", "ListBoxItem",
+        devices.Ui.Elements.Add(new UiElementInfo("Row 1", "row1", "ListItem", "ListBoxItem",
             new ScreenPoint(0, 100), new ScreenSize(200, 20), "Tasks"));
-        devices.Elements.Add(new UiElementInfo("Row 2", "row2", "ListItem", "ListBoxItem",
+        devices.Ui.Elements.Add(new UiElementInfo("Row 2", "row2", "ListItem", "ListBoxItem",
             new ScreenPoint(0, 120), new ScreenSize(200, 20), "Tasks"));
 
         var (_, _, store) = await RunAsync(
@@ -4499,7 +4467,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_pick_that_finds_no_such_entry_fails_the_step()
     {
-        var devices = new FakeDeviceLayer { ItemSelectable = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ItemSelectable = false;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.select", Param("uiSelector", "ComboBox[automationId='rate']"),
@@ -4541,7 +4510,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Scrolling_into_view_a_step_of_a_list_that_will_not_scroll_fails()
     {
-        var devices = new FakeDeviceLayer { Scrollable = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.Scrollable = false;
         var (result, _, _) = await RunAsync(
         [Step("uia.scrollIntoView", Param("uiSelector", "ListItem[name='Row 9']"))], devices);
 
@@ -4553,8 +4523,8 @@ public class DeviceActionTests
     public async Task Reading_a_table_puts_the_rows_in_a_variable()
     {
         var devices = new FakeDeviceLayer();
-        devices.Table.Add(["Name", "Age"]);
-        devices.Table.Add(["Ann", "31"]);
+        devices.Ui.Table.Add(["Name", "Age"]);
+        devices.Ui.Table.Add(["Ann", "31"]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -4578,9 +4548,9 @@ public class DeviceActionTests
     public async Task Reading_a_table_stops_at_the_row_count_it_was_given()
     {
         var devices = new FakeDeviceLayer();
-        devices.Table.Add(["one"]);
-        devices.Table.Add(["two"]);
-        devices.Table.Add(["three"]);
+        devices.Ui.Table.Add(["one"]);
+        devices.Ui.Table.Add(["two"]);
+        devices.Ui.Table.Add(["three"]);
 
         var (_, _, store) = await RunAsync(
         [
@@ -4601,8 +4571,8 @@ public class DeviceActionTests
     public async Task Reading_a_table_keys_every_row_by_its_column_names()
     {
         var devices = new FakeDeviceLayer();
-        devices.Columns.AddRange(["Name", "Age"]);
-        devices.Table.Add(["Ann", "31"]);
+        devices.Ui.Columns.AddRange(["Name", "Age"]);
+        devices.Ui.Table.Add(["Ann", "31"]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -4629,8 +4599,8 @@ public class DeviceActionTests
     public async Task A_blank_or_repeated_column_name_takes_the_letter_of_its_place()
     {
         var devices = new FakeDeviceLayer();
-        devices.Columns.AddRange(["Name", "", "Name"]);
-        devices.Table.Add(["Ann", "31", "x"]);
+        devices.Ui.Columns.AddRange(["Name", "", "Name"]);
+        devices.Ui.Table.Add(["Ann", "31", "x"]);
 
         var (_, _, store) = await RunAsync(
         [
@@ -4648,7 +4618,7 @@ public class DeviceActionTests
     public async Task Measuring_from_a_control_is_not_one_of_the_coordinate_bases()
     {
         var devices = new FakeDeviceLayer();
-        devices.Elements.Add(new UiElementInfo("Panel", "panel", "Pane", "PaneClass",
+        devices.Ui.Elements.Add(new UiElementInfo("Panel", "panel", "Pane", "PaneClass",
             new ScreenPoint(200, 100), new ScreenSize(400, 300), "Tasks"));
 
         var (result, _, _) = await RunAsync(
@@ -4665,7 +4635,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Writing_into_an_element_carries_the_text_and_the_clear_flag()
     {
-        var devices = new FakeDeviceLayer { ElementWritable = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementWritable = true;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.setText", Param("window", ""), Param("uiSelector", "Edit[automationId='input']"),
@@ -4679,7 +4650,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_element_that_cannot_be_written_fails_the_step()
     {
-        var devices = new FakeDeviceLayer { ElementWritable = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementWritable = false;
         var (result, _, _) = await RunAsync(
         [
             Step("uia.setText", Param("uiSelector", "Edit[name='Query']"), Param("valueText", "hello")),
@@ -4692,7 +4664,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Focusing_a_window_that_is_not_there_fails()
     {
-        var devices = new FakeDeviceLayer { WindowFocused = false };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.WindowFocused = false;
         var (result, _, _) = await RunAsync(
             [Step("uia.focusWindow", Param("window", "Nothing"))], devices);
 
@@ -4703,7 +4676,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_selector_reads_as_a_control_and_its_properties()
     {
-        var devices = new FakeDeviceLayer { ElementExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Ui.ElementExists = true;
         await RunAsync(
         [
             Step("uia.exists", Param("window", "Notepad"),
@@ -4718,7 +4692,7 @@ public class DeviceActionTests
     public async Task Reading_a_text_file_fills_a_variable()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["notes.txt"] = "hello world";
+        devices.Files.Store["notes.txt"] = "hello world";
         var (result, _, store) = await RunAsync(
             [Step("file.readText", Param("path", "notes.txt"), Returns("text=text"))],
             devices);
@@ -4732,7 +4706,7 @@ public class DeviceActionTests
     public async Task A_text_file_can_be_read_one_line_at_a_time()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\r\nbeta\ngamma\r";
+        devices.Files.Store["names.txt"] = "alpha\r\nbeta\ngamma\r";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Returns("lines=names")),
@@ -4747,7 +4721,7 @@ public class DeviceActionTests
     public async Task Blank_lines_and_padding_can_be_left_out_of_a_line_list()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\n\n  beta  \n";
+        devices.Files.Store["names.txt"] = "alpha\n\n  beta  \n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"),
@@ -4770,14 +4744,14 @@ public class DeviceActionTests
         ], devices);
 
         Assert.EndsWith("shot.png", store.Local.Values["saved"].AsText(), StringComparison.Ordinal);
-        Assert.Contains("shot.png", devices.Blobs.Keys);
+        Assert.Contains("shot.png", devices.Files.Blobs.Keys);
     }
 
     [Fact]
     public async Task A_line_result_can_be_read_up_to_a_line()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\nbeta\ngamma\n";
+        devices.Files.Store["names.txt"] = "alpha\nbeta\ngamma\n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("limit", "2"),
@@ -4793,7 +4767,7 @@ public class DeviceActionTests
     public async Task The_text_result_is_the_whole_file_even_when_the_line_options_are_set()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["names.txt"] = "alpha\n\n  beta  \n";
+        devices.Files.Store["names.txt"] = "alpha\n\n  beta  \n";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("limit", "1"),
@@ -4808,7 +4782,7 @@ public class DeviceActionTests
     public async Task Reading_a_text_file_hands_nothing_over_until_a_result_is_asked_for()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["notes.txt"] = "kept";
+        devices.Files.Store["notes.txt"] = "kept";
         var (_, _, store) = await RunAsync(
             [Step("file.readText", Param("path", "notes.txt"))], devices);
 
@@ -4819,7 +4793,7 @@ public class DeviceActionTests
     public async Task Text_files_can_name_the_encoding_they_are_written_in()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["old.csv"] = "a,b";
+        devices.Files.Store["old.csv"] = "a,b";
         var (result, _, _) = await RunAsync(
         [
             Step("file.writeText", Param("path", "notes.txt"), Param("fileContent", "你好"),
@@ -4838,7 +4812,7 @@ public class DeviceActionTests
     public async Task Writing_a_text_file_replaces_it_or_adds_to_the_end()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.txt"] = "first\n";
+        devices.Files.Store["log.txt"] = "first\n";
         await RunAsync(
         [
             Step("file.writeText", Param("path", "log.txt"), Param("fileContent", "second"),
@@ -4847,8 +4821,8 @@ public class DeviceActionTests
                 Param("writeMode", "overwrite")),
         ], devices);
 
-        Assert.Equal("first\nsecond", devices.Files["log.txt"]);
-        Assert.Equal("fresh", devices.Files["other.txt"]);
+        Assert.Equal("first\nsecond", devices.Files.Store["log.txt"]);
+        Assert.Equal("fresh", devices.Files.Store["other.txt"]);
     }
 
     [Fact]
@@ -4861,14 +4835,14 @@ public class DeviceActionTests
                 Param("newline", "end")),
         ], devices);
 
-        Assert.Equal("done" + Environment.NewLine, devices.Files["notes.txt"]);
+        Assert.Equal("done" + Environment.NewLine, devices.Files.Store["notes.txt"]);
     }
 
     [Fact]
     public async Task Adding_to_a_file_that_never_ended_its_line_starts_a_new_one()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["list.txt"] = "first";
+        devices.Files.Store["list.txt"] = "first";
         await RunAsync(
         [
             Step("file.writeText", Param("path", "list.txt"), Param("fileContent", "second"),
@@ -4880,7 +4854,7 @@ public class DeviceActionTests
         // The second line gets a break in front of it because the file had none, and the third
         // does not because the second one left one behind.
         Assert.Equal("first" + Environment.NewLine + "second" + Environment.NewLine + "third",
-            devices.Files["list.txt"]);
+            devices.Files.Store["list.txt"]);
     }
 
     [Fact]
@@ -4893,14 +4867,14 @@ public class DeviceActionTests
                 Param("writeMode", "append"), Param("newline", "start")),
         ], devices);
 
-        Assert.Equal("first", devices.Files["fresh.txt"]);
+        Assert.Equal("first", devices.Files.Store["fresh.txt"]);
     }
 
     [Fact]
     public async Task A_log_line_never_lands_on_the_end_of_the_last_one()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.txt"] = "half a line";
+        devices.Files.Store["log.txt"] = "half a line";
         await RunAsync(
         [
             Step("file.appendLog", Param("path", "log.txt"), Param("logLine", "second"),
@@ -4908,14 +4882,14 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("half a line" + Environment.NewLine + "second" + Environment.NewLine,
-            devices.Files["log.txt"]);
+            devices.Files.Store["log.txt"]);
     }
 
     [Fact]
     public async Task A_log_line_is_added_to_the_end_of_the_file()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.txt"] = "first\n";
+        devices.Files.Store["log.txt"] = "first\n";
         await RunAsync(
         [
             Step("file.appendLog", Param("path", "log.txt"), Param("logLine", "second"),
@@ -4923,7 +4897,7 @@ public class DeviceActionTests
         ], devices);
 
         // The line carries its own line break, which is what keeps the next one on its own line.
-        Assert.Equal("first\nsecond" + Environment.NewLine, devices.Files["log.txt"]);
+        Assert.Equal("first\nsecond" + Environment.NewLine, devices.Files.Store["log.txt"]);
     }
 
     [Fact]
@@ -4936,7 +4910,7 @@ public class DeviceActionTests
                 Param("timestamp", "true")),
         ], devices);
 
-        var text = devices.Files["log.txt"];
+        var text = devices.Files.Store["log.txt"];
         Assert.EndsWith(" done" + Environment.NewLine, text);
         Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} done", text);
     }
@@ -4944,8 +4918,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Checking_for_a_file_leaves_true_or_false()
     {
-        var devices = new FakeDeviceLayer { PathExists = false };
-        devices.Files["there.txt"] = "";
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = false;
+        devices.Files.Store["there.txt"] = "";
         var (_, _, store) = await RunAsync(
         [
             Step("file.exists", Param("path", "there.txt"), Returns("exists=there")),
@@ -4960,10 +4935,10 @@ public class DeviceActionTests
     public async Task Deleting_a_file_asks_the_file_device_to_remove_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["old.txt"] = "x";
+        devices.Files.Store["old.txt"] = "x";
         await RunAsync([Step("file.delete", Param("path", "old.txt"))], devices);
 
-        Assert.DoesNotContain("old.txt", devices.Files.Keys);
+        Assert.DoesNotContain("old.txt", devices.Files.Store.Keys);
         Assert.Contains("deleteFile old.txt False", devices.Calls);
     }
 
@@ -4971,7 +4946,7 @@ public class DeviceActionTests
     public async Task A_file_can_be_put_in_the_recycle_bin_instead_of_removed_for_good()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["old.txt"] = "x";
+        devices.Files.Store["old.txt"] = "x";
         await RunAsync(
             [Step("file.delete", Param("path", "old.txt"), Param("toRecycleBin", "true"))],
             devices);
@@ -4983,14 +4958,14 @@ public class DeviceActionTests
     public async Task Copying_a_file_passes_both_paths_to_the_device()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["a.txt"] = "data";
+        devices.Files.Store["a.txt"] = "data";
         var (_, _, store) = await RunAsync(
         [
             Step("file.copy", Param("from", "a.txt"), Param("to", "b.txt"),
                 Param("ifExists", "overwrite"), Returns("path=landed")),
         ], devices);
 
-        Assert.Equal("data", devices.Files["b.txt"]);
+        Assert.Equal("data", devices.Files.Store["b.txt"]);
         Assert.Contains("copyFile a.txt b.txt", devices.Calls);
         Assert.EndsWith("b.txt", store.Local.Values["landed"].AsText(), StringComparison.Ordinal);
     }
@@ -4999,7 +4974,7 @@ public class DeviceActionTests
     public async Task Moving_a_file_takes_it_away_from_where_it_was()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["report.csv"] = "rows";
+        devices.Files.Store["report.csv"] = "rows";
         var (result, _, _) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", @"archive\old.csv"),
@@ -5008,8 +4983,8 @@ public class DeviceActionTests
 
         // A move is a rename as much as it is a change of folder: the old name is gone.
         Assert.True(result.Succeeded);
-        Assert.Equal("rows", devices.Files[@"archive\old.csv"]);
-        Assert.False(devices.Files.ContainsKey("report.csv"));
+        Assert.Equal("rows", devices.Files.Store[@"archive\old.csv"]);
+        Assert.False(devices.Files.Store.ContainsKey("report.csv"));
         Assert.Contains(@"moveFile report.csv archive\old.csv", devices.Calls);
     }
 
@@ -5017,8 +4992,8 @@ public class DeviceActionTests
     public async Task A_move_can_leave_a_file_that_is_already_there_alone()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["report.csv"] = "rows";
-        devices.Files["taken.csv"] = "keep me";
+        devices.Files.Store["report.csv"] = "rows";
+        devices.Files.Store["taken.csv"] = "keep me";
         var (result, _, store) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", "taken.csv"),
@@ -5028,8 +5003,8 @@ public class DeviceActionTests
         // Nothing was moved and nothing was overwritten: the file that was there is still there,
         // and the one that was to go there has not gone anywhere.
         Assert.True(result.Succeeded);
-        Assert.Equal("keep me", devices.Files["taken.csv"]);
-        Assert.Equal("rows", devices.Files["report.csv"]);
+        Assert.Equal("keep me", devices.Files.Store["taken.csv"]);
+        Assert.Equal("rows", devices.Files.Store["report.csv"]);
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("moveFile", StringComparison.Ordinal));
         Assert.EndsWith("taken.csv", store.Local.Values["landed"].AsText(), StringComparison.Ordinal);
     }
@@ -5038,18 +5013,18 @@ public class DeviceActionTests
     public async Task A_copy_can_be_given_a_number_of_its_own_beside_a_taken_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["report.csv"] = "new";
-        devices.Files[@"backup\report.csv"] = "old";
-        devices.Files[@"backup\report (2).csv"] = "older";
+        devices.Files.Store["report.csv"] = "new";
+        devices.Files.Store[@"backup\report.csv"] = "old";
+        devices.Files.Store[@"backup\report (2).csv"] = "older";
         var (_, _, store) = await RunAsync(
         [
             Step("file.copy", Param("from", "report.csv"), Param("to", @"backup\report.csv"),
                 Param("ifExists", "unique"), Returns("path=landed")),
         ], devices);
 
-        Assert.Equal("old", devices.Files[@"backup\report.csv"]);
-        Assert.Equal("older", devices.Files[@"backup\report (2).csv"]);
-        Assert.Equal("new", devices.Files[@"backup\report (3).csv"]);
+        Assert.Equal("old", devices.Files.Store[@"backup\report.csv"]);
+        Assert.Equal("older", devices.Files.Store[@"backup\report (2).csv"]);
+        Assert.Equal("new", devices.Files.Store[@"backup\report (3).csv"]);
         Assert.EndsWith(@"report (3).csv", store.Local.Values["landed"].AsText(),
             StringComparison.Ordinal);
     }
@@ -5063,13 +5038,14 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(@"createFolder output\reports", devices.Calls);
-        Assert.Contains(@"output\reports", devices.Folders);
+        Assert.Contains(@"output\reports", devices.Files.Folders);
     }
 
     [Fact]
     public async Task A_folder_that_still_holds_something_is_left_alone_unless_told_otherwise()
     {
-        var devices = new FakeDeviceLayer { FolderHasFiles = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.FolderHasFiles = true;
         var (refused, _, _) = await RunAsync(
             [Step("file.deleteFolder", Param("path", "old"))], devices);
 
@@ -5130,7 +5106,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(@"unzip download.zip unpacked True", devices.Calls);
-        Assert.Equal("unpacked", devices.Files[Path.Combine("unpacked", "readme.txt")]);
+        Assert.Equal("unpacked", devices.Files.Store[Path.Combine("unpacked", "readme.txt")]);
     }
 
     [Fact]
@@ -5148,7 +5124,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_zip_file_that_is_not_one_reports_what_the_device_said()
     {
-        var devices = new FakeDeviceLayer { UnzipWorks = false };
+        var devices = new FakeDeviceLayer();
+        devices.Files.UnzipWorks = false;
         var (result, _, _) = await RunAsync(
             [Step("file.unzip", Param("from", "notes.txt"), Param("folder", "unpacked"))], devices);
 
@@ -5160,8 +5137,8 @@ public class DeviceActionTests
     public async Task Listing_a_folder_gives_a_list_of_full_paths()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"C:\fake\a.txt");
-        devices.FolderEntries.Add(@"C:\fake\b.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\a.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\b.txt");
         var (_, _, store) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*.txt"),
@@ -5179,10 +5156,10 @@ public class DeviceActionTests
     public async Task A_listing_can_ask_for_what_changed_recently()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"C:\fake\today.txt");
-        devices.FolderEntries.Add(@"C:\fake\last_month.txt");
-        devices.FileFacts[@"C:\fake\today.txt"] = (12, DateTimeOffset.Now.AddHours(-2));
-        devices.FileFacts[@"C:\fake\last_month.txt"] = (12, DateTimeOffset.Now.AddDays(-30));
+        devices.Files.FolderEntries.Add(@"C:\fake\today.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\last_month.txt");
+        devices.Files.Facts[@"C:\fake\today.txt"] = (12, DateTimeOffset.Now.AddHours(-2));
+        devices.Files.Facts[@"C:\fake\last_month.txt"] = (12, DateTimeOffset.Now.AddDays(-30));
 
         var (_, _, store) = await RunAsync(
         [
@@ -5200,10 +5177,10 @@ public class DeviceActionTests
     public async Task A_listing_can_be_ordered_and_weeded_by_size()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"C:\fake\small.txt");
-        devices.FolderEntries.Add(@"C:\fake\big.txt");
-        devices.FileFacts[@"C:\fake\small.txt"] = (100, DateTimeOffset.Now);
-        devices.FileFacts[@"C:\fake\big.txt"] = (5_000_000, DateTimeOffset.Now);
+        devices.Files.FolderEntries.Add(@"C:\fake\small.txt");
+        devices.Files.FolderEntries.Add(@"C:\fake\big.txt");
+        devices.Files.Facts[@"C:\fake\small.txt"] = (100, DateTimeOffset.Now);
+        devices.Files.Facts[@"C:\fake\big.txt"] = (5_000_000, DateTimeOffset.Now);
 
         var (_, _, store) = await RunAsync(
         [
@@ -5229,7 +5206,7 @@ public class DeviceActionTests
     public async Task A_listing_can_be_given_as_paths_inside_the_folder()
     {
         var devices = new FakeDeviceLayer();
-        devices.FolderEntries.Add(@"G:\fake\reports\a.txt");
+        devices.Files.FolderEntries.Add(@"G:\fake\reports\a.txt");
         var (_, _, store) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "reports"), Param("pattern", "*"),
@@ -5269,7 +5246,7 @@ public class DeviceActionTests
     public async Task Reading_json_walks_a_dotted_path()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["config.json"] = """{"server":{"name":"alpha","port":8080}}""";
+        devices.Files.Store["config.json"] = """{"server":{"name":"alpha","port":8080}}""";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readJson", Param("path", "config.json"), Param("query", "server.name"),
@@ -5286,14 +5263,14 @@ public class DeviceActionTests
     public async Task Writing_json_keeps_the_rest_and_makes_missing_objects()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["config.json"] = """{"server":{"name":"alpha"}}""";
+        devices.Files.Store["config.json"] = """{"server":{"name":"alpha"}}""";
         await RunAsync(
         [
             Step("file.writeJson", Param("path", "config.json"), Param("query", "server.port"),
                 Param("writeValue", "9000")),
         ], devices);
 
-        var written = devices.Files["config.json"];
+        var written = devices.Files.Store["config.json"];
         Assert.Contains("\"name\": \"alpha\"", written);
         Assert.Contains("\"port\": 9000", written);
     }
@@ -5302,7 +5279,7 @@ public class DeviceActionTests
     public async Task Reading_csv_splits_rows_and_skips_a_header()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["rows.csv"] = "name,age\r\nalice,30\r\nbob,41";
+        devices.Files.Store["rows.csv"] = "name,age\r\nalice,30\r\nbob,41";
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
@@ -5321,7 +5298,7 @@ public class DeviceActionTests
         // What "change one cell of a CSV" comes to now that there are cells to point at: read the
         // column, change the item at that position, write the column back.
         var devices = new FakeDeviceLayer();
-        devices.Files["names.csv"] = "alice\r\nbob\r\ncarol";
+        devices.Files.Store["names.csv"] = "alice\r\nbob\r\ncarol";
 
         await RunAsync(
         [
@@ -5332,14 +5309,14 @@ public class DeviceActionTests
                 Param("separator", "comma")),
         ], devices);
 
-        Assert.Equal("alice\nBetty\ncarol", devices.Files["out.csv"].Replace("\r\n", "\n").TrimEnd('\n'));
+        Assert.Equal("alice\nBetty\ncarol", devices.Files.Store["out.csv"].Replace("\r\n", "\n").TrimEnd('\n'));
     }
 
     [Fact]
     public async Task Writing_csv_quotes_the_cells_that_need_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "a,\"b,c\"";
+        devices.Files.Store["in.csv"] = "a,\"b,c\"";
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
@@ -5350,7 +5327,7 @@ public class DeviceActionTests
 
         // The cell holding the separator comes back out quoted, and the file ends its last line
         // the way every writer ends one: with a line terminator, rather than a line left hanging.
-        Assert.Equal("a,\"b,c\"\r\n", devices.Files["out.csv"]);
+        Assert.Equal("a,\"b,c\"\r\n", devices.Files.Store["out.csv"]);
     }
 
     /// <summary>
@@ -5361,7 +5338,7 @@ public class DeviceActionTests
     public async Task A_row_read_with_a_header_is_read_by_column_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["rows.csv"] = "name,age\r\nalice,30";
+        devices.Files.Store["rows.csv"] = "name,age\r\nalice,30";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5387,7 +5364,7 @@ public class DeviceActionTests
     public async Task A_row_read_without_a_header_names_its_columns_by_letter()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["plain.csv"] = "alice,30";
+        devices.Files.Store["plain.csv"] = "alice,30";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5405,7 +5382,7 @@ public class DeviceActionTests
     public async Task Reading_csv_can_start_further_down_the_file_and_stop_early()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["big.csv"] = "a,1\r\nb,2\r\nc,3\r\nd,4";
+        devices.Files.Store["big.csv"] = "a,1\r\nb,2\r\nc,3\r\nd,4";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5424,7 +5401,7 @@ public class DeviceActionTests
     public async Task Reading_csv_leaves_out_the_blank_lines_a_file_ends_with()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["rows.csv"] = "a,b\r\n\r\nc,d\r\n\r\n";
+        devices.Files.Store["rows.csv"] = "a,b\r\n\r\nc,d\r\n\r\n";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5443,7 +5420,7 @@ public class DeviceActionTests
     public async Task Reading_csv_can_use_a_character_the_picker_does_not_offer()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["odd.csv"] = "a#b#c";
+        devices.Files.Store["odd.csv"] = "a#b#c";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5461,7 +5438,7 @@ public class DeviceActionTests
     public async Task Reading_csv_can_trim_the_spaces_around_a_cell()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["padded.csv"] = "a , b";
+        devices.Files.Store["padded.csv"] = "a , b";
 
         var (_, _, store) = await RunAsync(
         [
@@ -5482,8 +5459,8 @@ public class DeviceActionTests
     public async Task Adding_to_a_csv_writes_the_header_once_and_the_rows_after_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["first.csv"] = "alice,30";
-        devices.Files["second.csv"] = "bob,41";
+        devices.Files.Store["first.csv"] = "alice,30";
+        devices.Files.Store["second.csv"] = "bob,41";
 
         await RunAsync(
         [
@@ -5499,7 +5476,7 @@ public class DeviceActionTests
                 Param("writeMode", "append")),
         ], devices);
 
-        Assert.Equal("name,age\r\nalice,30\r\nbob,41\r\n", devices.Files["log.csv"]);
+        Assert.Equal("name,age\r\nalice,30\r\nbob,41\r\n", devices.Files.Store["log.csv"]);
     }
 
     /// <summary>
@@ -5511,7 +5488,7 @@ public class DeviceActionTests
     public async Task A_csv_cell_that_looks_like_a_formula_is_written_as_it_stands()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "=SUM(A1),@mine,-1";
+        devices.Files.Store["in.csv"] = "=SUM(A1),@mine,-1";
 
         await RunAsync(
         [
@@ -5521,14 +5498,14 @@ public class DeviceActionTests
                 Param("separator", "comma")),
         ], devices);
 
-        Assert.Equal("=SUM(A1),@mine,-1\r\n", devices.Files["out.csv"]);
+        Assert.Equal("=SUM(A1),@mine,-1\r\n", devices.Files.Store["out.csv"]);
     }
 
     [Fact]
     public async Task Writing_csv_can_end_its_lines_and_quote_every_cell_the_way_it_was_told()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "a,b\r\nc,d";
+        devices.Files.Store["in.csv"] = "a,b\r\nc,d";
 
         await RunAsync(
         [
@@ -5539,14 +5516,14 @@ public class DeviceActionTests
                 Param("quoteAll", "true")),
         ], devices);
 
-        Assert.Equal("\"a\",\"b\"\n\"c\",\"d\"\n", devices.Files["unix.csv"]);
+        Assert.Equal("\"a\",\"b\"\n\"c\",\"d\"\n", devices.Files.Store["unix.csv"]);
     }
 
     [Fact]
     public async Task An_empty_csv_cell_is_left_empty_unless_it_is_asked_to_be_shown()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "a,,c";
+        devices.Files.Store["in.csv"] = "a,,c";
 
         await RunAsync(
         [
@@ -5562,8 +5539,8 @@ public class DeviceActionTests
 
         // Both are a cell holding nothing; the second one is for the reader that wants to see a
         // cell there, and it reads back as the same empty cell.
-        Assert.Equal("a,,c\r\n", devices.Files["bare.csv"]);
-        Assert.Equal("a,\"\",c\r\n", devices.Files["shown.csv"]);
+        Assert.Equal("a,,c\r\n", devices.Files.Store["bare.csv"]);
+        Assert.Equal("a,\"\",c\r\n", devices.Files.Store["shown.csv"]);
     }
 
     /// <summary>
@@ -5574,8 +5551,8 @@ public class DeviceActionTests
     public async Task Adding_to_a_csv_by_name_puts_each_cell_under_the_column_that_has_its_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.csv"] = "日期,订单号,金额\r\n2026-01-05,A123,120\r\n";
-        devices.Files["in.csv"] = "订单号,金额\r\nB456,80";
+        devices.Files.Store["log.csv"] = "日期,订单号,金额\r\n2026-01-05,A123,120\r\n";
+        devices.Files.Store["in.csv"] = "订单号,金额\r\nB456,80";
 
         await RunAsync(
         [
@@ -5590,15 +5567,15 @@ public class DeviceActionTests
         // The date column is the file's own and this step knows nothing about it: it stays empty
         // in the new line rather than taking the order number.
         Assert.Equal("日期,订单号,金额\r\n2026-01-05,A123,120\r\n,B456,80\r\n",
-            devices.Files["log.csv"]);
+            devices.Files.Store["log.csv"]);
     }
 
     [Fact]
     public async Task A_csv_column_name_the_file_has_not_got_is_reported()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
-        devices.Files["in.csv"] = "总价\r\n1";
+        devices.Files.Store["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
+        devices.Files.Store["in.csv"] = "总价\r\n1";
 
         var (result, _, _) = await RunAsync(
         [
@@ -5615,7 +5592,7 @@ public class DeviceActionTests
     public async Task A_csv_cell_added_by_name_needs_a_name_of_its_own()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
+        devices.Files.Store["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
 
         // A row of plain cells rather than a record: nothing says what its two cells are called, and
         // the step names one column for them. Half a name is worse than no name — the other cell
@@ -5644,7 +5621,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("5", store.Local.Values["counter"].AsText());
-        Assert.Contains("\"counter\": 5", devices.Files["state.json"]);
+        Assert.Contains("\"counter\": 5", devices.Files.Store["state.json"]);
     }
 
     [Fact]
@@ -5670,14 +5647,15 @@ public class DeviceActionTests
             [Step("clipboard.writeText", Param("clipboardText", "hello"))], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("hello", devices.ClipboardText);
+        Assert.Equal("hello", devices.Clipboard.Text);
         Assert.Contains("clipboardWrite hello", devices.Calls);
     }
 
     [Fact]
     public async Task Reading_the_clipboard_fills_a_variable()
     {
-        var devices = new FakeDeviceLayer { ClipboardText = "from the clipboard" };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "from the clipboard";
         var (_, _, store) = await RunAsync(
             [Step("clipboard.readText", Returns("text=picked"))], devices);
 
@@ -5687,7 +5665,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Reading_the_clipboard_hands_nothing_over_until_a_result_is_asked_for()
     {
-        var devices = new FakeDeviceLayer { ClipboardText = "kept" };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "kept";
         var (_, _, store) = await RunAsync([Step("clipboard.readText")], devices);
 
         // Nothing was ticked, so the step leaves no variable behind at all: reading one is reading a
@@ -5698,10 +5677,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_picture_on_the_clipboard_can_be_read_into_a_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ClipboardCopy = new ImageFrame(4, 3, new byte[4 * 3 * 4]),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Picture = new ImageFrame(4, 3, new byte[4 * 3 * 4]);
         var (result, _, store) = await RunAsync(
             [Step("clipboard.readImage", Parts("image", "shot", "width", "height"))], devices);
 
@@ -5743,8 +5720,8 @@ public class DeviceActionTests
     public async Task The_files_on_the_clipboard_come_back_as_a_list()
     {
         var devices = new FakeDeviceLayer();
-        devices.ClipboardFiles.Add(@"C:\reports\day.csv");
-        devices.ClipboardFiles.Add(@"C:\reports\week.csv");
+        devices.Clipboard.Files.Add(@"C:\reports\day.csv");
+        devices.Clipboard.Files.Add(@"C:\reports\week.csv");
         var (_, _, store) = await RunAsync(
             [Step("clipboard.readFiles", Returns("files=picked"))], devices);
 
@@ -5755,18 +5732,20 @@ public class DeviceActionTests
     [Fact]
     public async Task Files_written_one_to_a_line_are_each_put_on_the_clipboard()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         var (result, _, _) = await RunAsync(
             [Step("clipboard.writeFiles", Param("files", "a.txt\nb.txt"))], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.ClipboardFiles);
+        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.Clipboard.Files);
     }
 
     [Fact]
     public async Task Files_can_be_put_on_the_clipboard()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         var (result, _, _) = await RunAsync(
         [
             // A list is built as an expression value and handed straight over, which is what a
@@ -5777,19 +5756,20 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(["G:/fake/a.txt", "G:/fake/b.txt"], devices.ClipboardFiles);
+        Assert.Equal(["G:/fake/a.txt", "G:/fake/b.txt"], devices.Clipboard.Files);
     }
 
     [Fact]
     public async Task A_relative_path_on_the_clipboard_is_taken_from_the_macros_folder()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         var (result, _, _) = await RunAsync(
             [Step("clipboard.writeFiles", Param("files", "notes.txt"))], devices);
 
         // Explorer can only paste a path that really points somewhere, so it goes out as a full one.
         Assert.True(result.Succeeded);
-        Assert.Equal([@"G:\fake\notes.txt"], devices.ClipboardFiles);
+        Assert.Equal([@"G:\fake\notes.txt"], devices.Clipboard.Files);
     }
 
     [Fact]
@@ -5807,21 +5787,20 @@ public class DeviceActionTests
     [Fact]
     public async Task Clearing_the_clipboard_empties_it()
     {
-        var devices = new FakeDeviceLayer { ClipboardText = "gone" };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "gone";
         await RunAsync([Step("clipboard.clear")], devices);
 
-        Assert.Equal(string.Empty, devices.ClipboardText);
+        Assert.Equal(string.Empty, devices.Clipboard.Text);
         Assert.Contains("clipboardClear", devices.Calls);
     }
 
     [Fact]
     public async Task Waiting_for_the_clipboard_keeps_what_was_copied()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ClipboardText = "copied meanwhile",
-            ClipboardMovesAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "copied meanwhile";
+        devices.Clipboard.MovesAfter = 1;
         var (result, _, store) = await RunAsync(
             [Within(500, Step("clipboard.waitChange", Returns("text=picked")))], devices);
 
@@ -5843,11 +5822,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Copying_a_selection_presses_the_shortcut_and_keeps_the_result()
     {
-        var devices = new FakeDeviceLayer
-        {
-            ClipboardText = "the selection",
-            ClipboardMovesAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Text = "the selection";
+        devices.Clipboard.MovesAfter = 1;
         var (result, _, store) = await RunAsync(
             [Within(500, Step("clipboard.copy", Param("shortcut", "Ctrl+C"),
                 Returns("text=picked")))], devices);
@@ -5909,7 +5886,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Starting_a_program_hands_back_its_record()
     {
-        var devices = new FakeDeviceLayer { NextProcessId = 4321 };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.NextProcessId = 4321;
         var (result, _, store) = await RunAsync(
         [
             Step("process.start", Param("programFile", "notepad.exe"), Param("commandArguments", "/a"),
@@ -5928,7 +5906,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Starting_a_program_hands_nothing_over_until_a_result_is_asked_for()
     {
-        var devices = new FakeDeviceLayer { NextProcessId = 7 };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.NextProcessId = 7;
         var (_, _, store) = await RunAsync(
             [Step("process.start", Param("programFile", "calc.exe"))], devices);
 
@@ -6056,10 +6035,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_command_can_report_what_it_prints_while_it_is_still_running()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(0, "first\n\nthird", "watch out"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(0, "first\n\nthird", "watch out");
         var host = new SilentRunHost();
         var store = new VariableStore();
 
@@ -6083,10 +6060,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_command_that_is_not_watched_keeps_its_output_to_itself()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(0, "first\nsecond", string.Empty),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(0, "first\nsecond", string.Empty);
         var host = new SilentRunHost();
 
         await new MacroRunner(new VariableStore(), host, devices).RunAsync(
@@ -6198,12 +6173,10 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_program_keeps_the_id_once_it_appears()
     {
-        var devices = new FakeDeviceLayer
-        {
-            NextProcessId = 55,
-            AppearsLater = "notepad",
-            AppearsAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.NextProcessId = 55;
+        devices.Processes.AppearsLater = "notepad";
+        devices.Processes.AppearsAfter = 1;
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("process.waitFor", Param("processName", "notepad"),
@@ -6229,7 +6202,7 @@ public class DeviceActionTests
     public async Task Checking_whether_a_program_runs_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [10];
+        devices.Processes.Running["notepad"] = [10];
         var (_, _, store) = await RunAsync(
         [
             Step("process.exists", Param("processName", "notepad"), Returns("running=here")),
@@ -6244,8 +6217,8 @@ public class DeviceActionTests
     public async Task Listing_programs_names_them_without_repeats()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [1, 2];
-        devices.Running["calc"] = [3];
+        devices.Processes.Running["notepad"] = [1, 2];
+        devices.Processes.Running["calc"] = [3];
         var (_, _, store) = await RunAsync(
             [Step("process.list", Returns("processes=names"))], devices);
 
@@ -6263,7 +6236,7 @@ public class DeviceActionTests
     public async Task Reading_a_programs_details_hands_it_over_as_one_record()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [42];
+        devices.Processes.Running["notepad"] = [42];
         var (result, _, store) = await RunAsync(
             [Step("process.info", Param("processTarget", "notepad"), Parts("program", "note"))],
             devices);
@@ -6293,7 +6266,7 @@ public class DeviceActionTests
     public async Task Stopping_a_program_by_name_counts_what_it_closed()
     {
         var devices = new FakeDeviceLayer();
-        devices.Running["notepad"] = [1];
+        devices.Processes.Running["notepad"] = [1];
         var (_, _, store) = await RunAsync(
         [
             Step("process.kill", Param("processTarget", "notepad"),
@@ -6322,8 +6295,8 @@ public class DeviceActionTests
     public async Task Waiting_for_exit_keeps_the_exit_code()
     {
         var devices = new FakeDeviceLayer();
-        devices.Exited.Add(42);
-        devices.ExitCodes[42] = 7;
+        devices.Processes.Exited.Add(42);
+        devices.Processes.ExitCodes[42] = 7;
         var (result, _, store) = await RunAsync(
         [
             Within(1000, Step("process.waitExit", Param("id", "42"),
@@ -6359,10 +6332,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Running_a_command_keeps_its_output_and_exit_code()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(3, "hello", "watch out"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(3, "hello", "watch out");
         var (_, _, store) = await RunAsync(
         [
             Within(5000, Step("command.run", Param("commandFile", "cmd.exe"),
@@ -6379,11 +6350,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Running_a_script_keeps_what_it_printed_and_cleans_up_after_itself()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(0, "\n  hello from a script  \n\n", string.Empty),
-            PathExists = true,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(0, "\n  hello from a script  \n\n", string.Empty);
+        devices.Files.PathExists = true;
 
         var (result, _, store) = await RunAsync(
         [
@@ -6398,7 +6367,7 @@ public class DeviceActionTests
         // The script lives in the macro, so the copy handed to the interpreter is removed again.
         Assert.Contains(devices.Calls, call => call.StartsWith("writeFile") && call.Contains(".ps1"));
         Assert.Contains(devices.Calls, call => call.StartsWith("deleteFile") && call.Contains(".ps1"));
-        Assert.Empty(devices.Files);
+        Assert.Empty(devices.Files.Store);
         Assert.Contains(devices.Calls,
             call => call.StartsWith("run powershell.exe|-NoProfile") && call.Contains("|G:\\fake|"));
     }
@@ -6406,7 +6375,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_runs_where_the_macros_are_when_that_folder_is_there()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
             [Within(60000, Step("script.run", Param("kind", "ps1"), Param("script", "echo hi")))],
             devices);
@@ -6530,10 +6500,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_that_stops_with_an_error_fails_the_step_and_hands_over_what_it_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Command = new CommandResult(1, "  what it printed  ", "cannot open the file"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(1, "  what it printed  ", "cannot open the file");
 
         var (result, _, store) = await RunAsync(
         [
@@ -6591,7 +6559,7 @@ public class DeviceActionTests
             // Nothing was written and nothing was started: a machine without the program is not a
             // command line that failed, it is a step that could not be run.
             Assert.DoesNotContain(devices.Calls, call => call.StartsWith("start"));
-            Assert.DoesNotContain(devices.Files.Keys,
+            Assert.DoesNotContain(devices.Files.Store.Keys,
                 path => path.EndsWith(".ahk", StringComparison.Ordinal));
         });
     }
@@ -6611,8 +6579,9 @@ public class DeviceActionTests
         // The macro names a file rather than writing the script out: what it hands over is that
         // file's place on disk, taken from the macro's own folder when it is written as a path
         // relative to it, and nothing of the file is copied anywhere.
-        var devices = new FakeDeviceLayer { PathExists = true };
-        devices.Files[@"G:\fake\deploy.ps1"] = "Write-Host {{who}}";
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
+        devices.Files.Store[@"G:\fake\deploy.ps1"] = "Write-Host {{who}}";
 
         var (result, _, _) = await RunAsync(
         [
@@ -6630,13 +6599,14 @@ public class DeviceActionTests
         // itself rather than something this program made out of it.
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("writeFile"));
         Assert.DoesNotContain(devices.Calls, call => call.StartsWith("deleteFile"));
-        Assert.Equal("Write-Host {{who}}", devices.Files[@"G:\fake\deploy.ps1"]);
+        Assert.Equal("Write-Host {{who}}", devices.Files.Store[@"G:\fake\deploy.ps1"]);
     }
 
     [Fact]
     public async Task A_file_script_is_run_by_whatever_kind_of_script_it_was_said_to_be()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
         [
             Step("script.run", Param("scriptSource", "file"), Param("kind", "bat"),
@@ -6665,7 +6635,9 @@ public class DeviceActionTests
         // The one kind that has to be told the command is over is the kind whose script cannot be
         // touched: what is written instead is a two-line batch file that calls the macro's file and
         // then leaves the mark behind, and the file the macro named is left as it was.
-        var devices = new FakeDeviceLayer { PathExists = true, FileText = "0" };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
+        devices.Files.Text = "0";
         var (result, _, _) = await RunAsync(
         [
             Step("script.run", Param("scriptSource", "file"), Param("kind", "cmdKeep"),
@@ -6719,7 +6691,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_step_is_run_where_and_with_what_it_says()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
         [
             Within(5000, Step("script.ahk", Param("script", "Print(\"hi\")"),
@@ -6743,14 +6716,12 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_script_reaches_the_macro_the_way_the_other_two_languages_do()
     {
-        var devices = new FakeDeviceLayer
-        {
-            PathExists = true,
-            AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed"));
+        devices.Files.PathExists = true;
 
         var asked = new List<string>();
-        devices.AutoHotkeyBody = (host, _) =>
+        devices.Script.AutoHotkeyBody = (host, _) =>
         {
             asked.Add(host.Read("who")?.AsText() ?? "nothing");
             host.Write("answer", Value.FromText("Ann!"));
@@ -6781,7 +6752,7 @@ public class DeviceActionTests
     public async Task An_AutoHotkey_script_that_names_a_step_this_macro_has_not_got_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.AutoHotkeyBody = (host, _) => host.RunStep("zzzz");
+        devices.Script.AutoHotkeyBody = (host, _) => host.RunStep("zzzz");
 
         var (result, _, _) = await RunAsync(
             [Step("script.ahk", Param("script", "StepExecute(\"zzzz\")"))], devices);
@@ -6804,10 +6775,8 @@ public class DeviceActionTests
     [Fact]
     public async Task An_AutoHotkey_script_that_stops_with_an_error_fails_the_step_and_hands_over_what_it_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            AutoHotkey = new ScriptResult(1, string.Empty, "no (line 2)", Value.Null),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.AutoHotkey = new ScriptResult(1, string.Empty, "no (line 2)", Value.Null);
 
         var (result, _, store) = await RunAsync(
         [
@@ -6827,15 +6796,13 @@ public class DeviceActionTests
     [Fact]
     public async Task A_python_script_reads_and_writes_the_values_of_the_macro_while_it_runs()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Script = new ScriptResult(1, "printed\n", string.Empty, Value.Null),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Python = new ScriptResult(1, "printed\n", string.Empty, Value.Null);
 
         var asked = new List<string>();
         var said = new List<string>();
         var handed = new List<string>();
-        devices.ScriptBody = (host, _) =>
+        devices.Script.PythonBody = (host, _) =>
         {
             asked.Add(host.Read("who")?.AsText() ?? "nothing");
             host.Write("answer", Value.FromText("Ann!"));
@@ -6871,10 +6838,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_python_script_hands_back_what_it_set_as_the_result()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Script = new ScriptResult(0, "one\ntwo", string.Empty, Value.FromText("handed")),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Python = new ScriptResult(0, "one\ntwo", string.Empty, Value.FromText("handed"));
 
         var (result, _, store) = await RunAsync(
         [
@@ -6890,7 +6855,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_python_step_is_run_where_and_with_what_it_says()
     {
-        var devices = new FakeDeviceLayer { PathExists = true };
+        var devices = new FakeDeviceLayer();
+        devices.Files.PathExists = true;
         await RunAsync(
         [
             Within(5000, Step("script.python", Param("script", "print('hi')"),
@@ -6913,7 +6879,7 @@ public class DeviceActionTests
     public async Task A_python_script_that_names_a_step_this_macro_has_not_got_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.ScriptBody = (host, _) => host.RunStep("zzzz");
+        devices.Script.PythonBody = (host, _) => host.RunStep("zzzz");
 
         var (result, _, _) = await RunAsync(
         [
@@ -6940,11 +6906,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Installing_packages_hands_back_what_went_in()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Packages = new ScriptResult(0, string.Empty, string.Empty,
-                Value.FromList([Value.FromText("requests")])),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.Packages = new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([Value.FromText("requests")]));
 
         var (result, _, store) = await RunAsync(
         [
@@ -6975,14 +6939,12 @@ public class DeviceActionTests
     [Fact]
     public async Task A_C_sharp_script_reaches_the_macro_the_way_the_python_one_does()
     {
-        var devices = new FakeDeviceLayer
-        {
-            PathExists = true,
-            CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed"));
+        devices.Files.PathExists = true;
 
         var asked = new List<string>();
-        devices.CSharpBody = (host, _) =>
+        devices.Script.CSharpBody = (host, _) =>
         {
             asked.Add(host.Read("who")?.AsText() ?? "nothing");
             host.Write("answer", Value.FromText("Ann!"));
@@ -7015,11 +6977,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_that_does_not_compile_fails_the_step_with_what_the_compiler_said()
     {
-        var devices = new FakeDeviceLayer
-        {
-            CSharp = new ScriptResult(1, string.Empty, "script.cs(3,9): error CS0103: oops",
-                Value.Null, "Run.ScriptCompileFailed"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.CSharp = new ScriptResult(1, string.Empty, "script.cs(3,9): error CS0103: oops",
+                Value.Null, "Run.ScriptCompileFailed");
 
         var (result, _, store) = await RunAsync(
         [
@@ -7040,10 +7000,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_C_sharp_step_with_nothing_to_run_says_so_rather_than_non_compiling()
     {
-        var devices = new FakeDeviceLayer
-        {
-            CSharp = new ScriptResult(1, string.Empty, string.Empty, Value.Null, "Run.NoEntryPoint"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.CSharp = new ScriptResult(1, string.Empty, string.Empty, Value.Null, "Run.NoEntryPoint");
 
         var (result, _, _) = await RunAsync(
             [Step("script.csharp", Param("script", "class Nothing { }"))], devices);
@@ -7066,11 +7024,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Downloading_packages_hands_back_what_went_in()
     {
-        var devices = new FakeDeviceLayer
-        {
-            NuGet = new ScriptResult(0, string.Empty, string.Empty,
-                Value.FromList([Value.FromText("PyYAML 6.0.0")])),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.NuGet = new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([Value.FromText("PyYAML 6.0.0")]));
 
         var (result, _, store) = await RunAsync(
         [
@@ -7091,11 +7047,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_download_that_goes_wrong_fails_the_step_and_still_hands_the_three_over()
     {
-        var devices = new FakeDeviceLayer
-        {
-            NuGet = new ScriptResult(1, string.Empty, "there is no Such.Package on nuget.org",
-                Value.FromList([]), "Run.NuGetFailed"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Script.NuGet = new ScriptResult(1, string.Empty, "there is no Such.Package on nuget.org",
+                Value.FromList([]), "Run.NuGetFailed");
 
         var (result, _, store) = await RunAsync(
         [
@@ -7132,7 +7086,7 @@ public class DeviceActionTests
             Directory.CreateDirectory(Path.Combine(folder, "python", "PyYAML-6.0.dist-info"));
 
             var devices = new FakeDeviceLayer();
-            var scripts = new ScriptDevice(devices, folder, string.Empty);
+            var scripts = new ScriptDevice(devices.Processes, folder, string.Empty);
             scripts.InstallPip(new PipRequest(["PyYAML==6.0", "requests"]), _ => { }, _ => { },
                 default);
 
@@ -7153,8 +7107,8 @@ public class DeviceActionTests
     public async Task System_info_and_environment_variables_reach_variables()
     {
         var devices = new FakeDeviceLayer();
-        devices.SystemValues["desktopFolder"] = @"C:\Users\me\Desktop";
-        devices.EnvironmentValues["TEMP"] = @"C:\Temp";
+        devices.System.Values["desktopFolder"] = @"C:\Users\me\Desktop";
+        devices.System.EnvironmentValues["TEMP"] = @"C:\Temp";
         var (_, _, store) = await RunAsync(
         [
             Step("system.info", Param("field", "desktopFolder"), Returns("value=desk")),
@@ -7172,15 +7126,13 @@ public class DeviceActionTests
         // to work over there reads where "over there" is instead of having one machine's numbers
         // written into it. A display to the left of the primary one would start at a negative
         // number, and that is exactly what the step has to hand over.
-        var devices = new FakeDeviceLayer
-        {
-            Desktop = new ScreenLayout(
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Desktop = new ScreenLayout(
                 new ScreenArea(0, 0, 300, 100),
                 [
                     new ScreenDisplay(new ScreenArea(0, 0, 100, 100), true),
                     new ScreenDisplay(new ScreenArea(100, 0, 200, 100), false),
-                ]),
-        };
+                ]);
         var (_, _, store) = await RunAsync(
             [Step("screen.list", Returns("displays=desk"))], devices);
 
@@ -7240,7 +7192,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_volume_action_leaves_behind_the_level_the_machine_ended_at()
     {
-        var devices = new FakeDeviceLayer { SpeakerVolume = 30 };
+        var devices = new FakeDeviceLayer();
+        devices.System.SpeakerVolume = 30;
         var (_, _, store) = await RunAsync(
         [
             Step("system.volume", Param("volumeAction", "set"), Param("levelPercent", "80"),
@@ -7258,7 +7211,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Turning_the_volume_down_never_goes_below_nothing()
     {
-        var devices = new FakeDeviceLayer { SpeakerVolume = 4 };
+        var devices = new FakeDeviceLayer();
+        devices.System.SpeakerVolume = 4;
         var (_, _, store) = await RunAsync(
         [
             Step("system.volume", Param("volumeAction", "down"), Param("stepPercent", "20"),
@@ -7418,7 +7372,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_brightness_action_leaves_behind_the_brightness_the_screens_ended_at()
     {
-        var devices = new FakeDeviceLayer { ScreenBrightness = 20 };
+        var devices = new FakeDeviceLayer();
+        devices.System.ScreenBrightness = 20;
         var (_, _, store) = await RunAsync(
         [
             Step("system.brightness", Param("brightnessAction", "up"), Param("stepPercent", "30"),
@@ -7436,7 +7391,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_brightness_action_reads_without_changing_anything()
     {
-        var devices = new FakeDeviceLayer { ScreenBrightness = 65 };
+        var devices = new FakeDeviceLayer();
+        devices.System.ScreenBrightness = 65;
         var (_, _, store) = await RunAsync(
             [Step("system.brightness", Returns("brightness"))], devices);
 
@@ -7462,7 +7418,7 @@ public class DeviceActionTests
     public async Task Checking_for_a_window_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(7, "Untitled - Notepad",
+        devices.Window.Open.Add(new WindowInfo(7, "Untitled - Notepad",
             new ScreenPoint(10, 20), new ScreenSize(300, 200), false, false));
         var (_, _, store) = await RunAsync(
         [
@@ -7477,11 +7433,9 @@ public class DeviceActionTests
     [Fact]
     public async Task Waiting_for_a_window_keeps_its_title()
     {
-        var devices = new FakeDeviceLayer
-        {
-            WindowAppearsLater = "Untitled - Notepad",
-            WindowAppearsAfter = 1,
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Window.AppearsLater = "Untitled - Notepad";
+        devices.Window.AppearsAfter = 1;
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("window.waitFor", Param("window", "notepad"),
@@ -7500,7 +7454,7 @@ public class DeviceActionTests
         var devices = WithAWindow();
         // The title is "Notepad - notes.txt", so neither of the other two names appears in it:
         // a match can only have come from the way the step asked for.
-        devices.WindowFacts[1] = ("notes-app", "WhaleGenieNotes");
+        devices.Window.Traits[1] = ("notes-app", "WhaleGenieNotes");
         var (_, _, store) = await RunAsync(
         [
             Step("window.exists", Param("window", "notes-app"), Param("how", "process"),
@@ -7542,7 +7496,7 @@ public class DeviceActionTests
     public async Task A_window_pattern_that_cannot_be_read_fails_the_step()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         var (result, _, _) = await RunAsync(
         [
             Step("window.exists", Param("window", "notes("), Param("how", "titleRegex"),
@@ -7556,7 +7510,7 @@ public class DeviceActionTests
     public async Task A_window_that_matches_by_nothing_is_not_found()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         var (_, _, store) = await RunAsync(
         [
             Step("window.exists", Param("window", "explorer"), Param("how", "process"),
@@ -7575,7 +7529,7 @@ public class DeviceActionTests
     public async Task A_programs_name_can_be_asked_for_exactly()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad-plus-plus", "Notepad");
+        devices.Window.Traits[1] = ("notepad-plus-plus", "Notepad");
 
         var (_, _, store) = await RunAsync(
         [
@@ -7596,10 +7550,10 @@ public class DeviceActionTests
     public async Task A_window_handle_chooses_one_of_two_identical_windows()
     {
         var devices = WithAWindow();
-        devices.Windows.Add(new WindowInfo(2, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(2, "Notepad - notes.txt",
             new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.WindowFacts[2] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Window.Traits[2] = ("notepad", "Notepad");
 
         var (_, _, store) = await RunAsync(
         [
@@ -7691,9 +7645,9 @@ public class DeviceActionTests
             ], elements);
 
             var (match, compare) = WindowHow.Read(how);
-            Assert.Equal(match, elements.LastQuery!.WindowMatch);
-            Assert.Equal(compare, elements.LastQuery.WindowCompare);
-            Assert.Equal(text, elements.LastQuery.WindowTitle);
+            Assert.Equal(match, elements.Ui.LastQuery!.WindowMatch);
+            Assert.Equal(compare, elements.Ui.LastQuery.WindowCompare);
+            Assert.Equal(text, elements.Ui.LastQuery.WindowTitle);
 
             // Bringing a window to the front is handed the same rule, so choosing the program or a
             // pattern there means what it means everywhere else.
@@ -7703,9 +7657,9 @@ public class DeviceActionTests
                 Step("uia.focusWindow", Param("window", text), Param("how", how)),
             ], focused);
 
-            Assert.Equal(match, focused.LastQuery!.WindowMatch);
-            Assert.Equal(compare, focused.LastQuery.WindowCompare);
-            Assert.Equal(text, focused.LastQuery.WindowTitle);
+            Assert.Equal(match, focused.Ui.LastQuery!.WindowMatch);
+            Assert.Equal(compare, focused.Ui.LastQuery.WindowCompare);
+            Assert.Equal(text, focused.Ui.LastQuery.WindowTitle);
         }
     }
 
@@ -7713,7 +7667,7 @@ public class DeviceActionTests
     private static FakeDeviceLayer Named()
     {
         var devices = WithAWindow();
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
         return devices;
     }
 
@@ -7721,7 +7675,7 @@ public class DeviceActionTests
     private static FakeDeviceLayer Looking()
     {
         var devices = Named();
-        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
         return devices;
     }
 
@@ -7752,9 +7706,9 @@ public class DeviceActionTests
     public async Task A_window_asked_for_by_name_is_shaped_like_one_from_a_listing()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
-        devices.WindowFacts[42] = ("notepad", "Notepad");
+        devices.Window.Traits[42] = ("notepad", "Notepad");
 
         var (result, _, store) = await RunAsync(
         [
@@ -7781,17 +7735,15 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_record_a_step_hands_over_carries_the_fields_the_catalogue_declares()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)],
-        };
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)];
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
-        devices.WindowFacts[42] = ("notepad", "Notepad");
-        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+        devices.Window.Traits[42] = ("notepad", "Notepad");
+        devices.Ui.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
             new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
-        devices.Running["notepad"] = [42];
+        devices.Processes.Running["notepad"] = [42];
 
         var (result, _, store) = await RunAsync(
         [
@@ -7890,7 +7842,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var calls = 0;
-        devices.PictureAnswers = (_, _) => calls++ == 0
+        devices.Vision.PictureAnswers = (_, _) => calls++ == 0
             ? [new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(20, 20))]
             : [];
         var find = new ExecutableStep
@@ -7917,7 +7869,7 @@ public class DeviceActionTests
     public async Task A_window_record_says_the_middle_of_the_window_as_well_as_its_corner()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(7, 9),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(7, 9),
             new ScreenSize(301, 201), false, false));
 
         var (result, _, store) = await RunAsync(
@@ -7988,7 +7940,7 @@ public class DeviceActionTests
     public async Task Activating_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         var (result, _, _) = await RunAsync(
             [Step("window.activate", Param("window", "note"))], devices);
 
@@ -8000,7 +7952,7 @@ public class DeviceActionTests
     public async Task Maximizing_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync([Step("window.maximize", Param("window", "Notepad"))], devices);
 
         Assert.Contains("maximizeWindow 21", devices.Calls);
@@ -8010,7 +7962,7 @@ public class DeviceActionTests
     public async Task Minimizing_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync([Step("window.minimize", Param("window", "Notepad"))], devices);
 
         Assert.Contains("minimizeWindow 21", devices.Calls);
@@ -8020,7 +7972,7 @@ public class DeviceActionTests
     public async Task Moving_a_window_passes_the_place_and_the_size()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync(
         [
             Step("window.move", Param("window", "Notepad"), Param("x", "100"), Param("y", "50"),
@@ -8039,7 +7991,7 @@ public class DeviceActionTests
     public async Task Moving_a_window_can_change_only_what_the_step_says()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         await RunAsync(
@@ -8056,7 +8008,7 @@ public class DeviceActionTests
     public async Task A_window_move_with_no_bounds_leaves_the_window_alone()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         await RunAsync([Step("window.move", Param("window", "Notepad"))], devices);
@@ -8074,7 +8026,7 @@ public class DeviceActionTests
     public async Task A_window_can_be_moved_where_a_record_says()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -8098,7 +8050,7 @@ public class DeviceActionTests
     public async Task A_window_move_record_wins_over_numbers_beside_it()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -8120,8 +8072,8 @@ public class DeviceActionTests
     public async Task A_record_with_no_rectangle_in_it_is_refused_as_a_window_rectangle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Files["in.csv"] = "name,age\nAda,36\n";
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+        devices.Files.Store["in.csv"] = "name,age\nAda,36\n";
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
             new ScreenSize(800, 600), false, false));
 
         var (result, _, _) = await RunAsync(
@@ -8140,7 +8092,7 @@ public class DeviceActionTests
     public async Task Closing_a_window_uses_its_handle()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync([Step("window.close", Param("window", "Notepad"))], devices);
 
         Assert.Contains("closeWindow 21", devices.Calls);
@@ -8161,8 +8113,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_window_the_system_says_no_to_stops_the_step()
     {
-        var devices = new FakeDeviceLayer { WindowActionWorks = false };
-        devices.Windows.Add(new WindowInfo(5, "Locked", new ScreenPoint(), new ScreenSize(), false, false));
+        var devices = new FakeDeviceLayer();
+        devices.Window.ActionWorks = false;
+        devices.Window.Open.Add(new WindowInfo(5, "Locked", new ScreenPoint(), new ScreenSize(), false, false));
         var (result, _, _) = await RunAsync(
             [Step("window.restore", Param("window", "Locked"))], devices);
 
@@ -8180,9 +8133,9 @@ public class DeviceActionTests
     public async Task Listing_windows_names_every_window_even_when_titles_repeat()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(3, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(3, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
         var (_, _, store) = await RunAsync(
             [Step("window.list", Returns("windows=titles"))], devices);
 
@@ -8198,8 +8151,8 @@ public class DeviceActionTests
     public async Task An_empty_match_text_lists_every_window_and_names_the_front_one()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
 
         var (_, _, store) = await RunAsync(
         [
@@ -8238,7 +8191,7 @@ public class DeviceActionTests
     public async Task A_window_record_without_the_field_the_match_reads_is_refused()
     {
         var devices = new FakeDeviceLayer();
-        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8261,12 +8214,12 @@ public class DeviceActionTests
     public async Task Listing_windows_can_say_what_each_one_is_and_where_it_sits()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(400, 30),
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(400, 30),
             new ScreenSize(240, 320), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.WindowFacts[2] = ("calc", "CalcFrame");
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Window.Traits[2] = ("calc", "CalcFrame");
 
         var (result, _, store) = await RunAsync(
         [
@@ -8293,8 +8246,8 @@ public class DeviceActionTests
     public async Task Listing_windows_looks_nothing_up_that_the_step_does_not_keep()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Traits[1] = ("notepad", "Notepad");
 
         await RunAsync([Step("window.list")], devices);
 
@@ -8317,10 +8270,10 @@ public class DeviceActionTests
     public async Task A_listing_reads_no_program_or_class_until_it_is_told_to()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.WindowFacts[1] = ("notepad", "Notepad");
-        devices.WindowFacts[2] = ("calc", "CalcFrame");
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Traits[1] = ("notepad", "Notepad");
+        devices.Window.Traits[2] = ("calc", "CalcFrame");
 
         var (result, _, store) = await RunAsync(
             [Step("window.list", Returns("windows=listed"))], devices);
@@ -8348,11 +8301,11 @@ public class DeviceActionTests
     public async Task Window_information_says_what_the_window_is_as_well_as_where_it_is()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+        devices.Window.Open.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
             new ScreenSize(300, 200), false, true));
-        devices.WindowFacts[42] = ("notepad", "Notepad");
-        devices.ClientOrigins[42] = new ScreenPoint(14, 51);
-        devices.ClientSizes[42] = new ScreenSize(292, 160);
+        devices.Window.Traits[42] = ("notepad", "Notepad");
+        devices.Window.ClientOrigins[42] = new ScreenPoint(14, 51);
+        devices.Window.ClientSizes[42] = new ScreenSize(292, 160);
 
         var (result, _, store) = await RunAsync(
         [
@@ -8378,11 +8331,11 @@ public class DeviceActionTests
     public async Task Listing_windows_can_be_narrowed_down()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
-        devices.Windows.Add(new WindowInfo(3, "Notepad - notes.txt",
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(3, "Notepad - notes.txt",
             new ScreenPoint(), new ScreenSize(), false, false));
-        devices.WindowFacts[2] = ("calc-app", "CalcFrame");
+        devices.Window.Traits[2] = ("calc-app", "CalcFrame");
 
         var (_, _, store) = await RunAsync(
         [
@@ -8420,7 +8373,7 @@ public class DeviceActionTests
     public async Task A_listing_whose_pattern_will_not_read_fails_the_step()
     {
         var devices = new FakeDeviceLayer();
-        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Window.Open.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
 
         var (result, _, _) = await RunAsync(
             [Step("window.list", Param("window", "notes("), Param("how", "titleRegex"))], devices);
@@ -8432,10 +8385,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_found_image_reports_its_parts_by_name()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10));
 
         var (result, _, store) = await RunAsync(
         [
@@ -8455,7 +8406,9 @@ public class DeviceActionTests
     [Fact]
     public async Task An_image_that_is_not_there_clears_the_parts()
     {
-        var devices = new FakeDeviceLayer { Match = null, Loaded = new ImageFrame(2, 2, new byte[16]) };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = null;
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -8475,10 +8428,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_captured_image_is_found_through_its_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(10, 10)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(10, 10));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8504,11 +8455,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_search_region_can_come_from_a_variable()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8528,11 +8477,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_picture_taken_earlier_can_be_searched_inside()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Display = Picture("#000000,#FF0000"),
-            Match = new ImageMatch(0.99, new ScreenPoint(1, 0), new ScreenSize(1, 1)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#FF0000");
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(1, 0), new ScreenSize(1, 1));
 
         var (result, _, store) = await RunAsync(
         [
@@ -8553,11 +8500,9 @@ public class DeviceActionTests
     [Fact]
     public async Task A_region_that_makes_no_sense_fails_the_step_with_a_sentence()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Loaded = new ImageFrame(2, 2, new byte[16]),
-            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
+        devices.Vision.Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8572,10 +8517,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_found_text_reports_its_parts_by_name()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)],
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Ocr.Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)];
 
         var (result, _, store) = await RunAsync(
         [
@@ -8608,10 +8551,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_moves_to_the_match_a_find_reported()
     {
-        var devices = new FakeDeviceLayer
-        {
-            Match = new ImageMatch(0.97, new ScreenPoint(100, 200), new ScreenSize(20, 20)),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Vision.Match = new ImageMatch(0.97, new ScreenPoint(100, 200), new ScreenSize(20, 20));
 
         var (result, _, _) = await RunAsync(
         [
@@ -8756,13 +8697,14 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(["move 400 0 300"], devices.Calls);
-        Assert.Empty(devices.Paths);
+        Assert.Empty(devices.Input.Paths);
     }
 
     [Fact]
     public async Task A_bent_move_walks_a_path_instead_of_jumping()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(0, 0) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(0, 0);
 
         var (result, _, _) = await RunAsync(
         [
@@ -8771,7 +8713,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        var path = Assert.Single(devices.Paths);
+        var path = Assert.Single(devices.Input.Paths);
         Assert.Equal(new ScreenPoint(0, 0), path[0]);
         Assert.Equal(new ScreenPoint(400, 0), path[^1]);
         Assert.True(path.Any(point => Math.Abs(point.Y) >= 20), "the path should bow out of the line");
@@ -8781,7 +8723,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_bent_move_with_no_duration_borrows_one_so_that_it_can_bend()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(0, 0) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(0, 0);
 
         var (result, _, _) = await RunAsync(
             [Step("input.mouseMove", Param("x", "400"), Param("y", "0"), Param("style", "human"))],
@@ -8796,7 +8739,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_relative_move_bends_from_wherever_the_pointer_is()
     {
-        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(20, 30) };
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Cursor = new ScreenPoint(20, 30);
 
         var (result, _, _) = await RunAsync(
         [
@@ -8805,7 +8749,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        var path = Assert.Single(devices.Paths);
+        var path = Assert.Single(devices.Input.Paths);
         Assert.Equal(new ScreenPoint(20, 30), path[0]);
         Assert.Equal(new ScreenPoint(220, 30), path[^1]);
     }
@@ -8863,7 +8807,7 @@ public class DeviceActionTests
         ]);
 
         Assert.True(result.Succeeded);
-        var path = Assert.Single(devices.Paths);
+        var path = Assert.Single(devices.Input.Paths);
         Assert.Equal(31, path.Count);
         Assert.Equal(new ScreenPoint(0, 0), path[0]);
         Assert.Equal(new ScreenPoint(300, 0), path[^1]);
@@ -8873,7 +8817,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_browser_is_opened_driven_and_closed()
     {
-        var devices = new FakeDeviceLayer { BrowserPage = "Hello from the page" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Page = "Hello from the page";
         var (result, _, store) = await RunAsync(
         [
             Step("browser.open", Param("browser", "edge"), Param("url", "https://example.com"),
@@ -8893,13 +8838,14 @@ public class DeviceActionTests
         Assert.Contains("browserFill #q #1 macro Fill 0 0", devices.Calls);
         Assert.Contains("browserText #result #1 Text (none) 0", devices.Calls);
         Assert.Contains("browserClose", devices.Calls);
-        Assert.False(devices.BrowserOpen);
+        Assert.False(devices.Browser.IsOpen);
     }
 
     [Fact]
     public async Task A_browser_that_is_not_installed_says_what_to_install()
     {
-        var devices = new FakeDeviceLayer { BrowserReady = false };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Installed = false;
         var (result, _, _) = await RunAsync(
             [Step("browser.open", Param("url", "https://example.com"))], devices);
 
@@ -8993,7 +8939,8 @@ public class DeviceActionTests
         // Which of the selectors a target was written with is the thing its author cannot see from
         // the file alone: a second line is written for the day the first stops working, and the run
         // has to say when that day has come.
-        var devices = new FakeDeviceLayer { BrowserChosen = 2 };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.ChosenIndex = 2;
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices)
             .RunAsync([Step("browser.click", Param("pageSelector", "#first\n#second"))]);
@@ -9009,7 +8956,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_page_action_reads_whichever_part_of_the_element_it_was_told_to()
     {
-        var devices = new FakeDeviceLayer { BrowserPage = "1234" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Page = "1234";
         var (result, _, store) = await RunAsync(
         [
             Within(2500, Step("browser.readText", Param("pageSelector", "#card"),
@@ -9038,7 +8986,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Every_element_a_selector_names_is_read_as_one_list()
     {
-        var devices = new FakeDeviceLayer { BrowserItems = ["甲", "乙", "丙"] };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Items = ["甲", "乙", "丙"];
         var (result, _, store) = await RunAsync(
         [
             Within(2500, Step("browser.readAll",
@@ -9064,10 +9013,8 @@ public class DeviceActionTests
     [Fact]
     public async Task The_rows_of_a_page_table_are_keyed_by_the_names_above_its_columns()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserTable = new(["金额", "日期"], [["100", "3 日"], ["200", "4 日"]]),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Table = new(["金额", "日期"], [["100", "3 日"], ["200", "4 日"]]);
 
         var (result, _, store) = await RunAsync(
         [
@@ -9091,7 +9038,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_page_table_that_writes_no_column_names_is_read_by_letter()
     {
-        var devices = new FakeDeviceLayer { BrowserTable = new([], [["Ann", "31"]]) };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Table = new([], [["Ann", "31"]]);
         var (result, _, store) = await RunAsync(
         [
             Step("browser.readTable", Param("matchIndex", "2"), Returns("table=表")),
@@ -9114,7 +9062,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_dialog_is_answered_around_the_steps_that_raise_it()
     {
-        var devices = new FakeDeviceLayer { BrowserDialog = "确定要提交吗？" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Dialog = "确定要提交吗？";
         var (result, _, store) = await RunAsync(
         [
             Step("browser.dialog", Param("dialogHow", "accept"), Param("dialogText", "报告.csv"),
@@ -9138,7 +9087,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_dialog_that_never_came_up_is_a_step_that_did_not_work()
     {
-        var devices = new FakeDeviceLayer { BrowserDialog = null };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Dialog = null;
         var (result, _, _) = await RunAsync(
         [
             Step("browser.dialog",
@@ -9150,55 +9100,14 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A dialog holds the one page while its body runs. Starting a background run that needs the
-    /// page would wait for a door the dialog itself is holding, so it is refused with a name for
-    /// what went wrong rather than left to hang.
-    /// </summary>
-    [Fact]
-    public async Task A_background_browser_run_inside_a_dialog_is_refused()
-    {
-        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
-        var library = new Macros(("用页面", [Step("browser.click", Param("pageSelector", "#submit"))]));
-
-        var (result, _, _) = await RunWithAsync(
-        [
-            Step("browser.dialog", Param("dialogHow", "accept"),
-                Body("body", Step("control.startMacro", Param("macro", "用页面"),
-                    Param("runHandleName", "job")))),
-        ], devices, library);
-
-        Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal("Run.BrowserRunWhileHeld", result.Key);
-    }
-
-    /// <summary>A background run that never touches the page is started and waited for as usual.</summary>
-    [Fact]
-    public async Task A_background_run_that_does_not_touch_the_page_works_inside_a_dialog()
-    {
-        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
-        var library = new Macros(("记账", [Step("file.writeText", Param("path", "ran.txt"),
-            Param("text", "1"))]));
-
-        var (result, _, store) = await RunWithAsync(
-        [
-            Step("browser.dialog", Param("dialogHow", "accept"),
-                Body("body",
-                    Step("control.startMacro", Param("macro", "记账"), Param("runHandleName", "job")),
-                    Step("control.waitMacro", Param("runHandle", "$job")))),
-        ], devices, library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.True(devices.Files.ContainsKey("ran.txt"));
-    }
-
-    /// <summary>
     /// A synchronous call is the caller's own flow, so its browser steps are the dialog's own steps
     /// and may use the page it is holding.
     /// </summary>
     [Fact]
     public async Task A_synchronous_browser_call_works_inside_a_dialog()
     {
-        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Dialog = "继续吗？";
         var library = new Macros(("用页面", [Step("browser.click", Param("pageSelector", "#submit"))]));
 
         var (result, _, _) = await RunWithAsync(
@@ -9218,7 +9127,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_script_of_the_steps_own_runs_in_the_page_and_hands_back_what_it_returned()
     {
-        var devices = new FakeDeviceLayer { BrowserScriptResult = """{"rows":3}""" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Evaluated = """{"rows":3}""";
         var (result, _, store) = await RunAsync(
         [
             Within(2500, Step("browser.evaluate",
@@ -9316,10 +9226,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_file_the_page_hands_over_is_saved_where_the_step_says()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserDownloaded = new(@"C:\报告\订单.csv", "订单.csv"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.Downloaded = new(@"C:\报告\订单.csv", "订单.csv");
 
         var (result, _, store) = await RunAsync(
         [
@@ -9329,11 +9237,11 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains($@"browserDownload #export #1 {devices.BaseFolder}\报告 2500", devices.Calls);
+        Assert.Contains($@"browserDownload #export #1 {devices.Files.BaseFolder}\报告 2500", devices.Calls);
 
         // Nothing written in the folder field saves beside the macro, which is where a path written
         // on its own is read from.
-        Assert.Contains($"browserDownload (none) {devices.BaseFolder} 0", devices.Calls);
+        Assert.Contains($"browserDownload (none) {devices.Files.BaseFolder} 0", devices.Calls);
         Assert.Equal(@"C:\报告\订单.csv", store.Local.Values["存到"].AsText());
         Assert.Equal("订单.csv", store.Local.Values["名字"].AsText());
     }
@@ -9350,10 +9258,8 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_can_be_for_an_address_rather_than_for_an_element()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserWaitingAddress = "https://example.com/receipt/42",
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.WaitingAddress = "https://example.com/receipt/42";
 
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices)
@@ -9428,10 +9334,8 @@ public class DeviceActionTests
     [Fact]
     public async Task Where_the_page_is_and_what_it_calls_itself_are_read()
     {
-        var devices = new FakeDeviceLayer
-        {
-            BrowserPageInfo = new("https://example.com/next", "下一步"),
-        };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.PageInfo = new("https://example.com/next", "下一步");
 
         var (result, _, store) = await RunAsync(
         [
@@ -9469,7 +9373,8 @@ public class DeviceActionTests
         // Sites hand the page the macro came for to a new tab, and left on the old one every step
         // after the click aims at the wrong page: on a site whose pages look alike, a step finds an
         // element that happens to match over there and works on it without anything looking wrong.
-        var devices = new FakeDeviceLayer { BrowserTabAddress = "https://example.com/receipt" };
+        var devices = new FakeDeviceLayer();
+        devices.Browser.TabAddress = "https://example.com/receipt";
         var (result, _, _) = await RunAsync(
         [
             Step("browser.open", Param("url", "https://example.com")),
@@ -9646,7 +9551,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(
-            $"browserUpload input[name=report] #1 {devices.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt 0",
+            $"browserUpload input[name=report] #1 {devices.Files.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt 0",
             devices.Calls);
     }
 
@@ -9770,7 +9675,7 @@ public class DeviceActionTests
         await MacroRunner.TryAsync(
             Step("input.keyPress", Param("key", "A"), Param("inputMode", "driver")), devices);
 
-        Assert.Equal(InputDelivery.Driver, Assert.Single(devices.Routes).Delivery);
+        Assert.Equal(InputDelivery.Driver, Assert.Single(devices.Input.Routes).Delivery);
     }
 
     [Fact]
@@ -9973,12 +9878,10 @@ public class DeviceActionTests
     [Fact]
     public async Task A_step_run_from_a_script_takes_the_input_door_without_deadlocking()
     {
-        var devices = new FakeDeviceLayer
-        {
-            PathExists = true,
-            AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null),
-        };
-        devices.AutoHotkeyBody = (host, _) => Assert.True(host.RunStep("a7k2"));
+        var devices = new FakeDeviceLayer();
+        devices.Script.AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null);
+        devices.Files.PathExists = true;
+        devices.Script.AutoHotkeyBody = (host, _) => Assert.True(host.RunStep("a7k2"));
 
         var run = new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
@@ -10046,112 +9949,6 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(2, devices.Calls.Count(call =>
             call.StartsWith("browserClick", StringComparison.Ordinal)));
-    }
-
-    [Fact]
-    public async Task A_background_run_can_be_looked_at_without_waiting()
-    {
-        var library = new Macros(("子", [Step("control.delay", Param("ms", "300"))]));
-        var (result, _, store) = await RunWithAsync(
-        [
-            Step("control.startMacro", Param("macro", "子"), Param("runHandleName", "job")),
-            Step("control.runStatus", Param("runHandle", "$job"),
-                Returns("status=state", "running=live", "error=why")),
-            Step("control.delay", Param("ms", "900")),
-            Step("control.runStatus", Param("runHandle", "$job"),
-                Returns("status=after", "running=afterLive")),
-            Step("control.waitMacro", Param("runHandle", "$job")),
-            Step("control.runStatus", Param("runHandle", "$job"), Returns("status=waited")),
-        ], new FakeDeviceLayer(), library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("running", store.Local.Values["state"].AsText());
-        Assert.True(store.Local.Values["live"].AsBool());
-        Assert.Equal("done", store.Local.Values["after"].AsText());
-        Assert.False(store.Local.Values["afterLive"].AsBool());
-        Assert.Equal("done", store.Local.Values["waited"].AsText());
-    }
-
-    [Fact]
-    public async Task Starting_more_background_runs_than_allowed_stops_the_step()
-    {
-        var library = new Macros(("子", [Step("control.delay", Param("ms", "500"))]));
-        var steps = Enumerable.Range(0, MacroRunner.MaxBackgroundRuns + 1)
-            .Select(index => Step("control.startMacro", Param("macro", "子"),
-                Param("runHandleName", $"job{index}")))
-            .ToArray();
-
-        var (result, _, _) = await RunWithAsync(steps, new FakeDeviceLayer(), library);
-
-        Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal(RunKeys.TooManyRuns, result.Key);
-        Assert.Equal(MacroRunner.MaxBackgroundRuns.ToString(CultureInfo.InvariantCulture),
-            result.Detail);
-    }
-
-    [Fact]
-    public async Task Waiting_for_any_background_run_takes_the_first_one()
-    {
-        var library = new Macros(
-            ("快", [Step("control.delay", Param("ms", "50")),
-                Step("control.setVariable", Param("name", "结果"), Param("scope", "local"),
-                    Param("value", "快"))]),
-            ("慢", [Step("control.delay", Param("ms", "300")),
-                Step("control.setVariable", Param("name", "结果"), Param("scope", "local"),
-                    Param("value", "慢"))]));
-        var steps = new[]
-        {
-            Step("control.startMacro", Param("macro", "快"), Param("runHandleName", "jobA")),
-            Step("control.startMacro", Param("macro", "慢"), Param("runHandleName", "jobB")),
-            Step("control.setVariable", Param("name", "jobs"), Param("value", "list()")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobA")),
-            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobB")),
-            Step("control.waitAny", Param("runHandles", "$jobs"),
-                Returns("handle=first", "index=place")),
-        };
-
-        var (result, _, store) = await RunWithAsync(steps, new FakeDeviceLayer(), library);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.True(store.TryGet("first", out var handle));
-        Assert.Equal("快", handle.Field("macro")?.AsText());
-        Assert.Equal(1, store.Local.Values["place"].AsNumber());
-    }
-
-    [Fact]
-    public async Task Waiting_for_any_run_in_an_empty_list_stops_the_step()
-    {
-        var steps = new[]
-        {
-            Step("control.setVariable", Param("name", "jobs"), Param("value", "list()")),
-            Step("control.waitAny", Param("runHandles", "$jobs")),
-        };
-
-        var (result, _, _) = await RunWithAsync(steps, new FakeDeviceLayer(), new Macros());
-
-        Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal(RunKeys.NoRunsToWait, result.Key);
-    }
-
-    [Fact]
-    public async Task Finished_background_runs_are_released_once_their_handle_is_gone()
-    {
-        var library = new Macros(("子", []));
-        var steps = Enumerable.Range(0, MacroRunner.MaxFinishedRuns + 4)
-            .SelectMany(_ => new[]
-            {
-                Step("control.startMacro", Param("macro", "子"),
-                    Param("runHandleName", "job")),
-                Step("control.waitMacro", Param("runHandle", "$job")),
-            })
-            .ToArray();
-
-        var store = new VariableStore();
-        var runner = new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer(), 1, library);
-        var result = await runner.RunAsync(steps);
-
-        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
-        Assert.Empty(runner.Children);
     }
 
     [Fact]
@@ -10225,1540 +10022,5 @@ internal sealed class TestInputHook : IInputHook
         {
             KeyDown?.Invoke(seen);
         }
-    }
-}
-internal sealed class FakeDeviceLayer
-    : IDeviceLayer, IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice,
-      IDetectorDevice, IUiDevice, IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice,
-      IWindowDevice, IBrowserDevice, IScriptDevice
-{
-    public List<string> Calls { get; } = [];
-
-    /// <summary>The routes the engine asked input to take, in the order it asked.</summary>
-    public List<InputRoute> Routes { get; } = [];
-
-    private readonly RecordingRouter _router;
-
-    private readonly IFileDevice _files;
-
-    public FakeDeviceLayer(IFileDevice? files = null)
-    {
-        _router = new RecordingRouter(this);
-        _files = files ?? this;
-    }
-
-    IInputRouter IDeviceLayer.Inputs => _router;
-
-    /// <summary>The paths the pointer was asked to travel, in the order they were asked for.</summary>
-    public List<IReadOnlyList<ScreenPoint>> Paths { get; } = [];
-
-    public ScreenPoint Cursor { get; set; } = new(7, 9);
-
-    /// <summary>
-    /// How the pretend desk is laid out. One display to begin with; a check about several sets this
-    /// to a layout with more, in the coordinates Windows would report them in.
-    /// </summary>
-    public ScreenLayout Desktop { get; set; } = new(new ScreenArea(0, 0, 100, 50),
-        [new ScreenDisplay(new ScreenArea(0, 0, 100, 50), true)]);
-
-    /// <summary>
-    /// How long one refresh of the pretend screen lasts. A check that wants to see how often a
-    /// waiting step looks sets it low, and one that does not care gets a fast screen.
-    /// </summary>
-    public int RefreshMilliseconds { get; set; } = 1;
-
-    public PixelColor Pixel { get; set; }
-
-    public ImageMatch? Match { get; set; }
-
-    /// <summary>
-    /// The places the fake reports the reference picture at. Normally the one <see cref="Match"/>
-    /// sets up; a check that wants several fills this in instead.
-    /// </summary>
-    public List<ImageMatch> Matches { get; } = [];
-
-    public ImageFrame? Loaded { get; set; } = new(2, 2, new byte[16]);
-
-    /// <summary>How many searches happen before a match starts being returned.</summary>
-    public int MatchAfter { get; set; } = 1;
-
-    /// <summary>How many times the reference picture was looked for.</summary>
-    public int Searches { get; private set; }
-
-    /// <summary>When set, every call is refused this way instead of being recorded.</summary>
-    public System.Exception? Refusal { get; set; }
-
-    /// <summary>How long a page read takes to return, for checking a call that cannot be cancelled.</summary>
-    public int ReadPageDelayMs { get; set; }
-
-    /// <summary>When set, every call reports the device as missing.</summary>
-    public bool Unavailable { get; set; }
-
-    /// <summary>What text recognition should report.</summary>
-    public List<TextSpan> Spans { get; set; } = [];
-
-    /// <summary>Whether UI Automation should say the element is there.</summary>
-    public bool ElementExists { get; set; } = true;
-
-    /// <summary>
-    /// The last search the element device was handed, so a check can see the window rule the engine
-    /// read out of the step: which part of a window it is held against and how they are compared is
-    /// the device's business, and what the engine owes it is the rule as the fields stand.
-    /// </summary>
-    public UiQuery? LastQuery { get; private set; }
-
-    /// <summary>What a UI Automation search turns up, in the order it reports them.</summary>
-    public List<UiElementInfo> Elements { get; } = [];
-
-    /// <summary>What reading an element gives back.</summary>
-    public string? ElementText { get; set; }
-
-    /// <summary>Whether the element can be worked without the mouse.</summary>
-    public bool ElementInvocable { get; set; } = true;
-
-    /// <summary>Whether the element says it can be used.</summary>
-    public bool ElementEnabled { get; set; } = true;
-
-    /// <summary>Whether the element says it is on screen.</summary>
-    public bool ElementVisible { get; set; } = true;
-
-    /// <summary>Whether writing into an element is allowed.</summary>
-    public bool ElementWritable { get; set; } = true;
-
-    /// <summary>Whether the window can be brought to the front.</summary>
-    public bool WindowFocused { get; set; } = true;
-
-    /// <summary>The pretend folder relative paths resolve under.</summary>
-    public string BaseFolder { get; set; } = "G:\\fake";
-
-    /// <summary>The full path a relative one stands for: the fake reads them from its base folder.</summary>
-    public string Resolve(string path)
-        => Path.IsPathRooted(path) ? path : Path.Combine(BaseFolder, path);
-
-    /// <summary>The pretend files on disk, keyed by full path, for reading and copying.</summary>
-    public Dictionary<string, string> Files { get; } = [];
-
-    /// <summary>The pretend files of raw bytes on disk, keyed by the path they were written to.</summary>
-    public Dictionary<string, byte[]> Blobs { get; } = [];
-
-    /// <summary>The folders the fake has been told about, by name.</summary>
-    public List<string> Folders { get; } = [];
-
-    /// <summary>True when a folder should refuse to go away on its own, like a real non-empty one.</summary>
-    public bool FolderHasFiles { get; set; }
-
-    /// <summary>What listing a folder gives back.</summary>
-    public List<string> FolderEntries { get; } = [];
-
-    /// <summary>
-    /// What each listed file says about itself. A file nothing is said about is empty and as old
-    /// as the epoch, so a step that sorts or weeds by these is the only thing under test.
-    /// </summary>
-    public Dictionary<string, (long Size, DateTimeOffset Modified)> FileFacts { get; } = new();
-
-    /// <summary>What <see cref="Exists"/> reports.</summary>
-    public bool PathExists { get; set; }
-
-    /// <summary>What is on the pretend clipboard.</summary>
-    public string ClipboardText { get; set; } = string.Empty;
-
-    /// <summary>Goes up whenever the pretend clipboard changes.</summary>
-    public int ClipboardChanges { get; private set; }
-
-    /// <summary>
-    /// How many times the change counter may be read before it starts moving by itself, which
-    /// stands in for another program copying something while a step waits.
-    /// </summary>
-    public int ClipboardMovesAfter { get; set; } = int.MaxValue;
-
-    private int _clipboardReads;
-
-    /// <summary>The running programs the fake reports, by name.</summary>
-    public Dictionary<string, List<int>> Running { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Process ids that have finished.</summary>
-    public HashSet<int> Exited { get; } = [];
-
-    /// <summary>What a finished process returned.</summary>
-    public Dictionary<int, int> ExitCodes { get; } = [];
-
-    /// <summary>A program name that only shows up once the process list has been read a few times.</summary>
-    public string? AppearsLater { get; set; }
-
-    /// <summary>How many reads happen before <see cref="AppearsLater"/> shows up.</summary>
-    public int AppearsAfter { get; set; } = 1;
-
-    /// <summary>The next process id a start hands out.</summary>
-    public int NextProcessId { get; set; } = 1000;
-
-    /// <summary>What a command line prints.</summary>
-    public CommandResult Command { get; set; } = new(0, string.Empty, string.Empty);
-
-    /// <summary>What reading a machine fact answers.</summary>
-    public Dictionary<string, string> SystemValues { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>What reading an environment variable answers.</summary>
-    public Dictionary<string, string> EnvironmentValues { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    private int _processReads;
-
-    /// <summary>The windows the fake reports as open.</summary>
-    public List<WindowInfo> Windows { get; } = [];
-
-    /// <summary>
-    /// The process and class names the fake windows answer to. A real device looks these up from
-    /// the machine, so a test that matches that way has to say what should come back.
-    /// </summary>
-    public Dictionary<long, (string Process, string ClassName)> WindowFacts { get; } = [];
-
-    /// <summary>Whether the next window operation reports that it worked.</summary>
-    public bool WindowActionWorks { get; set; } = true;
-
-    /// <summary>A window title that only shows up once the window list has been read a few times.</summary>
-    public string? WindowAppearsLater { get; set; }
-
-    /// <summary>How many reads happen before <see cref="WindowAppearsLater"/> shows up.</summary>
-    public int WindowAppearsAfter { get; set; } = 1;
-
-    private int _windowReads;
-
-    IInputDevice IDeviceLayer.Input => this;
-
-    IGamepadDevice IDeviceLayer.Gamepad => this;
-
-    /// <summary>
-    /// How this machine has been told to read the screen. Automatic unless a check is about the
-    /// choice itself, which is what a machine nobody has set up answers.
-    /// </summary>
-    public CaptureChoice Ways { get; } = new();
-
-    ICaptureChoice IDeviceLayer.Capture => Ways;
-
-    IScreenDevice IDeviceLayer.Screen => this;
-
-    /// <summary>
-    /// A hook, a recorder and driver-level input are not something a macro's steps reach for, so
-    /// this layer answers the way a machine with no devices would: it refuses. A check that needs
-    /// one of them drives it through a layer of its own.
-    /// </summary>
-    internal TestInputHook HookEvents { get; } = new();
-
-    IInputHook IDeviceLayer.Hook => HookEvents;
-
-    IInputRecorder IDeviceLayer.CreateRecorder() => NullDeviceLayer.Instance.CreateRecorder();
-
-    IWindowEvents IDeviceLayer.WindowEvents => new NoWindowEvents();
-
-    /// <summary>No controller is in a macro's steps, so this layer answers as a machine with none.</summary>
-    IGamepadReading IDeviceLayer.GamepadReading => new NoGamepadReading();
-
-    IDriverInput IDeviceLayer.Driver => NullDeviceLayer.Instance.Driver;
-
-    IVisionDevice IDeviceLayer.Vision => this;
-
-    IDetectorDevice IDeviceLayer.Detector => this;
-
-    IOcrDevice IDeviceLayer.Ocr => this;
-
-    IUiDevice IDeviceLayer.Ui => this;
-
-    /// <summary>
-    /// The files on disk. Normally the fake keeps them in memory; a check that has to walk over a
-    /// real file hands the real device in here and the rest of the layer stays pretended.
-    /// </summary>
-    IFileDevice IDeviceLayer.Files => _files;
-
-    IClipboardDevice IDeviceLayer.Clipboard => this;
-
-    IProcessDevice IDeviceLayer.Processes => this;
-
-    IScriptDevice IDeviceLayer.Scripts => this;
-
-    ISystemDevice IDeviceLayer.System => this;
-
-    /// <summary>What running a script in the fake reports back.</summary>
-    public ScriptResult Script { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
-
-    /// <summary>
-    /// What the script does while it runs, in place of running one: a check that is about what a
-    /// script can reach hands in the calls it would make, so that reading a value, writing one,
-    /// running a step and leaving a line in the log all arrive at the engine the way they would.
-    /// </summary>
-    public Action<IScriptHost, string>? ScriptBody { get; set; }
-
-    /// <summary>What installing packages reports back.</summary>
-    public ScriptResult Packages { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
-
-    /// <summary>What running a C# script in the fake reports back.</summary>
-    public ScriptResult CSharp { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
-
-    /// <summary>
-    /// What a C# script does while it runs, in place of being compiled and run: this language
-    /// reaches the macro the same way the Python one does, so a check hands in the calls a script
-    /// would make.
-    /// </summary>
-    public Action<IScriptHost, string>? CSharpBody { get; set; }
-
-    /// <summary>What downloading NuGet packages reports back.</summary>
-    public ScriptResult NuGet { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
-
-    /// <summary>What running an AutoHotkey script in the fake reports back.</summary>
-    public ScriptResult AutoHotkey { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
-
-    /// <summary>
-    /// What an AutoHotkey script does while it runs, in place of being run: this language reaches
-    /// the macro through the same bridge the other two do, so a check hands in the calls a script
-    /// would make.
-    /// </summary>
-    public Action<IScriptHost, string>? AutoHotkeyBody { get; set; }
-
-    ScriptResult IScriptDevice.RunPython(PythonScript script, IScriptHost host,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
-    {
-        Note($"python {script.Command}|{script.Arguments}|{script.Folder}|{script.TimeoutMs}");
-        ScriptBody?.Invoke(host, script.Script);
-
-        foreach (var line in Lines(Script.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(Script.Error))
-        {
-            onError(line);
-        }
-
-        return Script;
-    }
-
-    ScriptResult IScriptDevice.InstallPip(PipRequest request, Action<string> onOutput,
-        Action<string> onError, CancellationToken token)
-    {
-        Note($"pip {request.Command}|{request.TimeoutMs}|{string.Join(",", request.Packages)}");
-
-        foreach (var line in Lines(Packages.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(Packages.Error))
-        {
-            onError(line);
-        }
-
-        return Packages;
-    }
-
-    ScriptResult IScriptDevice.RunCSharp(CSharpScript script, IScriptHost host,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
-    {
-        Note($"csharp {script.Arguments}|{script.Folder}|{script.TimeoutMs}");
-        CSharpBody?.Invoke(host, script.Script);
-
-        foreach (var line in Lines(CSharp.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(CSharp.Error))
-        {
-            onError(line);
-        }
-
-        return CSharp;
-    }
-
-    ScriptResult IScriptDevice.InstallNuGet(NuGetRequest request, Action<string> onOutput,
-        Action<string> onError, CancellationToken token)
-    {
-        Note($"nuget {request.TimeoutMs}|{string.Join(",", request.Packages)}");
-
-        foreach (var line in Lines(NuGet.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(NuGet.Error))
-        {
-            onError(line);
-        }
-
-        return NuGet;
-    }
-
-    ScriptResult IScriptDevice.RunAutoHotkey(AutoHotkeyScript script, IScriptHost host,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
-    {
-        Note($"ahk {script.Command}|{script.Arguments}|{script.Folder}|{script.TimeoutMs}");
-        AutoHotkeyBody?.Invoke(host, script.Script);
-
-        foreach (var line in Lines(AutoHotkey.Output))
-        {
-            onOutput(line);
-        }
-
-        foreach (var line in Lines(AutoHotkey.Error))
-        {
-            onError(line);
-        }
-
-        return AutoHotkey;
-    }
-
-    IWindowDevice IDeviceLayer.Windows => this;
-
-    IBrowserDevice IDeviceLayer.Browser => this;
-
-    public bool BrowserReady { get; set; } = true;
-
-    public string BrowserPage { get; set; } = "page text";
-
-    bool IBrowserDevice.Ready(string browser) => BrowserReady;
-
-    string IBrowserDevice.InstallHint => "install the browser";
-
-    bool IBrowserDevice.IsOpen => BrowserOpen;
-
-    public bool BrowserOpen { get; private set; }
-
-    string IBrowserDevice.Url => BrowserAddress;
-
-    public string BrowserAddress { get; private set; } = string.Empty;
-
-    void IBrowserDevice.Open(string browser, string url, bool headless, string profile)
-    {
-        Note($"browserOpen {browser} {url} {headless} {Profile(profile)}");
-        BrowserOpen = true;
-        BrowserAddress = url;
-    }
-
-    void IBrowserDevice.GoTo(string url, int timeoutMs)
-    {
-        Note($"browserGoTo {url} {timeoutMs}");
-        BrowserAddress = url;
-    }
-
-    string IBrowserDevice.Click(PageTarget target, ClickWay how, bool force, int timeoutMs)
-    {
-        Note($"browserClick {Named(target)} {how} {force} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Fill(PageTarget target, string text, FillWay how, int intervalMs,
-        int timeoutMs)
-    {
-        Note($"browserFill {Named(target)} {text} {how} {intervalMs} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    void IBrowserDevice.Scroll(PageTarget? target, ScrollWay how, int timeoutMs)
-        => Note($"browserScroll {Named(target)} {how} {timeoutMs}");
-
-    /// <summary>Where a download lands and what the page called it, as though one had arrived.</summary>
-    public DownloadResult BrowserDownloaded { get; set; } = new(@"C:\下载\报告.csv", "报告.csv");
-
-    DownloadResult IBrowserDevice.Download(PageTarget? target, string folder, int timeoutMs)
-    {
-        Note($"browserDownload {Named(target)} {folder} {timeoutMs}");
-        return BrowserDownloaded;
-    }
-
-    /// <summary>The address the tab a switch moves to is showing, as though it had a page of its own.</summary>
-    public string BrowserTabAddress { get; set; } = string.Empty;
-
-    void IBrowserDevice.SwitchTab(TabChoice choice, int index, string match)
-    {
-        Note($"browserSwitchTab {choice} {index} {match}");
-        if (BrowserTabAddress.Length > 0)
-        {
-            BrowserAddress = BrowserTabAddress;
-        }
-    }
-
-    void IBrowserDevice.CloseTab() => Note("browserCloseTab");
-
-    string IBrowserDevice.Text(PageTarget? target, PagePart part, string attribute, int timeoutMs)
-    {
-        Note($"browserText {Named(target)} {part} {Part(attribute)} {timeoutMs}");
-        return BrowserPage;
-    }
-
-    /// <summary>What reading every match of a selector answers with, as though the page held them.</summary>
-    public IReadOnlyList<string> BrowserItems { get; set; } = ["第一行", "第二行"];
-
-    IReadOnlyList<string> IBrowserDevice.ReadAll(PageTarget target, PagePart part, string attribute,
-        int maxItems, int timeoutMs)
-    {
-        Note($"browserReadAll {Named(target)} {part} {Part(attribute)} {maxItems} {timeoutMs}");
-        return BrowserItems;
-    }
-
-    /// <summary>What reading a table answers with, as though the page drew one.</summary>
-    public PageTable BrowserTable { get; set; } = new(["金额"], [["100"], ["200"]]);
-
-    PageTable IBrowserDevice.ReadTable(PageTarget target, int maxRows, int timeoutMs)
-    {
-        Note($"browserReadTable {Named(target)} {maxRows} {timeoutMs}");
-        return BrowserTable;
-    }
-
-    /// <summary>Where the page is and what it calls itself, as though it had loaded one.</summary>
-    public PageInfo BrowserPageInfo { get; set; } = new("https://example.com/here", "示例页");
-
-    PageInfo IBrowserDevice.ReadPage(int timeoutMs)
-    {
-        Note($"browserReadPage {timeoutMs}");
-        Thread.Sleep(ReadPageDelayMs);
-        return BrowserPageInfo;
-    }
-
-    /// <summary>What a condition about an element of the page answers with, as though it were there.</summary>
-    public bool BrowserHasElement { get; set; } = true;
-
-    bool IBrowserDevice.Exists(PageTarget target, ElementWait state)
-    {
-        Note($"browserExists {Named(target)} {state}");
-        return BrowserHasElement;
-    }
-
-    /// <summary>The address a wait for one ends at, as though the page had gone there.</summary>
-    public string BrowserWaitingAddress { get; set; } = string.Empty;
-
-    void IBrowserDevice.WaitForUrl(string match, string how, int timeoutMs,
-        TextCompareOptions options)
-    {
-        Note($"browserWaitForUrl {match} {how} {timeoutMs}");
-        if (BrowserWaitingAddress.Length > 0)
-        {
-            BrowserAddress = BrowserWaitingAddress;
-        }
-    }
-
-    void IBrowserDevice.WaitForLoad(PageLoad state, int timeoutMs)
-        => Note($"browserWaitForLoad {state} {timeoutMs}");
-
-    /// <summary>What the next dialog the page puts up says, as though one had appeared.</summary>
-    public string? BrowserDialog { get; set; } = "确定要提交吗？";
-
-    void IBrowserDevice.ArmDialog(bool accept, string text)
-        => Note($"browserArmDialog {accept} {Part(text)}");
-
-    string? IBrowserDevice.TakeDialog() => BrowserDialog;
-
-    /// <summary>What a script of the step's own answers with, as though the page had run it.</summary>
-    public string BrowserScriptResult { get; set; } = "true";
-
-    string IBrowserDevice.Evaluate(string script, int timeoutMs)
-    {
-        Note($"browserEvaluate {script} {timeoutMs}");
-        return BrowserScriptResult;
-    }
-
-    /// <summary>An attribute name as it reads in a note; nothing written is nothing asked for.</summary>
-    private static string Part(string attribute)
-        => attribute.Trim().Length == 0 ? "(none)" : attribute;
-
-    /// <summary>What the next pick answers with, as though a person had clicked that element.</summary>
-    public PickResult BrowserPicked { get; set; } =
-        new("#picked", [new PickCandidate(PickKind.Id, "#picked", 1)]);
-
-    PickResult IBrowserDevice.Pick(string hint, int timeoutMs)
-    {
-        Note($"browserPick {hint} {timeoutMs}");
-        return BrowserPicked;
-    }
-
-    HighlightResult IBrowserDevice.Highlight(PageTarget target)
-    {
-        Note($"browserHighlight {Named(target)}");
-        return BrowserOpen
-            ? new HighlightResult(true, 1, target.Selectors.Count)
-            : new HighlightResult(false, 0, 0);
-    }
-
-    string IBrowserDevice.Select(PageTarget target, string value, bool byIndex, int timeoutMs)
-    {
-        Note($"browserSelect {Named(target)} {value} {byIndex} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Check(PageTarget target, bool wanted, int timeoutMs)
-    {
-        Note($"browserCheck {Named(target)} {wanted} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Hover(PageTarget target, int timeoutMs)
-    {
-        Note($"browserHover {Named(target)} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Press(PageTarget? target, string key, int timeoutMs)
-    {
-        Note($"browserPress {Named(target)} {key} {timeoutMs}");
-        return target is null ? string.Empty : Chosen(target);
-    }
-
-    string? IBrowserDevice.WaitFor(PageTarget target, ElementWait state, int timeoutMs)
-    {
-        Note($"browserWaitFor {Named(target)} {state} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    string IBrowserDevice.Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs)
-    {
-        Note($"browserUpload {Named(target)} {string.Join('|', paths)} {timeoutMs}");
-        return Chosen(target);
-    }
-
-    /// <summary>
-    /// A target as it reads in a note: every way of naming the element in the order it was written,
-    /// and which of the matches the step means, because both are things the engine has to hand over
-    /// untouched for a fallback to be worth writing down.
-    /// </summary>
-    private static string Named(PageTarget? target) => target is null || target.Selectors.Count == 0
-        ? "(none)"
-        : $"{string.Join(" / ", target.Selectors)} #{target.MatchIndex}{Narrowed(target)}";
-
-    /// <summary>
-    /// What a target narrows the page down by, written after which match the step means: the
-    /// conditions a step adds are handed over with the selectors they go with, in the order they
-    /// were written, and a target that adds none says nothing here.
-    /// </summary>
-    private static string Narrowed(PageTarget target) => target.Conditions.Count == 0
-        ? string.Empty
-        : " [" + string.Join(", ",
-            target.Conditions.Select(condition => $"{condition.How}={condition.Value}")) + "]";
-
-    /// <summary>
-    /// Which of a target's selectors turns out to name the element, as though the ones before it had
-    /// found nothing. 1 is the first, which is what a target with no fallbacks always answers.
-    /// </summary>
-    public int BrowserChosen { get; set; } = 1;
-
-    /// <summary>The way of naming the element that won, which is what the run's own log reports.</summary>
-    private string Chosen(PageTarget target)
-        => target.Selectors.Count == 0
-            ? string.Empty
-            : target.Selectors[Math.Min(Math.Max(BrowserChosen, 1), target.Selectors.Count) - 1];
-
-    private static string Profile(string profile) => profile.Length == 0 ? "(none)" : profile;
-
-    void IBrowserDevice.Close()
-    {
-        Note("browserClose");
-        BrowserOpen = false;
-    }
-
-    public void KeyPress(string key, int holdMs) => Note($"keyPress {key} {holdMs}");
-
-    public void Connect() => Note("gamepadConnect");
-
-    public void Button(string button, bool down) => Note($"gamepadButton {button} {down}");
-
-    public void Stick(string stick, int x, int y) => Note($"gamepadStick {stick} {x} {y}");
-
-    public void Trigger(string trigger, int amount) => Note($"gamepadTrigger {trigger} {amount}");
-
-    public void ReleaseAll() => Note("gamepadRelease");
-
-    public void KeyDown(string key) => Note($"keyDown {key}");
-
-    public void KeyUp(string key) => Note($"keyUp {key}");
-
-    public void Hotkey(IReadOnlyList<string> keys, int holdMs) => Note($"hotkey {string.Join('|', keys)} {holdMs}");
-
-    public void TypeText(string text, int intervalMs) => Note($"type {text} {intervalMs}");
-
-    public void MoveMouse(int x, int y, int durationMs) => Note($"move {x} {y} {durationMs}");
-
-    public void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs)
-    {
-        Paths.Add(path);
-        Note($"along {path.Count} {durationMs}");
-    }
-
-    public void MoveMouseRelative(int dx, int dy, int durationMs) => Note($"moveBy {dx} {dy} {durationMs}");
-
-    public void MouseDown(string button, int x, int y) => Note($"down {button} {x} {y}");
-
-    public void MouseUp(string button, int x, int y) => Note($"up {button} {x} {y}");
-
-    public void Click(string button, int x, int y, int clicks, int intervalMs)
-    {
-        GateAtClick = InputGate.Owner;
-        Note($"click {button} {x} {y} {clicks} {intervalMs}");
-    }
-
-    /// <summary>Who held the input door when the click was sent, for the check about waiting.</summary>
-    public string GateAtClick { get; private set; } = string.Empty;
-
-    public void Scroll(string direction, int delta, int x, int y) => Note($"scroll {direction} {delta} {x} {y}");
-
-    public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
-        => Note($"drag {button} {startX} {startY} {endX} {endY} {durationMs} {steps}");
-
-    public void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs)
-    {
-        Paths.Add(path);
-        Note($"dragAlong {button} {path.Count} {durationMs}");
-    }
-
-    public PixelColor PixelAt(int x, int y)
-    {
-        Note($"pixel {x} {y}");
-        return Display is { } display ? display[x, y] : Pixel;
-    }
-
-    public ImageFrame Capture(int x, int y, int width, int height)
-        => Capture(new ScreenCaptureRequest(x, y, width, height)).Frame;
-
-    public ScreenShot Capture(ScreenCaptureRequest request)
-    {
-        Captures.Add(request);
-        Note($"capture {request.X} {request.Y} {request.Width} {request.Height}");
-        var picture = Display is { } display
-            ? ScreenCut(display, request.X, request.Y, request.Width, request.Height)
-            : new ImageFrame(request.Width, request.Height, new byte[request.Width * request.Height * 4]);
-
-        // A screen that moves between two captures is what waiting for the picture to settle is
-        // about, so a check writes what the screen does next.
-        if (Next is { } next)
-        {
-            Display = next();
-        }
-
-        // What a real machine answers an automatic request with: the window itself when a window
-        // was named, and the pixels of the desktop when it was not.
-        return new ScreenShot(picture, new ScreenPoint(request.X, request.Y),
-            request.Method != CaptureWay.Auto
-                ? request.Method
-                : request.Window == 0 ? CaptureWay.Gdi : CaptureWay.GraphicsCapture);
-    }
-
-    /// <summary>
-    /// Every reading of the screen that was asked for, in the order it was asked: which pixels,
-    /// from where, and by which means. A check reads this to see how a step's fields were turned
-    /// into a request rather than only that something was captured.
-    /// </summary>
-    public List<ScreenCaptureRequest> Captures { get; } = [];
-
-    /// <summary>What the pretend screen shows: a capture cuts the rectangle asked for out of it.</summary>
-    public ImageFrame? Display { get; set; }
-
-    /// <summary>
-    /// What the pretend screen shows next, asked after every capture, for the checks that need a
-    /// picture that moves: one that moves twice and then holds, or one that never holds at all.
-    /// Nothing here leaves the screen as it was.
-    /// </summary>
-    public Func<ImageFrame>? Next { get; set; }
-
-    public ImageFrame? Load(string path)
-    {
-        Note($"load {path}");
-        return Pictures.TryGetValue(path, out var picture) ? picture : Loaded;
-    }
-
-    /// <summary>
-    /// What each reference picture is read as, by path, for the checks that need two of them to
-    /// stand for different things. A path that is not in here is read as <see cref="Loaded"/>.
-    /// </summary>
-    public Dictionary<string, ImageFrame> Pictures { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
-    {
-        Searches++;
-        Queries.Add(query);
-        Note($"findAll {needle.Width}x{needle.Height} {query.ConfidencePercent:0} {query.Algorithm}");
-
-        // A check that needs one reference picture to turn up and another not to says so here; the
-        // rest of the time every picture is answered the way the one <see cref="Match"/> is.
-        var hits = PictureAnswers?.Invoke(needle, query)
-            ?? (Matches.Count > 0 ? Matches : Match is null ? [] : [Match]);
-        return Searches >= MatchAfter ? [.. hits.Take(query.Limit)] : [];
-    }
-
-    /// <summary>What the detection model in the fake reports, in the order it reports them.</summary>
-    public List<DetectionHit> Detections { get; } = [];
-
-    /// <summary>How many looks happen before the model starts finding anything.</summary>
-    public int DetectAfter { get; set; } = 1;
-
-    /// <summary>How many times the model was asked to look.</summary>
-    public int Looks { get; private set; }
-
-    /// <summary>The model files the engine asked for, in the order it asked.</summary>
-    public List<string> Models { get; } = [];
-
-    /// <summary>What the engine asked the model to find, in the order it asked.</summary>
-    public List<DetectionQuery> DetectionQueries { get; } = [];
-
-    /// <summary>
-    /// What a look hands back, for a check whose answer depends on the query — a model that finds
-    /// something only once the engine has been told to look for it.
-    /// </summary>
-    public Func<ImageFrame, DetectionQuery, IReadOnlyList<DetectionHit>>? DetectionAnswers
-    { get; set; }
-
-    public IReadOnlyList<DetectionHit> Detect(string modelPath, ImageFrame frame, DetectionQuery query)
-    {
-        Looks++;
-        Models.Add(modelPath);
-        DetectionQueries.Add(query);
-        Note($"detect {Path.GetFileName(modelPath)} {query.ConfidencePercent:0} {query.Limit}");
-
-        var hits = DetectionAnswers?.Invoke(frame, query) ?? Detections;
-        return Looks >= DetectAfter ? [.. hits.Take(query.Limit)] : [];
-    }
-
-    /// <summary>What the screen answers for one reference picture, when they have to differ.</summary>
-    public Func<ImageFrame, VisionQuery, IReadOnlyList<ImageMatch>>? PictureAnswers { get; set; }
-
-    /// <summary>Every search asked for, so a check can see how the step was read.</summary>
-    public List<VisionQuery> Queries { get; } = [];
-
-    public IReadOnlyList<TextSpan> Recognize(ImageFrame frame)
-    {
-        Note("ocr");
-        OcrFrames.Add((frame.Width, frame.Height));
-        OcrPictures.Add(frame);
-        return Spans;
-    }
-
-    /// <summary>The sizes of the pictures the OCR was handed, so a test can see what was read.</summary>
-    public List<(int Width, int Height)> OcrFrames { get; } = [];
-
-    /// <summary>The pictures themselves, for a test that is about what was handed over to read.</summary>
-    public List<ImageFrame> OcrPictures { get; } = [];
-
-    public bool Exists(UiQuery query, int timeoutMs)
-    {
-        LastQuery = query;
-        Note($"ui {query.ControlType}/{query.Name}/{query.AutomationId}");
-        return ElementExists;
-    }
-
-    /// <summary>The control the element picker would find under a place, which is what the picker
-    /// asks for; a check that is about the picker sets it.</summary>
-    public UiElementInfo? ElementUnderPointer { get; set; }
-
-    public UiElementInfo? ElementAt(int x, int y)
-    {
-        Note($"elementAt {x},{y}");
-        return ElementUnderPointer;
-    }
-
-    public bool Click(UiQuery query, string button)
-    {
-        Note($"clickElement {query.Name} #{query.Index} {button}");
-        return ElementExists;
-    }
-
-    public bool FocusWindow(UiQuery query)
-    {
-        LastQuery = query;
-        Note($"focus {query.WindowTitle}");
-        return WindowFocused;
-    }
-
-    public bool Invoke(UiQuery query)
-    {
-        Note($"invoke {query.Name} #{query.Index}");
-        return ElementInvocable;
-    }
-
-    public UiElementFacts? Facts(UiQuery query)
-    {
-        Note($"read {query.Name}");
-        if (!ElementExists)
-        {
-            return null;
-        }
-
-        var place = Elements.Count > 0 ? Elements[0] : null;
-        return new UiElementFacts(ElementEnabled, ElementVisible, ElementText ?? string.Empty,
-            place?.Name ?? string.Empty, place?.AutomationId ?? string.Empty,
-            place?.ControlType ?? string.Empty, place?.Location ?? default,
-            place?.Size ?? default);
-    }
-
-    public bool SetText(UiQuery query, string text, bool clearFirst)
-    {
-        Note($"fill {query.ControlType}/{query.AutomationId} {text} {clearFirst}");
-        return ElementWritable;
-    }
-
-    public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
-    {
-        Note($"findElements {query.ControlType}/{query.Name}/{query.AutomationId} #{query.Index} take {limit}");
-        return [.. Elements.Take(Math.Max(1, limit))];
-    }
-
-    /// <summary>What picking an entry of a drop-down or a list answers.</summary>
-    public bool ItemSelectable { get; set; } = true;
-
-    /// <summary>What turning a check box on, off or over answers.</summary>
-    public bool Checkable { get; set; } = true;
-
-    /// <summary>What opening or closing a node answers.</summary>
-    public bool Expandable { get; set; } = true;
-
-    /// <summary>What scrolling an element into view answers.</summary>
-    public bool Scrollable { get; set; } = true;
-
-    public bool Select(UiQuery query, string text, int itemIndex)
-    {
-        Note($"selectItem {query.ControlType}/{query.Name}/{query.AutomationId}#{query.Index} \"{text}\" {itemIndex}");
-        return ItemSelectable;
-    }
-
-    public bool SetChecked(UiQuery query, bool? state)
-    {
-        Note($"setChecked {query.Name} {state?.ToString() ?? "flip"}");
-        return Checkable;
-    }
-
-    public bool SetExpanded(UiQuery query, string action)
-    {
-        Note($"setExpanded {query.Name} {action}");
-        return Expandable;
-    }
-
-    public bool ScrollIntoView(UiQuery query)
-    {
-        Note($"scrollIntoView {query.Name}");
-        return Scrollable;
-    }
-
-    /// <summary>What reading a table answers: one array of cells per row.</summary>
-    public List<string[]> Table { get; } = [];
-
-    public UiTable ReadTable(UiQuery query, int limit)
-    {
-        Note($"readTable {query.Name}#{query.Index} take {limit}");
-        return new UiTable([.. Columns],
-            [.. Table.Take(Math.Max(1, limit)).Select(row => (IReadOnlyList<string>)row)]);
-    }
-
-    /// <summary>What reading a table answers about the names of its columns.</summary>
-    public List<string> Columns { get; } = [];
-
-    bool IFileDevice.Exists(string path)
-    {
-        Note($"fileExists {path}");
-        return PathExists || Files.ContainsKey(path) || Blobs.ContainsKey(path);
-    }
-
-    string IFileDevice.ReadText(string path, string encoding)
-    {
-        Note($"readFile {path} {encoding}");
-        return Files.TryGetValue(path, out var text) ? text : FileText;
-    }
-
-    /// <summary>
-    /// What reading a text file answers when that path was never written. A script step reads back
-    /// the mark the command it started leaves behind, and a check that wants that command to look as
-    /// though it came to an end of its own says so here.
-    /// </summary>
-    public string FileText { get; set; } = string.Empty;
-
-    byte[] IFileDevice.ReadBytes(string path)
-    {
-        Note($"readBytes {path}");
-        return Blobs.TryGetValue(path, out var bytes) ? bytes : [];
-    }
-
-    Stream IFileDevice.OpenRead(string path)
-    {
-        Note($"openRead {path}");
-        return new MemoryStream(Blobs.TryGetValue(path, out var bytes) ? bytes : []);
-    }
-
-    void IFileDevice.WriteText(string path, string text, bool append, string encoding)
-    {
-        Note($"writeFile {path} {text} {append} {encoding}");
-        if (append && Files.TryGetValue(path, out var old))
-        {
-            Files[path] = old + text;
-        }
-        else
-        {
-            Files[path] = text;
-        }
-    }
-
-    bool IFileDevice.HasOpenLine(string path, string encoding)
-    {
-        Note($"openLine {path}");
-        return Files.TryGetValue(path, out var text)
-            && text.Length > 0
-            && text[^1] is not ('\n' or '\r');
-    }
-
-    void IFileDevice.WriteBytes(string path, byte[] bytes)
-    {
-        Note($"writeBytes {path} {bytes.Length}");
-        Blobs[path] = bytes;
-    }
-
-    void IFileDevice.Delete(string path, bool toRecycleBin)
-    {
-        Note($"deleteFile {path} {toRecycleBin}");
-        Files.Remove(path);
-    }
-
-    void IFileDevice.Copy(string from, string to)
-    {
-        Note($"copyFile {from} {to}");
-
-        if (Files.TryGetValue(from, out var text))
-        {
-            Files[to] = text;
-        }
-    }
-
-    void IFileDevice.Move(string from, string to)
-    {
-        Note($"moveFile {from} {to}");
-
-        if (Files.TryGetValue(from, out var text))
-        {
-            Files.Remove(from);
-            Files[to] = text;
-        }
-    }
-
-    IReadOnlyList<FileEntry> IFileDevice.List(string folder, IReadOnlyList<string> patterns,
-        bool recurse, int depth)
-    {
-        Note($"listFiles {folder} {string.Join(";", patterns)} {recurse} {depth}");
-        return
-        [
-            .. FolderEntries.Select(path =>
-            {
-                var facts = FileFacts.TryGetValue(path, out var known)
-                    ? known
-                    : (Size: 0L, Modified: DateTimeOffset.UnixEpoch);
-                return new FileEntry(path, Path.GetFileName(path),
-                    Path.GetDirectoryName(path) ?? "", facts.Size, facts.Modified, facts.Modified,
-                    facts.Modified);
-            }),
-        ];
-    }
-
-    void IFileDevice.CreateFolder(string path)
-    {
-        Note($"createFolder {path}");
-        Folders.Add(path);
-    }
-
-    void IFileDevice.Unzip(string from, string folder, bool overwrite)
-    {
-        Note($"unzip {from} {folder} {overwrite}");
-        if (UnzipWorks)
-        {
-            Files[Path.Combine(folder, "readme.txt")] = "unpacked";
-        }
-        else
-        {
-            throw new DeviceActionException("Run.FileFailed", $"{from}: not a zip file");
-        }
-    }
-
-    /// <summary>Whether the fake's zip file unpacks, or turns out to be something else.</summary>
-    public bool UnzipWorks { get; set; } = true;
-
-    void IFileDevice.Zip(string folder, string to)
-    {
-        Note($"zip {folder} {to}");
-        Files[to] = "zipped";
-    }
-
-    void IFileDevice.DeleteFolder(string path, bool recurse)
-    {
-        Note($"deleteFolder {path} {recurse}");
-
-        // A folder with something still in it is what the real one refuses to remove on its own,
-        // and the fake has to answer the same way for the check to mean anything.
-        if (FolderHasFiles && !recurse)
-        {
-            throw new DeviceActionException("Run.FileFailed", $"{path}: the folder is not empty");
-        }
-
-        Folders.Remove(path);
-    }
-
-    int IClipboardDevice.ChangeCount
-    {
-        get
-        {
-            _clipboardReads++;
-            if (_clipboardReads > ClipboardMovesAfter)
-            {
-                ClipboardChanges++;
-            }
-
-            return ClipboardChanges;
-        }
-    }
-
-    bool IClipboardDevice.HasText => !string.IsNullOrEmpty(ClipboardText);
-
-    string IClipboardDevice.ReadText()
-    {
-        Note("clipboardRead");
-        return ClipboardText;
-    }
-
-    void IClipboardDevice.WriteText(string text)
-    {
-        Note($"clipboardWrite {text}");
-        ClipboardText = text;
-        ClipboardChanges++;
-    }
-
-    ImageFrame? IClipboardDevice.ReadImage()
-    {
-        Note("clipboardReadImage");
-        return ClipboardCopy;
-    }
-
-    void IClipboardDevice.WriteImage(ImageFrame image)
-    {
-        Note($"clipboardWriteImage {image.Width}x{image.Height}");
-        ClipboardCopy = image;
-        ClipboardChanges++;
-    }
-
-    /// <summary>The picture the fake clipboard is holding, if any.</summary>
-    public ImageFrame? ClipboardCopy { get; set; }
-
-    IReadOnlyList<string> IClipboardDevice.ReadFiles()
-    {
-        Note("clipboardReadFiles");
-        return [.. ClipboardFiles];
-    }
-
-    void IClipboardDevice.WriteFiles(IReadOnlyList<string> paths)
-    {
-        Note($"clipboardWriteFiles {string.Join("|", paths)}");
-        ClipboardFiles.Clear();
-        ClipboardFiles.AddRange(paths);
-        ClipboardChanges++;
-    }
-
-    /// <summary>The file paths the fake clipboard is holding.</summary>
-    public List<string> ClipboardFiles { get; } = [];
-
-    void IClipboardDevice.Clear()
-    {
-        Note("clipboardClear");
-        ClipboardText = string.Empty;
-        ClipboardChanges++;
-    }
-
-    int IProcessDevice.Start(StartRequest request)
-    {
-        Note($"start {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
-             + $"|{request.Hidden}{(request.RunAsAdmin ? "|admin" : string.Empty)}"
-             + EnvironmentNote(request.Environment));
-        return NextProcessId++;
-    }
-
-    /// <summary>The environment a call carried, spelled out so a test can read it back.</summary>
-    private static string EnvironmentNote(IReadOnlyDictionary<string, string>? values)
-        => values is null or { Count: 0 }
-            ? string.Empty
-            : "|env " + string.Join(";",
-                values.OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                    .Select(pair => $"{pair.Key}={pair.Value}"));
-
-    /// <summary>What a call fed the program, with the line endings spelled out.</summary>
-    private static string InputNote(string? text)
-        => text is null ? string.Empty : "|in " + text.Replace("\r\n", "\n").Replace("\n", "\\n");
-
-    IReadOnlyList<int> IProcessDevice.Find(string name)
-    {
-        Note($"find {name}");
-        _processReads++;
-        if (AppearsLater is not null && _processReads > AppearsAfter)
-        {
-            Running[AppearsLater] = [NextProcessId];
-        }
-
-        return Running.TryGetValue(name, out var ids) ? ids : [];
-    }
-
-    IReadOnlyList<string> IProcessDevice.List()
-    {
-        Note("listPrograms");
-        return [.. Running.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
-    }
-
-    ProcessDetails? IProcessDevice.Details(string target)
-    {
-        Note($"processDetails {target}");
-        return Running.TryGetValue(target, out var ids) && ids.Count > 0
-            ? new ProcessDetails(ids[0], target, $@"C:\fake\{target}.exe", 12.5, 3.4)
-            : null;
-    }
-
-    bool IProcessDevice.HasExited(int id)
-    {
-        Note($"hasExited {id}");
-        return Exited.Contains(id);
-    }
-
-    int? IProcessDevice.ExitCode(int id)
-    {
-        Note($"exitCode {id}");
-        return Exited.Contains(id) ? ExitCodes.TryGetValue(id, out var code) ? code : 0 : null;
-    }
-
-    int IProcessDevice.StopByName(string name, bool force)
-    {
-        Note($"stopName {name}|{force}");
-        return Running.Remove(name) ? 1 : 0;
-    }
-
-    bool IProcessDevice.StopById(int id, bool force)
-    {
-        Note($"stopId {id}|{force}");
-        Exited.Add(id);
-        return true;
-    }
-
-    CommandResult IProcessDevice.Run(CommandRequest request)
-    {
-        Note($"run {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
-             + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}"
-             + InputNote(request.StandardInput)
-             + $"|out {request.OutputEncoding ?? "default"}");
-
-        // A real device hands each line over while the program is still running; the fake has all
-        // of them already and hands them over the same way, blank lines included.
-        foreach (var line in Lines(Command.StandardOutput))
-        {
-            request.OnOutput?.Invoke(line);
-        }
-
-        foreach (var line in Lines(Command.StandardError))
-        {
-            request.OnError?.Invoke(line);
-        }
-
-        return Command;
-    }
-
-    /// <summary>The lines a stream holds, the way reading it a line at a time would find them.</summary>
-    private static IEnumerable<string> Lines(string text)
-        => text.Length == 0
-            ? []
-            : text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-
-    string ISystemDevice.Info(string field)
-    {
-        Note($"info {field}");
-        return SystemValues.TryGetValue(field, out var value) ? value : string.Empty;
-    }
-
-    string ISystemDevice.Environment(string name)
-    {
-        Note($"env {name}");
-        return EnvironmentValues.TryGetValue(name, out var value) ? value : string.Empty;
-    }
-
-    void ISystemDevice.Power(PowerAction action, int graceSeconds)
-    {
-        Note($"power {action} {graceSeconds}");
-    }
-
-    /// <summary>What the speakers are set to in the fake, and whether they are switched off.</summary>
-    public int SpeakerVolume { get; set; } = 50;
-
-    public bool SoundOff { get; set; }
-
-    int ISystemDevice.Volume()
-    {
-        Note("volume");
-        return SpeakerVolume;
-    }
-
-    void ISystemDevice.SetVolume(int percent)
-    {
-        Note($"setVolume {percent}");
-        SpeakerVolume = Math.Clamp(percent, 0, 100);
-    }
-
-    bool ISystemDevice.IsMuted()
-    {
-        Note("isMuted");
-        return SoundOff;
-    }
-
-    void ISystemDevice.SetMuted(bool muted)
-    {
-        Note($"setMuted {muted}");
-        SoundOff = muted;
-    }
-
-    void ISystemDevice.PlaySound(SoundKind kind) => Note($"sound {kind}");
-
-    void ISystemDevice.Notify(string title, string text, NotificationKind kind)
-        => Note($"notify {kind} [{title}] {text}");
-
-    /// <summary>The layouts the fake says are installed, and which of them is being typed in.</summary>
-    public List<string> Layouts { get; } = ["\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3", "\u82f1\u8bed(\u7f8e\u56fd)"];
-
-    public string Layout { get; set; } = "\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3";
-
-    string ISystemDevice.InputMethod()
-    {
-        Note("inputMethod");
-        return Layout;
-    }
-
-    IReadOnlyList<string> ISystemDevice.InputMethods()
-    {
-        Note("inputMethods");
-        return Layouts;
-    }
-
-    string? ISystemDevice.SwitchInputMethod(string layout)
-    {
-        Note($"switchInputMethod {layout}");
-        var found = Layouts.FirstOrDefault(installed =>
-            installed.Contains(layout, StringComparison.OrdinalIgnoreCase));
-        if (found is null)
-        {
-            return null;
-        }
-
-        Layout = found;
-        return found;
-    }
-
-    /// <summary>How bright the fake says the screens are.</summary>
-    public int ScreenBrightness { get; set; } = 50;
-
-    int ISystemDevice.Brightness()
-    {
-        Note("brightness");
-        return ScreenBrightness;
-    }
-
-    void ISystemDevice.SetBrightness(int percent)
-    {
-        Note($"setBrightness {percent}");
-        ScreenBrightness = Math.Clamp(percent, 0, 100);
-    }
-
-    IReadOnlyList<WindowInfo> IWindowDevice.List()
-    {
-        Note("listWindows");
-        return [.. Windows];
-    }
-
-    WindowInfo? IWindowDevice.Find(string value, WindowMatch match, string compare,
-        TextCompareOptions options)
-    {
-        Note($"findWindow {value}");
-        _windowReads++;
-        if (WindowAppearsLater is not null
-            && _windowReads > WindowAppearsAfter
-            && Windows.All(window => window.Title != WindowAppearsLater))
-        {
-            Windows.Add(new WindowInfo(99, WindowAppearsLater,
-                new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
-        }
-
-        return Matching(value, match, compare, options: options).FirstOrDefault();
-    }
-
-    IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-        string compare, bool everyWhenEmpty, TextCompareOptions options)
-    {
-        Note($"filterWindows {value}");
-        return Matching(value, match, compare, everyWhenEmpty, options);
-    }
-
-    /// <summary>
-    /// The windows that answer to a value, in the order the fake lists them. A value nobody wrote
-    /// means the window in front, which is what a step that names none acts on; a step that lists
-    /// windows means every one of them by it.
-    /// </summary>
-    private List<WindowInfo> Matching(string value, WindowMatch match, string compare,
-        bool everyWhenEmpty = false, TextCompareOptions options = default)
-    {
-        var wanted = (value ?? string.Empty).Trim();
-        if (wanted.Length == 0)
-        {
-            return everyWhenEmpty || Windows.Count == 0 ? [.. Windows] : [Windows[0]];
-        }
-
-        return [.. Windows.Where(window => Answers(window, wanted, match, compare, options))];
-    }
-
-    /// <summary>
-    /// Whether a fake window answers to a value. A title is always there; the process name and the
-    /// class name have to be handed in through <see cref="WindowFacts"/>, the way the real device
-    /// has to look them up. How the two are held up against each other is the device's job, so it
-    /// is the same reading the real device does rather than a second one that could disagree.
-    /// </summary>
-    private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare,
-        TextCompareOptions options)
-    {
-        if (match is WindowMatch.Handle)
-        {
-            return long.TryParse(wanted, out var handle) && window.Handle == handle;
-        }
-
-        var text = match switch
-        {
-            WindowMatch.Process => Facts(window).Process,
-            WindowMatch.ClassName => Facts(window).ClassName,
-            _ => window.Title,
-        };
-
-        return WindowHow.Matches(text, wanted, compare, options);
-    }
-
-    private (string Process, string ClassName) Facts(WindowInfo window)
-        => WindowFacts.TryGetValue(window.Handle, out var facts)
-            ? facts
-            : (string.Empty, string.Empty);
-
-    string IWindowDevice.ProcessOf(long handle)
-    {
-        Note($"processOf {handle}");
-        return Windows.FirstOrDefault(window => window.Handle == handle) is { } window
-            ? Facts(window).Process
-            : string.Empty;
-    }
-
-    string IWindowDevice.ClassOf(long handle)
-    {
-        Note($"classOf {handle}");
-        return Windows.FirstOrDefault(window => window.Handle == handle) is { } window
-            ? Facts(window).ClassName
-            : string.Empty;
-    }
-
-    bool IWindowDevice.Activate(long handle)
-    {
-        Note($"activateWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Minimize(long handle)
-    {
-        Note($"minimizeWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Maximize(long handle)
-    {
-        Note($"maximizeWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Restore(long handle)
-    {
-        Note($"restoreWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Close(long handle)
-    {
-        Note($"closeWindow {handle}");
-        return WindowActionWorks;
-    }
-
-    bool IWindowDevice.Move(long handle, int x, int y, int width, int height)
-    {
-        Note($"moveWindow {handle} {x} {y} {width} {height}");
-        return WindowActionWorks;
-    }
-
-    /// <summary>
-    /// Where each window's client area starts, by handle. A handle that was not set up answers
-    /// the window's own corner, which is what a window with no border looks like.
-    /// </summary>
-    public Dictionary<long, ScreenPoint> ClientOrigins { get; } = [];
-
-    ScreenPoint IWindowDevice.ClientOrigin(long handle)
-    {
-        Note($"clientOrigin {handle}");
-        return ClientOrigins.TryGetValue(handle, out var origin)
-            ? origin
-            : Windows.FirstOrDefault(window => window.Handle == handle)?.Location ?? default;
-    }
-
-    /// <summary>
-    /// How big each window's client area is, by handle. A handle that was not set up answers the
-    /// window's own size, which is what a window with no border looks like.
-    /// </summary>
-    public Dictionary<long, ScreenSize> ClientSizes { get; } = [];
-
-    ScreenSize IWindowDevice.ClientSize(long handle)
-    {
-        Note($"clientSize {handle}");
-        var window = Windows.FirstOrDefault(candidate => candidate.Handle == handle);
-        return ClientSizes.TryGetValue(handle, out var size)
-            ? size
-            : window?.Size ?? default;
-    }
-
-    /// <summary>
-    /// Notes which route input was asked to take, then hands back the fake itself so the call
-    /// still lands in <see cref="Calls"/> whatever way it was routed.
-    /// </summary>
-    private sealed class RecordingRouter(FakeDeviceLayer owner) : IInputRouter
-    {
-        public IInputDevice For(InputRoute route)
-        {
-            owner.Routes.Add(route);
-            return owner;
-        }
-    }
-
-    private void Note(string call)
-    {
-        if (Unavailable)
-        {
-            throw new DeviceUnavailableException("the test device");
-        }
-
-        if (Refusal is not null)
-        {
-            throw Refusal;
-        }
-
-        Calls.Add(call);
-    }
-
-    /// <summary>
-    /// The rectangle of the pretend screen a step asked for, with anything running off the edge
-    /// left black the way a real capture leaves it.
-    /// </summary>
-    private static ImageFrame ScreenCut(ImageFrame display, int x, int y, int width, int height)
-    {
-        var bytes = new byte[width * height * 4];
-        for (var row = 0; row < height; row++)
-        {
-            for (var column = 0; column < width; column++)
-            {
-                var from = ((y + row) * display.Width + (x + column)) * 4;
-                if (from < 0 || from + 4 > display.Bgra.Length)
-                {
-                    continue;
-                }
-
-                Array.Copy(display.Bgra, from, bytes, (row * width + column) * 4, 4);
-            }
-        }
-
-        return new ImageFrame(width, height, bytes);
     }
 }

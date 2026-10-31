@@ -53,6 +53,34 @@ public class VariableFieldTests
     }
 
     [Fact]
+    public void A_declared_record_says_which_fields_it_holds()
+    {
+        Ui.Run(() =>
+        {
+            var choices = VariableChoices.For([],
+                [
+                    new MacroParameter
+                    {
+                        Name = "点",
+                        Type = ActionReturnType.Record,
+                        Fields =
+                        [
+                            new MacroField { Name = "x", Type = ActionReturnType.Number },
+                            new MacroField { Name = "y", Type = ActionReturnType.Number },
+                        ],
+                    },
+                ], []);
+
+            // The wall's job is to say what a name holds. For a record that is its fields, and now
+            // that a declaration can name them, the wall can answer instead of saying "a record".
+            var record = Assert.Single(choices, choice => choice.Name == "点");
+            Assert.True(record.HasFields);
+            Assert.Equal(["x", "y"], record.Fields.Select(field => field.Name));
+            Assert.All(record.Fields, field => Assert.Equal(ActionReturnType.Number, field.Type));
+        });
+    }
+
+    [Fact]
     public void A_search_region_is_a_list_of_places_rather_than_a_line_of_punctuation()
     {
         Ui.Run(() =>

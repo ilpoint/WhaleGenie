@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -1113,7 +1112,7 @@ public sealed class ProjectTriggers
         EnsureMenuPages();
     }
 
-    public Execution.MenuRuntimeLayout BuildMenuLayout(WindowInfo? foreground,
+    public MenuRuntimeLayout BuildMenuLayout(WindowInfo? foreground,
         IWindowDevice windows, IReadOnlyList<MacroItem> macros)
     {
         var byName = macros
@@ -1135,7 +1134,7 @@ public sealed class ProjectTriggers
                 .Select(group =>
                 {
                     var item = group.First();
-                    return new Execution.MenuRuntimeCell(
+                    return new MenuRuntimeCell(
                         item.Entry.MenuRow,
                         item.Entry.MenuColumn,
                         item.Entry.MenuIcon,
@@ -1145,7 +1144,7 @@ public sealed class ProjectTriggers
                 .OrderBy(cell => cell.Row)
                 .ThenBy(cell => cell.Column)
                 .ToList();
-            return new Execution.MenuRuntimePage(page.Id, page.IsDefault,
+            return new MenuRuntimePage(page.Id, page.IsDefault,
                 page.IsDefault
                     ? Strings.Get("Menu.DefaultContext")
                     : $"{page.Window.MatchValue} · {Strings.Get($"WindowRule.Short.{page.Window.How}", page.Window.How)}",
@@ -1186,10 +1185,16 @@ public sealed class ProjectTriggers
         {
             contextPages.Add(Page(DefaultContextMenuPage()));
         }
-        return new Execution.MenuRuntimeLayout(common, contextPages);
+        return new MenuRuntimeLayout(common, contextPages);
     }
 
-    public IReadOnlyList<string> MenuProblems(IReadOnlyList<MacroItem> macros)
+    /// <summary>
+    /// What is wrong with the menu as written. <paramref name="knowsIcon"/> answers whether an icon
+    /// name still exists in this build; without it, a name is left alone rather than reported as
+    /// missing — a project saved by a build that had that icon is not broken.
+    /// </summary>
+    public IReadOnlyList<string> MenuProblems(IReadOnlyList<MacroItem> macros,
+        Func<string, bool>? knowsIcon = null)
     {
         var problems = new List<string>();
         if (CommonMenuPages().Count > MaxCommonMenuPages)
@@ -1230,7 +1235,8 @@ public sealed class ProjectTriggers
             }
             if (entry.MenuIcon is { IsEmpty: false } icon
                 && icon.Kind == MenuIconKind.Builtin
-                && MenuIconCatalog.Find(icon.Value) is null)
+                && knowsIcon is not null
+                && !knowsIcon(icon.Value))
             {
                 problems.Add(Strings.Format("Menu.Problem.Icon", entry.MacroName));
             }

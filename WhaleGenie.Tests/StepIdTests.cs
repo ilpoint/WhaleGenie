@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
-using WhaleGenie.Execution;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
@@ -138,7 +138,10 @@ public class StepIdTests
         {
             var step = Step("control.delay");
             step.Id = "k3f9";
-            var dialog = new AddActionViewModel { SelectedDefinition = ActionCatalog.Find("control.delay") };
+            var dialog = new AddActionViewModel(ActionCatalog.PlaceableActions)
+            {
+                SelectedDefinition = ActionCatalog.Find("control.delay"),
+            };
             dialog.LoadFrom(step);
 
             var edited = dialog.BuildStep();

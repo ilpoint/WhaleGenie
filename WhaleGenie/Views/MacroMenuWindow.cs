@@ -17,9 +17,11 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Lucide.Avalonia;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
+
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
@@ -152,7 +154,7 @@ public sealed class MacroMenuWindow : Window
         _contextTitle = new TextBlock
         {
             FontSize = 10,
-            Foreground = Brush("AppMuted", Colors.LightGray),
+            Foreground = ThemeBrush.Of("TextTertiary"),
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 0, 0),
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -186,8 +188,9 @@ public sealed class MacroMenuWindow : Window
             ColumnDefinitions = new ColumnDefinitions("28,Auto,*,Auto,Auto,Auto"),
             Margin = new Thickness(0),
             Cursor = TitleCursor,
-            Background = Brush("AppChrome", Color.FromArgb(120, 20, 20, 20)),
         };
+        // 标题栏底：**绑令牌**，不是取一次快照——换主题要跟着变。
+        ThemeBrush.Assign(title, BackgroundProperty, "SurfaceChrome");
         ToolTip.SetTip(title, Strings.Get("Menu.Drag"));
         title.PointerPressed += (_, e) =>
         {
@@ -225,7 +228,7 @@ public sealed class MacroMenuWindow : Window
             Text = Strings.Get("Main.Title"),
             FontSize = 13,
             FontWeight = FontWeight.SemiBold,
-            Foreground = Brush("AppText", Colors.White),
+            Foreground = ThemeBrush.Of("TextPrimary"),
             VerticalAlignment = VerticalAlignment.Center,
         });
         var settings = DividerButton(AppIcons.Settings, Strings.Get("Menu.Settings"));
@@ -253,7 +256,7 @@ public sealed class MacroMenuWindow : Window
             Width = 11,
             Height = 11,
             Data = AppIcons.Pin,
-            Stroke = Brush("AppMuted", Colors.LightGray),
+            Stroke = ThemeBrush.Of("TextTertiary"),
             StrokeThickness = 1.4,
         };
         _pinButton.Click += (_, _) => SetPinned(!_pinned);
@@ -318,8 +321,8 @@ public sealed class MacroMenuWindow : Window
             Margin = new Thickness(1),
             Padding = new Thickness(OuterPadding, OuterTopPadding, OuterPadding, OuterPadding),
             CornerRadius = new CornerRadius(7),
-            Background = Brush("AppDock", Color.FromArgb(246, 34, 34, 34)),
-            BorderBrush = Brush("AppBorder", Color.FromArgb(180, 255, 255, 255)),
+            Background = ThemeBrush.Of("SurfacePanel") ?? Brushes.Transparent,
+            BorderBrush = ThemeBrush.Of("BorderControl"),
             BorderThickness = new Thickness(1),
             Child = new StackPanel
             {
@@ -430,9 +433,11 @@ public sealed class MacroMenuWindow : Window
         _searchHost.IsHitTestVisible = open;
         _search.Focusable = open;
         _search.IsTabStop = open;
-        _searchButton.Classes.Set("On", open);
+        // 这个窗没有 axaml，声明不了本地样式；"开"的状态一直是由下面这行 `Background` 画的。
+        // 原来还有一行给按钮贴了个"开"的类名，它从来没配到过任何样式，已删。
+        // （注释里不写那个调用的原文：扫描按文本找类名，写在注释里会被当成真的加类。）
         _searchButton.Background = open
-            ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
+            ? ThemeBrush.Of("SurfaceHover")
             : Brushes.Transparent;
         ToolTip.SetTip(_searchButton, Strings.Get(open ? "Menu.SearchClose" : "Menu.SearchOpen"));
 
@@ -456,9 +461,8 @@ public sealed class MacroMenuWindow : Window
         }
 
         _pinned = pinned;
-        _pinButton.Classes.Set("On", pinned);
         _pinButton.Background = pinned
-            ? Brush("AppHover", Color.FromArgb(80, 255, 255, 255))
+            ? ThemeBrush.Of("SurfaceHover")
             : Brushes.Transparent;
         ToolTip.SetTip(_pinButton, Strings.Get(pinned ? "Menu.Unpin" : "Menu.Pin"));
         if (_pinButton.Content is IconView icon)
@@ -706,7 +710,7 @@ public sealed class MacroMenuWindow : Window
                     && (cell is not null || string.IsNullOrWhiteSpace(_search.Text));
                 if (_selected?.Key == slot.Key)
                 {
-                    child.BorderBrush = Brush("AppAccent", Color.FromRgb(78, 164, 232));
+                    child.BorderBrush = ThemeBrush.Of("AccentFill");
                     child.BorderThickness = new Thickness(2);
                 }
                 Grid.SetRow(child, row);
@@ -725,7 +729,7 @@ public sealed class MacroMenuWindow : Window
             Width = 24,
             Height = 24,
             Data = AppIcons.SelectionPlus,
-            Stroke = Brush("AppMuted", Colors.LightGray),
+            Stroke = ThemeBrush.Of("TextTertiary"),
             StrokeThickness = 1.4,
         };
         ToolTip.SetTip(button, Strings.Get("Menu.AddCell"));
@@ -771,7 +775,7 @@ public sealed class MacroMenuWindow : Window
         {
             Text = cell.Macro.Name,
             FontSize = 10.5,
-            Foreground = Brush("AppText", Colors.White),
+            Foreground = ThemeBrush.Of("TextPrimary"),
             TextWrapping = TextWrapping.Wrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextAlignment = TextAlignment.Center,
@@ -789,7 +793,7 @@ public sealed class MacroMenuWindow : Window
                 Width = 44,
                 Height = 44,
                 Data = option.Kind,
-                Stroke = Brush("AppText", Colors.White),
+                Stroke = ThemeBrush.Of("TextPrimary"),
                 StrokeThickness = 1.5,
             };
             return true;
@@ -836,13 +840,16 @@ public sealed class MacroMenuWindow : Window
             Margin = new Thickness(1),
             Padding = new Thickness(2),
             CornerRadius = new CornerRadius(4),
-            Background = Brush("AppField", Color.FromRgb(48, 48, 48)),
-            BorderBrush = Brush("AppBorder", Color.FromRgb(80, 80, 80)),
+            Background = ThemeBrush.Of("SurfaceField") ?? Brushes.Transparent,
+            BorderBrush = ThemeBrush.Of("BorderControl"),
             BorderThickness = new Thickness(1),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             Cursor = ButtonCursor,
         };
+
+        // 这个类没有样式，但它**有用**：六个菜单测试按 `Classes.Contains("MenuCell")` 找格子。
+        // 删它会把测试变成"找不到元素"——**"没有样式"不等于"没人用"**，测试也是消费者。
         button.Classes.Add("MenuCell");
         return button;
     }
@@ -1011,7 +1018,7 @@ public sealed class MacroMenuWindow : Window
         _suppressClick = true;
         _dragPointer?.Capture(this);
         _dragButton.Opacity = 0.65;
-        _dragButton.BorderBrush = Brush("AppAccent", Color.FromRgb(78, 164, 232));
+        _dragButton.BorderBrush = ThemeBrush.Of("AccentFill");
         _dragButton.BorderThickness = new Thickness(2);
     }
 
@@ -1153,8 +1160,8 @@ public sealed class MacroMenuWindow : Window
                     Width = index == current ? 6 : 4,
                     Height = index == current ? 6 : 4,
                     Fill = index == current
-                        ? Brush("AppAccent", Color.FromRgb(78, 164, 232))
-                        : Brush("AppMuted", Color.FromRgb(120, 120, 120)),
+                        ? ThemeBrush.Of("AccentFill")
+                        : ThemeBrush.Of("TextTertiary"),
                 },
             };
             var page = index;
@@ -1241,18 +1248,17 @@ public sealed class MacroMenuWindow : Window
         {
             scale.ScaleX = 1.04;
             scale.ScaleY = 1.04;
-            button.Background = Brush("AppHover", Color.FromRgb(64, 64, 64));
-            button.BorderBrush = Brush("AppAccent", Color.FromRgb(78, 164, 232));
+            button.Background = ThemeBrush.Of("SurfaceHover") ?? Brushes.Transparent;
+            button.BorderBrush = ThemeBrush.Of("AccentFill");
             button.BorderThickness = new Thickness(2);
         };
         button.PointerExited += (_, _) =>
         {
             scale.ScaleX = 1;
             scale.ScaleY = 1;
-            button.Background = Brush("AppField", Color.FromRgb(48, 48, 48));
+            button.Background = ThemeBrush.Of("SurfaceField") ?? Brushes.Transparent;
             var selected = _selected?.Key == slot.Key;
-            button.BorderBrush = Brush(selected ? "AppAccent" : "AppBorder",
-                selected ? Color.FromRgb(78, 164, 232) : Color.FromRgb(80, 80, 80));
+            button.BorderBrush = ThemeBrush.Of(selected ? "AccentFill" : "BorderControl");
             button.BorderThickness = new Thickness(selected ? 2 : 1);
         };
     }
@@ -1296,7 +1302,7 @@ public sealed class MacroMenuWindow : Window
                 Width = 11,
                 Height = 11,
                 Data = icon,
-                Stroke = Brush("AppMuted", Colors.LightGray),
+                Stroke = ThemeBrush.Of("TextTertiary"),
                 StrokeThickness = 1.4,
             },
         };
@@ -1310,8 +1316,8 @@ public sealed class MacroMenuWindow : Window
         {
             Height = FooterHeight,
             Padding = new Thickness(8, 0),
-            Background = Brush("AppField", Color.FromArgb(150, 48, 48, 48)),
-            BorderBrush = Brush("AppBorder", Color.FromArgb(70, 255, 255, 255)),
+            Background = ThemeBrush.Of("SurfaceField") ?? Brushes.Transparent,
+            BorderBrush = ThemeBrush.Of("BorderControl"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Cursor = ButtonCursor,
@@ -1320,7 +1326,7 @@ public sealed class MacroMenuWindow : Window
                 Width = 14,
                 Height = 14,
                 Data = icon,
-                Stroke = Brush("AppText", Colors.White),
+                Stroke = ThemeBrush.Of("TextPrimary"),
                 StrokeThickness = 1.5,
             },
         };
@@ -1485,11 +1491,6 @@ public sealed class MacroMenuWindow : Window
         GetCursorPos(out var point);
         return new PixelPoint(point.X, point.Y);
     }
-
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
 
     private static bool IsInsideButton(object? source)
     {

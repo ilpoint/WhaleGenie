@@ -14,9 +14,9 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 
 namespace WhaleGenie.ViewModels;
@@ -102,8 +102,68 @@ public partial class RunStepViewModel : ObservableObject
     /// <summary>How deep the step sits, used to indent it under its parent.</summary>
     public required int Depth { get; init; }
 
-    /// <summary>Left margin that lines the step up under its parent.</summary>
-    public Thickness Indent => new(Depth * 16, 0, 0, 0);
+    /// <summary>
+    /// One entry for every level above this step, drawn as a guide line: the list is flat, and the
+    /// lines are what make a step inside a loop look like one.
+    /// </summary>
+    public IReadOnlyList<int> Guides => [.. Enumerable.Range(0, Depth)];
+
+    /// <summary>True for a step that holds steps of its own: a group, a loop, a branch.</summary>
+    public bool IsContainer { get; init; }
+
+    /// <summary>The step this one sits inside, or nothing for a step at the top of the macro.</summary>
+    public RunStepViewModel? Parent { get; set; }
+
+    /// <summary>The steps this one holds, in the order they run.</summary>
+    public List<RunStepViewModel> Children { get; } = [];
+
+    /// <summary>True while the steps inside this one are shown.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Marker))]
+    public partial bool IsExpanded { get; set; } = true;
+
+    /// <summary>True when nothing above this step is folded away.</summary>
+    [ObservableProperty]
+    public partial bool IsShown { get; set; } = true;
+
+    /// <summary>The mark in front of a container: folded or open, it says the row holds steps.</summary>
+    public string Marker => IsContainer ? (IsExpanded ? "▾" : "▸") : string.Empty;
+
+    /// <summary>What the action is for, in the catalogue's own words.</summary>
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>The action's own key, which is what the file and the log call it by.</summary>
+    public string ActionKey { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The bubble over the row: the whole note the step carries and what the action does, which is
+    /// more than the row has room for.
+    /// </summary>
+    public string Tooltip
+    {
+        get
+        {
+            var lines = new List<string> { Label };
+            if (Description.Length > 0)
+            {
+                lines.Add(Description);
+            }
+
+            if (Comment.Length > 0)
+            {
+                lines.Add($"备注：{Comment}");
+            }
+
+            lines.Add(Detail);
+            lines.Add(string.Join(" · ", new[] { Id, ActionKey }.Where(part => part.Length > 0)));
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
+
+    /// <summary>The note the step carries, or empty when it carries none.</summary>
+    public string Comment { get; init; } = string.Empty;
+
+    public bool HasComment => Comment.Length > 0;
 
     /// <summary>
     /// Whether the engine can stop in front of this row. A condition is asked by the step it
@@ -257,12 +317,9 @@ public partial class RunStepViewModel : ObservableObject
     /// Keeps what the step's breakpoint waits for, so the row says why a run may go past it: a
     /// breakpoint with a condition is not the same promise as one without.
     /// </summary>
-    public void Waits(MacroStep? condition)
+    public void Waits(BreakpointRule? rule)
     {
-        ConditionNote = condition is null
-            ? string.Empty
-            : Strings.Format("Run.BreakpointWhen",
-                RunViewModel.Detail(new[] { condition }.ToExecutable()[0]));
+        ConditionNote = rule is null || rule.Always ? string.Empty : rule.Note;
     }
 }
 
@@ -278,11 +335,21 @@ public sealed record RunLineViewModel(string Time, LogLevel Level, Thickness Ind
     };
 }
 
-/// <summary>One variable the run can see.</summary>
-public sealed record WatchedVariable(string Name, string Scope, string Value)
+/// <summary>
+/// One variable the macro uses, as the watch list shows it: its name, where it lives, what it holds
+/// and what it holds right now. It is listed from the moment the macro is loaded, so the list says
+/// what the run works with rather than only what it has reached.
+/// </summary>
+public sealed record WatchedVariable(string Name, string Scope, string Type, string Value)
 {
     /// <summary>How it is named on the panel: the Chinese name beside the code name where it has one.</summary>
     public string Display => VariableCatalog.Display(Name, false);
+
+    /// <summary>
+    /// What it holds, as one word of the interface language. A variable nothing has written yet has
+    /// no type to show, and a dash says that rather than leaving the column looking broken.
+    /// </summary>
+    public string LocalType => Type.Length == 0 ? "—" : Strings.Get($"Variable.Type.{Type}", Type);
 }
 
 /// <summary>
@@ -472,12 +539,29 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private readonly HashSet<string> _breakpoints = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The condition each breakpoint waits for, for the ones that have one: a breakpoint with a
-    /// condition is a question about the values in play, and it stops the run only when the answer
-    /// is yes. A breakpoint without an entry here always stops.
+    /// The ids of this macro's own steps. A called macro's steps go past the same host, and one of
+    /// its ids has no business making one of these look as though it had run.
     /// </summary>
-    private readonly Dictionary<string, MacroStep> _breakpointConditions =
+    private readonly HashSet<string> _ownIds = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The steps the run has actually arrived at. Before it starts, every step is written as
+    /// "skipped" so a condition about one further down reads a word rather than nothing — which
+    /// means a step merely having a value says nothing about whether it ran. Single stepping made
+    /// that plain: the whole list said "skipped" at the first pause, including steps the run had
+    /// not reached and might never reach.
+    /// </summary>
+    private readonly HashSet<string> _reached = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// What each breakpoint waits for: how many arrivals count, and an expression that has to hold.
+    /// A breakpoint with no entry here stops the moment the run reaches it.
+    /// </summary>
+    private readonly Dictionary<string, BreakpointRule> _breakpointRules =
         new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How many times the run has arrived at each breakpoint since it started.</summary>
+    private readonly Dictionary<string, int> _breakpointHits = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// True while the step in front of the run is to be left out: what "skip this step once" sets,
@@ -490,12 +574,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// asked for it. A window opened on its own, with no macro behind it, has nothing to share.
     /// </summary>
     private bool _exclusiveInput;
-
-    /// <summary>
-    /// The runner whose background calls the window is showing. It is set for one run and cleared
-    /// when that run ends, so a line about a child cannot outlive the macro that started it.
-    /// </summary>
-    private MacroRunner? _childrenRunner;
 
     /// <summary>
     /// Whose turn it is at the input door, as a line to read. It is shown only for the macros that
@@ -523,32 +601,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>True while some run is using the browser, so the line has something to say.</summary>
     public bool ShowsBrowserOwner => BrowserGate.Owner.Length > 0;
-
-    /// <summary>The background calls this run has started and not yet waited for.</summary>
-    public string ChildrenLine
-    {
-        get
-        {
-            var running = _childrenRunner?.Children
-                .Where(child => child.Running)
-                .Select(child => child.Macro)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList() ?? [];
-            return running.Count == 0
-                ? string.Empty
-                : Strings.Format("Run.Children", string.Join(", ", running));
-        }
-    }
-
-    public bool HasChildren => _childrenRunner?.Children.Any(child => child.Running) == true;
-
-    /// <summary>A background run started, finished, or was waited for.</summary>
-    private void OnChildrenChanged()
-        => Dispatcher.UIThread.Post(() =>
-        {
-            OnPropertyChanged(nameof(ChildrenLine));
-            OnPropertyChanged(nameof(HasChildren));
-        });
 
     /// <summary>The browser door changed hands.</summary>
     public void RefreshBrowserOwner()
@@ -679,7 +731,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _watched = VariablesUsed(source);
 
         _breakpoints.Clear();
-        _breakpointConditions.Clear();
+        _breakpointRules.Clear();
+        _breakpointHits.Clear();
+        _ownIds.Clear();
+        _reached.Clear();
         Steps.Clear();
         Lines.Clear();
         ShowStepOutcomes = false;
@@ -691,6 +746,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         // about the variables, because there is nothing else to show.
         Page = _steps.Count == 0 ? RunPage.Variables : RunPage.Debug;
         Status = _steps.Count == 0 ? Strings.Get("Run.Empty") : Strings.Get("Run.Ready");
+        StatusKindValue = RunStatusKind.Ready;
 
         // Whether there is anything to run is only known here, and the window was drawn before that
         // when a macro is loaded into one that had none: the toolbar and the run buttons are drawn
@@ -831,10 +887,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </summary>
     private IMacroLibrary Library => _macros ?? (_listed.Count == 0
         ? EmptyMacroLibrary.Instance
-        : new ProjectMacroLibrary(_listed
-            .Where(macro => macro.Name.Trim().Length > 0)
-            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable(), macro.Callable.Signature,
-                macro.ExclusiveInput))));
+        : new ProjectMacroLibrary(CallableMacros.Entries(_listed)));
 
     /// <summary>Every step of the macro, in the order it runs, nested ones indented.</summary>
     public ObservableCollection<RunStepViewModel> Steps { get; } = [];
@@ -921,6 +974,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     [ObservableProperty]
     public partial string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 这次运行"处在什么状态"。**文字说是什么，这个说该怎么画**——
+    /// 原来只有文字、颜色写死成琥珀，于是"已完成"和"出问题了"长得一样。
+    /// </summary>
+    public RunStatusKind StatusKindValue { get; private set; } = RunStatusKind.Ready;
 
     /// <summary>Set while a failure is waiting for the user to choose what happens next.</summary>
     [ObservableProperty]
@@ -1038,46 +1097,71 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         {
             _breakpoints.Remove(row.Id);
 
-            // A breakpoint that is gone has nothing left to wait for: a condition kept behind it
-            // would turn up again on the next breakpoint put on the same step.
-            _breakpointConditions.Remove(row.Id);
+            // A breakpoint that is gone has nothing left to wait for: a rule kept behind it would
+            // turn up again on the next breakpoint put on the same step.
+            _breakpointRules.Remove(row.Id);
+            _breakpointHits.Remove(row.Id);
             row.Waits(null);
         }
     }
 
     /// <summary>
-    /// Gives a step's breakpoint a condition to wait for, turning the breakpoint on with it: a
-    /// condition is what a breakpoint is about, and setting one on a step that has no breakpoint
-    /// means the user wants that step to stop when the condition holds.
+    /// Gives a step's breakpoint what to wait for, turning the breakpoint on with it: how many
+    /// arrivals count and an expression that has to hold are both about the breakpoint, and setting
+    /// either on a step that has no breakpoint means the step should stop when they say so.
     /// </summary>
-    public void ConditionBreakpoint(RunStepViewModel? row, MacroStep condition)
+    public void SetBreakpointRule(RunStepViewModel? row, BreakpointRule rule)
     {
         if (row is null)
         {
             return;
+        }
+
+        _breakpointHits.Remove(row.Id);
+        if (rule.Always)
+        {
+            _breakpointRules.Remove(row.Id);
+        }
+        else
+        {
+            _breakpointRules[row.Id] = rule;
         }
 
         _breakpoints.Add(row.Id);
-        _breakpointConditions[row.Id] = condition;
         row.HasBreakpoint = true;
-        row.Waits(condition);
+        row.Waits(rule);
     }
 
     /// <summary>Puts a breakpoint back to stopping every time it is reached.</summary>
-    public void ClearBreakpointCondition(RunStepViewModel? row)
+    public void ClearBreakpointRule(RunStepViewModel? row)
     {
         if (row is null)
         {
             return;
         }
 
-        _breakpointConditions.Remove(row.Id);
+        _breakpointRules.Remove(row.Id);
+        _breakpointHits.Remove(row.Id);
         row.Waits(null);
     }
 
-    /// <summary>The condition a step's breakpoint waits for, or null while it always stops.</summary>
-    public MacroStep? BreakpointCondition(string stepId)
-        => _breakpointConditions.TryGetValue(stepId, out var condition) ? condition : null;
+    /// <summary>What a step's breakpoint waits for, or null while it stops every time.</summary>
+    public BreakpointRule? BreakpointRuleOf(string stepId)
+        => _breakpointRules.TryGetValue(stepId, out var rule) ? rule : null;
+
+    /// <summary>
+    /// A condition written in the panel, as the one step the engine asks its questions with. The
+    /// `if` action is where a condition already lives, so a condition written here reads exactly the
+    /// way one written in the macro does.
+    /// </summary>
+    private static ExecutableStep ConditionStep(string expression) => new()
+    {
+        Type = "control.if",
+        Parameters =
+        [
+            new ExecutableParameter { Name = "condition", Text = expression.Trim() },
+        ],
+    };
 
     /// <summary>
     /// The names a breakpoint's condition may use: the same ones the macro's own fields are offered,
@@ -1126,9 +1210,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         IsBusy = true;
         Status = Strings.Get("Run.Running");
+        StatusKindValue = RunStatusKind.Running;
         IsAsking = false;
         IsAskingUser = false;
         CurrentId = null;
+        _reached.Clear();
 
         using var cancellation = new CancellationTokenSource();
         _cancellation = cancellation;
@@ -1139,17 +1225,19 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         try
         {
-            var runner = new MacroRunner(
-                _variables, new UiThreadRunHost(this), _devices, _delayScale, Library, this)
+            var runner = RunFactory.Create(new RunRequest
             {
-                FailureLogFolder = AppPaths.Logs,
-                RunName = Debugged,
+                Variables = _variables,
+                Host = new UiThreadRunHost(this),
+                Devices = _devices,
+                Library = Library,
+                Name = Debugged,
+                Scale = _delayScale,
+                Looks = _capture is { } capture ? new RunLooks(capture, this) : this,
                 ExclusiveInput = _exclusiveInput,
                 StartSignature = _callable?.Signature,
                 StartArguments = StartArguments(),
-            };
-            _childrenRunner = runner;
-            runner.ChildrenChanged += OnChildrenChanged;
+            });
 
             // Off the interface thread: a step that talks to a device waits for it right there in
             // the same call, and a page that has not drawn the element yet is waited on for the
@@ -1160,14 +1248,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         }
         finally
         {
-            if (_childrenRunner is { } watched)
-            {
-                watched.ChildrenChanged -= OnChildrenChanged;
-            }
-
-            _childrenRunner = null;
-            OnPropertyChanged(nameof(ChildrenLine));
-            OnPropertyChanged(nameof(HasChildren));
             _cancellation = null;
             _ended = null;
             ended.TrySetResult();
@@ -1181,9 +1261,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             RefreshVariables();
             RefreshStepOutcomes();
             Status = Lines.Count > 0 ? Lines[^1].Text : Strings.Get("Run.Ready");
-            _capture?.Finish(result, result?.Status.ToString() ?? Status,
-                StepOutcomes.Select(outcome =>
-                    new RunLogOutcome(outcome.Name, outcome.Label, outcome.Value)));
+            // 跑完了：成功与失败要分开，否则这一行永远一个颜色。
+            StatusKindValue = result is { Succeeded: false } ? RunStatusKind.Failed : RunStatusKind.Done;
+            _capture?.Finish(result, result?.Status.ToString() ?? Status);
             _capture = null;
         }
     }
@@ -1200,6 +1280,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         WindowRead?.Invoke(null);
 
         CurrentId = step.Id;
+        if (_ownIds.Contains(step.Id))
+        {
+            _reached.Add(step.Id);
+        }
+
         RefreshVariables();
 
         if (!_stopAtNextStep && !StopsHere(step.Id))
@@ -1209,6 +1294,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         _stopAtNextStep = false;
         Status = Strings.Get("Run.Paused");
+        StatusKindValue = RunStatusKind.Paused;
 
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _gate = gate;
@@ -1221,6 +1307,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         OnPropertyChanged(nameof(IsPaused));
         SkipStepCommand.NotifyCanExecuteChanged();
         Status = Strings.Get("Run.Running");
+        StatusKindValue = RunStatusKind.Running;
 
         if (!go)
         {
@@ -1238,28 +1325,45 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// cannot be worked out at all stops the run too and says so in the log, because a breakpoint
     /// nobody can read is not the same thing as a breakpoint that has not been reached.
     /// </summary>
-    private bool StopsHere(string stepId)
+    internal bool StopsHere(string stepId)
     {
         if (!_breakpoints.Contains(stepId))
         {
             return false;
         }
 
-        if (BreakpointCondition(stepId) is not { } condition)
+        var rule = BreakpointRuleOf(stepId);
+        var arrived = _breakpointHits[stepId] = _breakpointHits.GetValueOrDefault(stepId) + 1;
+        if (rule is null)
         {
             return true;
         }
 
-        var answer = MacroRunner.AskCondition(new[] { condition }.ToExecutable()[0], _variables,
+        // The count is kept whether or not the expression holds: "the third time the run passes
+        // here and the value is 5" means the third arrival, not the third match.
+        if (rule.WaitsForHits && arrived < rule.HitTimes)
+        {
+            return false;
+        }
+
+        if (!rule.WaitsForExpression)
+        {
+            return true;
+        }
+
+        var answer = MacroRunner.AskCondition(ConditionStep(rule.Expression), _variables,
             _devices, _macros);
         if (answer.Key.Length == 0)
         {
             return answer.Holds;
         }
 
+        // A condition nobody can work out is not a reason to stop the run: a breakpoint that stops
+        // at random is worse than one that says it could not read its own question and stays out of
+        // the way.
         Write(Strings.Format("Run.BreakpointUnreadable",
             answer.Detail.Length == 0 ? Strings.Get(answer.Key) : Strings.Format(answer.Key, answer.Detail)));
-        return true;
+        return false;
     }
 
     /// <summary>Writes one line into the log that did not come from the run itself.</summary>
@@ -1482,6 +1586,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 if (row.IsCurrent)
                 {
                     current = row;
+                    RevealAncestors(row);
                 }
             }
 
@@ -1496,48 +1601,140 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         gate?.TrySetResult(true);
     }
 
-    private void Build(IReadOnlyList<ExecutableStep> steps, int depth)
+    private void Build(IReadOnlyList<ExecutableStep> steps, int depth, RunStepViewModel? parent = null)
     {
         foreach (var step in steps)
         {
-            Steps.Add(new RunStepViewModel
+            if (step.Id.Length > 0)
+            {
+                _ownIds.Add(step.Id);
+            }
+
+            var row = new RunStepViewModel
             {
                 Id = step.Id,
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
+                Description = ActionCatalog.Find(step.Type)?.LocalDescription ?? string.Empty,
+                ActionKey = step.Type,
                 Depth = depth,
+                IsContainer = HoldsSteps(step),
+                Comment = step.Meta.Comment.Trim(),
                 CanBreak = true,
-            });
+                Parent = parent,
+            };
 
-            Build(step.Children("steps"), depth + 1);
-            Build(step.Children("then"), depth + 1);
-            Build(step.Children("else"), depth + 1);
-            Build(step.Children("body"), depth + 1);
-            Build(step.Children("catch"), depth + 1);
-            Build(step.Children("finally"), depth + 1);
-            Build(step.Children("conditions"), depth + 1);
+            Steps.Add(row);
+            parent?.Children.Add(row);
+
+            Build(step.Children("steps"), depth + 1, row);
+            Build(step.Children("then"), depth + 1, row);
+            Build(step.Children("else"), depth + 1, row);
+            Build(step.Children("body"), depth + 1, row);
+            Build(step.Children("catch"), depth + 1, row);
+            Build(step.Children("finally"), depth + 1, row);
+            Build(step.Children("conditions"), depth + 1, row);
         }
     }
 
+    /// <summary>
+    /// Shows or hides the steps inside one row. The list is flat, so folding is a decision about
+    /// every row underneath: one that has a folded step above it is not shown, however deep it is.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleFold(RunStepViewModel? row)
+    {
+        if (row is null || !row.IsContainer)
+        {
+            return;
+        }
+
+        row.IsExpanded = !row.IsExpanded;
+        RefreshShown();
+    }
+
+    /// <summary>Works out which rows are on screen from the folds above them.</summary>
+    private void RefreshShown()
+    {
+        foreach (var row in Steps)
+        {
+            var shown = true;
+            for (var above = row.Parent; above is not null; above = above.Parent)
+            {
+                if (!above.IsExpanded)
+                {
+                    shown = false;
+                    break;
+                }
+            }
+
+            row.IsShown = shown;
+        }
+    }
+
+    /// <summary>Opens the folds above a step, so the row the run is standing in can be seen.</summary>
+    private void RevealAncestors(RunStepViewModel row)
+    {
+        for (var above = row.Parent; above is not null; above = above.Parent)
+        {
+            above.IsExpanded = true;
+        }
+
+        RefreshShown();
+    }
+
+    /// <summary>Whether a step holds steps of its own, in any of the lists a block can have.</summary>
+    private static bool HoldsSteps(ExecutableStep step)
+        => step.Children("steps").Count > 0
+            || step.Children("then").Count > 0
+            || step.Children("else").Count > 0
+            || step.Children("body").Count > 0
+            || step.Children("catch").Count > 0
+            || step.Children("finally").Count > 0
+            || step.Children("conditions").Count > 0;
+
     internal static string Detail(ExecutableStep step)
     {
+        // The fields are named the way the action's form names them: a row saying "url = ..." next
+        // to a form saying "网址" makes the reader match two vocabularies for one field.
+        var labels = ActionCatalog.Find(step.Type)?.Parameters
+            .ToDictionary(parameter => parameter.Name, parameter => parameter.LocalLabel,
+                StringComparer.OrdinalIgnoreCase);
+
         var parts = step.Parameters
             .Where(parameter => parameter.Text.Trim().Length > 0)
-            .Select(parameter => $"{parameter.Name} = {parameter.Text.Trim()}")
+            .Select(parameter => $"{(labels?.GetValueOrDefault(parameter.Name) ?? parameter.Name)}" +
+                                 $" = {parameter.Text.Trim()}")
             .ToList();
 
-        var text = parts.Count == 0 ? step.Type : $"{step.Type} · {string.Join(", ", parts)}";
+        // The step's own name goes first: it is what a breakpoint, a failure key and the log call
+        // this step by, so the row has to say it too.
+        // The row is written in the reader's words throughout: the action's own key is in the
+        // bubble, where somebody looking for it can find it without reading it on every row.
+        var written = string.Join(", ", parts);
+        var text = step.Id.Length == 0 ? written : $"{step.Id} · {written}";
+        if (text.Length == 0)
+        {
+            return step.Type;
+        }
+
         return text.Length <= 90 ? text : text[..87] + "\u2026";
     }
 
     private void RefreshVariables()
     {
         Variables.Clear();
-        // Only what this macro touches: a macro that never reads the clock should not have
-        // the clock sitting in its watch list.
-        var rows = _variables.Flatten()
-            .Where(pair => _watched.Contains(pair.Key))
-            .Select(pair => new WatchedVariable(pair.Key, ScopeOf(pair.Key), pair.Value.AsText()))
+
+        // Every variable the macro uses is listed from the start, whether or not a step has reached
+        // it: a watch list that grows one row at a time answers "what has run", not "what does this
+        // macro work with". The value is empty until something writes it.
+        var live = _variables.Flatten().ToDictionary(pair => pair.Key, pair => pair.Value,
+            StringComparer.OrdinalIgnoreCase);
+        var rows = _choices
+            .Where(choice => _watched.Contains(choice.Name))
+            .Select(choice => new WatchedVariable(choice.Name, ScopeLabel(choice.Scope),
+                TypeOf(choice.Type, live.GetValueOrDefault(choice.Name)),
+                live.TryGetValue(choice.Name, out var held) ? held.AsText() : string.Empty))
             .OrderBy(row => Rank(row.Name))
             .ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase);
 
@@ -1565,6 +1762,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 continue;
             }
 
+            // The step the run stands in front of has not been carried out yet, so it has nothing
+            // to report — even though a value for it was written before the run began.
+            if (!_reached.Contains(step.Id) || step.Id == CurrentId)
+            {
+                continue;
+            }
+
             var name = MacroRunner.OutcomeName(step.Id);
             if (_variables.Local.TryGet(name, out var value))
             {
@@ -1585,6 +1789,36 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         : _variables.Global.Contains(name)
             ? Strings.Get("Variable.Scope.Global")
             : Strings.Get("Variable.Scope.System");
+
+    /// <summary>Where a variable lives, as the one word the watch list shows for it.</summary>
+    private static string ScopeLabel(VariableScope scope) => scope switch
+    {
+        VariableScope.Local => Strings.Get("Variable.Scope.Local"),
+        VariableScope.Global => Strings.Get("Variable.Scope.Global"),
+        _ => Strings.Get("Variable.Scope.System"),
+    };
+
+    /// <summary>
+    /// What a watched variable holds, in the catalogue's own words. A variable a step creates says
+    /// nothing about its type until something is written, so the value that is there answers
+    /// instead; with neither, the type is left blank rather than guessed.
+    /// </summary>
+    private static string TypeOf(string declared, Value? held)
+    {
+        if (declared.Length > 0)
+        {
+            return declared;
+        }
+
+        return held switch
+        {
+            null => string.Empty,
+            { IsList: true } => "list",
+            { IsRecord: true } => "record",
+            { IsNumber: true } => "number",
+            _ => "text",
+        };
+    }
 
     /// <summary>
     /// The names worth watching: everything the macro creates for itself, plus everything it

@@ -5,9 +5,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using WhaleGenie.Execution;
+using FluentAvalonia.UI.Controls;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -185,7 +186,7 @@ public class SearchRegionTests
             var cells = row.Cells;
 
             // Four numbers, each with the expression builder beside it.
-            Assert.Equal(4, window.GetVisualDescendants().OfType<NumericUpDown>()
+            Assert.Equal(4, window.GetVisualDescendants().OfType<FANumberBox>()
                 .Count(box => box.IsEffectivelyVisible
                     && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
             Assert.Equal(4, window.GetVisualDescendants().OfType<Button>()
@@ -212,14 +213,14 @@ public class SearchRegionTests
             row.X.Write("$left");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal(3, window.GetVisualDescendants().OfType<NumericUpDown>()
+            Assert.Equal(3, window.GetVisualDescendants().OfType<FANumberBox>()
                 .Count(box => box.IsEffectivelyVisible
                     && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
 
             row.X.SetNumber(7);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal(4, window.GetVisualDescendants().OfType<NumericUpDown>()
+            Assert.Equal(4, window.GetVisualDescendants().OfType<FANumberBox>()
                 .Count(box => box.IsEffectivelyVisible
                     && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
         });

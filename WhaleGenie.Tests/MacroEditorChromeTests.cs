@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -144,7 +145,7 @@ public class MacroEditorChromeTests
 
                 var controls = drawer.GetVisualDescendants().OfType<Control>()
                     .Where(control => control.IsEffectivelyVisible
-                        && control is ComboBox or TextBox or NumberBox)
+                        && control is ComboBox or TextBox or FANumberBox)
                     .ToList();
                 Assert.NotEmpty(controls);
                 Assert.All(controls, control =>
@@ -159,7 +160,7 @@ public class MacroEditorChromeTests
                 });
             }
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -190,7 +191,7 @@ public class MacroEditorChromeTests
             Assert.NotNull(right);
             Assert.True(right.Value.X <= grid.Bounds.Width + 0.5);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -218,7 +219,7 @@ public class MacroEditorChromeTests
                 text => text.IsEffectivelyVisible
                     && text.Text == Strings.Get("Editor.NoTriggerSelected"));
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -312,7 +313,7 @@ public class MacroEditorChromeTests
             Assert.True(entries.GetVisualDescendants().OfType<ListBoxItem>()
                 .Single(item => ReferenceEquals(item.DataContext, key)).IsSelected);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -435,12 +436,12 @@ public class MacroEditorChromeTests
             Assert.Equal(2, model.Documents.Count);
             Assert.Equal("child", ((MacroEditorViewModel)window.DataContext!).Name);
 
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
     [Fact]
-    public void The_title_bar_has_pin_minimize_maximize_and_close_buttons()
+    public void The_title_bar_keeps_the_pin_the_window_owns()
     {
         Ui.Run(() =>
         {
@@ -449,10 +450,12 @@ public class MacroEditorChromeTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
+            // 关闭、最小化、最大化现在是库画的系统按钮（窗口是 `AppWindow`，即 `FAAppWindow`）：
+            // 这一行只剩置顶——那是这一扇窗自己的状态，不是标题栏的通用件。
             var pin = window.FindControl<Button>("PinButton")!;
-            var maximize = window.FindControl<Button>("MaximizeButton")!;
-            Assert.NotNull(window.FindControl<Button>("MinimizeButton"));
-            Assert.NotNull(window.FindControl<Button>("CloseButton"));
+            Assert.Null(window.FindControl<Button>("MinimizeButton"));
+            Assert.Null(window.FindControl<Button>("MaximizeButton"));
+            Assert.Null(window.FindControl<Button>("CloseButton"));
 
             pin.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
@@ -468,19 +471,7 @@ public class MacroEditorChromeTests
             Assert.Equal(Strings.Get("Common.Pin"), ToolTip.GetTip(pin));
             Assert.Equal(AppIcons.Pin, window.FindControl<IconView>("PinIcon")!.Data);
 
-            maximize.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-            Assert.Equal(WindowState.Maximized, window.WindowState);
-            Assert.Equal(Strings.Get("Common.Restore"), ToolTip.GetTip(maximize));
-            Assert.Equal(AppIcons.Restore, window.FindControl<IconView>("MaximizeIcon")!.Data);
-
-            maximize.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-            Assert.Equal(WindowState.Normal, window.WindowState);
-            Assert.Equal(Strings.Get("Common.Maximize"), ToolTip.GetTip(maximize));
-            Assert.Equal(AppIcons.Maximize, window.FindControl<IconView>("MaximizeIcon")!.Data);
-
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 

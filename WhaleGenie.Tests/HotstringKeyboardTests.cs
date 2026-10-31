@@ -8,9 +8,9 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -89,24 +89,28 @@ public class HotstringKeyboardTests
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<CheckBox>(),
                 box => box.Content is string text && endingLabels.Contains(text));
 
+            // 选中态的底原来是硬编码的 #2E5F8A 蓝，现在由 `AccentSurface` 给。这里**读令牌而不是写字面值**：
+            // 写字面值的话，下次调色板一变，这条断言就会去钉一个已经没人用的颜色。
             var space = EndKeyButton(window, "Space");
             var selectedBackground = Assert.IsAssignableFrom<ISolidColorBrush>(space.Background);
-            Assert.Equal(Color.Parse("#2E5F8A"), selectedBackground.Color);
-            Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(space.Foreground).Color);
+            var accentSurface = ColourOf("AccentSurface", window);
+            var accentText = ColourOf("AccentText", window);
+            Assert.Equal(accentSurface, selectedBackground.Color);
+            Assert.Equal(accentText, Assert.IsAssignableFrom<ISolidColorBrush>(space.Foreground).Color);
 
             space.IsChecked = false;
             Dispatcher.UIThread.RunJobs();
 
             var offBackground = Assert.IsAssignableFrom<ISolidColorBrush>(space.Background);
             Assert.NotEqual(selectedBackground.Color, offBackground.Color);
-            Assert.NotEqual(Colors.White,
+            Assert.NotEqual(accentText,
                 Assert.IsAssignableFrom<ISolidColorBrush>(space.Foreground).Color);
 
             space.IsChecked = true;
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(selectedBackground.Color,
                 Assert.IsAssignableFrom<ISolidColorBrush>(space.Background).Color);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -139,7 +143,7 @@ public class HotstringKeyboardTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(unselected, EndKeyBackground(space));
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -187,7 +191,7 @@ public class HotstringKeyboardTests
                 option.IsChecked = false;
             }
             Assert.False(editor.CanSave);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -200,8 +204,11 @@ public class HotstringKeyboardTests
             editor.HotstringText = "a b";
             Dispatcher.UIThread.RunJobs();
 
+            // `CheckBox` 也是 `Button`（`CheckBox : ToggleButton : Button`），而勾选项现在也挂 `Field`，
+            // 所以"按类名找按钮"必须把开关族排掉，否则同一个 `Field` 会给出两个答案。
             var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
-                button.Classes.Contains("KeyFieldButton")
+                button is not ToggleButton
+                && button.Classes.Contains("Field")
                 && ReferenceEquals(editor, button.DataContext));
             Assert.Equal("a␠b", field.Content);
 
@@ -211,7 +218,7 @@ public class HotstringKeyboardTests
             var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
             Assert.Equal("a b", keyboard.Text);
             keyboard.Close();
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -243,7 +250,7 @@ public class HotstringKeyboardTests
 
             Assert.False(keyboard.IsVisible);
             Assert.Equal("btwx", editor.HotstringText);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -257,8 +264,8 @@ public class HotstringKeyboardTests
             var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
             Click(keyboard, "x");
 
-            keyboard.FindControl<Button>("CloseButton")!
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            // 关掉它就是标题栏上那颗系统关闭键做的事：`Close()`，编辑随之作废。
+            keyboard.Close();
             Dispatcher.UIThread.RunJobs();
 
             Assert.False(keyboard.IsVisible);
@@ -337,18 +344,27 @@ public class HotstringKeyboardTests
     private static void OpenKeyboard(MacroEditorWindow window)
     {
         var field = window.GetVisualDescendants().OfType<Button>().Single(button =>
-            button.Classes.Contains("KeyFieldButton"));
+            button is not ToggleButton
+            && button.Classes.Contains("Field"));
         field.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
+    }
+
+    private static Color ColourOf(string key, Visual owner)
+    {
+        Assert.True(Application.Current!.TryGetResource(key, owner.ActualThemeVariant, out var value), key);
+        return Assert.IsAssignableFrom<ISolidColorBrush>(value).Color;
     }
 
     private static Color EndKeyBackground(ToggleButton button)
         => Assert.IsAssignableFrom<ISolidColorBrush>(
             button.GetVisualDescendants().OfType<ContentPresenter>().First().Background).Color;
 
+    // 本地类 `EndKeyChip` 并进了 `ToggleButton.Chip.Key`，找元素的标记跟着换——**只改样式不改这里，
+    // 这条断言会去找一个已经不存在的类**，症状是"找不到元素"而不是"样式不对"。
     private static IEnumerable<ToggleButton> EndKeyButtons(Window window)
         => window.GetVisualDescendants().OfType<ToggleButton>()
-            .Where(button => button.Classes.Contains("EndKeyChip"));
+            .Where(button => button.Classes.Contains("Chip") && button.Classes.Contains("Key"));
 
     private static ToggleButton EndKeyButton(Window window, string label)
         => EndKeyButtons(window).Single(button =>

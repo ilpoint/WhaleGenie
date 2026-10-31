@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
@@ -9,126 +9,61 @@
         Title="WhaleGenie"
         Width="1040" Height="720" MinWidth="860" MinHeight="560"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
     </Window.KeyBindings>
 
     <Window.Styles>
         <Style Selector="TextBlock.SectionLabel">
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
-        <Style Selector="TextBlock.FieldHint">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
+        <!--
+          字段级错误：红 `#E06C75` 不在词表里，换成 `Danger` 令牌（琥珀 `#E0A23C` 才是 `Warning`，
+          那是"提醒、可继续"，这是"必须改"——**同名的类，不同色的语义**）。
+          类仍留本窗：词表暂时没有"字段级错误"这一档；第二个窗口出现同形态时升 `TextBlock.FieldError`。
+        -->
         <Style Selector="TextBlock.FieldProblem">
-            <Setter Property="Foreground" Value="#E06C75" />
+            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="18,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
-        </Style>
-
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <Style Selector="ListBox.FilterList > ListBoxItem">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="Margin" Value="0,0,4,4" />
         </Style>
         <Style Selector="ListBox.FilterList > ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
         </Style>
         <Style Selector="ListBox.FilterList > ListBoxItem:selected TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
 
-        <Style Selector="ListBox.VariableList > ListBoxItem">
-            <Setter Property="Background" Value="Transparent" />
+        <Style Selector="ListBox.List > ListBoxItem">
+            <!-- The library gives rows no divider; this list reads as a table of names and needs one. -->
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="9,8" />
-        </Style>
-        <Style Selector="ListBox.VariableList > ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
         </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="38,*">
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource AppText}"
-                           FontSize="13" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
-                    Margin="8,0" VerticalAlignment="Center"
-                    ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}"
-                                StrokeThickness="1.2" FitToBounds="True"
-                                Data="{x:Static models:AppIcons.X}" />
-            </Button>
-        </Grid>
-
-        <Grid Grid.Row="1" Margin="18,14,18,0" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+    <Grid RowDefinitions="*">
+        <Grid Grid.Row="0" Margin="18,14,18,0" RowDefinitions="Auto,*,Auto" RowSpacing="12">
             <TextBlock Text="{Binding Help}" TextWrapping="Wrap"
-                       FontSize="12" Foreground="{DynamicResource AppMuted}" />
+                       FontSize="12" Foreground="{DynamicResource TextTertiary}" />
 
             <Grid Grid.Row="1" ColumnDefinitions="300,12,*">
                 <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox Name="SearchBox" Text="{Binding SearchText}"
                                  PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="30" Padding="9,0"
+                        <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="9,0"
                                 Content="{Binding [GlobalVariables.ClearFilters], Source={x:Static loc:Strings.Current}}"
                                 Command="{Binding ClearFiltersCommand}"
                                 IsVisible="{Binding CanClearFilters}" />
@@ -150,25 +85,25 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <ListBox Grid.Row="2" Name="VariableList" Classes="VariableList"
+                    <ListBox Grid.Row="2" Name="VariableList" Classes="List"
                              ItemsSource="{Binding Shown}"
                              SelectedItem="{Binding Selected, Mode=TwoWay}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:VariableDefinitionDraft">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                     <views:IconView Width="13" Height="13" Margin="0,2,0,0"
-                                                   Stroke="#E06C75" StrokeThickness="1.4"
+                                                   Stroke="{DynamicResource Danger}" StrokeThickness="1.4"
                                                    FitToBounds="True"
                                                    IsVisible="{Binding HasProblem}"
                                                    ToolTip.Tip="{Binding [GlobalVariables.HasProblemHint], Source={x:Static loc:Strings.Current}}"
-                                                   Data="{x:Static models:AppIcons.WarningTriangle}" />
+                                                   Data="{x:Static vm:AppIcons.WarningTriangle}" />
                                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
                                                FontFamily="Consolas" TextWrapping="Wrap" />
                                     <StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Right">
                                         <TextBlock Text="{Binding LocalType}" FontSize="11.5"
-                                                   Foreground="{DynamicResource AppMuted}" />
+                                                   Foreground="{DynamicResource TextTertiary}" />
                                         <TextBlock Text="{Binding [VarWall.Persistent], Source={x:Static loc:Strings.Current}}"
-                                                   FontSize="10.5" Foreground="#7FC97F"
+                                                   FontSize="10.5" Foreground="{DynamicResource Success}"
                                                    IsVisible="{Binding PersistValue}" />
                                     </StackPanel>
                                 </Grid>
@@ -177,15 +112,15 @@
                     </ListBox>
 
                     <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
-                        <Button Name="NewButton" Classes="FlatButton" Height="32"
+                        <Button Name="NewButton" Classes="Secondary" Height="32"
                                 Content="{Binding NewLabel}" Command="{Binding NewCommand}" />
-                        <Button Grid.Column="1" Name="RemoveButton" Classes="FlatButton" Height="32"
+                        <Button Grid.Column="1" Name="RemoveButton" Classes="Secondary" Height="32"
                                 Content="{Binding RemoveLabel}" Click="OnRemove" />
                     </Grid>
                 </Grid>
 
                 <Border Grid.Column="2" Padding="16" CornerRadius="6"
-                        Background="{DynamicResource AppField}">
+                        Background="{DynamicResource SurfaceField}">
                     <Grid>
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
@@ -198,7 +133,7 @@
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="NameBox" Text="{Binding Editor.Name}" />
-                                        <TextBlock Classes="FieldHint"
+                                        <TextBlock Classes="Hint"
                                                    Text="{Binding [GlobalVariables.NameHint], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="FieldProblem"
                                                    Text="{Binding Editor.NameProblem}"
@@ -225,12 +160,12 @@
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="DefaultValueBox" Text="{Binding Editor.DefaultValue}"
                                                  PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock Classes="FieldHint" Text="{Binding Editor.DefaultPreview}"
+                                        <TextBlock Classes="Hint" Text="{Binding Editor.DefaultPreview}"
                                                    IsVisible="{Binding !Editor.HasDefaultProblem}" />
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.DefaultProblem}"
                                                    IsVisible="{Binding Editor.HasDefaultProblem}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="32"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
                                             Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding BuildDefaultExpressionCommand}" />
                                 </Grid>
@@ -240,12 +175,12 @@
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="CurrentValueBox" Text="{Binding Editor.CurrentValue}" />
-                                        <TextBlock Classes="FieldHint" Text="{Binding Editor.CurrentPreview}"
+                                        <TextBlock Classes="Hint" Text="{Binding Editor.CurrentPreview}"
                                                    IsVisible="{Binding !Editor.HasCurrentProblem}" />
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.CurrentProblem}"
                                                    IsVisible="{Binding Editor.HasCurrentProblem}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Classes="FlatButton" Height="32"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
                                             Content="{Binding [GlobalVariables.UseCurrentExpression], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding BuildCurrentExpressionCommand}" />
                                 </Grid>
@@ -266,17 +201,18 @@
                                            Text="{Binding [GlobalVariables.Uses], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Text="{Binding [GlobalVariables.NoUses], Source={x:Static loc:Strings.Current}}"
                                            IsVisible="{Binding !Editor.HasUses}"
-                                           Foreground="{DynamicResource AppMuted}" />
+                                           Foreground="{DynamicResource TextTertiary}" />
                                 <ItemsControl ItemsSource="{Binding Editor.Uses}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="models:VariableUse">
                                             <TextBlock Text="{Binding Label}" TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource AppMuted}" />
+                                                       Foreground="{DynamicResource TextTertiary}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <!-- 这么改名会出问题：**"这么做会不行" → Warning**（对未来操作的提醒，当前状态没问题）。 -->
                                 <TextBlock Text="{Binding RenameWarning}" TextWrapping="Wrap"
-                                           Foreground="#D6C08A"
+                                           Foreground="{DynamicResource Warning}"
                                            IsVisible="{Binding HasRenameWarning}" />
                             </StackPanel>
                         </ScrollViewer>
@@ -285,9 +221,9 @@
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Spacing="10" MaxWidth="360">
                             <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource AppMuted}"
+                                       Foreground="{DynamicResource TextTertiary}"
                                        TextAlignment="Center" />
-                            <Button Classes="FlatButton" Height="32" MinWidth="120"
+                            <Button Classes="Secondary" Height="32" MinWidth="120"
                                     HorizontalAlignment="Center"
                                     Content="{Binding NewLabel}" Command="{Binding NewCommand}" />
                         </StackPanel>
@@ -296,9 +232,9 @@
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Spacing="10" MaxWidth="360">
                             <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource AppMuted}"
+                                       Foreground="{DynamicResource TextTertiary}"
                                        TextAlignment="Center" />
-                            <Button Classes="FlatButton" Height="32" MinWidth="120"
+                            <Button Classes="Secondary" Height="32" MinWidth="120"
                                     HorizontalAlignment="Center"
                                     Content="{Binding [GlobalVariables.ClearFilters], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding ClearFiltersCommand}" />
@@ -311,15 +247,15 @@
                   ColumnSpacing="8" Margin="0,0,0,14">
                 <TextBlock Name="ProblemStatus" Text="{Binding ValidationMessage}"
                            TextWrapping="Wrap" VerticalAlignment="Center"
-                           Foreground="#E06C75"
+                           Foreground="{DynamicResource Danger}"
                            IsVisible="{Binding HasValidationProblem}" />
-                <Button Grid.Column="1" Name="CancelButton" Classes="FlatButton"
+                <Button Grid.Column="1" Name="CancelButton" Classes="Secondary"
                         Height="36" MinWidth="92" Content="{Binding CancelLabel}"
                         Command="{Binding CancelCommand}" />
-                <Button Grid.Column="2" Name="SaveButton" Classes="PrimaryButton"
+                <Button Grid.Column="2" Name="SaveButton" Classes="Primary"
                         Height="36" MinWidth="110" Content="{Binding SaveLabel}"
                         Command="{Binding SaveCommand}" />
             </Grid>
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>

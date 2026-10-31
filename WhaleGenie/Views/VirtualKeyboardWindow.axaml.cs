@@ -22,7 +22,7 @@ namespace WhaleGenie.Views;
 /// because a combination is built a key at a time: a picker that closed on the first cap would mean
 /// opening it again for every key after it.
 /// </remarks>
-public partial class VirtualKeyboardWindow : Window
+public partial class VirtualKeyboardWindow : AppWindow
 {
     public VirtualKeyboardWindow()
     {
@@ -30,20 +30,8 @@ public partial class VirtualKeyboardWindow : Window
 
         Title = Strings.Get("KeyPad.Title");
 
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close();
-        }
-
         // The keyboard covers the picture the keys are being read off, so it is put away on its own
         // rather than taken down: the keys it has already written stay where they are.
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
         var doneButton = this.FindControl<Button>("DoneButton");
         if (doneButton is not null)
         {
@@ -112,14 +100,5 @@ public partial class VirtualKeyboardWindow : Window
         Close();
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

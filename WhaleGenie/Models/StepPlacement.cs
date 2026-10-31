@@ -84,7 +84,7 @@ internal static class StepPlacement
     public static IReadOnlyList<ActionDefinition> Allowed(ActionParameter? destination)
         => destination is { ChildKeys.Count: > 0 }
             ? ActionCatalog.ForKeys(destination.ChildKeys)
-            : ActionCatalog.RunnableActions;
+            : ActionCatalog.PlaceableActions;
 
     /// <summary>The names a refusal should use for a destination that only takes named child kinds.</summary>
     public static string AllowedSummary(ActionParameter destination)

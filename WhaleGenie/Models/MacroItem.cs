@@ -504,14 +504,24 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             // A name left empty is written too: recovery has to bring the unfinished row back so
             // the declaration problem is still visible after a stop, and the package writer refuses
             // to save a macro whose declaration has a fatal problem.
-            array.Add(new JsonObject
+            var written = new JsonObject
             {
                 ["name"] = parameter.Name.Trim(),
                 ["default"] = parameter.Default,
                 ["required"] = parameter.Required,
                 ["description"] = parameter.Description,
                 ["type"] = parameter.Type.ToString(),
-            });
+            };
+
+            // Only a record has fields, and only a record whose author said which ones is worth
+            // writing down: an empty list would say "a record with nothing in it" rather than "not
+            // said", and the two are different answers.
+            if (FieldsJson(parameter.Fields) is { } fields)
+            {
+                written["fields"] = fields;
+            }
+
+            array.Add(written);
         }
 
         return array;
@@ -524,15 +534,57 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         foreach (var result in Results)
         {
             // See ArgumentsJson: an empty row is an unfinished declaration, not something to drop.
-            array.Add(new JsonObject
+            var written = new JsonObject
             {
                 ["name"] = result.Name.Trim(),
                 ["description"] = result.Description,
                 ["type"] = result.Type.ToString(),
-            });
+            };
+
+            if (FieldsJson(result.Fields) is { } fields)
+            {
+                written["fields"] = fields;
+            }
+
+            array.Add(written);
         }
 
         return array;
+    }
+
+    /// <summary>
+    /// The fields a record declaration names, or nothing when it names none. Written only when there
+    /// are some: an empty list would say "a record with nothing in it", which is a different answer
+    /// from "the author has not said", and only one of the two is worth acting on.
+    /// </summary>
+    private static JsonArray? FieldsJson(List<MacroField> fields)
+    {
+        var named = fields.Where(field => field.Name.Trim().Length > 0).ToList();
+        return named.Count == 0
+            ? null
+            : [.. named.Select(field => new JsonObject
+            {
+                ["name"] = field.Name.Trim(),
+                ["type"] = field.Type.ToString(),
+            })];
+    }
+
+    /// <summary>The fields a declaration row names, read back out of the list it was written as.</summary>
+    private static List<MacroField> ReadFields(JsonObject declared)
+    {
+        if (declared["fields"] is not JsonArray fields)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. fields.OfType<JsonObject>().Select(field => new MacroField
+            {
+                Name = field["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
+                Type = ReadEnum(field, "type", ActionReturnType.Text),
+            }),
+        ];
     }
 
     /// <summary>Rebuilds a macro from the JSON document written by <see cref="ToJson"/>.</summary>
@@ -596,6 +648,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                     Required = ReadBool(declared["required"], true),
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                    Fields = ReadFields(declared),
                 });
             }
         }
@@ -609,6 +662,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                    Fields = ReadFields(declared),
                 });
             }
         }

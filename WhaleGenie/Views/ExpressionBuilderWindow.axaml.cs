@@ -17,7 +17,7 @@ namespace WhaleGenie.Views;
 /// The window is what tells the two pages apart: one click means "put this in" on the structure
 /// page and "type this here" on the page written out by hand, and the same palette serves both.
 /// </summary>
-public partial class ExpressionBuilderWindow : Window
+public partial class ExpressionBuilderWindow : AppWindow
 {
     /// <summary>The press that may become a drag, waiting to see whether the pointer moves.</summary>
     private readonly DragStart _drag = new();
@@ -38,12 +38,6 @@ public partial class ExpressionBuilderWindow : Window
         // The wall knows which variable was picked; which page is in front decides what happens to
         // it, and that belongs to the window.
         viewModel.Wall.Chosen += OnVariableChosen;
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close(null);
-        }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
 
@@ -83,7 +77,9 @@ public partial class ExpressionBuilderWindow : Window
     {
         if (Builder.IsTreePage)
         {
-            Builder.ChooseVariable(token.TrimStart('$'));
+            // Where a name goes is decided by where the card is let go, so a click is answered with
+            // what to do instead of a name dropped into whatever was picked last.
+            Builder.SayDrag();
             return;
         }
 
@@ -100,22 +96,10 @@ public partial class ExpressionBuilderWindow : Window
     }
 
     /// <summary>Wraps the place that is picked in an operator, and moves the pick onto where the user writes next.</summary>
-    private void OnWrapWithOperator(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: TreeOperator item })
-        {
-            Builder.ChooseOperator(item);
-        }
-    }
+    private void OnWrapWithOperator(object? sender, RoutedEventArgs e) => Builder.SayDrag();
 
     /// <summary>Fills the picked place with one of the plain values.</summary>
-    private void OnPickValue(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ValueChoice item })
-        {
-            Builder.ChooseValue(item);
-        }
-    }
+    private void OnPickValue(object? sender, RoutedEventArgs e) => Builder.SayDrag();
 
     /// <summary>
     /// A function was picked. On the structure page it holds the place that is picked as its first
@@ -131,7 +115,7 @@ public partial class ExpressionBuilderWindow : Window
 
         if (Builder.IsTreePage)
         {
-            Builder.ChooseFunction(item);
+            Builder.SayDrag();
             return;
         }
 
@@ -189,6 +173,14 @@ public partial class ExpressionBuilderWindow : Window
 
                 case ExpressionFunctionChoice function:
                     return "fn:" + function.Name;
+
+                // An operator and a plain value are dragged the same way: the card carries which one
+                // it is, and where it is let go is the piece it wraps or fills.
+                case TreeOperator op:
+                    return "op:" + op.Token;
+
+                case ValueChoice value:
+                    return "val:" + Builder.PayloadOf(value);
 
                 // A press in a box is the pointer putting the caret in it, and on the little buttons
                 // a line carries it is that button being pressed. A place with nothing in it has
@@ -327,14 +319,5 @@ public partial class ExpressionBuilderWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

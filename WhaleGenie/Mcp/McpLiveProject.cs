@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using ModelContextProtocol;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -34,6 +32,14 @@ public sealed class McpLiveProject(MainViewModel project)
         => await Dispatcher.UIThread.InvokeAsync(Snapshot);
 
     /// <summary>
+    /// The snapshot and whether the project has unsaved changes, read in one turn of the interface
+    /// thread so the two belong to the same revision. A page that said "revision 7, unsaved" from two
+    /// separate reads could name a revision the dirty flag was never about.
+    /// </summary>
+    public async Task<(McpProjectSnapshot Snapshot, bool Dirty)> ReadAsync()
+        => await Dispatcher.UIThread.InvokeAsync(() => (Snapshot(), project.IsDirty));
+
+    /// <summary>
     /// Writes a draft back into the project, but only if the project has not moved since the
     /// snapshot. Returns the new revision.
     /// </summary>
@@ -48,31 +54,35 @@ public sealed class McpLiveProject(MainViewModel project)
         {
             if (project.Revision != basis.Revision)
             {
-                throw new McpException(
-                    "The project changed in WhaleGenie while this draft was open. Open the project again.");
+                throw new McpFailure(McpErrors.RevisionConflict,
+                    "The project changed in WhaleGenie while this draft was open.",
+                    "The person edited the project in the window; open the project again and re-apply the change." +
+                    " Nothing was written.",
+                    retryable: true, details: new { basis = basis.Revision, now = project.Revision });
             }
 
             project.ApplyDraft(macros, triggers, globals);
+            McpAudit.Note("project.apply", $"{macros.Count} macros, revision {project.Revision}");
             return project.Revision;
         });
 
-    /// <summary>Writes the project's current package, keeping a copy of the old file.</summary>
+    /// <summary>
+    /// Writes the project's current package. The old file is kept as .bak by the package writer
+    /// itself, so this path and the window's own Save behave the same way.
+    /// </summary>
     public async Task<string> SaveAsync()
         => await Dispatcher.UIThread.InvokeAsync(() =>
         {
             var path = project.CurrentPath;
             if (path is null || path.Length == 0)
             {
-                throw new McpException(
-                    "The project has no package path yet. Save it once in WhaleGenie first.");
-            }
-
-            if (File.Exists(path))
-            {
-                File.Copy(path, path + ".bak", true);
+                throw new McpFailure(McpErrors.NoPackagePath,
+                    "The project has no package path yet, so there is nothing to save to.",
+                    "Ask the person to save the project once in WhaleGenie, or to choose a location when MCP starts.");
             }
 
             project.SavePackage(path);
+            McpAudit.Note("project.save", path);
             return path;
         });
 

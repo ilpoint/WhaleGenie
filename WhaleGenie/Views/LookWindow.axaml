@@ -1,7 +1,8 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
+        xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -11,125 +12,37 @@
         Width="1060" Height="720"
         MinWidth="760" MinHeight="480"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
-        <Style Selector="TextBlock.Muted">
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="FontSize" Value="11.5" />
-        </Style>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="Foreground" Value="#E4E4E4" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-        </Style>
-
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-        </Style>
-
-        <Style Selector="Button.FlatButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="16,0" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D94C25" />
-        </Style>
-
-        <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12" />
-        </Style>
-
         <Style Selector="Border.MarkRow">
-            <Setter Property="Background" Value="{DynamicResource AppDock}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Margin" Value="0,0,0,4" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
+        <!-- 已挑进这一批：绿认 `Success`。`#3FBF5F` 是另一支绿，而 `Card.Thin.chosen` 已经用
+             `Success` 表达同一个状态——**同状态两个色，会让人以为有区别**。颜色会淡一点，这是
+             有意的：语义一致优先于色相不变。 -->
         <Style Selector="Border.MarkRow.chosen">
-            <Setter Property="BorderBrush" Value="#3FBF5F" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
         </Style>
 
         <!-- The writing the step read, in a box it can be copied out of. -->
-        <Style Selector="TextBox.ReadText">
-            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="MinHeight" Value="58" />
-        </Style>
     </Window.Styles>
 
-    <Border Background="{DynamicResource AppBackdrop}" CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
+        <Grid RowDefinitions="Auto,*,Auto">
 
-            <!-- title bar -->
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,8,10,8">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
-                       VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13"
-                           Foreground="{DynamicResource AppText}" TextWrapping="NoWrap"
-                           Text="{Binding [Look.Title], Source={x:Static loc:Strings.Current}}" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-                    <!-- A reference picture is read at its own size, and a whole screen of hits does
-                         not fit in a window; this is the answer to both. -->
-                    <Button Name="FullScreen" Classes="TitleBarButton" Padding="10,0"
-                            Click="OnToggleFullScreen"
-                            ToolTip.Tip="{Binding [Look.FullScreenHint], Source={x:Static loc:Strings.Current}}" />
-                    <!-- Putting this one away leaves the screen behind it free, which is how what was
-                         found is compared with what is really there. -->
-                    <Button Classes="TitleBarButton" Name="MinimizeButton" Click="OnMinimize">
-                        <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
-                    </Button>
-                    <Button Classes="TitleBarButton" Content="✕"
-                        Click="OnClose" />
-                </StackPanel>
-            </Grid>
+
 
             <!-- what the step was after, and how it went -->
-            <Border Grid.Row="1" Background="{DynamicResource AppBackdrop}" CornerRadius="6" Margin="14,0,14,10"
+            <Border Grid.Row="0" Background="{DynamicResource SurfaceWindow}" CornerRadius="6" Margin="14,0,14,10"
                     Padding="12,10">
                 <Grid ColumnDefinitions="Auto,*">
-                    <Border Grid.Column="0" Background="{DynamicResource AppBackdrop}" CornerRadius="4" Padding="4"
+                    <Border Grid.Column="0" Background="{DynamicResource SurfaceWindow}" CornerRadius="4" Padding="4"
                             Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="False"
                             Name="NeedleFrame">
                         <Image Name="NeedleShot" MaxHeight="52" MaxWidth="140"
@@ -137,24 +50,24 @@
                                RenderOptions.BitmapInterpolationMode="None" />
                     </Border>
                     <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                        <TextBlock Name="StepLine" FontSize="13" Foreground="{DynamicResource AppText}"
+                        <TextBlock Name="StepLine" FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="LookingLine" FontSize="12" Foreground="{DynamicResource AppMuted}"
+                        <TextBlock Name="LookingLine" FontSize="12" Foreground="{DynamicResource TextTertiary}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="OutcomeLine" FontSize="12" Foreground="#E0B080"
+                        <TextBlock Name="OutcomeLine" FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="NoteLine" FontSize="12" Foreground="#BFE3BF"
+                        <TextBlock Name="NoteLine" FontSize="12" Classes="Code"
                                    TextWrapping="Wrap" IsVisible="False" />
                     </StackPanel>
                 </Grid>
             </Border>
 
             <!-- the picture, and one row per mark -->
-            <Grid Grid.Row="2" ColumnDefinitions="*,320" Margin="14,0,14,10">
+            <Grid Grid.Row="1" ColumnDefinitions="*,320" Margin="14,0,14,10">
                 <Border Grid.Column="0" Classes="Panel" Padding="10">
                     <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
-                        <Canvas Name="Board" Background="{DynamicResource AppBackdrop}"
+                        <Canvas Name="Board" Background="{DynamicResource SurfaceWindow}"
                                 HorizontalAlignment="Left" VerticalAlignment="Top" />
                     </ScrollViewer>
                 </Border>
@@ -174,11 +87,11 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
                                            Text="{Binding [Look.ReadText], Source={x:Static loc:Strings.Current}}" />
-                                <Button Grid.Column="1" Name="CopyText" Classes="FlatButton"
+                                <Button Grid.Column="1" Name="CopyText" Classes="Secondary"
                                         Click="OnCopyText"
                                         Content="{Binding [Look.CopyText], Source={x:Static loc:Strings.Current}}" />
                             </Grid>
-                            <TextBox Name="ReadText" Classes="ReadText" IsReadOnly="True"
+                            <TextBox Name="ReadText" Classes="Code" IsReadOnly="True"
                                      AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="150" />
                         </StackPanel>
                     </Grid>
@@ -186,38 +99,38 @@
             </Grid>
 
             <!-- zoom, and saving the picture -->
-            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
                   Margin="14,0,14,12">
-                <Button Grid.Column="0" Classes="FlatButton" Content="−" Width="34"
+                <Button Grid.Column="0" Classes="Secondary" Content="−" Width="34"
                         Click="OnZoomOut" />
                 <TextBlock Grid.Column="1" Name="ZoomText" MinWidth="54" Margin="8,0"
-                           VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource AppMuted}"
+                           VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextTertiary}"
                            TextAlignment="Center" />
-                <Button Grid.Column="2" Classes="FlatButton" Content="+" Width="34"
+                <Button Grid.Column="2" Classes="Secondary" Content="+" Width="34"
                         Click="OnZoomIn" />
-                <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
+                <Button Grid.Column="3" Classes="Secondary" Margin="8,0,0,0"
                         Click="OnZoomFit"
                         Content="{Binding [Look.ZoomFit], Source={x:Static loc:Strings.Current}}" />
                 <!-- Only the window opened on the step just written can look a second time: it was
                      handed that step, and the picture belongs to a reading that has just been asked
                      for. The one opened from a run shows a picture that belongs to that run. -->
-                <Button Grid.Column="4" Name="Again" Classes="FlatButton" Margin="8,0,0,0"
+                <Button Grid.Column="4" Name="Again" Classes="Secondary" Margin="8,0,0,0"
                         IsVisible="False" Click="OnLookAgain"
                         Content="{Binding [Look.Again], Source={x:Static loc:Strings.Current}}" />
                 <CheckBox Grid.Column="5" Name="LabelsOnPicture" Margin="12,0,0,0" FontSize="12"
-                          Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" Click="OnToggleLabels"
+                          Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center" Click="OnToggleLabels"
                           Content="{Binding [Look.LabelsOnPicture], Source={x:Static loc:Strings.Current}}"
                           ToolTip.Tip="{Binding [Look.LabelsHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Grid.Column="6" Name="Status" Margin="14,0,10,0"
-                           VerticalAlignment="Center" FontSize="12" Foreground="#BFE3BF"
+                           VerticalAlignment="Center" FontSize="12" Classes="Code"
                            TextTrimming="CharacterEllipsis" />
-                <Button Grid.Column="7" Name="SaveRaw" Classes="FlatButton" Margin="0,0,8,0"
+                <Button Grid.Column="7" Name="SaveRaw" Classes="Secondary" Margin="0,0,8,0"
                         Click="OnSaveRaw"
                         Content="{Binding [Look.SaveRaw], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="8" Name="SaveMarked" Classes="PrimaryButton"
+                <Button Grid.Column="8" Name="SaveMarked" Classes="Primary"
                         Click="OnSave"
                         Content="{Binding [Look.Save], Source={x:Static loc:Strings.Current}}" />
             </Grid>
         </Grid>
     </Border>
-</Window>
+</views:AppWindow>

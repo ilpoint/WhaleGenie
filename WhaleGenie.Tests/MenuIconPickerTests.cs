@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;

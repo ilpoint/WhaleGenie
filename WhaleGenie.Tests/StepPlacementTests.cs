@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -21,7 +24,7 @@ public class StepPlacementTests
             editor.PasteSteps([Case("two")]);
 
             Assert.Equal(["control.case", "control.case"], cases.Select(step => step.Type));
-            Assert.False(editor.HasPlacementNotice);
+            Assert.False(editor.HasNotice);
         });
     }
 
@@ -40,7 +43,7 @@ public class StepPlacementTests
 
             Assert.Same(first, Assert.Single(cases));
             Assert.Equal(Strings.Format("Editor.PlaceTakesOnly",
-                ActionCatalog.Find("control.case")!.LocalName), editor.PlacementNotice);
+                ActionCatalog.Find("control.case")!.LocalName), editor.Notice);
 
             editor.UndoCommand.Execute(null);
             Assert.Empty(editor.Steps);
@@ -57,7 +60,7 @@ public class StepPlacementTests
             editor.PasteSteps([Case("one")]);
 
             Assert.Empty(editor.Steps);
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
         });
     }
 
@@ -72,16 +75,16 @@ public class StepPlacementTests
 
             editor.ReplaceStep(ordinary, Case("replacement"));
             Assert.Same(ordinary, Assert.Single(editor.Steps));
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
 
             editor.AppendSteps([Case("appended")]);
             Assert.Same(ordinary, Assert.Single(editor.Steps));
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
 
             var empty = new MacroEditorViewModel();
             empty.AddStep(Case("added"));
             Assert.Empty(empty.Steps);
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), empty.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), empty.Notice);
         });
     }
 
@@ -121,7 +124,7 @@ public class StepPlacementTests
                 editor.Steps.Select(step => step.Type));
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
         });
     }
 
@@ -140,7 +143,7 @@ public class StepPlacementTests
             Assert.Same(choice, Assert.Single(editor.Steps));
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
         });
     }
 
@@ -156,7 +159,7 @@ public class StepPlacementTests
             editor.PasteSteps([group]);
 
             Assert.Empty(editor.Steps);
-            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.PlacementNotice);
+            Assert.Equal(Strings.Get("Editor.PlaceCaseOnly"), editor.Notice);
         });
     }
 
@@ -175,14 +178,14 @@ public class StepPlacementTests
             editor.GroupSelectedCommand.Execute(null);
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
 
             editor.SetSelection([first]);
             editor.LiftSelectedCommand.Execute(null);
             Assert.Null(lifted);
             Assert.Same(first, Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps));
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
         });
     }
 
@@ -200,7 +203,7 @@ public class StepPlacementTests
 
             var body = first.StepLists.Single();
             Assert.Equal("control.sequence", Assert.Single(body.Steps).Type);
-            Assert.False(editor.HasPlacementNotice);
+            Assert.False(editor.HasNotice);
         });
     }
 
@@ -239,7 +242,7 @@ public class StepPlacementTests
                 choice.StepLists.Single(parameter => parameter.Name == "otherwise").Steps).Type);
             Assert.Equal("control.case", Assert.Single(
                 choice.StepLists.Single(parameter => parameter.Name == "cases").Steps).Type);
-            Assert.False(editor.HasPlacementNotice);
+            Assert.False(editor.HasNotice);
         });
 
         static void AddInside(MacroEditorViewModel editor, MacroStep owner, string list, MacroStep child)
@@ -255,6 +258,48 @@ public class StepPlacementTests
         var editor = new MacroEditorViewModel();
         editor.AddStep(step);
         return editor;
+    }
+
+    /// <summary>
+    /// Every action the palette can offer lands as a step at the end of the macro, and shows up as a
+    /// row in the list straight away. A step that cannot go in reads to the user as "this action
+    /// cannot be added", so the whole catalogue is walked rather than the one action a report names:
+    /// the way in is shared, and one action missing from it is a gap in that shared way.
+    /// </summary>
+    [Fact]
+    public void Every_runnable_action_can_be_added_and_shows_up_in_the_list()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var refused = new List<string>();
+            foreach (var definition in ActionCatalog.RunnableActions)
+            {
+                var step = new MacroStep { Type = definition.Key };
+                step.EnsureDeclaredLists();
+
+                if (editor.AddStepHere(step) is { } refusal)
+                {
+                    refused.Add($"{definition.Key}: {refusal}");
+                    continue;
+                }
+
+                if (!editor.Rows.Any(row => row.IsStep && ReferenceEquals(row.Step, step)))
+                {
+                    refused.Add($"{definition.Key}: added but not in the list");
+                }
+
+                editor.Steps.Remove(step);
+            }
+
+            Ui.CloseAndAnswer(window);
+            Assert.Empty(refused);
+        });
     }
 
     private static MacroStep Switch(params MacroStep[] cases)

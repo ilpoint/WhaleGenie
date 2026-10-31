@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -14,10 +14,7 @@
         Title="{Binding WindowTitle}"
         Width="480" Height="680"
         MinWidth="360" MinHeight="480"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -33,245 +30,189 @@
     </Window.Resources>
 
     <Window.Styles>
-        <!-- Custom title bar buttons -->
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppMuted}" />
-        </Style>
-        <Style Selector="Button.TitleBarButton.Active /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E7D5A" />
-        </Style>
+        <!-- 这里曾经有两条 `.Active`（`Chrome.Icon.Active` / `LabeledToolButton.Active`），
+             零消费者已删——`Chrome.Icon` 那条旁边的注释写着 "No Active state: there is no server
+             in this window to be on or off."，**注释说状态不存在，样式却还在**。
+             删它们不产生任何视觉变化（本来就不匹配元素），留这句是让将来找 `Active` 的人知道这里删过。 -->
 
         <!-- Top-right round tool buttons -->
-        <Style Selector="Button.ToolButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Width" Value="24" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.ToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-        </Style>
-
         <!-- Tool button that carries a label next to its icon -->
         <Style Selector="Button.LabeledToolButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
             <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+        <!-- 带底的工具栏文字钮：**加一道 1px 边**。不加的话，浅色主题下它与底几乎同色
+             （对比 1.12），看起来像"没有底"。 -->
+        <Style Selector="Button.LabeledToolButton.Filled">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
         </Style>
-        <Style Selector="Button.LabeledToolButton.Active /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2E7D5A" />
+        <Style Selector="Button.LabeledToolButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
-        <!-- The always-on-top switch lights up while it is holding the window above the rest. -->
-        <Style Selector="Button.TitleBarButton.Pinned /template/ ContentPresenter">
+        <!-- The always-on-top switch lights up while it is holding the window above the rest.
+             **已裁例外，留本窗**：这个蓝是"置顶"这个状态的标识，两个值（常态/悬停）配套使用。
+             注意它与主题色样里的某个蓝同值——**按值排除会把它误判成"数据"，位置才是判据。** -->
+        <Style Selector="Button.Chrome.Icon.Pinned /template/ ContentPresenter">
             <Setter Property="Background" Value="#2E5F8A" />
         </Style>
-        <Style Selector="Button.TitleBarButton.Pinned:pointerover /template/ ContentPresenter">
+        <Style Selector="Button.Chrome.Icon.Pinned:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#3A719E" />
         </Style>
 
         <!-- Bottom buttons -->
         <Style Selector="Button.BottomButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="14,10" />
             <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="Button.BottomButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
         </Style>
 
         <!-- Macro card action buttons -->
-        <Style Selector="Button.CardButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Width" Value="26" />
-            <Setter Property="Height" Value="26" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.CardButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppBorder}" />
-        </Style>
-
-        <Style Selector="Button.DockButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
-            <Setter Property="BorderThickness" Value="0,0,0,2" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="CornerRadius" Value="0" />
-            <Setter Property="Padding" Value="4,7" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.DockButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.DockButton.On">
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="BorderBrush" Value="#4EA4E8" />
-        </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="36,30,*,Auto">
+    <Grid RowDefinitions="40,30,*,Auto">
 
-        <!-- ============ Custom title bar ============ -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
-                   Margin="8,5" VerticalAlignment="Center" HorizontalAlignment="Left" />
+        <!--
+          ============ 标题栏（内容扩展进标题栏，见 MainWindow.axaml.cs） ============
+          这一行就是标题栏本体：库不再画图标与标题（内容伸进来了），所以在左边画一遍；右边是主窗自己的
+          置顶钮——与系统按钮同尺寸、同悬停，行尾留出它们的宽度。拖动由 `AppWindow` 在这条上做。
+        -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
+                        VerticalAlignment="Center">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                <TextBlock Text="{Binding WindowTitle}" Foreground="{DynamicResource TextPrimary}"
+                           FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
 
-            <TextBlock Grid.Column="1" Foreground="{DynamicResource AppText}" FontSize="13"
-                       Text="{Binding WindowTitle}"
-                       VerticalAlignment="Center" Margin="4,0" />
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="TitleBarButton" Name="ThemeButton"
-                        ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
-                        Click="OnToggleTheme">
-                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Sun}" />
-                </Button>                <Button Classes="TitleBarButton" Name="AlwaysOnTopButton"
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
+                        VerticalAlignment="Center">
+                <Button Classes="Caption" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
-                    <views:IconView Width="11" Height="11" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Pin}" />
-                </Button>
-                <Button Classes="TitleBarButton" Name="HelpButton" Content="?" FontWeight="Bold"
-                        FontSize="13"
-                        ToolTip.Tip="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
-                        Click="OnAboutClicked" />
-                <Button Classes="TitleBarButton" Name="MinimizeButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="TitleBarButton" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                    <views:IconView Name="PinIcon" Width="14" Height="14"
+                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4"
+                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
             </StackPanel>
         </Grid>
 
         <!-- ============ Menu bar ============ -->
-        <Grid Grid.Row="1" Background="{DynamicResource AppBackdrop}" ColumnDefinitions="Auto,Auto,*,Auto">
+        <Grid Grid.Row="1" Background="{DynamicResource SurfaceWindow}" ColumnDefinitions="Auto,Auto,*,Auto">
             <Menu Background="Transparent" VerticalAlignment="Center" Margin="4,0">
                 <MenuItem Header="{Binding [Main.File], Source={x:Static loc:Strings.Current}}"
-                          FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
+                          FontSize="13" Foreground="{DynamicResource TextPrimary}" Padding="10,4">
                     <MenuItem Header="{Binding [Main.OpenProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Folder}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Folder}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.SaveProject], Source={x:Static loc:Strings.Current}}"
                               Click="OnSaveProjectClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Save}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Save}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.SaveProjectAs], Source={x:Static loc:Strings.Current}}"
                               Click="OnSaveProjectAsClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.FilePlus}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FilePlus}" />
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Header="{Binding [Main.ImportProject], Source={x:Static loc:Strings.Current}}"
-                              Click="OnImportProjectClicked">
+                    <MenuItem Header="{Binding [Main.Import], Source={x:Static loc:Strings.Current}}"
+                              Click="OnImportClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Download}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Download}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="{Binding [Main.ExportMacro], Source={x:Static loc:Strings.Current}}"
+                              Click="OnExportMacrosClicked">
+                        <MenuItem.Icon>
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.ExternalLink}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenCurrentLocation], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenLocationClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Search}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Search}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.ReloadCurrent], Source={x:Static loc:Strings.Current}}"
                               Click="OnReloadCurrentClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Reload}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.OpenDirectory], Source={x:Static loc:Strings.Current}}"
                               Click="OnOpenDirectoryClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.FolderOpen}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.FolderOpen}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.CloseAll], Source={x:Static loc:Strings.Current}}"
                               Click="OnCloseAllClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Trash}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator />
                     <MenuItem Header="{Binding [Main.Exit], Source={x:Static loc:Strings.Current}}"
                               Click="OnExitClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
 
                 <MenuItem Header="{Binding [Main.Help], Source={x:Static loc:Strings.Current}}"
-                          FontSize="13" Foreground="{DynamicResource AppText}" Padding="10,4">
+                          FontSize="13" Foreground="{DynamicResource TextPrimary}" Padding="10,4">
                     <MenuItem Header="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}"
                               Click="OnSettingsClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Settings}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.WhatsNew], Source={x:Static loc:Strings.Current}}"
                               Click="OnWhatsNewClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Sparkle}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Sparkle}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Updates], Source={x:Static loc:Strings.Current}}"
                               Click="OnUpdatesClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Reload}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Reload}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.Feedback], Source={x:Static loc:Strings.Current}}"
                               Click="OnFeedbackClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Message}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Message}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.GetStarted], Source={x:Static loc:Strings.Current}}"
                               Click="OnGetStartedClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.QuestionMark}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.QuestionMark}" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                               Click="OnAboutClicked">
                         <MenuItem.Icon>
-                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Info}" />
+                            <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Info}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
@@ -279,89 +220,106 @@
 
             <StackPanel Grid.Column="1" Spacing="8" Orientation="Horizontal" Margin="8,0"
                         VerticalAlignment="Center">
-                <Border Width="1" Height="14" Background="{DynamicResource AppBorder}" />
+                <Border Width="1" Height="14" Background="{DynamicResource BorderControl}" />
                 <TextBlock Name="VersionText" Text="{Binding Version}"
-                           Foreground="{DynamicResource AppMuted}" FontSize="12"
+                           Foreground="{DynamicResource TextTertiary}" FontSize="12"
                            VerticalAlignment="Center" />
             </StackPanel>
 
             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
-                <Button Classes="LabeledToolButton" Name="McpButton"
-                        Classes.Active="{Binding Mcp.IsRunning}"
+                <!-- No Active state: there is no server in this window to be on or off. -->
+                <Button Classes="LabeledToolButton Filled" Name="McpButton"
                         Click="OnMcpClicked"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.McpHint], Source={x:Static loc:Strings.Current}}">
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedRight">
-                            <Border Background="{DynamicResource AppSurface}" CornerRadius="6"
-                                    Padding="12" Width="360">
+                            <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6"
+                                    Padding="12" Width="420">
                                 <StackPanel Spacing="8">
                                     <TextBlock FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource AppText}"
+                                               Foreground="{DynamicResource TextPrimary}"
                                                Text="{Binding [Mcp.Title], Source={x:Static loc:Strings.Current}}" />
+                                    <!-- The switches are not a server: they decide what the client
+                                         is allowed to do, and the block below is rewritten with
+                                         the matching arguments. Nobody types a flag by hand. -->
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding [Mcp.Intro], Source={x:Static loc:Strings.Current}}" />
                                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
-                                                   VerticalAlignment="Center"
-                                                   Text="{Binding [Mcp.Enable], Source={x:Static loc:Strings.Current}}" />
-                                        <ToggleSwitch Name="McpToggle"
-                                                      IsChecked="{Binding Mcp.IsRunning, Mode=OneWay}"
-                                                      Command="{Binding Mcp.ToggleCommand}"
+                                        <ToggleSwitch Name="McpControlToggle"
+                                                      IsChecked="{Binding Mcp.AllowControl, Mode=TwoWay}"
                                                       OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
                                                       OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
-                                    <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
-                                               Text="{Binding Mcp.Status}" />
-                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                        <TextBlock FontSize="12" Foreground="{DynamicResource AppText}"
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                    VerticalAlignment="Center"
-                                                   Text="{Binding [Mcp.Port], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Grid.Column="1" Width="110" Height="30"
-                                                         Value="{Binding Mcp.Port}"
-                                                         Minimum="1024" Maximum="65535" Increment="1"
-                                                         FormatString="0"
-                                                         IsEnabled="{Binding !Mcp.IsRunning}" />
-                                    </Grid>
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                                   Text="{Binding [Mcp.Control], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <ToggleSwitch Name="McpRunToggle"
+                                                      IsChecked="{Binding Mcp.AllowRun, Mode=TwoWay}"
+                                                      OnContent="{Binding [Mcp.SwitchOn], Source={x:Static loc:Strings.Current}}"
+                                                      OffContent="{Binding [Mcp.SwitchOff], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding [Mcp.Run], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.PortHint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               Text="{Binding [Mcp.Endpoint], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock FontFamily="Consolas" FontSize="11.5"
-                                               Foreground="{DynamicResource AppText}"
+                                               Text="{Binding [Mcp.GrantsNote], Source={x:Static loc:Strings.Current}}" />
+                                    <Border Background="{DynamicResource SurfaceField}" CornerRadius="5"
+                                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
+                                            Padding="10,8">
+                                        <SelectableTextBlock FontFamily="Consolas,Menlo,monospace"
+                                                             FontSize="11.5"
+                                                             Foreground="{DynamicResource TextPrimary}"
+                                                             TextWrapping="Wrap"
+                                                             Text="{Binding Mcp.Config}" />
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <Button Classes="Secondary" Height="28" Padding="10,0"
+                                                Click="OnCopyMcpConfig"
+                                                Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Mcp.Status}" />
+                                    </StackPanel>
+                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                TextWrapping="Wrap"
-                                               Text="{Binding Mcp.Endpoint}" />
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding [Mcp.Note], Source={x:Static loc:Strings.Current}}" />
-                                    <Button Classes="FlatButton" Height="28" Padding="10,0"
+                                               Text="{Binding [Mcp.CopyConfigHint], Source={x:Static loc:Strings.Current}}" />
+                                    <!-- What the client did to this machine is a question the person
+                                         asks afterwards, so the record is one click away rather than
+                                         something to go looking for in a folder. -->
+                                    <Button Classes="Secondary" Height="28" Padding="10,0"
                                             HorizontalAlignment="Left"
-                                            Click="OnCopyMcpConfig"
-                                            Content="{Binding [Mcp.CopyConfig], Source={x:Static loc:Strings.Current}}" />
+                                            Command="{Binding Mcp.OpenAuditCommand}"
+                                            ToolTip.Tip="{Binding [Mcp.OpenAuditHint], Source={x:Static loc:Strings.Current}}"
+                                            Content="{Binding [Mcp.OpenAudit], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                             </Border>
                         </Flyout>
                     </Button.Flyout>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}"
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}"
                                         StrokeThickness="1.4" FitToBounds="True"
-                                        Data="{x:Static models:AppIcons.Sparkle}" />
-                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                        Data="{x:Static vm:AppIcons.Sparkle}" />
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"
                                    Text="{Binding [Main.Mcp], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
-                <Button Classes="LabeledToolButton" Name="RunDebugButton"
+                <Button Classes="LabeledToolButton Filled" Name="RunDebugButton"
                         VerticalAlignment="Center"
                         ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
-                        <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"
                                    Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
-                <Button Classes="ToolButton" Name="SettingsButton"
+                <Button Classes="Ghost Pill" Name="SettingsButton"
                         ToolTip.Tip="{Binding [Main.Settings], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="14" Height="14" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Settings}" />
+                    <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Settings}" />
                 </Button>
             </StackPanel>
         </Grid>
@@ -371,19 +329,19 @@
             <!-- Trigger dock -->
             <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="2"
                   Margin="0,0,0,8">
-                <Button Grid.Column="0" Classes="DockButton" Classes.On="{Binding IsKeysDock}"
+                <Button Grid.Column="0" Classes="Tab Root" Classes.selected="{Binding IsKeysDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Keys"
                         Content="{Binding [Main.Dock.Keys], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="1" Classes="DockButton" Classes.On="{Binding IsInterfaceDock}"
+                <Button Grid.Column="1" Classes="Tab Root" Classes.selected="{Binding IsInterfaceDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Interface"
                         Content="{Binding [Main.Dock.Interface], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="2" Classes="DockButton" Classes.On="{Binding IsHotstringDock}"
+                <Button Grid.Column="2" Classes="Tab Root" Classes.selected="{Binding IsHotstringDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Hotstring"
                         Content="{Binding [Main.Dock.Hotstring], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="3" Classes="DockButton" Classes.On="{Binding IsMenuDock}"
+                <Button Grid.Column="3" Classes="Tab Root" Classes.selected="{Binding IsMenuDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Menu"
                         Content="{Binding [Main.Dock.Menu], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="4" Classes="DockButton" Classes.On="{Binding IsOtherDock}"
+                <Button Grid.Column="4" Classes="Tab Root" Classes.selected="{Binding IsOtherDock}"
                         Command="{Binding SelectDockCommand}" CommandParameter="Other"
                         Content="{Binding [Main.Dock.Other], Source={x:Static loc:Strings.Current}}" />
             </Grid>
@@ -391,8 +349,8 @@
             <!-- Search box -->
             <TextBox Grid.Row="1" Text="{Binding SearchText}"
                      PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
-                     Background="{DynamicResource AppDock}" BorderBrush="{DynamicResource AppDock}"
-                     Foreground="{DynamicResource AppText}" FontSize="13"
+                     Background="{DynamicResource SurfacePanel}" BorderBrush="{DynamicResource SurfacePanel}"
+                     Foreground="{DynamicResource TextPrimary}" FontSize="13"
                      CornerRadius="4" Padding="10,7" />
 
             <!-- Macro list -->
@@ -408,15 +366,17 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:MacroItem">
-                        <Border Background="{DynamicResource AppDock}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                        <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <!-- The same three things the card's own buttons do, where a right click
                                  goes looking for them. -->
                             <Border.ContextMenu>
-                                <ContextMenu>
+                                <ContextMenu Opening="OnCardMenuOpening">
                                     <MenuItem Header="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                               Click="OnDebugMacroClicked" />
                                     <MenuItem Header="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                               Click="OnEditMacroClicked" />
+                                    <MenuItem Header="{Binding [Main.ExportMacro], Source={x:Static loc:Strings.Current}}"
+                                              Click="OnExportMacroClicked" />
                                     <MenuItem Header="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
                                               Click="OnDeleteMacroClicked" />
                                 </ContextMenu>
@@ -425,56 +385,63 @@
                                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <Panel Width="9" Height="9" VerticalAlignment="Center">
-                                            <Ellipse Width="9" Height="9" Fill="#3FBF57"
+                                            <!-- 启用 / 停用两个点：**状态用状态色**。
+                                                 注意 `#3FBF57` 与主题色样里的某个绿同值——按值排除会把这一处误判成"数据"。 -->
+                                            <!-- 状态圆点挂类，不再在元素上设色——**让 `Ellipse.Dot` 这一族有真消费者**，
+                                                 否则"圆点该长什么样"没有地方可查，下一个人会再造一个。
+                                                 尺寸取族的 8（原来是 9），这是可见变化。 -->
+                                            <Ellipse Classes="Dot Success"
                                                      IsVisible="{Binding IsEnabled}" />
-                                            <Ellipse Width="9" Height="9" Fill="#D8451B"
+                                            <Ellipse Classes="Dot Danger"
                                                      IsVisible="{Binding !IsEnabled}" />
                                         </Panel>
-                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AppText}" FontSize="13"
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
                                                    VerticalAlignment="Center" />
                                         <!-- Shows while a trigger is running this macro -->
-                                        <Border IsVisible="{Binding IsRunning}" Background="#1E4529"
-                                                BorderBrush="#3FBF57" BorderThickness="1"
+                                        <!-- "运行中"徽标：**状态用状态色**（底/边/字三件同一次改）。 -->
+                                        <Border IsVisible="{Binding IsRunning}"
+                                                Background="{DynamicResource SuccessSurface}"
+                                                BorderBrush="{DynamicResource Success}" BorderThickness="1"
                                                 CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
-                                            <TextBlock FontSize="10.5" Foreground="#8CE7A3"
+                                            <TextBlock FontSize="10.5" Foreground="{DynamicResource Success}"
                                                        Text="{Binding [Main.MacroRunning], Source={x:Static loc:Strings.Current}}" />
                                         </Border>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                                        <Button Name="MacroRunDebugButton" Classes="CardButton"
+                                        <Button Name="MacroRunDebugButton" Classes="Ghost"
                                                 ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDebugMacroClicked">
-                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.BugPlay}" />
+                                            <views:IconView Width="12" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.BugPlay}" />
                                         </Button>
-                                        <Button Classes="CardButton"
+                                        <Button Classes="Ghost"
                                                 ToolTip.Tip="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnEditMacroClicked">
-                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Pencil}" />
+                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Pencil}" />
                                         </Button>
-                                        <Button Classes="CardButton"
+                                        <Button Classes="Ghost"
                                                 ToolTip.Tip="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnDeleteMacroClicked">
-                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Trash}" />
+                                            <views:IconView Width="13" Height="13" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Trash}" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
 
-                                <Border Grid.Row="1" Background="{DynamicResource AppDock}" CornerRadius="4" Margin="0,8,0,0"
+                                <Border Grid.Row="1" Background="{DynamicResource SurfacePanel}" CornerRadius="4" Margin="0,8,0,0"
                                         Padding="12,9"
                                         Opacity="{Binding IsEnabled, Converter={StaticResource CardOpacity}}">
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                         <!-- One badge for the entry set: a macro may now have several. -->
-                                        <Border Grid.Column="0" Background="{DynamicResource AppHover}" CornerRadius="4"
+                                        <Border Grid.Column="0" Background="{DynamicResource SurfaceHover}" CornerRadius="4"
                                                 Width="28" Height="28" VerticalAlignment="Center">
                                             <Panel>
-                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource AppMuted}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.GridFour}" />
+                                                <views:IconView Width="15" Height="15" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.GridFour}" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock FontSize="12.5" Foreground="{DynamicResource AppText}"
+                                            <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                        TextWrapping="Wrap" MaxLines="2"
                                                        Text="{Binding TriggerSummaries}" />
-                                            <TextBlock FontSize="11.5" Foreground="{DynamicResource AppMuted}"
+                                            <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding Action}" />
                                         </StackPanel>
@@ -491,9 +458,9 @@
             <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="5"
                         IsVisible="{Binding !HasMacros}" IsHitTestVisible="False">
                 <TextBlock Text="{Binding [Main.EmptyTitle], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppMuted}" FontSize="13" HorizontalAlignment="Center" />
+                           Foreground="{DynamicResource TextTertiary}" FontSize="13" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding [Main.EmptyHint], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppMuted}" FontSize="11.5" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextTertiary}" FontSize="11.5" HorizontalAlignment="Center"
                            TextAlignment="Center" />
             </StackPanel>
 
@@ -502,7 +469,7 @@
                        IsVisible="{Binding HasNoMatch}"
                        IsHitTestVisible="False"
                        Text="{Binding [Main.NoMatch], Source={x:Static loc:Strings.Current}}"
-                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
+                       Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
         </Grid>
 
         <!-- ============ Bottom buttons ============ -->
@@ -513,14 +480,14 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding SystemLabel}" FontSize="12" Foreground="White" />
-                        <TextBlock FontSize="12" Foreground="{DynamicResource AppMuted}"
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiary}"
                                    TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                    Text="{Binding SystemHint}" />
                     </StackPanel>
                     <Border BorderBrush="White" BorderThickness="2" CornerRadius="6" Padding="5,3" VerticalAlignment="Center">
                         <Panel Width="14" Height="14">
-                            <views:IconView Width="14" Height="14" IsVisible="{Binding !IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Play}" />
-                            <views:IconView Width="14" Height="14" IsVisible="{Binding IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Pause}" />
+                            <views:IconView Width="14" Height="14" IsVisible="{Binding !IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Play}" />
+                            <views:IconView Width="14" Height="14" IsVisible="{Binding IsRunning}" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Pause}" />
                         </Panel>
                     </Border>
                 </StackPanel>
@@ -534,10 +501,10 @@
                     <!-- Same outlined badge as the run button beside it, so the two read as a pair. -->
                     <Border BorderBrush="White" BorderThickness="2" CornerRadius="6" Padding="5,3"
                             VerticalAlignment="Center">
-                        <views:IconView Width="14" Height="14" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static models:AppIcons.Plus}" />
+                        <views:IconView Width="14" Height="14" Stroke="White" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Plus}" />
                     </Border>
                 </StackPanel>
             </Button>
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>

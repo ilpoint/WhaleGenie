@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using WhaleGenie.Execution;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Mcp;
 
@@ -18,223 +22,646 @@ namespace WhaleGenie.Mcp;
 /// The tools an MCP client sees. They read and write a draft of the open project; the project
 /// itself is only touched by apply, and its package only by save. Running is deliberately absent:
 /// the person at the machine still presses the run button.
+///
+/// Every answer is a JSON document and every refusal carries a code from <see cref="McpErrors"/>,
+/// so a client can branch on what went wrong instead of reading English back to itself.
 /// </summary>
 [McpServerToolType]
 public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 {
-    private static readonly JsonSerializerOptions Json = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
+    /// <summary>
+    /// The largest picture a client may hand over. A template a step matches against is a crop of
+    /// the screen, not a photograph, so anything past this is a client sending the wrong file.
+    /// </summary>
+    private const int MaxImageBytes = 8 * 1024 * 1024;
 
     private static async Task<T> Ui<T>(Func<T> work) => await Dispatcher.UIThread.InvokeAsync(work);
 
-    private static string Encode(object value) => JsonSerializer.Serialize(value, Json);
-
-    private static JsonObject ParseObject(string text)
-    {
-        try
+    [McpServerTool(Name = "whalegenie_project_status", ReadOnly = true,
+            Title = "Project status"),
+     Description("Reports the open WhaleGenie project: package path, revision, dirty state and macro count, and which of the two permissions a client has right now — sending input, and running a macro.")]
+    public Task<CallToolResult> ProjectStatus()
+        => McpErrors.RunAsync(async () =>
         {
-            return JsonNode.Parse(text) as JsonObject
-                ?? throw new McpException("The value has to be a JSON object.");
-        }
-        catch (JsonException error)
-        {
-            throw new McpException($"The value is not valid JSON: {error.Message}", error);
-        }
-    }
+            var status = await project.StatusAsync();
+            return McpErrors.Ok(new
+            {
+                path = status.Path,
+                revision = status.Revision,
+                dirty = status.Dirty,
+                macroCount = status.MacroCount,
 
-    private static JsonArray ParseArray(string text)
-    {
-        try
-        {
-            return JsonNode.Parse(text) as JsonArray
-                ?? throw new McpException("The value has to be a JSON array.");
-        }
-        catch (JsonException error)
-        {
-            throw new McpException($"The value is not valid JSON: {error.Message}", error);
-        }
-    }
+                // What a client is allowed to do, so it can say "the switch is off" instead of
+                // finding out by being refused.
+                control = new { allowed = McpControl.Allowed, runAllowed = McpControl.AllowsRun },
+            });
+        });
 
-    [McpServerTool(Name = "whalegenie_project_status", ReadOnly = true),
-     Description("Reports the open WhaleGenie project: package path, revision, dirty state and macro count.")]
-    public async Task<string> ProjectStatus()
-        => Encode(await project.StatusAsync());
+    [McpServerTool(Name = "whalegenie_list_actions", ReadOnly = true,
+            Title = "Search the action catalogue"),
+     Description("Searches the action catalogue and returns one page with the total it was cut from, so a client knows whether anything was left out. Hidden actions are excluded unless asked for: they are only valid inside a child list whose childKeys name them.")]
+    public Task<CallToolResult> ListActions(
+        [Description("Words to look for in the key, name, description or category; empty lists every action.")] string? query = null,
+        [Description("Only actions in this category, for example Control, Input, Vision, Window, Uia, Browser. Empty means every category.")] string? category = null,
+        [Description("Whether hidden actions are included. They are only valid in a child list whose childKeys name them; off by default.")] bool includeHidden = false,
+        [Description("How many actions to skip. Pass the returned total to see whether anything is left.")] int offset = 0,
+        [Description("How many actions to return, 1 to 200; 25 by default.")] int limit = 25)
+        => McpErrors.RunAsync(async () => McpErrors.Ok(
+            await Ui(() => ActionKnowledge.Search(query, category, includeHidden, offset, limit))));
 
-    [McpServerTool(Name = "whalegenie_list_actions", ReadOnly = true),
-     Description("Lists WhaleGenie actions, optionally filtered by a word in the key, name or description. Hidden actions are included and marked hidden.")]
-    public async Task<string> ListActions(
-        [Description("Words to look for; empty lists the first actions in key order.")] string? query = null,
-        [Description("How many actions to return, 1 to 50.")] int limit = 10)
-        => Encode(await Ui(() => ActionKnowledge.Search(query, limit)));
-
-    [McpServerTool(Name = "whalegenie_get_action", ReadOnly = true),
-     Description("Describes one action: hidden state, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns.")]
-    public async Task<string> GetAction(
+    [McpServerTool(Name = "whalegenie_get_action", ReadOnly = true,
+            Title = "Describe one action"),
+     Description("Describes one action: hidden state, whether it sends input or looks at the screen, whether and how it waits, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns. A required field marked conditional is required only in the modes its hint names, such as the window rule of a background click. A wrong key is refused with the nearest keys as candidates.")]
+    public Task<CallToolResult> GetAction(
         [Description("The action key, for example control.delay.")] string key)
-        => await Ui(() => ActionKnowledge.Find(key) is { } action
-            ? Encode(action)
-            : throw new McpException($"There is no action \"{key}\"."));
-
-    [McpServerTool(Name = "whalegenie_open_project", ReadOnly = true),
-     Description("Takes a snapshot of the open project and returns a draft id for editing it.")]
-    public async Task<string> OpenProject()
-    {
-        var basis = await project.SnapshotAsync();
-        var draft = drafts.Create(basis);
-        return Encode(new
+        => McpErrors.RunAsync(async () =>
         {
-            draftId = draft.Id,
-            path = basis.Path,
-            revision = basis.Revision,
-            macros = basis.Macros.Select(Summary),
+            if (await Ui(() => ActionKnowledge.Find(key)) is { } action)
+            {
+                return McpErrors.Ok(action);
+            }
+
+            var candidates = await Ui(() => ActionKnowledge.Suggest(key));
+            return McpErrors.Fail(McpErrors.UnknownAction, $"There is no action \"{key}\".",
+                "Action keys come from the catalogue; search with a word from the key to find the right one.",
+                retryable: true, details: new { key, candidates });
         });
-    }
 
-    [McpServerTool(Name = "whalegenie_instructions", ReadOnly = true),
-     Description("Returns the default writing or debugging instructions for clients that do not show MCP prompts.")]
-    public Task<string> Instructions(
-        [Description("write or debug; empty means write.")] string? topic = null)
-        => Task.FromResult(string.Equals(topic?.Trim(), "debug", StringComparison.OrdinalIgnoreCase)
-            ? McpPrompts.DebugMacro()
-            : McpPrompts.WriteMacro());
+    [McpServerTool(Name = "whalegenie_get_actions", ReadOnly = true,
+            Title = "Describe several actions"),
+     Description("Describes several actions in one call, which is what writing a macro needs: one round trip for the three or four keys a step list uses. Keys that do not exist come back under missing instead of failing the whole answer.")]
+    public Task<CallToolResult> GetActions(
+        [Description("The action keys to describe, for example [\"control.if\",\"control.repeat\"].")] string[] keys)
+        => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
+        {
+            var found = ActionKnowledge.FindMany(keys);
+            return new
+            {
+                count = found.Count(lookup => lookup.Found),
+                actions = found.Where(lookup => lookup.Found).Select(lookup => lookup.Action),
+                missing = found.Where(lookup => !lookup.Found).Select(lookup => lookup.Key),
+            };
+        })));
 
-    [McpServerTool(Name = "whalegenie_macro_template", ReadOnly = true),
+    [McpServerTool(Name = "whalegenie_get_macro_signature", ReadOnly = true,
+            Title = "What a macro takes and gives back"),
+     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, description) and the results it hands back, plus a call template. A control.runMacro step passes each argument as one row of params.arguments (columns name, value, given) and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
+    public Task<CallToolResult> GetMacroSignature(
+        [Description("The draft id.")] string draftId,
+        [Description("The macro name.")] string name)
+        => McpErrors.RunAsync(async () =>
+        {
+            var macro = await Ui(() => drafts.Get(draftId).Find(name));
+            if (macro is null)
+            {
+                return McpErrors.Fail(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\".",
+                    "Call whalegenie_list_macros to see the names this draft holds.",
+                    retryable: true, details: new { name });
+            }
+
+            return McpErrors.Ok(await Ui(() => Signature(macro)));
+        });
+
+    [McpServerTool(Name = "whalegenie_open_project",
+            Title = "Open a draft"),
+     Description("Takes a snapshot of the open project and returns a draft id for editing it. Everything is edited through that id; nothing reaches the window until apply. A session holds at most eight drafts: opening one more drops the oldest that was already applied, and says which in dropped; with none applied the call is refused with TooManyDrafts rather than losing work.")]
+    public Task<CallToolResult> OpenProject()
+        => McpErrors.RunAsync(async () =>
+        {
+            var basis = await project.SnapshotAsync();
+            var (draft, dropped) = drafts.Create(basis);
+            return McpErrors.Ok(new
+            {
+                draftId = draft.Id,
+                path = basis.Path,
+                revision = basis.Revision,
+                macros = basis.Macros.Select(McpOutline.Summary),
+
+                // A draft that was applied has already reached the project; saying which ones were
+                // let go is what keeps the list a client holds from being quietly wrong.
+                dropped,
+            });
+        });
+
+    [McpServerTool(Name = "whalegenie_list_drafts", ReadOnly = true,
+            Title = "List the drafts that are open"),
+     Description("Lists the drafts this server is holding: the id, the project each was taken from, when it was taken, how many macros it holds and whether it has been applied. A draft is dropped when the server stops or when it is discarded, so this is the answer to \"what is still pending\".")]
+    public Task<CallToolResult> ListDrafts()
+        => McpErrors.RunAsync(async () =>
+        {
+            var open = drafts.All();
+            return McpErrors.Ok(new
+            {
+                total = open.Count,
+                drafts = await Ui(() => open.Select(draft => new
+                {
+                    draftId = draft.Id,
+                    path = draft.Basis.Path,
+                    revision = draft.Basis.Revision,
+                    taken = draft.CreatedAt,
+                    macros = draft.MacroSnapshot().Count,
+                    applied = draft.Applied,
+                }).ToList()),
+            });
+        });
+
+    [McpServerTool(Name = "whalegenie_read_picture", ReadOnly = true,
+            Title = "Read a picture a macro saved"),
+     Description("Returns a PNG that a step saved, as an image. Only files inside the project folder or the log folder are read: this is for looking at what a capture step produced, not for reading any file on the machine.")]
+    public Task<CallToolResult> ReadPicture(
+        [Description("The path a capture step reported, such as the path result of vision.capture.")] string path)
+        => McpErrors.RunAsync(async () =>
+        {
+            var status = await project.StatusAsync();
+            var roots = new List<string> { AppPaths.Logs };
+            if (Path.GetDirectoryName(status.Path) is { Length: > 0 } folder)
+            {
+                roots.Add(folder);
+            }
+
+            var full = Path.GetFullPath((path ?? string.Empty).Trim());
+            var allowed = roots.Any(root => full.StartsWith(
+                Path.GetFullPath(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+
+            if (!allowed)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument,
+                    "That file is outside the project folder and the log folder.",
+                    "Pass the path a capture step reported; only what the project itself wrote is read.");
+            }
+
+            if (!full.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || !File.Exists(full))
+            {
+                return McpErrors.Fail(McpErrors.BadArgument, $"There is no PNG at \"{full}\".",
+                    "A capture step reports the path it wrote; call it again if the file is gone.");
+            }
+
+            var bytes = await File.ReadAllBytesAsync(full);
+            if (bytes.Length > 8 * 1024 * 1024)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument, "That picture is larger than 8 MB.",
+                    "Capture a smaller region, or read it on the machine instead.");
+            }
+
+            McpAudit.Note("whalegenie_read_picture", $"{Path.GetFileName(full)}, {bytes.Length} bytes");
+            return new CallToolResult
+            {
+                Content =
+                [
+                    ImageContentBlock.FromBytes(bytes, "image/png"),
+                    new TextContentBlock
+                    {
+                        Text = JsonSerializer.Serialize(new { path = full, bytes = bytes.Length }),
+                    },
+                ],
+            };
+        });
+
+    [McpServerTool(Name = "whalegenie_instructions", ReadOnly = true,
+            Title = "Read the workflow"),
+     Description("Returns the default writing or debugging instructions, for clients that do not show MCP prompts.")]
+    public Task<CallToolResult> Instructions(
+        [Description("Write or debug; write by default.")] InstructionTopic topic = InstructionTopic.Write)
+        => Task.FromResult(McpErrors.Plain(
+            topic == InstructionTopic.Debug ? McpPrompts.DebugMacro() : McpPrompts.WriteMacro()));
+
+    [McpServerTool(Name = "whalegenie_macro_template", ReadOnly = true,
+            Title = "Empty macro"),
      Description("Returns an empty macro in the exact JSON shape whalegenie_put_macro accepts.")]
-    public async Task<string> MacroTemplate(
+    public Task<CallToolResult> MacroTemplate(
         [Description("The macro name to put in the template.")] string name = "New macro")
-        => Encode(await Ui(() => new MacroItem { Name = name }.ToJson()));
+        => McpErrors.RunAsync(async () => McpErrors.Ok(
+            await Ui(() => new MacroItem { Name = name }.ToJson())));
 
-    [McpServerTool(Name = "whalegenie_list_macros", ReadOnly = true),
-     Description("Lists the macros in an MCP draft.")]
-    public async Task<string> ListMacros(
-        [Description("The draft id returned by whalegenie_open_project.")] string draftId)
-        => Encode(await Ui(() => drafts.Get(draftId).MacroSnapshot().Select(Summary)));
+    [McpServerTool(Name = "whalegenie_list_macros", ReadOnly = true,
+            Title = "List the macros in a draft"),
+     Description("Lists the macros in an MCP draft with the total, and for each one the arguments it declares (name, type, required) and the results it hands back — which is what a call to it has to know. A long project is paged: hasMore says whether anything was left out.")]
+    public Task<CallToolResult> ListMacros(
+        [Description("The draft id returned by whalegenie_open_project.")] string draftId,
+        [Description("How many to skip; empty starts at the first.")] int offset = 0,
+        [Description("How many to return, 1 to 200; 100 by default.")] int limit = 100)
+        => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
+        {
+            var all = drafts.Get(draftId).MacroSnapshot().Select(McpOutline.Summary).ToList();
+            var from = Math.Clamp(offset, 0, all.Count);
+            var size = Math.Clamp(limit <= 0 ? 100 : limit, 1, 200);
+            var page = all.Skip(from).Take(size).ToList();
+            return new
+            {
+                total = all.Count,
+                offset = from,
+                limit = size,
+                hasMore = from + page.Count < all.Count,
+                macros = page,
+            };
+        })));
 
-    [McpServerTool(Name = "whalegenie_get_macro", ReadOnly = true),
-     Description("Returns one macro as the JSON the WhaleGenie package stores.")]
-    public async Task<string> GetMacro(
+    [McpServerTool(Name = "whalegenie_get_macro", ReadOnly = true,
+            Title = "Read one macro"),
+     Description("Returns one macro as the JSON the package stores, triggers included: the same shape whalegenie_put_macro accepts. When only one step's parameters are wanted, whalegenie_get_step reads that step alone instead of the whole macro.")]
+    public Task<CallToolResult> GetMacro(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
-        => await Ui(() => Encode(drafts.Get(draftId).Find(name) is { } macro
-            ? macro.ToJson(includeTriggers: true)
-            : throw new McpException($"There is no macro named \"{name}\".")));
-
-    [McpServerTool(Name = "whalegenie_put_macro", Destructive = true),
-     Description("Adds or replaces a whole macro in a draft. The JSON has the same shape as whalegenie_get_macro.")]
-    public async Task<string> PutMacro(
-        [Description("The draft id.")] string draftId,
-        [Description("Macro JSON: name, trigger fields, arguments, returns and steps.")] string macroJson)
-    {
-        var json = ParseObject(macroJson);
-        var draft = drafts.Get(draftId);
-        var macro = await Ui(() => draft.Put(json));
-        var problems = await Ui(() => McpDraftStore.Validate(draft));
-        return Encode(new
+        => McpErrors.RunAsync(async () =>
         {
-            name = macro.Name,
-            steps = macro.Steps.Count,
-            problems = problems.Messages,
-            macro = await Ui(() => macro.ToJson(includeTriggers: true)),
+            var macro = await Ui(() => drafts.Get(draftId).Find(name));
+            return macro is null
+                ? McpErrors.Fail(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\".",
+                    "Call whalegenie_list_macros to see the names this draft holds.",
+                    retryable: true, details: new { name })
+                : McpErrors.Ok(await Ui(() => macro.ToJson(includeTriggers: true)));
         });
-    }
 
-    [McpServerTool(Name = "whalegenie_delete_macro", Destructive = true),
+    [McpServerTool(Name = "whalegenie_get_step", ReadOnly = true,
+            Title = "Read one step"),
+     Description("Returns one step of a macro as the JSON the package stores, the path it sits at, and whatever validation says about that step alone. Reading one step is what a client needs before changing one parameter: fetching the whole macro for that is the cost this avoids.")]
+    public Task<CallToolResult> GetStep(
+        [Description("The draft id.")] string draftId,
+        [Description("The macro name.")] string name,
+        [Description("The four-character step id from an outline.")] string stepId)
+        => McpErrors.RunAsync(async () =>
+        {
+            var answer = await Ui(() =>
+            {
+                var draft = drafts.Get(draftId);
+                var macro = draft.Find(name);
+                if (macro is null)
+                {
+                    return null;
+                }
+
+                // The outer macro first, then every document written inside it, level by level: an
+                // id is unique across the whole chain, so the first place it turns up is the place
+                // it belongs to, and the label is the path a patch sends back.
+                var found = Find(macro.Steps, stepId, string.Empty);
+                var scope = "main";
+                foreach (var (sub, label) in Documents(macro.SubMacros, "main"))
+                {
+                    if (found is not null)
+                    {
+                        break;
+                    }
+
+                    found = Find(sub.Steps, stepId, string.Empty);
+                    scope = label;
+                }
+
+                return found is { } place
+                    ? new
+                    {
+                        name,
+                        stepId,
+                        macro = scope,
+                        place.Path,
+                        type = place.Step.Type,
+                        step = place.Step.ToJson(),
+                        problems = Problems(draft, name, stepId),
+                    }
+                    : null;
+            });
+
+            return answer is null
+                ? McpErrors.Fail(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\" with step \"{stepId}\".",
+                    "Call whalegenie_get_macro and read its outline; the path there is what insert and move use.",
+                    retryable: true, details: new { name, stepId })
+                : McpErrors.Ok(answer);
+        });
+
+    [McpServerTool(Name = "whalegenie_get_globals", ReadOnly = true,
+            Title = "Read the global declarations"),
+     Description("Returns the package's global variable declarations in the shape whalegenie_set_globals takes, so a whole-list write does not have to be made blind.")]
+    public Task<CallToolResult> GetGlobals(
+        [Description("The draft id.")] string draftId)
+        => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
+        {
+            var globals = drafts.Get(draftId).GlobalList();
+            return new { count = globals.Count, globals };
+        })));
+
+    [McpServerTool(Name = "whalegenie_put_macro", Destructive = true,
+            Title = "Write a whole macro"),
+     Description("Adds or replaces a whole macro in a draft. The object has the same shape as whalegenie_get_macro. The answer carries the outline of what was written (every step's id, type and path) and what validation says, split into blocking problems and hints. The macro itself is not echoed back unless includeMacro is set; use whalegenie_patch_macro to change one thing in a long macro instead of sending it again.")]
+    public Task<CallToolResult> PutMacro(
+        [Description("The draft id.")] string draftId,
+        [Description("The macro as a JSON object: name, trigger fields, arguments, returns and steps.")] JsonObject macro,
+        [Description("Also returns the whole macro. Off by default, because it is what the caller just sent.")] bool includeMacro = false)
+        => McpErrors.RunAsync(async () =>
+        {
+            var draft = drafts.Get(draftId);
+            var put = await Ui(() => draft.Put(macro));
+            var written = put.Macro;
+            var validation = await Ui(() => McpDraftStore.Validate(draft));
+            var outline = await Ui(() => McpOutline.Of(written));
+            return includeMacro
+                ? McpErrors.Ok(new
+                {
+                    name = written.Name,
+                    steps = written.Steps.Count,
+                    outline,
+                    renamed = Renamed(put.Renamed),
+                    validation = Shape(validation),
+                    macro = await Ui(() => written.ToJson(includeTriggers: true)),
+                })
+                : McpErrors.Ok(new
+                {
+                    name = written.Name,
+                    steps = written.Steps.Count,
+                    outline,
+                    renamed = Renamed(put.Renamed),
+                    validation = Shape(validation),
+                });
+        });
+
+    [McpServerTool(Name = "whalegenie_patch_macro", Destructive = true,
+            Title = "Change one step"),
+     Description("Changes a macro without sending it again: one operation per change, applied in order. set changes one parameter's value, whole records included (a record with a field missing is refused); setRow changes the columns of one row of a table, addRow adds one, removeRow takes one out (a table is a call's arguments, a step's results, the places a search looks); insert adds a step to a list; remove takes one out; move puts a step in another place. A patch is one write or none — if any operation does not fit, nothing changes and the refusal says which operation and what that list accepts.")]
+    public Task<CallToolResult> PatchMacro(
+        [Description("The draft id.")] string draftId,
+        [Description("The macro name.")] string name,
+        [Description("The operations: {op:\"set\",stepId,param,value}, {op:\"insert\",parent,index,step}, {op:\"remove\",stepId} or {op:\"move\",stepId,parent,index}. A parent is a list path such as 0.then, or empty for the top level. An operation that changes a step inside a submacro also carries \"macro\" with the label the outline prints for that step: \"sub:<name>\", or a path such as \"sub:a/sub:b\" for one written inside another. Without it the operation means the macro's own steps.")] JsonArray operations,
+        [Description("Also returns the whole macro. Off by default, because the outline already says what it holds.")] bool includeMacro = false,
+        [Description("Returns the outline of every step after the patch. On by default; turn it off when only the changed list is needed.")] bool includeOutline = true)
+        => McpErrors.RunAsync(async () =>
+        {
+            var draft = drafts.Get(draftId);
+            var macro = await Ui(() => draft.Find(name));
+            if (macro is null)
+            {
+                return McpErrors.Fail(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\".",
+                    "Call whalegenie_list_macros to see the names this draft holds.",
+                    retryable: true, details: new { name });
+            }
+
+            var outcome = await Ui(() => McpPatches.Apply(macro, operations));
+            if (outcome.Refused is { } refusal)
+            {
+                return McpErrors.Fail(refusal.Code, refusal.Message, refusal.Hint,
+                    refusal.Retryable, refusal.Details);
+            }
+
+            var patched = outcome.Macro!;
+            var stored = await Ui(() => draft.Put(patched.ToJson()));
+
+            var written = await Ui(() => draft.Find(name)) ?? patched;
+            var validation = await Ui(() => McpDraftStore.Validate(draft));
+            var outline = await Ui(() => McpOutline.Of(written));
+            var changed = outcome.Touches
+                .Select(touch => new
+                {
+                    op = touch.Op,
+                    stepId = touch.Step?.Id ?? string.Empty,
+                    type = touch.Step?.Type ?? string.Empty,
+
+                    // A change to the macro itself has no step behind it; the field says what moved.
+                    field = touch.Field ?? string.Empty,
+                })
+                .ToList();
+            // What a patch answers with is decided by what the caller asked for: the outline of a
+            // forty-step macro is most of the answer, and a client that only wants to know what
+            // changed should not pay for it on every call.
+            var answer = new Dictionary<string, object?>
+            {
+                ["name"] = written.Name,
+                ["steps"] = written.Steps.Count,
+                ["changed"] = changed,
+                ["renamed"] = Renamed(stored.Renamed),
+                ["validation"] = Shape(validation),
+            };
+
+            if (includeOutline)
+            {
+                answer["outline"] = outline;
+            }
+
+            if (includeMacro)
+            {
+                answer["macro"] = await Ui(() => written.ToJson(includeTriggers: true));
+            }
+
+            return McpErrors.Ok(answer);
+        });
+
+    [McpServerTool(Name = "whalegenie_delete_macro", Destructive = true,
+            Title = "Delete one macro"),
      Description("Deletes one macro from a draft; nothing is saved until whalegenie_save_project.")]
-    public async Task<string> DeleteMacro(
+    public Task<CallToolResult> DeleteMacro(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)
-    {
-        var draft = drafts.Get(draftId);
-        await Ui(() =>
+        => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>
         {
+            var draft = drafts.Get(draftId);
             draft.Delete(name);
-            return true;
-        });
-        return Encode(new { deleted = name });
-    }
+            return new { deleted = name, macroCount = draft.MacroSnapshot().Count };
+        })));
 
-    [McpServerTool(Name = "whalegenie_set_globals", Destructive = true),
-     Description("Replaces the global variable declarations in a draft.")]
-    public async Task<string> SetGlobals(
+    [McpServerTool(Name = "whalegenie_set_globals", Destructive = true,
+            Title = "Replace the global variables"),
+     Description("Replaces the global variable declarations in a draft. Each entry is {name, type, default, description}.")]
+    public Task<CallToolResult> SetGlobals(
         [Description("The draft id.")] string draftId,
-        [Description("A JSON array of {name,type,default,description} objects.")] string globalsJson)
-    {
-        var array = ParseArray(globalsJson);
-        var draft = drafts.Get(draftId);
-        await Ui(() =>
+        [Description("The declarations as a JSON array of {name,type,default,description} objects.")] JsonArray globals)
+        => McpErrors.RunAsync(async () =>
         {
-            draft.SetGlobals(array);
-            return true;
+            var draft = drafts.Get(draftId);
+            await Ui(() =>
+            {
+                draft.SetGlobals(globals);
+                return true;
+            });
+            return McpErrors.Ok(new { count = draft.Globals.Count });
         });
-        return Encode(new { count = draft.Globals.Count });
-    }
 
-    [McpServerTool(Name = "whalegenie_validate", ReadOnly = true),
-     Description("Checks every macro in a draft against the action catalogue, including hidden actions and each child list's childKeys, and the interface declarations.")]
-    public async Task<string> Validate(
+    [McpServerTool(Name = "whalegenie_validate", ReadOnly = true,
+            Title = "Check a draft"),
+     Description("Checks every macro in a draft against the action catalogue, including hidden actions and each child list's childKeys, and the interface declarations. Blocking problems stop apply; hints never do. Every problem names the macro and, where there is one, the step id it came from.")]
+    public Task<CallToolResult> Validate(
         [Description("The draft id.")] string draftId)
-        => Encode(await Ui(() => McpDraftStore.Validate(drafts.Get(draftId))));
+        => McpErrors.RunAsync(async () => McpErrors.Ok(
+            Shape(await Ui(() => McpDraftStore.Validate(drafts.Get(draftId))))));
 
-    [McpServerTool(Name = "whalegenie_apply", Destructive = true),
-     Description("Writes a draft back into the open project. It does not save the package; the person still reviews and saves it.")]
-    public async Task<string> Apply(
+    [McpServerTool(Name = "whalegenie_preview_apply", ReadOnly = true,
+            Title = "See what apply would change"),
+     Description("Says what whalegenie_apply would change, before anything is written: macros that appear, disappear or change (and for a changed one the steps that came, went, moved, or no longer say the same thing), plus the global declarations that move. The validation verdict comes with it, so one call answers whether this draft is worth applying.")]
+    public Task<CallToolResult> PreviewApply(
+        [Description("The draft id.")] string draftId)
+        => McpErrors.RunAsync(async () =>
+        {
+            var draft = drafts.Get(draftId);
+            var validation = await Ui(() => McpDraftStore.Validate(draft));
+            var preview = await Ui(() => McpPreview.Of(draft));
+            return McpErrors.Ok(new
+            {
+                draftId = draft.Id,
+                path = draft.Basis.Path,
+                revision = draft.Basis.Revision,
+                applied = draft.Applied,
+                ok = validation.Ok && validation.Blocking.Count == 0,
+                blocking = validation.Blocking.Count,
+                hints = validation.Hints.Count,
+                problems = validation.Blocking.Take(5),
+                preview.Totals,
+                preview.Macros,
+                preview.Globals,
+            });
+        });
+
+    [McpServerTool(Name = "whalegenie_apply", Destructive = true,
+            Title = "Apply a draft to the project"),
+     Description("Writes a draft back into the open project. It refuses a draft the validator calls blocking, because a macro that cannot run is not worth putting in front of the person; pass force to write it anyway. It does not save the package.")]
+    public Task<CallToolResult> Apply(
+        [Description("The draft id.")] string draftId,
+        [Description("Writes the draft even when validation reports blocking problems.")] bool force = false)
+        => McpErrors.RunAsync(async () =>
+        {
+            if (RefuseWrite() is { } refused)
+            {
+                return refused;
+            }
+
+            var draft = drafts.Get(draftId);
+            if (draft.Applied)
+            {
+                return McpErrors.Fail(McpErrors.AlreadyApplied, "This draft has already been applied.",
+                    "Open the project again to get a fresh draft; one draft is written once.");
+            }
+
+            var validation = await Ui(() => McpDraftStore.Validate(draft));
+            if (!force && validation.Blocking.Count > 0)
+            {
+                return McpErrors.Fail(McpErrors.DraftHasBlockingProblems,
+                    $"The draft has {validation.Blocking.Count} blocking problem(s), so it was not applied.",
+                    "Call whalegenie_validate, fix what it names, then apply again. Pass force when the problems are known and wanted.",
+                    retryable: true,
+                    details: new { problems = validation.Blocking.Take(5), total = validation.Blocking.Count });
+            }
+
+            var macros = draft.MacroSnapshot();
+            var triggers = draft.Triggers.Copy();
+            await Ui(() =>
+            {
+                triggers.Attach(macros);
+                return true;
+            });
+            var globals = await Ui(() => draft.Globals.ToList());
+            var revision = await project.ApplyAsync(draft.Basis, macros, triggers, globals);
+            draft.MarkApplied();
+            return McpErrors.Ok(new
+            {
+                revision,
+                macros = macros.Count,
+                changed = Changed(draft),
+                hints = validation.Hints.Count,
+            });
+        });
+
+    [McpServerTool(Name = "whalegenie_save_project", Destructive = true,
+            Title = "Save the package"),
+     Description("Saves the open project to its current .wgmacro package, after keeping a .bak copy.")]
+    public Task<CallToolResult> SaveProject()
+        => McpErrors.RunAsync(async () =>
+        {
+            if (RefuseWrite() is { } refused)
+            {
+                return refused;
+            }
+
+            var path = await project.SaveAsync();
+            var status = await project.StatusAsync();
+
+            // Saving writes the project, not a draft: a draft that was never applied is not in the
+            // file, and a client that saved instead of applying would otherwise believe it is.
+            var open = drafts.Open;
+            return open == 0
+                ? McpErrors.Ok(new { path, status.Revision, status.Dirty })
+                : McpErrors.Ok(new
+                {
+                    path,
+                    status.Revision,
+                    status.Dirty,
+                    openDrafts = open,
+                    hint = "This saved the project, not a draft. Call whalegenie_apply first for draft changes to reach the file.",
+                });
+        });
+
+    [McpServerTool(Name = "whalegenie_discard", Destructive = true,
+            Title = "Discard a draft"),
+     Description("Drops a draft. Applied changes already in the project stay there and can still be saved by the person.")]
+    public Task<CallToolResult> Discard(
         [Description("The draft id.")] string draftId)
     {
-        var draft = drafts.Get(draftId);
-        if (draft.Applied)
+        if (!drafts.Remove(draftId))
         {
-            throw new McpException("This draft has already been applied.");
+            return Task.FromResult(McpErrors.Fail(McpErrors.DraftNotFound,
+                $"There is no draft \"{draftId}\" to discard.",
+                "Call whalegenie_open_project for a new one; a draft is also dropped when the server stops.",
+                retryable: true, details: new { draftId }));
         }
 
-        var macros = draft.MacroSnapshot();
-        var triggers = draft.Triggers.Copy();
-        await Ui(() =>
-        {
-            triggers.Attach(macros);
-            return true;
-        });
-        var globals = await Ui(() => draft.Globals.ToList());
-        var revision = await project.ApplyAsync(draft.Basis, macros, triggers, globals);
-        draft.MarkApplied();
-        return Encode(new { revision, macros = macros.Count });
+        return Task.FromResult(McpErrors.Ok(new { discarded = draftId }));
     }
 
-    [McpServerTool(Name = "whalegenie_save_project", Destructive = true),
-     Description("Saves the open project to its current .wgmacro package, after keeping a .bak copy.")]
-    public async Task<string> SaveProject()
-        => Encode(new { path = await project.SaveAsync() });
-
-    [McpServerTool(Name = "whalegenie_discard", Destructive = true),
-     Description("Drops a draft. Applied changes already in the project stay there and can still be saved by the person.")]
-    public Task<string> Discard(
-        [Description("The draft id.")] string draftId)
-    {
-        drafts.Remove(draftId);
-        return Task.FromResult(Encode(new { discarded = draftId }));
-    }
-
-    [McpServerTool(Name = "whalegenie_list_runs", ReadOnly = true),
-     Description("Lists the last runs WhaleGenie performed. Running itself is done by the person, not by MCP.")]
-    public Task<string> ListRuns(
+    [McpServerTool(Name = "whalegenie_list_runs", ReadOnly = true,
+            Title = "List the last runs"),
+     Description("Lists the last runs WhaleGenie performed, newest first, with the total. A run comes from the person pressing Run, from a trigger, or from whalegenie_run_macro.")]
+    public Task<CallToolResult> ListRuns(
         [Description("How many runs to return, 1 to 20.")] int limit = 10)
-        => Task.FromResult(Encode(RunLogStore.Recent(limit).Select(RunSummary)));
-
-    [McpServerTool(Name = "whalegenie_get_run_log", ReadOnly = true),
-     Description("Returns one run's log and step outcomes, or the latest run when no id is given.")]
-    public Task<string> GetRunLog(
-        [Description("The run id from whalegenie_list_runs; empty means the latest run.")] string? runId = null)
     {
-        var run = string.IsNullOrWhiteSpace(runId)
-            ? RunLogStore.Latest()
-            : RunLogStore.Find(runId);
+        var kept = RunLogStore.Recent(20);
+        var recent = kept.Take(Math.Clamp(limit, 1, 20)).Select(RunSummary).ToList();
+        return Task.FromResult(McpErrors.Ok(new
+        {
+            total = kept.Count,
+            returned = recent.Count,
+            runs = recent,
+        }));
+    }
+
+    [McpServerTool(Name = "whalegenie_get_run_log", ReadOnly = true,
+            Title = "Read one run's log"),
+     Description("Returns one run's log and step outcomes, or the latest run when no id is given. A long log is cut off and says so: totalLines is what the run wrote, returned is what came back.")]
+    public Task<CallToolResult> GetRunLog(
+        [Description("The run id from whalegenie_list_runs; empty means the latest run.")] string? runId = null,
+        [Description("How many lines to return, counted from the end: the last ones are where a run goes wrong. 500 at most.")] int tail = 500)
+    {
+        var asked = (runId ?? string.Empty).Trim();
+        var run = asked.Length == 0 ? RunLogStore.Latest() : RunLogStore.Find(asked);
+        if (run is null && asked.Length == 0)
+        {
+            // Nothing has run yet is the state a new session starts in, not a mistake: an empty
+            // answer with the same fields says so, so a client can read the log before anything has
+            // happened instead of treating its first look as an error to retry or branch on.
+            return Task.FromResult(McpErrors.Ok(new
+            {
+                totalLines = 0,
+                returned = 0,
+                truncated = false,
+                fromLine = 0,
+                lines = Array.Empty<object>(),
+                outcomes = Array.Empty<object>(),
+                note = "No run has been recorded yet. whalegenie_run_macro runs one (it needs the run "
+                    + "switch in the MCP flyout), or the person presses Run in WhaleGenie; read this "
+                    + "again afterwards.",
+            }));
+        }
+
         if (run is null)
         {
-            throw new McpException("There is no such run.");
+            return Task.FromResult(McpErrors.Fail(McpErrors.NoSuchRun,
+                $"There is no run \"{asked}\".",
+                "Call whalegenie_list_runs first; it lists what the person has run, newest first.",
+                retryable: true, details: new { runId = asked }));
         }
 
-        return Task.FromResult(Encode(new
+        var lines = run.Lines.Select(line => new
+        {
+            time = line.Time,
+            level = line.Level.ToString(),
+            depth = line.Depth,
+            text = line.Text,
+        }).ToList();
+        var returned = Math.Clamp(tail <= 0 ? 500 : tail, 1, 500);
+        var from = Math.Max(0, lines.Count - returned);
+        return Task.FromResult(McpErrors.Ok(new
         {
             run.Id,
             run.Macro,
@@ -246,30 +673,26 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             run.Detail,
             run.Steps,
             run.FailureLogPath,
-            lines = Limit(run.Lines.Select(line => new
-            {
-                time = line.Time,
-                level = line.Level.ToString(),
-                depth = line.Depth,
-                text = line.Text,
-            })),
+            totalLines = lines.Count,
+            returned,
+            truncated = lines.Count > returned,
+            fromLine = from,
+            lines = lines.Skip(from),
             outcomes = run.Outcomes,
         }));
     }
 
-    [McpServerTool(Name = "whalegenie_get_last_failure_log", ReadOnly = true),
-     Description("Returns the newest failure log WhaleGenie wrote, for debugging a run the person already performed.")]
-    public Task<string> GetLastFailureLog()
+    [McpServerTool(Name = "whalegenie_get_last_failure_log", ReadOnly = true,
+            Title = "Read the newest failure log"),
+     Description("Returns the newest failure log WhaleGenie wrote, or the one at a path an earlier answer named. Only files a failed run writes are read: the call log the server keeps is not one of them.")]
+    public Task<CallToolResult> GetLastFailureLog(
+        [Description("A path from a run's failureLogPath; empty means the newest failure log.")] string? path = null)
     {
-        var file = Directory.Exists(AppPaths.Logs)
-            ? Directory.EnumerateFiles(AppPaths.Logs, "*.log")
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .FirstOrDefault()
-            : null;
+        var file = McpFailureLogs.Named(AppPaths.Logs, path);
 
         if (file is null)
         {
-            return Task.FromResult(Encode(new
+            return Task.FromResult(McpErrors.Ok(new
             {
                 path = string.Empty,
                 text = string.Empty,
@@ -277,23 +700,379 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
             }));
         }
 
-        var text = File.ReadAllText(file);
-        var truncated = text.Length > 65536;
-        if (truncated)
+        try
         {
-            text = text[^65536..];
-        }
+            var text = File.ReadAllText(file);
+            var truncated = text.Length > 65536;
+            if (truncated)
+            {
+                text = text[^65536..];
+            }
 
-        return Task.FromResult(Encode(new { path = file, text, truncated }));
+            return Task.FromResult(McpErrors.Ok(new { path = file, text, truncated }));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return Task.FromResult(McpErrors.Fail(McpErrors.BadArgument,
+                $"The failure log could not be read: {error.Message}",
+                "The file may still be open in another program.", details: new { file }));
+        }
     }
 
-    private static object Summary(Models.MacroItem macro) => new
+    /// <summary>The validation answer as a client reads it: what blocks, what is only worth knowing.</summary>
+    private static object Shape(McpDraftValidation validation) => new
     {
-        name = macro.Name,
-        steps = macro.Steps.Count,
-        parameters = macro.Parameters.Count,
-        results = macro.Results.Count,
+        ok = validation.Ok,
+        counts = new { blocking = validation.Blocking.Count, hints = validation.Hints.Count },
+        blocking = validation.Blocking,
+        hints = validation.Hints,
     };
+
+    /// <summary>
+    /// What a macro asks a call to fill in and what it may hand back, with a skeleton a client can
+    /// copy into a call step. Both are rows: an argument row names the argument and gives its
+    /// value, a result row names the result and says where it lands — facts that live in the called
+    /// macro, which is why no action entry can state them.
+    /// </summary>
+    private static object Signature(MacroItem macro)
+    {
+        var call = macro.Callable;
+        var arguments = CallableSignature.Arguments(call)
+            .Select(argument => new
+            {
+                name = argument.Name,
+                type = argument.Type.ToString(),
+                required = argument.Required,
+                @default = argument.Default,
+                description = argument.Description,
+                fields = argument.Fields
+                    .Select(field => new { name = field.Name, type = field.Type.ToString() })
+                    .ToList(),
+            })
+            .ToList();
+
+        var results = CallableSignature.Results(call)
+            .Select(result => new
+            {
+                name = result.Name,
+                type = result.Type.ToString(),
+                description = result.Description,
+                fields = result.Fields
+                    .Select(field => new { name = field.Name, type = field.Type.ToString() })
+                    .ToList(),
+            })
+            .ToList();
+
+        // Only the arguments a call has to fill in are in the skeleton: leaving an optional one out
+        // is how its declared default applies, and writing it down empty would say something else.
+        var template = new JsonObject
+        {
+            [FieldNames.Macro] = macro.Name.Trim(),
+            [FieldNames.Arguments] = new JsonArray(
+                [.. arguments
+                    .Where(argument => argument.required)
+                    .Select(argument => new JsonObject
+                    {
+                        [FieldNames.Name] = argument.name,
+                        [FieldNames.Value] = string.Empty,
+                    })]),
+            ["returns"] = new JsonArray([.. results.Select(result => new JsonObject
+            {
+                [FieldNames.Key] = result.name,
+                [FieldNames.Name] = result.name,
+            })]),
+        };
+
+        return new
+        {
+            name = macro.Name.Trim(),
+            arguments,
+            results,
+            argumentColumns = new[] { FieldNames.Name, FieldNames.Value, FieldNames.Given },
+            callTemplate = template,
+            notes = new[]
+            {
+                "A call step names the macro in params.macro and passes its arguments in params.arguments, one row per argument: name is the name the called macro declared, value is what goes into it, and given says the empty value is meant rather than left out.",
+                "An argument with no row takes its declared default; a required one with no row fails the call with Run.MissingArgument before the called macro runs.",
+                "To pass an empty value instead of the default, write the row with an empty value and given true. An empty value without given means the argument was left out.",
+                "Results are asked for in params.returns, one row per value: key is the name the called macro declared, name is the local variable it lands in.",
+                "control.runMacro waits for the called macro, and its results exist when it returns.",
+            },
+        };
+    }
+
+    /// <summary>Where a step sits: the step itself and the path an insert or a move would name.</summary>
+    private static (MacroStep Step, string Path)? Find(IReadOnlyList<MacroStep> steps, string id, string prefix)
+    {
+        for (var at = 0; at < steps.Count; at++)
+        {
+            var step = steps[at];
+            var path = prefix.Length == 0
+                ? at.ToString(CultureInfo.InvariantCulture)
+                : $"{prefix}.{at.ToString(CultureInfo.InvariantCulture)}";
+            if (string.Equals(step.Id, id, StringComparison.OrdinalIgnoreCase))
+            {
+                return (step, path);
+            }
+
+            foreach (var parameter in step.StepLists)
+            {
+                if (Find(parameter.Steps, id, $"{path}.{parameter.Name}") is { } child)
+                {
+                    return child;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>What validation says about one step, both what blocks and what is only worth reading.</summary>
+    private static IReadOnlyList<object> Problems(McpDraft draft, string macro, string stepId)
+    {
+        var validation = McpDraftStore.Validate(draft);
+        return
+        [
+            .. validation.Blocking
+                .Where(problem => problem.Macro == macro && problem.StepId == stepId)
+                .Select(problem => (object)new { kind = "blocking", problem.Code, problem.Message }),
+            .. validation.Hints
+                .Where(problem => problem.Macro == macro && problem.StepId == stepId)
+                .Select(problem => (object)new { kind = "hint", problem.Code, problem.Message }),
+        ];
+    }
+
+    /// <summary>
+    /// Puts a picture where the macros look for one and answers with the name a step points at. A
+    /// picture is a file beside the package, and the package carries it when the project is saved —
+    /// so it is written here, not inside a draft, and it is behind the same switch as anything else
+    /// that puts something on this machine.
+    /// </summary>
+    [McpServerTool(Name = "whalegenie_put_image", Destructive = true,
+            Title = "Store an image for a macro"),
+     Description("Stores an image in the project's assets folder and answers with the name a step points at. Give the bytes (base64) or a file on this machine (path). A step uses it in a parameter called image, for example {\"image\":\"shot.png\"}; the file travels with the package when the project is saved.")]
+    public Task<CallToolResult> PutImage(
+        [Description("The image bytes, base64 encoded; a data: URL is accepted. Give this or path, not both.")] string? base64 = null,
+        [Description("A file on this machine to copy in. Give this or base64, not both.")] string? path = null,
+        [Description("The name to keep it under, without a folder. Left out, one is made from the time it arrived.")] string? name = null)
+        => McpErrors.RunAsync(async () =>
+        {
+            if (RefuseWrite() is { } refused)
+            {
+                return refused;
+            }
+
+            var bytes = await ReadImage(base64, path);
+            if (bytes.Length > MaxImageBytes)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument,
+                    $"The image is {bytes.Length} bytes; at most {MaxImageBytes} are accepted.",
+                    "Scale it down before sending it: a picture a step matches against is a small part of the screen.");
+            }
+
+            if (Extension(bytes) is not { } extension)
+            {
+                return McpErrors.Fail(McpErrors.BadArgument,
+                    "That is not a PNG, JPEG, BMP or GIF.",
+                    "A screen picture is one of those four; anything else cannot be matched against the screen.");
+            }
+
+            var status = await project.StatusAsync();
+            var folder = ImageAssets.FolderFor(status.Path);
+            var file = FileName(name, extension);
+            var written = Unique(folder, file);
+            Directory.CreateDirectory(folder);
+            await File.WriteAllBytesAsync(written, bytes);
+
+            var size = await Ui(() =>
+            {
+                using var bitmap = new Bitmap(written);
+                return bitmap.PixelSize;
+            });
+
+            file = Path.GetFileName(written);
+            McpAudit.Note("whalegenie_put_image", $"{file}, {bytes.Length} bytes");
+            return McpErrors.Ok(new
+            {
+                file,
+                folder,
+                width = size.Width,
+                height = size.Height,
+                bytes = bytes.Length,
+                parameter = new { image = file },
+                hint = status.Path is null
+                    ? "The project has no package yet, so this sits in WhaleGenie's own folder until the first save."
+                    : "Saving the project copies it into the package's assets.",
+            });
+        });
+
+    /// <summary>
+    /// Every submacro below a macro, each with the path that reaches it: <c>sub:a</c>, then
+    /// <c>sub:a/sub:b</c> for one inside that.
+    /// </summary>
+    private static IEnumerable<(MacroItem Sub, string Label)> Documents(
+        IReadOnlyList<MacroItem> subs, string scope)
+    {
+        foreach (var sub in subs)
+        {
+            var label = scope == "main" ? "sub:" + sub.Name.Trim() : scope + "/sub:" + sub.Name.Trim();
+            yield return (sub, label);
+            foreach (var nested in Documents(sub.SubMacros, label))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The ids a write had to move because two steps arrived sharing one, said as the pairs they
+    /// are. A client that wrote expressions against its own ids can see what was kept instead.
+    /// </summary>
+    private static IReadOnlyList<object> Renamed(IReadOnlyList<StepIds.Rename> renamed)
+        => [.. renamed.Select(rename => (object)new { from = rename.Old, to = rename.New })];
+
+    /// <summary>
+    /// The two tools that write the project stand behind one door: the switch that allows this
+    /// machine to be changed. Editing a draft is not behind it — a draft is a copy, and looking at
+    /// what it would do costs nothing.
+    /// </summary>
+    private static CallToolResult? RefuseWrite()
+        => McpControl.Allowed
+            ? null
+            : McpErrors.Fail(McpErrors.ProjectWriteOff,
+                "Direct control is off, so the project was not written.",
+                "Ask the person to turn on \"Allow direct control\"（允许直接控制） in the WhaleGenie MCP flyout, then call again." +
+                " Opening, editing and validating a draft needs no switch.",
+                retryable: true);
+
+    /// <summary>The image the call carried, from the bytes or from a file, or a refusal.</summary>
+    private static async Task<byte[]> ReadImage(string? base64, string? path)
+    {
+        var hasBytes = !string.IsNullOrWhiteSpace(base64);
+        var hasFile = !string.IsNullOrWhiteSpace(path);
+        if (hasBytes == hasFile)
+        {
+            throw new McpFailure(McpErrors.BadArgument,
+                hasBytes ? "Give either base64 or path, not both." : "Give the image as base64 or as a path.",
+                "A file on this machine is cheaper to send; the bytes are for a picture that is not on disk yet.");
+        }
+
+        if (hasFile)
+        {
+            var file = path!.Trim();
+            if (!File.Exists(file))
+            {
+                throw new McpFailure(McpErrors.BadArgument, $"There is no file at \"{file}\".",
+                    "The path is read on this machine, where the server runs, not where the client does.");
+            }
+
+            return await File.ReadAllBytesAsync(Path.GetFullPath(file));
+        }
+
+        var text = base64!.Trim();
+
+        // A data URL is what a model tends to have when the picture came from a chat; the part
+        // before the comma is a description of the bytes, not part of them.
+        var comma = text.IndexOf(',');
+        if (text.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma > 0)
+        {
+            text = text[(comma + 1)..];
+        }
+
+        try
+        {
+            return Convert.FromBase64String(text);
+        }
+        catch (FormatException)
+        {
+            throw new McpFailure(McpErrors.BadJson, "The base64 was not base64.",
+                "Send the bytes without line breaks; a data URL is accepted as it is.");
+        }
+    }
+
+    /// <summary>What kind of picture the bytes are, from the signature they start with.</summary>
+    private static string? Extension(byte[] bytes)
+    {
+        if (bytes.Length > 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
+        {
+            return ".png";
+        }
+
+        if (bytes.Length > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+        {
+            return ".jpg";
+        }
+
+        if (bytes.Length > 2 && bytes[0] == 0x42 && bytes[1] == 0x4D)
+        {
+            return ".bmp";
+        }
+
+        return bytes.Length > 6 && bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46
+            ? ".gif"
+            : null;
+    }
+
+    /// <summary>
+    /// The name to store the picture under: what was asked for, with the extension the bytes
+    /// actually are, and without a folder — this writes into one folder and nowhere else.
+    /// </summary>
+    private static string FileName(string? name, string extension)
+    {
+        var asked = (name ?? string.Empty).Trim();
+        asked = Path.GetFileName(asked.Replace('\\', '/'));
+        if (asked.Length == 0)
+        {
+            return "image-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + extension;
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(asked);
+        var invalid = Path.GetInvalidFileNameChars();
+        var clean = new string([.. stem.Where(character => !invalid.Contains(character))]).Trim();
+        return (clean.Length == 0 ? "image" : clean) + extension;
+    }
+
+    /// <summary>
+    /// A path in that folder which nothing else is using. A second picture under the same name is
+    /// kept rather than overwriting the one a step already points at.
+    /// </summary>
+    private static string Unique(string folder, string file)
+    {
+        var candidate = Path.Combine(folder, file);
+        var stem = Path.GetFileNameWithoutExtension(file);
+        var extension = Path.GetExtension(file);
+        var counter = 1;
+        while (File.Exists(candidate))
+        {
+            counter++;
+            candidate = Path.Combine(folder, string.Create(CultureInfo.InvariantCulture, $"{stem}-{counter}{extension}"));
+        }
+
+        return candidate;
+    }
+
+    /// <summary>The macros this draft moved, named against the snapshot it came from. Saying what changed is
+    /// cheaper for a reader than diffing two macro dumps, and it is what "what did you do" means.
+    /// </summary>
+    private static IReadOnlyList<string> Changed(McpDraft draft)
+    {
+        var before = draft.Basis.Macros.ToDictionary(
+            macro => macro.Name.Trim(), macro => macro.ToJson().ToJsonString(), StringComparer.OrdinalIgnoreCase);
+        var after = draft.MacroSnapshot().ToDictionary(
+            macro => macro.Name.Trim(), macro => macro.ToJson().ToJsonString(), StringComparer.OrdinalIgnoreCase);
+
+        var changed = new List<string>();
+        foreach (var (name, json) in after)
+        {
+            if (!before.TryGetValue(name, out var was) || !string.Equals(was, json, StringComparison.Ordinal))
+            {
+                changed.Add(name);
+            }
+        }
+
+        changed.AddRange(before.Keys.Where(name => !after.ContainsKey(name)).Select(name => "-" + name));
+        return changed;
+    }
 
     private static object RunSummary(RunLogSnapshot run) => new
     {
@@ -309,10 +1088,4 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
         run.FailureLogPath,
         lines = run.Lines.Count,
     };
-
-    private static IEnumerable<T> Limit<T>(IEnumerable<T> lines)
-    {
-        var list = lines.ToList();
-        return list.Count <= 500 ? list : list.Take(500);
-    }
 }

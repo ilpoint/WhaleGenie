@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
-using Avalonia.Media;
 using WhaleGenie.Core.Execution;
 
 namespace WhaleGenie.Models;
@@ -20,28 +19,32 @@ public static class ActionCatalog
     static ActionCatalog()
     {
         var display = LoadDisplay();
+        Display = [.. display.Select(Shown)];
+
+        // Both files have to describe the same actions, and every action the same parameters and
+        // results. The whole list is collected before anything is thrown, so a broken pair of files
+        // is one message naming every gap rather than a message naming whichever gap came first —
+        // fixing them one startup at a time is how a report gets read as "it is always broken".
+        var issues = ActionContract.Check(ActionSemanticsCatalog.All, Display);
+        if (issues.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "The action catalogues disagree:" + Environment.NewLine
+                + string.Join(Environment.NewLine, issues));
+        }
+
         var byKey = display.ToDictionary(action => action.Key, StringComparer.Ordinal);
         var definitions = new List<ActionDefinition>(ActionSemanticsCatalog.All.Count);
 
         foreach (var semantics in ActionSemanticsCatalog.All)
         {
-            if (!byKey.TryGetValue(semantics.Key, out var shown))
-            {
-                throw new InvalidOperationException(
-                    $"{semantics.Key} has engine semantics but no display metadata.");
-            }
-
+            var shown = byKey[semantics.Key];
             var shownParameters = shown.Parameters.ToDictionary(
                 parameter => parameter.Name, StringComparer.Ordinal);
             var parameters = new List<ActionParameter>(semantics.Parameters.Count);
             foreach (var facts in semantics.Parameters)
             {
-                if (!shownParameters.TryGetValue(facts.Name, out var field))
-                {
-                    throw new InvalidOperationException(
-                        $"{semantics.Key}.{facts.Name} has engine semantics but no display metadata.");
-                }
-
+                var field = shownParameters[facts.Name];
                 parameters.Add(new ActionParameter
                 {
                     Name = facts.Name,
@@ -71,12 +74,7 @@ public static class ActionCatalog
             var returns = new List<ActionReturn>(semantics.Returns.Count);
             foreach (var facts in semantics.Returns)
             {
-                if (!shownReturns.TryGetValue(facts.Key, out var result))
-                {
-                    throw new InvalidOperationException(
-                        $"{semantics.Key}.return.{facts.Key} has engine semantics but no display metadata.");
-                }
-
+                var result = shownReturns[facts.Key];
                 returns.Add(new ActionReturn
                 {
                     Key = facts.Key,
@@ -107,16 +105,32 @@ public static class ActionCatalog
 
         Definitions = definitions;
         ByKey = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
-        RunnableActions = [.. definitions.Where(definition => !definition.Hidden)];
+        RunnableActions = [.. definitions.Where(definition => !definition.Hidden && !definition.Retired)];
+        PlaceableActions = [.. definitions.Where(definition => !definition.Hidden)];
     }
+
+    /// <summary>
+    /// The display file's own facts, in the shape the contract check reads. Exposed so the check can
+    /// be run against the shipped files from a test rather than only when the program starts.
+    /// </summary>
+    public static IReadOnlyList<ActionContractDisplay> Display { get; } = [];
 
     /// <summary>Every action and condition, in the order the picker lists them.</summary>
     public static IReadOnlyList<ActionDefinition> Definitions { get; private set; } = [];
 
     private static readonly Dictionary<string, ActionDefinition> ByKey;
 
-    /// <summary>Everything that can be a step of its own, hidden actions excluded.</summary>
+    /// <summary>
+    /// Everything a new macro may use: hidden and retired actions left out. This is what the palette
+    /// and the step pickers list.
+    /// </summary>
     public static IReadOnlyList<ActionDefinition> RunnableActions { get; private set; } = [];
+
+    /// <summary>
+    /// Everything that can sit in a step list, including the actions no longer offered. A macro
+    /// written before an action was retired still has to open without being told it is wrong.
+    /// </summary>
+    public static IReadOnlyList<ActionDefinition> PlaceableActions { get; private set; } = [];
 
     /// <summary>Finds a definition by its fully qualified key.</summary>
     public static ActionDefinition? Find(string key)
@@ -129,25 +143,6 @@ public static class ActionCatalog
     public static IReadOnlyList<ActionDefinition> ForKeys(IReadOnlyList<string> keys)
         => [.. keys.Select(Find).OfType<ActionDefinition>()];
 
-    /// <summary>Line-art icon shared by every action of a category.</summary>
-    public static Lucide.Avalonia.LucideIconKind? IconFor(ActionCategory category) => category switch
-    {
-        ActionCategory.Control => AppIcons.Workflow,
-        ActionCategory.File => AppIcons.File,
-        ActionCategory.Data => AppIcons.Variable,
-        ActionCategory.Clipboard => AppIcons.Clipboard,
-        ActionCategory.Process => AppIcons.Cpu,
-        ActionCategory.System => AppIcons.Settings,
-        ActionCategory.Window => AppIcons.AppWindow,
-        ActionCategory.Input => AppIcons.Keyboard,
-        ActionCategory.Vision => AppIcons.Eye,
-        ActionCategory.Ocr => AppIcons.TextScan,
-        ActionCategory.Uia => AppIcons.CursorClick,
-        ActionCategory.Browser => AppIcons.Browser,
-        ActionCategory.Script => AppIcons.Code,
-        _ => null,
-    };
-
     private static IReadOnlyList<DisplayAction> LoadDisplay()
     {
         using var stream = typeof(ActionCatalog).Assembly.GetManifestResourceStream(DisplayResource)
@@ -157,14 +152,15 @@ public static class ActionCatalog
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new InvalidOperationException("The action display catalogue is empty.");
 
-        if (display.Select(action => action.Key).Distinct(StringComparer.Ordinal).Count()
-            != display.Count)
-        {
-            throw new InvalidOperationException("The action display catalogue repeats an action key.");
-        }
-
         return display;
     }
+
+    /// <summary>One display entry cut down to what the contract check reads.</summary>
+    private static ActionContractDisplay Shown(DisplayAction action)
+        => new(action.Key,
+            [.. action.Parameters.Select(parameter => new ActionContractParameter(
+                parameter.Name, parameter.Kind))],
+            [.. action.Returns.Select(result => result.Key)]);
 
     private static ActionParameterKind KindOf(string written, string field)
         => Enum.TryParse<ActionParameterKind>(written, ignoreCase: true, out var kind)

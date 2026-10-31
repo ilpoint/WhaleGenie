@@ -13,9 +13,9 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
@@ -34,78 +34,17 @@ public partial class ActionEditorView : UserControl
     /// <summary>The window this view is standing in, which owns its pickers and dialogs.</summary>
     private Window? HostWindow => TopLevel.GetTopLevel(this) as Window;
 
-    /// <summary>The host's window state, while a trial is out of the way.</summary>
-    private WindowState HostState
-    {
-        get => HostWindow?.WindowState ?? WindowState.Normal;
-        set
-        {
-            if (HostWindow is { } host)
-            {
-                host.WindowState = value;
-            }
-        }
-    }
+    /// <summary>The host's window state, which decides whether the frames it draws are worth drawing.</summary>
+    private WindowState HostState => HostWindow?.WindowState ?? WindowState.Normal;
 
     /// <summary>The file pickers belong to the top level the view is in.</summary>
     private IStorageProvider StorageProvider => TopLevel.GetTopLevel(this)?.StorageProvider
         ?? throw new InvalidOperationException("The form is not attached to a window.");
 
-    /// <summary>
-    /// True while the window-sized header is shown. The editor's inspector hides it, because the
-    /// pane it stands in already has a title and a close of its own.
-    /// </summary>
-    internal bool ShowHeader
-    {
-        set
-        {
-            FormHeader.IsVisible = value;
-            FormRoot.RowDefinitions[0].Height = value ? new GridLength(38) : new GridLength(0);
-        }
-    }
-
-    /// <summary>
-    /// True while the action list stands beside the fields. The inspector is narrower than a
-    /// window, so it chooses an action from its own bar and gives the whole pane to the fields.
-    /// </summary>
-    internal bool ShowPicker
-    {
-        set
-        {
-            PickerColumn.IsVisible = value;
-            FormBody.ColumnDefinitions[0].Width = value ? new GridLength(320) : new GridLength(0);
-        }
-    }
-
-    /// <summary>
-    /// True when the form stands in the editor, where a key field can take the next key pressed
-    /// on the keyboard. A form on its own has no capture loop, so it keeps the on-screen keyboard.
-    /// </summary>
-    public static readonly StyledProperty<bool> CanCaptureKeyProperty =
-        AvaloniaProperty.Register<ActionEditorView, bool>(nameof(CanCaptureKey));
-
-    public bool CanCaptureKey
-    {
-        get => GetValue(CanCaptureKeyProperty);
-        set => SetValue(CanCaptureKeyProperty, value);
-    }
-
     /// <summary>Chooses the action whose fields the form shows.</summary>
     internal void SelectAction(string key) => (DataContext as AddActionViewModel)?.SelectAction(key);
     /// <summary>Raised when the form is finished with a step, or with nothing when it was cleared.</summary>
     internal event Action<MacroStep?>? Finished;
-
-    /// <summary>
-    /// Raised when a key field asks for the key pressed on the keyboard instead of clicked on the
-    /// one drawn on screen. The editor hosting the form owns the capture loop and answers it.
-    /// </summary>
-    internal event Action<StepParameterViewModel>? KeyCaptureRequested;
-
-    /// <summary>
-    /// Raised when a key-run row asks to record several keys into itself. The editor hosting the
-    /// form owns the capture loop, the same one the trigger and the single-key fields use.
-    /// </summary>
-    internal event Action<KeyRowViewModel>? KeyRowCaptureRequested;
 
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
@@ -121,6 +60,30 @@ public partial class ActionEditorView : UserControl
 
     /// <summary>Where the keyboard is writing at the moment: the field or the row that asked for it.</summary>
     private Action<string>? _keyTarget;
+
+    /// <summary>The field waiting for a key pressed on the keyboard, or null when none is.</summary>
+    private StepParameterViewModel? _capturingField;
+
+    /// <summary>The press of a run being recorded into, or null when none is.</summary>
+    private KeyRowViewModel? _capturingRow;
+
+    /// <summary>The window the capture is heard on, kept so that its handlers come off again.</summary>
+    private TopLevel? _captureHost;
+
+    /// <summary>True while something on the form is waiting for a key from the keyboard.</summary>
+    internal bool IsCapturingKey => _capturingField is not null || _capturingRow is not null;
+
+    /// <summary>
+    /// The modifiers held since the capture began. A modifier that is still down when the capture
+    /// starts never comes back as a key press, so what is held has to be remembered here.
+    /// </summary>
+    private readonly List<Key> _captureModifiers = [];
+
+    /// <summary>
+    /// The keys whose release is swallowed after a captured press. A focused button reads Space or
+    /// Enter as a click when the key comes up, which would arm the capture all over again.
+    /// </summary>
+    private readonly List<Key> _swallowReleases = [];
 
     /// <summary>
     /// The frames standing around the windows the preview lists. They go up and come down with the
@@ -145,8 +108,19 @@ public partial class ActionEditorView : UserControl
 
     private IDeviceLayer? _devices;
 
+    /// <summary>
+    /// The XAML previewer's entry, and only that: the form is built holding no action and nothing
+    /// to choose from, because which action it is for and where that step goes is the editor's to
+    /// say. The program never builds the view this way — every window hands it the action.
+    /// </summary>
+    /// <remarks>
+    /// This exists because a XAML file reached without a public parameterless constructor is
+    /// reported as unreachable through the runtime loader (AVLN3001). The form is only ever built
+    /// by <see cref="InitializeComponent"/> with an action in hand, so the parameterless path is
+    /// for the previewer alone.
+    /// </remarks>
     public ActionEditorView()
-        : this(null, null, null, null, null, null)
+        : this(null, [], null, null, null, null)
     {
     }
 
@@ -169,35 +143,11 @@ public partial class ActionEditorView : UserControl
     internal IMacroLibrary? Macros { get; set; }
 
     /// <summary>
-    /// True while the window stays up from one step to the next, which is how the editor opens it:
-    /// a macro is a run of steps, and being taken back to the list to open the window again for
-    /// each one is the thing this saves.
-    /// </summary>
-    internal bool StaysOpen
-    {
-        get => Form?.StaysOpen ?? false;
-        set
-        {
-            if (Form is { } form)
-            {
-                form.StaysOpen = value;
-            }
-        }
-    }
-
-    /// <summary>
     /// Where a step written here goes. The editor takes it because only the editor knows what is
     /// picked in the list and what that place accepts; it answers null once the step is in the
     /// list, or what to say when the place would not take it.
     /// </summary>
     internal Func<MacroStep?, MacroStep, string?>? PlaceStep { get; set; }
-
-    /// <summary>
-    /// A name for the next step, minted by the editor. The window outlives one step, and two steps
-    /// of a macro are told apart by their names, so a name held from when the window opened would
-    /// be handed out twice.
-    /// </summary>
-    internal Func<string>? MintStepId { get; set; }
 
     /// <summary>
     /// What to do with a step somebody asked to be shown while filling a field in — the reverse
@@ -210,10 +160,10 @@ public partial class ActionEditorView : UserControl
     private AddActionViewModel? Form => DataContext as AddActionViewModel;
 
     /// <summary>
-    /// Opens the dialog, optionally preloaded with a step being edited and optionally
-    /// restricted to a catalogue subset, such as the condition actions.
+    /// Opens the dialog, optionally preloaded with a step being edited. <paramref name="actions"/>
+    /// is what the place a step is going accepts, which only the editor knows.
     /// </summary>
-    public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
+    public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
@@ -256,6 +206,23 @@ public partial class ActionEditorView : UserControl
     private void OnVariablePickerFocused(object? sender, RoutedEventArgs e) => OpenCandidates(e.Source);
 
     private void OnVariablePickerPressed(object? sender, PointerPressedEventArgs e) => OpenCandidates(e.Source);
+
+    /// <summary>
+    /// Listens for the keys of a capture on the window the form stands in rather than on the form:
+    /// a key press is raised at whatever holds the focus, and tunnelling down from the window is
+    /// what catches it wherever in the form that is. Handled events are taken as well, because a
+    /// focused button reads Space or Enter as a click of its own on the way.
+    /// </summary>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        _captureHost = TopLevel.GetTopLevel(this);
+        _captureHost?.AddHandler(KeyDownEvent, OnCaptureKeyDown, RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+        _captureHost?.AddHandler(KeyUpEvent, OnCaptureKeyUp, RoutingStrategies.Tunnel,
+            handledEventsToo: true);
+    }
 
     /// <summary>
     /// Opens at a size the desktop can hold. The four pages are read comfortably in a thousand
@@ -395,8 +362,8 @@ public partial class ActionEditorView : UserControl
 
     /// <summary>
     /// The form was finished with: it either holds a step to put somewhere, or nothing when the
-    /// user cleared it. A window opened for one step closes and hands the step back; the editor's
-    /// window stays up, so it is told where the step goes and starts again on the next one.
+    /// user cancelled. The window answers with it rather than staying up for the next one: the
+    /// editor places the step and opens the window again when another one is asked for.
     /// </summary>
     private void OnFormFinished(MacroStep? step)
     {
@@ -409,29 +376,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (!StaysOpen)
-        {
-            Finished?.Invoke(step);
-            return;
-        }
-
-        BeginStep(null);
-    }
-
-    /// <summary>
-    /// Starts the form again on a fresh step of the action it is already showing, under a name the
-    /// editor mints. This is what "that one is done" looks like in a window that does not close.
-    /// </summary>
-    internal void BeginStep(string? presetKey)
-    {
-        _editingStep = null;
-        ResetKeyPad();
-        Form?.Reset(MintStepId?.Invoke());
-
-        if (!string.IsNullOrEmpty(presetKey))
-        {
-            Form?.SelectAction(presetKey);
-        }
+        Finished?.Invoke(step);
     }
 
     /// <summary>Points the form at a step that is already in the list, so it can be changed.</summary>
@@ -443,27 +388,26 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Takes what the editor knows about the place a step would go now: which actions that place
-    /// takes, and the names its fields may offer. Both change while the window is up, because the
-    /// list behind it is still being worked on.
-    /// </summary>
-    internal void Retarget(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<MacroCallable>? macros,
-        IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
-        => Form?.Retarget(actions, variables, macros, steps, assetFolder);
-
-    /// <summary>
     /// The form has moved on to another step, so the keyboard is no longer writing into anything
-    /// that is on screen: the fields it was pointed at are gone with the form it belonged to.
+    /// that is on screen: the fields it was pointed at, or was waiting for a key to, are gone with
+    /// the form it belonged to.
     /// </summary>
     private void ResetKeyPad()
     {
+        EndKeyCapture();
         _keyTarget = null;
         _keyPad?.Close();
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
+        // A field waiting for a key owns every key of the form, Escape and Alt+X included: those
+        // are keys a step may send, and the key is the answer rather than a shortcut.
+        if (IsCapturingKey)
+        {
+            return;
+        }
+
         // Alt + X takes the pointer's place, for the actions that aim at a screen position.
         if (e.Key == Key.X && e.KeyModifiers.HasFlag(KeyModifiers.Alt))
         {
@@ -512,7 +456,7 @@ public partial class ActionEditorView : UserControl
 
         if (viewModel.SelectedKey == "input.mouseDrag")
         {
-            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices, bounds) is { } drag)
+            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices.Screen, Devices.Windows, bounds) is { } drag)
             {
                 viewModel.ApplyDrag(drag.StartX, drag.StartY, drag.EndX, drag.EndY);
             }
@@ -520,7 +464,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds);
+        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -546,7 +490,7 @@ public partial class ActionEditorView : UserControl
 
         var initial = new RegionPickerWindow.Region(target.Location.X, target.Location.Y,
             target.Size.Width, target.Size.Height);
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, initial, null, target.Handle)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial, null, target.Handle)
             is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -570,7 +514,8 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await PointPickerWindow.PickAsync(HostWindow!, Devices, viewModel.CoordinateWindow())
+        if (await PointPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, Devices.Ui,
+            Devices.Hook, viewModel.CoordinateWindow())
             is { } point)
         {
             viewModel.ApplyCursorPosition(point.X, point.Y);
@@ -645,7 +590,7 @@ public partial class ActionEditorView : UserControl
                     target.Width, target.Height);
             }
 
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder,
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows, viewModel.AssetFolder,
                     bounds)
                 is { Length: > 0 } picture)
             {
@@ -672,8 +617,9 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Asks the hosting editor to record keys into this row. A form on its own has no capture
-    /// loop, so it falls back to the keyboard drawn on screen.
+    /// Starts or stops recording keys into one press of a run. A run takes one press after another,
+    /// so the capture stays up until it is clicked off — which is the only way out that is not a
+    /// key, because every key pressed belongs to the run.
     /// </summary>
     private void OnCaptureKeyRow(object? sender, RoutedEventArgs e)
     {
@@ -682,14 +628,15 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (KeyRowCaptureRequested is { } request)
+        var wasRecording = ReferenceEquals(_capturingRow, row);
+        EndKeyCapture();
+        if (wasRecording)
         {
-            request(row);
+            return;
         }
-        else
-        {
-            OpenKeyPad(Strings.Format("Add.KeyRunPress", row.Number), row.AddKey);
-        }
+
+        _capturingRow = row;
+        row.StartCapture();
     }
 
     /// <summary>
@@ -769,7 +716,7 @@ public partial class ActionEditorView : UserControl
             bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
         }
 
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices, null, bounds) is { } picked)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }
@@ -918,36 +865,6 @@ public partial class ActionEditorView : UserControl
         }
     }
 
-    /// <summary>Folds one group of the action picker open or shut.</summary>
-    private void OnToggleActionGroup(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ActionGroupViewModel group }
-            && DataContext is AddActionViewModel viewModel)
-        {
-            viewModel.ToggleGroup(group);
-        }
-    }
-
-    /// <summary>Chooses the action whose card was clicked.</summary>
-    private void OnPickAction(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ActionCardViewModel card }
-            && DataContext is AddActionViewModel viewModel)
-        {
-            viewModel.SelectAction(card.Key);
-        }
-    }
-
-    /// <summary>Opens the page whose tab was clicked.</summary>
-    private void OnSelectPage(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ActionPageViewModel page }
-            && DataContext is AddActionViewModel viewModel)
-        {
-            viewModel.Select(page);
-        }
-    }
-
     /// <summary>
     /// Opens the screen magnifier for a colour parameter and keeps what it reads. The place the
     /// colour was read from goes into the step's own position as well: the pixel worth watching is
@@ -961,7 +878,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ColorPickerWindow.PickAsync(HostWindow!, Devices) is not { } picked)
+        if (await ColorPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Input, Devices.Hook) is not { } picked)
         {
             return;
         }
@@ -984,8 +901,9 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Asks the editor that hosts the form for the next key pressed. The trigger's capture loop
-    /// does the listening, so a key is taken here exactly the way a trigger is bound.
+    /// Starts or stops taking the next key pressed on the keyboard into one field. Clicking it
+    /// again is how a capture that was started by mistake is called off: a key field may hold Esc,
+    /// so Esc is a key like any other here rather than the way out.
     /// </summary>
     private void OnCaptureKey(object? sender, RoutedEventArgs e)
     {
@@ -994,15 +912,149 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (KeyCaptureRequested is { } request)
+        var wasWaiting = ReferenceEquals(_capturingField, parameter);
+        EndKeyCapture();
+        if (wasWaiting)
         {
-            request(parameter);
+            return;
         }
-        else
+
+        _capturingField = parameter;
+        parameter.IsCapturingKey = true;
+    }
+
+    /// <summary>
+    /// Gives the key just pressed to whatever asked for it. A single key field holds one key, so
+    /// the key pressed is the whole answer and the capture is over. A combination and a press of a
+    /// run are built a key at a time — the way the keyboard drawn on screen builds them — so every
+    /// key pressed joins what is already there and the capture stays up until it is stopped.
+    /// </summary>
+    private void TakeKey(string name, string chord)
+    {
+        if (_capturingRow is { } row)
         {
-            // The form on its own has no capture loop; the on-screen keyboard is the way in.
-            OpenKeyPadFor(parameter);
+            row.AddKey(chord);
+            return;
         }
+
+        if (_capturingField is not { } field)
+        {
+            return;
+        }
+
+        if (field.IsKeys)
+        {
+            field.AddKey(chord);
+            return;
+        }
+
+        field.Text = name;
+        EndKeyCapture();
+    }
+
+    /// <summary>
+    /// Stops waiting for a key and puts the button that asked back to its resting label. What is
+    /// left in the way of swallowed releases stays: the press that ended the capture still has to
+    /// come up without the focused button reading it as a click.
+    /// </summary>
+    private void EndKeyCapture()
+    {
+        _captureModifiers.Clear();
+
+        if (_capturingField is { } field)
+        {
+            field.IsCapturingKey = false;
+            _capturingField = null;
+        }
+
+        if (_capturingRow is { } row)
+        {
+            row.IsCapturing = false;
+            _capturingRow = null;
+        }
+    }
+
+    /// <summary>
+    /// A key went down while a field or a run was waiting for it. The whole keyboard belongs to the
+    /// capture for that moment, so every key is taken here rather than reaching the form.
+    /// </summary>
+    private void OnCaptureKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_capturingField is null && _capturingRow is null)
+        {
+            return;
+        }
+
+        // A capture that keeps taking keys is ended by the key that means stop, because every key
+        // pressed belongs to what is being written. A single key field is answered by the key
+        // itself, so Esc is a key there like any other.
+        if (e.Key is Key.Escape && (_capturingRow is not null || _capturingField is { IsKeys: true }))
+        {
+            EndKeyCapture();
+            e.Handled = true;
+            return;
+        }
+
+        if (HotkeyNameMapper.IsModifier(e.Key))
+        {
+            // Held back rather than taken: Ctrl, Shift, Alt and Win are the front of a combination
+            // more often than they are the key itself, and which it was is only known once the
+            // capture ends.
+            if (!_captureModifiers.Contains(e.Key))
+            {
+                _captureModifiers.Add(e.Key);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        var pressed = new List<Key>(_captureModifiers) { e.Key };
+        TakeKey(HotkeyNameMapper.Name(e.Key), HotkeyNameMapper.Chord(e.Key, HeldKey(e)));
+
+        // What was held has been written into the combination, so it starts again from nothing:
+        // letting go of those keys must not add them a second time.
+        _captureModifiers.Clear();
+        _swallowReleases.Clear();
+        _swallowReleases.AddRange(pressed);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Lets go of a modifier that nothing followed, which makes it the key that was picked — a
+    /// field can hold Right Shift, and that is the only way it can be pressed — and swallows the
+    /// releases that follow a captured press.
+    /// </summary>
+    private void OnCaptureKeyUp(object? sender, KeyEventArgs e)
+    {
+        if ((_capturingField is not null || _capturingRow is not null)
+            && HotkeyNameMapper.IsModifier(e.Key)
+            && _captureModifiers.Remove(e.Key)
+            && _captureModifiers.Count == 0)
+        {
+            var name = HotkeyNameMapper.Name(e.Key);
+            TakeKey(name, name);
+        }
+
+        if (_swallowReleases.Remove(e.Key))
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Everything held when a key was pressed: what the event carries, plus the modifiers this form
+    /// saw go down, so a modifier pressed before the capture started still counts.
+    /// </summary>
+    private KeyModifiers HeldKey(KeyEventArgs e)
+    {
+        var held = e.KeyModifiers;
+        foreach (var modifier in _captureModifiers)
+        {
+            held |= HotkeyNameMapper.ModifierFlag(modifier);
+        }
+
+        return held;
     }
 
     /// <summary>
@@ -1054,30 +1106,10 @@ public partial class ActionEditorView : UserControl
         var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
 
         // Out of the way while it is tried, so the key or the control lands on the window that was
-        // meant, which is whatever the user had in mind behind this dialog.
-        var previous = HostState;
-        HostState = WindowState.Minimized;
-
-        RunResult outcome;
-        try
-        {
-            // Off the thread that draws the window: a device call can wait on hardware, and the
-            // dialog has to stay able to come back when it is done.
-            outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices));
-        }
-        finally
-        {
-            // The dialog can be dismissed while the trial runs, and a window on its way out has
-            // nothing left to come back to.
-            if (!_closed)
-            {
-                HostState = previous == WindowState.Maximized
-                    ? WindowState.Maximized
-                    : WindowState.Normal;
-                HostWindow?.Activate();
-            }
-        }
-
+        // meant, which is whatever the user had in mind behind this dialog — and so does everything
+        // else of this program, because minimizing this window alone leaves the editor behind it in
+        // front of the very window the trial is aimed at.
+        var outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices));
         if (outcome.Status is not RunStatus.Completed && !_closed)
         {
             await ReportTestAsync(TrialFailure(outcome));
@@ -1130,9 +1162,11 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private async Task RunLookingAsync(ExecutableStep step)
     {
-        // Off the thread that draws the window: reading the screen and matching a picture can take
-        // a moment, and the dialog has to stay able to come back when it is done.
-        var outcome = await Task.Run(() => MacroRunner.LookOnce(step, Devices, new TrialFrames(this)));
+        // Off the thread that draws the window, and with this program's windows out of the picture:
+        // reading the screen and matching a picture can take a moment, the dialog has to stay able
+        // to come back when it is done, and a look that has the window asking in front of it reads
+        // the window asking rather than what the user wanted to look at.
+        var outcome = await AwayAsync(() => MacroRunner.LookOnce(step, Devices, new TrialFrames(this)));
 
         // Nothing is being read any more, so the frame comes down with the reading.
         _trialFrames.Clear();
@@ -1151,26 +1185,19 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Sends the step for real, the way a run would. Input steps are sent with the dialog out of the
-    /// way, because a key or a click lands on whatever is in front, and the window in front of the
-    /// window the user meant would be this dialog.
+    /// Sends the step for real, the way a run would. Input steps are sent with every window of this
+    /// program out of the way, because a key or a click lands on whatever is in front, and a window
+    /// in front of the window the user meant would be one of ours.
     /// </summary>
     private async Task RunForRealAsync(AddActionViewModel viewModel, ExecutableStep step)
     {
-        var movesTheWindow = viewModel.SelectedDefinition?.Category is ActionCategory.Input;
-        var previous = HostState;
-        if (movesTheWindow)
-        {
-            HostState = WindowState.Minimized;
-        }
-
         viewModel.IsRunning = true;
         RunResult outcome;
         try
         {
             // Off the thread that draws the window: a device call can wait on hardware, and the
             // dialog has to stay able to come back when it is done.
-            outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices,
+            outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices,
                 variables: MacroVariables.Seed(new SystemVariableReader(Devices),
                     SharedVariables.Current),
                 macros: Macros));
@@ -1178,16 +1205,6 @@ public partial class ActionEditorView : UserControl
         finally
         {
             viewModel.IsRunning = false;
-
-            // The dialog can be dismissed while the run is going, and a window on its way out has
-            // nothing left to come back to.
-            if (movesTheWindow && !_closed)
-            {
-                HostState = previous == WindowState.Maximized
-                    ? WindowState.Maximized
-                    : WindowState.Normal;
-                HostWindow?.Activate();
-            }
         }
 
         if (outcome.Status is not RunStatus.Completed)
@@ -1201,6 +1218,52 @@ public partial class ActionEditorView : UserControl
         }
 
         Say(Strings.Format("Add.RanStep", viewModel.SelectedActionName));
+    }
+
+    /// <summary>
+    /// Runs a trial with every window of this program off the screen, and brings them back when it
+    /// is over — the same rule the pickers follow, and for the same reason: what a step looks at,
+    /// clicks or types into is behind this window, and this window is the one thing that is always
+    /// in the way. The screen is given a frame to be drawn again in first, because the picture read
+    /// straight after hiding still has the hidden window in it.
+    /// </summary>
+    private async Task<T> AwayAsync<T>(Func<T> trial)
+    {
+        T outcome;
+        using (var aside = AppWindows.StepAside(HostWindow))
+        {
+            await AppWindows.SettleAsync();
+            outcome = await Task.Run(trial);
+        }
+
+        return outcome;
+    }
+
+    /// <summary>The same, for a trial that waits on devices rather than on nothing but the machine.</summary>
+    private async Task<T> AwayForAsync<T>(Func<Task<T>> trial)
+    {
+        T outcome;
+        using (var aside = AppWindows.StepAside(HostWindow))
+        {
+            await AppWindows.SettleAsync();
+            outcome = await Task.Run(trial);
+        }
+
+        return outcome;
+    }
+
+    /// <summary>
+    /// The same, for a trial that draws on the screen as it goes and so cannot leave this thread:
+    /// what it puts up — a frame around a control, say — is not one of this program's windows to be
+    /// hidden, it is the answer being shown.
+    /// </summary>
+    private async Task AwayWhileAsync(Func<Task> trial)
+    {
+        using (AppWindows.StepAside(HostWindow))
+        {
+            ScreenComposed.Wait();
+            await trial();
+        }
     }
 
     /// <summary>
@@ -1485,7 +1548,7 @@ public partial class ActionEditorView : UserControl
                     target.Width, target.Height);
             }
 
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder,
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows, viewModel.AssetFolder,
                     bounds)
                 is { Length: > 0 } picture)
             {
@@ -1537,7 +1600,7 @@ public partial class ActionEditorView : UserControl
         }
 
         WindowRule.TryParse(parameter.Text, out var current);
-        if (await WindowRuleWindow.PickAsync(HostWindow!, Devices, current) is { } picked)
+        if (await WindowRuleWindow.PickAsync(HostWindow!, Devices.Windows, Devices.Hook, current) is { } picked)
         {
             parameter.ApplyWindowRule(picked);
         }
@@ -1583,7 +1646,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ElementPickerWindow.PickAsync(HostWindow!, Devices) is not { } picked)
+        if (await ElementPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Hook, Devices.Ui) is not { } picked)
         {
             return;
         }
@@ -1662,11 +1725,8 @@ public partial class ActionEditorView : UserControl
         // Out of the way while the frame is up, the same way picking does it: the control is
         // usually behind the very window asking about it. The dialog waits the frame out, so it
         // never comes back on top of the thing it just said to look at.
-        var previous = HostState;
-        HostState = WindowState.Minimized;
-
         ScreenFrameWindow? flash = null;
-        try
+        await AwayWhileAsync(async () =>
         {
             if (ElementFlash.Locate(viewModel.Ui, selector, filter) is { } found)
             {
@@ -1676,19 +1736,7 @@ public partial class ActionEditorView : UserControl
                     await flash.Finished;
                 }
             }
-        }
-        finally
-        {
-            // The dialog can be dismissed while the frame is up, and a window on its way out has
-            // nothing left to come back to.
-            if (!_closed)
-            {
-                HostState = previous == WindowState.Maximized
-                    ? WindowState.Maximized
-                    : WindowState.Normal;
-                HostWindow?.Activate();
-            }
-        }
+        });
 
         if (flash is null && !_closed)
         {
@@ -1934,6 +1982,14 @@ public partial class ActionEditorView : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _closed = true;
+        EndKeyCapture();
+
+        if (_captureHost is { } host)
+        {
+            host.RemoveHandler(KeyDownEvent, OnCaptureKeyDown);
+            host.RemoveHandler(KeyUpEvent, OnCaptureKeyUp);
+            _captureHost = null;
+        }
 
         // The frames belong to this dialog: a list that stayed framed after the window it was read
         // in went away would be an overlay with nothing left to explain it.

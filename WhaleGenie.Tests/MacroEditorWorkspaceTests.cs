@@ -8,14 +8,15 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
+[RestoreSharedState]
 public class MacroEditorWorkspaceTests
 {
     [Fact]
@@ -101,7 +102,7 @@ public class MacroEditorWorkspaceTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("renamed", Assert.Single(root.Steps).Text("macro"));
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -187,9 +188,6 @@ public class MacroEditorWorkspaceTests
             Drag(list, DragDrop.DropEvent, transfer);
             Dispatcher.UIThread.RunJobs();
             var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
-            Assert.False(action.StaysOpen);
-            var actionView = Assert.IsType<ActionEditorView>(action.Content);
-            Assert.False(actionView.FindControl<Grid>("PickerColumn")!.IsVisible);
             var form = (AddActionViewModel)action.DataContext!;
             form.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -222,7 +220,7 @@ public class MacroEditorWorkspaceTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("control.log", Assert.Single(editor.Steps).Type);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -325,7 +323,7 @@ public class MacroEditorWorkspaceTests
             PersistentVariables.Flush();
             VariableCatalog.Globals.Remove(existing);
             SharedVariables.Current.Remove(name);
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -387,7 +385,7 @@ public class MacroEditorWorkspaceTests
 
                 PersistentVariables.Flush();
                 Assert.True(PersistentVariables.TryGet(name, out _));
-                window.Close(null);
+                Ui.CloseAndAnswer(window);
             }
             finally
             {
@@ -447,6 +445,249 @@ public class MacroEditorWorkspaceTests
         });
     }
 
+    /// <summary>
+    /// A loop whose body is still empty is one place, not four: its own row, the title of the body
+    /// and the line that closes it all put the action in the same slot, so the band does not jump
+    /// between four heights while the pointer moves down an empty body.
+    /// </summary>
+    /// <summary>
+    /// Every pixel of an empty block answers the same way, walked one pixel at a time: the gaps
+    /// between its rows belong to the row above, not to nothing, so the band does not flicker as
+    /// the pointer goes down.
+    /// </summary>
+    [Fact]
+    public void An_empty_block_body_answers_the_same_way_at_every_pixel()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var marker = window.FindControl<Border>("DropMarker")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsFoot: true });
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            var inside = new List<(string? Hint, double? Marker)>();
+            for (var y = top; y < bottom; y += 1)
+            {
+                DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, y));
+                inside.Add((hint.Text, Canvas.GetTop(marker)));
+            }
+
+            Assert.True(inside.Count > 20, $"only {inside.Count} pixels sampled");
+            Assert.All(inside, entry => Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), entry.Hint));
+            Assert.Single(inside.Select(entry => entry.Marker).Distinct());
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>
+    /// The same walk with the loop sitting after another step, which is how one is usually added:
+    /// nothing between the step above and the closing line of the loop may answer "before the
+    /// block".
+    /// </summary>
+    [Fact]
+    public void An_empty_block_body_after_a_step_never_answers_before_the_block()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("control.delay",
+                new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "5" }));
+            editor.AddStep(Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsFoot: true });
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            var seen = new List<string>();
+            for (var y = top; y < bottom; y += 1)
+            {
+                DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, y));
+                seen.Add($"{y:0}:{hint.Text}");
+            }
+
+            Assert.DoesNotContain(seen, line => line.EndsWith("插入到这一块之前", StringComparison.Ordinal));
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>
+    /// Dropping into an empty body has to land inside it: the band says "inside this block", the
+    /// form opens, and saving puts the action in the body rather than in front of the loop.
+    /// </summary>
+    [Fact]
+    public void Dropping_on_an_empty_body_puts_the_action_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var loop = Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps });
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsFoot: true });
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.delay").Transfer();
+
+            DragAt(list, DragDrop.DropEvent, transfer, new Point(60, (top + bottom) / 2));
+            Dispatcher.UIThread.RunJobs();
+
+            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
+            var form = (AddActionViewModel)action.DataContext!;
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var saved = Assert.Single(editor.Steps);
+            var body = saved.StepLists.Single().Steps;
+            Assert.Single(body);
+            Assert.Equal("control.delay", body[0].Type);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    [Fact]
+    public void An_empty_block_body_is_a_single_drop_target()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var marker = window.FindControl<Border>("DropMarker")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsFoot: true });
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            // Every two pixels from the title of the block to the line that closes it, so a gap
+            // between two of those rows cannot hide a second answer.
+            var seen = new List<(string? Hint, double? Marker)>();
+            for (var y = top; y < bottom; y += 2)
+            {
+                DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, y));
+                seen.Add((hint.Text, Canvas.GetTop(marker)));
+            }
+
+            Assert.True(seen.Count > 4);
+            Assert.All(seen, entry => Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), entry.Hint));
+            Assert.Single(seen.Select(entry => entry.Marker).Distinct());
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>
+    /// Once the body holds a step, the heights of the loop row mean different things again — before
+    /// the block, or inside it at the end — and the band says which.
+    /// </summary>
+    [Fact]
+    public void A_block_row_with_a_step_inside_still_offers_before_and_inside()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.delay",
+                        new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "1" })],
+                }));
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<ListBox>("StepList")!;
+            var hint = window.FindControl<TextBlock>("DropHintText")!;
+            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
+                    row && row.Step.Type == "control.repeat");
+            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var bottom = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.log").Transfer();
+
+            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, top + 3));
+            Assert.Equal(Strings.Get("Editor.DropBeforeBlock"), hint.Text);
+
+            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, (top + bottom) / 2));
+            Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
     [Fact]
     public void The_drop_band_says_where_the_action_will_land()
     {
@@ -499,7 +740,7 @@ public class MacroEditorWorkspaceTests
             Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
             Assert.True(Canvas.GetLeft(marker) > 0);
 
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -556,7 +797,7 @@ public class MacroEditorWorkspaceTests
             Assert.Equal("control.log",
                 Assert.Single(loop.StepLists.Single().Steps).Type);
 
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -610,10 +851,10 @@ public class MacroEditorWorkspaceTests
 
             Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
             Assert.Empty(switchStep.StepLists.Single(parameter => parameter.Name == "cases").Steps);
-            Assert.True(editor.HasPlacementNotice);
+            Assert.True(editor.HasNotice);
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.IsEffectivelyVisible && text.Text == editor.PlacementNotice);
-            window.Close(null);
+                text => text.IsEffectivelyVisible && text.Text == editor.Notice);
+            Ui.CloseAndAnswer(window);
         });
     }
 

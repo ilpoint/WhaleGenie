@@ -31,6 +31,24 @@ public static class WhaleGenieInputGate
         }
     }
 
+    /// <summary>
+    /// Records that WhaleGenie is sending this key, under every name it can come back as. A key
+    /// whose name the keyboard's state decides has to be written down as both: a number pad key
+    /// pressed with NumLock off arrives as the navigation key it has become, so a NumPad7 noted
+    /// only by that name would come back as a Home nobody wrote down — and the program would take
+    /// its own key for a person's, answering whichever shortcut Home is bound to while the macro
+    /// is still pressing keys.
+    /// </summary>
+    public static void Note(HookKey key)
+    {
+        Note(KeyNames.Name(key, sided: true));
+
+        foreach (var other in KeyNames.AlsoSeenAs(key))
+        {
+            Note(other);
+        }
+    }
+
     /// <summary>True when WhaleGenie sent this key a moment ago, so the event is its own doing.</summary>
     public static bool RecentlySent(string? key, int withinMs = WindowMs)
     {

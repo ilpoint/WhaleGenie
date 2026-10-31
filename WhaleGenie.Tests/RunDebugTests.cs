@@ -14,6 +14,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -160,13 +161,11 @@ public class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
 
-            Assert.True(viewModel.IsVariablesPage);
             Assert.False(viewModel.HasSteps);
             Assert.False(viewModel.CanStart);
-            Assert.NotEmpty(viewModel.SystemVariables);
+            Assert.Empty(viewModel.Variables);
 
             Assert.False(Find<Border>(window, "RunToolbar").IsVisible);
-            Assert.False(Find<Border>(window, "PageTabs").IsVisible);
             Assert.True(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
             window.Close();
@@ -174,7 +173,7 @@ public class RunDebugTests
     }
 
     [Fact]
-    public void Opened_on_a_macro_it_shows_the_steps_and_can_switch_to_the_variables()
+    public void Opened_on_a_macro_it_shows_the_steps_and_the_watch_list()
     {
         Ui.Run(() =>
         {
@@ -184,7 +183,6 @@ public class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
 
-            Assert.True(viewModel.IsDebugPage);
             Assert.True(viewModel.HasSteps);
 
             // 装着步骤开着也不跑：谁想先看一眼、先下个断点，窗口不该已经动手了。
@@ -196,14 +194,431 @@ public class RunDebugTests
             Assert.True(Find<Border>(window, "RunToolbar").IsVisible);
             Assert.False(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
-            viewModel.SelectPageCommand.Execute("Variables");
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The watch list at the window's narrowest: the copy button keeps its place, the value keeps
+    /// its column, and neither is drawn over the other or pushed out of the panel.
+    /// </summary>
+    [Fact]
+    public void The_watch_list_stays_inside_its_panel_when_it_is_narrow()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            var other = Count("other", "1");
+            StepIds.Settle([set, other]);
+
+            var window = new RunWindow([set, other]) { Width = 760 };
+            window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            Assert.True(viewModel.IsVariablesPage);
-            Assert.False(viewModel.IsDebugPage);
+            var row = window.GetVisualDescendants().OfType<Grid>()
+                .First(grid => grid.DataContext is WatchedVariable);
+            var button = row.Children.OfType<Button>().Single();
+            var value = row.Children.OfType<SelectableTextBlock>().Single();
 
-            viewModel.SelectPageCommand.Execute("Debug");
-            Assert.True(viewModel.IsDebugPage);
+            Assert.True(button.Bounds.Right <= row.Bounds.Width + 0.5);
+            Assert.True(value.Bounds.Right <= button.Bounds.X + 0.5);
+            Assert.True(value.Bounds.Width > 0);
+
+            // The title of the value column stands over the values, not over the copy buttons: the
+            // two grids carry the same columns, the button column included.
+            var title = window.GetVisualDescendants().OfType<TextBlock>()
+                .First(text => text.Text == Strings.Get("Variable.Value"));
+            var leftOfTitle = title.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            var leftOfValue = value.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.Equal(leftOfTitle, leftOfValue, 1);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The title over the name column and the name under it start at the same place, so the column
+    /// reads as one column rather than as a heading shifted off its values.
+    /// </summary>
+    [Fact]
+    public void The_name_column_and_its_title_start_together()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var texts = window.GetVisualDescendants().OfType<TextBlock>().ToList();
+            var title = texts.First(text => text.Text == Strings.Get("Variable.Name"));
+            var value = texts.First(text => text.Text == "total");
+
+            var leftOfTitle = title.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            var leftOfValue = value.TranslatePoint(new Point(0, 0), window)!.Value.X;
+            Assert.Equal(leftOfTitle, leftOfValue, 1);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A breakpoint can wait for an arrival: the first two times past it the run goes on, the third
+    /// time it stops, which is what debugging the eighty-seventh pass of a loop asks for.
+    /// </summary>
+    [Fact]
+    public void A_breakpoint_can_stop_on_a_given_arrival()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            viewModel.SetBreakpointRule(row, new BreakpointRule { HitTimes = 3 });
+
+            Assert.False(viewModel.StopsHere(row.Id));
+            Assert.False(viewModel.StopsHere(row.Id));
+            Assert.True(viewModel.StopsHere(row.Id));
+            Assert.True(viewModel.StopsHere(row.Id));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A condition nobody can work out is not a reason to stop: the run goes on and the log says what
+    /// the question was, where a breakpoint that stops at random is worse than one that does not.
+    /// </summary>
+    [Fact]
+    public void A_condition_that_cannot_be_read_does_not_stop_the_run()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = "$nowhere == 1" });
+
+            Assert.False(viewModel.StopsHere(row.Id));
+            Assert.Contains(viewModel.Lines, line => line.Text.Contains("断点", StringComparison.Ordinal));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A rule that asks nothing is the same breakpoint as one set without a panel: it stops every
+    /// time and the row says nothing about a condition.
+    /// </summary>
+    [Fact]
+    public void A_rule_that_asks_nothing_leaves_the_row_without_a_note()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            viewModel.SetBreakpointRule(row, new BreakpointRule { HitTimes = 1 });
+
+            Assert.True(row.HasBreakpoint);
+            Assert.Equal(string.Empty, row.ConditionNote);
+            Assert.Null(viewModel.BreakpointRuleOf(row.Id));
+
+            viewModel.SetBreakpointRule(row, new BreakpointRule { HitTimes = 2 });
+            Assert.Equal(Strings.Format("Run.BreakpointNoteHits", 2), row.ConditionNote);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The panel writes its condition the way every other condition field does: the names and the
+    /// functions complete as they are typed, and the line under the box says what it reads or what is
+    /// wrong with it.
+    /// </summary>
+    [Fact]
+    public void The_breakpoint_panel_reads_its_expression_and_keeps_the_count()
+    {
+        Ui.Run(() =>
+        {
+            var choices = new List<VariableChoice>
+            {
+                new() { Name = "total", Scope = VariableScope.Local },
+            };
+            var panel = new BreakpointViewModel(null, choices)
+            {
+                HitTimes = 4,
+            };
+
+            Assert.Contains("$total", panel.ExpressionSuggestions);
+            Assert.Contains(panel.ExpressionSuggestions,
+                suggestion => suggestion.EndsWith("(", StringComparison.Ordinal));
+
+            panel.Expression = "$total >";
+            Assert.True(panel.ShowExpressionError);
+            Assert.False(panel.ShowExpressionSuccess);
+
+            panel.Expression = "$total > 3";
+            Assert.False(panel.ShowExpressionError);
+            Assert.True(panel.ShowExpressionSuccess);
+
+            panel.SaveCommand.Execute(null);
+            Assert.Equal(BreakpointViewModel.Ending.Save, panel.How);
+            Assert.NotNull(panel.Rule);
+            Assert.Equal(4, panel.Rule!.HitTimes);
+            Assert.Equal("$total > 3", panel.Rule.Expression);
+        });
+    }
+
+    /// <summary>
+    /// The note an action carries is written under the step, the same one the editor shows: it is
+    /// where the person who wrote the macro says why the step is there.
+    /// </summary>
+    [Fact]
+    public void A_step_row_carries_the_note_written_under_it()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            set.Meta = new StepMeta { Comment = "记下这一轮的总数" };
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var row = viewModel.Steps.First();
+            Assert.Equal("记下这一轮的总数", row.Comment);
+            Assert.True(row.HasComment);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// Folding a group hides what is inside it and nothing else; opening it brings the steps back,
+    /// however deep they sit.
+    /// </summary>
+    [Fact]
+    public void Folding_a_group_hides_the_steps_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var inner = new MacroStep
+            {
+                Type = "control.delay",
+                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "1" }],
+            };
+            var loop = new MacroStep
+            {
+                Type = "control.repeat",
+                Parameters =
+                [
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                    new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [inner] },
+                ],
+            };
+            StepIds.Settle([loop, inner]);
+
+            var window = new RunWindow([loop]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var holder = viewModel.Steps[0];
+            var child = viewModel.Steps[1];
+            Assert.True(child.IsShown);
+            Assert.Equal("▾", holder.Marker);
+
+            viewModel.ToggleFoldCommand.Execute(holder);
+            Assert.False(holder.IsExpanded);
+            Assert.False(child.IsShown);
+            Assert.Equal("▸", holder.Marker);
+
+            viewModel.ToggleFoldCommand.Execute(holder);
+            Assert.True(child.IsShown);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The row names its fields the way the action's form does, and its bubble carries what the
+    /// editor shows in full: what the action does and the note written under the step.
+    /// </summary>
+    [Fact]
+    public void A_step_row_uses_the_forms_words_and_explains_itself_in_a_bubble()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            set.Meta = new StepMeta { Comment = "记下这一轮的总数" };
+            StepIds.Settle([set]);
+
+            var window = new RunWindow([set]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var row = ((RunViewModel)window.DataContext!).Steps.First();
+            Assert.Contains("变量名 = total", row.Detail, StringComparison.Ordinal);
+            Assert.Contains("备注：记下这一轮的总数", row.Tooltip, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(row.Description));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The list is flat, so a step inside a loop is told how deep it sits and drawn under a guide
+    /// line for each level; the step that holds it says so with a mark of its own.
+    /// </summary>
+    [Fact]
+    public void A_step_inside_a_loop_is_drawn_under_it()
+    {
+        Ui.Run(() =>
+        {
+            var inner = new MacroStep
+            {
+                Type = "control.delay",
+                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Value = "1" }],
+            };
+            var loop = new MacroStep
+            {
+                Type = "control.repeat",
+                Parameters =
+                [
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                    new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [inner] },
+                ],
+            };
+            StepIds.Settle([loop, inner]);
+
+            var window = new RunWindow([loop]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var holder = viewModel.Steps[0];
+            var child = viewModel.Steps[1];
+
+            Assert.True(holder.IsContainer);
+            Assert.Equal("▾", holder.Marker);
+            Assert.Empty(holder.Guides);
+
+            Assert.False(child.IsContainer);
+            Assert.Equal(1, child.Depth);
+            Assert.Single(child.Guides);
+
+            // The guide is drawn, not only described: a row inside the loop carries one line cell
+            // that is 22 wide and as tall as the row it marks.
+            var guide = window.GetVisualDescendants().OfType<Border>()
+                .First(border => border.DataContext is int);
+            Assert.Equal(22, guide.Bounds.Width);
+            Assert.True(guide.Bounds.Height > 0);
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// The watch list is about the macro, not about how far the run has got: every variable the
+    /// macro creates or reads is listed from the moment it is loaded, with its type, and the value
+    /// stays empty until something writes it.
+    /// </summary>
+    [Fact]
+    public void The_watch_list_names_the_variables_before_the_run_reaches_them()
+    {
+        Ui.RunAsync<bool>(async () =>
+        {
+            var set = Count("total", "7");
+            var other = Count("other", "1");
+            StepIds.Settle([set, other]);
+
+            var window = new RunWindow([set, other]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+
+            // Before the run reaches it: the row is there, with nothing in it yet.
+            var before = viewModel.Variables.First(variable => variable.Name == "total");
+            Assert.Equal(string.Empty, before.Value);
+            Assert.Equal(Strings.Get("Variable.Scope.Local"), before.Scope);
+
+            viewModel.RunCommand.Execute(null);
+            var done = await Until(() => !viewModel.IsBusy);
+            Dispatcher.UIThread.RunJobs();
+
+            // After the run wrote it: the same row, with the value and the type it ended up holding.
+            var after = viewModel.Variables.First(variable => variable.Name == "total");
+            Assert.Equal("7", after.Value);
+            Assert.Equal(Strings.Get("Variable.Type.number"), after.LocalType);
+            window.Close();
+            return done;
+        });
+    }
+
+    /// <summary>Every step row carries the step's own name, which is what a breakpoint and a log line call it.</summary>
+    [Fact]
+    public void A_step_row_says_which_step_it_is()
+    {
+        Ui.Run(() =>
+        {
+            var set = Count("total", "7");
+            StepIds.Settle([set]);
+
+            var detail = RunViewModel.Detail(new[] { set }.ToExecutable()[0]);
+
+            Assert.StartsWith(set.Id, detail, StringComparison.Ordinal);
+            Assert.Contains("变量名 = total", detail, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// The two halves and the two halves of the right column are dragged against each other, and
+    /// each says how small it may get so neither can be dragged out of sight.
+    /// </summary>
+    [Fact]
+    public void The_debug_half_has_splitters_that_keep_both_sides_visible()
+    {
+        Ui.Run(() =>
+        {
+            var window = new RunWindow(Steps("probe"));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var side = Find<GridSplitter>(window, "RunSplitter");
+            var inside = Find<GridSplitter>(window, "WatchSplitter");
+            Assert.Equal(GridResizeDirection.Columns, side.ResizeDirection);
+            Assert.Equal(GridResizeDirection.Rows, inside.ResizeDirection);
+
+            // The minimum belongs to the column the splitter sizes, not to the panel inside it: a
+            // MinWidth on the panel was never consulted, which is how the steps column was made
+            // narrow enough to lose its text.
+            var columns = Assert.IsType<Grid>(side.Parent).ColumnDefinitions;
+            Assert.True(columns[0].MinWidth >= 200);
+            Assert.True(columns[2].MinWidth >= 200);
 
             window.Close();
         });
@@ -375,9 +790,9 @@ public class RunDebugTests
             return written;
         });
 
-        // The step, how it ended and what it worked out — under the engine's own name for it,
-        // because nobody ticked it.
-        Assert.Contains(answer, text => text.Contains("data.base64Encode", System.StringComparison.Ordinal));
+        // The step, how it ended and what it worked out. The row is written in the reader's words,
+        // the same ones the palette uses; the action's own key is in the row's bubble.
+        Assert.Contains(answer, text => text.Contains("Base64 编码", System.StringComparison.Ordinal));
         Assert.Contains(WhaleGenie.Localization.Strings.Get("Run.OutcomeOk"), answer);
         Assert.Contains("encoded", answer);
         Assert.Contains("aGVsbG8=", answer);
@@ -398,7 +813,7 @@ public class RunDebugTests
             StepIds.Settle([sets, guarded]);
             var viewModel = new RunViewModel([sets, guarded], NullDeviceLayer.Instance);
             var row = viewModel.Steps.First(step => step.Id == guarded.Id);
-            viewModel.ConditionBreakpoint(row, GreaterThan("$n", "3"));
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = "$n > 3" });
 
             viewModel.RunCommand.Execute(null);
             var wentPast = await Until(() => !viewModel.IsBusy);
@@ -413,7 +828,7 @@ public class RunDebugTests
             StepIds.Settle([setsAgain, held]);
             var second = new RunViewModel([setsAgain, held], NullDeviceLayer.Instance);
             var stopped = second.Steps.First(step => step.Id == held.Id);
-            second.ConditionBreakpoint(stopped, GreaterThan("$n", "0"));
+            second.SetBreakpointRule(stopped, new BreakpointRule { Expression = "$n > 0" });
 
             second.RunCommand.Execute(null);
             var paused = await Until(() => second.IsPaused);
@@ -434,7 +849,7 @@ public class RunDebugTests
         Assert.False(answer.notYet, "the run went past the breakpoint it should have stopped at");
         Assert.True(answer.Stopped);
         Assert.True(answer.has);
-        Assert.Contains("3", answer.note, System.StringComparison.Ordinal);
+        Assert.Contains("$n > 3", answer.note, System.StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -1024,20 +1439,13 @@ public class RunDebugTests
             ClickCopy(window, button => button.DataContext is WatchedVariable { Name: "total" });
             var watched = clipboard.Text;
 
-            // 变量那一页的行同样如此：先翻到那一页，再选「在用」这一栏。
-            viewModel.SelectPageCommand.Execute("Variables");
-            viewModel.SelectTabCommand.Execute("Current");
-            Dispatcher.UIThread.RunJobs();
-            ClickCopy(window, button => button.DataContext is VariableDefinition { Name: "total" });
-            var fromPage = clipboard.Text;
-
             var lines = string.Join(Environment.NewLine,
                 viewModel.Lines.Select(line => $"{line.Time}  {line.Text}"));
-            var row = viewModel.CurrentVariables.First(variable => variable.Name == "total");
+            var row = viewModel.Variables.First(variable => variable.Name == "total");
 
             window.Close();
             return (Done: done, Shown: shown, Log: log, Lines: lines, Watched: watched,
-                FromPage: fromPage, RowValue: row.CurrentValue);
+                FromPage: watched, RowValue: row.Value);
         });
 
         Assert.True(answer.Done, "这个宏该跑完");

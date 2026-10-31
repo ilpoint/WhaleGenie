@@ -92,6 +92,15 @@ public sealed class VariableChoice
             }
 
             lines.Add(Details);
+
+            // Which steps read it belongs here rather than in a line of its own under the wall: the
+            // answer is a sentence about this one variable, and the wall has a row less to give it.
+            if (Uses.Count > 0)
+            {
+                lines.Add(Strings.Get("VarWall.UsedBy") + " " + string.Join(
+                    Strings.Get("Common.ListSeparator"), Uses.Select(use => use.Label)));
+            }
+
             return string.Join("\n", lines);
         }
     }
@@ -257,11 +266,13 @@ public static class VariableChoices
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = ActionReturn.TypeNameOf(parameter.Type),
+                Fields = FieldsOf(parameter.Fields),
                 Description = parameter.Description,
                 Source = Strings.Get("VarWall.Parameter"),
                 Origin = VariableOrigin.Parameter,
                 Uses = UsesOf(uses, name),
             });
+
         }
 
         foreach (var result in results ?? [])
@@ -277,13 +288,26 @@ public static class VariableChoices
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = ActionReturn.TypeNameOf(result.Type),
+                Fields = FieldsOf(result.Fields),
                 Description = result.Description,
                 Source = Strings.Get("VarWall.Result"),
                 Origin = VariableOrigin.Result,
                 Uses = UsesOf(uses, name),
             });
+
         }
     }
+
+    /// <summary>
+    /// The fields a declared record names, in the shape the wall and the picker draw them from.
+    /// </summary>
+    private static IReadOnlyList<ActionReturnField> FieldsOf(IReadOnlyList<MacroField> fields)
+        => [.. fields.Where(field => field.Name.Trim().Length > 0)
+            .Select(field => new ActionReturnField
+            {
+                Name = field.Name.Trim(),
+                Type = field.Type,
+            })];
 
     private static IReadOnlyList<VariableUse> UsesOf(
         Dictionary<string, List<VariableUse>> uses, string name)
@@ -430,20 +454,6 @@ public static class VariableChoices
                     IsStepResult = true,
                     Origin = VariableOrigin.StepOutput,
                     Uses = UsesOf(uses, MacroRunner.OutcomeName(step.Id)),
-                });
-
-                // Why it failed sits beside how it ended, under the same step: a macro that treats
-                // one failure differently from another asks this one.
-                rows.Add(new VariableChoice
-                {
-                    Name = MacroRunner.ErrorName(step.Id),
-                    Scope = VariableScope.Local,
-                    Type = "text",
-                    Description = Strings.Get("VarWall.Error"),
-                    Source = step.PickerLabel,
-                    IsStepResult = true,
-                    Origin = VariableOrigin.StepOutput,
-                    Uses = UsesOf(uses, MacroRunner.ErrorName(step.Id)),
                 });
             }
         }

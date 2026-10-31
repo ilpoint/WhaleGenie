@@ -1,0 +1,89 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:loc="using:WhaleGenie.Localization"
+        x:Class="WhaleGenie.Views.BreakpointWindow"
+        x:DataType="vm:BreakpointViewModel"
+        Title="{Binding [Run.BreakpointTitle], Source={x:Static loc:Strings.Current}}"
+        Width="460" SizeToContent="Height"
+        MinWidth="380"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.BreakpointValue">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+    </Window.Styles>
+
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
+        <StackPanel Margin="18,14,18,16" Spacing="12">
+
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding [Run.BreakpointTitle], Source={x:Static loc:Strings.Current}}"
+                           FontSize="13" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Classes="Secondary" Height="26" Padding="10,0" FontSize="11.5"
+                        Content="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
+                        Command="{Binding ClearCommand}" />
+            </Grid>
+
+            <StackPanel Spacing="6">
+                <TextBlock Classes="BreakpointValue"
+                           Text="{Binding [Run.BreakpointWhenLabel], Source={x:Static loc:Strings.Current}}" />
+                <!-- The same box the action form uses for a condition: names and functions complete
+                     as they are typed, and the builder stands beside it. -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <AutoCompleteBox Name="ExpressionBox" Classes="Field" Text="{Binding Expression}"
+                                     ItemsSource="{Binding ExpressionSuggestions}"
+                                     MinimumPrefixLength="1" FilterMode="Contains"
+                                     FontSize="12.5"
+                                     PlaceholderText="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}" />
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                            Name="BuildExpressionButton"
+                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenExpressionBuilder" />
+                </Grid>
+                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="{DynamicResource Danger}"
+                           Text="{Binding ExpressionMessage}"
+                           IsVisible="{Binding ShowExpressionError}" />
+                <TextBlock Classes="Hint" Margin="2,2,0,0" Foreground="{DynamicResource Success}"
+                           Text="{Binding ExpressionMessage}"
+                           IsVisible="{Binding ShowExpressionSuccess}" />
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Run.BreakpointExpressionHint], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <TextBlock Classes="BreakpointValue"
+                           Text="{Binding [Run.BreakpointHitsLabel], Source={x:Static loc:Strings.Current}}" />
+                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                    <NumericUpDown Name="HitsBox" Value="{Binding HitTimes}" Minimum="1" Maximum="1000000"
+                                   Increment="1" FormatString="0" FontSize="12.5" Width="130" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource TextTertiary}"
+                               Text="{Binding [Run.BreakpointHitsUnit], Source={x:Static loc:Strings.Current}}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="Hint"
+                               Margin="4,0,0,0"
+                               Text="{Binding [Run.BreakpointHitsHint], Source={x:Static loc:Strings.Current}}" />
+                </Grid>
+            </StackPanel>
+
+            <TextBlock Classes="Hint"
+                       Text="{Binding [Run.BreakpointNote], Source={x:Static loc:Strings.Current}}" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Classes="Secondary" Height="30"
+                        Content="{Binding [Run.BreakpointCancel], Source={x:Static loc:Strings.Current}}"
+                        Command="{Binding CancelCommand}" />
+                <Button Classes="Primary" Height="30"
+                        Content="{Binding [Run.BreakpointSave], Source={x:Static loc:Strings.Current}}"
+                        Command="{Binding SaveCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</views:AppWindow>

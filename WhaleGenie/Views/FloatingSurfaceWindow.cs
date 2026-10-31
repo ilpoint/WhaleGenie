@@ -13,6 +13,8 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
+using WhaleGenie.ViewModels;
+
 namespace WhaleGenie.Views;
 
 /// <summary>
@@ -60,14 +62,14 @@ public sealed class FloatingSurfaceWindow : Window
             Width = MacroWidth,
             Height = 20,
             CornerRadius = new CornerRadius(4),
-            Background = Brush("AppHover", Colors.DimGray),
+            Background = ThemeBrush.Of("SurfaceHover") ?? Brushes.Transparent,
             Cursor = new Cursor(StandardCursorType.SizeAll),
             Child = new IconView
             {
                 Data = AppIcons.Move,
                 Width = 12,
                 Height = 12,
-                Stroke = Brush("AppMuted", Colors.LightGray),
+                Stroke = ThemeBrush.Of("TextTertiary"),
                 StrokeThickness = 1.3,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -116,8 +118,8 @@ public sealed class FloatingSurfaceWindow : Window
             Margin = new Thickness(0),
             Padding = new Thickness(0),
             CornerRadius = new CornerRadius(6),
-            Background = Brush("AppDock", Color.FromArgb(235, 34, 34, 34)),
-            BorderBrush = Brush("AppBorder", Color.FromArgb(120, 255, 255, 255)),
+            Background = ThemeBrush.Of("SurfacePanel") ?? Brushes.Transparent,
+            BorderBrush = ThemeBrush.Of("BorderControl"),
             BorderThickness = new Thickness(1),
             Child = new Grid
             {
@@ -212,8 +214,8 @@ public sealed class FloatingSurfaceWindow : Window
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Padding = new Thickness(6, 0),
                 CornerRadius = new CornerRadius(4),
-                Background = Brush("AppControl", Color.FromRgb(52, 52, 52)),
-                Foreground = Brush("AppText", Colors.White),
+                Background = ThemeBrush.Of("SurfaceControl") ?? Brushes.Transparent,
+                Foreground = ThemeBrush.Of("TextPrimary"),
                 Content = label,
             };
             ToolTip.SetTip(button, macro.Name);
@@ -270,10 +272,6 @@ public sealed class FloatingSurfaceWindow : Window
         }
     }
 
-    private static IBrush Brush(string key, Color fallback)
-        => Application.Current?.TryFindResource(key, out var found) == true && found is IBrush brush
-            ? brush
-            : new SolidColorBrush(fallback);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);

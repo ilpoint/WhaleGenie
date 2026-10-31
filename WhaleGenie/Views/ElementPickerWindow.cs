@@ -7,8 +7,8 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Views;
 
@@ -61,7 +61,7 @@ public sealed class ElementPickerWindow : Window
     private volatile Box? _readoutBox;
 
     public ElementPickerWindow()
-        : this(SharedDevices.Current)
+        : this(SharedDevices.Current.Screen, SharedDevices.Current.Hook, SharedDevices.Current.Ui)
     {
     }
 
@@ -69,11 +69,11 @@ public sealed class ElementPickerWindow : Window
     /// Creates the picker over the devices handed in: the reader is the layer's UI Automation, the
     /// click is taken from the layer's hook, and the frames are measured against the layer's screen.
     /// </summary>
-    internal ElementPickerWindow(IDeviceLayer devices)
+    internal ElementPickerWindow(IScreenDevice screen, IInputHook hook, IUiDevice ui)
     {
-        _screen = devices.Screen;
-        _hookSource = devices.Hook;
-        _look = devices.Ui.ElementAt;
+        _screen = screen;
+        _hookSource = hook;
+        _look = ui.ElementAt;
         _listen = true;
         Build();
     }
@@ -105,10 +105,14 @@ public sealed class ElementPickerWindow : Window
     /// Every window this program has goes out of the way first, the window that asked included: the
     /// control being picked is usually behind one of them.
     /// </summary>
-    public static async Task<Pick?> PickAsync(Window owner, IDeviceLayer devices)
+    public static async Task<Pick?> PickAsync(Window owner, IScreenDevice screen,
+        IInputHook hook, IUiDevice ui)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new ElementPickerWindow(devices).TakeAsync();
+        // Waited for before the screen is read: the desktop still holds the frame that had our
+        // windows in it until it has drawn again.
+        await AppWindows.SettleAsync();
+        return await new ElementPickerWindow(screen, hook, ui).TakeAsync();
     }
 
     /// <summary>
@@ -158,6 +162,7 @@ public sealed class ElementPickerWindow : Window
     private void Build()
     {
         Title = Strings.Get("Element.Title");
+        // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
         Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
         WindowDecorations = WindowDecorations.None;
         CanResize = false;

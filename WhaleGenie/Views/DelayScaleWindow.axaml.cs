@@ -12,7 +12,7 @@ namespace WhaleGenie.Views;
 /// The small window that decides how fast this macro runs. It never changes the steps; the
 /// answer it hands back is kept on the macro and used while the macro runs.
 /// </summary>
-public partial class DelayScaleWindow : Window
+public partial class DelayScaleWindow : AppWindow
 {
     public DelayScaleWindow()
         : this(new DelayScaleViewModel())
@@ -26,12 +26,6 @@ public partial class DelayScaleWindow : Window
         DataContext = viewModel;
         Title = viewModel.Header;
         viewModel.CloseRequested += choice => Close(choice);
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close(null);
-        }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
@@ -54,14 +48,5 @@ public partial class DelayScaleWindow : Window
         e.Handled = true;
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

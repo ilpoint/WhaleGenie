@@ -2,12 +2,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -266,10 +267,10 @@ public class KeyRunTests
             ask.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 
+            // 把键盘收起来的那颗钮现在是库画的系统按钮，点不到；要看的是"收起来之后再点同一个
+            // 字段，回来的是这一扇窗而不是新开一扇"，所以直接把它最小化。
             var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
-            pad.GetVisualDescendants().OfType<Button>()
-                .Single(button => button.Name == "MinimizeButton")
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            pad.WindowState = WindowState.Minimized;
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(WindowState.Minimized, pad.WindowState);
@@ -279,6 +280,54 @@ public class KeyRunTests
 
             Assert.Equal(WindowState.Normal, pad.WindowState);
             Assert.Same(pad, window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single());
+        });
+    }
+
+    /// <summary>
+    /// One press of a run can be recorded instead of clicked: the keys pressed on the keyboard land
+    /// in that row, and the row keeps taking them until it is stopped. Letting go of a key that was
+    /// held does not write it a second time.
+    /// </summary>
+    [Fact]
+    public void A_press_is_recorded_from_the_keyboard_until_the_mouse_stops_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keySequence");
+            Dispatcher.UIThread.RunJobs();
+
+            var run = Run(viewModel);
+            run.AddKeyRow();
+            Dispatcher.UIThread.RunJobs();
+
+            var row = run.KeyRows[0];
+            var capture = FindButton(window, row, Strings.Get("Add.SetCombination"));
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Strings.Get("Add.StopKeyCapture"), capture.Content);
+
+            Press(window, Avalonia.Input.Key.LeftCtrl, Avalonia.Input.KeyModifiers.Control);
+            Press(window, Avalonia.Input.Key.C, Avalonia.Input.KeyModifiers.Control);
+            Release(window, Avalonia.Input.Key.C);
+            Release(window, Avalonia.Input.Key.LeftCtrl);
+            Assert.Equal("Ctrl+C", row.Keys);
+
+            // Every press joins the same row, so the recording goes on until it is stopped.
+            Press(window, Avalonia.Input.Key.V);
+            Release(window, Avalonia.Input.Key.V);
+            Assert.Equal("Ctrl+C+V", row.Keys);
+            Assert.True(row.IsCapturing);
+
+            capture.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(row.IsCapturing);
+            Assert.Equal(Strings.Get("Add.SetCombination"), capture.Content);
         });
     }
 
@@ -297,6 +346,25 @@ public class KeyRunTests
     private static Button FindKeyField(Window window, object data)
         => window.GetVisualDescendants().OfType<Button>().Single(candidate =>
             candidate.IsEffectivelyVisible
-            && candidate.Classes.Contains("KeyFieldButton")
+            && candidate is not ToggleButton
+            && candidate.Classes.Contains("Field")
             && Equals(candidate.DataContext, data));
+
+    /// <summary>Presses one key of the physical keyboard on the window the form stands in.</summary>
+    private static void Press(Window window, Avalonia.Input.Key key,
+        Avalonia.Input.KeyModifiers modifiers = Avalonia.Input.KeyModifiers.None)
+        => window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+            Key = key,
+            KeyModifiers = modifiers,
+        });
+
+    /// <summary>Lets go of one key, the way a hand does after pressing it.</summary>
+    private static void Release(Window window, Avalonia.Input.Key key)
+        => window.RaiseEvent(new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyUpEvent,
+            Key = key,
+        });
 }

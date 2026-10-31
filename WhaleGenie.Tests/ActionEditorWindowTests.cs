@@ -1,5 +1,7 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
@@ -20,8 +22,8 @@ public class ActionEditorWindowTests
             var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             Assert.IsType<ActionEditorView>(window.Content);
             Assert.True(window.CanResize);
-            Assert.False(window.StaysOpen);
-            Assert.Equal(WindowDecorations.BorderOnly, window.WindowDecorations);
+            // 外壳是库的 `FAAppWindow`：标题栏与边框都由它画，窗口自己不再声明装饰方式。
+            Assert.IsAssignableFrom<FluentAvalonia.UI.Windowing.FAAppWindow>(window);
             window.Close();
         });
     }
@@ -47,20 +49,6 @@ public class ActionEditorWindowTests
     }
 
     [Fact]
-    public void The_old_action_picker_can_be_hidden_when_the_library_already_chose_the_action()
-    {
-        Ui.Run(() =>
-        {
-            var view = new ActionEditorView();
-            view.ShowPicker = false;
-
-            Assert.False(view.FindControl<Grid>("PickerColumn")!.IsVisible);
-            Assert.Equal(0, view.FindControl<Grid>("FormBody")!
-                .ColumnDefinitions[0].Width.Value);
-        });
-    }
-
-    [Fact]
     public void A_required_call_argument_can_be_saved_as_an_explicit_empty_value()
     {
         Ui.Run(() =>
@@ -76,17 +64,14 @@ public class ActionEditorWindowTests
             form.Parameters.First(parameter => parameter.Definition.Name == "macro").Text = "子";
             Dispatcher.UIThread.RunJobs();
 
-            var argument = form.Parameters.First(parameter =>
-                parameter.Definition.Name == MacroCallFields.Argument("数量"));
-            var given = form.Parameters.First(parameter =>
-                parameter.Definition.Name == MacroCallFields.Given("数量"));
+            var row = Assert.Single(form.CallArgumentRows);
 
             Assert.False(form.CanSave);
-            given.Flag = true;
+            row.Given = true;
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(form.CanSave, form.ValidationMessage);
-            Assert.Equal(string.Empty, argument.Text);
+            Assert.Equal(string.Empty, row.Value);
             window.Close();
         });
     }
@@ -182,6 +167,54 @@ public class ActionEditorWindowTests
             Assert.True(condition.IsExpression);
             Assert.False(condition.IsNested);
             window.Close();
+        });
+    }
+
+    /// <summary>
+    /// A picker puts every window of this program away while it is out, the window a step is being
+    /// written in included — and that is exactly how a reference picture is taken. Taking the
+    /// window off the screen ends the modal loop it is shown in, so waiting on that loop would be
+    /// over before the step is written and the saved step would go nowhere. What the caller waits
+    /// on is the window itself.
+    /// </summary>
+    [Fact]
+    public void A_step_is_still_answered_after_a_picker_has_put_the_window_aside()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var owner = new Window();
+            owner.Show();
+
+            var dialog = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [],
+                "vision.findImage");
+            var loop = dialog.ShowDialogOver<MacroStep?>(owner);
+
+            using (AppWindows.StepAside([owner, dialog], dialog))
+            {
+            }
+
+            Dispatcher.UIThread.RunJobs();
+
+            // The loop is over and it brought nothing back, while the window is still standing
+            // there with the step half written.
+            Assert.True(loop.IsCompleted, "the modal loop outlived the window being put aside");
+            Assert.Null(await loop);
+            Assert.True(dialog.IsVisible);
+
+            var form = (AddActionViewModel)dialog.DataContext!;
+            var pictures = form.Parameters.First(parameter => parameter.Definition.Name == "images");
+            pictures.AddPicture();
+            pictures.Pictures[0].Text = @"C:\images\ok.png";
+            Dispatcher.UIThread.RunJobs();
+
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var step = await dialog.Answer;
+            Assert.Equal("vision.findImage", step?.Type);
+            Assert.False(dialog.IsVisible);
+            owner.Close();
+            return true;
         });
     }
 }

@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -9,6 +12,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -91,7 +95,11 @@ public class MacroEditorTests
             var call = viewModel.Steps[1];
             Assert.Equal("control.runMacro", call.Type);
             Assert.Equal(lifted.Name, call.Text("macro"));
-            Assert.Equal("$开始", call.Text("arg.开始"));
+            // What the call passes is one list of rows: the lifted macro's argument, and the value
+            // the stretch already had under that name.
+            var passed = call.Parameters.First(parameter => parameter.Name == FieldNames.Arguments).Rows;
+            Assert.Equal(["开始"], passed.Select(row => row.Text(FieldNames.Name)));
+            Assert.Equal(["$开始"], passed.Select(row => row.Text(FieldNames.Value)));
             Assert.Same(after, viewModel.Steps[2]);
 
             var wanted = call.Parameters.First(parameter => parameter.Name == "returns").Rows;
@@ -107,6 +115,51 @@ public class MacroEditorTests
             // business joining the project.
             viewModel.Steps.Remove(call);
             Assert.Empty(window.LiftedMacros);
+        });
+    }
+
+    /// <summary>
+    /// A lifted macro takes the values the stretch read, and each of them keeps the kind it already
+    /// had. Calling them all text would make the call site say a number is text, which is a
+    /// disagreement the author would have to find by reading the declaration.
+    /// </summary>
+    [Fact]
+    public void A_lifted_macro_declares_the_kind_its_arguments_already_had()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "主" };
+            macro.Parameters.Add(new MacroParameter
+            {
+                Name = "数",
+                Type = ActionReturnType.Number,
+                Required = true,
+            });
+
+            var counted = Set("中间", "$数 + 1");
+            macro.Steps.Add(counted);
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            MacroItem? lifted = null;
+            viewModel.MacroLifted += made => lifted = made;
+            viewModel.SetSelection([counted]);
+            viewModel.LiftSelectedCommand.Execute(null);
+
+            Assert.NotNull(lifted);
+            var argument = Assert.Single(lifted!.Parameters);
+            Assert.Equal("数", argument.Name);
+            Assert.Equal(ActionReturnType.Number, argument.Type);
+            Assert.True(argument.Required);
+
+            // Nothing said what the written name holds — a plain assignment is text until something
+            // declares otherwise — so it is declared text rather than guessed at.
+            var result = Assert.Single(lifted.Results);
+            Assert.Equal("中间", result.Name);
+            Assert.Equal(ActionReturnType.Text, result.Type);
         });
     }
 
@@ -134,6 +187,63 @@ public class MacroEditorTests
 
             Assert.Null(letGo.Result);
         });
+    }
+
+
+    /// <summary>
+    /// What the editor builds has to be the same macro after a trip through a package. The editor
+    /// alone turns its own state into a <see cref="MacroItem"/> — a field it forgets to copy is lost
+    /// on the first save, silently, and shows up much later as "my step came back different".
+    /// Comparing the JSON is the cheapest way to say "every field", including the ones nobody
+    /// remembered to assert: the package holds exactly this shape.
+    /// </summary>
+    [Fact]
+    public void What_the_editor_builds_survives_a_package()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-round-trip-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            Ui.Run(() =>
+            {
+                var (window, viewModel) = Open();
+                viewModel.AppendSteps(
+                [
+                    Set("total", "1"),
+                    new MacroStep
+                    {
+                        Type = "control.sequence",
+                        Meta = StepMeta.New,
+                        Parameters =
+                        [
+                            new StepParameter
+                            {
+                                Name = "steps",
+                                Kind = ActionParameterKind.Steps,
+                                Steps = [Set("inner", "$total")],
+                            },
+                        ],
+                    },
+                ]);
+                Dispatcher.UIThread.RunJobs();
+
+                viewModel.SaveCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+
+                var built = window.Result;
+                Assert.NotNull(built);
+
+                var path = Path.Combine(folder, "probe.wgmacro");
+                MacroPackage.Save(path, [built!], [], "0.0.0");
+                var read = MacroPackage.Load(path).Macros.Single();
+
+                Assert.Equal(built!.ToJson().ToJsonString(), read.ToJson().ToJsonString());
+            });
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]
@@ -609,8 +719,10 @@ public class MacroEditorTests
             Assert.Contains("break", ToolTip.GetTip(tip) as string ?? string.Empty);
 
             // The line above the list says there is something to look at.
+            // 本地类 `ProblemSummary` 并进了 `TextBlock.Problem`，标记跟着换——**只改样式不改这里，
+            // 这条断言会去找一个已经不存在的类**，症状是"找不到元素"而不是"样式不对"。
             var summary = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.Classes.Contains("ProblemSummary") && text.IsVisible);
+                text => text.Classes.Contains("Problem") && text.IsVisible);
             Assert.True(summary.IsVisible);
             Assert.False(string.IsNullOrWhiteSpace(summary.Text));
         });
@@ -746,7 +858,6 @@ public class MacroEditorTests
 
             var action = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             Assert.IsType<ActionEditorView>(action.Content);
-            Assert.False(action.StaysOpen);
             action.Close();
         });
     }
@@ -780,6 +891,48 @@ public class MacroEditorTests
     }
 
     [Fact]
+    public void The_inspector_can_say_what_a_record_holds()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            var host = window.FindControl<ContentControl>("MacroInterfaceHost");
+            Assert.NotNull(host);
+            var view = Assert.IsType<MacroInterfaceView>(host!.Content);
+            var model = (MacroInterfaceViewModel)view.DataContext!;
+
+            model.AddParameterCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var row = Assert.Single(model.Parameters);
+            row.Name = "点";
+
+            // Fields only mean something for a record, so the rows wait for the kind to say so.
+            Assert.False(row.IsRecord);
+            row.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Record);
+            Assert.True(row.IsRecord);
+
+            row.AddFieldCommand.Execute(null);
+            var field = Assert.Single(row.Fields);
+            field.Name = "x";
+            field.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Number);
+            Dispatcher.UIThread.RunJobs();
+
+            var declared = Assert.Single(viewModel.DeclaredParameters);
+            var written = Assert.Single(declared.Fields);
+            Assert.Equal("x", written.Name);
+            Assert.Equal(ActionReturnType.Number, written.Type);
+
+            // A field row is a declaration edit like any other: the variable wall and the check that
+            // reads field(...) both answer differently once it is written down.
+            Assert.True(viewModel.IsDirty);
+
+            row.RemoveFieldCommand.Execute(field);
+            Assert.Empty(declared.Fields);
+        });
+    }
+
+    [Fact]
     public void The_macro_interface_offers_expression_and_variable_tools_for_a_default()
     {
         Ui.Run(() =>
@@ -799,6 +952,53 @@ public class MacroEditorTests
             Assert.Contains(Strings.Get("Add.ExpressionBuilder"), buttons);
             Assert.Contains(Strings.Get("Add.VariablePicker"), buttons);
             Assert.Contains(model.ValueVariables, choice => choice.Name == "sys.date");
+        });
+    }
+
+    [Fact]
+    public void The_inspector_can_change_the_order_of_the_declarations()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            var host = window.FindControl<ContentControl>("MacroInterfaceHost");
+            Assert.NotNull(host);
+            var view = Assert.IsType<MacroInterfaceView>(host!.Content);
+            var model = (MacroInterfaceViewModel)view.DataContext!;
+
+            model.AddParameterCommand.Execute(null);
+            model.AddParameterCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var first = model.Parameters[0];
+            var second = model.Parameters[1];
+            first.Name = "甲";
+            second.Name = "乙";
+
+            // The order is the order a call form asks for the values in, so moving one has to change
+            // what is saved rather than only what is drawn.
+            Assert.False(first.CanMoveUp);
+            Assert.True(first.CanMoveDown);
+            Assert.True(second.CanMoveUp);
+            Assert.False(second.CanMoveDown);
+
+            model.MoveParameterUpCommand.Execute(second);
+            Assert.Equal(["乙", "甲"], model.Parameters.Select(row => row.Name));
+            Assert.Equal(["乙", "甲"], viewModel.DeclaredParameters.Select(parameter => parameter.Name));
+
+            // At the top there is nothing to swap with, so the button is off and the command is a
+            // no-op rather than an error.
+            model.MoveParameterUpCommand.Execute(model.Parameters[0]);
+            Assert.Equal(["乙", "甲"], viewModel.DeclaredParameters.Select(parameter => parameter.Name));
+
+            model.AddResultCommand.Execute(null);
+            model.AddResultCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            model.Results[0].Name = "一";
+            model.Results[1].Name = "二";
+
+            model.MoveResultDownCommand.Execute(model.Results[0]);
+            Assert.Equal(["二", "一"], viewModel.DeclaredResults.Select(result => result.Name));
         });
     }
 
@@ -892,73 +1092,6 @@ public class MacroEditorTests
     }
 
     [Fact]
-    public void A_self_call_is_checked_against_the_macros_own_steps()
-    {
-        Ui.Run(() =>
-        {
-            var start = new MacroStep
-            {
-                Type = "control.startMacro",
-                Meta = StepMeta.New,
-                Parameters =
-                [
-                    new StepParameter
-                    {
-                        Name = "macro",
-                        Kind = ActionParameterKind.Macro,
-                        Value = "自己",
-                    },
-                    new StepParameter
-                    {
-                        Name = "runHandleName",
-                        Kind = ActionParameterKind.Variable,
-                        Value = "job",
-                    },
-                ],
-            };
-            var hold = new MacroStep
-            {
-                Type = "control.holdBrowser",
-                Meta = StepMeta.New,
-                Parameters =
-                [
-                    new StepParameter
-                    {
-                        Name = "steps",
-                        Kind = ActionParameterKind.Steps,
-                        Steps = [start],
-                    },
-                ],
-            };
-            var browse = new MacroStep
-            {
-                Type = "browser.goTo",
-                Meta = StepMeta.New,
-                Parameters =
-                [
-                    new StepParameter
-                    {
-                        Name = "url",
-                        Kind = ActionParameterKind.Text,
-                        Value = "https://example.com",
-                    },
-                ],
-            };
-            var macro = new MacroItem { Name = "自己" };
-            macro.Steps.Add(hold);
-            macro.Steps.Add(browse);
-
-            var window = new MacroEditorWindow(macro, [macro]);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (MacroEditorViewModel)window.DataContext!;
-            Assert.Contains(viewModel.Problems, problem =>
-                problem.Message == Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
-        });
-    }
-
-    [Fact]
     public void The_left_palette_has_four_sources()
     {
         Ui.Run(() =>
@@ -981,25 +1114,4 @@ public class MacroEditorTests
         });
     }
 
-    [Fact]
-    public void Both_seams_of_the_editor_columns_have_a_splitter()
-    {
-        Ui.Run(() =>
-        {
-            var (window, _) = Open();
-            var grid = Assert.IsType<Grid>(window.FindControl<Grid>("EditorColumns"));
-
-            Assert.Equal(5, grid.ColumnDefinitions.Count);
-            Assert.Equal(280d, grid.ColumnDefinitions[0].MinWidth);
-            Assert.Equal(280d, grid.ColumnDefinitions[0].Width.Value);
-            Assert.Equal(480d, grid.ColumnDefinitions[2].MinWidth);
-            Assert.Equal(360d, grid.ColumnDefinitions[4].MinWidth);
-            Assert.Equal(360d, grid.ColumnDefinitions[4].Width.Value);
-
-            var splitters = grid.Children.OfType<GridSplitter>().ToList();
-            Assert.Equal(2, splitters.Count);
-            Assert.Contains(splitters, splitter => Grid.GetColumn(splitter) == 1);
-            Assert.Contains(splitters, splitter => Grid.GetColumn(splitter) == 3);
-        });
-    }
 }

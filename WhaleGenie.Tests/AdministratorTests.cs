@@ -1,7 +1,7 @@
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;

@@ -11,10 +11,9 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
-
+using WhaleGenie.Runtime;
 using WindowRuleModel = WhaleGenie.Core.Devices.WindowRule;
 
 namespace WhaleGenie.ViewModels;
@@ -84,9 +83,6 @@ public partial class MacroEditorViewModel : ViewModelBase
                 LabelKey = "Palette.RunMacro", Key = "runMacro" },
     ];
 
-    /// <summary>Palette id of the entry that opens the add-action dialog.</summary>
-    private const string AddStepPaletteKey = "add";
-
     private readonly List<MacroStep> _selection = [];
 
     /// <summary>
@@ -105,7 +101,6 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private bool _captureKeyboardOnly;
     private bool _captureSingleKey;
-    private bool _captureContinues;
     private TriggerEntry? _selectedTrigger;
     private bool _updatingHotstringEndKeys;
     private readonly Dictionary<string, InterfaceLayout> _interfaceLayouts = new(StringComparer.Ordinal);
@@ -501,7 +496,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
-        PlacementNotice = string.Empty;
+        Notice = string.Empty;
         foreach (var action in ActionPalette)
         {
             action.RefreshLanguage();
@@ -709,15 +704,16 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool HasCallImpact => CallImpactSummary.Length > 0;
 
     /// <summary>
-    /// Why the last drag, paste or structural edit was refused. It stays above the step list until
-    /// another edit succeeds or the selection moves, so a refused drop does not look like a silent
-    /// failure.
+    /// The one line the editor has to say about the steps: why the last drag, paste or structural
+    /// edit was refused, or which step ids a file brought in that had to be repaired. It stays above
+    /// the step list until another edit succeeds or the selection moves, so neither a refused drop
+    /// nor a repaired file looks like nothing happened.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPlacementNotice))]
-    public partial string PlacementNotice { get; set; } = string.Empty;
+    [NotifyPropertyChangedFor(nameof(HasNotice))]
+    public partial string Notice { get; set; } = string.Empty;
 
-    public bool HasPlacementNotice => PlacementNotice.Length > 0;
+    public bool HasNotice => Notice.Length > 0;
 
     /// <summary>One line above the list saying how much the editor has to say about the steps.</summary>
     public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
@@ -1502,16 +1498,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>True while a single key is taken rather than a combination.</summary>
     internal bool CaptureSingleKey => _captureSingleKey;
 
-    /// <summary>True when the capture keeps going after each combination, for a whole sequence.</summary>
-    internal bool CaptureContinues => _captureContinues;
-
     /// <summary>
     /// Starts a capture for the inspector's key field. The key is handed to <paramref name="deliver"/>
     /// instead of the trigger, and only the keyboard is listened to: a key field cannot hold a
     /// mouse button. A combination takes the modifiers with the key, the way a trigger does.
     /// </summary>
-    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false,
-        bool keyboardOnly = true)
+    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool keyboardOnly = true)
     {
         if (IsRecording)
         {
@@ -1521,7 +1513,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         _keyCaptureTarget = deliver;
         _captureKeyboardOnly = keyboardOnly;
         _captureSingleKey = !combination;
-        _captureContinues = continuous;
         IsCapturingKey = true;
         return true;
     }
@@ -1531,14 +1522,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (!IsCapturingKey)
         {
-            return;
-        }
-
-        if (_captureContinues)
-        {
-            // The run stays armed between presses: each chord becomes its own row and the next
-            // key is taken by the same loop.
-            _keyCaptureTarget?.Invoke(keyName);
             return;
         }
 
@@ -1553,9 +1536,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         BindKey = keyName;
     }
 
-    /// <summary>Ends a capture, including a run that was still waiting for the next press.</summary>
-    internal void StopKeyCapture() => StopCapturingKey();
-
     /// <summary>Ends a capture and forgets whatever it was going to write into.</summary>
     private void StopCapturingKey()
     {
@@ -1564,7 +1544,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         _keyCaptureTarget = null;
         _captureKeyboardOnly = false;
         _captureSingleKey = false;
-        _captureContinues = false;
     }
 
     [RelayCommand]
@@ -1577,9 +1556,6 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         switch (action.Key)
         {
-            case AddStepPaletteKey:
-                NewStepCommand.Execute(null);
-                break;
             case "edit":
                 EditSelectedCommand.Execute(null);
                 break;
@@ -1667,6 +1643,15 @@ public partial class MacroEditorViewModel : ViewModelBase
         ? ChoicesFor(owner, parameter)
         : null;
 
+    /// <summary>
+    /// The same list as a value rather than an option, for the places that hand the catalogue to a
+    /// dialog: a step added at the top level may be any action the palette offers, so that is what
+    /// an unrestricted place comes to. The dialog is never given "no list" — that is how it came to
+    /// offer the whole catalogue beside a form whose action had already been decided.
+    /// </summary>
+    public IReadOnlyList<ActionDefinition> AddableActions
+        => InsertChoices ?? ActionCatalog.RunnableActions;
+
     private static IReadOnlyList<ActionDefinition>? ChoicesFor(MacroStep owner, StepParameter parameter)
     {
         var definition = owner.Definition?.Parameters
@@ -1693,7 +1678,31 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>Shows the reason a placement was refused without changing the macro.</summary>
-    public void ReportPlacementRefusal(string reason) => PlacementNotice = reason;
+    public void ReportPlacementRefusal(string reason) => Notice = reason;
+
+    /// <summary>
+    /// Lets every step in this document have an id of its own, and says so when one had to move.
+    /// Two steps with one id is a file that cannot be branched on — the run would keep one answer
+    /// under a name two steps share — so the repair is done here and reported rather than left to
+    /// be discovered at run time.
+    /// </summary>
+    public void SettleStepIds() => ShowStepIdsRepaired(StepIds.Settle(Steps));
+
+    /// <summary>
+    /// Says which ids a repair moved, for a caller that settled more than one document and knows
+    /// which one this is. The macro counts as changed: the file on disk still has the old names.
+    /// </summary>
+    public void ShowStepIdsRepaired(IReadOnlyList<StepIds.Rename> renamed)
+    {
+        if (renamed.Count == 0)
+        {
+            return;
+        }
+
+        Notice = Strings.Format("Editor.StepIdsRepaired", renamed.Count,
+            string.Join(", ", renamed.Select(rename => $"{rename.Old} → {rename.New}")));
+        IsDirty = true;
+    }
 
     /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
     [RelayCommand]
@@ -1863,7 +1872,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         list.Insert(Math.Clamp(index, 0, list.Count), group);
-        StepIds.Settle(Steps);
+        SettleStepIds();
         RestoreSelection([group]);
         NotifyStepsChanged();
     }
@@ -1907,7 +1916,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         list.Insert(Math.Clamp(index, 0, list.Count), call);
-        StepIds.Settle(Steps);
+        SettleStepIds();
 
         // The new macro is one of the ones a call may reach from here, so the step just written is
         // checked against it rather than being marked as calling something that is not there.
@@ -1942,6 +1951,15 @@ public partial class MacroEditorViewModel : ViewModelBase
         alwaysVisible.Add(MacroRunner.CaughtKeyName);
         alwaysVisible.Add(MacroRunner.CaughtDetailName);
 
+        // What each name holds, read from the steps themselves: a value a call handed back as a
+        // number stays a number when it becomes an argument, so the call form says what it wants and
+        // the checks either side of the call agree about it.
+        var types = MacroCheck.TypesOf(stretch, OwnCallable, _projectMacros);
+
+        // A lifted argument is required because the call this very lift writes always passes it. The
+        // alternative — declaring it optional — would let a later edit delete the row and leave the
+        // macro reading an empty value with nothing said, which is the failure the declaration rules
+        // are for.
         var read = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in MacroCheck.Reads(stretch))
         {
@@ -1950,12 +1968,17 @@ public partial class MacroEditorViewModel : ViewModelBase
                 continue;
             }
 
-            lifted.Parameters.Add(new MacroParameter { Name = name });
+            lifted.Parameters.Add(new MacroParameter
+            {
+                Name = name,
+                Type = TypeOf(types, name),
+                Required = true,
+            });
         }
 
         foreach (var name in written)
         {
-            lifted.Results.Add(new MacroResult { Name = name });
+            lifted.Results.Add(new MacroResult { Name = name, Type = TypeOf(types, name) });
         }
 
         foreach (var step in stretch)
@@ -1965,6 +1988,14 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         return lifted;
     }
+
+    /// <summary>
+    /// What a name was seen to hold, or text when nothing said. Text is the honest answer for a name
+    /// whose value nothing declares: a wrong guess here would be a type the call site enforces.
+    /// </summary>
+    private static ActionReturnType TypeOf(IReadOnlyDictionary<string, ActionReturnType> types,
+        string name)
+        => types.TryGetValue(name, out var type) ? type : ActionReturnType.Text;
 
     /// <summary>The call left where the stretch was: it hands in this macro's values and takes back
     /// every name the stretch writes, each under the name it already had.</summary>
@@ -1980,15 +2011,26 @@ public partial class MacroEditorViewModel : ViewModelBase
             },
         };
 
-        foreach (var argument in lifted.Parameters)
+        // What the call passes is the same values the stretch read, so each argument row points at
+        // the name the value already had: the lifted steps keep working without a rename anywhere.
+        parameters.Add(new StepParameter
         {
-            parameters.Add(new StepParameter
-            {
-                Name = MacroCallFields.Argument(argument.Name),
-                Kind = ActionParameterKind.Expression,
-                Value = "$" + argument.Name,
-            });
-        }
+            Name = FieldNames.Arguments,
+            Kind = ActionParameterKind.Arguments,
+            Rows =
+            [
+                .. lifted.Parameters
+                    .Where(argument => argument.Name.Trim().Length > 0)
+                    .Select(argument => new StepParameterRow
+                    {
+                        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            [FieldNames.Name] = argument.Name.Trim(),
+                            [FieldNames.Value] = "$" + argument.Name.Trim(),
+                        },
+                    }),
+            ],
+        });
 
         parameters.Add(new StepParameter
         {
@@ -2163,7 +2205,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
 
-        StepIds.Settle(Steps);
+        SettleStepIds();
         ShowInside(list);
         RestoreSelection([step]);
         NotifyStepsChanged();
@@ -2192,7 +2234,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             Steps.Add(step);
         }
 
-        StepIds.Settle(Steps);
+        SettleStepIds();
         NotifyStepsChanged();
         MarkDirty();
     }
@@ -2262,7 +2304,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         // A paste is a copy, and two steps sharing a name share the variable it fills in and the
         // row a run lights up; a name that is free in this macro is kept, so pasting from another
         // macro leaves the steps as they were.
-        StepIds.Settle(Steps);
+        SettleStepIds();
         ShowInside(list);
         RestoreSelection(copies);
         NotifyStepsChanged();
@@ -2322,7 +2364,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         // A step asked for before this one is no longer the step being pointed at.
         _insertAt = null;
-        PlacementNotice = string.Empty;
+        Notice = string.Empty;
         _selection.Clear();
         _selection.AddRange(steps);
 
@@ -2396,7 +2438,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             // A macro written before steps had names, or one edited by hand outside the program,
             // arrives with none or with the same one twice; both are settled here, once, rather
             // than defended against in every place that reads a step's name.
-            StepIds.Settle(Steps);
+            SettleStepIds();
         }
         finally
         {
@@ -2980,7 +3022,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     internal void NotifyStepsChanged()
     {
-        PlacementNotice = string.Empty;
+        Notice = string.Empty;
         RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();

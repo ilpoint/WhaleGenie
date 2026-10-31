@@ -1,78 +1,82 @@
 using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
+using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// The MCP switch in the main window. It owns the local server's lifetime and the address shown in
-/// the flyout; the tools themselves live behind <see cref="McpServerHost"/>.
+/// The MCP flyout in the main window. This program no longer serves MCP from inside itself: a client
+/// launches WhaleGenie with <c>--mcp</c> and talks down the pipe it owns, so there is no server here
+/// to switch on. The two switches decide what the client may do, and the block underneath is what a
+/// person pastes into that client's configuration once — it does not carry the switches, because a
+/// served run reads them from the settings file before every call.
 /// </summary>
 public partial class McpServerViewModel : ViewModelBase
 {
-    private readonly McpServerHost _host;
-    private bool _running;
-    private bool _busy;
-    private string _status = Strings.Get("Mcp.Off");
-    private string _endpoint = string.Empty;
-    private int _port;
+    private readonly bool _loaded;
+    private bool _allowControl;
+    private bool _allowRun;
+    private string _status = string.Empty;
 
-    public McpServerViewModel(MainViewModel project)
+    public McpServerViewModel()
     {
-        _host = new McpServerHost(project);
-        _port = Math.Clamp(LocalSettings.LoadMcpPort(), 1024, 65535);
+        var grants = LocalSettings.LoadMcpGrants();
+        _allowControl = grants.Control;
+        _allowRun = grants.Run;
+        _loaded = true;
     }
 
-    /// <summary>The port the next start asks for. It is disabled while the server is running.</summary>
-    public int Port
+    public string Header => Strings.Get("Mcp.Title");
+
+    /// <summary>
+    /// Whether the client may send keys, clicks and window commands. Stored in the settings file,
+    /// which is where a running server reads it from before every call.
+    /// </summary>
+    public bool AllowControl
     {
-        get => _port;
-        set
+        get => _allowControl;
+        set => Grant(nameof(AllowControl), ref _allowControl, value);
+    }
+
+    /// <summary>
+    /// Whether the client may run one macro at a time and read what every step worked out. A second
+    /// switch rather than part of the first: clicking once and running a macro that writes files are
+    /// not the same favour.
+    /// </summary>
+    public bool AllowRun
+    {
+        get => _allowRun;
+        set => Grant(nameof(AllowRun), ref _allowRun, value);
+    }
+
+    /// <summary>
+    /// The block to paste into a client's configuration file: this program and the flag that makes
+    /// it speak MCP. Nothing about permissions is in it — those are the switches above, which the
+    /// served run reads while it is running.
+    /// </summary>
+    public string Config => JsonSerializer.Serialize(new
+    {
+        mcpServers = new
         {
-            var port = Math.Clamp(value, 1024, 65535);
-            if (_port == port)
+            whalegenie = new
             {
-                return;
-            }
+                command = Executable,
+                args = Arguments(),
+            },
+        },
+    }, new JsonSerializerOptions { WriteIndented = true });
 
-            _port = port;
-            LocalSettings.StoreMcpPort(port);
-            OnPropertyChanged();
-        }
-    }
+    /// <summary>This program's own path, which is what the client has to be told to start.</summary>
+    public string Executable => McpProgram.Executable;
 
-    public bool IsRunning
-    {
-        get => _running;
-        private set
-        {
-            if (_running == value)
-            {
-                return;
-            }
-
-            _running = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsBusy
-    {
-        get => _busy;
-        private set
-        {
-            if (_busy == value)
-            {
-                return;
-            }
-
-            _busy = value;
-            OnPropertyChanged();
-        }
-    }
-
+    /// <summary>Where the block was copied, or why there was nothing to copy.</summary>
     public string Status
     {
         get => _status;
@@ -88,106 +92,56 @@ public partial class McpServerViewModel : ViewModelBase
         }
     }
 
-    public string Endpoint
-    {
-        get => _endpoint;
-        private set
-        {
-            if (_endpoint == value)
-            {
-                return;
-            }
-
-            _endpoint = value;
-            OnPropertyChanged();
-        }
-    }
-
     /// <summary>
-    /// Asks the window to give the project a package path before MCP starts. Null in checks and in
-    /// any host without a window; the switch then starts without the question.
+    /// Opens the file the calls are recorded in. The person asking "what did it do" is at the
+    /// machine, not in a terminal, so the answer is a file opened for them — and the folder when
+    /// nothing has been written yet, which is a different answer from an empty file.
     /// </summary>
-    internal Func<Task<bool>>? EnsureSaved { get; set; }
-
     [RelayCommand]
-    private async Task ToggleAsync()
+    private void OpenAudit()
     {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        IsBusy = true;
-        try
-        {
-            if (IsRunning)
-            {
-                Status = Strings.Get("Mcp.Stopping");
-                await _host.StopAsync();
-                IsRunning = false;
-                Endpoint = string.Empty;
-                Status = Strings.Get("Mcp.Off");
-            }
-            else
-            {
-                if (EnsureSaved is { } ensure && !await ensure())
-                {
-                    Status = Strings.Get("Mcp.NeedSave");
-                    return;
-                }
-
-                Status = Strings.Get("Mcp.Starting");
-                await _host.StartAsync(Port);
-                Endpoint = _host.Endpoint;
-                IsRunning = _host.IsRunning;
-                Status = Strings.Get("Mcp.On");
-            }
-        }
-        catch (Exception error)
-        {
-            Status = Strings.Format("Mcp.StartFailed", error.Message);
-            try
-            {
-                await _host.StopAsync();
-            }
-            catch
-            {
-                // The status already carries the reason the start failed.
-            }
-
-            IsRunning = false;
-            Endpoint = string.Empty;
-        }
-        finally
-        {
-            IsBusy = false;
-
-            // A switch the user clicked has already moved itself; tell the one-way binding to read
-            // the truth again, including when the save question was cancelled.
-            OnPropertyChanged(nameof(IsRunning));
-        }
+        var file = McpAudit.File;
+        var target = File.Exists(file) ? file : AppPaths.Logs;
+        Directory.CreateDirectory(AppPaths.Logs);
+        Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true });
     }
 
-    /// <summary>Stops the server when the program is leaving, without touching the switch's text.</summary>
-    public async Task StopAsync()
-    {
-        try
-        {
-            await _host.StopAsync();
-        }
-        finally
-        {
-            IsRunning = false;
-            Endpoint = string.Empty;
-        }
-    }
-
-    /// <summary>Short confirmation under the flyout after the client config was copied.</summary>
+    /// <summary>Short confirmation under the page after the client config was copied.</summary>
     public void ShowCopied() => Status = Strings.Get("Mcp.Copied");
+
+    /// <summary>Why there was nothing to copy: a build running out of a folder with no program in it.</summary>
+    public void ShowNoProgram() => Status = Strings.Get("Mcp.NoProgram");
 
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
-        Status = IsRunning ? Strings.Get("Mcp.On") : Strings.Get("Mcp.Off");
+        OnPropertyChanged(nameof(Header));
+    }
+
+    /// <summary>
+    /// The arguments the block asks for. MCP itself and nothing else: the permissions a run works
+    /// under are the switches above, which it reads as it goes, so they are not baked into a command
+    /// line a client would have to be reconfigured to change.
+    /// </summary>
+    private static IReadOnlyList<string> Arguments() => ["--mcp"];
+
+    /// <summary>
+    /// Flips one switch and remembers it. The block does not change, and neither does the clipboard —
+    /// the client already running is the one this is meant to reach, and it reads the new answer
+    /// before its next call.
+    /// </summary>
+    private void Grant(string name, ref bool field, bool value)
+    {
+        if (field == value)
+        {
+            return;
+        }
+
+        field = value;
+        OnPropertyChanged(name);
+        if (_loaded)
+        {
+            LocalSettings.StoreMcpGrants(_allowControl, _allowRun);
+        }
     }
 }

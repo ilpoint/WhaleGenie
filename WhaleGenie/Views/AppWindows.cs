@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
@@ -78,6 +79,23 @@ internal sealed class AppWindows : IDisposable
         }
 
         return aside;
+    }
+
+    /// <summary>
+    /// Waits until what is on the screen is the screen *without* these windows.
+    /// </summary>
+    /// <remarks>
+    /// Taking a window off the screen is one call, but the desktop still holds the frame that had it
+    /// in it: a picture taken then is the old screen, with the window asking still standing in front
+    /// of what was to be looked at. Pumping the queue applies the hide, and waiting for composition
+    /// is what leaves that frame behind — which is the part a sleep cannot stand in for.
+    /// </remarks>
+    public static async Task SettleAsync()
+    {
+        Dispatcher.UIThread.RunJobs();
+        await Task.Yield();
+        ScreenComposed.Wait();
+        Dispatcher.UIThread.RunJobs();
     }
 
     /// <summary>

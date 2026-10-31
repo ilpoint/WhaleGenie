@@ -5,8 +5,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Views;
 
@@ -15,7 +15,7 @@ namespace WhaleGenie.Views;
 /// useful can leave a tip. The confirmation dialog could not carry the two codes, so this window
 /// owns both the text and the two buttons that open longer documents.
 /// </summary>
-public partial class AboutWindow : Window
+public partial class AboutWindow : AppWindow
 {
     private const double CollapsedHeight = 430;
     private const double ExpandedHeight = 720;
@@ -36,11 +36,6 @@ public partial class AboutWindow : Window
         _weChatQr = this.FindControl<Image>("WeChatQr")!;
         _alipayQr = this.FindControl<Image>("AlipayQr")!;
 
-        var close = this.FindControl<Button>("CloseButton");
-        if (close is not null)
-        {
-            close.Click += (_, _) => Close();
-        }
     }
 
     private void OnOpenProjectClicked(object? sender, RoutedEventArgs e)
@@ -71,14 +66,5 @@ public partial class AboutWindow : Window
 
     private void OnDoneClicked(object? sender, RoutedEventArgs e) => Close();
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

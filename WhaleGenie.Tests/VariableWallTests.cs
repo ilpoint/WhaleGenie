@@ -17,6 +17,7 @@ namespace WhaleGenie.Tests;
 /// leaves behind for either of them to offer. Writing a name out of memory is what all of this is
 /// there to avoid, so the checks are about what is in front of the user rather than about names.
 /// </summary>
+[RestoreSharedState]
 public class VariableWallTests
 {
     private static VariableChoice Local(string name) =>
@@ -329,7 +330,6 @@ public class VariableWallTests
         var rows = VariableChoices.For([step]);
         var result = rows.First(row => row.Name == "上月订单");
         var ending = rows.First(row => row.Name == "step.k3f9.outcome");
-        var reason = rows.First(row => row.Name == "step.k3f9.error");
 
         // Both say which step they came from, which is the one thing a name on its own cannot.
         Assert.Contains("k3f9", result.Source);
@@ -340,10 +340,9 @@ public class VariableWallTests
         Assert.True(ending.IsStepResult);
         Assert.Equal(VariableGroup.StepResult, ending.Group);
 
-        // Why it failed sits beside how it ended: a macro that treats one failure differently from
-        // another branches on this one.
-        Assert.True(reason.IsStepResult);
-        Assert.Equal(VariableGroup.StepResult, reason.Group);
+        // One row per step, not two: the reason is only readable inside a try, so it is not
+        // offered here as a second name.
+        Assert.DoesNotContain(rows, row => row.Name == "step.k3f9.error");
 
         // And the ones the macro does not make are offered as well: the fields may read those too.
         Assert.Contains(rows, row => row.Group == VariableGroup.System);

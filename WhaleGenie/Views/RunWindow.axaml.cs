@@ -11,9 +11,9 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
@@ -23,7 +23,7 @@ namespace WhaleGenie.Views;
 /// Runs a macro and shows what it does, one step at a time if asked. Its variable page is the
 /// runtime view: definitions are edited in the macro editor's variable center.
 /// </summary>
-public partial class RunWindow : Window
+public partial class RunWindow : AppWindow
 {
     /// <summary>The frame around the window the run is reading right now.</summary>
     private readonly ScreenFrames _frames = new();
@@ -71,6 +71,10 @@ public partial class RunWindow : Window
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
 
+        // 标题栏归库，内容伸进标题栏：那一行里放鲸鱼、标题与置顶钮，整条都能拖（`AppWindow` 负责拖）。
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
+
         viewModel.CloseRequested += Close;
         // The machine comes along so the window that shows what a step saw can put the writing it
         // read on the clipboard: that copy is the whole point of listing it, and the picture belongs
@@ -98,20 +102,22 @@ public partial class RunWindow : Window
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
 
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
+        // A macro that drives another program is watched with that program in front, so this window
+        // is pinned like the editor's: the run stays in sight while the work happens behind it.
+        var pinButton = this.FindControl<Button>("PinButton");
+        if (pinButton is not null)
         {
-            closeButton.Click += (_, _) => Close();
+            pinButton.Click += (_, _) =>
+            {
+                Topmost = !Topmost;
+                UpdateTitleBarButtons();
+            };
         }
+
+        UpdateTitleBarButtons();
 
         // A run keeps going while its window is out of the way, so this one is put away on its own
         // and brought back from the taskbar when the log is wanted again.
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
         // Keep the newest log line in view, so a long run stays readable without scrolling.
         var logScroll = this.FindControl<ScrollViewer>("LogScroll");
         if (logScroll is not null)
@@ -218,6 +224,38 @@ public partial class RunWindow : Window
     /// buttons at once, so which of them it is follows from where the run is — carrying on is what
     /// it means once something has stopped it.
     /// </summary>
+    /// <summary>Keeps the pin and the maximize button saying what pressing them will do.</summary>
+    private void UpdateTitleBarButtons()
+    {
+        if (this.FindControl<Button>("PinButton") is { } pin)
+        {
+            pin.Classes.Set("pinned", Topmost);
+            ToolTip.SetTip(pin, Strings.Get(Topmost ? "Common.Unpin" : "Common.Pin"));
+        }
+
+        if (this.FindControl<IconView>("PinIcon") is { } pinIcon)
+        {
+            pinIcon.Data = Topmost ? AppIcons.PinOff : AppIcons.Pin;
+        }
+
+        var maximized = WindowState == WindowState.Maximized;
+
+        if (this.FindControl<IconView>("MaximizeIcon") is { } maximizeIcon)
+        {
+            maximizeIcon.Data = maximized ? AppIcons.Restore : AppIcons.Maximize;
+        }
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty)
+        {
+            UpdateTitleBarButtons();
+        }
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -318,24 +356,26 @@ public partial class RunWindow : Window
                 viewModel.ToggleBreakpointCommand.Execute(row);
                 break;
             case "condition":
-                var dialog = new ActionEditorWindow(
-                    viewModel.BreakpointCondition(row.Id),
-                    ActionCatalog.ForKeys(["control.if"]), viewModel.Choices,
-                    null, null, ImageAssets.FolderFor(null))
+                // A small panel of its own, not the action editor: a condition is a question about
+                // the run, and asking somebody to build an `if` step to write it was the reason
+                // nobody used this.
+                var panel = await BreakpointWindow.EditAsync(this, viewModel.BreakpointRuleOf(row.Id),
+                    viewModel.Choices);
+                if (panel is null || panel.How is BreakpointViewModel.Ending.Cancel)
                 {
-                    // The condition is tried out on the devices the run is on: a picture taken for
-                    // its own sake then lands in the program's own folder, which is the one place
-                    // the window knows of.
-                    Devices = viewModel.Devices,
-                };
-                if (await dialog.ShowDialogOver<MacroStep?>(this) is { } condition)
-                {
-                    viewModel.ConditionBreakpoint(row, condition);
+                    break;
                 }
 
+                if (panel.How is BreakpointViewModel.Ending.Clear || panel.Rule is null)
+                {
+                    viewModel.ClearBreakpointRule(row);
+                    break;
+                }
+
+                viewModel.SetBreakpointRule(row, panel.Rule);
                 break;
             case "clear":
-                viewModel.ClearBreakpointCondition(row);
+                viewModel.ClearBreakpointRule(row);
                 break;
         }
     }
@@ -347,14 +387,5 @@ public partial class RunWindow : Window
     /// </summary>
     internal Task DebugAsync(MacroItem macro) => Form?.DebugAsync(macro) ?? Task.CompletedTask;
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

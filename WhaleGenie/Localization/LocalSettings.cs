@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Localization;
 
@@ -20,6 +21,17 @@ public static class LocalSettings
     /// </summary>
     internal static string FilePath { get; set; } = AppPaths.Settings;
 
+    /// <summary>
+    /// The package this copy of the program had open last, so the next start does not begin with an
+    /// empty list the person has to fill by hand. A path that no longer exists is still remembered:
+    /// the file may be on a drive that is not plugged in, and forgetting it would lose the only
+    /// record of where the work was.
+    /// </summary>
+    public static string LastProject() => Read().LastProject;
+
+    /// <summary>Remembers the package that is open now. An empty path forgets it.</summary>
+    public static void StoreLastProject(string? path) => Write(model => model.LastProject = path ?? string.Empty);
+
     /// <summary>Whether the window frame and controls use the light variant.</summary>
     public static bool LoadLightTheme() => Read().LightTheme;
 
@@ -28,23 +40,38 @@ public static class LocalSettings
 
     /// <summary>
     /// The whole theme choice. A file from before custom themes carried only <see cref="Model.LightTheme"/>,
-    /// so that flag is the fallback when no mode was written.
+    /// so that flag is the fallback when no mode was written. A file from before this version kept a
+    /// dictionary of twenty-two colours; only the accent in it still means anything, so that one entry
+    /// is carried over and the rest are dropped rather than left to rot.
     /// </summary>
     public static ThemeSelection LoadTheme()
     {
         var model = Read();
-        var mode = Enum.TryParse<ThemeMode>(model.Theme, true, out var stored)
-            ? stored
+        var mode = Enum.TryParse<ThemeMode>(model.Theme, true, out var selected)
+            ? selected
             : model.LightTheme ? ThemeMode.Light : ThemeMode.Dark;
-        var colors = model.CustomThemeColors ?? new Dictionary<string, string>();
-        var light = model.CustomThemeLight;
 
-        if (mode is ThemeMode.Custom && colors.Count == 0)
+        var accent = model.Accent;
+        if (string.IsNullOrWhiteSpace(accent)
+            && model.CustomThemeColors is { } palette
+            && palette.TryGetValue("AppAccent", out var legacy))
         {
-            colors = new Dictionary<string, string>(ThemePalette.Defaults(light));
+            accent = legacy;
         }
 
-        return new ThemeSelection(mode, light, colors);
+        // Only a custom theme has a base of its own; the built-in light and dark choices say theirs
+        // in the mode, and reading a stale flag over it would leave "light" painting dark controls.
+        var baseLight = mode switch
+        {
+            ThemeMode.Light => true,
+            ThemeMode.Dark => false,
+            _ => model.CustomThemeLight,
+        };
+
+        return new ThemeSelection(
+            mode,
+            baseLight,
+            string.IsNullOrWhiteSpace(accent) ? null : accent);
     }
 
     /// <summary>Stores the whole theme choice; the old flag is kept for older copies of the program.</summary>
@@ -52,9 +79,14 @@ public static class LocalSettings
         => Write(model =>
         {
             model.Theme = selection.Mode.ToString().ToLowerInvariant();
-            model.CustomThemeLight = selection.CustomBaseLight;
-            model.CustomThemeColors = new Dictionary<string, string>(selection.CustomColors);
+            model.CustomThemeLight = selection.BaseLight;
+            model.Accent = selection.AccentHex ?? string.Empty;
             model.LightTheme = selection.Mode is ThemeMode.Light;
+
+            // Writing is where the old shape goes away: a dictionary left in the file would read as
+            // a palette that was never migrated, and the next start would pick the accent out of it
+            // over the one just chosen.
+            model.CustomThemeColors = null;
         });
 
     /// <summary>
@@ -96,11 +128,22 @@ public static class LocalSettings
     public static void StoreDriverAttachAtStart(bool value)
         => Write(model => model.DriverAttachAtStart = value);
 
-    /// <summary>The port the local MCP server asks for; 3917 unless the person changed it.</summary>
-    public static int LoadMcpPort() => Read().McpPort;
+    /// <summary>
+    /// The two permissions the MCP flyout last handed out. Remembered so the
+    /// block a person copies next time is the one they meant, rather than a bare "read only" again.
+    /// </summary>
+    public static (bool Control, bool Run) LoadMcpGrants()
+    {
+        var model = Read();
+        return (model.McpAllowControl, model.McpAllowRun);
+    }
 
-    /// <summary>Stores the MCP port. The server falls back to a free port if it is taken.</summary>
-    public static void StoreMcpPort(int port) => Write(model => model.McpPort = port);
+    /// <summary>Stores those two choices. Failures are ignored on purpose.</summary>
+    public static void StoreMcpGrants(bool control, bool run) => Write(model =>
+    {
+        model.McpAllowControl = control;
+        model.McpAllowRun = run;
+    });
 
     /// <summary>
     /// How this machine reads a picture of a window. Automatic by default, which is the order the
@@ -174,11 +217,11 @@ public static class LocalSettings
     {
         public string Language { get; set; } = string.Empty;
 
+        public string LastProject { get; set; } = string.Empty;
+
         public bool PreloadOcr { get; set; }
 
         public bool DriverAttachAtStart { get; set; }
-
-        public int McpPort { get; set; } = 3917;
 
         public string CaptureWindow { get; set; } = string.Empty;
 
@@ -188,12 +231,25 @@ public static class LocalSettings
 
         public string DockPage { get; set; } = nameof(Models.DockPage.Keys);
 
+        public bool McpAllowControl { get; set; }
+
+        public bool McpAllowRun { get; set; }
+
         public bool LightTheme { get; set; }
 
         public string Theme { get; set; } = string.Empty;
 
         public bool CustomThemeLight { get; set; }
 
+        /// <summary>The one colour a custom theme paints with; empty means the built-in accent.</summary>
+        public string Accent { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Where a custom theme used to keep twenty-two colours, one per interface colour. Read so
+        /// that the accent chosen there survives the move to a single colour, and never written:
+        /// leaving it behind would look like a palette that had not been migrated yet.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, string>? CustomThemeColors { get; set; } = new();
     }
 }

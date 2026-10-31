@@ -8,15 +8,15 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
 /// <summary>The one editor for project-level globals; the run window only reads their values.</summary>
-public partial class GlobalVariablesWindow : Window
+public partial class GlobalVariablesWindow : AppWindow
 {
     private readonly GlobalVariablesViewModel _viewModel;
     private readonly IReadOnlyList<VariableChoice> _expressionVariables;
@@ -65,11 +65,6 @@ public partial class GlobalVariablesWindow : Window
         if (initialName is { Length: > 0 })
         {
             _viewModel.SelectNamed(initialName);
-        }
-
-        if (this.FindControl<Button>("CloseButton") is { } close)
-        {
-            close.Click += (_, _) => RequestClose();
         }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -237,7 +232,13 @@ public partial class GlobalVariablesWindow : Window
         }
 
         e.Cancel = true;
-        _ = PromptToSaveAsync();
+
+        // Queued rather than called here. A modal opened from inside a closing handler is asked
+        // for before the window has finished saying no, and what comes back depends on how the
+        // dialog presents itself — the same call that works for one dialog is answered with
+        // silence by another. Queuing it puts the question after the answer that keeps the window
+        // open, which is where the person asking is anyway.
+        Dispatcher.UIThread.Post(() => _ = PromptToSaveAsync());
         base.OnClosing(e);
     }
 
@@ -290,13 +291,5 @@ public partial class GlobalVariablesWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
+
 }

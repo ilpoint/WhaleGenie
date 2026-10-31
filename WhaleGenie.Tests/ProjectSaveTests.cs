@@ -14,6 +14,7 @@ namespace WhaleGenie.Tests;
 /// question: only the macro being edited was asked about, so a project that had grown a second
 /// macro was thrown away at exit without a word. The main window asks this before the program stops.
 /// </summary>
+[RestoreSharedState]
 public class ProjectSaveTests
 {
     [Fact]
@@ -35,6 +36,90 @@ public class ProjectSaveTests
 
         // Nothing is left and there is no file it came from, so there is nothing to lose either.
         Assert.False(viewModel.HasUnsavedChanges);
+    }
+
+    /// <summary>
+    /// Every save keeps the file it replaced as .bak. The window's own Save goes through the package
+    /// writer just as the MCP tool does, so this is the one place that has to remember — a save that
+    /// turns out to be wrong is the one mistake nobody can undo from inside the program.
+    /// </summary>
+    [Fact]
+    public void Every_save_keeps_the_file_it_replaced()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+            var first = new MainViewModel();
+            first.AddMacro(new MacroItem { Name = "login" });
+            first.SavePackage(path);
+
+            // Nothing was replaced yet, so there is nothing to keep.
+            Assert.False(File.Exists(path + ".bak"));
+
+            var second = new MainViewModel();
+            second.AddMacro(new MacroItem { Name = "logout" });
+            second.SavePackage(path);
+
+            // What is kept is the package that was there before, not the one just written.
+            var kept = MacroPackage.Load(path + ".bak");
+            Assert.Contains(kept.Macros, macro => macro.Name == "login");
+            Assert.DoesNotContain(kept.Macros, macro => macro.Name == "logout");
+            Assert.Contains(MacroPackage.Load(path).Macros, macro => macro.Name == "logout");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    /// <summary>
+    /// Opening a package replaces the shared variables instead of merging into whatever the last
+    /// project left behind. Two projects that both declare `count` would otherwise end up with two
+    /// of them, and one of the two would quietly become unreachable.
+    /// </summary>
+    [Fact]
+    public void Opening_another_project_replaces_the_shared_variables()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var first = Path.Combine(folder, "first" + MacroPackage.Extension);
+            var second = Path.Combine(folder, "second" + MacroPackage.Extension);
+
+            var a = new MainViewModel();
+            a.AddMacro(new MacroItem { Name = "one" });
+            VariableCatalog.Globals.Clear();
+            VariableCatalog.Globals.Add(new VariableDefinition
+            {
+                Name = "fromFirst",
+                Scope = VariableScope.Global,
+            });
+            a.SavePackage(first);
+
+            var b = new MainViewModel();
+            b.AddMacro(new MacroItem { Name = "two" });
+            VariableCatalog.Globals.Clear();
+            b.SavePackage(second);
+
+            // The state the program is in after the first project was open: its variable sits in the
+            // catalog while the second project is the one about to be opened.
+            VariableCatalog.Globals.Add(new VariableDefinition
+            {
+                Name = "fromFirst",
+                Scope = VariableScope.Global,
+            });
+
+            var opened = new MainViewModel();
+            opened.OpenPackage(second);
+
+            Assert.DoesNotContain(VariableCatalog.Globals, variable => variable.Name == "fromFirst");
+        }
+        finally
+        {
+            VariableCatalog.Globals.Clear();
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]

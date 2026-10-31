@@ -315,6 +315,12 @@ public enum ActionRowColumnRole
 
     /// <summary>A picture path or image value.</summary>
     Image,
+
+    /// <summary>
+    /// True or false, written the way every other truth value is. A row that carries a flag says
+    /// something about the row itself rather than holding one more thing the action reads.
+    /// </summary>
+    Flag,
 }
 
 /// <summary>One column a row of a list may hold.</summary>
@@ -363,6 +369,14 @@ public sealed class ActionSemantics
     public required ActionCategory Category { get; init; }
 
     public bool Hidden { get; init; }
+
+    /// <summary>
+    /// True for an action the palette no longer offers but the engine still runs. Hidden means
+    /// something else: an action that only makes sense inside a particular container, and is
+    /// reported when it is put anywhere else. A retired action can go anywhere; it is simply not
+    /// put in front of somebody writing a new macro, and a macro that already uses it keeps working.
+    /// </summary>
+    public bool Retired { get; init; }
 
     /// <summary>True when carrying out this action puts keys, clicks or controller input into the machine.</summary>
     public bool SendsInput { get; init; }

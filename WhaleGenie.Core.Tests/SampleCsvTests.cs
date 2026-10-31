@@ -101,7 +101,7 @@ public class SampleCsvTests
                 SampleFiles.Returns("rows=again")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
-        Assert.True(run.Devices.Files.ContainsKey("back.csv"), "the file should have been written");
+        Assert.True(run.Devices.Files.Store.ContainsKey("back.csv"), "the file should have been written");
 
         var rows = run.Rows("rows");
         var again = run.Rows("again");

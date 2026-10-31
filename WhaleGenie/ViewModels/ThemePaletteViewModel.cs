@@ -1,86 +1,28 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
 
-/// <summary>One row of the custom palette: a semantic color and the value picked for it.</summary>
-public sealed partial class ThemeColorEntryViewModel : ViewModelBase
-{
-    public required ThemeBrush Brush { get; init; }
-
-    public string Key => Brush.Key;
-
-    public string Label => Strings.Get(Brush.LabelKey);
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Hex))]
-    [NotifyPropertyChangedFor(nameof(Swatch))]
-    private Color _color;
-
-    public string Hex => ThemePalette.ToHex(Color);
-
-    public IBrush Swatch => new SolidColorBrush(Color);
-
-    [ObservableProperty]
-    private bool _isSelected;
-
-    /// <summary>Raised after the user changes this color, never while the row is being built.</summary>
-    public event Action? Changed;
-
-    public void Reset(bool light)
-    {
-        var text = light ? Brush.Light : Brush.Dark;
-        if (ThemePalette.TryParse(text, out var colour))
-        {
-            Color = colour;
-        }
-    }
-
-    public override void RefreshLanguage()
-    {
-        base.RefreshLanguage();
-        OnPropertyChanged(nameof(Label));
-    }
-
-    partial void OnColorChanged(Color value) => Changed?.Invoke();
-}
-
-/// <summary>A heading and its colors in the palette list.</summary>
-public sealed class ThemeColorGroupViewModel : ViewModelBase
-{
-    public required string Key { get; init; }
-
-    public string Label => Strings.Get(Key);
-
-    public required IReadOnlyList<ThemeColorEntryViewModel> Entries { get; init; }
-
-    public override void RefreshLanguage()
-    {
-        base.RefreshLanguage();
-        OnPropertyChanged(nameof(Label));
-        foreach (var entry in Entries)
-        {
-            entry.RefreshLanguage();
-        }
-    }
-}
-
 /// <summary>
-/// Backs the custom palette window. Every change is applied at once and saved after the user has
-/// stopped moving the picker for a moment, so dragging a slider does not write the settings file
-/// on every frame.
+/// Backs the accent picker. One colour is the whole choice: the buttons, the selected rows and the
+/// accent text are derived from it, and each change is applied at once and saved after the user has
+/// stopped moving the picker for a moment, so dragging a slider does not write the settings file on
+/// every frame.
 /// </summary>
 public sealed partial class ThemePaletteViewModel : ViewModelBase
 {
     private readonly DispatcherTimer _saveTimer;
     private bool _ready;
+
+    /// <summary>The five colours in use: the picked one, or the built-in accent when it was refused.</summary>
+    private AccentTokens _tokens;
+
+    private IBrush _fillPreview = Brushes.Transparent;
+    private IBrush _surfacePreview = Brushes.Transparent;
+    private IBrush _textPreview = Brushes.Transparent;
 
     public ThemePaletteViewModel()
         : this(ThemeController.Load())
@@ -89,77 +31,78 @@ public sealed partial class ThemePaletteViewModel : ViewModelBase
 
     public ThemePaletteViewModel(ThemeSelection selection)
     {
-        BaseLight = selection.Mode is ThemeMode.Custom ? selection.CustomBaseLight : selection.BaseLight;
-
-        var colors = selection.Mode is ThemeMode.Custom && selection.CustomColors.Count > 0
-            ? selection.CustomColors
-            : ThemePalette.Defaults(BaseLight);
-        var current = new ThemeSelection(ThemeMode.Custom, BaseLight, colors);
-
-        var entries = new List<ThemeColorEntryViewModel>();
-        foreach (var brush in ThemePalette.Brushes)
-        {
-            var entry = new ThemeColorEntryViewModel
-            {
-                Brush = brush,
-                Color = ThemePalette.Resolve(brush, current),
-            };
-            entry.Changed += OnEntryChanged;
-            entries.Add(entry);
-        }
-
-        Entries = entries;
-        Groups = [.. entries
-            .GroupBy(entry => entry.Brush.GroupKey)
-            .Select(group => new ThemeColorGroupViewModel
-            {
-                Key = group.Key,
-                Entries = [.. group],
-            })];
-        SelectedEntry = entries[0];
-        SelectedEntry.IsSelected = true;
-
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _saveTimer.Tick += (_, _) => Flush();
+
+        BaseLight = selection.BaseLight;
+        Accent = ThemePalette.TryParse(selection.AccentHex, out var accent) ? accent : BuiltInAccent;
+        Derive();
+
         _ready = true;
     }
 
-    public IReadOnlyList<ThemeColorEntryViewModel> Entries { get; }
-
-    public IReadOnlyList<ThemeColorGroupViewModel> Groups { get; }
+    private static Color BuiltInAccent => Color.Parse(ThemePalette.DefaultAccent);
 
     [ObservableProperty]
-    public partial ThemeColorEntryViewModel SelectedEntry { get; set; }
+    [NotifyPropertyChangedFor(nameof(AccentHex))]
+    private Color _accent = BuiltInAccent;
 
-    /// <summary>Whether the controls around the colors use the dark or the light Fluent variant.</summary>
+    /// <summary>The picked colour as it is written to the settings file and shown beside the picker.</summary>
+    public string AccentHex => ThemePalette.ToHex(Accent);
+
+    /// <summary>Whether the controls around the accent use the dark or the light Fluent variant.</summary>
     [ObservableProperty]
-    public partial bool BaseLight { get; set; }
+    private bool _baseLight;
 
-    /// <summary>Moves the editor to a row clicked in the palette list.</summary>
-    public void Select(ThemeColorEntryViewModel entry)
+    /// <summary>
+    /// False when the picked colour could not be made readable. The previews then show the built-in
+    /// accent, which is what the program is actually painting with, and the window says why.
+    /// </summary>
+    public bool AccentUsable { get; private set; }
+
+    /// <summary>A primary button: what a filled button will look like.</summary>
+    public IBrush FillPreview
     {
-        if (ReferenceEquals(entry, SelectedEntry))
+        get => _fillPreview;
+        private set
         {
-            return;
+            _fillPreview = value;
+            OnPropertyChanged();
         }
-
-        SelectedEntry.IsSelected = false;
-        SelectedEntry = entry;
-        SelectedEntry.IsSelected = true;
     }
 
-    /// <summary>Applies every row and the base variant to the running program.</summary>
+    /// <summary>A selected row: the accent laid faintly over the window.</summary>
+    public IBrush SurfacePreview
+    {
+        get => _surfacePreview;
+        private set
+        {
+            _surfacePreview = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Accent text standing on the window surface.</summary>
+    public IBrush TextPreview
+    {
+        get => _textPreview;
+        private set
+        {
+            _textPreview = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Applies the choice to the running program.</summary>
     public void Apply()
     {
-        if (!_ready)
+        if (_ready)
         {
-            return;
+            ThemeController.Apply(Selection());
         }
-
-        ThemeController.Apply(Selection());
     }
 
-    /// <summary>Writes the current custom palette, whether or not the debounce is still pending.</summary>
+    /// <summary>Writes the choice, whether or not the debounce is still pending.</summary>
     public void Flush()
     {
         _saveTimer.Stop();
@@ -170,51 +113,50 @@ public sealed partial class ThemePaletteViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ResetSelected()
+    private void ResetAccent()
     {
-        SelectedEntry.Reset(BaseLight);
+        Accent = BuiltInAccent;
         Apply();
         _saveTimer.Stop();
         _saveTimer.Start();
     }
 
-    [RelayCommand]
-    private void ResetAll()
+    partial void OnAccentChanged(Color value)
     {
-        foreach (var entry in Entries)
-        {
-            entry.Reset(BaseLight);
-        }
-
+        Derive();
         Apply();
         _saveTimer.Stop();
         _saveTimer.Start();
-    }
-
-    public override void RefreshLanguage()
-    {
-        base.RefreshLanguage();
-        foreach (var group in Groups)
-        {
-            group.RefreshLanguage();
-        }
     }
 
     partial void OnBaseLightChanged(bool value)
     {
+        Derive();
         Apply();
         _saveTimer.Stop();
         _saveTimer.Start();
     }
 
-    private void OnEntryChanged()
+    /// <summary>
+    /// Reads the picked colour into the five the previews paint with. A colour the derivation
+    /// refuses is shown as the built-in accent rather than as itself: the window has to show what
+    /// the program will do, and it will not paint with a colour white text cannot be read on.
+    /// </summary>
+    private void Derive()
     {
-        Apply();
-        _saveTimer.Stop();
-        _saveTimer.Start();
+        AccentUsable = ThemePalette.TryDerive(Accent, BaseLight, out var picked);
+        if (!AccentUsable && !ThemePalette.TryDerive(BuiltInAccent, BaseLight, out picked))
+        {
+            picked = default;
+        }
+
+        _tokens = picked;
+        FillPreview = new SolidColorBrush(_tokens.Fill);
+        SurfacePreview = new SolidColorBrush(_tokens.Surface);
+        TextPreview = new SolidColorBrush(_tokens.Text);
+        OnPropertyChanged(nameof(AccentUsable));
     }
 
     private ThemeSelection Selection()
-        => new(ThemeMode.Custom, BaseLight,
-            Entries.ToDictionary(entry => entry.Key, entry => entry.Hex, StringComparer.OrdinalIgnoreCase));
+        => new(ThemeMode.Custom, BaseLight, AccentHex);
 }

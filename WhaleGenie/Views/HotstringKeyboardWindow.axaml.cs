@@ -5,8 +5,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Views;
 
@@ -15,7 +16,7 @@ namespace WhaleGenie.Views;
 /// caps write text, not key names, and the displayed count is the same 40-character limit the
 /// recognizer enforces.
 /// </summary>
-public partial class HotstringKeyboardWindow : Window
+public partial class HotstringKeyboardWindow : AppWindow
 {
     private sealed record CharacterKey(string Normal, string Shifted, bool Wide = false);
 
@@ -40,12 +41,6 @@ public partial class HotstringKeyboardWindow : Window
         _rows = this.FindControl<StackPanel>("KeyRows")!;
         _preview = this.FindControl<TextBlock>("PreviewText")!;
         _count = this.FindControl<TextBlock>("CountText")!;
-
-        var close = this.FindControl<Button>("CloseButton");
-        if (close is not null)
-        {
-            close.Click += (_, _) => Close(null);
-        }
 
         var backspace = this.FindControl<Button>("BackspaceButton");
         if (backspace is not null)
@@ -111,7 +106,7 @@ public partial class HotstringKeyboardWindow : Window
         };
         var shift = new Button
         {
-            Classes = { "CharKey" },
+            Classes = { "Secondary" },
             MinWidth = 92,
             Content = Strings.Get("HotstringKeyboard.Shift"),
         };
@@ -143,7 +138,7 @@ public partial class HotstringKeyboardWindow : Window
             {
                 var backspace = new Button
                 {
-                    Classes = { "CharKey" },
+                    Classes = { "Secondary" },
                     MinWidth = 78,
                     Content = Strings.Get("HotstringKeyboard.Backspace"),
                 };
@@ -153,7 +148,7 @@ public partial class HotstringKeyboardWindow : Window
                 continue;
             }
 
-            var button = new Button { Classes = { "CharKey" }, Content = key.Normal };
+            var button = new Button { Classes = { "Secondary" }, Content = key.Normal };
             button.Click += (_, _) => Append(_shift ? key.Shifted : key.Normal);
             _characterButtons.Add((button, key));
             row.Children.Add(button);
@@ -166,7 +161,7 @@ public partial class HotstringKeyboardWindow : Window
     {
         var button = new Button
         {
-            Classes = { "CharKey" },
+            Classes = { "Secondary" },
             MinWidth = width,
             Content = label,
         };
@@ -234,13 +229,5 @@ public partial class HotstringKeyboardWindow : Window
         Close(null);
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
+
 }

@@ -36,16 +36,18 @@
         <Border Name="DimLeft" IsHitTestVisible="False" Background="#7F000000" />
         <Border Name="DimRight" IsHitTestVisible="False" Background="#7F000000" />
 
+        <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
         <Border Name="Selection" IsVisible="False" IsHitTestVisible="False"
                 BorderBrush="#FF3B30" BorderThickness="2" />
 
         <Border Name="Readout" IsHitTestVisible="False"
-                Background="#E01E1E1E" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                Background="#E01E1E1E" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                 CornerRadius="6" Padding="10,7">
             <StackPanel Spacing="3">
+                <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
                 <TextBlock Name="SizeText" FontSize="15" Foreground="#F0F0F0"
                            FontFamily="Consolas,Menlo,monospace" />
-                <TextBlock Name="HintText" FontSize="12" Foreground="{DynamicResource AppMuted}" MaxWidth="260" TextWrapping="Wrap"
+                <TextBlock Name="HintText" FontSize="12" Foreground="{DynamicResource TextTertiary}" MaxWidth="260" TextWrapping="Wrap"
                            Text="{Binding [Region.Hint], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
         </Border>

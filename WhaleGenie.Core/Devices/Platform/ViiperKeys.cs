@@ -59,6 +59,10 @@ public enum HidUsage : byte
     LeftBrace = 0x2F,
     RightBrace = 0x30,
     Backslash = 0x31,
+
+    /// <summary>The extra key an ISO keyboard carries left of Z, which Windows calls the section sign.</summary>
+    NonUsBackslash = 0x64,
+
     Semicolon = 0x33,
     Apostrophe = 0x34,
     Grave = 0x35,
@@ -110,7 +114,6 @@ public enum HidUsage : byte
     KpDot = 0x63,
     Application = 0x65,
     Power = 0x66,
-    KpEqual = 0x67,
     F13 = 0x68,
     F14 = 0x69,
     F15 = 0x6A,
@@ -123,14 +126,6 @@ public enum HidUsage : byte
     F22 = 0x71,
     F23 = 0x72,
     F24 = 0x73,
-    Help = 0x75,
-    Mute = 0x7F,
-    VolumeUp = 0x80,
-    VolumeDown = 0x81,
-    MediaPlayPause = 0xE8,
-    MediaStop = 0xE9,
-    MediaNext = 0xEB,
-    MediaPrevious = 0xEC,
 }
 
 /// <summary>
@@ -191,6 +186,7 @@ public static class ViiperKeys
         KeyCode.VcOpenBracket => HidUsage.LeftBrace,
         KeyCode.VcCloseBracket => HidUsage.RightBrace,
         KeyCode.VcBackslash => HidUsage.Backslash,
+        KeyCode.VcSection => HidUsage.NonUsBackslash,
         KeyCode.VcSemicolon => HidUsage.Semicolon,
         KeyCode.VcQuote => HidUsage.Apostrophe,
         KeyCode.VcBackQuote => HidUsage.Grave,
@@ -212,7 +208,10 @@ public static class ViiperKeys
         KeyCode.VcLeft => HidUsage.Left,
         KeyCode.VcRight => HidUsage.Right,
         KeyCode.VcContextMenu => HidUsage.Application,
-        KeyCode.VcHelp => HidUsage.Help,
+
+        // The library's "help" key is the device's usage 0x75, which Windows' own keyboard driver
+        // turns into no key at all — measured with a hook: the report arrives, nothing comes out.
+        // Leaving it here would be a key that quietly does nothing, so the device refuses it.
         KeyCode.VcPower => HidUsage.Power,
 
         KeyCode.VcNumLock => HidUsage.NumLock,
@@ -222,18 +221,27 @@ public static class ViiperKeys
         KeyCode.VcNumPadAdd => HidUsage.KpPlus,
         KeyCode.VcNumPadEnter => HidUsage.KpEnter,
         KeyCode.VcNumPadDecimal => HidUsage.KpDot,
-        KeyCode.VcNumPadEquals => HidUsage.KpEqual,
+
+        // The number pad's equals key becomes VK_CLEAR on Windows, which is the number pad's 5 with
+        // NumLock off — a key the macro already has under its own name. Two names for one key is
+        // what makes a recording and a macro disagree, so this one is left to the refusal.
+        KeyCode.VcNumPadEquals => null,
         >= KeyCode.VcNumPad1 and <= KeyCode.VcNumPad9 =>
             (HidUsage)((int)HidUsage.Kp1 + ((int)code - (int)KeyCode.VcNumPad1)),
         KeyCode.VcNumPad0 => HidUsage.Kp0,
 
-        KeyCode.VcVolumeMute => HidUsage.Mute,
-        KeyCode.VcVolumeDown => HidUsage.VolumeDown,
-        KeyCode.VcVolumeUp => HidUsage.VolumeUp,
-        KeyCode.VcMediaPlay => HidUsage.MediaPlayPause,
-        KeyCode.VcMediaStop => HidUsage.MediaStop,
-        KeyCode.VcMediaNext => HidUsage.MediaNext,
-        KeyCode.VcMediaPrevious => HidUsage.MediaPrevious,
+        // The media keys and the volume keys are not on the device's keyboard page at all: a real
+        // keyboard sends them as consumer-control reports, and the virtual keyboard here has only
+        // the one report it fills with key usages. Writing them into that report is a key Windows
+        // does not number — measured: the report arrives and VK 0xFF comes out, or nothing does.
+        // They are therefore refused by this device rather than pressed as something else.
+        KeyCode.VcVolumeMute => null,
+        KeyCode.VcVolumeDown => null,
+        KeyCode.VcVolumeUp => null,
+        KeyCode.VcMediaPlay => null,
+        KeyCode.VcMediaStop => null,
+        KeyCode.VcMediaNext => null,
+        KeyCode.VcMediaPrevious => null,
 
         _ => null,
     };

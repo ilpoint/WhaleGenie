@@ -4,17 +4,20 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    public MainViewModel()
+    private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
+    private McpServerViewModel? _mcp;
+
+    public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null)
     {
-        Mcp = new McpServerViewModel(this);
+        _makeMcp = mcp;
         SelectedDock = LocalSettings.LoadDockPage();
         Macros.CollectionChanged += (_, _) =>
         {
@@ -39,8 +42,12 @@ public partial class MainViewModel : ViewModelBase
         };
     }
 
-    /// <summary>The local MCP server switch and the address it hands to an MCP client.</summary>
-    public McpServerViewModel Mcp { get; }
+    /// <summary>
+    /// The local MCP server switch and the address it hands to an MCP client. Built on first use:
+    /// the server needs the project and the project shows the switch, so one of the two has to be
+    /// lazy — and this is the cheaper side to make lazy.
+    /// </summary>
+    public McpServerViewModel Mcp => _mcp ??= _makeMcp?.Invoke(this) ?? new McpServerViewModel();
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
@@ -192,6 +199,15 @@ public partial class MainViewModel : ViewModelBase
         {
             macro.Name = MacroNames.NextDefault(Macros.Select(item => item.Name));
         }
+        else if (Macros.FirstOrDefault(item => string.Equals(item.Name.Trim(), macro.Name.Trim(),
+                     StringComparison.OrdinalIgnoreCase)) is not null)
+        {
+            // Two macros cannot share a name: a macro is reached by its name, so the second one would
+            // be the one a call never finds. Neither is a mistake — importing a package that holds a
+            // macro this project already has is an ordinary thing to do — so the one arriving now
+            // keeps its steps under a name of its own, dated the day it arrived.
+            macro.Name = MacroNames.Free(macro.Name, Macros.Select(item => item.Name), DateTime.Now);
+        }
 
         if (macro.Triggers.Count == 0)
         {
@@ -297,40 +313,39 @@ public partial class MainViewModel : ViewModelBase
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Attach([.. Macros]);
 
-        VariableCatalog.Globals.Clear();
-        foreach (var global in contents.Globals)
-        {
-            VariableCatalog.Globals.Add(global);
-        }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        LoadSharedVariables(contents.Globals, replace: true);
 
         CurrentPath = path;
         IsDirty = false;
         Revision++;
     }
 
-    /// <summary>Adds the macros of a package file to the list without replacing what is there.</summary>
-    public void ImportPackage(string path)
+    /// <summary>
+    /// Puts a package's shared variables into the catalog. Replace takes the current list away
+    /// first, which is what opening a project means; add keeps what is there and only brings in the
+    /// names the project does not have yet, which is what importing a package means.
+    /// </summary>
+    private static void LoadSharedVariables(IReadOnlyList<VariableDefinition> globals, bool replace)
     {
-        var contents = Storage.MacroPackage.Load(path);
-
-        foreach (var macro in contents.Macros)
+        if (replace)
         {
-            AddMacro(macro);
-            Triggers.ReplaceMacro(macro.Name, contents.Triggers.ForMacro(macro.Name)
-                .Select(entry => entry.Copy()));
+            VariableCatalog.Globals.Clear();
         }
 
-        Triggers.MergeMenuFrom(contents.Triggers, contents.Macros);
-
-        foreach (var global in contents.Globals)
+        foreach (var global in globals)
         {
-            if (!VariableCatalog.IsGlobal(global.Name))
+            if (!replace && VariableCatalog.IsGlobal(global.Name))
             {
-                VariableCatalog.Globals.Add(global);
+                continue;
             }
+
+            VariableCatalog.Globals.Add(global);
         }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+
+        // The values a macro wrote last time live outside the package. They are put back once the
+        // declarations are known, which is what makes a reopened project start with them; doing it
+        // here rather than at each caller is what keeps a path from forgetting it.
+        PersistentVariables.ApplyTo(VariableCatalog.Globals);
     }
 
     /// <summary>
@@ -348,12 +363,7 @@ public partial class MainViewModel : ViewModelBase
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Attach([.. Macros]);
 
-        VariableCatalog.Globals.Clear();
-        foreach (var global in contents.Globals)
-        {
-            VariableCatalog.Globals.Add(global);
-        }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        LoadSharedVariables(contents.Globals, replace: true);
 
         CurrentPath = contents.PackagePath;
         MarkDirty();
@@ -416,7 +426,7 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
-        Execution.PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        PersistentVariables.ApplyTo(VariableCatalog.Globals);
 
         MarkDirty();
     }

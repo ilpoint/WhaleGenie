@@ -126,6 +126,34 @@ internal static class SharpKeys
     }
 
     /// <summary>
+    /// The other names one key arrives under, for the keys whose name the keyboard's own state
+    /// decides. With NumLock off the number pad is the navigation block — the same physical keys,
+    /// the same scan codes, and a different name — so a macro that presses NumPad7 is answered by
+    /// the hook with Home. Every other key has one name and answers with nothing here.
+    /// </summary>
+    /// <remarks>
+    /// This is what the input gate needs to know that the Home it has just been handed is its own
+    /// NumPad7 rather than a person pressing Home: without it the program takes its own key for
+    /// somebody else's, and a shortcut bound to Home — or to any navigation key — is answered by a
+    /// macro that is only trying to press the number pad.
+    /// </remarks>
+    internal static IReadOnlyList<string> AlsoSeenAs(KeyCode code) => code switch
+    {
+        KeyCode.VcNumPad0 => ["Insert"],
+        KeyCode.VcNumPad1 => ["End"],
+        KeyCode.VcNumPad2 => ["Down"],
+        KeyCode.VcNumPad3 => ["PageDown"],
+        KeyCode.VcNumPad4 => ["Left"],
+        KeyCode.VcNumPad5 => ["NumPadClear"],
+        KeyCode.VcNumPad6 => ["Right"],
+        KeyCode.VcNumPad7 => ["Home"],
+        KeyCode.VcNumPad8 => ["Up"],
+        KeyCode.VcNumPad9 => ["PageUp"],
+        KeyCode.VcNumPadDecimal => ["Delete"],
+        _ => [],
+    };
+
+    /// <summary>
     /// The name a macro writes for a code, the opposite of <see cref="ResolveCode"/>. Modifiers are
     /// spelled the way a chord spells them, so a recording and a hand-written macro agree.
     /// </summary>

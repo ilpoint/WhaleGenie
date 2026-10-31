@@ -4,10 +4,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.ViewModels;
 
@@ -132,6 +132,23 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsSystemRoot => SelectedRootPage == SettingsRootPage.System;
     public bool IsTriggersRoot => SelectedRootPage == SettingsRootPage.Triggers;
     public bool IsAppearanceRoot => SelectedRootPage == SettingsRootPage.Appearance;
+
+    /// <summary>
+    /// The same choice, as the number a tab strip speaks in. The three pages are an enum because
+    /// the code switches on them; a tab control only knows positions, so this is the one place the
+    /// two are converted. The setter is how a click on a tab comes back.
+    /// </summary>
+    public int RootIndex
+    {
+        get => (int)SelectedRootPage;
+        set
+        {
+            if (value >= 0 && value <= (int)SettingsRootPage.Appearance)
+            {
+                SelectedRootPage = (SettingsRootPage)value;
+            }
+        }
+    }
     public bool IsGeneralPage => SelectedSubPage == SettingsSubPage.General;
     public bool IsCapturePage => SelectedSubPage == SettingsSubPage.CaptureInput;
     public bool IsDevicesPage => SelectedSubPage == SettingsSubPage.Devices;
@@ -144,6 +161,7 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsSystemRoot));
         OnPropertyChanged(nameof(IsTriggersRoot));
         OnPropertyChanged(nameof(IsAppearanceRoot));
+        OnPropertyChanged(nameof(RootIndex));
     }
 
     partial void OnSelectedSubPageChanged(SettingsSubPage value)
@@ -208,7 +226,7 @@ public partial class SettingsViewModel : ViewModelBase
                 return Strings.Get("Settings.MenuLauncherConflict");
             }
 
-            var menuProblems = Project.Triggers.MenuProblems([.. Project.Macros]);
+            var menuProblems = Project.Triggers.MenuProblems([.. Project.Macros], MenuIconCatalog.Knows);
             if (menuProblems.Count > 0)
             {
                 return menuProblems[0];
@@ -639,9 +657,9 @@ public partial class SettingsViewModel : ViewModelBase
         => Strings.Current.Language = value.Language;
 
     /// <summary>
-    /// Applies a theme as soon as the picker changes. Choosing Custom starts from the palette in
-    /// use, unless one was already saved; the dark and light choices leave a saved custom palette
-    /// untouched for next time.
+    /// Applies a theme as soon as the picker changes. Choosing Custom starts from the accent in use,
+    /// unless one was already saved; the dark and light choices leave a saved accent untouched for
+    /// next time.
     /// </summary>
     partial void OnSelectedThemeChanged(ThemeOption value)
     {
@@ -654,7 +672,7 @@ public partial class SettingsViewModel : ViewModelBase
         var current = ThemeController.Load();
         var next = value.Mode is ThemeMode.Custom
             ? ThemeController.StartCustom(current)
-            : current with { Mode = value.Mode };
+            : current.WithMode(value.Mode);
         ThemeController.Apply(next);
         ThemeController.Save(next);
     }

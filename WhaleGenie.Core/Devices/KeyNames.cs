@@ -45,6 +45,15 @@ public static class KeyNames
     public static string Name(HookKey key, bool sided) => SharpKeys.Name(SharpKeys.Code(key), sided);
 
     /// <summary>
+    /// The other names one key arrives under, so that "is this key our own output" is answered for
+    /// the key the window saw rather than for the name the macro wrote. The number pad is the case
+    /// that matters: with NumLock off its keys are the navigation block, so pressing NumPad7 is
+    /// answered with Home.
+    /// </summary>
+    public static IReadOnlyList<string> AlsoSeenAs(HookKey key)
+        => SharpKeys.AlsoSeenAs(SharpKeys.Code(key));
+
+    /// <summary>
     /// The name a macro writes for a mouse button, so a trigger bound to one reads the same
     /// wherever it is shown. Every name carries "Mouse", which is also how the macro list knows
     /// to draw the mouse icon rather than the keyboard one.

@@ -8,10 +8,10 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -457,9 +457,13 @@ public class LookWindowTests
 
     /// <summary>
     /// The window is put away on its own rather than closed, so what was found can be held up
-    /// against the screen it came from and read again afterwards. A window filling the screen has no
-    /// title bar to come back to, so it goes back to its normal size on the way out.
+    /// against the screen it came from and read again afterwards.
     /// </summary>
+    /// <remarks>
+    /// Putting it away is the system's caption button now (the window is an `AppWindow`), so this
+    /// drives the state the button drives rather than clicking a button of ours that no longer
+    /// exists. What the check is about is the window keeping its contents, not the button.
+    /// </remarks>
     [Fact]
     public void Putting_the_window_away_leaves_it_there_to_come_back_to()
     {
@@ -469,28 +473,15 @@ public class LookWindowTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            Minimize(window);
+            window.WindowState = WindowState.Minimized;
             Assert.Equal(WindowState.Minimized, window.WindowState);
 
             // Nothing is lost: the same window comes back, still showing what it found.
             window.WindowState = WindowState.Normal;
             Dispatcher.UIThread.RunJobs();
             Assert.True(window.IsVisible);
-
-            // A window filling the screen is put back to its normal size on the way out, because
-            // there is no title bar over it to click again.
-            window.WindowState = WindowState.FullScreen;
-            Dispatcher.UIThread.RunJobs();
-            Minimize(window);
-            Assert.Equal(WindowState.Minimized, window.WindowState);
         });
     }
-
-    /// <summary>Clicks the button that puts the window away, the way a user finds it.</summary>
-    private static void Minimize(Window window)
-        => window.GetVisualDescendants().OfType<Button>()
-            .Single(button => button.Name == "MinimizeButton")
-            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     /// <summary>
     /// A wide picture is shown shrunk to fit, and goes back and forth between that and the size its
@@ -586,9 +577,13 @@ public class LookWindowTests
 
     /// <summary>
     /// A picture is read at its own size, and a screenful of hits does not fit in a window: the
-    /// window fills the screen and comes back, by the button and by F11, and Esc goes back to the
-    /// window before it closes it.
+    /// window fills the screen and comes back by F11, and Esc goes back to the window before it
+    /// closes it.
     /// </summary>
+    /// <remarks>
+    /// There is no button of its own for this any more: the title bar's maximize is that button now,
+    /// and having both would be two controls for one window state.
+    /// </remarks>
     [Fact]
     public void The_window_fills_the_screen_and_comes_back()
     {
@@ -598,13 +593,11 @@ public class LookWindowTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            var button = window.FindControl<Button>("FullScreen")!;
-            Assert.Equal(Strings.Get("Look.FullScreen"), button.Content);
+            Assert.Null(window.FindControl<Button>("FullScreen"));
 
             window.KeyPressQwerty(PhysicalKey.F11, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(WindowState.FullScreen, window.WindowState);
-            Assert.Equal(Strings.Get("Look.FullScreenExit"), button.Content);
 
             // Esc is the way back before it is the way out: the full screen is what just happened.
             window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);

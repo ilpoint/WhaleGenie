@@ -154,6 +154,18 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// </remarks>
     private readonly HashSet<IDownload> _taken = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>
+    /// Wakes a step that is waiting for the next file as soon as the listener catches one.
+    /// </summary>
+    /// <remarks>
+    /// The wait is on this rather than on the driver's next download event, because a file the page
+    /// started a moment ago reaches the listener a few milliseconds after the call that started it
+    /// returned. Waiting only for the next event would then time out while the file was already in
+    /// hand — which is exactly what a step that presses "export" in one action and waits in the
+    /// next one looks like under load.
+    /// </remarks>
+    private readonly SemaphoreSlim _arrivals = new(0);
+
     /// <summary>Everything the dialog listener and the steps that arm and take answers share.</summary>
     /// <remarks>
     /// A dialog arrives on the driver's own reader while the step that armed the answer, and the one
@@ -873,7 +885,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             return string.Empty;
         }
 
-        return JsonSerializer.Serialize(written, ReadableJson);
+        // A string is handed over as the string itself, without the quotes JSON writes around it.
+        // A script that answers with an address or a name is the common case, and the quotes used
+        // to travel into whatever read the value next: a browser.goTo given $result navigated to
+        // ""https://..."", which the browser refused as an address. Objects, lists, numbers and
+        // flags stay JSON, because there the text is the only way to carry them.
+        return written.ValueKind == JsonValueKind.String
+            ? written.GetString() ?? string.Empty
+            : JsonSerializer.Serialize(written, ReadableJson);
     }
 
     /// <summary>How JSON handed to a macro is written out: as it reads, rather than escaped.</summary>
@@ -908,8 +927,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 if (caught is null)
                 {
                     caught = target is null || target.Selectors.Count == 0
-                        ? await page.WaitForDownloadAsync(
-                            new PageWaitForDownloadOptions { Timeout = patience })
+                        ? await Arrived(patience)
                         : await ClickedAndCaught(page, target, patience);
                     Taken(caught);
                 }
@@ -969,10 +987,41 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     {
         lock (_caught)
         {
-            if (!_taken.Contains(download))
+            if (_taken.Contains(download))
             {
-                _caught.Enqueue(download);
+                return;
             }
+
+            _caught.Enqueue(download);
+        }
+
+        _arrivals.Release();
+    }
+
+    /// <summary>
+    /// The next file the page hands over: one already caught if there is one, and otherwise the one
+    /// that arrives within the step's patience.
+    /// </summary>
+    private async Task<IDownload> Arrived(int patience)
+    {
+        var deadline = Environment.TickCount64 + patience;
+        while (true)
+        {
+            if (Caught() is { } caught)
+            {
+                return caught;
+            }
+
+            var left = deadline - Environment.TickCount64;
+            if (left <= 0)
+            {
+                throw new TimeoutException();
+            }
+
+            // Woken by the listener the moment a file arrives; the slice only bounds how long the
+            // loop sleeps when the signal was already spent by an earlier, taken file.
+            await _arrivals.WaitAsync(TimeSpan.FromMilliseconds(Math.Min(left, 100)))
+                .ConfigureAwait(false);
         }
     }
 
@@ -1933,6 +1982,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         Close();
         _playwright?.Dispose();
         _playwright = null;
+        _arrivals.Dispose();
     }
 
     /// <summary>The browser the step named, defaulting to the one Playwright always has.</summary>

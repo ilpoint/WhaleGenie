@@ -1,104 +1,28 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
+        xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="520"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="556"
         x:Class="WhaleGenie.Views.VirtualKeyboardWindow"
         Title="WhaleGenie"
-        Width="1024" Height="520"
-        MinWidth="1000" MinHeight="470"
+        Width="1024" Height="556"
+        MinWidth="1000" MinHeight="506"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
-        Background="{DynamicResource AppBackdrop}">
-
-    <Window.Styles>
-        <!-- One key of the keyboard. The cap shows the name the step will carry, which is how a
-             key reads everywhere else in the program, and it is sized to be read at a glance
-             rather than hunted for. -->
-        <Style Selector="Button.Key">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Background" Value="{DynamicResource AppField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <!-- The keys to the side of the letters, where the cap has a long word on it and no room
-             to grow into: one step down in size, still readable. -->
-        <Style Selector="Button.Key.Small">
-            <Setter Property="FontSize" Value="11" />
-        </Style>
-        <Style Selector="Button.Key:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-        <Style Selector="Button.Key:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
-        </Style>
-
-        <Style Selector="Button.TitleBarButton">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-
-        <!-- A named button in the title bar, for finishing rather than dismissing. -->
-        <Style Selector="Button.TitleBarAction">
-            <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHover}" />
-        </Style>
-    </Window.Styles>
+        Background="{DynamicResource SurfaceWindow}">
 
     <Grid RowDefinitions="38,*">
 
-        <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding [KeyPad.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource AppText}" FontSize="13" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
-                        VerticalAlignment="Center">
-                <!-- The keyboard stays up while a combination is built, so it needs a word for
-                     "this is the combination I meant", which is not the same as closing it away. -->
-                <Button Classes="TitleBarAction" Name="DoneButton"
-                        Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
-                <!-- Each window is put away on its own: the keyboard covers whatever the keys are
-                     being read off, and putting it away leaves the add-action window as it was. -->
-                <Button Classes="TitleBarButton" Name="MinimizeButton"
-                        Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="TitleBarButton" Name="CloseButton"
-                        Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource AppText}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static models:AppIcons.X}" />
-                </Button>
-            </StackPanel>
+        <!-- 标题栏归库（`FAAppWindow`），这行只剩键盘自己的动作钮。 -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
+            <!-- The keyboard stays up while a combination is built, so it needs a word for
+                 "this is the combination I meant", which is not the same as closing it away. -->
+            <Button Grid.Column="1" Classes="Chrome Labeled" Name="DoneButton" Margin="8,0"
+                    VerticalAlignment="Center"
+                    Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
         </Grid>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
@@ -108,9 +32,9 @@
                      inside a width of their own, so a long sentence never widens the keyboard it is
                      sitting above. -->
                 <StackPanel Spacing="4" MaxWidth="900">
-                    <TextBlock Name="FillingLine" Foreground="#7FC97F" FontSize="12.5"
+                    <TextBlock Name="FillingLine" Foreground="{DynamicResource Success}" FontSize="12.5"
                                TextWrapping="Wrap" />
-                    <TextBlock Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap"
+                    <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap"
                                Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
 
@@ -181,7 +105,7 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Classes="Key Small" Content="CapsLock" Tag="CapsLock" Width="64" />
+                            <Button Classes="Key Small" Content="CapsLock" Tag="CapsLock" Width="58" />
                             <Button Classes="Key" Content="A" Tag="A" />
                             <Button Classes="Key" Content="S" Tag="S" />
                             <Button Classes="Key" Content="D" Tag="D" />
@@ -193,7 +117,7 @@
                             <Button Classes="Key" Content="L" Tag="L" />
                             <Button Classes="Key" Content=";" Tag=";" />
                             <Button Classes="Key" Content="'" Tag="'" />
-                            <Button Classes="Key" Content="Enter" Tag="Enter" Width="82" />
+                            <Button Classes="Key" Content="Enter" Tag="Enter" Width="74" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
@@ -215,7 +139,7 @@
                             <Button Classes="Key Small" Content="左Ctrl" Tag="左Ctrl" Width="58" />
                             <Button Classes="Key Small" Content="左Win" Tag="左Win" Width="44" />
                             <Button Classes="Key Small" Content="左Alt" Tag="左Alt" Width="44" />
-                            <Button Classes="Key" Content="Space" Tag="Space" Width="200" />
+                            <Button Classes="Key" Content="Space" Tag="Space" Width="172" />
                             <Button Classes="Key Small" Content="右Alt" Tag="右Alt" Width="44" />
                             <Button Classes="Key Small" Content="右Win" Tag="右Win" Width="44" />
                             <Button Classes="Key Small" Content="Menu" Tag="ContextMenu" Width="44" />
@@ -223,45 +147,61 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- The keys a keyboard keeps to the side: the navigation block and the number
-                         pad, which are the ones a bare text field is worst at. -->
+                    <!-- The keys a keyboard keeps to the side: the lock row above the navigation
+                         block, the arrows under it, and then the number pad. Each block is a grid
+                         of cells that the keys fill, so a row starts where the row above it does
+                         and every gap between two keys is the same. -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16"
-                                VerticalAlignment="Top" Margin="0,36,0,0">
-                        <Grid ColumnDefinitions="50,50,62" RowDefinitions="32,32,32,32,32"
+                                VerticalAlignment="Top" Margin="0,40,0,0">
+                        <!-- The lock row sits above the navigation keys and the arrows under them,
+                             all in the same three columns, which is where a hand looks for each of
+                             them. The columns are as wide as the widest cap each of them holds,
+                             because those caps are the names the step stores and are written out
+                             in full. The empty row between the navigation keys and the arrows is
+                             the gap a keyboard leaves between the two. -->
+                        <Grid ColumnDefinitions="64,58,60" RowDefinitions="32,32,32,32,32,32"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key Small" Content="Insert" Tag="Insert" />
-                            <Button Grid.Column="1" Classes="Key Small" Content="Home" Tag="Home" />
-                            <Button Grid.Column="2" Classes="Key Small" Content="PageUp" Tag="PageUp" />
-                            <Button Grid.Row="1" Classes="Key Small" Content="Delete" Tag="Delete" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small" Content="End" Tag="End" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small" Content="PageDown" Tag="PageDown" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="↑" Tag="Up" />
-                            <Button Grid.Row="4" Classes="Key" Content="←" Tag="Left" />
-                            <Button Grid.Row="4" Grid.Column="1" Classes="Key" Content="↓" Tag="Down" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="→" Tag="Right" />
+                            <Button Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="PrintScreen" Tag="PrintScreen" />
+                            <Button Grid.Column="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="ScrollLock" Tag="ScrollLock" />
+                            <Button Grid.Column="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Pause" Tag="Pause" />
+                            <Button Grid.Row="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Insert" Tag="Insert" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Home" Tag="Home" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="PageUp" Tag="PageUp" />
+                            <Button Grid.Row="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="Delete" Tag="Delete" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="End" Tag="End" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="PageDown" Tag="PageDown" />
+                            <Button Grid.Row="4" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14"
+                                    Content="↑" Tag="Up" />
+                            <Button Grid.Row="5" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14" Content="←" Tag="Left" />
+                            <Button Grid.Row="5" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14"
+                                    Content="↓" Tag="Down" />
+                            <Button Grid.Row="5" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" FontSize="14"
+                                    Content="→" Tag="Right" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="44,36,36,36" RowDefinitions="32,32,32,32,32"
+                        <!-- Four equal columns, with the tall + and Enter and the wide 0 where a
+                             number pad has them. -->
+                        <Grid ColumnDefinitions="52,52,52,52" RowDefinitions="32,32,32,32,32"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key Small" Content="NumLock" Tag="NumLock" />
-                            <Button Grid.Column="1" Classes="Key" Content="/" Tag="NumPadDivide" />
-                            <Button Grid.Column="2" Classes="Key" Content="*" Tag="NumPadMultiply" />
-                            <Button Grid.Column="3" Classes="Key" Content="-" Tag="NumPadSubtract" />
-                            <Button Grid.Row="1" Classes="Key" Content="7" Tag="NumPad7" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Content="8" Tag="NumPad8" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Content="9" Tag="NumPad9" />
-                            <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key"
+                            <Button Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch" Content="NumLock" Tag="NumLock" />
+                            <Button Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="/" Tag="NumPadDivide" />
+                            <Button Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="*" Tag="NumPadMultiply" />
+                            <Button Grid.Column="3" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="-" Tag="NumPadSubtract" />
+                            <Button Grid.Row="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="7" Tag="NumPad7" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="8" Tag="NumPad8" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="9" Tag="NumPad9" />
+                            <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch"
                                     Content="+" Tag="NumPadAdd" Height="68" />
-                            <Button Grid.Row="2" Classes="Key" Content="4" Tag="NumPad4" />
-                            <Button Grid.Row="2" Grid.Column="1" Classes="Key" Content="5" Tag="NumPad5" />
-                            <Button Grid.Row="2" Grid.Column="2" Classes="Key" Content="6" Tag="NumPad6" />
-                            <Button Grid.Row="3" Classes="Key" Content="1" Tag="NumPad1" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="2" Tag="NumPad2" />
-                            <Button Grid.Row="3" Grid.Column="2" Classes="Key" Content="3" Tag="NumPad3" />
-                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small"
+                            <Button Grid.Row="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="4" Tag="NumPad4" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="5" Tag="NumPad5" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="6" Tag="NumPad6" />
+                            <Button Grid.Row="3" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="1" Tag="NumPad1" />
+                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="2" Tag="NumPad2" />
+                            <Button Grid.Row="3" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="3" Tag="NumPad3" />
+                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small" Width="NaN" HorizontalAlignment="Stretch"
                                     Content="Enter" Tag="NumPadEnter" Height="68" />
-                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key" Content="0" Tag="NumPad0" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="." Tag="NumPadDecimal" />
+                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="0" Tag="NumPad0" />
+                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Width="NaN" HorizontalAlignment="Stretch" Content="." Tag="NumPadDecimal" />
                         </Grid>
                     </StackPanel>
                 </Grid>
@@ -282,10 +222,6 @@
                         <Button Classes="Key" Content="F22" Tag="F22" Width="38" />
                         <Button Classes="Key" Content="F23" Tag="F23" Width="38" />
                         <Button Classes="Key" Content="F24" Tag="F24" Width="38" />
-                        <Border Width="16" />
-                        <Button Classes="Key Small" Content="PrintScreen" Tag="PrintScreen" Width="78" />
-                        <Button Classes="Key Small" Content="ScrollLock" Tag="ScrollLock" Width="76" />
-                        <Button Classes="Key" Content="Pause" Tag="Pause" Width="56" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="4">
@@ -324,4 +260,4 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
-</Window>
+</views:AppWindow>

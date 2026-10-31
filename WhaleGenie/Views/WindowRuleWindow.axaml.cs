@@ -7,8 +7,8 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Views;
 
@@ -17,12 +17,12 @@ namespace WhaleGenie.Views;
 /// It stands above everything but does not take the focus until a window has been captured, so the
 /// click that chooses the target lands where the person aimed it.
 /// </summary>
-public partial class WindowRuleWindow : Window
+public partial class WindowRuleWindow : AppWindow
 {
     private static readonly HookKey F1 = KeyNames.Resolve("F1") ?? default;
     private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
 
-    private readonly IDeviceLayer _devices;
+    private readonly IWindowDevice _windows;
     private readonly IInputHook? _hookSource;
     private IInputHook? _hook;
     private WindowRule? _rule;
@@ -31,15 +31,20 @@ public partial class WindowRuleWindow : Window
     private bool _swallowEscapeUp;
 
     public WindowRuleWindow()
-        : this(SharedDevices.Current, null)
+        : this(SharedDevices.Current.Windows, SharedDevices.Current.Hook, null)
     {
     }
 
-    internal WindowRuleWindow(IDeviceLayer devices, WindowRule? current)
+    /// <summary>
+    /// The picker over just what it reads: the windows on this machine and the key hook that
+    /// catches F1. Taking the two rather than the whole device layer says what this window needs,
+    /// and lets a stand-in be the two things instead of twenty.
+    /// </summary>
+    internal WindowRuleWindow(IWindowDevice windows, IInputHook hook, WindowRule? current)
     {
         InitializeComponent();
-        _devices = devices;
-        _hookSource = devices.Hook;
+        _windows = windows;
+        _hookSource = hook;
         _rule = current;
 
         Status.Text = Strings.Get("WindowRule.Waiting");
@@ -65,11 +70,12 @@ public partial class WindowRuleWindow : Window
 
     internal WindowRule? Chosen { get; private set; }
 
-    public static async Task<WindowRule?> PickAsync(Window owner, IDeviceLayer devices,
-        WindowRule? current = null)
+    public static async Task<WindowRule?> PickAsync(Window owner, IWindowDevice windows,
+        IInputHook hook, WindowRule? current = null)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new WindowRuleWindow(devices, current).TakeAsync();
+        await AppWindows.SettleAsync();
+        return await new WindowRuleWindow(windows, hook, current).TakeAsync();
     }
 
     internal async Task<WindowRule?> TakeAsync()
@@ -98,7 +104,7 @@ public partial class WindowRuleWindow : Window
         WindowInfo? found;
         try
         {
-            found = _devices.Windows.Foreground();
+            found = _windows.Foreground();
         }
         catch (Exception)
         {
@@ -111,7 +117,7 @@ public partial class WindowRuleWindow : Window
             return;
         }
 
-        var process = _devices.Windows.ProcessOf(found.Handle);
+        var process = _windows.ProcessOf(found.Handle);
         var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
         if (string.Equals(process, own, StringComparison.OrdinalIgnoreCase))
         {
@@ -119,7 +125,7 @@ public partial class WindowRuleWindow : Window
             return;
         }
 
-        _rule = WindowRule.From(found, process, _devices.Windows.ClassOf(found.Handle));
+        _rule = WindowRule.From(found, process, _windows.ClassOf(found.Handle));
         Activate();
         Show(_rule);
         MatchBox.Focus();
@@ -169,7 +175,7 @@ public partial class WindowRuleWindow : Window
         var (match, compare) = rule.Reading;
         try
         {
-            var found = _devices.Windows.Filter(rule.MatchValue, match, compare, options: rule.Options);
+            var found = _windows.Filter(rule.MatchValue, match, compare, options: rule.Options);
             var lines = new System.Collections.Generic.List<string>
             {
                 Strings.Format("WindowRule.Matches", found.Count),
