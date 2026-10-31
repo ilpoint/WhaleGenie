@@ -273,6 +273,12 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 所以颜色一律写成 `/template/ ContentPresenter`（只认类型，不认名字）；确实要按名字命中的，由
 `TemplatePartTests` 逐个实例化宿主、在视觉树里找那个部件——部件没了它就红，而不是等下一个人把鼠标压上去才发现。
 
+**窗口还是普通 `Window`，标题栏自己画。** 库提供了 `FAAppWindow`（标题按钮交给它画），但这台机器上
+**一个进程只装得下一个**：它的构造里 `Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的
+句柄都是 `0`，第二个 `FAAppWindow` 直接抛 `ArgumentException: An item with the same key has already been added. Key: HWND`。
+一条测试会话里要开好几个窗口，所以这条路在测试跑得起来之前不能走。真要走，先把无头平台换成给每个窗口
+不同句柄的实现，或者让库按窗口实例而不是句柄建表。
+
 ## 八、持久化
 
 ### 8.1 包格式
