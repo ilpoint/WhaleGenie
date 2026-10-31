@@ -160,7 +160,7 @@ public class MacroEditorChromeTests
                 });
             }
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -191,7 +191,7 @@ public class MacroEditorChromeTests
             Assert.NotNull(right);
             Assert.True(right.Value.X <= grid.Bounds.Width + 0.5);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -219,7 +219,7 @@ public class MacroEditorChromeTests
                 text => text.IsEffectivelyVisible
                     && text.Text == Strings.Get("Editor.NoTriggerSelected"));
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -313,7 +313,7 @@ public class MacroEditorChromeTests
             Assert.True(entries.GetVisualDescendants().OfType<ListBoxItem>()
                 .Single(item => ReferenceEquals(item.DataContext, key)).IsSelected);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -436,7 +436,7 @@ public class MacroEditorChromeTests
             Assert.Equal(2, model.Documents.Count);
             Assert.Equal("child", ((MacroEditorViewModel)window.DataContext!).Name);
 
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 

@@ -252,7 +252,7 @@ public class GlobalVariablesTests
                 choice.Name == "base" && choice.Group == VariableGroup.Global);
             Assert.DoesNotContain(choices, choice => choice.Name == "derived");
             manager.RemoveCommand.Execute(null);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -788,22 +788,20 @@ public class GlobalVariablesTests
                 dialog.Close(null);
                 Dispatcher.UIThread.RunJobs();
 
+                // The manager asks about its staged changes before it goes, and that question is
+                // modal. Leaving it standing would both keep the editor from closing cleanly —
+                // it is the manager's owner — and leave a dispatcher loop running for whichever
+                // check is next. "Discard" is the answer this check is after: nothing staged is
+                // written either way, and the window really does go.
+                var prompt = Assert.Single(dialog.OwnedWindows.OfType<ConfirmDialog>());
+                ((ConfirmDialogViewModel)prompt.DataContext!).SecondaryCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+
                 Assert.NotNull(VariableCatalog.FindGlobal("unchanged"));
                 Assert.Null(VariableCatalog.FindGlobal("changed"));
                 Assert.Equal(3, SharedVariables.Current.Values["unchanged"].AsNumber());
 
-                // Closing the editor can raise the "unsaved work" prompt, and that prompt is modal:
-                // it runs a nested dispatcher loop *inside* this dispatch. A test that walks away
-                // from it leaves the loop running, and the next dispatch to this thread dies with
-                // "You've caused dispatcher loop" — a failure that lands on an unrelated test.
-                window.Close(null);
-                Dispatcher.UIThread.RunJobs();
-                foreach (var prompt in window.OwnedWindows.OfType<ConfirmDialog>().ToList())
-                {
-                    ((ConfirmDialogViewModel)prompt.DataContext!).CancelCommand.Execute(null);
-                }
-
-                Dispatcher.UIThread.RunJobs();
+                Ui.CloseAndAnswer(window);
             }
             finally
             {

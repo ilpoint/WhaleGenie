@@ -102,7 +102,7 @@ public class MacroEditorWorkspaceTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("renamed", Assert.Single(root.Steps).Text("macro"));
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -220,7 +220,7 @@ public class MacroEditorWorkspaceTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("control.log", Assert.Single(editor.Steps).Type);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -323,7 +323,7 @@ public class MacroEditorWorkspaceTests
             PersistentVariables.Flush();
             VariableCatalog.Globals.Remove(existing);
             SharedVariables.Current.Remove(name);
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -385,7 +385,7 @@ public class MacroEditorWorkspaceTests
 
                 PersistentVariables.Flush();
                 Assert.True(PersistentVariables.TryGet(name, out _));
-                window.Close(null);
+                Ui.CloseAndAnswer(window);
             }
             finally
             {
@@ -495,7 +495,7 @@ public class MacroEditorWorkspaceTests
             Assert.All(inside, entry => Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), entry.Hint));
             Assert.Single(inside.Select(entry => entry.Marker).Distinct());
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -543,7 +543,7 @@ public class MacroEditorWorkspaceTests
 
             Assert.DoesNotContain(seen, line => line.EndsWith("插入到这一块之前", StringComparison.Ordinal));
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -592,7 +592,7 @@ public class MacroEditorWorkspaceTests
             Assert.Single(body);
             Assert.Equal("control.delay", body[0].Type);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -638,7 +638,7 @@ public class MacroEditorWorkspaceTests
             Assert.All(seen, entry => Assert.Equal(Strings.Get("Editor.DropIntoEmptyList"), entry.Hint));
             Assert.Single(seen.Select(entry => entry.Marker).Distinct());
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -684,7 +684,7 @@ public class MacroEditorWorkspaceTests
             DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, (top + bottom) / 2));
             Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -740,7 +740,7 @@ public class MacroEditorWorkspaceTests
             Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
             Assert.True(Canvas.GetLeft(marker) > 0);
 
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -797,7 +797,7 @@ public class MacroEditorWorkspaceTests
             Assert.Equal("control.log",
                 Assert.Single(loop.StepLists.Single().Steps).Type);
 
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -854,7 +854,7 @@ public class MacroEditorWorkspaceTests
             Assert.True(editor.HasNotice);
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
                 text => text.IsEffectivelyVisible && text.Text == editor.Notice);
-            window.Close(null);
+            Ui.CloseAndAnswer(window);
         });
     }
 

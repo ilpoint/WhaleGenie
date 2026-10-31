@@ -106,7 +106,7 @@ public class PickerDeviceTests
             var step = Assert.Single(viewModel.Steps, step => step.Type == "input.keyPress");
             Assert.Equal("F6", step.Parameters.Single(parameter => parameter.Name == "key").Value);
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -160,6 +160,12 @@ public class PickerDeviceTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Single(viewModel.Steps, step => step.Type == "gamepad.button");
+
+            // Nothing was captured that time round, and the editor says so with a question. A
+            // question nobody answers keeps a dispatcher loop running past the check that opened
+            // it, and the next check on this thread is the one that dies for it.
+            Ui.AnswerUnsavedWork(window);
+            Ui.CloseAndAnswer(window);
         });
     }
 

@@ -297,7 +297,7 @@ public class StepPlacementTests
                 editor.Steps.Remove(step);
             }
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
             Assert.Empty(refused);
         });
     }

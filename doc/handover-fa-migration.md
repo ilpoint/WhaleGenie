@@ -13,7 +13,8 @@
 已完成：主题换成 `FluentAvaloniaTheme`；43 条按钮颜色样式从 `/template/` 移到控件；裸按钮三态；
 列表项 `MinWidth=0`；右键菜单 DataContext 补齐；`TextFillColor*`、`PivotHeaderItemSelectedPipeFill`、
 `SystemAccentColor` 一族键映射；设置窗三个根页换 `TabControl`；动作编辑器四个页 → `TabStrip`；
-数字框换 `FANumberBox`（删了 103 行模板手术）；死样式清理；测试隔离与偶发失败定位。
+数字框换 `FANumberBox`（删了 103 行模板手术）；死样式清理；测试隔离与偶发失败定位；
+以及 T1（关窗发问一律作答，见下）。
 
 现状验证（三条都应通过）：
 
@@ -34,31 +35,46 @@ dotnet format --verify-no-changes               # 退出码 0
 关掉第一个也不移除表项。所以 24 个窗口继续用普通 `Window` + 自绘 38px 标题行。
 要解掉它必须先满足其一：无头平台给每个窗口不同句柄，或者库改成按窗口实例建表。**在那之前别碰。**
 
+这条已经复核过，结论不变（Avalonia 12.1.2 + FluentAvaloniaUI 3.1.0）：库里是
+`static Dictionary<HWND, Win32WindowManager>`，键取 `_window.TryGetPlatformHandle().Handle`，
+构造函数里 `Add`，只有收到 `WM_DESTROY` 才 `Remove`。无头会话里实测两个 `FAAppWindow`：
+
+    first handle=0 | second threw ArgumentException:
+    An item with the same key has already been added. Key: FluentAvalonia.Interop.Win32.HWND
+
 ## 剩余任务
 
-### T1（必做）扫掉"关窗发问"的测试隐患
+### T1（必做）扫掉"关窗发问"的测试隐患 —— 已完成
 
 **背景**：`ShowDialog` 会在当前 dispatch 内部再起一个调度器循环。用例关了会发问的窗口却不回答，
 循环就留在调度器上，**下一条用例**一 dispatch 就炸：
 
     InvalidProgramException: You've caused dispatcher loop  (Dispatcher.ResetForUnitTests)
 
-症状是随机受害者 + 单条耗时 5～11 秒。已修一处（`GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`）。
+症状是随机受害者 + 单条耗时 5～11 秒。
 
-**做法**：在 `WhaleGenie.Tests/` 里找所有 `window.Close(` / `.Close(null)`，判断该窗口关闭时是否可能弹
-`ConfirmDialog`（`MacroEditorWindow` 有改动时、`GlobalVariablesWindow` 有改动时都会问）。会问的，关完补：
+**做法**：全部会发问的关窗点改走 `Ui.CloseAndAnswer(window)`（关窗后泵一轮、把该窗自己的
+`ConfirmDialog` 答掉），另有 `Ui.AnswerUnsavedWork(window)` 用于只答提示、不关窗的场合。改过的文件：
+`HotstringKeyboardTests`、`MacroEditorWorkspaceTests`、`MacroEditorChromeTests`、`PickerDeviceTests`、
+`StepPlacementTests`、`StepTreeTests`、`RecoveryTests`、`MainScrollTests`（项目未保存）、
+`GlobalVariablesTests`（含原先扫错窗口的那条）。
 
-```csharp
-window.Close(null);
-Dispatcher.UIThread.RunJobs();
-foreach (var prompt in window.OwnedWindows.OfType<ConfirmDialog>().ToList())
-{
-    ((ConfirmDialogViewModel)prompt.DataContext!).CancelCommand.Execute(null);
-}
-Dispatcher.UIThread.RunJobs();
-```
+两处不只是加作答：
 
-**验收**：全量连跑 3 次都绿（`for i in 1 2 3; do dotnet test; done`），且没有超过 2 秒的单条用例。
+- `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing` 原来遍历的是外层编辑器的
+  `OwnedWindows`，而问话是管理器窗发的，扫不到；现在直接答管理器窗的那条问话并用「丢弃」把它真关掉，
+  否则编辑器（属主）关掉时管理器会再问一次。
+- `StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step` 用 `Thread.Sleep(60)` 造两次点击
+  的间隔，机器一忙就被拉过双击窗口、两次点击变两次单击；改成泵一轮队列。
+
+配方与判据写进了 `doc/dev.md` 的「关掉会发问的窗口：就地作答，不要走开」。
+
+**验收**：全量连跑 3 次全绿（34 + 1460 + 1488 通过、1 跳过，4.1～5.2 分钟）。**没有完全做到「单条不超 2 秒」**：
+`GlobalVariablesTests` 里那三条持久化相关的用例、`MacroEditorWorkspaceTests.Setting_a_variable_*`、
+`VariableWallDockTests.The_group_chips_stay_on_one_line` 仍会到 9～14 秒，同一组单独跑是 1～4 秒，
+所以是跨类累积的调度延迟（怀疑仍是没答干净的问话把调度器循环叠起来了），但不影响结果的绿。
+想继续查这条，注意一个坑：任何在 `Ui.Run` 的 dispatch 里再包一层的写法（哪怕只是 try/finally）都会让
+发现阶段卡死在 `Discovering: WhaleGenie.Tests`，进程 0% CPU——二分过一次，别再试同一条路。
 
 ### T2（必做）把剩下没看过的窗口逐个过一遍图
 

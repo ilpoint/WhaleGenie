@@ -173,7 +173,7 @@ public class StepTreeTests
             Assert.True(loop.IsExpanded);
             Assert.Contains(editor.Rows, row => row.IsHead);
             Assert.Contains(editor.Rows, row => row.IsFoot);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -214,7 +214,7 @@ public class StepTreeTests
             Assert.Equal("control.case", added.Type);
             Assert.True(added.IsExpanded);
             Assert.Single(added.StepLists);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -719,9 +719,9 @@ public class StepTreeTests
             window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
             window.MouseUp(point, MouseButton.Left);
             // The real thing has a gap between the two clicks, so anything the first one queued has
-            // run by the time the second arrives.
-            Dispatcher.UIThread.RunJobs();
-            System.Threading.Thread.Sleep(60);
+            // run by the time the second arrives. That gap is a pause, not a wait: pumping the
+            // queue empties it without spending wall-clock time, which on a loaded machine grows
+            // past the double-click window and turns the two clicks into two single ones.
             Dispatcher.UIThread.RunJobs();
             window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
             window.MouseUp(point, MouseButton.Left);

@@ -607,7 +607,7 @@ public class RecoveryTests
 
                     Assert.True(written, "the draft never took the second step");
 
-                    window.Close();
+                    Ui.CloseAndAnswer(window);
                     Dispatcher.UIThread.RunJobs();
                 });
 

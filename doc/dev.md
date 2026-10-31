@@ -577,6 +577,33 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
 而撞名的本质就是"别处会坏"。四次撞名里有三次都是先跑本窗（绿）、后跑全量才发现红——
 这两条要一起有：前一条防"加了新成员就炸"，后一条防"炸了没发现"。
 
+### 关掉会发问的窗口：就地作答，不要走开
+
+`ConfirmDialog` 是模态的：它在当前 dispatch 里再起一个调度器循环。用例关掉一扇会在关闭时发问的窗
+（`MacroEditorWindow`、`GlobalVariablesWindow` 在改动过时，`MainWindow` 在项目没保存时）却不回答，循环就
+留在调度器上——**下一条用例**一 dispatch 就抛 `InvalidProgramException: You've caused dispatcher loop`，
+受害者与肇事者不是同一条，单条耗时还会涨到 5～11 秒。所以关窗一律走这两个入口：
+
+```csharp
+Ui.CloseAndAnswer(window);      // 关窗，并把这一窗自己弹出的问话答掉
+Ui.AnswerUnsavedWork(window);   // 只答掉已经弹出来的（例如「这段录音是空的」这类提示）
+```
+
+问话的主人是**发问的那扇窗**，所以答的是它自己的 `OwnedWindows`：管理器窗发的问不在外层编辑器窗的
+`OwnedWindows` 里，`Closing_the_manager_without_save_changes_nothing` 最早就是扫错了地方（断言全绿，因为
+它压根没扫到）。
+
+想在检查里直接给出答案的，用注入点比事后答题清楚：`MainWindow.AskToSaveProject = () => Task.FromResult(ConfirmChoice.Secondary)`
+（丢弃＝窗真的关掉，恢复快照也跟着收走）；`GlobalVariablesWindow` 的保存与丢弃两条路见 `GlobalVariablesTests`。
+
+判据是"关窗前真改过东西"：`MacroEditorViewModel` 几乎对每个不在白名单里的属性变化都 `MarkDirty()`，
+`AddStep` 也算（`HasSteps` 不在白名单里），所以"只是加了一步再关窗"一样会问；`GlobalVariablesViewModel.HasChanges`
+看的是每行的改动与名字序列，删回原样才算干净。
+
+**不要用 `Thread.Sleep` 造两次点击之间的间隔**（`Double_clicking_a_step_inside_a_block_edits_that_step` 曾经这么写）：
+那段间隔只是为了把第一次点击排的活跑完，泵一轮队列就够用；机器一忙，60 毫秒会被拉过双击窗口，两次点击
+就变成两次单击，弹窗不来而断言说"没打开"。
+
 ### 手动项
 
 无头会话走的是 Avalonia 自己的输入管线，不是系统里的鼠标与键盘：真的注入按键、抓屏取色这类事情在那里验不了，

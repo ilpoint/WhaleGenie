@@ -110,7 +110,7 @@ public class HotstringKeyboardTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(selectedBackground.Color,
                 Assert.IsAssignableFrom<ISolidColorBrush>(space.Background).Color);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -143,7 +143,7 @@ public class HotstringKeyboardTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(unselected, EndKeyBackground(space));
 
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -191,7 +191,7 @@ public class HotstringKeyboardTests
                 option.IsChecked = false;
             }
             Assert.False(editor.CanSave);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -218,7 +218,7 @@ public class HotstringKeyboardTests
             var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
             Assert.Equal("a b", keyboard.Text);
             keyboard.Close();
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
@@ -250,7 +250,7 @@ public class HotstringKeyboardTests
 
             Assert.False(keyboard.IsVisible);
             Assert.Equal("btwx", editor.HotstringText);
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 
