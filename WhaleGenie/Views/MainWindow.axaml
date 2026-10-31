@@ -82,26 +82,21 @@
         <!-- Macro card action buttons -->
     </Window.Styles>
 
-    <Grid RowDefinitions="36,30,*,Auto">
+    <Grid RowDefinitions="40,30,*,Auto">
 
-        <!-- ============ 工具条（标题栏归库，这里只剩主窗自己的三个钮） ============ -->
+        <!--
+          ============ 标题栏（内容扩展进标题栏，见 MainWindow.axaml.cs） ============
+          这一行就是能拖动的标题栏本体：只放主窗自己的置顶钮，右侧留出系统按钮的宽度，
+          免得它被最小化/最大化/关闭压住。主题与"关于"不在这里——主题在设置里，关于在托盘菜单。
+        -->
         <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
             <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6"
-                        Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="Chrome Icon" Name="ThemeButton"
-                        ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
-                        Click="OnToggleTheme">
-                    <views:IconView Width="12" Height="12" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Sun}" />
-                </Button>
+                        Margin="8,0,146,0" VerticalAlignment="Center">
                 <Button Classes="Chrome Icon" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
                     <views:IconView Width="11" Height="11" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
-                <Button Classes="Chrome Icon" Name="HelpButton" Content="?" FontWeight="Bold"
-                        FontSize="13"
-                        ToolTip.Tip="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
-                        Click="OnAboutClicked" />
             </StackPanel>
         </Grid>
 

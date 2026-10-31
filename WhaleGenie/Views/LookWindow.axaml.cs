@@ -110,7 +110,6 @@ public partial class LookWindow : AppWindow
         _textPanel = this.FindControl<StackPanel>("TextPanel");
 
         Title = Strings.Get("Look.Title");
-        ShowFullScreenLabel();
         FillHeader(look);
         FillText(look);
         ShowNeedle();
@@ -286,9 +285,17 @@ public partial class LookWindow : AppWindow
         SetStatus(Strings.Get("Look.AgainBusy"));
         try
         {
-            // Off the thread that draws the window, the same way the dialog's own run does it, and
-            // through the same entrance: looking and nothing else — no click, no key, no variable.
-            var outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
+            // Out of the way first: this window covers the very screen the step is looking at, and a
+            // look taken with it standing finds the window rather than what is behind it. Same
+            // entrance as the dialog's own run — looking and nothing else: no click, no key, no
+            // variable — and the window comes back when the look is done.
+            LookOutcome outcome;
+            using (AppWindows.StepAside(this))
+            {
+                ScreenComposed.Wait();
+                outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
+            }
+
             if (outcome.Look is { } look)
             {
                 Refill(look);
@@ -810,29 +817,14 @@ public partial class LookWindow : AppWindow
     // -------------------------------------------------------------------- commands
 
     /// <summary>
-    /// Whether the window fills the screen, which is how a reference picture and a screenful of
-    /// hits are read: a window shrunk to fit a monitor shows neither at its own size.
+    /// Fills the screen, or leaves it: a reference picture and a screenful of hits are read at their
+    /// own size. No button of its own — the title bar's maximize is the button, and F11 does it from
+    /// the keyboard.
     /// </summary>
-    private void OnToggleFullScreen(object? sender, RoutedEventArgs e) => ToggleFullScreen();
-
     private void ToggleFullScreen()
-    {
-        WindowState = WindowState == WindowState.FullScreen
+        => WindowState = WindowState == WindowState.FullScreen
             ? WindowState.Normal
             : WindowState.FullScreen;
-        ShowFullScreenLabel();
-    }
-
-    /// <summary>The button says what it will do next, so there is nothing to remember.</summary>
-    private void ShowFullScreenLabel()
-    {
-        if (this.FindControl<Button>("FullScreen") is { } button)
-        {
-            button.Content = Strings.Get(WindowState == WindowState.FullScreen
-                ? "Look.FullScreenExit"
-                : "Look.FullScreen");
-        }
-    }
 
     private void OnZoomIn(object? sender, RoutedEventArgs e) => Zoom(LookGeometry.Step(_zoom, true), true);
 

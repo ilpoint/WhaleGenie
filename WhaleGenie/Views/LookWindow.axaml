@@ -34,21 +34,12 @@
     </Window.Styles>
 
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Grid RowDefinitions="Auto,*,Auto">
 
-            <!-- 标题栏归库；这行只剩"按原尺寸看"这一个工具钮。 -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,4,10,4">
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
-                    <!-- A reference picture is read at its own size, and a whole screen of hits does
-                         not fit in a window; this is the answer to both. -->
-                    <Button Name="FullScreen" Classes="Chrome Icon Wide Quiet" Padding="10,0"
-                            Click="OnToggleFullScreen"
-                            ToolTip.Tip="{Binding [Look.FullScreenHint], Source={x:Static loc:Strings.Current}}" />
-                </StackPanel>
-            </Grid>
+
 
             <!-- what the step was after, and how it went -->
-            <Border Grid.Row="1" Background="{DynamicResource SurfaceWindow}" CornerRadius="6" Margin="14,0,14,10"
+            <Border Grid.Row="0" Background="{DynamicResource SurfaceWindow}" CornerRadius="6" Margin="14,0,14,10"
                     Padding="12,10">
                 <Grid ColumnDefinitions="Auto,*">
                     <Border Grid.Column="0" Background="{DynamicResource SurfaceWindow}" CornerRadius="4" Padding="4"
@@ -72,7 +63,7 @@
             </Border>
 
             <!-- the picture, and one row per mark -->
-            <Grid Grid.Row="2" ColumnDefinitions="*,320" Margin="14,0,14,10">
+            <Grid Grid.Row="1" ColumnDefinitions="*,320" Margin="14,0,14,10">
                 <Border Grid.Column="0" Classes="Panel" Padding="10">
                     <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
@@ -108,7 +99,7 @@
             </Grid>
 
             <!-- zoom, and saving the picture -->
-            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
                   Margin="14,0,14,12">
                 <Button Grid.Column="0" Classes="Secondary" Content="−" Width="34"
                         Click="OnZoomOut" />

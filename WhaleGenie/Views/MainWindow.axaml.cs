@@ -154,6 +154,11 @@ public partial class MainWindow : AppWindow
         _runtime = runtime;
         InitializeComponent();
 
+        // 标题栏归库，但这一扇的内容伸进标题栏：那条 40px 的行里放着置顶钮，整条都可以拖动。
+        // 系统按钮由库画在它上面，行尾留出了它们的宽度。
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
+
         AskToSaveProject = () => ConfirmDialog.ShowAsync(this,
             Strings.Get("Main.UnsavedTitle"),
             Strings.Get("Main.UnsavedMessage"),
@@ -1919,17 +1924,6 @@ public partial class MainWindow : AppWindow
     private void OnGetStartedClicked(object? sender, RoutedEventArgs e)
         => WebPage.Open(Manual.Where());
 
-    /// <summary>
-    /// Switches the whole application between the light and dark variants and remembers the choice.
-    /// </summary>
-    private void OnToggleTheme(object? sender, RoutedEventArgs e)
-    {
-        var current = ThemeController.Load();
-        var next = current.WithMode(current.BaseLight ? ThemeMode.Dark : ThemeMode.Light);
-
-        ThemeController.Apply(next);
-        ThemeController.Save(next);
-    }
     /// <summary>
     /// Gives the flyout its window's data context. A flyout's content is not part of the window's
     /// visual tree, so the bindings that name the MCP view model need this one hand-off. The button

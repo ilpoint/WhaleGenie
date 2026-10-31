@@ -577,9 +577,13 @@ public class LookWindowTests
 
     /// <summary>
     /// A picture is read at its own size, and a screenful of hits does not fit in a window: the
-    /// window fills the screen and comes back, by the button and by F11, and Esc goes back to the
-    /// window before it closes it.
+    /// window fills the screen and comes back by F11, and Esc goes back to the window before it
+    /// closes it.
     /// </summary>
+    /// <remarks>
+    /// There is no button of its own for this any more: the title bar's maximize is that button now,
+    /// and having both would be two controls for one window state.
+    /// </remarks>
     [Fact]
     public void The_window_fills_the_screen_and_comes_back()
     {
@@ -589,13 +593,11 @@ public class LookWindowTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            var button = window.FindControl<Button>("FullScreen")!;
-            Assert.Equal(Strings.Get("Look.FullScreen"), button.Content);
+            Assert.Null(window.FindControl<Button>("FullScreen"));
 
             window.KeyPressQwerty(PhysicalKey.F11, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(WindowState.FullScreen, window.WindowState);
-            Assert.Equal(Strings.Get("Look.FullScreenExit"), button.Content);
 
             // Esc is the way back before it is the way out: the full screen is what just happened.
             window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);

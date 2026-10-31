@@ -85,15 +85,14 @@ public class HelpMenuTests
     }
 
     [Fact]
-    public void The_question_mark_on_the_title_bar_opens_the_same_thing_as_About()
+    public void Help_lives_in_the_menu_rather_than_on_the_title_bar()
     {
         var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
 
-        // The button only counts as wired when the click lands on a handler, which is what it
-        // was missing while it sat there doing nothing.
-        var start = xaml.IndexOf("Name=\"HelpButton\"", StringComparison.Ordinal);
-        Assert.True(start >= 0, "the title bar no longer has a help button");
-        Assert.Contains("Click=\"OnAboutClicked\"", xaml[start..], StringComparison.Ordinal);
+        // 标题栏只留置顶：一个问号与一个换主题的钮都不在这里了，帮助走菜单里的「关于」。
+        Assert.DoesNotContain("Name=\"HelpButton\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Name=\"ThemeButton\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Name=\"AlwaysOnTopButton\"", xaml, StringComparison.Ordinal);
     }
 
     /// <summary>The repository root, found by walking up from the test binaries.</summary>

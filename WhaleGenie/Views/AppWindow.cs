@@ -12,7 +12,13 @@ namespace WhaleGenie.Views;
 /// </summary>
 public class AppWindow : FAAppWindow
 {
-    public AppWindow() => ForgetHandlelessWindow();
+    public AppWindow()
+    {
+        // The bar is the only place a window can be dragged by, so it is taller than the library's
+        // 32: at that height the strip reads as an edge rather than as something to grab.
+        TitleBar.Height = 40;
+        ForgetHandlelessWindow();
+    }
 
     /// <summary>
     /// Lets go of the library's window-manager entry when this window has no native handle.
