@@ -8,7 +8,7 @@
 
 **界面语言的规矩**：颜色、度量、状态归我们，模板与控件行为归库。不要因为库有新控件就搬外观过来。
 
-## 现在到哪了（截至 `37b4727`）
+## 现在到哪了（T1～T4 完成后）
 
 已完成：主题换成 `FluentAvaloniaTheme`；43 条按钮颜色样式从 `/template/` 移到控件；裸按钮三态；
 列表项 `MinWidth=0`；右键菜单 DataContext 补齐；`TextFillColor*`、`PivotHeaderItemSelectedPipeFill`、
@@ -22,7 +22,7 @@ T3（关闭键统一成 `Button.Caption`，悬停按 WinUI 的红）与 T4（语
 ```bash
 cd G:/DATA/MyAPP/Viktor
 dotnet build                                    # 0 错误 0 警告
-dotnet test                                     # 34 + 1460 + 1488 通过，1 跳过
+dotnet test                                     # 34 + 1460 + 1489 通过，1 跳过
 dotnet format --verify-no-changes               # 退出码 0
 ```
 
@@ -43,7 +43,7 @@ dotnet format --verify-no-changes               # 退出码 0
     first handle=0 | second threw ArgumentException:
     An item with the same key has already been added. Key: FluentAvalonia.Interop.Win32.HWND
 
-## 剩余任务
+## 剩余任务（T1～T4 已全部处理）
 
 ### T1（必做）扫掉"关窗发问"的测试隐患 —— 已完成
 
