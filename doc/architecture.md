@@ -273,11 +273,29 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 所以颜色一律写成 `/template/ ContentPresenter`（只认类型，不认名字）；确实要按名字命中的，由
 `TemplatePartTests` 逐个实例化宿主、在视觉树里找那个部件——部件没了它就红，而不是等下一个人把鼠标压上去才发现。
 
-**窗口还是普通 `Window`，标题栏自己画。** 库提供了 `FAAppWindow`（标题按钮交给它画），但这台机器上
-**一个进程只装得下一个**：它的构造里 `Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的
-句柄都是 `0`，第二个 `FAAppWindow` 直接抛 `ArgumentException: An item with the same key has already been added. Key: HWND`。
-一条测试会话里要开好几个窗口，所以这条路在测试跑得起来之前不能走。真要走，先把无头平台换成给每个窗口
-不同句柄的实现，或者让库按窗口实例而不是句柄建表。
+### 7.x 主题层现状（FluentAvalonia 3.1）
+
+控件与模板来自 `FluentAvaloniaTheme`（`App.axaml`），**颜色、度量、状态仍然由我们这一层决定**。迁移后
+自己写控件的地方只剩三处：`IconView`（画图标，库没有对应物）、`VariableWall`、`ActionPaletteView`（页面，
+不是控件）。用过库的控件之后，这几条知识值得记住：
+
+- **颜色要写在控件上，不写 `/template/`**。库的控件是 `ControlTheme`，状态色写在主题内部的嵌套样式里，
+  面子由 `{TemplateBinding Background}` 从控件带过去；`/template/ ContentPresenter` 从外面够不着。
+- **键名对不上就等于没生效**。库读的是 WinUI 的名字（`TextFillColor*Brush`、`PivotHeaderItemSelectedPipeFill`），
+  我们原先覆盖的是 `TextControl*`/`Button*`。这已经骗过一次人：页签的选中条是主题自己的蓝，看着像样式没生效。
+- **度量可能是库写死的**。列表项自带 `MinWidth=88`，短标签会被撑到 88；数字框的微调按钮默认夹在数字右边，
+  用 `SpinButtonPlacementMode=Compact` 放进取焦才开的弹层。
+
+页签按语义分两种：**有内容的页**用 `TabControl`（设置窗三个根页），**共用一块表单的页**用 `TabStrip`
+（动作编辑器的四个页——它们没有各自的内容，用 `TabControl` 是假承诺）。
+
+**标题栏没迁，也迁不了。** 库提供了 `FAAppWindow`（把标题按钮交给它画），但它的构造里
+`Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的句柄都是 `0`，于是**一个进程只装得下一个**：
+
+    ArgumentException: An item with the same key has already been added. Key: HWND
+
+一条测试会话要开好几个窗口，所以 24 个窗口仍然用普通 `Window` + 自绘 38px 标题行。要走这条路，前提是
+无头平台给每个窗口不同句柄，或者库改成按窗口实例建表。
 
 ## 八、持久化
 
