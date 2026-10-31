@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -48,7 +49,7 @@ public class JitterTests
 
             // A box carried by a parameter that is not a length of time is still in the tree, just
             // out of sight, so what counts is the ones actually drawn.
-            var boxes = window.GetVisualDescendants().OfType<NumericUpDown>()
+            var boxes = window.GetVisualDescendants().OfType<FANumberBox>()
                 .Where(control => control.Name == "JitterBox" && control.IsEffectivelyVisible)
                 .ToList();
             var times = viewModel.Parameters.Where(parameter => parameter.IsDuration).ToList();
@@ -58,7 +59,7 @@ public class JitterTests
             Assert.NotEmpty(times);
             Assert.Equal(times.Count, boxes.Count);
             Assert.All(boxes, box => Assert.Contains((StepParameterViewModel)box.DataContext!, times));
-            Assert.All(boxes, box => Assert.Null(box.Value));
+            Assert.All(boxes, box => Assert.True(double.IsNaN(box.Value)));
 
             // A count is not a length of time: "click 3 times" means three times.
             Assert.False(Editor(viewModel, "repeat").IsDuration);

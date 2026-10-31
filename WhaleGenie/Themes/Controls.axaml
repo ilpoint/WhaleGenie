@@ -1,5 +1,14 @@
 <Styles xmlns="https://github.com/avaloniaui"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+      数字输入框的微调按钮放进取焦才开的弹层。它们夹在数字右边时，一行四个数字的宽度就被它们吃掉
+      一截；以前这件事靠一个子类在运行时把按钮压到 16×15 来做，现在由控件自己的摆放模式说清楚。
+    -->
+    <Style Selector="fa|FANumberBox">
+        <Setter Property="SpinButtonPlacementMode" Value="Compact" />
+    </Style>
 
     <!--
       层 3：我们自己画的族。颜色全部取自 Themes/Tokens.axaml，能由层 1（FluentKeys.axaml）给的

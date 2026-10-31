@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -144,7 +145,7 @@ public class MacroEditorChromeTests
 
                 var controls = drawer.GetVisualDescendants().OfType<Control>()
                     .Where(control => control.IsEffectivelyVisible
-                        && control is ComboBox or TextBox or NumberBox)
+                        && control is ComboBox or TextBox or FANumberBox)
                     .ToList();
                 Assert.NotEmpty(controls);
                 Assert.All(controls, control =>

@@ -30,6 +30,13 @@ public class MainDockTabTests
 
             try
             {
+                // The dock to show is remembered across runs, so the window opens on whatever was
+                // last used. Saying which one this check is about keeps it from depending on what
+                // some other test happened to leave behind.
+                var viewModel = (MainViewModel)window.DataContext!;
+                viewModel.SelectedDock = DockPage.Keys;
+                Dispatcher.UIThread.RunJobs();
+
                 var tabs = window.GetVisualDescendants().OfType<Button>()
                     .Where(button => button.Classes.Contains("Tab") && button.Classes.Contains("Root"))
                     .ToList();
@@ -46,7 +53,6 @@ public class MainDockTabTests
                 Assert.Equal(Token("AccentFill"), Colour(keys.BorderBrush));
 
                 // Choosing another dock moves both the class and the underline.
-                var viewModel = (MainViewModel)window.DataContext!;
                 viewModel.SelectedDock = DockPage.Menu;
                 Dispatcher.UIThread.RunJobs();
 

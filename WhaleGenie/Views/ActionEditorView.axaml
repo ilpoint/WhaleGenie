@@ -9,6 +9,7 @@
         xmlns:conv="using:WhaleGenie.Converters"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="800"
@@ -23,10 +24,10 @@
         <!-- One length of time in the step settings: the number plus the unit it is written in. -->
         <DataTemplate x:Key="DurationSetting" x:DataType="vm:DurationSettingViewModel">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                <views:NumberBox Value="{Binding Value}"
-                               Minimum="{Binding Minimum}"
-                               Maximum="{Binding Maximum}"
-                               Increment="1" FormatString="0.###"
+                <fa:FANumberBox Value="{Binding Value, Converter={StaticResource Number}}"
+                               Minimum="{Binding Minimum, Converter={StaticResource Number}}"
+                               Maximum="{Binding Maximum, Converter={StaticResource Number}}"
+                               SmallChange="1" SimpleNumberFormat="0.###"
                                HorizontalAlignment="Stretch" />
                 <ComboBox Grid.Column="1" Classes="Field"
                           ItemsSource="{Binding Units}"
@@ -51,10 +52,10 @@
                            Text="{Binding Label}"
                            ToolTip.Tip="{Binding Hint}" />
 
-                <views:NumberBox Grid.Column="1" FormatString="0"
+                <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0"
                                IsVisible="{Binding IsPlain}"
                                HorizontalAlignment="Stretch"
-                               Value="{Binding Number}" />
+                               Value="{Binding Number, Converter={StaticResource Number}}" />
 
                 <AutoCompleteBox Grid.Column="1" Classes="Field"
                                  IsVisible="{Binding IsFormula}"
@@ -282,12 +283,12 @@
                 <!-- A number is dialled in with the spinner or written as an expression. -->
                 <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                       ColumnSpacing="6">
-                    <views:NumberBox IsVisible="{Binding IsNumberValue}"
-                                   Value="{Binding NumberValue}"
-                                   Minimum="{Binding Minimum}"
-                                   Maximum="{Binding Maximum}"
-                                   Increment="{Binding Increment}"
-                                   FormatString="0.###"
+                    <fa:FANumberBox IsVisible="{Binding IsNumberValue}"
+                                   Value="{Binding NumberValue, Converter={StaticResource Number}}"
+                                   Minimum="{Binding Minimum, Converter={StaticResource Number}}"
+                                   Maximum="{Binding Maximum, Converter={StaticResource Number}}"
+                                   SmallChange="{Binding Increment, Converter={StaticResource Number}}"
+                                   SimpleNumberFormat="0.###"
                                    HorizontalAlignment="Stretch" />
 
                     <AutoCompleteBox Grid.Column="0" Classes="Field"
@@ -320,9 +321,9 @@
                                 ToolTip.Tip="{Binding [Add.JitterHint], Source={x:Static loc:Strings.Current}}">
                         <TextBlock Classes="Caption" VerticalAlignment="Center"
                                    Text="{Binding [Add.JitterSign], Source={x:Static loc:Strings.Current}}" />
-                        <views:NumberBox Name="JitterBox" Width="76" Increment="5" FormatString="0.##"
+                        <fa:FANumberBox Name="JitterBox" Width="76" SmallChange="5" SimpleNumberFormat="0.##"
                                        Minimum="0" Maximum="100" VerticalAlignment="Center"
-                                       Value="{Binding JitterPercent}" />
+                                       Value="{Binding JitterPercent, Converter={StaticResource Number}}" />
                         <TextBlock Classes="Caption" VerticalAlignment="Center"
                                    Text="{Binding [Add.JitterUnit], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
@@ -627,15 +628,15 @@
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <TextBlock Classes="Hint" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunHold], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="84" FormatString="0" PlaceholderText="50"
-                                                       Value="{Binding HoldMs}"
+                                        <fa:FANumberBox Width="84" SimpleNumberFormat="0" PlaceholderText="50"
+                                                       Value="{Binding HoldMs, Converter={StaticResource Number}}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunHoldHint], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="Caption" Margin="0,0,8,0" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="Caption" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunGap], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="84" FormatString="0" PlaceholderText="120"
-                                                       Value="{Binding GapMs}"
+                                        <fa:FANumberBox Width="84" SimpleNumberFormat="0" PlaceholderText="120"
+                                                       Value="{Binding GapMs, Converter={StaticResource Number}}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="Caption" Margin="0,0,8,0" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
@@ -1200,8 +1201,8 @@
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepRetry], Source={x:Static loc:Strings.Current}}" />
-                                    <views:NumberBox Value="{Binding MetaRetryCount}" Minimum="0" Maximum="20"
-                                                   Increment="1" FormatString="0"
+                                    <fa:FANumberBox Value="{Binding MetaRetryCount, Converter={StaticResource Number}}" Minimum="0" Maximum="20"
+                                                   SmallChange="1" SimpleNumberFormat="0"
                                                    Width="150" HorizontalAlignment="Left" />
                                 </StackPanel>
                             </Grid>
