@@ -61,6 +61,14 @@ using var stream = File.Create(Path.Combine(Path.GetTempPath(), "whalegenie-ui.p
 frame.Save(stream, PngBitmapEncoderOptions.Default);
 ```
 
+**主窗记得先装 DataContext**：`MainWindow` 自己不带 ViewModel，运行时是容器给的（`AppServices.cs:38`）。
+空着它就得到一张所有绑定都失效的图——页签没有选中态、空态文案不出现、列表是空的，看着像功能丢了。
+换别的窗同理：先看它构造完之后 `DataContext` 有没有东西。
+
+```csharp
+var window = new MainWindow { DataContext = new MainViewModel(_ => new McpServerViewModel()) };
+```
+
 **这张图只给人看，不当证据用**：没有基线、没有逐字节比对，也不进仓库。能复核的是测试——它们读的是模板里
 被涂色的那个部件（`LayerOneTests`、`ThemedDialogTests`、`ListBoxStyleTests`），不是像素。
 
