@@ -67,12 +67,9 @@ public partial class SettingsWindow : Window
         this.FindControl<Button>("EditMenuRuleButton")!.IsEnabled = project is not null;
         this.FindControl<Button>("RemoveMenuRuleButton")!.IsEnabled = project is not null;
 
-        this.FindControl<Button>("SystemRootButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.General);
-        this.FindControl<Button>("TriggersRootButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
-        this.FindControl<Button>("AppearanceRootButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Appearance, SettingsSubPage.Theme);
+        // The three roots are a tab control now: picking one is the selection, and the binding on
+        // its SelectedIndex writes the same enum a SetPage call would. The sub-pages inside a root
+        // are still buttons, because they share one tab's content area.
         this.FindControl<Button>("GeneralNavButton")!.Click += (_, _) =>
             _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.General);
         this.FindControl<Button>("CaptureNavButton")!.Click += (_, _) =>

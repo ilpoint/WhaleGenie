@@ -34,48 +34,29 @@
             </Button>
         </Grid>
 
-        <Grid Grid.Row="1" Background="{DynamicResource SurfacePanel}" ColumnDefinitions="*,*,*"
-              Margin="14,8,14,0">
-            <Button Grid.Column="0" Name="SystemRootButton" Classes="Tab Root"
-                    Classes.selected="{Binding IsSystemRoot}"
-                    Content="{Binding [Settings.Root.System], Source={x:Static loc:Strings.Current}}" />
-            <Button Grid.Column="1" Name="TriggersRootButton" Classes="Tab Root"
-                    Classes.selected="{Binding IsTriggersRoot}"
-                    Content="{Binding [Settings.Root.Triggers], Source={x:Static loc:Strings.Current}}" />
-            <Button Grid.Column="2" Name="AppearanceRootButton" Classes="Tab Root"
-                    Classes.selected="{Binding IsAppearanceRoot}"
-                    Content="{Binding [Settings.Root.Appearance], Source={x:Static loc:Strings.Current}}" />
-        </Grid>
-
-        <Grid Grid.Row="2" ColumnDefinitions="180,*" Margin="14,8,14,0">
-            <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
-                <StackPanel Spacing="3">
-                    <StackPanel IsVisible="{Binding IsSystemRoot}">
-                        <Button Name="GeneralNavButton" Classes="Tab Side"
-                                Classes.selected="{Binding IsGeneralPage}"
-                                Content="{Binding [Settings.Nav.General], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="CaptureNavButton" Classes="Tab Side"
-                                Classes.selected="{Binding IsCapturePage}"
-                                Content="{Binding [Settings.Nav.Capture], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="DevicesNavButton" Classes="Tab Side"
-                                Classes.selected="{Binding IsDevicesPage}"
-                                Content="{Binding [Settings.Nav.Devices], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <StackPanel IsVisible="{Binding IsTriggersRoot}">
-                        <Button Name="MenuLauncherNavButton" Classes="Tab Side"
-                                Classes.selected="{Binding IsMenuLauncherPage}"
-                                Content="{Binding [Settings.Nav.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="WindowRulesNavButton" Classes="Tab Side"
-                                Classes.selected="{Binding IsWindowRulesPage}"
-                                Content="{Binding [Settings.Nav.WindowRules], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <StackPanel IsVisible="{Binding IsAppearanceRoot}">
-                        <Button Name="ThemeNavButton" Classes="Tab Side"
-                                Classes.selected="{Binding IsThemePage}"
-                                Content="{Binding [Settings.Nav.Theme], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+        <!--
+          Three roots, three tabs. The tab control owns the choice now: its SelectedIndex is the
+          enum in the view model as a number, so a click and a SetPage() call land in the same place.
+          Everything a root holds — its sidebar, its pages — lives inside its own tab, which is why
+          the IsVisible bindings that used to switch roots are gone.
+        -->
+        <TabControl Grid.Row="1" Name="RootTabs" Margin="14,8,14,0"
+                    SelectedIndex="{Binding RootIndex, Mode=TwoWay}">
+            <TabItem Header="{Binding [Settings.Root.System], Source={x:Static loc:Strings.Current}}">
+                <Grid ColumnDefinitions="180,*" Margin="0,8,0,0">
+                    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
+                        <StackPanel Spacing="3">
+                            <Button Name="GeneralNavButton" Classes="Tab Side"
+                                    Classes.selected="{Binding IsGeneralPage}"
+                                    Content="{Binding [Settings.Nav.General], Source={x:Static loc:Strings.Current}}" />
+                            <Button Name="CaptureNavButton" Classes="Tab Side"
+                                    Classes.selected="{Binding IsCapturePage}"
+                                    Content="{Binding [Settings.Nav.Capture], Source={x:Static loc:Strings.Current}}" />
+                            <Button Name="DevicesNavButton" Classes="Tab Side"
+                                    Classes.selected="{Binding IsDevicesPage}"
+                                    Content="{Binding [Settings.Nav.Devices], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </Border>
 
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
                 <StackPanel Name="SettingsPanel">
@@ -183,6 +164,25 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{Binding [Settings.Root.Triggers], Source={x:Static loc:Strings.Current}}">
+                <Grid ColumnDefinitions="180,*" Margin="0,8,0,0">
+                    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
+                        <StackPanel Spacing="3">
+                            <Button Name="MenuLauncherNavButton" Classes="Tab Side"
+                                    Classes.selected="{Binding IsMenuLauncherPage}"
+                                    Content="{Binding [Settings.Nav.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
+                            <Button Name="WindowRulesNavButton" Classes="Tab Side"
+                                    Classes.selected="{Binding IsWindowRulesPage}"
+                                    Content="{Binding [Settings.Nav.WindowRules], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <StackPanel Name="TriggersSettingsPanel">
 
                     <Border Classes="Section" IsVisible="{Binding IsMenuLauncherPage}">
                         <StackPanel IsEnabled="{Binding HasProject}">
@@ -253,6 +253,22 @@
                                        Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{Binding [Settings.Root.Appearance], Source={x:Static loc:Strings.Current}}">
+                <Grid ColumnDefinitions="180,*" Margin="0,8,0,0">
+                    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
+                        <StackPanel Spacing="3">
+                            <Button Name="ThemeNavButton" Classes="Tab Side"
+                                    Classes.selected="{Binding IsThemePage}"
+                                    Content="{Binding [Settings.Nav.Theme], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <StackPanel Name="AppearanceSettingsPanel">
 
                     <Border Classes="Section" IsVisible="{Binding IsThemePage}">
                         <StackPanel>
@@ -273,9 +289,11 @@
                                        Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
-                </StackPanel>
-            </ScrollViewer>
-        </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>
 
         <Button Grid.Row="3" Classes="Secondary" Height="36" MinWidth="92"
                 HorizontalAlignment="Right" Margin="20,0,20,18" Name="DoneButton"

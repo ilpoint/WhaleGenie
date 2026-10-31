@@ -132,6 +132,23 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsSystemRoot => SelectedRootPage == SettingsRootPage.System;
     public bool IsTriggersRoot => SelectedRootPage == SettingsRootPage.Triggers;
     public bool IsAppearanceRoot => SelectedRootPage == SettingsRootPage.Appearance;
+
+    /// <summary>
+    /// The same choice, as the number a tab strip speaks in. The three pages are an enum because
+    /// the code switches on them; a tab control only knows positions, so this is the one place the
+    /// two are converted. The setter is how a click on a tab comes back.
+    /// </summary>
+    public int RootIndex
+    {
+        get => (int)SelectedRootPage;
+        set
+        {
+            if (value >= 0 && value <= (int)SettingsRootPage.Appearance)
+            {
+                SelectedRootPage = (SettingsRootPage)value;
+            }
+        }
+    }
     public bool IsGeneralPage => SelectedSubPage == SettingsSubPage.General;
     public bool IsCapturePage => SelectedSubPage == SettingsSubPage.CaptureInput;
     public bool IsDevicesPage => SelectedSubPage == SettingsSubPage.Devices;
@@ -144,6 +161,7 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsSystemRoot));
         OnPropertyChanged(nameof(IsTriggersRoot));
         OnPropertyChanged(nameof(IsAppearanceRoot));
+        OnPropertyChanged(nameof(RootIndex));
     }
 
     partial void OnSelectedSubPageChanged(SettingsSubPage value)
