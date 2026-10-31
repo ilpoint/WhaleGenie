@@ -1,5 +1,8 @@
+using System;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Avalonia.Headless;
+using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -49,6 +52,27 @@ internal static class Ui
         => Session.Dispatch(body, CancellationToken.None)
             .GetAwaiter()
             .GetResult();
+
+    /// <summary>
+    /// Waits for something the interface does on its own schedule — a dialog that is about to open,
+    /// a window that is about to close — by pumping the dispatcher until it is true.
+    /// </summary>
+    /// <remarks>
+    /// The alternative, "sleep 20ms and assert", turns a slow machine into a failing check: the whole
+    /// suite takes minutes, and the same wait that is generous on its own is not generous at the end
+    /// of a long run. This waits for the thing itself and gives up with the reason it was waiting,
+    /// so a real failure reads as one.
+    /// </remarks>
+    public static async Task Until(Func<bool> condition, string because, int timeoutMs = 3000)
+    {
+        for (var waited = 0; waited < timeoutMs && !condition(); waited += 10)
+        {
+            await Task.Delay(10);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        Assert.True(condition(), because);
+    }
 }
 
 /// <summary>

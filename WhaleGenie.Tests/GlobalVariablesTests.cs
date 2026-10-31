@@ -506,16 +506,15 @@ public class GlobalVariablesTests
             window.FindControl<Button>("RemoveButton")!
                 .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "removing a variable did not ask first");
 
             var confirm = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var prompt = (ConfirmDialogViewModel)confirm.DataContext!;
             Assert.Equal(Strings.Get("GlobalVariables.DeleteTitle"), prompt.Header);
             prompt.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.OwnedWindows.Any(), "the prompt did not close");
 
             Assert.Single(manager.Rows);
             Assert.True(window.IsVisible);
@@ -540,30 +539,27 @@ public class GlobalVariablesTests
 
             window.Close(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "closing a window with unsaved work did not ask anything");
 
             var first = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var firstPrompt = (ConfirmDialogViewModel)first.DataContext!;
             Assert.Equal(Strings.Get("GlobalVariables.UnsavedTitle"), firstPrompt.Header);
             firstPrompt.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.OwnedWindows.Any(), "the prompt did not close");
             Assert.True(window.IsVisible);
 
             window.Close(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "closing it a second time did not ask again");
 
             var second = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var secondPrompt = (ConfirmDialogViewModel)second.DataContext!;
             secondPrompt.SecondaryCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(window.IsVisible);
+            await Ui.Until(() => !window.IsVisible, "discarding did not close the window");
             return true;
         });
     }
@@ -585,14 +581,13 @@ public class GlobalVariablesTests
 
             window.Close(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "closing a window with unsaved work did not ask anything");
             var confirm = Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>());
             var prompt = (ConfirmDialogViewModel)confirm.DataContext!;
             prompt.PrimaryCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            await Task.Delay(20);
-            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.IsVisible, "saving from the prompt did not close the window");
 
             Assert.Equal("fromClose", Assert.Single(saved!).Name);
             Assert.False(window.IsVisible);
