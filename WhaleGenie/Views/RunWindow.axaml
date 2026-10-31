@@ -178,17 +178,28 @@
     </Window.Styles>
 
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+        <Grid RowDefinitions="40,Auto,Auto,*,Auto,Auto">
 
-            <!-- ===================== 工具条（标题栏归库） ===================== -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,6,10,4">
-                <!-- A run is watched while the program it drives is in front, so pinning matters
-                     here; the close and size buttons beside it are the library's now. -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                    <Button Classes="Chrome Icon Wide Quiet" Name="PinButton"
+            <!--
+              ===================== 标题栏（内容扩展进标题栏） =====================
+              库不再画图标与标题，这一行自己画；右边是与系统按钮同尺寸的置顶钮，行尾留出它们的宽度。
+              一次运行常要在被驱动的程序前面看着，所以置顶在这里要够方便。
+            -->
+            <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
+                            VerticalAlignment="Center">
+                    <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                    <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                               VerticalAlignment="Center"
+                               Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
+                            VerticalAlignment="Center">
+                    <Button Classes="Caption" Name="PinButton"
                             ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Name="PinIcon" Width="11" Height="11"
-                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
+                        <views:IconView Name="PinIcon" Width="14" Height="14"
+                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4"
                                         FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                     </Button>
                 </StackPanel>

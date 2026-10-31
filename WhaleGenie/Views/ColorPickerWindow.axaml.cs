@@ -49,6 +49,18 @@ public partial class ColorPickerWindow : Window
     private bool _done;
 
     /// <summary>
+    /// The desk as it was when the magnifier opened, when the screen is being held still, and where
+    /// that frame begins. Read from instead of the live screen: a colour is taken from what was on
+    /// screen at the moment the picker came up, and the things behind it are not read again — a
+    /// moving window does not turn the magnifier into a different colour between two moves of the
+    /// pointer, and the pixels stay where they were seen.
+    /// </summary>
+    private ImageFrame? _frozen;
+
+    private int _frozenLeft;
+    private int _frozenTop;
+
+    /// <summary>
     /// The colour the magnifier is reading now, which is what a check about a stand-in screen
     /// reads back: the window itself only ever shows it.
     /// </summary>
@@ -107,7 +119,41 @@ public partial class ColorPickerWindow : Window
         WhaleGenie.Core.Devices.IInputDevice input, IInputHook hook)
     {
         using var aside = AppWindows.StepAside(owner);
-        return await new ColorPickerWindow(screen, input, hook).TakeAsync();
+
+        // Waited for before the screen is read: hiding a window is one call, but the desktop still
+        // holds the frame that had it in it, and a picture taken then is the old screen.
+        await AppWindows.SettleAsync();
+
+        var window = new ColorPickerWindow(screen, input, hook);
+        window.FreezeDesk(screen);
+        return await window.TakeAsync();
+    }
+
+    /// <summary>
+    /// Takes the desk as a picture and reads the magnifier from that instead of from the live
+    /// screen: what the colour is taken from is then the screen as it was when the picker opened,
+    /// and nothing that moves afterwards can change what is under the crosshair. A screen that
+    /// cannot be captured leaves the magnifier reading live, which is what it did before.
+    /// </summary>
+    private void FreezeDesk(IScreenDevice screen)
+    {
+        try
+        {
+            var desk = screen.Desktop.Bounds;
+            var frame = screen.Capture(desk.Left, desk.Top, desk.Width, desk.Height);
+            if (frame.IsEmpty)
+            {
+                return;
+            }
+
+            _frozen = frame;
+            _frozenLeft = desk.Left;
+            _frozenTop = desk.Top;
+        }
+        catch (Exception)
+        {
+            _frozen = null;
+        }
     }
 
     /// <summary>
@@ -157,6 +203,19 @@ public partial class ColorPickerWindow : Window
 
     private PixelColor ReadColour(ScreenPoint point)
     {
+        if (_frozen is { } frozen)
+        {
+            var x = point.X - _frozenLeft;
+            var y = point.Y - _frozenTop;
+            if (x < 0 || y < 0 || x >= frozen.Width || y >= frozen.Height)
+            {
+                return default;
+            }
+
+            var at = ((y * frozen.Width) + x) * 4;
+            return new PixelColor(frozen.Bgra[at + 2], frozen.Bgra[at + 1], frozen.Bgra[at]);
+        }
+
         try
         {
             return _screen.PixelAt(point.X, point.Y);
@@ -184,7 +243,9 @@ public partial class ColorPickerWindow : Window
         ImageFrame frame;
         try
         {
-            frame = _screen.Capture(originX, originY, RegionSize, RegionSize);
+            frame = _frozen is { } frozen
+                ? FrozenRegion(frozen, originX, originY)
+                : _screen.Capture(originX, originY, RegionSize, RegionSize);
         }
         catch (Exception)
         {
@@ -222,6 +283,43 @@ public partial class ColorPickerWindow : Window
             Canvas.SetLeft(_target, Math.Clamp(point.X - originX, 0, RegionSize - 1) * Zoom);
             Canvas.SetTop(_target, Math.Clamp(point.Y - originY, 0, RegionSize - 1) * Zoom);
         }
+    }
+
+    /// <summary>
+    /// The patch around <paramref name="originX"/>,<paramref name="originY"/> taken out of the frozen
+    /// frame. What falls outside it stays black, the way a live capture at the edge of the screen
+    /// comes back short rather than being stretched.
+    /// </summary>
+    private ImageFrame FrozenRegion(ImageFrame frame, int originX, int originY)
+    {
+        var pixels = new byte[RegionSize * RegionSize * 4];
+
+        for (var row = 0; row < RegionSize; row++)
+        {
+            var y = originY + row - _frozenTop;
+            if (y < 0 || y >= frame.Height)
+            {
+                continue;
+            }
+
+            for (var column = 0; column < RegionSize; column++)
+            {
+                var x = originX + column - _frozenLeft;
+                if (x < 0 || x >= frame.Width)
+                {
+                    continue;
+                }
+
+                var from = ((y * frame.Width) + x) * 4;
+                var to = ((row * RegionSize) + column) * 4;
+                pixels[to] = frame.Bgra[from];
+                pixels[to + 1] = frame.Bgra[from + 1];
+                pixels[to + 2] = frame.Bgra[from + 2];
+                pixels[to + 3] = 0xFF;
+            }
+        }
+
+        return new ImageFrame(RegionSize, RegionSize, pixels);
     }
 
     private void UpdateReadout(ScreenPoint point, PixelColor colour)

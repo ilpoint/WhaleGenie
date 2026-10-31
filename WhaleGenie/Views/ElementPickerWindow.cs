@@ -109,6 +109,9 @@ public sealed class ElementPickerWindow : Window
         IInputHook hook, IUiDevice ui)
     {
         using var aside = AppWindows.StepAside(owner);
+        // Waited for before the screen is read: the desktop still holds the frame that had our
+        // windows in it until it has drawn again.
+        await AppWindows.SettleAsync();
         return await new ElementPickerWindow(screen, hook, ui).TakeAsync();
     }
 

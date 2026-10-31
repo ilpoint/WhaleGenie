@@ -130,6 +130,7 @@ public sealed class PointPickerWindow : Window
         IWindowDevice windows, IUiDevice ui, IInputHook hook, WindowRule? target = null)
     {
         using var aside = AppWindows.StepAside(owner);
+        await AppWindows.SettleAsync();
         return await new PointPickerWindow(screen, windows, ui, hook, target).TakeAsync();
     }
 

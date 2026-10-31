@@ -71,6 +71,10 @@ public partial class RunWindow : AppWindow
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
 
+        // 标题栏归库，内容伸进标题栏：那一行里放鲸鱼、标题与置顶钮，整条都能拖（`AppWindow` 负责拖）。
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
+
         viewModel.CloseRequested += Close;
         // The machine comes along so the window that shows what a step saw can put the writing it
         // read on the clipboard: that copy is the whole point of listing it, and the picture belongs

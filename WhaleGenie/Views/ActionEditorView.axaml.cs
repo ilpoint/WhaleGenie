@@ -1232,7 +1232,7 @@ public partial class ActionEditorView : UserControl
         T outcome;
         using (var aside = AppWindows.StepAside(HostWindow))
         {
-            await aside.SettleAsync();
+            await AppWindows.SettleAsync();
             outcome = await Task.Run(trial);
         }
 
@@ -1245,7 +1245,7 @@ public partial class ActionEditorView : UserControl
         T outcome;
         using (var aside = AppWindows.StepAside(HostWindow))
         {
-            await aside.SettleAsync();
+            await AppWindows.SettleAsync();
             outcome = await Task.Run(trial);
         }
 

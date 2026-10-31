@@ -326,7 +326,7 @@ public class PickerAsideTests
         var source = Source("RegionPickerWindow.axaml.cs");
 
         var away = source.IndexOf("using var aside = AppWindows.StepAside(owner);", StringComparison.Ordinal);
-        var waited = source.IndexOf("ScreenComposed.Wait();", StringComparison.Ordinal);
+        var waited = source.IndexOf("await AppWindows.SettleAsync();", StringComparison.Ordinal);
         var picture = source.IndexOf("ImageAssets.Capture(", StringComparison.Ordinal);
 
         Assert.True(away >= 0 && waited > away && picture > waited,
@@ -378,8 +378,24 @@ public class PickerAsideTests
 
         public PixelColor PixelAt(int x, int y) => Colour;
 
+        /// <summary>
+        /// A frame of this screen's colour, because the magnifier now reads a picture of the desk
+        /// rather than asking for one pixel at a time: a stand-in whose pixels say one thing and
+        /// whose pictures say another would be a screen no real machine has.
+        /// </summary>
         public ImageFrame Capture(int x, int y, int width, int height)
-            => new(width, height, new byte[width * height * 4]);
+        {
+            var pixels = new byte[width * height * 4];
+            for (var at = 0; at < pixels.Length; at += 4)
+            {
+                pixels[at] = Colour.B;
+                pixels[at + 1] = Colour.G;
+                pixels[at + 2] = Colour.R;
+                pixels[at + 3] = 0xFF;
+            }
+
+            return new ImageFrame(width, height, pixels);
+        }
 
         public ScreenShot Capture(ScreenCaptureRequest request)
             => NullDeviceLayer.Instance.Screen.Capture(request);

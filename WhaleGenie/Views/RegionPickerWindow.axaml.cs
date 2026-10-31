@@ -262,6 +262,9 @@ public partial class RegionPickerWindow : Window
         IWindowDevice windows, Region? initial, Region? bounds = null, long liveWindow = 0)
     {
         using var aside = AppWindows.StepAside(owner);
+        // Waited for, not assumed: the picker's overlay and the picture taken through it come from
+        // the desktop's own frame, and that frame still has our windows in it until it is drawn again.
+        await AppWindows.SettleAsync();
         return await new RegionPickerWindow(screen, windows, initial, bounds, liveWindow).TakeAsync();
     }
 
@@ -273,6 +276,7 @@ public partial class RegionPickerWindow : Window
         IWindowDevice windows, Region? bounds = null)
     {
         using var aside = AppWindows.StepAside(owner);
+        await AppWindows.SettleAsync();
         var picker = new RegionPickerWindow(screen, windows, null, bounds, arrow: true);
         _ = await picker.TakeAsync();
         return picker.ConfirmedDrag;
@@ -287,6 +291,7 @@ public partial class RegionPickerWindow : Window
         IWindowDevice windows, string folder, Region? bounds = null)
     {
         using var aside = AppWindows.StepAside(owner);
+        await AppWindows.SettleAsync();
 
         if (await new RegionPickerWindow(screen, windows, null, bounds).TakeAsync() is not { } region)
         {
@@ -296,7 +301,7 @@ public partial class RegionPickerWindow : Window
         // The screen is asked what it is showing, and it answers with the last frame it drew — the
         // one this picker was drawn on. Waiting for the desktop to be drawn again is what keeps the
         // picker's own overlay out of the picture.
-        ScreenComposed.Wait();
+        await AppWindows.SettleAsync();
 
         return ImageAssets.Capture(screen, region.X, region.Y, region.Width, region.Height, folder);
     }

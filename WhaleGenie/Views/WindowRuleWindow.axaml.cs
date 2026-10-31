@@ -74,6 +74,7 @@ public partial class WindowRuleWindow : AppWindow
         IInputHook hook, WindowRule? current = null)
     {
         using var aside = AppWindows.StepAside(owner);
+        await AppWindows.SettleAsync();
         return await new WindowRuleWindow(windows, hook, current).TakeAsync();
     }
 

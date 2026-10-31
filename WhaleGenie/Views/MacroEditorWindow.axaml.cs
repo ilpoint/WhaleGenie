@@ -228,6 +228,10 @@ public partial class MacroEditorWindow : AppWindow
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
+
+        // 标题栏归库，内容伸进标题栏：那一行里放鲸鱼、标题与置顶钮，整条都能拖（`AppWindow` 负责拖）。
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
         Opened += (_, _) =>
         {
             if (_initialBindingsSettled)

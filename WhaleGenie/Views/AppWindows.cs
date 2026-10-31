@@ -90,7 +90,7 @@ internal sealed class AppWindows : IDisposable
     /// of what was to be looked at. Pumping the queue applies the hide, and waiting for composition
     /// is what leaves that frame behind — which is the part a sleep cannot stand in for.
     /// </remarks>
-    public async Task SettleAsync()
+    public static async Task SettleAsync()
     {
         Dispatcher.UIThread.RunJobs();
         await Task.Yield();

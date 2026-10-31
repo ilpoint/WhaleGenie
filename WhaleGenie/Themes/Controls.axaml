@@ -284,10 +284,10 @@
       标题栏上带状态的钮（目前是置顶）：尺寸、底色、悬停都和系统按钮一致，只有"开着"这一档多一笔强调色，
       图标本身在代码里换（`Pin` ↔ `PinOff`），所以认得出当前是哪一档。
     -->
-    <Style Selector="Button.Caption.Pinned views|IconView">
+    <Style Selector="Button.Caption.pinned views|IconView">
         <Setter Property="Stroke" Value="{DynamicResource AccentText}" />
     </Style>
-    <Style Selector="Button.Caption.Pinned /template/ ContentPresenter">
+    <Style Selector="Button.Caption.pinned /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
     </Style>
     <Style Selector="Button.Caption:pointerover">

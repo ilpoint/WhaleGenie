@@ -294,7 +294,7 @@ public partial class LookWindow : AppWindow
             {
                 // Waited for, not assumed: hiding is one call, but the desktop still holds the frame
                 // that had these windows in it until it has drawn again.
-                await aside.SettleAsync();
+                await AppWindows.SettleAsync();
                 outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
             }
 

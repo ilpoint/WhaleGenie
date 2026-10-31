@@ -300,8 +300,13 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 `Chrome` 与 `Caption` 两族（`ConfirmDialog` 用的是后者，此前一直被漏掉）。
 
 **标题栏交给库：`AppWindow`。** 所有窗口都从 `views:AppWindow`（`FAAppWindow` 的子类）派生，标题栏、
-关闭/最小化/最大化、圆角边框不再由我们画。窗口里只保留自己的**工具钮**（置顶、完成、按原尺寸看、
-主题、帮助），它们住在内容顶部那条 38px 的工具条里，不再是"标题行"。
+关闭/最小化/最大化、圆角边框不再由我们画。
+
+主窗、宏编辑器、运行窗把内容伸进标题栏（`TitleBar.ExtendsContentIntoTitleBar`）：那条约 40px 的行就是
+标题栏本体，自己画鲸鱼与标题、右侧放一颗与系统按钮同尺寸（`Button.Caption`）的置顶钮，行尾留出系统按钮的
+宽度。库不替扩展后的标题栏拖窗（它只有默认标题栏的拖动区，也没有设置拖动区的接口），拖动由
+`AppWindow.OnPointerPressed` 在这条上做——落在按钮、输入框、滑杆上的按下照旧归控件，不算拖。这三扇以外
+的窗口用库自己画的标题栏，图标、标题与拖动都是库的事，内容顶部只留自己的工具钮（完成、按原尺寸看…）。
 
 无头会话里这条路上有个坑，处理在 `WhaleGenie/Views/AppWindow.cs`：`FAAppWindow` 的构造按 `HWND` 给
 `Win32WindowManager` 建静态表，而无头平台给每个窗口的句柄都是 `0`，第二个窗口就抛
@@ -311,6 +316,13 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 两条走过、走不通的替代方案，别再试：打开 `Design.IsDesignMode`（setter 是 internal，要反射）能让构造
 跳过 Win32 初始化，但无论在哪一步打开，`dotnet test` 都会卡在 `Discovering: WhaleGenie.Tests`（0% CPU）；
 在 `Ui.Run` 的 dispatch 外面再包一层，症状相同。
+
+**拾取器：先让路，再取画面。** 五个拾取器（框选、取色、点、元素、窗口规则）打开前都用
+`AppWindows.StepAside` 把本程序的窗口收走，但"收走"只是调用已经发出——桌面还留着有它们在里面的那一帧，
+此刻取到的画面仍旧是旧屏幕。所以取画面之前一律先 `AppWindows.SettleAsync()`：泵一轮队列把隐藏落到平台上、
+让出一帧、`DwmFlush` 等合成，然后才读屏幕。取色器更进一步：打开时把整块桌面拍成一张 `ImageFrame`，之后
+读数与放大镜都从这张定格读——被取色的窗口挪动、视频在播，准星下的颜色都不会自己变，取到的就是打开那一刻
+看到的那一个像素。
 
 **浮层不在此列**：框选、取色、点/元素拾取、屏幕框、菜单浮窗与浮动面板都是 `WindowDecorations.None` 的
 覆盖层或弹层，没有标题栏可交，继续用普通 `Window`。

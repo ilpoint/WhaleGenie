@@ -212,7 +212,7 @@ public partial class MainWindow : AppWindow
 
         // Two ways to read the state: the icon changes (`Pin` when free, `PinOff` when pinned) and the
         // button takes the accent while it is on. The hint says what the next press does.
-        button.Classes.Set("Pinned", _alwaysOnTop);
+        button.Classes.Set("pinned", _alwaysOnTop);
         if (button.Content is IconView icon)
         {
             icon.Data = _alwaysOnTop ? AppIcons.PinOff : AppIcons.Pin;
