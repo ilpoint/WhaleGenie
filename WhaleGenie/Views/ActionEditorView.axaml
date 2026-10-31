@@ -1027,33 +1027,36 @@
                         <TextBlock Classes="Hint" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Pages}" Margin="0,0,0,4">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="4" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
+                    <!--
+                      页是"同一个表单的不同面"：四个页各自没有内容，只标记这一步的哪一部分被展开，
+                      所以这里用的是 `TabStrip`（只有页签条、没有内容宿主），而不是 `TabControl`——
+                      后者会承诺"每个页有自己的内容"，而这个界面里那是假的。
+                    -->
+                    <TabStrip Grid.Row="1" ItemsSource="{Binding Pages}" SelectedItem="{Binding Page}"
+                              Margin="0,0,0,4">
+                        <!-- `ItemTemplate` 给的是容器的内容，容器自己的属性得用样式设：一个页没有东西可显示时，
+                             它的页签整枚不出现，而不是留一个空白。这里是反射绑定——样式块里的编译期类型是
+                             整个视图的（AddActionViewModel），而容器上的 DataContext 是单个页。 -->
+                        <TabStrip.Styles>
+                            <Style Selector="TabStripItem">
+                                <Setter Property="IsVisible" Value="{ReflectionBinding IsPresent}" />
+                            </Style>
+                        </TabStrip.Styles>
+                        <TabStrip.ItemTemplate>
                             <DataTemplate x:DataType="vm:ActionPageViewModel">
-                                <!-- A page holding something that is not the value it starts on
-                                     carries a mark, so a step that behaves unusually says so from
-                                     the tab rather than only on the page it is on. -->
-                                <Button Classes="Tab Inline Boxed" Classes.selected="{Binding IsOpen}"
-                                        IsVisible="{Binding IsPresent}" Click="OnSelectPage">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
-                                        <!-- **结构改进待办**：一个没有文字的圆点，用颜色表达"这里有一条附注"，
-                                             读者只能靠颜色猜。颜色是这套界面最贵的资源，不该承载"有没有附注"
-                                             这种**可以画出来**的信息。应改成有形状的图标或加 tooltip。
-                                             本轮先落 `Info`（"有附加信息"是信息，不是警告）。 -->
-                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource Info}"
-                                                 VerticalAlignment="Center"
-                                                 IsVisible="{Binding HasDot}" />
-                                    </StackPanel>
-                                </Button>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                                    <!-- **结构改进待办**：一个没有文字的圆点，用颜色表达"这里有一条附注"，
+                                         读者只能靠颜色猜。颜色是这套界面最贵的资源，不该承载"有没有附注"
+                                         这种**可以画出来**的信息。应改成有形状的图标或加 tooltip。
+                                         本轮先落 `Info`（"有附加信息"是信息，不是警告）。 -->
+                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource Info}"
+                                             VerticalAlignment="Center"
+                                             IsVisible="{Binding HasDot}" />
+                                </StackPanel>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        </TabStrip.ItemTemplate>
+                    </TabStrip>
 
                     <ScrollViewer Grid.Row="2" Padding="4,2,10,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>

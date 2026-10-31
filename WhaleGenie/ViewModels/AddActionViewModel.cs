@@ -1389,14 +1389,12 @@ public partial class AddActionViewModel : ViewModelBase
         Select(filled ?? present.FirstOrDefault() ?? Pages[0]);
     }
 
-    /// <summary>Opens one page, which is what clicking its tab does.</summary>
+    /// <summary>
+    /// Opens one page. The tab strip binds its selection to <see cref="Page"/> directly, so this is
+    /// the way code asks for the same thing a click asks for.
+    /// </summary>
     public void Select(ActionPageViewModel page)
     {
-        foreach (var candidate in Pages)
-        {
-            candidate.IsOpen = ReferenceEquals(candidate, page);
-        }
-
         Page = page;
     }
 

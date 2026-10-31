@@ -865,16 +865,6 @@ public partial class ActionEditorView : UserControl
         }
     }
 
-    /// <summary>Opens the page whose tab was clicked.</summary>
-    private void OnSelectPage(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: ActionPageViewModel page }
-            && DataContext is AddActionViewModel viewModel)
-        {
-            viewModel.Select(page);
-        }
-    }
-
     /// <summary>
     /// Opens the screen magnifier for a colour parameter and keeps what it reads. The place the
     /// colour was read from goes into the step's own position as well: the pixel worth watching is
