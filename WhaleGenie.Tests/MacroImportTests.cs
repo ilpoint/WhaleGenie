@@ -14,6 +14,7 @@ namespace WhaleGenie.Tests;
 /// declare, and the one thing that must never happen — a macro arriving with a variable it thinks
 /// means one thing while the project means another.
 /// </summary>
+[RestoreSharedState]
 public class MacroImportTests
 {
     [Fact]

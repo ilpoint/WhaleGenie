@@ -9,6 +9,7 @@ namespace WhaleGenie.Tests;
 /// reads through the table's indexer. These pin the parts that keep a copy: the editor's trigger
 /// list, the picker's dock and pages, and the words on a macro card.
 /// </summary>
+[RestoreSharedState]
 public class LanguageRefreshTests
 {
     [Fact]

@@ -19,6 +19,7 @@ namespace WhaleGenie.Tests;
 /// a click wraps what is picked, and brackets are decided by the shape rather than typed. These
 /// read back what the page would put in front of the user and what the tree comes to.
 /// </summary>
+[RestoreSharedState]
 public class ExpressionBuilderTreeTests
 {
     private static IReadOnlyList<VariableChoice> Variables(params string[] names)

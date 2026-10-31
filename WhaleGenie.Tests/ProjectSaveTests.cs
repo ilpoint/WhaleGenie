@@ -14,6 +14,7 @@ namespace WhaleGenie.Tests;
 /// question: only the macro being edited was asked about, so a project that had grown a second
 /// macro was thrown away at exit without a word. The main window asks this before the program stops.
 /// </summary>
+[RestoreSharedState]
 public class ProjectSaveTests
 {
     [Fact]

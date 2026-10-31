@@ -18,6 +18,7 @@ namespace WhaleGenie.Tests;
 /// The file the settings window writes. Every choice lives in the one file, so storing one has to
 /// leave the others where they were — that is the mistake this file is here to catch.
 /// </summary>
+[RestoreSharedState]
 public class LocalSettingsTests
 {
     [Fact]

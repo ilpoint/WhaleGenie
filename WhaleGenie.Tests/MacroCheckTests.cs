@@ -11,6 +11,7 @@ namespace WhaleGenie.Tests;
 /// mistakes a run would otherwise report late or hide, so the cases here are the ones it decides
 /// from the steps alone — and the ones it must keep quiet about.
 /// </summary>
+[RestoreSharedState]
 public class MacroCheckTests
 {
     private static MacroStep Step(string type, params StepParameter[] parameters)

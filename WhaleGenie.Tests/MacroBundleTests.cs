@@ -13,6 +13,7 @@ namespace WhaleGenie.Tests;
 /// macros, which of their trigger entries, and which of the project's global variables end up in
 /// the file, and what happens to a call whose target was left behind.
 /// </summary>
+[RestoreSharedState]
 public class MacroBundleTests
 {
     [Fact]

@@ -114,6 +114,14 @@ Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotne
 才值得停下来查。三条确认用例里的固定 `Task.Delay(20)` 已经换成 `Ui.Until(条件, 原因)`；语言刷新那条
 没有固定等待，成因未明，它的失败消息现在会带上两边的标签与当时的语言。
 
+能改全局状态的用例类都带 `[RestoreSharedState]`：它把**语言、设置文件路径、全局变量目录**在每条用例
+前后各存一次、还原一次，所以一条用例改了世界，下一条不会替它背锅。两件事写在这里免得再踩：
+
+- 还原必须在**界面线程**上做（`Ui.Run`）。`Strings.Language` 的 setter 会通知正在显示的窗口换文案，
+  窗口只归它自己的线程碰——从测试线程改它会抛 "The calling thread cannot access this object"。
+- `SharedVariables` 的值包里存的是 `Core` 的内部类型 `Value`，测试工程看不见，所以没纳入还原；
+  需要它的用例自己 `Clear()`。
+
 ## 介绍页与短片
 
 `site/` 是 GitHub Pages 的源：`index.html` 是单页介绍，`vibe/index.html` 是短片的时间轴；截图、

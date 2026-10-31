@@ -16,6 +16,7 @@ namespace WhaleGenie.Tests;
 
 /// <summary>The accent window has to load the official picker and show what the colour becomes.</summary>
 [Collection("Theme")]
+[RestoreSharedState]
 public class ThemePaletteWindowTests
 {
     [Fact]

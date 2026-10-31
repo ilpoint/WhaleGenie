@@ -17,6 +17,7 @@ namespace WhaleGenie.Tests;
 /// accent instead of leaving a window with no colour at all.
 /// </summary>
 [Collection("Theme")]
+[RestoreSharedState]
 public class ThemePaletteTests
 {
     private static readonly Color WindowDark = Color.Parse("#1C1C1C");

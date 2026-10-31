@@ -20,6 +20,7 @@ namespace WhaleGenie.Tests;
 /// a button and every variable is a button too. These read back what it would put in front of the
 /// user.
 /// </summary>
+[RestoreSharedState]
 public class ExpressionBuilderTests
 {
     /// <summary>Variables of the macro's own, which is what a field is usually filled in from.</summary>

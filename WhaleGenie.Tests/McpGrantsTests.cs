@@ -11,6 +11,7 @@ namespace WhaleGenie.Tests;
 /// processes, so a switch has to reach the running server without a restart of anything. These run
 /// against a settings file of their own, never the one whoever is using WhaleGenie keeps.
 /// </summary>
+[RestoreSharedState]
 public class McpGrantsTests : IDisposable
 {
     private readonly string _path = Path.Combine(Path.GetTempPath(), $"whale-genie-grants-{Guid.NewGuid():N}.json");

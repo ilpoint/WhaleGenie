@@ -16,6 +16,7 @@ using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
+[RestoreSharedState]
 public class MacroEditorWorkspaceTests
 {
     [Fact]

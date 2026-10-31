@@ -23,6 +23,7 @@ namespace WhaleGenie.Tests;
 /// The in-process MCP endpoint. It is started on a loopback port, listed and called through the
 /// official client; no window, no device and no external service is involved.
 /// </summary>
+[RestoreSharedState]
 public class McpServerTests : IDisposable
 {
     /// <summary>

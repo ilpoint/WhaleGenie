@@ -13,6 +13,7 @@ using WhaleGenie.Views;
 namespace WhaleGenie.Tests;
 
 /// <summary>The project global editor works on drafts and commits only when Save succeeds.</summary>
+[RestoreSharedState]
 public class GlobalVariablesTests
 {
     [Fact]

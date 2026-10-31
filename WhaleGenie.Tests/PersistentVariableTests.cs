@@ -9,6 +9,7 @@ using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
 
+[RestoreSharedState]
 public class PersistentVariableTests
 {
     [Fact]

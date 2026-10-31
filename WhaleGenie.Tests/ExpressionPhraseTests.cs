@@ -13,6 +13,7 @@ namespace WhaleGenie.Tests;
 /// every case here is read off a formula the language itself reads back rather than off a pattern
 /// written out a second time.
 /// </summary>
+[RestoreSharedState]
 public class ExpressionPhraseTests
 {
     /// <summary>A formula said out loud, with the names WhaleGenie's own variables go by.</summary>

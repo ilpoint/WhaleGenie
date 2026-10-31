@@ -17,6 +17,7 @@ namespace WhaleGenie.Tests;
 /// leaves behind for either of them to offer. Writing a name out of memory is what all of this is
 /// there to avoid, so the checks are about what is in front of the user rather than about names.
 /// </summary>
+[RestoreSharedState]
 public class VariableWallTests
 {
     private static VariableChoice Local(string name) =>
