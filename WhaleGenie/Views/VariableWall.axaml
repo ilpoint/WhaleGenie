@@ -22,10 +22,12 @@
         </Style>
 
         <!-- The group chips, a touch smaller than the same dock in the expression builder: this one
-             shares a 360-pixel column with the wall under it and has five names to fit on a line. -->
+             shares a 360-pixel column with the wall under it and has five names to fit on a line.
+             One pixel less each side than it looks like it needs: the theme's list item carries a
+             little padding of its own, and without this the row is 11 pixels wider than the column. -->
         <Style Selector="ListBox.VariableFilters ListBoxItem">
-            <Setter Property="Padding" Value="4,2" />
-            <Setter Property="Margin" Value="0,0,3,3" />
+            <Setter Property="Padding" Value="3,2" />
+            <Setter Property="Margin" Value="0,0,2,3" />
         </Style>
     </UserControl.Styles>
 

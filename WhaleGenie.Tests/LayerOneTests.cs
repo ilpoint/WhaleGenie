@@ -37,13 +37,13 @@ public class LayerOneTests
             Dispatcher.UIThread.RunJobs();
             try
             {
-                Assert.Equal(Token("SurfaceControl", "SurfaceControlColor"), Presenter(button));
+                Assert.Equal(Token("SurfaceControl", "SurfaceControlColor"), Face(button));
 
                 Pseudo(button, ":pointerover", true);
-                Assert.Equal(Token("SurfaceControlHover", "SurfaceControlHoverColor"), Presenter(button));
+                Assert.Equal(Token("SurfaceControlHover", "SurfaceControlHoverColor"), Face(button));
 
                 Pseudo(button, ":pressed", true);
-                Assert.Equal(Token("SurfaceControlPressed", "SurfaceControlPressedColor"), Presenter(button));
+                Assert.Equal(Token("SurfaceControlPressed", "SurfaceControlPressedColor"), Face(button));
             }
             finally
             {
@@ -92,10 +92,13 @@ public class LayerOneTests
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static Color? Presenter(Button button)
-        => button.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault()?.Background is ISolidColorBrush brush
-            ? brush.Color
-            : null;
+    /// <summary>
+    /// The button's face, read off the control. The theme carries it into the template through
+    /// `{TemplateBinding Background}`, while its own state setters sit inside a ControlTheme where a
+    /// style out here cannot reach — so the control's Background is the value our tokens own.
+    /// </summary>
+    private static Color? Face(Button button)
+        => button.Background is ISolidColorBrush brush ? brush.Color : null;
 
     private static Color? BorderElement(TextBox box, bool stroke)
     {

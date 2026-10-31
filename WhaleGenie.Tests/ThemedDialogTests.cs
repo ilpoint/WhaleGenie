@@ -41,11 +41,11 @@ public class ThemedDialogTests
                 var primary = window.GetVisualDescendants().OfType<Button>()
                     .First(button => button.Classes.Contains("Primary"));
                 Assert.Equal(32, primary.Height);
-                Assert.Equal(Token("AccentFill", "AccentFillColor"), Presenter(primary));
-                Assert.Equal(Token("TextOnAccent", "TextOnAccentColor"), PresenterForeground(primary));
+                Assert.Equal(Token("AccentFill", "AccentFillColor"), Face(primary));
+                Assert.Equal(Token("TextOnAccent", "TextOnAccentColor"), Label(primary));
 
                 Pseudo(primary, ":pointerover", true);
-                Assert.Equal(Token("AccentFillHover", "AccentFillHoverColor"), Presenter(primary));
+                Assert.Equal(Token("AccentFillHover", "AccentFillHoverColor"), Face(primary));
                 Pseudo(primary, ":pointerover", false);
 
                 // The secondary button takes its four states from layer one and only its measurements
@@ -53,7 +53,7 @@ public class ThemedDialogTests
                 var secondary = window.GetVisualDescendants().OfType<Button>()
                     .First(button => button.Classes.Contains("Secondary"));
                 Assert.Equal(30, secondary.Height);
-                Assert.Equal(Token("SurfaceControl", "SurfaceControlColor"), Presenter(secondary));
+                Assert.Equal(Token("SurfaceControl", "SurfaceControlColor"), Face(secondary));
 
                 // The message is body copy, not a field label: same 13px and colour, but no bottom
                 // margin — a label carries the gap down to the control it names, prose does not.
@@ -71,7 +71,7 @@ public class ThemedDialogTests
                 Assert.Equal(24, close!.Width);
                 // A ghost has no fill of its own: the literal Transparent is what "no fill" means,
                 // and it is not a token because there is no value in it to keep in one place.
-                Assert.Equal(Colors.Transparent, Presenter(close));
+                Assert.Equal(Colors.Transparent, Face(close));
             }
             finally
             {
@@ -86,15 +86,15 @@ public class ThemedDialogTests
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static Color? Presenter(Button button)
-        => button.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault()?.Background is ISolidColorBrush brush
-            ? brush.Color
-            : null;
+    /// <summary>
+    /// The button's face and its label, read off the control rather than its template. Under a
+    /// ControlTheme the colour arrives in the template through `{TemplateBinding Background}`, while
+    /// the theme's own state setters live inside that theme — where a style here cannot reach and a
+    /// check here cannot drive them. The control's own values are the ones our tokens set.
+    /// </summary>
+    private static Color? Face(Button button) => Colour(button.Background);
 
-    private static Color? PresenterForeground(Button button)
-        => button.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault()?.Foreground is ISolidColorBrush brush
-            ? brush.Color
-            : null;
+    private static Color? Label(Button button) => Colour(button.Foreground);
 
     private static Color? Colour(IBrush? brush)
         => brush is ISolidColorBrush solid ? solid.Color : null;

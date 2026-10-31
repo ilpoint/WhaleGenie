@@ -380,7 +380,7 @@
                             <!-- The same three things the card's own buttons do, where a right click
                                  goes looking for them. -->
                             <Border.ContextMenu>
-                                <ContextMenu>
+                                <ContextMenu Opening="OnCardMenuOpening">
                                     <MenuItem Header="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                               Click="OnDebugMacroClicked" />
                                     <MenuItem Header="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"

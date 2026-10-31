@@ -3,6 +3,7 @@
              x:Class="WhaleGenie.App"
              xmlns:local="using:WhaleGenie"
              xmlns:styling="using:Avalonia.Styling"
+             xmlns:fa="using:FluentAvalonia.Styling"
              RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
@@ -32,8 +33,7 @@
           Compact 收紧 Fluent 自己的行高与控件内边距（表格行、列表项、菜单项都跟着变）。
           我们只覆盖颜色与圆角，密度用它给的，不再自己写一套行高。
         -->
-        <FluentTheme DensityStyle="Compact" />
-        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+        <fa:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="False" />
 
         <!--
           层 3 排在这里：同样是 `Button`，我们写的类比主题里的更靠后，选择器也更具体，所以压得住。
@@ -49,6 +49,12 @@
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="11,3" />
             <Setter Property="Margin" Value="0,0,6,6" />
+            <!--
+              The theme gives every list item a minimum width of 88 pixels. It is invisible until
+              the labels are short: "全部" wants 30 and gets 88, so five chips need 452 pixels in a
+              336 pixel column. That is not a density we chose, it is a size nobody wrote.
+            -->
+            <Setter Property="MinWidth" Value="0" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />

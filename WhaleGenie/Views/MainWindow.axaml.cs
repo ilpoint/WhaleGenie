@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -2172,6 +2173,29 @@ public partial class MainWindow : Window
         foreach (var layout in macro.InterfaceLayouts)
         {
             viewModel.Triggers.StoreInterfaceHotkey(layout.Window, layout.ToggleHotkey);
+        }
+    }
+
+    /// <summary>
+    /// A card's right-click menu carries no data of its own: its four items are written out in XAML
+    /// and used to inherit the card's macro because the menu sat in the card's logical tree. Under a
+    /// theme that presents the menu inside a popup, that tree stops at the menu, every item arrives
+    /// with a null DataContext, and the four handlers read that as "no macro" and quietly do nothing.
+    /// Stamping it here keeps their one rule — the sender's DataContext is the macro — true.
+    /// </summary>
+    internal static void StampMenu(ContextMenu menu, object? data)
+    {
+        foreach (var item in menu.Items.OfType<MenuItem>())
+        {
+            item.DataContext = data;
+        }
+    }
+
+    private void OnCardMenuOpening(object? sender, CancelEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+        {
+            StampMenu(menu, menu.DataContext);
         }
     }
 
