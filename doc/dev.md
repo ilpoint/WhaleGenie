@@ -613,9 +613,11 @@ Ui.AnswerUnsavedWork(window);   // 只答掉已经弹出来的（例如「这段
 `AddStep` 也算（`HasSteps` 不在白名单里），所以"只是加了一步再关窗"一样会问；`GlobalVariablesViewModel.HasChanges`
 看的是每行的改动与名字序列，删回原样才算干净。
 
-**不要用 `Thread.Sleep` 造两次点击之间的间隔**（`Double_clicking_a_step_inside_a_block_edits_that_step` 曾经这么写）：
-那段间隔只是为了把第一次点击排的活跑完，泵一轮队列就够用；机器一忙，60 毫秒会被拉过双击窗口，两次点击
-就变成两次单击，弹窗不来而断言说"没打开"。
+**不要用固定睡眠等一件会自己发生的事**。两种都踩过：`Thread.Sleep` 造两次点击之间的间隔
+（`Double_clicking_a_step_inside_a_block_edits_that_step`），以及 `Task.Delay` 等一个定时器
+（`Moving_a_surface_is_saved_once_after_the_drag_stops` 等浮窗拖拽结束的 120 毫秒静默期）。前者机器一忙
+就被拉过双击窗口、两次点击变成两次单击；后者机器一忙就睡过了那条定时器还没到。做法：间隔只为把已排的活
+跑完，泵一轮队列就够；等一件事就等那件事本身（事件 `TaskCompletionSource` 或 `Ui.Until`），超时再失败。
 
 ### 手动项
 

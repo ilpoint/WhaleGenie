@@ -14,7 +14,8 @@
 列表项 `MinWidth=0`；右键菜单 DataContext 补齐；`TextFillColor*`、`PivotHeaderItemSelectedPipeFill`、
 `SystemAccentColor` 一族键映射；设置窗三个根页换 `TabControl`；动作编辑器四个页 → `TabStrip`；
 数字框换 `FANumberBox`（删了 103 行模板手术）；死样式清理；测试隔离与偶发失败定位；
-以及 T1（关窗发问一律作答）与 T2（剩下 16 扇窗逐个出图，修掉自动补全字段被裁的边框，见下）。
+以及 T1（关窗发问一律作答）、T2（剩下 16 扇窗逐个出图，修掉自动补全字段被裁的边框）、
+T3（关闭键统一成 `Button.Caption`，悬停按 WinUI 的红）与 T4（语言刷新先复制窗口列表，不加吞异常），见下。
 
 现状验证（三条都应通过）：
 
@@ -119,18 +120,40 @@ GlobalVariables、Run。这一轮补上的：`BreakpointWindow`、`LookWindow`�
 `ToggleSwitch`、`Slider`、`ColorPicker`、`GridView`/`DataGrid` 这几族在界面里**根本没用到**（`ColorPickerWindow`
 是取色放大镜，不是颜色选择控件），所以不必为它们补键。
 
-### T3（可选）自绘标题栏向 WinUI 靠拢
+### T3（可选）自绘标题栏向 WinUI 靠拢 —— 已完成
 
-17 个窗口各有一个 `Name="CloseButton"`，现在两种写法（`Classes="Ghost"` / `Classes="Chrome Icon"`）。
-若要做：加一个 `Button.Caption` 类（46×32、hover 用 `SurfaceControlHover`，关闭键 hover 用 WinUI 的
-`#C42B1C`），替换这 17 处，并更新 `ThemedDialogTests` 里对关闭键宽度/底色的断言（现在断言 24 宽、无色）。
-**这不是必须的**，现有标题栏是一致可用的。
+17 个窗口各有一个 `Name="CloseButton"`，原来是两种写法（`Classes="Ghost"` / `Classes="Chrome Icon"`，
+后者带三种尺寸变体）。现在统一成一个族：
 
-### T4（可选）`LanguageRefresh.Refresh()` 的健壮性
+- `Button.Caption`：46×32（WinUI caption 的尺寸）、直角圆角用 `RadiusControl`、静息无底；
+- `Button.Caption.Close`：悬停与按下换成新令牌 `CaptionCloseHover`（`#C42B1C`，深浅两套同一支红），
+  字形同时转 `TextOnAccent`——红底上留深色字，浅色主题里会糊；
+- 图标不再各写 `Stroke`：`Button.Caption views|IconView` 给 `TextPrimary`，关闭键的两个态给
+  `TextOnAccent`。17 处里有两处（虚拟键盘、虚拟手柄）原本还手写了 `Width=30 Height=24 Padding=0`，
+  与旧类默认值重复，一起删掉了。
 
-它遍历所有窗口逐个 `RefreshLanguage()`，任何一个陈旧 VM 抛异常都会砸到"切换语言的人"身上
-（`WhaleGenie/Localization/LanguageRefresh.cs:17`）。可以改成逐个 try/catch 并汇总，但要先想清楚
-"吞掉异常"是否掩盖问题——没有证据前不要动。
+**这里有一处必须走模板选择器**（全文件唯一一处）：悬停/按下的底要写在
+`Button.Caption.Close:pointerover /template/ ContentPresenter` 上。量过：只写在控件上，指针压上去看到的是
+库主题的灰 `#3D3D3D`；写到 presenter 上才是 `#C42B1C`（深色、浅色都实测过）。代价是这条选择器进了
+`TemplatePartTests` 的探针清单（`("Button", "Caption Close", "ContentPresenter")`）。
+
+`ThemedDialogTests` 里关闭键的断言换成新的：46×32、静息 `Transparent`、**用真实指针**压上去后
+`Face` 是 `CaptionCloseHover`、字形是 `TextOnAccent`，移开再复原。用 `:pointerover` 伪类驱动不行——
+库把它这个态写在自己的主题里，手工置伪类时 presenter 仍是透明的，断言会假绿。
+
+`TitleBarMarkup` 认标题栏的标记从"`Chrome` 族的按钮"扩成"`Chrome` 或 `Caption` 族的 `<Button>`"，
+并把 `Expected` 从 18 改成 19：`ConfirmDialog` 一直画着自己的 38px 标题行，但它的关闭键是 `Ghost`，
+标记从来没看见过它；现在它进了这两条检查并通过（鲸鱼图标在行里，行也能拖）。
+
+### T4（可选）`LanguageRefresh.Refresh()` 的健壮性 —— 做了一半，另一半决定不做
+
+做的那一半：遍历前先把 `desktop.Windows` 复制一份。窗口在刷新自己文本的当口把自己关掉（拾取器收起
+自己就是这种），原来会让集合在循环里变掉，异常正好砸在"切换语言的人"身上；复制一份不改变任何可见
+行为，只是把这条崩溃路径去掉。
+
+不做的那一半：**不加逐个 try/catch**。理由是没有任何证据表明有对象会在刷新时抛（`LanguageRefreshTests`
+五条全绿，手工切换也未见），而吞掉异常会把"某个陈旧 VM 报错"变成"半个界面静默换了语言"——后者更难
+发现。真有证据时再改，改的时候把失败汇总成一条用户看得见的话，而不是记进日志。
 
 ## 工作方式（这个仓库的规矩）
 

@@ -22,7 +22,13 @@ public static class LanguageRefresh
         }
 
         var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        foreach (var window in desktop.Windows)
+
+        // The list is walked from a copy: a window that closes itself while its text is being
+        // re-read — a picker putting itself away, say — would change the collection under the
+        // loop, and that throws in the middle of the switch. Nothing is caught here on purpose: an
+        // object that cannot re-read its text is a real fault, and reporting it to the person who
+        // asked for the other language is better than half the interface quietly relabelled.
+        foreach (var window in desktop.Windows.ToList())
         {
             if (window.DataContext is ILanguageAware data && seen.Add(data))
             {
