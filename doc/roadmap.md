@@ -43,6 +43,34 @@ git。R2（靶场窗口与重置）、R3（受控策略）、R4（端到端靶�
 **当前待做的是「设置项」这一串，见下一节。** 它做完之后，下一件事再从「待评估」里挑，或者按
 [mcp-usability.md](mcp-usability.md) 的两把尺子先量一次再决定：量的结果比想出来的清单可靠。
 
+## 界面：窗口标题栏交给 FluentAvalonia（未做）
+
+15 扇窗口各自在 XAML 里画一行 38px 标题（图标、标题、关闭/最小化/置顶），并各自重写 `OnPointerPressed`
+自己拖窗。这一层本可以整个交给库——`FAAppWindow` 自己画标题栏与系统按钮。没做下去的原因在**测试**，不在技术：
+它的构造里按 `HWND` 建静态表，而无头会话给每个窗口的句柄都是 `0`，第二个窗口就抛
+`ArgumentException … Key: HWND`。
+
+已验证可行的一步（换掉 `ConfirmDialog` 试过，相关 26 条用例全绿，随后为保持外观一致而回退）：
+
+1. 加 `views:AppWindow : FAAppWindow`：构造里若 `TryGetPlatformHandle().Handle == 0`（真机永远不是 0），
+   用反射把 `Win32WindowManager._appWindowRegistry`（实现 `IDictionary`）清空——无头里没有消息循环要用这张表，
+   下个窗口才进得来；真机上这段不执行。
+2. 窗口 XAML 根换 `views:AppWindow`，删 `ExtendClientAreaToDecorationsHint` / `ExtendClientAreaTitleBarHeightHint` /
+   `WindowDecorations`，删那行 38px 标题，并把顶层子元素的 `Grid.Row` 整体上移一行。
+3. 标题行里还有真按钮的窗口（主窗、宏编辑器、设置、表达式、全局变量、虚拟键盘、动作表单、运行窗）：
+   把那行留成**工具条**——只去掉图标、标题、关闭/最小化/最大化，动作钮原位不动，行号不用改。
+4. 用例：删 `TitleBarDragTests` / `TitleBarMarkTests` / `TitleBarMarkup`（拖动与图标归库），去掉
+   `ThemedDialogTests` 里对自绘关闭键的断言；`MinimizeTests`、`MacroEditorChromeTests` 的 pin/最小化/最大化、
+   `HotstringKeyboardTests` 按名字取 `CloseButton`、`GlobalVariablesTests` 断言 XAML 含 `Name="CloseButton"`
+   这几处跟着改。标题栏外观只能真机看（无头里库不接线）。
+
+**两条走不通的写法，别再试**：
+
+- 打开 Avalonia 的设计模式（`Design.IsDesignMode`，setter 是 internal，要反射）能让 `FAAppWindow` 在无头里
+  共存，但试过三种时机——模块初始化里直接设、模块初始化里 `Dispatcher.Post`、每次 dispatch 前后——
+  **都让发现阶段卡死**（`Discovering: WhaleGenie.Tests`，0% CPU）。
+- 在 `Ui.Run` 的 dispatch 里再包一层（哪怕只有一个空的 `try/finally`），同样是发现阶段卡死。
+
 ## 上一轮留下的约束
 
 清债的五个阶段与编辑器状态归位两步已经做完，改动在 git 里；下面这些是当时定下、现在仍然约束后续改动的
