@@ -1,3 +1,4 @@
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -76,13 +77,26 @@ public class LanguageRefreshTests
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             model = new MacroInterfaceViewModel(new MacroEditorViewModel());
+
+            // A model with no kinds would make the check below fail on an index rather than say
+            // what went wrong; and an empty label would make "it changed" true for the wrong
+            // reason. Both are stated here so a failure names the thing that was missing.
+            Assert.True(model.Types.Count > 0, "the interface has no kinds to label");
             english = model.Types[0].Label;
+            Assert.False(string.IsNullOrWhiteSpace(english), "the English label came out empty");
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             model!.RefreshLanguage();
-            Assert.NotEqual(english, model.Types[0].Label);
+            var chinese = model.Types[0].Label;
+
+            // Said out loud rather than through Assert.NotEqual: this one has failed once in a
+            // whole-suite run and passed on its own, so the message has to carry enough to tell a
+            // stale label from a language that was never switched.
+            Assert.True(chinese != english,
+                $"the label did not change: english='{english}' chinese='{chinese}' "
+                + $"language={Strings.Current.Language}");
         }));
     }
 

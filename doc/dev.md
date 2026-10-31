@@ -108,6 +108,12 @@ Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotne
 构建把警告当成错误（`Directory.Build.props` 里的 `TreatWarningsAsErrors`），
 所以"能编译过"就等于"零警告"。
 
+**有几条用例只在整套跑里偶发**，单独跑都过：`GlobalVariablesTests` 里与关闭/删除确认有关的三条、
+`LanguageRefreshTests.The_macro_interface_relabels_its_kinds`。表现是耗时从几十毫秒涨到几秒然后红，
+报出来的却像功能坏了。判断办法：**单独跑一次**，过了就当偶发，别去改产品代码；同一轮里出现两条以上
+才值得停下来查。三条确认用例里的固定 `Task.Delay(20)` 已经换成 `Ui.Until(条件, 原因)`；语言刷新那条
+没有固定等待，成因未明，它的失败消息现在会带上两边的标签与当时的语言。
+
 ## 介绍页与短片
 
 `site/` 是 GitHub Pages 的源：`index.html` 是单页介绍，`vibe/index.html` 是短片的时间轴；截图、
