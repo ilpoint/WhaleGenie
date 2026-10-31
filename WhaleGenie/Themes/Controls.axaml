@@ -888,65 +888,6 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
     </Style>
 
-    <!-- 行内页签·实心：选中直接铺强调色，适合一排里只有一个当前项的地方。 -->
-    <Style Selector="Button.Tab.Inline.Solid">
-        <Setter Property="Height" Value="28" />
-        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Solid:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Solid:pressed">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Solid:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Solid.selected">
-        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
-    </Style>
-
-    <!-- 行内页签·带框：靠描边站住，选中时底色抬到卡片色、文字转强调色，所以不跟强调底冲突。 -->
-    <Style Selector="Button.Tab.Inline.Boxed">
-        <!-- 32：`ActionEditorView` 的页签要装"标题 + 附注点"，28 装不下那一行。 -->
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Boxed:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Boxed:pressed">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Boxed:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-    </Style>
-    <Style Selector="Button.Tab.Inline.Boxed.selected">
-        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-    </Style>
-
     <!--
       分类栏那一列方钮。规范注明它"不属 Tab 族"，但在同一个窗口里它和页签是同一个导航面，
       所以放一起比分成两处好找。48×50 是族的度量：图标 22 加一行 `UiCaption` 单行标题。
