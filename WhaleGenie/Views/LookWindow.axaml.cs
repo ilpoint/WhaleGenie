@@ -290,9 +290,11 @@ public partial class LookWindow : AppWindow
             // entrance as the dialog's own run — looking and nothing else: no click, no key, no
             // variable — and the window comes back when the look is done.
             LookOutcome outcome;
-            using (AppWindows.StepAside(this))
+            using (var aside = AppWindows.StepAside(this))
             {
-                ScreenComposed.Wait();
+                // Waited for, not assumed: hiding is one call, but the desktop still holds the frame
+                // that had these windows in it until it has drawn again.
+                await aside.SettleAsync();
                 outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
             }
 

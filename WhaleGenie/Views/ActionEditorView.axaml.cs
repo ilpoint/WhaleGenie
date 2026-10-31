@@ -1230,9 +1230,9 @@ public partial class ActionEditorView : UserControl
     private async Task<T> AwayAsync<T>(Func<T> trial)
     {
         T outcome;
-        using (AppWindows.StepAside(HostWindow))
+        using (var aside = AppWindows.StepAside(HostWindow))
         {
-            ScreenComposed.Wait();
+            await aside.SettleAsync();
             outcome = await Task.Run(trial);
         }
 
@@ -1243,9 +1243,9 @@ public partial class ActionEditorView : UserControl
     private async Task<T> AwayForAsync<T>(Func<Task<T>> trial)
     {
         T outcome;
-        using (AppWindows.StepAside(HostWindow))
+        using (var aside = AppWindows.StepAside(HostWindow))
         {
-            ScreenComposed.Wait();
+            await aside.SettleAsync();
             outcome = await Task.Run(trial);
         }
 

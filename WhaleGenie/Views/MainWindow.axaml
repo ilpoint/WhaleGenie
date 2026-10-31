@@ -86,16 +86,25 @@
 
         <!--
           ============ 标题栏（内容扩展进标题栏，见 MainWindow.axaml.cs） ============
-          这一行就是能拖动的标题栏本体：只放主窗自己的置顶钮，右侧留出系统按钮的宽度，
-          免得它被最小化/最大化/关闭压住。主题与"关于"不在这里——主题在设置里，关于在托盘菜单。
+          这一行就是标题栏本体：库不再画图标与标题（内容伸进来了），所以在左边画一遍；右边是主窗自己的
+          置顶钮——与系统按钮同尺寸、同悬停，行尾留出它们的宽度。拖动由 `AppWindow` 在这条上做。
         -->
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
-            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6"
-                        Margin="8,0,146,0" VerticalAlignment="Center">
-                <Button Classes="Chrome Icon" Name="AlwaysOnTopButton"
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
+                        VerticalAlignment="Center">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                <TextBlock Text="{Binding WindowTitle}" Foreground="{DynamicResource TextPrimary}"
+                           FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
+                        VerticalAlignment="Center">
+                <Button Classes="Caption" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
-                    <views:IconView Width="11" Height="11" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
+                    <views:IconView Name="PinIcon" Width="14" Height="14"
+                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4"
+                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
             </StackPanel>
         </Grid>

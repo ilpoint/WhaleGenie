@@ -210,8 +210,14 @@ public partial class MainWindow : AppWindow
         _alwaysOnTop = !_alwaysOnTop;
         Topmost = _alwaysOnTop;
 
-        // Lights the button up and swaps its hint, so the state is readable at a glance.
+        // Two ways to read the state: the icon changes (`Pin` when free, `PinOff` when pinned) and the
+        // button takes the accent while it is on. The hint says what the next press does.
         button.Classes.Set("Pinned", _alwaysOnTop);
+        if (button.Content is IconView icon)
+        {
+            icon.Data = _alwaysOnTop ? AppIcons.PinOff : AppIcons.Pin;
+        }
+
         ToolTip.SetTip(button, Strings.Get(_alwaysOnTop ? "Main.AlwaysOnTopCancel" : "Main.AlwaysOnTop"));
     }
 
