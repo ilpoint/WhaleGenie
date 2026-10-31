@@ -349,15 +349,25 @@
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
     </Style>
 
-    <!-- 自动补全里面也有一支 `TextBox`，它自带底与边框，不清掉就是双边框。 -->
+    <!--
+      自动补全里面也有一支 `TextBox`，格子该由它来画：外面这层只占 30 的高度，自己不再画边框。
+      原来只清了内层的底、没管它的高度——内层按自己的最小高度排下来比 30 高，上下两条边被裁掉，
+      界面上就剩一对"括号"（断点窗的条件框、动作表单的表达式框都是这样，截图里看得最清楚），
+      而且内层的底被清成透明后连格子底色也没了。度量交给内层，边框就完整回来。
+    -->
     <Style Selector="AutoCompleteBox.Field">
         <Setter Property="Height" Value="30" />
-        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="Padding" Value="0" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="AutoCompleteBox.Field TextBox">
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
     </Style>
 
     <Style Selector="TextBox.Code">

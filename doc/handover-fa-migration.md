@@ -14,7 +14,7 @@
 列表项 `MinWidth=0`；右键菜单 DataContext 补齐；`TextFillColor*`、`PivotHeaderItemSelectedPipeFill`、
 `SystemAccentColor` 一族键映射；设置窗三个根页换 `TabControl`；动作编辑器四个页 → `TabStrip`；
 数字框换 `FANumberBox`（删了 103 行模板手术）；死样式清理；测试隔离与偶发失败定位；
-以及 T1（关窗发问一律作答，见下）。
+以及 T1（关窗发问一律作答）与 T2（剩下 16 扇窗逐个出图，修掉自动补全字段被裁的边框，见下）。
 
 现状验证（三条都应通过）：
 
@@ -76,22 +76,48 @@ dotnet format --verify-no-changes               # 退出码 0
 想继续查这条，注意一个坑：任何在 `Ui.Run` 的 dispatch 里再包一层的写法（哪怕只是 try/finally）都会让
 发现阶段卡死在 `Discovering: WhaleGenie.Tests`，进程 0% CPU——二分过一次，别再试同一条路。
 
-### T2（必做）把剩下没看过的窗口逐个过一遍图
+### T2（必做）把剩下没看过的窗口逐个过一遍图 —— 已完成
 
 已看过：ConfirmDialog、MainWindow、MacroEditor、Settings、DelayScale、About、ThemePalette、
-GlobalVariables、Run。剩下的大约 15 个（`BreakpointWindow`、`LookWindow`、`OffsetPickerWindow`、
-`WindowRuleWindow`、`MacroMenuWindow`、`WatermarkWindow`、`RegionPickerWindow`、`ColorPickerWindow`、
-`UpdateWindow`、`ErrorWindow`、`PaletteWindow`、`ActionEditorWindow`、`AddActionWindow`、
-`RunDebugWindow`、`MacroInterfaceWindow`）。
+GlobalVariables、Run。这一轮补上的：`BreakpointWindow`、`LookWindow`、`OffsetPickerWindow`、
+`WindowRuleWindow`、`MacroMenuWindow`、`RegionPickerWindow`、`ColorPickerWindow`、`ExpressionBuilderWindow`、
+`HotstringKeyboardWindow`、`TextPromptDialog`、`VariablePickerWindow`、`VirtualKeyboardWindow`、
+`VirtualGamepadWindow`、`WindowPickerWindow`、`FloatingSurfaceWindow`，以及动作表单的三张脸
+（重复 / 按键 / 日志 / 条件）。
 
-**目标**：找出"没被主题化"的控件——白底、默认蓝、粗边框、看不清的字。最可能是这几族：
-`ToggleSwitch`、`Slider`、`ScrollBar`、`ColorPicker` 内部部件、`GridView`/`DataGrid`。
+**原来那张名单里有七个名字在当前代码里已经不存在**（`WatermarkWindow`、`UpdateWindow`、`ErrorWindow`、
+`PaletteWindow`、`AddActionWindow`、`RunDebugWindow`、`MacroInterfaceWindow`）：动作表单是
+`ActionEditorWindow` + `ActionEditorView`，运行窗是 `RunWindow`，接口页在宏编辑器里。别按旧名单找。
 
-**出图配方**在 `doc/dev.md`（文件式程序，注意两条：`#:property JsonSerializerIsReflectionEnabledByDefault=true`、
-`.WithInterFont()`，以及**主窗要自己装 DataContext**，否则得到一张绑定全断的图）。
+**结论：只有一处是真的没主题化，已修。**
 
-**修法**：优先补 `FluentKeys.axaml` 的键（这是三次踩坑的共同根因：**库读 WinUI 的键名，我们的令牌不会
-自动出现在那些名字下**）；其次才是加样式。
+- `AutoCompleteBox.Field`：格子本该由模板里那支 `TextBox` 画，可度量（高 30、内边距）写在了外层，
+  内层按自己的最小高度排成 32 高，上下两条边框被裁掉，底色又被 `Background=Transparent` 清成窗口背景。
+  界面上是"只有左右括号、没有底色"的输入框（断点窗的条件框最明显），而**每个颜色都是对的**——
+  画笔断言一条都看不出来。修法：外层只占位（高 30、内边距 0、无边框），度量与底/边框交给内层；
+  回归用例 `FieldStyleTests` 量的是两个盒子的包含关系（撤掉修复它会红，消息里带着实测的
+  `inner=0,-1,355,32` 与 `field=0,0,355,30`）。
+
+**看着像问题、量完不是问题的**（记下来免得下一轮又去查）：
+
+- 函数按钮的"蓝边"、运算符按钮的"彩边"：那是文字次像素反锯齿的彩边（`487297`、`81C0E5`、`264A85`），
+  取边框窄条统计颜色只有 `BorderControl` 的 `#555555`。
+- 未勾选的 `CheckBox` 在暗色下是一枚灰底圆角方块：`CheckBoxCheckBackgroundFillUnchecked` 一族键早就映射到
+  `SurfaceField`/`BorderControl`，放大看是对的。
+- 页签上"返回值·"那个小圆点：`ActionEditorView` 的 `HasDot` 指示（这一页有附注），不是分隔符错位；
+  代码里已标了"结构改进待办"（用颜色表达"有没有附注"太贵），与主题无关。
+- 表达式窗左下"插入一个值"被截断：那两块调色板在 `BuildLeft` 的 `ScrollViewer` 里，是滚动视口，
+  滚得到；只是 Fluent 的滚动条自动隐藏，看起来像被切掉。
+- 滚动条本身：2px 细拇指、`#6A6A6A` 上下贯穿，是库的 overlay 样式，正常。
+- 动作表单页签、`FANumberBox`、`NumericUpDown` 微调按钮、`ComboBox`、`ListView` 选中态都对得上令牌。
+
+**没出图的**（构造函数是 `internal` 或只有 `static ShowAsync(owner, …)`，从外部程序建不出来，由用例覆盖）：
+`MacroChooseWindow`、`MenuIconPickerWindow`、`MenuMacroPickerWindow`、`PublicMacroLibraryWindow`、
+`GlobalConflictWindow`、`ElementPickerWindow`、`PointPickerWindow`、`VariableFieldPickerWindow`、
+`ScreenFrameWindow`、`ThemeProbeWindow`。
+
+`ToggleSwitch`、`Slider`、`ColorPicker`、`GridView`/`DataGrid` 这几族在界面里**根本没用到**（`ColorPickerWindow`
+是取色放大镜，不是颜色选择控件），所以不必为它们补键。
 
 ### T3（可选）自绘标题栏向 WinUI 靠拢
 
