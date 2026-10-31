@@ -48,6 +48,14 @@
         -->
         <StyleInclude Source="avares://WhaleGenie/Themes/Controls.axaml" />
 
+        <!--
+          取色器的主题只有 Avalonia 自己带，库没有给 `ColorView` 做配套。不放这一条的后果在出图上
+          看得很清楚：调色板顶部三个页签只剩图标、选中条是白的——它退回默认主题，和周围不是一套。
+          这一份 `StyleInclude` 只装 ColorPicker 一族（`ColorView`/`ColorPicker`/`ColorSpectrum`），
+          不是整套 Fluent 主题，所以不会把 `FluentAvaloniaTheme` 顶掉。
+        -->
+        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+
         <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the
              expression builder's list of functions each stand one on screen, and one control with
              one look is worth a style above both windows rather than two that drift apart. -->

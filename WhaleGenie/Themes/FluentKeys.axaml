@@ -38,6 +38,12 @@
             <StaticResource x:Key="TextFillColorTertiaryBrush" ResourceKey="TextTertiary" />
             <StaticResource x:Key="TextFillColorDisabledBrush" ResourceKey="TextDisabled" />
             <StaticResource x:Key="PivotHeaderItemSelectedPipeFill" ResourceKey="AccentFill" />
+            <StaticResource x:Key="SystemAccentColor" ResourceKey="AccentFillColor" />
+            <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="AccentFillHoverColor" />
+            <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="AccentFillHoverColor" />
+            <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="AccentFillPressedColor" />
+            <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="AccentFillPressedColor" />
+            <StaticResource x:Key="AccentFillColorDefaultBrush" ResourceKey="AccentFill" />
             <!-- 裸按钮、也是 Button.Secondary 的底：次按钮的样子由这里给四态 -->
             <StaticResource x:Key="ButtonBackground" ResourceKey="SurfaceControl" />
             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
@@ -297,6 +303,12 @@
             <StaticResource x:Key="TextFillColorTertiaryBrush" ResourceKey="TextTertiary" />
             <StaticResource x:Key="TextFillColorDisabledBrush" ResourceKey="TextDisabled" />
             <StaticResource x:Key="PivotHeaderItemSelectedPipeFill" ResourceKey="AccentFill" />
+            <StaticResource x:Key="SystemAccentColor" ResourceKey="AccentFillColor" />
+            <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="AccentFillHoverColor" />
+            <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="AccentFillHoverColor" />
+            <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="AccentFillPressedColor" />
+            <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="AccentFillPressedColor" />
+            <StaticResource x:Key="AccentFillColorDefaultBrush" ResourceKey="AccentFill" />
             <!-- 裸按钮、也是 Button.Secondary 的底：次按钮的样子由这里给四态 -->
             <StaticResource x:Key="ButtonBackground" ResourceKey="SurfaceControl" />
             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
