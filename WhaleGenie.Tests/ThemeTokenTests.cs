@@ -33,7 +33,7 @@ public class ThemeTokenTests
         "AccentFill", "AccentFillHover", "AccentFillPressed", "AccentText", "AccentSurface",
         "Success", "SuccessSurface", "Warning", "WarningSurface",
         "Danger", "DangerSurface", "Info", "InfoSurface",
-        "OverlayHover", "OverlayPressed",
+        "OverlayHover", "OverlayPressed", "CaptionCloseHover",
 
     ];
 

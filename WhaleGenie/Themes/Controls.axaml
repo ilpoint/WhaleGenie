@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
+        xmlns:views="using:WhaleGenie.Views"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
@@ -257,6 +258,62 @@
     </Style>
     <Style Selector="Button.Chrome.Labeled:pointerover">
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+    </Style>
+
+    <!--
+      标题栏右端那颗关闭键，尺寸按 WinUI 的 caption 走（46×32），与左边那一排工具钮不是同一族：
+      工具钮是"在这里做点什么"，关闭键是"离开这里"。`Close` 那一档只为它自己：悬停底换成
+      `CaptionCloseHover`（WinUI 的关窗红），字形同时转白——红底上留深色字，浅色主题里会糊。
+      图标用 `IconView` 画，笔画是它自己的属性，不是 `Foreground`，所以这里连它一起给。
+    -->
+    <Style Selector="Button.Caption">
+        <Setter Property="Width" Value="46" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.Caption views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Caption:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+    </Style>
+    <Style Selector="Button.Caption:pressed">
+        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
+    </Style>
+    <Style Selector="Button.Caption:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <Style Selector="Button.Caption.Close:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <Style Selector="Button.Caption.Close:pressed">
+        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <!--
+      这两笔必须落在模板里的 `ContentPresenter` 上：库把它这个态的底色写在自己的主题里，
+      控件上的 `Background` 到了那个态带不进去（量过：只写在控件上，指针压上去是主题的灰
+      `#3D3D3D`；写到 presenter 上才是 `#C42B1C`，深浅两套都是）。
+    -->
+    <Style Selector="Button.Caption.Close:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
+    </Style>
+    <Style Selector="Button.Caption.Close:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
+    </Style>
+    <Style Selector="Button.Caption.Close:pointerover views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <Style Selector="Button.Caption.Close:pressed views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
     </Style>
 
     <!--

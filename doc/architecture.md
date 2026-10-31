@@ -293,6 +293,12 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 页签按语义分两种：**有内容的页**用 `TabControl`（设置窗三个根页），**共用一块表单的页**用 `TabStrip`
 （动作编辑器的四个页——它们没有各自的内容，用 `TabControl` 是假承诺）。
 
+标题栏右端的关闭键是 `Button.Caption`（WinUI 的 46×32），`Button.Caption.Close` 悬停时换成
+`CaptionCloseHover`（`#C42B1C`）并把字形转白：离开和一排工具钮不是同一件事，颜色上要说出来。
+关闭键这一族的悬停底要写在模板里的 `ContentPresenter` 上——库把它这个态的底色放在自己的主题里，
+只写在控件上时屏幕上是主题的灰；那条选择器由 `TemplatePartTests` 照看。标题栏的识别标记因此同时认
+`Chrome` 与 `Caption` 两族（`ConfirmDialog` 用的是后者，此前一直被漏掉）。
+
 **标题栏没迁，也迁不了。** 库提供了 `FAAppWindow`（把标题按钮交给它画），但它的构造里
 `Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的句柄都是 `0`，于是**一个进程只装得下一个**：
 

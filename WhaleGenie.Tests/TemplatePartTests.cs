@@ -34,6 +34,7 @@ public class TemplatePartTests
         ("Button", "", "ContentPresenter"),
         ("Button", "BottomButton", "ContentPresenter"),
         ("Button", "Breakpoint on", "ContentPresenter"),
+        ("Button", "Caption Close", "ContentPresenter"),
         ("Button", "Chrome", "ContentPresenter"),
         ("Button", "Chrome Icon", "ContentPresenter"),
         ("Button", "Chrome Icon Pinned", "ContentPresenter"),

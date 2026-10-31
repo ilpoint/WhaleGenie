@@ -211,9 +211,9 @@
                                         Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
                                         FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
                     </Button>
-                    <Button Classes="Chrome Icon Wide Quiet" Name="CloseButton"
+                    <Button Classes="Caption Close" Name="CloseButton"
                             ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                        <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                     </Button>
                 </StackPanel>
             </Grid>

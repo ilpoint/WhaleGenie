@@ -64,10 +64,10 @@
                            FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
-            <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
+            <Button Grid.Column="2" Classes="Caption Close" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center"
                     ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}"
+                <views:IconView Width="10" Height="10"
                                 StrokeThickness="1.2" FitToBounds="True"
                                 Data="{x:Static vm:AppIcons.X}" />
             </Button>

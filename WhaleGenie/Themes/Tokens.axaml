@@ -58,6 +58,10 @@
             <Color x:Key="OverlayHoverColor">#14FFFFFF</Color>
             <Color x:Key="OverlayPressedColor">#24FFFFFF</Color>
 
+            <!-- 标题栏关闭键的悬停底：WinUI 在同一处用的就是这个红，深浅两套都用它，
+                 因为"这一下是关窗"不该随主题换说法。 -->
+            <Color x:Key="CaptionCloseHoverColor">#C42B1C</Color>
+
             <!-- 表面 -->
             <SolidColorBrush x:Key="SurfaceWindow" Color="{StaticResource SurfaceWindowColor}" />
             <SolidColorBrush x:Key="SurfaceChrome" Color="{StaticResource SurfaceChromeColor}" />
@@ -107,6 +111,7 @@
             <!-- 叠层 -->
             <SolidColorBrush x:Key="OverlayHover" Color="{StaticResource OverlayHoverColor}" />
             <SolidColorBrush x:Key="OverlayPressed" Color="{StaticResource OverlayPressedColor}" />
+            <SolidColorBrush x:Key="CaptionCloseHover" Color="{StaticResource CaptionCloseHoverColor}" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -160,6 +165,9 @@
             <Color x:Key="OverlayHoverColor">#0F000000</Color>
             <Color x:Key="OverlayPressedColor">#1A000000</Color>
 
+            <!-- 标题栏关闭键的悬停底。与深色同一支红：WinUI 在这里也不按主题换。 -->
+            <Color x:Key="CaptionCloseHoverColor">#C42B1C</Color>
+
             <!-- 表面 -->
             <SolidColorBrush x:Key="SurfaceWindow" Color="{StaticResource SurfaceWindowColor}" />
             <SolidColorBrush x:Key="SurfaceChrome" Color="{StaticResource SurfaceChromeColor}" />
@@ -209,6 +217,7 @@
             <!-- 叠层 -->
             <SolidColorBrush x:Key="OverlayHover" Color="{StaticResource OverlayHoverColor}" />
             <SolidColorBrush x:Key="OverlayPressed" Color="{StaticResource OverlayPressedColor}" />
+            <SolidColorBrush x:Key="CaptionCloseHover" Color="{StaticResource CaptionCloseHoverColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 

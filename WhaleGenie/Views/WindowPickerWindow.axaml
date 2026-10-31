@@ -38,9 +38,9 @@
                            VerticalAlignment="Center" />
             </StackPanel>
 
-            <Button Grid.Column="2" Classes="Chrome Icon" Name="CloseButton"
+            <Button Grid.Column="2" Classes="Caption Close" Name="CloseButton"
                     Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
+                <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
             </Button>
         </Grid>
 
