@@ -133,6 +133,16 @@ Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotne
 3. 还查不动就加一条临时探针：在 `Ui.RunAsync` 里包一层计时，把超过 200ms 的 dispatch 与它的类名打出来。
    这条不做进仓库，只在本地跑一轮，用来看"是谁占着界面线程"。
 
+**已经查到的一条真机制**：`InvalidProgramException: You've caused dispatcher loop`（栈里是
+`Dispatcher.ResetForUnitTests`）。意思是**上一条用例的模态还开着**：`ShowDialog` 会在这次 dispatch 内部
+再起一个调度器循环，用例不回答它就走人，循环就留在那儿，下一条用例一 dispatch 就炸——炸在谁头上是随机的，
+所以才表现为"换了三条不同的受害者"。
+
+规矩由此而来：**用例关掉一个可能发问的窗口时，必须把它弹出的对话框回答掉**。编辑器窗在"有改动"时关闭会问
+"要不要保存"，测试里 `window.Close(null)` 之后要顺手取消那个 `ConfirmDialog`（`GlobalVariablesTests` 里
+`Closing_the_manager_without_save_changes_nothing` 就是这么改的）。识别特征：报错在
+`Dispatcher.ResetForUnitTests`，而不是在断言上。
+
 ## 介绍页与短片
 
 `site/` 是 GitHub Pages 的源：`index.html` 是单页介绍，`vibe/index.html` 是短片的时间轴；截图、

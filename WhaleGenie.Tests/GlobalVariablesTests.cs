@@ -791,7 +791,19 @@ public class GlobalVariablesTests
                 Assert.NotNull(VariableCatalog.FindGlobal("unchanged"));
                 Assert.Null(VariableCatalog.FindGlobal("changed"));
                 Assert.Equal(3, SharedVariables.Current.Values["unchanged"].AsNumber());
+
+                // Closing the editor can raise the "unsaved work" prompt, and that prompt is modal:
+                // it runs a nested dispatcher loop *inside* this dispatch. A test that walks away
+                // from it leaves the loop running, and the next dispatch to this thread dies with
+                // "You've caused dispatcher loop" — a failure that lands on an unrelated test.
                 window.Close(null);
+                Dispatcher.UIThread.RunJobs();
+                foreach (var prompt in window.OwnedWindows.OfType<ConfirmDialog>().ToList())
+                {
+                    ((ConfirmDialogViewModel)prompt.DataContext!).CancelCommand.Execute(null);
+                }
+
+                Dispatcher.UIThread.RunJobs();
             }
             finally
             {
