@@ -28,20 +28,31 @@ dotnet format --verify-no-changes               # 退出码 0
 
 ## 硬约束（不要试图绕过）
 
-**窗口不能用 `FAAppWindow`。** 它的构造里 `Win32WindowManager` 以 `HWND` 为键建静态表，而 headless
-测试里每个窗口句柄都是 `0`，第二个就抛：
+**这套工程里窗口不用 `FAAppWindow`：继续用普通 `Window` + 自绘 38px 标题行。**
+理由不是"它不好用"，而是**无头测试里第二个窗口就炸**——它的构造里 `Win32WindowManager` 以 `HWND` 为键
+建静态表，而 headless 平台给每个窗口的句柄都是 `0`：
 
     ArgumentException: An item with the same key has already been added. Key: HWND
 
-关掉第一个也不移除表项。所以 24 个窗口继续用普通 `Window` + 自绘 38px 标题行。
-要解掉它必须先满足其一：无头平台给每个窗口不同句柄，或者库改成按窗口实例建表。**在那之前别碰。**
+**这句话的边界要说准**，别把它当成产品级禁令：真实运行时每个窗口的 `HWND` 各不相同，`FAAppWindow`
+本身是能用的；挡住我们的是"一条测试会话要开十几个窗口，全部走同一个无头会话"这件事。哪天测试不再造
+窗口（或者库修了），这条约束就自动失效。
 
-这条已经复核过，结论不变（Avalonia 12.1.2 + FluentAvaloniaUI 3.1.0）：库里是
-`static Dictionary<HWND, Win32WindowManager>`，键取 `_window.TryGetPlatformHandle().Handle`，
-构造函数里 `Add`，只有收到 `WM_DESTROY` 才 `Remove`。无头会话里实测两个 `FAAppWindow`：
+已复核（Avalonia 12.1.2 + FluentAvaloniaUI 3.1.0，**3.1.0 是 NuGet 上的最新版**，master 也一样）：
 
-    first handle=0 | second threw ArgumentException:
-    An item with the same key has already been added. Key: FluentAvalonia.Interop.Win32.HWND
+1. `FAAppWindow` 的构造只有一道门：`if (OperatingSystem.IsWindows() && !Design.IsDesignMode)
+   InitializeAppWindow();`。无头会话跑在 Windows 上、也不是设计模式，所以门是开的。
+2. `InitializeAppWindow()` 里 `new Win32WindowManager(this)` 是**无条件**的，没有句柄有效性判断。
+3. `Win32WindowManager` 构造里 `Hwnd = (HWND)_window.TryGetPlatformHandle().Handle`，随后
+   `_appWindowRegistry.Add(Hwnd, this)`；只有收到 `WM_DESTROY` 才 `Remove`，`WindowOnClosed` 不碰表。
+4. 本仓实测两个 `FAAppWindow`：
+   `first handle=0 | second threw ArgumentException: … Key: FluentAvalonia.Interop.Win32.HWND`。
+5. 上游近期（2026-04/05 的 AppWindow 重构、伪造 caption 按钮、`ShowAsDialog` 菜单）没有一条提交
+   碰过这条注册表——所以升级不会带来改变。
+
+**现成的两条"绕过"都不该走**：`Design.IsDesignMode = true` 能让构造跳过 Win32 初始化，但它是进程级
+开关，而且 `OnApplyTemplate` 里标题栏的接线也会一起跳过——测试得到的是没有标题栏的窗；无头平台自身
+给不出唯一句柄。真要解，只有上游两行：句柄为 0 时不入表，或者 `Closed`/`Dispose` 时 `Remove`。
 
 ## 剩余任务（T1～T4 已全部处理）
 

@@ -300,12 +300,15 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 `Chrome` 与 `Caption` 两族（`ConfirmDialog` 用的是后者，此前一直被漏掉）。
 
 **标题栏没迁，也迁不了。** 库提供了 `FAAppWindow`（把标题按钮交给它画），但它的构造里
-`Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的句柄都是 `0`，于是**一个进程只装得下一个**：
+`Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的句柄都是 `0`，于是**一条测试会话里
+只装得下一个窗口**：
 
     ArgumentException: An item with the same key has already been added. Key: HWND
 
-一条测试会话要开好几个窗口，所以 24 个窗口仍然用普通 `Window` + 自绘 38px 标题行。要走这条路，前提是
-无头平台给每个窗口不同句柄，或者库改成按窗口实例建表。
+**这条只约束测试，不约束产品**：真机上每个窗口的 `HWND` 各不相同，`FAAppWindow` 本身可用。挡住迁移的是
+"一条会话要开十几个窗口"，不是库不能用。所以窗口仍然用普通 `Window` + 自绘 38px 标题行；要走这条路，
+前提是无头平台给每个窗口不同句柄，或者库改成按窗口实例建表（上游 3.1.0 与 master 都还是按 `HWND`，
+近期提交没有涉及）。
 
 ## 八、持久化
 
