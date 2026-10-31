@@ -2354,8 +2354,12 @@ public partial class MacroEditorWindow : Window
             // Closing event and the way out reads the answer there. A handler that ran first and
             // found nothing would take this window for one that had already gone, and would stop
             // the program on top of the very question it is asking.
+            //
+            // The question itself is queued rather than asked here. A modal opened from inside a
+            // closing handler is asked for before the window has finished saying no, and whether
+            // it shows up at all turns out to depend on how the dialog presents itself.
             e.Cancel = true;
-            _ = PromptToSaveAsync();
+            Dispatcher.UIThread.Post(() => _ = PromptToSaveAsync());
         }
 
         base.OnClosing(e);

@@ -237,7 +237,13 @@ public partial class GlobalVariablesWindow : Window
         }
 
         e.Cancel = true;
-        _ = PromptToSaveAsync();
+
+        // Queued rather than called here. A modal opened from inside a closing handler is asked
+        // for before the window has finished saying no, and what comes back depends on how the
+        // dialog presents itself — the same call that works for one dialog is answered with
+        // silence by another. Queuing it puts the question after the answer that keeps the window
+        // open, which is where the person asking is anyway.
+        Dispatcher.UIThread.Post(() => _ = PromptToSaveAsync());
         base.OnClosing(e);
     }
 
