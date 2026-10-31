@@ -573,6 +573,11 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
   与格子底 `SurfaceField` 的 `#2A2A2A`；
 - 竖直扫一条线穿过输入框，能一眼看出上边框、底色、下边框是不是都在——缺口就是被裁掉了。
 
+**窗口是 `AppWindow`，无头里它得先把库的句柄表清掉。** 所有窗口都从 `views:AppWindow` 派生（`FAAppWindow`
+的子类，标题栏归库）。`FAAppWindow` 的构造按 `HWND` 给 `Win32WindowManager` 建静态表，而无头平台给每个窗口
+的句柄都是 `0`——第二个窗口就抛 `ArgumentException … Key: HWND`。`AppWindow` 里那句"句柄为 0 就清表"就是
+为此；真机不执行。**标题栏的样子只能在真机上看**：无头会话里库不接线，截图拍不到它。
+
 **`DataTemplate` 里不要写 `Name`。** 模板里的 `x:Name` 注册进的是**同一个名字域**，不是每个实例一份：
 第一次实例化没事，第二次就抛 `Control with the name 'KeyField' already registered`。症状是运行到时
 才炸、栈里指着模板而不是指着那一行，而且**只有第二次打开才出现**——第一次手工点一遍是绿的。

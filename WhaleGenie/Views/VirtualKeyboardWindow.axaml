@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
@@ -6,44 +6,23 @@
         xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="520"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="556"
         x:Class="WhaleGenie.Views.VirtualKeyboardWindow"
         Title="WhaleGenie"
-        Width="1024" Height="520"
-        MinWidth="1000" MinHeight="470"
+        Width="1024" Height="556"
+        MinWidth="1000" MinHeight="506"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Grid RowDefinitions="38,*">
 
-        <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding [KeyPad.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
-                        VerticalAlignment="Center">
-                <!-- The keyboard stays up while a combination is built, so it needs a word for
-                     "this is the combination I meant", which is not the same as closing it away. -->
-                <Button Classes="Chrome Labeled" Name="DoneButton"
-                        Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
-                <!-- Each window is put away on its own: the keyboard covers whatever the keys are
-                     being read off, and putting it away leaves the add-action window as it was. -->
-                <Button Classes="Chrome Icon" Name="MinimizeButton"
-                        Width="30" Height="24" Padding="0" VerticalAlignment="Center">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="Caption Close" Name="CloseButton"
-                        VerticalAlignment="Center">
-                    <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-                </Button>
-            </StackPanel>
+        <!-- 标题栏归库（`FAAppWindow`），这行只剩键盘自己的动作钮。 -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
+            <!-- The keyboard stays up while a combination is built, so it needs a word for
+                 "this is the combination I meant", which is not the same as closing it away. -->
+            <Button Grid.Column="1" Classes="Chrome Labeled" Name="DoneButton" Margin="8,0"
+                    VerticalAlignment="Center"
+                    Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
         </Grid>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
@@ -281,4 +260,4 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
-</Window>
+</views:AppWindow>

@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -14,9 +14,6 @@
         Title="{Binding WindowTitle}"
         Width="480" Height="680"
         MinWidth="360" MinHeight="480"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
@@ -87,21 +84,16 @@
 
     <Grid RowDefinitions="36,30,*,Auto">
 
-        <!-- ============ Custom title bar ============ -->
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
-                   Margin="8,5" VerticalAlignment="Center" HorizontalAlignment="Left" />
-
-            <TextBlock Grid.Column="1" Foreground="{DynamicResource TextPrimary}" FontSize="13"
-                       Text="{Binding WindowTitle}"
-                       VerticalAlignment="Center" Margin="4,0" />
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
+        <!-- ============ 工具条（标题栏归库，这里只剩主窗自己的三个钮） ============ -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6"
+                        Margin="8,0" VerticalAlignment="Center">
                 <Button Classes="Chrome Icon" Name="ThemeButton"
                         ToolTip.Tip="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}"
                         Click="OnToggleTheme">
                     <views:IconView Width="12" Height="12" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static vm:AppIcons.Sun}" />
-                </Button>                <Button Classes="Chrome Icon" Name="AlwaysOnTopButton"
+                </Button>
+                <Button Classes="Chrome Icon" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->
                     <views:IconView Width="11" Height="11" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
@@ -110,12 +102,6 @@
                         FontSize="13"
                         ToolTip.Tip="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                         Click="OnAboutClicked" />
-                <Button Classes="Chrome Icon" Name="MinimizeButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="Caption Close" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-                </Button>
             </StackPanel>
         </Grid>
 
@@ -517,4 +503,4 @@
             </Button>
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>

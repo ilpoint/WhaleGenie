@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -15,9 +15,6 @@
         Width="1486" Height="800"
         MinWidth="1320" MinHeight="640"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
@@ -225,36 +222,18 @@
 
     <Grid RowDefinitions="38,*">
 
-        <!-- Title bar -->
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center"
-                           Text="{Binding [Editor.Title], Source={x:Static loc:Strings.Current}}" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="Chrome Icon" Name="PinButton"
-                        ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Name="PinIcon" Width="11" Height="11"
-                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
-                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
-                </Button>
-                <Button Classes="Chrome Icon" Name="MinimizeButton"
-                        ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="Chrome Icon" Name="MaximizeButton"
-                        ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Name="MaximizeIcon" Width="10" Height="10"
-                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
-                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
-                </Button>
-                <Button Classes="Caption Close" Name="CloseButton"
-                        ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                    <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-                </Button>
-            </StackPanel>
+        <!--
+          标题栏归库（`FAAppWindow`）：关闭、最小化、最大化都是它画的系统按钮，这行只留置顶——
+          那一个不属于标题栏，是这一扇窗自己的状态。
+        -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
+            <Button Grid.Column="1" Classes="Chrome Icon" Name="PinButton" Margin="8,0"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
+                <views:IconView Name="PinIcon" Width="11" Height="11"
+                                Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
+                                FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
+            </Button>
         </Grid>
 
         <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
@@ -1316,5 +1295,5 @@
 
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>
 

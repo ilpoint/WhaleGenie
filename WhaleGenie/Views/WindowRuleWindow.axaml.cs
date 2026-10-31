@@ -17,7 +17,7 @@ namespace WhaleGenie.Views;
 /// It stands above everything but does not take the focus until a window has been captured, so the
 /// click that chooses the target lands where the person aimed it.
 /// </summary>
-public partial class WindowRuleWindow : Window
+public partial class WindowRuleWindow : AppWindow
 {
     private static readonly HookKey F1 = KeyNames.Resolve("F1") ?? default;
     private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;

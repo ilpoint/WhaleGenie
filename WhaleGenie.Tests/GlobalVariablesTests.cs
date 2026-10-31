@@ -602,8 +602,9 @@ public class GlobalVariablesTests
         var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
             "GlobalVariablesWindow.axaml"));
 
-        Assert.Contains("WindowDecorations=\"BorderOnly\"", xaml, System.StringComparison.Ordinal);
-        Assert.Contains("Name=\"CloseButton\"", xaml, System.StringComparison.Ordinal);
+        // 外壳是库的 `FAAppWindow`（`views:AppWindow`）：标题栏与关闭键由它画，窗口自己不画。
+        Assert.Contains("<views:AppWindow", xaml, System.StringComparison.Ordinal);
+        Assert.DoesNotContain("Name=\"CloseButton\"", xaml, System.StringComparison.Ordinal);
         Assert.Contains("Name=\"SearchBox\"", xaml, System.StringComparison.Ordinal);
         Assert.Contains("Name=\"ProblemStatus\"", xaml, System.StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding NamePrompt}\"", xaml, System.StringComparison.Ordinal);

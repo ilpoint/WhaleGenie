@@ -23,7 +23,7 @@ namespace WhaleGenie.Views;
 /// arriving macros and leaves the project's own alone. A script body is not rewritten, so a macro
 /// whose script mentions the name is named here.
 /// </remarks>
-public sealed class GlobalConflictWindow : Window
+public sealed class GlobalConflictWindow : AppWindow
 {
     private readonly IReadOnlyList<GlobalDecision> _decisions;
     private readonly IReadOnlyList<MacroItem> _macros;
@@ -40,8 +40,6 @@ public sealed class GlobalConflictWindow : Window
         MinHeight = 320;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("GlobalConflict.Title");
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 

@@ -13,7 +13,7 @@ using WhaleGenie.Models;
 namespace WhaleGenie.Views;
 
 /// <summary>Picks one enabled macro for an empty menu cell.</summary>
-public sealed class MenuMacroPickerWindow : Window
+public sealed class MenuMacroPickerWindow : AppWindow
 {
     private readonly ListBox _list;
     private readonly TextBox _search;
@@ -29,8 +29,6 @@ public sealed class MenuMacroPickerWindow : Window
         MinHeight = 360;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = title ?? Strings.Get("Menu.PickMacro");
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 

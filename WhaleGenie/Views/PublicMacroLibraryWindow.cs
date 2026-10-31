@@ -19,7 +19,7 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>Lists, creates, edits and removes the callable macros shared by every project.</summary>
-public sealed class PublicMacroLibraryWindow : Window
+public sealed class PublicMacroLibraryWindow : AppWindow
 {
     private sealed record Row(PublicMacroEntry Entry)
     {
@@ -43,8 +43,6 @@ public sealed class PublicMacroLibraryWindow : Window
         MinHeight = 420;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("PublicMacroManager.Title");
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 

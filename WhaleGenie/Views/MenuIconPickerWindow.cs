@@ -18,7 +18,7 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>Chooses any Lucide icon or a PNG/JPEG/BMP image for a menu cell.</summary>
-public sealed class MenuIconPickerWindow : Window
+public sealed class MenuIconPickerWindow : AppWindow
 {
     internal const int IconsPerRow = 7;
     internal const int MaximumIconsPerPage = IconsPerRow * 20;
@@ -46,8 +46,6 @@ public sealed class MenuIconPickerWindow : Window
         MinWidth = 500;
         MinHeight = 420;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get("Menu.PickIcon");
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 

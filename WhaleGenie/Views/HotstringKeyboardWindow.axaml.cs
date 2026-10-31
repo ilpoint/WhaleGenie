@@ -16,7 +16,7 @@ namespace WhaleGenie.Views;
 /// caps write text, not key names, and the displayed count is the same 40-character limit the
 /// recognizer enforces.
 /// </summary>
-public partial class HotstringKeyboardWindow : Window
+public partial class HotstringKeyboardWindow : AppWindow
 {
     private sealed record CharacterKey(string Normal, string Shifted, bool Wide = false);
 
@@ -41,12 +41,6 @@ public partial class HotstringKeyboardWindow : Window
         _rows = this.FindControl<StackPanel>("KeyRows")!;
         _preview = this.FindControl<TextBlock>("PreviewText")!;
         _count = this.FindControl<TextBlock>("CountText")!;
-
-        var close = this.FindControl<Button>("CloseButton");
-        if (close is not null)
-        {
-            close.Click += (_, _) => Close(null);
-        }
 
         var backspace = this.FindControl<Button>("BackspaceButton");
         if (backspace is not null)
@@ -235,13 +229,5 @@ public partial class HotstringKeyboardWindow : Window
         Close(null);
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
+
 }

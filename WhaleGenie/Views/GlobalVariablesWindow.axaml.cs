@@ -16,7 +16,7 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>The one editor for project-level globals; the run window only reads their values.</summary>
-public partial class GlobalVariablesWindow : Window
+public partial class GlobalVariablesWindow : AppWindow
 {
     private readonly GlobalVariablesViewModel _viewModel;
     private readonly IReadOnlyList<VariableChoice> _expressionVariables;
@@ -65,11 +65,6 @@ public partial class GlobalVariablesWindow : Window
         if (initialName is { Length: > 0 })
         {
             _viewModel.SelectNamed(initialName);
-        }
-
-        if (this.FindControl<Button>("CloseButton") is { } close)
-        {
-            close.Click += (_, _) => RequestClose();
         }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -296,13 +291,5 @@ public partial class GlobalVariablesWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
+
 }

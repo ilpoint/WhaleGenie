@@ -20,7 +20,7 @@ namespace WhaleGenie.Views;
 /// and where the step goes, so what stands in it is the fields of that one action rather than a
 /// catalogue to choose from.
 /// </summary>
-public class ActionEditorWindow : Window
+public class ActionEditorWindow : AppWindow
 {
     private readonly ActionEditorView _view;
 
@@ -46,9 +46,6 @@ public class ActionEditorWindow : Window
         MinWidth = 800;
         MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        ExtendClientAreaToDecorationsHint = true;
-        ExtendClientAreaTitleBarHeightHint = -1;
-        WindowDecorations = WindowDecorations.BorderOnly;
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 
         _view = new ActionEditorView(existing, actions, variables, macros, presetKey, assetFolder,
@@ -57,16 +54,6 @@ public class ActionEditorWindow : Window
         DataContext = _view.DataContext;
         _view.Finished += CloseWith;
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
-
-        if (_view.FindControl<Button>("MinimizeButton") is { } minimize)
-        {
-            minimize.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
-        if (_view.FindControl<Button>("CloseButton") is { } close)
-        {
-            close.Click += (_, _) => CloseWith(null);
-        }
     }
 
     /// <summary>

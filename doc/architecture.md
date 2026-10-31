@@ -299,16 +299,21 @@ stdio：客户端启动 whalegenie --mcp，JSON-RPC 走它的标准输入输出
 只写在控件上时屏幕上是主题的灰；那条选择器由 `TemplatePartTests` 照看。标题栏的识别标记因此同时认
 `Chrome` 与 `Caption` 两族（`ConfirmDialog` 用的是后者，此前一直被漏掉）。
 
-**标题栏没迁，也迁不了。** 库提供了 `FAAppWindow`（把标题按钮交给它画），但它的构造里
-`Win32WindowManager` 按 `HWND` 建静态表，而无头测试里每个窗口的句柄都是 `0`，于是**一条测试会话里
-只装得下一个窗口**：
+**标题栏交给库：`AppWindow`。** 所有窗口都从 `views:AppWindow`（`FAAppWindow` 的子类）派生，标题栏、
+关闭/最小化/最大化、圆角边框不再由我们画。窗口里只保留自己的**工具钮**（置顶、完成、按原尺寸看、
+主题、帮助），它们住在内容顶部那条 38px 的工具条里，不再是"标题行"。
 
-    ArgumentException: An item with the same key has already been added. Key: HWND
+无头会话里这条路上有个坑，处理在 `WhaleGenie/Views/AppWindow.cs`：`FAAppWindow` 的构造按 `HWND` 给
+`Win32WindowManager` 建静态表，而无头平台给每个窗口的句柄都是 `0`，第二个窗口就抛
+`ArgumentException … Key: HWND`。`AppWindow` 在句柄为 `0` 时把那张表清空（无头里没有消息循环要用它），
+真机上 `HWND` 永不为 0、这段不执行，库照常拿到它要的表项。
 
-**这条只约束测试，不约束产品**：真机上每个窗口的 `HWND` 各不相同，`FAAppWindow` 本身可用。挡住迁移的是
-"一条会话要开十几个窗口"，不是库不能用。所以窗口仍然用普通 `Window` + 自绘 38px 标题行；要走这条路，
-前提是无头平台给每个窗口不同句柄，或者库改成按窗口实例建表（上游 3.1.0 与 master 都还是按 `HWND`，
-近期提交没有涉及）。
+两条走过、走不通的替代方案，别再试：打开 `Design.IsDesignMode`（setter 是 internal，要反射）能让构造
+跳过 Win32 初始化，但无论在哪一步打开，`dotnet test` 都会卡在 `Discovering: WhaleGenie.Tests`（0% CPU）；
+在 `Ui.Run` 的 dispatch 外面再包一层，症状相同。
+
+**浮层不在此列**：框选、取色、点/元素拾取、屏幕框、菜单浮窗与浮动面板都是 `WindowDecorations.None` 的
+覆盖层或弹层，没有标题栏可交，继续用普通 `Window`。
 
 ## 八、持久化
 

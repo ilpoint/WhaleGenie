@@ -457,9 +457,13 @@ public class LookWindowTests
 
     /// <summary>
     /// The window is put away on its own rather than closed, so what was found can be held up
-    /// against the screen it came from and read again afterwards. A window filling the screen has no
-    /// title bar to come back to, so it goes back to its normal size on the way out.
+    /// against the screen it came from and read again afterwards.
     /// </summary>
+    /// <remarks>
+    /// Putting it away is the system's caption button now (the window is an `AppWindow`), so this
+    /// drives the state the button drives rather than clicking a button of ours that no longer
+    /// exists. What the check is about is the window keeping its contents, not the button.
+    /// </remarks>
     [Fact]
     public void Putting_the_window_away_leaves_it_there_to_come_back_to()
     {
@@ -469,28 +473,15 @@ public class LookWindowTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            Minimize(window);
+            window.WindowState = WindowState.Minimized;
             Assert.Equal(WindowState.Minimized, window.WindowState);
 
             // Nothing is lost: the same window comes back, still showing what it found.
             window.WindowState = WindowState.Normal;
             Dispatcher.UIThread.RunJobs();
             Assert.True(window.IsVisible);
-
-            // A window filling the screen is put back to its normal size on the way out, because
-            // there is no title bar over it to click again.
-            window.WindowState = WindowState.FullScreen;
-            Dispatcher.UIThread.RunJobs();
-            Minimize(window);
-            Assert.Equal(WindowState.Minimized, window.WindowState);
         });
     }
-
-    /// <summary>Clicks the button that puts the window away, the way a user finds it.</summary>
-    private static void Minimize(Window window)
-        => window.GetVisualDescendants().OfType<Button>()
-            .Single(button => button.Name == "MinimizeButton")
-            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     /// <summary>
     /// A wide picture is shown shrunk to fit, and goes back and forth between that and the size its

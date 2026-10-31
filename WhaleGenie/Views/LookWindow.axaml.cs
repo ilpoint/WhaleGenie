@@ -26,7 +26,7 @@ namespace WhaleGenie.Views;
 /// after, and the scores. This is the window that answers "为什么没找到" — it shows what the
 /// machine was actually looking at, which a line of text in a log cannot.
 /// </summary>
-public partial class LookWindow : Window
+public partial class LookWindow : AppWindow
 {
     /// <summary>How small a mark may be drawn: a colour hit is one pixel of a whole screen.</summary>
     private const double SmallestMark = 9;
@@ -809,25 +809,6 @@ public partial class LookWindow : Window
 
     // -------------------------------------------------------------------- commands
 
-    private void OnClose(object? sender, RoutedEventArgs e) => Close();
-
-    /// <summary>
-    /// Puts the window away without closing it, so what was found can be held up against the screen
-    /// it came from and read again afterwards.
-    /// </summary>
-    private void OnMinimize(object? sender, RoutedEventArgs e)
-    {
-        // A window filling the screen has no title bar to come back to, so it is put back to its
-        // normal size first; minimizing straight out of full screen leaves a taskbar button that
-        // restores it full screen with nothing to close it with.
-        if (WindowState == WindowState.FullScreen)
-        {
-            ToggleFullScreen();
-        }
-
-        WindowState = WindowState.Minimized;
-    }
-
     /// <summary>
     /// Whether the window fills the screen, which is how a reference picture and a screenful of
     /// hits are read: a window shrunk to fit a monitor shows neither at its own size.
@@ -1056,20 +1037,4 @@ public partial class LookWindow : Window
         board.Children.Add(picture);
     }
 
-    /// <summary>
-    /// The window is moved by dragging the title bar it draws itself, the way every window here is.
-    /// A window filling the screen has nowhere to be moved to, and pulling one out of full screen
-    /// would leave it in a state its own button no longer describes.
-    /// </summary>
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && WindowState != WindowState.FullScreen
-            && e.GetPosition(this).Y <= TitleBarStrip)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

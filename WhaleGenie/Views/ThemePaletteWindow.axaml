@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
@@ -13,9 +13,6 @@
         Width="560" Height="420"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
@@ -23,21 +20,8 @@
     </Design.DataContext>
 
 
-    <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding [Theme.Palette.Title], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource TextPrimary}" FontSize="13" VerticalAlignment="Center" />
-            </StackPanel>
-            <Button Grid.Column="2" Classes="Caption Close" Name="CloseButton"
-                    Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10"
-                                StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-            </Button>
-        </Grid>
-
-        <Grid Grid.Row="1" Margin="16,12" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+    <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" Margin="16,12" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
             <StackPanel Grid.Row="0" Spacing="4">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
@@ -100,7 +84,7 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="16,0,16,14">
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="16,0,16,14">
             <Button Classes="Secondary" Height="32"
                     Content="{Binding [Theme.ResetAccent], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ResetAccentCommand}" />
@@ -109,4 +93,4 @@
                     Click="OnDone" />
         </Grid>
     </Grid>
-</Window>
+</views:AppWindow>

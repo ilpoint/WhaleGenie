@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:models="using:WhaleGenie.Models"
@@ -12,9 +12,6 @@
         Width="1060" Height="720"
         MinWidth="760" MinHeight="480"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
@@ -39,26 +36,14 @@
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-            <!-- title bar -->
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,8,10,8">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
-                       VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13"
-                           Foreground="{DynamicResource TextPrimary}" TextWrapping="NoWrap"
-                           Text="{Binding [Look.Title], Source={x:Static loc:Strings.Current}}" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+            <!-- 标题栏归库；这行只剩"按原尺寸看"这一个工具钮。 -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,4,10,4">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
                     <!-- A reference picture is read at its own size, and a whole screen of hits does
                          not fit in a window; this is the answer to both. -->
                     <Button Name="FullScreen" Classes="Chrome Icon Wide Quiet" Padding="10,0"
                             Click="OnToggleFullScreen"
                             ToolTip.Tip="{Binding [Look.FullScreenHint], Source={x:Static loc:Strings.Current}}" />
-                    <!-- Putting this one away leaves the screen behind it free, which is how what was
-                         found is compared with what is really there. -->
-                    <Button Classes="Chrome Icon Wide Quiet" Name="MinimizeButton" Click="OnMinimize">
-                        <views:IconView Width="11" Height="11" Stroke="{DynamicResource TextTertiary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
-                    </Button>
-                    <Button Classes="Chrome Icon Wide Quiet" Content="✕"
-                        Click="OnClose" />
                 </StackPanel>
             </Grid>
 
@@ -157,4 +142,4 @@
             </Grid>
         </Grid>
     </Border>
-</Window>
+</views:AppWindow>

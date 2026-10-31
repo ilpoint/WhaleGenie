@@ -6,7 +6,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class ConfirmDialog : Window
+public partial class ConfirmDialog : AppWindow
 {
     public ConfirmDialog()
         : this(new ConfirmDialogViewModel())
@@ -20,12 +20,6 @@ public partial class ConfirmDialog : Window
         DataContext = viewModel;
         Title = viewModel.Header;
         viewModel.CloseRequested += choice => Close(choice);
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close(ConfirmChoice.Cancel);
-        }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
@@ -60,14 +54,5 @@ public partial class ConfirmDialog : Window
         e.Handled = true;
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

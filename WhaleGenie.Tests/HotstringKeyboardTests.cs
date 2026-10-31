@@ -264,8 +264,8 @@ public class HotstringKeyboardTests
             var keyboard = window.OwnedWindows.OfType<HotstringKeyboardWindow>().Single();
             Click(keyboard, "x");
 
-            keyboard.FindControl<Button>("CloseButton")!
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            // 关掉它就是标题栏上那颗系统关闭键做的事：`Close()`，编辑随之作废。
+            keyboard.Close();
             Dispatcher.UIThread.RunJobs();
 
             Assert.False(keyboard.IsVisible);

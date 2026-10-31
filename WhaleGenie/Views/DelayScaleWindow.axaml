@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:loc="using:WhaleGenie.Localization"
@@ -13,9 +13,6 @@
         Title="WhaleGenie"
         Width="470" Height="330"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
@@ -23,24 +20,11 @@
     </Design.DataContext>
 
 
-    <Grid RowDefinitions="38,Auto,Auto,Auto,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-
-            <Button Grid.Column="2" Classes="Caption Close" Name="CloseButton"
-                    Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-            </Button>
-        </Grid>
-
-        <TextBlock Grid.Row="1" Margin="20,16,20,0" TextWrapping="Wrap"
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <TextBlock Grid.Row="0" Margin="20,16,20,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource TextTertiary}" FontSize="13" Text="{Binding Explanation}" />
 
-        <ItemsControl Grid.Row="2" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
+        <ItemsControl Grid.Row="1" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" />
@@ -53,7 +37,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Grid Grid.Row="3" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+        <Grid Grid.Row="2" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
             <TextBlock Grid.Column="0" Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
                        VerticalAlignment="Center" Text="×" />
             <fa:FANumberBox Grid.Column="1" Value="{Binding Factor, Converter={StaticResource Number}}" Minimum="0.1" Maximum="10"
@@ -62,14 +46,14 @@
                        VerticalAlignment="Center" Text="{Binding Display}" />
         </Grid>
 
-        <StackPanel Grid.Row="4" Margin="20,16,20,0" Spacing="6">
+        <StackPanel Grid.Row="3" Margin="20,16,20,0" Spacing="6">
             <TextBlock Foreground="{DynamicResource TextSecondary}" FontSize="12.5" TextWrapping="Wrap"
                        Text="{Binding Summary}" />
             <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap"
                        Text="{Binding Detail}" IsVisible="{Binding HasDetail}" />
         </StackPanel>
 
-        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8"
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Right" Margin="20,0,20,20">
             <Button Classes="Primary" Height="36" MinWidth="92"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
@@ -79,4 +63,4 @@
                     Command="{Binding CancelCommand}" />
         </StackPanel>
     </Grid>
-</Window>
+</views:AppWindow>

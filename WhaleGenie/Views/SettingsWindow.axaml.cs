@@ -14,7 +14,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class SettingsWindow : Window
+public partial class SettingsWindow : AppWindow
 {
     private readonly SettingsViewModel _viewModel;
     private MenuRuleRow? _ruleDragSource;
@@ -36,12 +36,6 @@ public partial class SettingsWindow : Window
             project: project, packagePath: packagePath);
         DataContext = _viewModel;
         Title = Strings.Get("Settings.Title");
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close();
-        }
 
         var doneButton = this.FindControl<Button>("DoneButton");
         if (doneButton is not null)
@@ -360,13 +354,5 @@ public partial class SettingsWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
+
 }

@@ -17,7 +17,7 @@ namespace WhaleGenie.Views;
 /// The window is what tells the two pages apart: one click means "put this in" on the structure
 /// page and "type this here" on the page written out by hand, and the same palette serves both.
 /// </summary>
-public partial class ExpressionBuilderWindow : Window
+public partial class ExpressionBuilderWindow : AppWindow
 {
     /// <summary>The press that may become a drag, waiting to see whether the pointer moves.</summary>
     private readonly DragStart _drag = new();
@@ -38,12 +38,6 @@ public partial class ExpressionBuilderWindow : Window
         // The wall knows which variable was picked; which page is in front decides what happens to
         // it, and that belongs to the window.
         viewModel.Wall.Chosen += OnVariableChosen;
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close(null);
-        }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
 
@@ -325,14 +319,5 @@ public partial class ExpressionBuilderWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

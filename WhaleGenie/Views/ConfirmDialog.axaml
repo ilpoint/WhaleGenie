@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:loc="using:WhaleGenie.Localization"
@@ -12,34 +12,18 @@
         Title="WhaleGenie"
         Width="460" Height="{Binding WindowHeight}"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
         <vm:ConfirmDialogViewModel />
     </Design.DataContext>
 
-    <Grid RowDefinitions="38,*,Auto">
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Classes="Title" Text="{Binding Header}" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <Button Grid.Column="2" Classes="Caption Close" Name="CloseButton"
-                    Margin="8,0" VerticalAlignment="Center">
-                <views:IconView Width="10" Height="10"
-                                StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-            </Button>
-        </Grid>
-
-        <ScrollViewer Grid.Row="1" Margin="20,16,20,0" VerticalScrollBarVisibility="Auto">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0" Margin="20,16,20,0" VerticalScrollBarVisibility="Auto">
             <TextBlock Classes="Body" Text="{Binding Message}" />
         </ScrollViewer>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Right" Margin="20,0,20,20">
             <Button Classes="Primary" Content="{Binding PrimaryLabel}" MinWidth="92"
                     Command="{Binding PrimaryCommand}" />
@@ -51,4 +35,4 @@
                     Command="{Binding CancelCommand}" />
         </StackPanel>
     </Grid>
-</Window>
+</views:AppWindow>

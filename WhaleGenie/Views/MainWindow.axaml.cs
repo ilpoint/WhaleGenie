@@ -27,7 +27,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : AppWindow
 {
     /// <summary>Runs the macros the list is waiting for; null until the window is open.</summary>
     private MacroTriggerService? _triggers;
@@ -166,18 +166,6 @@ public partial class MainWindow : Window
             Strings.Get("Recover.Restore"),
             Strings.Get("Recover.Discard"),
             height: 280);
-
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close();
-        }
 
         var addMacroButton = this.FindControl<Button>("AddMacroButton");
         if (addMacroButton is not null)
@@ -2278,16 +2266,6 @@ public partial class MainWindow : Window
         }
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 36)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 
     private static NativePoint? GetCursorPosition()
     {

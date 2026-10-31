@@ -22,7 +22,8 @@ public class ActionEditorWindowTests
             var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
             Assert.IsType<ActionEditorView>(window.Content);
             Assert.True(window.CanResize);
-            Assert.Equal(WindowDecorations.BorderOnly, window.WindowDecorations);
+            // 外壳是库的 `FAAppWindow`：标题栏与边框都由它画，窗口自己不再声明装饰方式。
+            Assert.IsAssignableFrom<FluentAvalonia.UI.Windowing.FAAppWindow>(window);
             window.Close();
         });
     }

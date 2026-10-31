@@ -1,5 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:WhaleGenie.Views"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:loc="using:WhaleGenie.Localization"
         x:Class="WhaleGenie.Views.BreakpointWindow"
@@ -9,10 +10,7 @@
         MinWidth="380"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        Background="{DynamicResource SurfaceWindow}"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly">
+        Background="{DynamicResource SurfaceWindow}">
 
     <Window.Styles>
         <Style Selector="TextBlock.BreakpointValue">
@@ -88,4 +86,4 @@
             </StackPanel>
         </StackPanel>
     </Border>
-</Window>
+</views:AppWindow>

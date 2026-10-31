@@ -441,7 +441,7 @@ public class MacroEditorChromeTests
     }
 
     [Fact]
-    public void The_title_bar_has_pin_minimize_maximize_and_close_buttons()
+    public void The_title_bar_keeps_the_pin_the_window_owns()
     {
         Ui.Run(() =>
         {
@@ -450,10 +450,12 @@ public class MacroEditorChromeTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
+            // 关闭、最小化、最大化现在是库画的系统按钮（窗口是 `AppWindow`，即 `FAAppWindow`）：
+            // 这一行只剩置顶——那是这一扇窗自己的状态，不是标题栏的通用件。
             var pin = window.FindControl<Button>("PinButton")!;
-            var maximize = window.FindControl<Button>("MaximizeButton")!;
-            Assert.NotNull(window.FindControl<Button>("MinimizeButton"));
-            Assert.NotNull(window.FindControl<Button>("CloseButton"));
+            Assert.Null(window.FindControl<Button>("MinimizeButton"));
+            Assert.Null(window.FindControl<Button>("MaximizeButton"));
+            Assert.Null(window.FindControl<Button>("CloseButton"));
 
             pin.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
@@ -469,19 +471,7 @@ public class MacroEditorChromeTests
             Assert.Equal(Strings.Get("Common.Pin"), ToolTip.GetTip(pin));
             Assert.Equal(AppIcons.Pin, window.FindControl<IconView>("PinIcon")!.Data);
 
-            maximize.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-            Assert.Equal(WindowState.Maximized, window.WindowState);
-            Assert.Equal(Strings.Get("Common.Restore"), ToolTip.GetTip(maximize));
-            Assert.Equal(AppIcons.Restore, window.FindControl<IconView>("MaximizeIcon")!.Data);
-
-            maximize.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-            Assert.Equal(WindowState.Normal, window.WindowState);
-            Assert.Equal(Strings.Get("Common.Maximize"), ToolTip.GetTip(maximize));
-            Assert.Equal(AppIcons.Maximize, window.FindControl<IconView>("MaximizeIcon")!.Data);
-
-            window.Close();
+            Ui.CloseAndAnswer(window);
         });
     }
 

@@ -990,30 +990,10 @@
              step back: run it. It is wider than the window buttons because it says what it is. -->
     </UserControl.Styles>
 
-    <Grid Name="FormRoot" RowDefinitions="38,*">
+    <Grid Name="FormRoot" RowDefinitions="*">
 
-        <!-- Title bar -->
-        <Grid Name="FormHeader" Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource TextPrimary}" FontSize="13"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <!-- Runs the step being written, without leaving the macro and going into a run:
-                     that is the question the dialog is open to answer, and closing it to ask loses
-                     the half-written step on the way. -->
-                <Button Classes="Chrome Icon" Name="MinimizeButton">
-                    <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
-                </Button>
-                <Button Classes="Caption Close" Name="CloseButton">
-                    <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="14">
+        <!-- 标题栏归库（宿主窗口是 `AppWindow`），表单从窗口顶部开始。 -->
+        <Grid Grid.Row="0" RowDefinitions="*,Auto" Margin="14">
             <!-- One pane: the action was chosen where the step was placed — a card dropped from the
                  library, a branch added to a switch — so there is nothing left to choose here. -->
             <Grid Name="FormBody" Grid.Row="0" ColumnDefinitions="*">

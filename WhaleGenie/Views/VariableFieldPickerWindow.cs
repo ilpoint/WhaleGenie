@@ -12,7 +12,7 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Views;
 
 /// <summary>Asks which field of a record belongs in a scalar parameter.</summary>
-public sealed class VariableFieldPickerWindow : Window
+public sealed class VariableFieldPickerWindow : AppWindow
 {
     public VariableFieldPickerWindow(IReadOnlyList<VariableDragField> fields)
     {
@@ -22,7 +22,6 @@ public sealed class VariableFieldPickerWindow : Window
         MinWidth = 320;
         MinHeight = 260;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
 
         // 窗自己的底：这是"窗体"属性，不是某一类控件的外观，所以拿令牌而不是类（规则 7）。
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");

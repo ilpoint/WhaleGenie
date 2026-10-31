@@ -24,7 +24,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class MacroEditorWindow : Window
+public partial class MacroEditorWindow : AppWindow
 {
     /// <summary>What this editor is working on: the project, the macro, the lifted ones, the pages.</summary>
     private readonly MacroEditorSession _session;
@@ -360,34 +360,6 @@ public partial class MacroEditorWindow : Window
             };
         }
 
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
-        var maximizeButton = this.FindControl<Button>("MaximizeButton");
-        if (maximizeButton is not null)
-        {
-            maximizeButton.Click += (_, _) =>
-            {
-                WindowState = WindowState == WindowState.Maximized
-                    ? WindowState.Normal
-                    : WindowState.Maximized;
-            };
-        }
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) =>
-            {
-                // Leave the recording state behind before the editor goes away.
-                _closing = true;
-                _viewModel.StopRecording();
-                Close(null);
-            };
-        }
         UpdateTitleBarButtons();
         Strings.Current.LanguageChanged += UpdateTitleBarButtons;
         Closed += (_, _) => Strings.Current.LanguageChanged -= UpdateTitleBarButtons;
@@ -2315,10 +2287,6 @@ public partial class MacroEditorWindow : Window
         }
 
         var maximized = WindowState == WindowState.Maximized;
-        if (this.FindControl<Button>("MaximizeButton") is { } maximize)
-        {
-            ToolTip.SetTip(maximize, Strings.Get(maximized ? "Common.Restore" : "Common.Maximize"));
-        }
 
         if (this.FindControl<IconView>("MaximizeIcon") is { } maximizeIcon)
         {
@@ -2500,16 +2468,6 @@ public partial class MacroEditorWindow : Window
         _recordTimer.Start();
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 
     /// <summary>Opens or folds the picked block, which is what the arrow keys do in a tree.</summary>
     private void Fold(bool open)

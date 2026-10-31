@@ -7,7 +7,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class TextPromptDialog : Window
+public partial class TextPromptDialog : AppWindow
 {
     private readonly TextPromptViewModel _viewModel;
 
@@ -24,12 +24,6 @@ public partial class TextPromptDialog : Window
         DataContext = viewModel;
         Title = viewModel.Header;
         viewModel.CloseRequested += answer => Close(answer);
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close(null);
-        }
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
@@ -77,14 +71,5 @@ public partial class TextPromptDialog : Window
         this.FindControl<TextBox>("AnswerBox")?.Focus();
     }
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

@@ -13,7 +13,7 @@ namespace WhaleGenie.Views;
 /// The panel a breakpoint's condition is written in. It answers with what to keep, which is either a
 /// rule or nothing at all — the second meaning "stop every time", or "never mind".
 /// </summary>
-public partial class BreakpointWindow : Window
+public partial class BreakpointWindow : AppWindow
 {
     public BreakpointWindow()
         : this(null, [])

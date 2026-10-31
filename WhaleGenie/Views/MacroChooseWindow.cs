@@ -32,7 +32,7 @@ public enum MacroChooseKind
 /// is ticked rather than by a second choice: macros go into the project, and submacros chosen on
 /// their own go to the public library, because that is where a thing a macro calls belongs.
 /// </remarks>
-public sealed class MacroChooseWindow : Window
+public sealed class MacroChooseWindow : AppWindow
 {
     private readonly MacroChooseKind _kind;
     private readonly MacroTreeSelection _selection;
@@ -62,8 +62,6 @@ public sealed class MacroChooseWindow : Window
         MinHeight = 380;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowDecorations = WindowDecorations.BorderOnly;
-        ExtendClientAreaToDecorationsHint = true;
         Title = Strings.Get(Head);
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
 

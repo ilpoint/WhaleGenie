@@ -67,40 +67,9 @@ public class ThemedDialogTests
                     Application.Current!.TryGetResource("UiBodySize", null, out var size) ? size : null,
                     body.FontSize);
 
-                // The close key is a caption button, sized the way WinUI sizes it: 46×32, no fill
-                // of its own until the pointer is over it.
-                var close = window.FindControl<Button>("CloseButton");
-                Assert.NotNull(close);
-                Assert.Equal(46, close!.Width);
-                Assert.Equal(32, close.Height);
-                // Nothing is filled at rest: the literal Transparent is what "no fill" means, and
-                // it is not a token because there is no value in it to keep in one place.
-                Assert.Equal(Colors.Transparent, Face(close));
-                Assert.Equal(Token("TextPrimary", "TextPrimaryColor"), Label(close));
-
-                // Leaving is not the same act as the tools beside it, so its hover says so: the
-                // WinUI close red, with the glyph turned white on top of it. The glyph is drawn
-                // with `IconView`'s own stroke, which is why that is what gets read here.
-                var glyph = close.GetVisualDescendants().OfType<IconView>().Single();
-                Assert.Equal(Token("TextPrimary", "TextPrimaryColor"), Colour(glyph.Stroke));
-
-                // Driven by the pointer rather than by the pseudo-class: the state has to be one
-                // the pointer really puts the button in. The colour that reaches the screen is the
-                // template's presenter, and `TemplatePartTests` is what holds that selector to a
-                // part that exists.
-                var centre = close.TranslatePoint(
-                    new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), window);
-                Assert.NotNull(centre);
-                window.MouseMove(centre!.Value, RawInputModifiers.None);
-                Dispatcher.UIThread.RunJobs();
-
-                Assert.Equal(Token("CaptionCloseHover", "CaptionCloseHoverColor"), Face(close));
-                Assert.Equal(Token("TextOnAccent", "TextOnAccentColor"), Colour(glyph.Stroke));
-
-                window.MouseMove(new Point(1, 1), RawInputModifiers.None);
-                Dispatcher.UIThread.RunJobs();
-                Assert.Equal(Colors.Transparent, Face(close));
-                Assert.Equal(Token("TextPrimary", "TextPrimaryColor"), Colour(glyph.Stroke));
+                // The close key belongs to the window's title bar, which the library draws: there is
+                // no button of ours left to measure here. Its look is a person's job to check on a
+                // real machine — in a headless session the library draws no title bar at all.
             }
             finally
             {

@@ -23,7 +23,7 @@ namespace WhaleGenie.Views;
 /// Runs a macro and shows what it does, one step at a time if asked. Its variable page is the
 /// runtime view: definitions are edited in the macro editor's variable center.
 /// </summary>
-public partial class RunWindow : Window
+public partial class RunWindow : AppWindow
 {
     /// <summary>The frame around the window the run is reading right now.</summary>
     private readonly ScreenFrames _frames = new();
@@ -98,12 +98,6 @@ public partial class RunWindow : Window
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
 
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close();
-        }
-
         // A macro that drives another program is watched with that program in front, so this window
         // is pinned like the editor's: the run stays in sight while the work happens behind it.
         var pinButton = this.FindControl<Button>("PinButton");
@@ -116,25 +110,10 @@ public partial class RunWindow : Window
             };
         }
 
-        var maximizeButton = this.FindControl<Button>("MaximizeButton");
-        if (maximizeButton is not null)
-        {
-            maximizeButton.Click += (_, _) =>
-                WindowState = WindowState == WindowState.Maximized
-                    ? WindowState.Normal
-                    : WindowState.Maximized;
-        }
-
         UpdateTitleBarButtons();
 
         // A run keeps going while its window is out of the way, so this one is put away on its own
         // and brought back from the taskbar when the log is wanted again.
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
         // Keep the newest log line in view, so a long run stays readable without scrolling.
         var logScroll = this.FindControl<ScrollViewer>("LogScroll");
         if (logScroll is not null)
@@ -256,10 +235,6 @@ public partial class RunWindow : Window
         }
 
         var maximized = WindowState == WindowState.Maximized;
-        if (this.FindControl<Button>("MaximizeButton") is { } maximize)
-        {
-            ToolTip.SetTip(maximize, Strings.Get(maximized ? "Common.Restore" : "Common.Maximize"));
-        }
 
         if (this.FindControl<IconView>("MaximizeIcon") is { } maximizeIcon)
         {
@@ -408,14 +383,5 @@ public partial class RunWindow : Window
     /// </summary>
     internal Task DebugAsync(MacroItem macro) => Form?.DebugAsync(macro) ?? Task.CompletedTask;
 
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.GetPosition(this).Y <= 38)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 }

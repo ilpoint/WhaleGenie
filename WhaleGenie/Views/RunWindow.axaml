@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -14,9 +14,6 @@
         Width="980" Height="700"
         MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="{DynamicResource SurfaceWindow}">
 
     <Window.Resources>
@@ -183,37 +180,16 @@
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
-            <!-- ===================== Title bar ===================== -->
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,10,10,8">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
-                       VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="13" Foreground="{DynamicResource TextPrimary}"
-                           Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />
-                <!-- The same four buttons the macro editor carries: a run is watched while the
-                     program it drives is in front, so pinning matters here for the same reason. -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+            <!-- ===================== 工具条（标题栏归库） ===================== -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,6,10,4">
+                <!-- A run is watched while the program it drives is in front, so pinning matters
+                     here; the close and size buttons beside it are the library's now. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                     <Button Classes="Chrome Icon Wide Quiet" Name="PinButton"
                             ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                         <views:IconView Name="PinIcon" Width="11" Height="11"
                                         Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
                                         FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
-                    </Button>
-                    <!-- A run carries on while its window is out of the way, which is what watching
-                         the macro work in the program it drives takes. -->
-                    <Button Classes="Chrome Icon Wide Quiet" Name="MinimizeButton"
-                            ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.Minus}" />
-                    </Button>
-                    <Button Classes="Chrome Icon Wide Quiet" Name="MaximizeButton"
-                            ToolTip.Tip="{Binding [Common.Maximize], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Name="MaximizeIcon" Width="10" Height="10"
-                                        Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
-                                        FitToBounds="True" Data="{x:Static vm:AppIcons.Maximize}" />
-                    </Button>
-                    <Button Classes="Caption Close" Name="CloseButton"
-                            ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="10" Height="10" StrokeThickness="1.2" FitToBounds="True" Data="{x:Static vm:AppIcons.X}" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -746,4 +722,4 @@
                     Command="{Binding CloseCommand}" />
         </Grid>
     </Border>
-</Window>
+</views:AppWindow>

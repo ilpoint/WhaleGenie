@@ -267,10 +267,10 @@ public class KeyRunTests
             ask.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 
+            // 把键盘收起来的那颗钮现在是库画的系统按钮，点不到；要看的是"收起来之后再点同一个
+            // 字段，回来的是这一扇窗而不是新开一扇"，所以直接把它最小化。
             var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
-            pad.GetVisualDescendants().OfType<Button>()
-                .Single(button => button.Name == "MinimizeButton")
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            pad.WindowState = WindowState.Minimized;
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(WindowState.Minimized, pad.WindowState);
