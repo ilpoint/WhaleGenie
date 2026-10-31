@@ -72,6 +72,12 @@ var window = new MainWindow { DataContext = new MainViewModel(_ => new McpServer
 **这张图只给人看，不当证据用**：没有基线、没有逐字节比对，也不进仓库。能复核的是测试——它们读的是模板里
 被涂色的那个部件（`LayerOneTests`、`ThemedDialogTests`、`ListBoxStyleTests`），不是像素。
 
+**能拍到哪些窗，要先知道**：`Views/` 里大部分窗口有公开构造函数，可以直接 `new` 出来截；但
+`MacroChooseWindow`、`MenuIconPickerWindow`、`MenuMacroPickerWindow`、`PublicMacroLibraryWindow`、
+`GlobalConflictWindow`、`ElementPickerWindow`、`PointPickerWindow`、`VariableFieldPickerWindow`、
+`ScreenFrameWindow` 要么构造函数是 `internal`，要么只有 `static ShowAsync(owner, …)`（还会等一个答案，
+截到的是一张无内容的窗）。这几扇由用例覆盖，不要为了出图去把它们改成公开。
+
 量 MCP 的易用性，不必点界面：
 
 ```powershell
@@ -585,6 +591,10 @@ Fluent 键是否真的生效）与 `ThemedDialogTests`（层 3 的类是否真�
 
 这是"同一个词两种载体"的第四种形状（前三种是 `Cell`、`VariableList`、`MenuCell`）：
 前三次是**不同控件撞名**，这一次是**同一族里有继承关系**——最隐蔽，因为选择器那一侧完全正常。
+
+**在 `Ui.Run` 的 dispatch 里再包一层，会让发现阶段卡死。** 试过把"收尾检查"包在 dispatch 回调外面
+（哪怕只是一个空的 `try/finally`）：`dotnet test` 停在 `Discovering: WhaleGenie.Tests`，进程 0% CPU，
+既没有输出也不超时。二分过一次，别再试同一条路——要加挂机点，加在测试体里，不要动 dispatch 的形状。
 
 **改类名、加类名之后一律跑全量。** 本窗那几十条用例只能证明"这一窗没坏"，证明不了"别处没坏"；
 而撞名的本质就是"别处会坏"。四次撞名里有三次都是先跑本窗（绿）、后跑全量才发现红——
