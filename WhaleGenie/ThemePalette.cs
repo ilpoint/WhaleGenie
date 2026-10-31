@@ -221,6 +221,12 @@ public static class ThemePalette
         Set(app, "AccentFillPressed", tokens.Pressed);
         Set(app, "AccentText", tokens.Text);
         Set(app, "AccentSurface", tokens.Surface);
+
+        // The tab strip's selected bar reads its own WinUI name, which the dictionary ties to
+        // `AccentFill` by a static alias — a static alias is baked when the dictionary is first
+        // parsed, so it would keep the accent the user chose before this one. Writing it here as
+        // well is what makes a custom accent reach the tab under the window it was chosen in.
+        app.Resources["PivotHeaderItemSelectedPipeFill"] = new SolidColorBrush(tokens.Fill);
     }
 
     private static void Set(Application app, string token, Color colour)
@@ -236,5 +242,7 @@ public static class ThemePalette
             app.Resources.Remove(token);
             app.Resources.Remove(token + "Color");
         }
+
+        app.Resources.Remove("PivotHeaderItemSelectedPipeFill");
     }
 }

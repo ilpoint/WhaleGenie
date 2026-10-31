@@ -28,6 +28,16 @@
     -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
+            <!--
+              WinUI 的文本填充与选中指示条。主题里的控件（页签、菜单、提示）读的是这一族名字，
+              而不是我们原先覆盖的 TextControl*/Button* 那批；少了它们，页签的选中条会是主题自己的
+              蓝色，页签文字也会落到它自己的灰上——一层看着"没生效"的样式，其实缺的是键名。
+            -->
+            <StaticResource x:Key="TextFillColorPrimaryBrush" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextFillColorSecondaryBrush" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="TextFillColorTertiaryBrush" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextFillColorDisabledBrush" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="PivotHeaderItemSelectedPipeFill" ResourceKey="AccentFill" />
             <!-- 裸按钮、也是 Button.Secondary 的底：次按钮的样子由这里给四态 -->
             <StaticResource x:Key="ButtonBackground" ResourceKey="SurfaceControl" />
             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
@@ -282,6 +292,11 @@
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
+            <StaticResource x:Key="TextFillColorPrimaryBrush" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="TextFillColorSecondaryBrush" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="TextFillColorTertiaryBrush" ResourceKey="TextTertiary" />
+            <StaticResource x:Key="TextFillColorDisabledBrush" ResourceKey="TextDisabled" />
+            <StaticResource x:Key="PivotHeaderItemSelectedPipeFill" ResourceKey="AccentFill" />
             <!-- 裸按钮、也是 Button.Secondary 的底：次按钮的样子由这里给四态 -->
             <StaticResource x:Key="ButtonBackground" ResourceKey="SurfaceControl" />
             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="SurfaceControlHover" />
