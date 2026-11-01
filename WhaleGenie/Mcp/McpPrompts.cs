@@ -65,9 +65,9 @@ public sealed class McpPrompts
         - reading it: list_macros, get_macro, get_step, get_macro_signature, get_globals, validate.
         - writing it: put_macro, patch_macro, delete_macro, set_globals.
         - pictures: put_image (it needs the direct-control switch) stores a PNG, JPEG, BMP or GIF
-          beside the package and answers with the file name; a step points at it through a
-          parameter called image, for example {"image":"shot.png"}, and the file travels with the
-          package when the project is saved.
+          in the project's own assets folder, under the program's data folder, and answers with the
+          file name; a step points at it through a parameter called image, for example
+          {"image":"shot.png"}, and the file travels with the package when the project is saved.
         - the catalogue: list_actions, get_actions, get_action, macro_template, instructions.
         - running: run_macro, stop_macro, run_status, list_runs, get_run_log,
           get_last_failure_log.

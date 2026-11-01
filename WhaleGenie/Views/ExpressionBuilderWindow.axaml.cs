@@ -30,6 +30,7 @@ public partial class ExpressionBuilderWindow : AppWindow
     public ExpressionBuilderWindow(ExpressionBuilderViewModel viewModel)
     {
         InitializeComponent();
+        WindowChrome.Attach(this);
 
         DataContext = viewModel;
         Title = viewModel.Header;

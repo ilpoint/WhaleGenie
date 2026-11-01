@@ -857,7 +857,7 @@ public class MacroEditorTests
             Assert.NotNull(window.FindControl<Border>("MacroSettingsDrawer"));
 
             var action = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
-            Assert.IsType<ActionEditorView>(action.Content);
+            Assert.NotNull(action.View);
             action.Close();
         });
     }
@@ -1111,6 +1111,59 @@ public class MacroEditorTests
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(model.Cards, card => card.Key == "control.repeat");
             Assert.All(model.Cards, card => Assert.StartsWith("control.", card.Key));
+        });
+    }
+
+    /// <summary>
+    /// 步骤行是两行字，行高下限 42；但**不能是定高**：名称与徽标换行时行还要继续长高。
+    /// 定高的地方多出来的那一行会压到卡片边线下面，看起来就是"字被边框挡住"。
+    /// </summary>
+    [Fact]
+    public void A_step_row_starts_at_forty_two_and_grows_with_its_writing()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.AddStep(new MacroStep { Type = "control.delay" });
+            Dispatcher.UIThread.RunJobs();
+
+            var item = window.FindControl<ListBox>("StepList")!
+                .GetVisualDescendants().OfType<ListBoxItem>().First();
+            var card = item.GetVisualDescendants().OfType<Border>()
+                .First(border => border.Classes.Contains("Card"));
+
+            Assert.True(item.Bounds.Height >= 42, $"步骤行只有 {item.Bounds.Height:0} 高");
+            Assert.True(item.Bounds.Height + 0.5 >= card.Bounds.Height,
+                $"行高 {item.Bounds.Height:0} 装不下卡片 {card.Bounds.Height:0}，下面那条字会被裁掉");
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// 步骤 ID 的提示只挂在 ID 那枚徽标上。整张卡片都提示，等于每一步随手一指都弹出同一句，
+    /// 挡住本来要看的两行字。
+    /// </summary>
+    [Fact]
+    public void Only_the_id_badge_explains_the_step_id()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.AddStep(new MacroStep { Type = "control.delay" });
+            Dispatcher.UIThread.RunJobs();
+
+            var item = window.FindControl<ListBox>("StepList")!
+                .GetVisualDescendants().OfType<ListBoxItem>().First();
+            var card = item.GetVisualDescendants().OfType<Border>()
+                .First(border => border.Classes.Contains("Card"));
+            var badge = card.GetVisualDescendants().OfType<Border>()
+                .First(border => border.Classes.Contains("Accent"));
+
+            var row = viewModel.Rows.First(step => step.IsStep);
+            Assert.Null(ToolTip.GetTip(card));
+            Assert.Equal(row.IdHint, ToolTip.GetTip(badge) as string);
+            Assert.Contains(row.Id, row.IdHint, StringComparison.Ordinal);
+            window.Close();
         });
     }
 

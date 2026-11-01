@@ -942,8 +942,9 @@
                                 ContentTemplate="{StaticResource ParameterEditor}"
                                 IsVisible="{Binding HasThird}" />
                 <!-- A position is taken from the pointer with Alt + X, and a click point from the
-                     reference picture itself. -->
-                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="2,6,0,0" Spacing="6">
+                     reference picture itself; a pattern's colours are picked off the picture too.
+                     都在同一格里：同一个 `Grid.Row` 上放两个元素，它们会叠在一起。 -->
+                <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="2,6,0,0" Spacing="6">
                     <TextBlock Classes="Hint" TextWrapping="Wrap"
                                IsVisible="{Binding ShowsPositionHint}"
                                Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
@@ -953,6 +954,51 @@
                             ToolTip.Tip="{Binding [Add.PickOffsetHint], Source={x:Static loc:Strings.Current}}"
                             Content="{Binding [Add.PickOffset], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickOffset" />
+
+                    <!-- 基准色周围要对的颜色：有标题、有已加入的那几处、也有拾取它的按钮。列表只读，
+                         改与删都在拾取窗口里做；这里列出来是为了不打开窗口也知道这一步在比对什么。 -->
+                    <StackPanel Spacing="7" Margin="0,2,0,0"
+                                IsVisible="{Binding ShowsColourPointsPick}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock Classes="FieldLabel" VerticalAlignment="Center"
+                                       Text="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).PatternTitle}" />
+                            <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
+                                    ToolTip.Tip="{Binding [Add.PickColoursHint], Source={x:Static loc:Strings.Current}}"
+                                    Content="{Binding [Add.PickColours], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnPickColourPoints" />
+                        </Grid>
+
+                        <Border Classes="Sunken" Padding="8,6"
+                                IsVisible="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).HasPatternPoints}">
+                            <ItemsControl
+                                ItemsSource="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).PatternPoints}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ColourPointRow">
+                                        <Grid ColumnDefinitions="26,Auto,*,Auto" ColumnSpacing="10"
+                                              Margin="0,1">
+                                            <TextBlock Text="{Binding Label}" FontSize="12"
+                                                       Foreground="{DynamicResource TextTertiary}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Offset}" FontSize="12"
+                                                       Classes="Mono"
+                                                       Foreground="{DynamicResource TextPrimary}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Colour}" FontSize="12"
+                                                       Classes="Mono"
+                                                       Foreground="{DynamicResource TextSecondary}" />
+                                            <Border Grid.Column="3" Width="14" Height="14"
+                                                    CornerRadius="3" VerticalAlignment="Center"
+                                                    Background="{Binding Colour, Converter={StaticResource HexBrush}}"
+                                                    BorderBrush="{DynamicResource BorderControl}"
+                                                    BorderThickness="1" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <TextBlock Classes="Hint"
+                                   IsVisible="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).PatternIsEmpty}"
+                                   Text="{Binding [Add.PatternEmpty], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Where these numbers are counted from, said once for the line they are on. -->

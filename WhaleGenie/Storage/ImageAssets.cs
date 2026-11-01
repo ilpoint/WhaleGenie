@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Storage;
 
@@ -29,7 +30,7 @@ public static class ImageAssets
 
     /// <summary>Takes a rectangle off the screen and stores it as a PNG, reporting its path.</summary>
     public static string Capture(IScreenDevice screen, int x, int y, int width, int height, string folder)
-        => Save(screen.Capture(x, y, width, height), folder);
+        => Save(ScreenReady.Capture(screen, x, y, width, height), folder);
 
     /// <summary>Writes a block of pixels out as an opaque PNG and reports the file it made.</summary>
     public static string Save(ImageFrame frame, string folder)

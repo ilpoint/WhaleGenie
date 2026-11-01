@@ -468,6 +468,12 @@ public sealed partial class MacroRunner
         var tolerance = ReadValue(step, "tolerance").AsNumber();
         var least = ReadValue(step, "minCoverage").AsNumber() / 100;
 
+        if (HasPoint(step))
+        {
+            FindColorAtPoint(step, depth, target, tolerance, least);
+            return;
+        }
+
         // The share is only measured when the step asks about it, either by handing it over or by
         // saying below which share it will not act: the walk it costs is otherwise wasted.
         var measured = least > 0 || step.Return("coverage").Length > 0;
@@ -495,6 +501,48 @@ public sealed partial class MacroRunner
         GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? LogKeys.ImageMissing : LogKeys.ImageFound,
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
+    }
+
+    /// <summary>
+    /// A place or a pair of coordinates narrows the search to that one pixel. The point rules are
+    /// the same ones the pixel-reading actions use, and giving a point deliberately wins over the
+    /// region so a step cannot keep two answers for where it looked.
+    /// </summary>
+    private bool HasPoint(ExecutableStep step)
+        => RecordedPlaceAndBasis(step, "place") is not null
+           || step.Text("x").Trim().Length > 0
+           || step.Text("y").Trim().Length > 0;
+
+    private void FindColorAtPoint(ExecutableStep step, int depth, PixelColor target,
+        double tolerance, double least)
+    {
+        var (point, window) = Spot(step);
+        var colour = PixelAt(step, point, window);
+        var matched = colour.Matches(target, tolerance) && least <= 1;
+        var hits = matched
+            ? new List<ImageMatch>
+            {
+                new(1 - colour.DistanceTo(target), point, new ScreenSize(1, 1)),
+            }
+            : [];
+
+        Give(step, "coverage", Value.FromNumber(matched ? 100 : 0));
+        Give(step, "found", Value.FromBool(matched));
+        if (!matched)
+        {
+            GiveNothing(step);
+        }
+        else
+        {
+            var hit = hits[0];
+            GiveMatch(step, hit.Location, hit.Size, hit.Score);
+        }
+
+        GiveEvery(step, HitRecords(hits));
+        SawPixel(step, point, colour.ToHex(), window);
+        Log(LogLevel.Info, depth, step.Type,
+            matched ? LogKeys.ImageFound : LogKeys.ImageMissing,
+            matched ? $"{point.X},{point.Y}" : string.Empty);
     }
 
     /// <summary>
@@ -573,6 +621,14 @@ public sealed partial class MacroRunner
     /// </summary>
     private void FindColours(ExecutableStep step, int depth)
     {
+        // A place or a pair of numbers narrows the pattern to one pixel — the same rule the single
+        // colour follows, for the same reason: a step cannot keep two answers for where it looked.
+        if (HasPoint(step))
+        {
+            FindColoursAtPoint(step, depth);
+            return;
+        }
+
         var hits = PatternHits(step);
         var match = Chosen(hits, step);
         Give(step, "found", Value.FromBool(match is not null));
@@ -588,6 +644,56 @@ public sealed partial class MacroRunner
         GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? LogKeys.ImageMissing : LogKeys.ImageFound,
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
+    }
+
+    /// <summary>
+    /// The pattern read at the one pixel the step names rather than looked for across a region: the
+    /// colour in the middle and each colour the pattern says is around it, all read where the step
+    /// points. The score is how close the whole pattern came, worked out the same way it is for a
+    /// found one, so a point whose neighbours are off gives the same number a search would have.
+    /// </summary>
+    private void FindColoursAtPoint(ExecutableStep step, int depth)
+    {
+        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
+        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var around = Pattern(step);
+        var (point, window) = Spot(step);
+
+        var colour = PixelAt(step, point, window);
+        var distance = colour.DistanceTo(target);
+        var matched = colour.Matches(target, tolerance);
+        foreach (var beside in around)
+        {
+            // Beside the pixel the step names, in screen pixels: a pattern says where its colours
+            // are relative to the middle, and the middle is the point that was given.
+            var other = PixelAt(step, new ScreenPoint(point.X + beside.Dx, point.Y + beside.Dy), window);
+            distance += other.DistanceTo(beside.Colour);
+            matched &= other.Matches(beside.Colour, tolerance);
+        }
+
+        var hits = matched
+            ? new List<ImageMatch>
+            {
+                new(1 - (distance / (around.Count + 1)), point, new ScreenSize(1, 1)),
+            }
+            : [];
+
+        Give(step, "found", Value.FromBool(matched));
+        if (!matched)
+        {
+            GiveNothing(step);
+        }
+        else
+        {
+            var hit = hits[0];
+            GiveMatch(step, hit.Location, hit.Size, hit.Score);
+        }
+
+        GiveEvery(step, HitRecords(hits));
+        SawPixel(step, point, colour.ToHex(), window);
+        Log(LogLevel.Info, depth, step.Type,
+            matched ? LogKeys.ImageFound : LogKeys.ImageMissing,
+            matched ? $"{point.X},{point.Y}" : string.Empty);
     }
 
     /// <summary>
@@ -650,16 +756,16 @@ public sealed partial class MacroRunner
         foreach (var entry in text.Split([';', '\n', '\r'],
                      StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            var parts = entry.Split(',', StringSplitOptions.TrimEntries);
-            if (parts.Length != 3
-                || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var dx)
-                || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var dy)
-                || !IsColour(parts[2]))
+            // Split where the commas separate the three parts, not inside a function: an offset
+            // may be worked out by one, and max(1,3) holds a comma of its own.
+            var parts = ColourPointText.Split(entry);
+            if (parts.Count != 3)
             {
                 throw new StepFailure(RunKeys.BadPoints, entry);
             }
 
-            around.Add(new ColourStep(dx, dy, PixelColor.Parse(parts[2])));
+            around.Add(new ColourStep(PatternOffset(parts[0], entry), PatternOffset(parts[1], entry),
+                PatternColour(parts[2], entry)));
         }
 
         if (around.Count == 0)
@@ -668,6 +774,57 @@ public sealed partial class MacroRunner
         }
 
         return around;
+    }
+
+    /// <summary>
+    /// One offset of a pattern. It is written out more often than not, and that is read straight;
+    /// anything else is a value — a variable, or a sum of them — worked out here, so a pattern can be
+    /// moved by a number another step produced instead of being retyped.
+    /// </summary>
+    private int PatternOffset(string token, string entry)
+    {
+        if (int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var written))
+        {
+            return written;
+        }
+
+        var value = PatternValue(token, entry);
+        if (value.IsNumber)
+        {
+            return (int)Math.Round(value.AsNumber(), MidpointRounding.AwayFromZero);
+        }
+
+        return int.TryParse(value.AsText().Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out var number)
+            ? number
+            : throw new StepFailure(RunKeys.BadPoints, entry);
+    }
+
+    /// <summary>One colour of a pattern: a colour, or a value that holds one.</summary>
+    private PixelColor PatternColour(string token, string entry)
+    {
+        if (IsColour(token))
+        {
+            return PixelColor.Parse(token);
+        }
+
+        var text = PatternValue(token, entry).AsText().Trim();
+        return IsColour(text)
+            ? PixelColor.Parse(text)
+            : throw new StepFailure(RunKeys.BadPoints, entry);
+    }
+
+    /// <summary>A part of a pattern read as a value, with a bad one reported as the whole line.</summary>
+    private Value PatternValue(string token, string entry)
+    {
+        try
+        {
+            return Read(token);
+        }
+        catch (StepFailure)
+        {
+            throw new StepFailure(RunKeys.BadPoints, entry);
+        }
     }
 
     /// <summary>
@@ -825,20 +982,6 @@ public sealed partial class MacroRunner
     /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
     private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
 
-    /// <summary>Reads one pixel once and reports whether it matches the colour the step names.</summary>
-    private void PixelMatches(ExecutableStep step, int depth)
-    {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
-        var (point, window) = Spot(step);
-        var colour = PixelAt(step, point, window);
-        var matched = colour.Matches(target, tolerance);
-        Give(step, "matched", Value.FromBool(matched));
-        SawPixel(step, point, colour.ToHex(), window);
-        Log(LogLevel.Info, depth, step.Type,
-            matched ? LogKeys.SawColor : LogKeys.ImageMissing, colour.ToHex());
-    }
-
 
     /// <summary>
     /// The vision actions, each answered by the method written for it. Step types of
@@ -860,10 +1003,6 @@ public sealed partial class MacroRunner
             case "vision.getPixel":
                 await Gate(step, token);
                 Watching(() => GetPixel(step, depth));
-                return Signal.Normal;
-            case "vision.pixelMatches":
-                await Gate(step, token);
-                Watching(() => PixelMatches(step, depth));
                 return Signal.Normal;
             case "vision.waitColor":
                 await Gate(step, token);

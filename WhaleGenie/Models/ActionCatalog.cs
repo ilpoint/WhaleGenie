@@ -66,6 +66,7 @@ public static class ActionCatalog
                     Tall = field.Tall,
                     Increment = field.Increment,
                     Advanced = field.Advanced,
+                    WrittenByTool = field.WrittenByTool,
                     AddLabelKey = field.AddLabelKey,
                 });
             }
@@ -219,6 +220,8 @@ public static class ActionCatalog
         public decimal Increment { get; init; } = 1m;
 
         public bool Advanced { get; init; }
+
+        public bool WrittenByTool { get; init; }
 
         public string AddLabelKey { get; init; } = string.Empty;
     }

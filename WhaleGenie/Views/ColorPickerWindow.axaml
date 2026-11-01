@@ -12,36 +12,52 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual"
-        Background="{DynamicResource SurfaceWindow}">
+        Background="Transparent">
 
-    <Border BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" CornerRadius="8" Padding="12">
-        <StackPanel Spacing="10">
-            <!-- A 21x21 patch of screen, with every pixel drawn as a 12x12 block -->
-            <Canvas Width="252" Height="252" HorizontalAlignment="Center" ClipToBounds="True">
-                <Image Name="Preview" Canvas.Left="0" Canvas.Top="0"
-                       Width="252" Height="252" Stretch="Fill"
-                       RenderOptions.BitmapInterpolationMode="None" />
-                <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
-                <Border Name="Target" Width="12" Height="12"
-                        BorderBrush="#FF3B30" BorderThickness="2"
-                        Canvas.Left="120" Canvas.Top="120" IsHitTestVisible="False" />
-                <Border Width="252" Height="252" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
-                        Canvas.Left="0" Canvas.Top="0" IsHitTestVisible="False" />
-            </Canvas>
+    <!--
+      取色器和框选、拾取坐标一样铺满整个桌面，底下是自己打开那一刻的画面。看的就是取的那一张：
+      桌面在放大镜后面继续动（滚轮把网页翻走、窗口自己刷新）时，"看到的"和"取到的"就会分家，
+      而这是取色最不能出的一种错。铺满之后指针落在自己的窗口上，滚轮也翻不动后面的东西。
+      放大镜是这张画面上的一个浮层，跟着指针走。
+    -->
+    <Grid>
+        <Image Name="Desk" Stretch="Fill" IsHitTestVisible="False" />
+        <Canvas Name="Surface">
+            <Border Name="Panel" Width="292"
+                    Background="{DynamicResource SurfaceWindow}"
+                    BorderBrush="{DynamicResource BorderControl}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12">
+                <StackPanel Spacing="10">
+                    <!-- A 21x21 patch of screen, with every pixel drawn as a 12x12 block -->
+                    <Canvas Width="252" Height="252" HorizontalAlignment="Center" ClipToBounds="True">
+                        <Image Name="Preview" Canvas.Left="0" Canvas.Top="0"
+                               Width="252" Height="252" Stretch="Fill"
+                               RenderOptions.BitmapInterpolationMode="None" />
+                        <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
+                        <Border Name="Target" Width="12" Height="12"
+                                BorderBrush="#FF3B30" BorderThickness="2"
+                                Canvas.Left="120" Canvas.Top="120" IsHitTestVisible="False" />
+                        <Border Width="252" Height="252" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
+                                Canvas.Left="0" Canvas.Top="0" IsHitTestVisible="False" />
+                    </Canvas>
 
-            <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
-            <Border Name="ColourChip" Height="36" CornerRadius="5"
-                    BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" Background="#000000" />
+                    <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
+                    <Border Name="ColourChip" Height="36" CornerRadius="5"
+                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" Background="#000000" />
 
-            <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
-            <TextBlock Name="ColourText" FontSize="19" Foreground="#F0F0F0"
-                       FontFamily="Consolas,Menlo,monospace" HorizontalAlignment="Center" />
-            <TextBlock Name="RgbText" FontSize="14" Foreground="{DynamicResource TextTertiary}" HorizontalAlignment="Center" />
-            <TextBlock Name="PointText" FontSize="14" Foreground="{DynamicResource TextTertiary}" HorizontalAlignment="Center" />
+                    <!-- 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。 -->
+                    <TextBlock Name="ColourText" FontSize="19" Foreground="#F0F0F0"
+                               FontFamily="Consolas,Menlo,monospace" HorizontalAlignment="Center" />
+                    <TextBlock Name="RgbText" FontSize="14" Foreground="{DynamicResource TextTertiary}" HorizontalAlignment="Center" />
+                    <TextBlock Name="PointText" FontSize="14" Foreground="{DynamicResource TextTertiary}" HorizontalAlignment="Center" />
 
-            <TextBlock FontSize="13" Foreground="{DynamicResource TextTertiary}" Width="252" TextWrapping="Wrap"
-                       HorizontalAlignment="Center" TextAlignment="Center"
-                       Text="{Binding [Picker.ConfirmHint], Source={x:Static loc:Strings.Current}}" />
-        </StackPanel>
-    </Border>
+                    <TextBlock FontSize="13" Foreground="{DynamicResource TextTertiary}" Width="252" TextWrapping="Wrap"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Text="{Binding [Picker.ConfirmHint], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+            </Border>
+        </Canvas>
+    </Grid>
 </Window>

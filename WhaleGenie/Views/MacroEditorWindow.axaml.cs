@@ -698,7 +698,8 @@ public partial class MacroEditorWindow : AppWindow
 
         try
         {
-            MacroPackage.Save(path, [macro], MacroBundle.UsedGlobals([macro]), AppVersion.Text);
+            MacroPackage.Save(path, [macro], MacroBundle.UsedGlobals([macro]), AppVersion.Text,
+                _session.AssetFolder);
         }
         catch (Exception error)
         {
@@ -2663,6 +2664,17 @@ public partial class MacroEditorWindow : AppWindow
     private void UpdateDropSlot(PointerEventArgs e)
         => UpdateDropSlot(e.GetPosition(_stepList), actionKey: null);
 
+    /// <summary>
+    /// The same question asked without a pointer, answered with what the marker would say: which
+    /// seam the action lands on, whether it lands inside a block, and whether the drop is allowed.
+    /// A drag cannot be driven from a check, and the seams a list offers are worth one.
+    /// </summary>
+    internal (int Slot, MacroStep? Into, bool Allowed) DropSlotAt(Point point, string? actionKey)
+    {
+        UpdateDropSlot(point, actionKey);
+        return (_dropSlot, _dropInto, _dropAllowed);
+    }
+
     private void UpdateDropSlot(Point point, string? actionKey = null)
     {
         if (_stepList is null)
@@ -2705,30 +2717,42 @@ public partial class MacroEditorWindow : AppWindow
                 index == boxes.Count - 1 ? double.PositiveInfinity : (box.Top + box.Height + boxes[index + 1].Top) / 2))
             .ToList();
 
-        // A block whose one list is empty is one target from its title to its closing line, the
-        // gaps between those rows included: the rows are separate items, and a pointer in a gap
-        // used to fall through to "before the block" for the row below it.
-        // Whether the drag came from the palette or from a row, an empty body is one place to put it.
+        // A block whose one list is empty is one target from its title row's body onward, the gaps
+        // between those rows included: the rows are separate items, and a pointer in a gap used to
+        // fall through to "before the block" for the row below it.
+        //
+        // The band is the block's *body*, not everything the rows answer for. Reading it off the
+        // rows' own zones made it reach past the block on both sides, so a list holding one such
+        // block had nowhere left that meant "before it" or "after it" — the whole list was the
+        // inside of that one block. And a collapsed block has no body rows at all, which is the
+        // other half of the same bug: the band named a title row that did not exist, threw while
+        // the pointer was being dragged over, and left the drop refused for the whole list.
         {
             var emptyBand = visible
                 .Where(candidate => EmptySingleList(candidate.Row.Step))
                 .GroupBy(candidate => candidate.Row.Step)
-                .Where(band => point.Y >= band.Min(candidate => candidate.ZoneTop)
-                    && point.Y < band.Max(candidate => candidate.ZoneBottom))
-                .OrderBy(band => band.Min(candidate => candidate.ZoneTop))
+                .Select(band => (Rows: band.ToList(), Step: band.Key))
+                .Where(band => band.Rows.Any(candidate => candidate.Row.IsHead))
+                .Where(band => point.Y >= band.Rows.Where(candidate => candidate.Row.IsHead)
+                        .Min(candidate => candidate.Top)
+                    && point.Y < band.Rows.Where(candidate => candidate.Row.IsFoot)
+                        .Select(candidate => candidate.Top + candidate.Height)
+                        .DefaultIfEmpty(double.PositiveInfinity)
+                        .Max())
+                .OrderBy(band => band.Rows.Min(candidate => candidate.Top))
                 .FirstOrDefault();
-            if (emptyBand is not null)
+            if (emptyBand.Rows is { } rows)
             {
                 // The band stands for "inside this block", the same thing the middle of a filled
                 // block means: slot -1 with the block named. Landing it on the block's own row
                 // instead put the action before the block, which looked like a drop that did not
                 // take. The marker is drawn where the body begins, so the band sits inside.
-                var body = emptyBand.OrderBy(candidate => candidate.Row.RowIndex).First();
-                var title = emptyBand.FirstOrDefault(candidate => candidate.Row.IsHead);
-                _dropInto = body.Row.Step;
+                var body = rows.OrderBy(candidate => candidate.Row.RowIndex)
+                    .First(candidate => candidate.Row.IsHead);
+                _dropInto = emptyBand.Step;
                 _dropSlot = -1;
-                _dropMarkerY = title.Top;
-                _dropMarkerIndent = (title.Row.Depth + 1) * 18;
+                _dropMarkerY = body.Top;
+                _dropMarkerIndent = (body.Row.Depth + 1) * 18;
                 _dropHintKey = "Editor.DropIntoEmptyList";
                 EvaluateDrop(_dropSlot, _dropInto, actionKey);
                 ShowDropMarker();

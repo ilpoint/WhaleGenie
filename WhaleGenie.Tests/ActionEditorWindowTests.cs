@@ -20,7 +20,15 @@ public class ActionEditorWindowTests
         Ui.Run(() =>
         {
             var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
-            Assert.IsType<ActionEditorView>(window.Content);
+            var grid = Assert.IsType<Grid>(window.Content);
+            Assert.Contains(grid.Children, child => child is ActionEditorView);
+            var bar = Assert.IsType<Grid>(grid.Children[0]);
+            Assert.Contains(bar.Children.OfType<TextBlock>(),
+                text => text.Text == Strings.Get("Editor.ActionEditor"));
+            Assert.Contains(bar.Children.OfType<Image>(), image => image.Source is not null);
+            Assert.True(window.TitleBar.ExtendsContentIntoTitleBar);
+            Assert.Equal(40, window.TitleBar.Height);
+            Assert.NotNull(window.Icon);
             Assert.True(window.CanResize);
             // 外壳是库的 `FAAppWindow`：标题栏与边框都由它画，窗口自己不再声明装饰方式。
             Assert.IsAssignableFrom<FluentAvalonia.UI.Windowing.FAAppWindow>(window);

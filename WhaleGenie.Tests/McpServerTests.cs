@@ -14,6 +14,7 @@ using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -297,8 +298,8 @@ public class McpServerTests : IDisposable
                 Assert.Equal(1, answer.GetProperty("height").GetInt32());
                 Assert.Equal(file, answer.GetProperty("parameter").GetProperty("image").GetString());
 
-                // Beside the package, under the folder that belongs to it.
-                var stored = Path.Combine(folder, "proj.assets", file);
+                // Under the folder the package owns, in the program's own data folder.
+                var stored = Path.Combine(ImageAssets.FolderFor(path), file);
                 Assert.True(File.Exists(stored), stored);
 
                 // A second picture under the same name is kept, not written over: a step still
@@ -390,7 +391,7 @@ public class McpServerTests : IDisposable
                 Assert.Contains(viewModel.Macros, macro => macro.Name == "AI宏");
 
                 await Call(client, "whalegenie_save_project", new Dictionary<string, object?>());
-                Assert.True(File.Exists(path + ".bak"));
+                Assert.True(File.Exists(MacroPackage.BackupPathFor(path)));
                 await loop.StopAsync();
             }
             finally

@@ -97,7 +97,6 @@ public class ProjectTriggerTests
         });
         triggers.StoreLayout(new WindowRule(Title: "Notepad"), 30, 70);
         triggers.StoreInterfaceHotkey(new WindowRule(Title: "Notepad"), "Ctrl+Alt+N");
-        triggers.MenuLauncher = "Ctrl+Alt+M";
         var page = triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
         triggers.Entries.Add(new TriggerEntry
         {
@@ -115,7 +114,6 @@ public class ProjectTriggerTests
         Assert.Equal(3, restored.Entries.Count);
         Assert.Equal("sig", restored.Entries[0].Abbreviation);
         Assert.True(restored.Entries[0].MatchInsideWord);
-        Assert.Equal("Ctrl+Alt+M", restored.MenuLauncher);
         Assert.Equal(30, Assert.Single(restored.InterfaceLayouts).OffsetX);
         Assert.Equal("Ctrl+Alt+N", Assert.Single(restored.InterfaceLayouts).ToggleHotkey);
         Assert.Single(restored.CommonMenuPages());
@@ -257,7 +255,6 @@ public class ProjectTriggerTests
                 MacroName = macro.Name,
                 Abbreviation = ";r",
             });
-            triggers.MenuLauncher = "F9";
             var context = triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
             triggers.Entries.Add(new TriggerEntry
             {
@@ -275,7 +272,6 @@ public class ProjectTriggerTests
             Assert.NotNull(loaded);
             Assert.Contains(loaded!.Triggers.Entries, entry =>
                 entry.Kind == TriggerKind.Hotstring && entry.Abbreviation == ";r");
-            Assert.Equal("F9", loaded.Triggers.MenuLauncher);
             Assert.Single(loaded.Triggers.ContextMenuPages());
             Assert.Contains(loaded.Triggers.Entries, entry =>
                 entry.Kind == TriggerKind.Menu

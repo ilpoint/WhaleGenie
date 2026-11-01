@@ -320,7 +320,7 @@ public class WindowRulePickerTests
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
-                var view = Assert.IsType<ActionEditorView>(window.Content);
+                var view = window.View;
                 view.SelectAction("vision.getPixel");
                 Dispatcher.UIThread.RunJobs();
 

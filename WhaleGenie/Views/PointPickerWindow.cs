@@ -177,17 +177,9 @@ public sealed class PointPickerWindow : Window
             return;
         }
 
-        ScreenComposed.Wait();
-
-        ImageFrame frame;
-        try
-        {
-            frame = _screen.Capture(origin.X, origin.Y, size.Width, size.Height);
-        }
-        catch (Exception)
-        {
-            return;
-        }
+        // Taken once the screen has stopped changing: the program's own windows went off a moment
+        // ago, and a shot taken before the desktop has drawn that comes back with them still in it.
+        var frame = ScreenReady.Capture(_screen, origin.X, origin.Y, size.Width, size.Height);
 
         if (frame.IsEmpty || frame.Width != size.Width || frame.Height != size.Height)
         {

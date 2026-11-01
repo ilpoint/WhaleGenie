@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -204,28 +206,44 @@ public class InterfaceSurfaceTests
     [Fact]
     public void An_interface_group_hotkey_is_checked_against_menu_launchers()
     {
-        Ui.Run(() =>
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-settings-" + Guid.NewGuid().ToString("N"));
+        var stored = LocalSettings.FilePath;
+        try
         {
-            var rule = new WindowRule(Title: "target");
-            var macro = new MacroItem { Name = "one" };
-            macro.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Interface,
-                MacroName = macro.Name,
-                WindowTarget = rule,
-            });
-            var triggers = ProjectTriggers.FromMacros([macro]);
-            triggers.StoreInterfaceHotkey(rule, "Ctrl+Alt+U");
-            triggers.MenuLauncher = "Ctrl+Alt+U";
+            Directory.CreateDirectory(folder);
+            LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+            LocalSettings.StoreMenuLauncher("Ctrl+Alt+U");
 
-            var editor = new MacroEditorViewModel();
-            editor.LoadFrom(macro);
-            editor.LoadProjectTriggerSettings(triggers, [macro]);
-            editor.SelectedTrigger = editor.TriggerEntries
-                .Single(entry => entry.Kind == TriggerKind.Interface);
-            Assert.True(editor.HasTriggerProblem);
-            Assert.Contains("Ctrl+Alt+U", editor.TriggerProblemSummary);
-        });
+            Ui.Run(() =>
+            {
+                var rule = new WindowRule(Title: "target");
+                var macro = new MacroItem { Name = "one" };
+                macro.Triggers.Add(new TriggerEntry
+                {
+                    Kind = TriggerKind.Interface,
+                    MacroName = macro.Name,
+                    WindowTarget = rule,
+                });
+                var triggers = ProjectTriggers.FromMacros([macro]);
+                triggers.StoreInterfaceHotkey(rule, "Ctrl+Alt+U");
+
+                var editor = new MacroEditorViewModel();
+                editor.LoadFrom(macro);
+                editor.LoadProjectTriggerSettings(triggers, [macro]);
+                editor.SelectedTrigger = editor.TriggerEntries
+                    .Single(entry => entry.Kind == TriggerKind.Interface);
+                Assert.True(editor.HasTriggerProblem);
+                Assert.Contains("Ctrl+Alt+U", editor.TriggerProblemSummary);
+            });
+        }
+        finally
+        {
+            LocalSettings.FilePath = stored;
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
     }
 
     [Fact]

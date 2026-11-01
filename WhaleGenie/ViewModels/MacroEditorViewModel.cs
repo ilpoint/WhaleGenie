@@ -106,7 +106,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     private readonly Dictionary<string, InterfaceLayout> _interfaceLayouts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IReadOnlyList<InterfaceGroupMember>> _interfaceMembers =
         new(StringComparer.Ordinal);
-    private string _projectMenuLauncher = string.Empty;
 
     /// <summary>How many step-list changes can be undone.</summary>
     private const int HistoryLimit = 60;
@@ -170,7 +169,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     public void LoadProjectTriggerSettings(ProjectTriggers triggers,
         IReadOnlyList<MacroItem> macros)
     {
-        _projectMenuLauncher = triggers.MenuLauncher;
         _interfaceLayouts.Clear();
         foreach (var layout in triggers.InterfaceLayouts)
         {
@@ -357,7 +355,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                     && entry.BindKey.Trim().Length > 0)
                 .Select(entry => entry.BindKey.Trim())
                 .Concat(InterfaceHotkeysForChecks())
-                .Append(_projectMenuLauncher)
+                .Append(LocalSettings.LoadMenuLauncher())
                 .Append(LocalSettings.LoadSystemHotkey())
                 .Where(binding => binding.Length > 0)
                 .GroupBy(binding => binding, StringComparer.OrdinalIgnoreCase)

@@ -55,14 +55,14 @@ public class ProjectSaveTests
             first.SavePackage(path);
 
             // Nothing was replaced yet, so there is nothing to keep.
-            Assert.False(File.Exists(path + ".bak"));
+            Assert.False(File.Exists(MacroPackage.BackupPathFor(path)));
 
             var second = new MainViewModel();
             second.AddMacro(new MacroItem { Name = "logout" });
             second.SavePackage(path);
 
             // What is kept is the package that was there before, not the one just written.
-            var kept = MacroPackage.Load(path + ".bak");
+            var kept = MacroPackage.Load(MacroPackage.BackupPathFor(path));
             Assert.Contains(kept.Macros, macro => macro.Name == "login");
             Assert.DoesNotContain(kept.Macros, macro => macro.Name == "logout");
             Assert.Contains(MacroPackage.Load(path).Macros, macro => macro.Name == "logout");

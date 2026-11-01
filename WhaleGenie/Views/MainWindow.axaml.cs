@@ -225,11 +225,42 @@ public partial class MainWindow : AppWindow
     private bool Leaving => Tray is null || Tray.IsLeaving;
 
     /// <summary>
+    /// Applies the size this machine last chose, limited to the desktop that is here now. Position
+    /// is deliberately not restored: a monitor may have gone, and a window must not open off-screen.
+    /// </summary>
+    private void RestoreWindowSize()
+    {
+        if (LocalSettings.LoadMainWindowSize() is not { } size)
+        {
+            return;
+        }
+
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        var scale = screen is { Scaling: > 0 } ? screen.Scaling : 1;
+        var widest = screen is null ? size.Width : screen.WorkingArea.Width / scale;
+        var tallest = screen is null ? size.Height : screen.WorkingArea.Height / scale;
+
+        Width = Math.Clamp(size.Width, MinWidth, Math.Max(MinWidth, widest));
+        Height = Math.Clamp(size.Height, MinHeight, Math.Max(MinHeight, tallest));
+    }
+
+    /// <summary>Remembers the ordinary size; a maximized or minimized size is not a choice.</summary>
+    private void RememberWindowSize()
+    {
+        if (WindowState == WindowState.Normal)
+        {
+            LocalSettings.StoreMainWindowSize(Width, Height);
+        }
+    }
+
+    /// <summary>
     /// Asks about the project before the program stops. A plain close is not the moment for this:
     /// the window only goes out of the way, and everything in it is still there to be saved later.
     /// </summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
+        RememberWindowSize();
+
         if (!_allowClose
             && Leaving
             && DataContext is MainViewModel { HasUnsavedChanges: true })
@@ -390,6 +421,7 @@ public partial class MainWindow : AppWindow
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        RestoreWindowSize();
 
         if (_triggers is not null || DataContext is not MainViewModel viewModel)
         {
@@ -1694,9 +1726,12 @@ public partial class MainWindow : AppWindow
 
         try
         {
+            // An export is written somewhere else, while the pictures stay beside the project: the
+            // folder comes along so the package carries them rather than pointing at this machine.
             MacroPackage.Save(path, MacroBundle.Copies(selection),
                 MacroBundle.Take(viewModel.Triggers, selection),
-                MacroBundle.UsedGlobals(selection), AppVersion.Text);
+                MacroBundle.UsedGlobals(selection), AppVersion.Text,
+                ImageAssets.FolderFor(viewModel.CurrentPath));
         }
         catch (Exception error)
         {

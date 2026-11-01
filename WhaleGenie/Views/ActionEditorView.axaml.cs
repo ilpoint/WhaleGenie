@@ -1232,7 +1232,7 @@ public partial class ActionEditorView : UserControl
         T outcome;
         using (var aside = AppWindows.StepAside(HostWindow))
         {
-            await AppWindows.SettleAsync();
+            await AppWindows.SettleAsync(Devices.Screen);
             outcome = await Task.Run(trial);
         }
 
@@ -1245,7 +1245,7 @@ public partial class ActionEditorView : UserControl
         T outcome;
         using (var aside = AppWindows.StepAside(HostWindow))
         {
-            await AppWindows.SettleAsync();
+            await AppWindows.SettleAsync(Devices.Screen);
             outcome = await Task.Run(trial);
         }
 
@@ -1261,7 +1261,7 @@ public partial class ActionEditorView : UserControl
     {
         using (AppWindows.StepAside(HostWindow))
         {
-            ScreenComposed.Wait();
+            ScreenReady.Wait();
             await trial();
         }
     }
@@ -1298,51 +1298,120 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Picks where this step's click should land, on the picture it looks for: clicking the middle
-    /// of a found picture is wrong whenever the thing to hit sits beside it, and working the offset
-    /// out in the head is the kind of arithmetic a person gets wrong quietly.
+    /// Picks where this step's click should land. The picture it is picked on is the one the step
+    /// itself just saw rather than the reference picture: clicking the middle of a found picture is
+    /// wrong whenever the thing to hit sits beside it, and "beside it" is only visible on a picture
+    /// that has the whole screen on it. Working the offset out in the head is the kind of
+    /// arithmetic a person gets wrong quietly.
     /// </summary>
     private async void OnPickOffset(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not AddActionViewModel viewModel)
+        if (DataContext is not AddActionViewModel viewModel
+            || await LookForPickAsync(viewModel) is not { } pick)
         {
             return;
         }
 
-        var field = viewModel.Parameters
-            .FirstOrDefault(parameter => parameter.Definition.Name == "images");
-
-        // The picture may be held in a variable the run has not made yet, and there is nothing to
-        // point at before one is chosen.
-        var path = field is null ? null : ImageAssets.Resolve(field.PictureText, field.AssetFolder);
-        if (path is null)
-        {
-            await ReportTestAsync(Strings.Get("Add.PickOffsetNeedsImage"));
-            return;
-        }
-
-        ImageFrame? picture;
-        try
-        {
-            picture = await Task.Run(() => Devices.Vision.Load(path));
-        }
-        catch (Exception error)
-        {
-            await ReportTestAsync(error.Message);
-            return;
-        }
-
-        if (picture is null || picture.IsEmpty)
-        {
-            await ReportTestAsync(Strings.Format("Add.PickOffsetNeedsImage"));
-            return;
-        }
-
-        var offset = await OffsetPickerWindow.PickAsync(HostWindow!, picture, Strings.Get("Offset.Title"));
+        var offset = await LookPickWindow.PickOffsetAsync(HostWindow!, pick.Look, pick.Area,
+            pick.Origin, pick.Centre, viewModel.CollectVariables());
         if (offset is { } point)
         {
             viewModel.ApplyOffset(point.X, point.Y);
         }
+    }
+
+    /// <summary>
+    /// Picks the colours a pattern needs around its base colour, and the offsets they sit at. One
+    /// recognition, then as many clicks as the pattern has colours: each click is one line of the
+    /// field, worked out from the picture instead of by eye.
+    /// </summary>
+    private async void OnPickColourPoints(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel viewModel
+            || await LookForPickAsync(viewModel) is not { } pick)
+        {
+            return;
+        }
+
+        // The picker opens with the pattern the step already holds, and what it hands back is the
+        // whole of it: the lines it was given, changed as they were changed there.
+        var entries = await LookPickWindow.PickColoursAsync(HostWindow!, pick.Look, pick.Area,
+            pick.Origin, pick.Centre, viewModel.CollectVariables(), viewModel.ColourPoints());
+        if (entries is not null)
+        {
+            viewModel.SetColourPoints(entries);
+        }
+    }
+
+    /// <summary>The picture a picker aims at, and the middle of what the step found on it.</summary>
+    /// <summary>
+    /// The picture a picker aims at, where it starts on the screen, and the middle of what the step
+    /// found on it.
+    /// </summary>
+    private sealed record LookForPick(StepLook Look, ImageFrame Area, ScreenPoint Origin,
+        ScreenPoint Centre);
+
+    /// <summary>
+    /// Looks at the screen once with the step as it is written, for a picker that aims at what the
+    /// step found. Null — with the reason said under the form — when it found nothing: a picker with
+    /// no hit under it has nothing to count an offset from.
+    /// </summary>
+    /// <remarks>
+    /// The picture handed on is the whole of what the step reads — the screen, or the window it is
+    /// anchored to — and not only the part it searched. An offset is measured from the match, and a
+    /// click that lands beside the thing found is the ordinary case: a picker that shows only the
+    /// searched rectangle cannot reach it, and the number then has to be worked out by hand.
+    /// </remarks>
+    private async Task<LookForPick?> LookForPickAsync(AddActionViewModel viewModel)
+    {
+        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
+
+        // Read before the windows go away: a window-anchored step measures from a window of another
+        // program, and finding it is not something to do with this one hidden.
+        var area = PickArea(viewModel);
+
+        // Off the thread that draws the window, and with this program's windows out of the picture,
+        // for the same reasons the trial run does it. The picture is taken in the same breath as the
+        // look, so the marks sit on the screen they were found on.
+        var (outcome, picture) = await AwayAsync(() =>
+            (MacroRunner.LookOnce(step, Devices, new TrialFrames(this)),
+                ScreenReady.Capture(Devices.Screen, area.X, area.Y, area.Width, area.Height)));
+        _trialFrames.Clear();
+
+        if (outcome.Look is null)
+        {
+            await ReportTestAsync(TrialFailure(
+                new RunResult(RunStatus.Failed, outcome.Key, outcome.Detail, 0)));
+            return null;
+        }
+
+        var look = outcome.Look;
+        if (picture.IsEmpty
+            || look.ChosenIndex <= 0
+            || look.ChosenIndex > look.Boxes.Count)
+        {
+            await ReportTestAsync(Strings.Get("Add.PickOffsetNeedsImage"));
+            return null;
+        }
+
+        return new LookForPick(look, picture, new ScreenPoint(area.X, area.Y),
+            look.Boxes[look.ChosenIndex - 1].Match.Center);
+    }
+
+    /// <summary>
+    /// What the step reads as a whole: the client area of the window it is anchored to, or the whole
+    /// desktop. It is the same rule the engine uses to find somewhere to look when a step names no
+    /// region, said here so the picker offers the same area.
+    /// </summary>
+    private (int X, int Y, int Width, int Height) PickArea(AddActionViewModel viewModel)
+    {
+        if (viewModel.NeedsWindowCoordinates && viewModel.CoordinateWindowBounds() is { } bounds)
+        {
+            return bounds;
+        }
+
+        var desk = Devices.Screen.Desktop.Bounds;
+        return (desk.Left, desk.Top, desk.Width, desk.Height);
     }
 
     /// <summary>

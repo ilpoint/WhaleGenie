@@ -563,8 +563,6 @@ public sealed class ProjectTriggers
     public const int MenuRows = MenuRegionRows * 2;
     public const int MaxCommonMenuPages = 8;
 
-    private string _menuLauncher = string.Empty;
-
     public ProjectTriggers()
     {
         Entries.CollectionChanged += OnCollectionChanged;
@@ -586,22 +584,6 @@ public sealed class ProjectTriggers
     public event EventHandler? Changed;
 
     internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
-
-    public string MenuLauncher
-    {
-        get => _menuLauncher;
-        set
-        {
-            var next = value?.Trim() ?? string.Empty;
-            if (_menuLauncher == next)
-            {
-                return;
-            }
-
-            _menuLauncher = next;
-            Changed?.Invoke(this, EventArgs.Empty);
-        }
-    }
 
     public IReadOnlyList<TriggerEntry> ForMacro(string macroName)
         => [.. Entries.Where(entry =>
@@ -881,7 +863,6 @@ public sealed class ProjectTriggers
 
     public void ResetMenu()
     {
-        MenuLauncher = string.Empty;
         BlockedMenuRules.Clear();
         MenuPages.Clear();
         EnsureMenuPages();
@@ -1050,10 +1031,9 @@ public sealed class ProjectTriggers
             BlockedMenuRules.Add(rule with { });
         }
         EnsureMenuPages();
-        MenuLauncher = other.MenuLauncher;
     }
 
-    /// <summary>Merges menu pages and launcher settings from an imported package.</summary>
+    /// <summary>Merges menu pages and blocked rules from an imported package.</summary>
     public void MergeMenuFrom(ProjectTriggers imported, IReadOnlyList<MacroItem> importedMacros)
     {
         var importedNames = importedMacros.Select(macro => macro.Name)
@@ -1094,11 +1074,6 @@ public sealed class ProjectTriggers
                      && idMap.TryGetValue(entry.MenuPageId, out _)))
         {
             entry.MenuPageId = idMap[entry.MenuPageId];
-        }
-
-        if (MenuLauncher.Length == 0)
-        {
-            MenuLauncher = imported.MenuLauncher;
         }
 
         foreach (var rule in imported.BlockedMenuRules)
@@ -1251,11 +1226,6 @@ public sealed class ProjectTriggers
                 duplicate.Key.MenuRow + 1, duplicate.Key.MenuColumn + 1));
         }
 
-        if (MenuLauncher.Length > 0 && !IsAllowedMenuLauncher(MenuLauncher))
-        {
-            problems.Add(Strings.Get("Menu.Problem.Launcher"));
-        }
-
         return problems;
     }
 
@@ -1308,7 +1278,6 @@ public sealed class ProjectTriggers
         {
             copy.BlockedMenuRules.Add(rule with { });
         }
-        copy.MenuLauncher = MenuLauncher;
 
         return copy;
     }
@@ -1333,7 +1302,6 @@ public sealed class ProjectTriggers
             ["interfaceLayouts"] = layouts,
             ["menu"] = new JsonObject
             {
-                ["launcher"] = MenuLauncher,
                 ["pages"] = new JsonArray([.. MenuPages.Select(page => page.ToJson())]),
                 ["blockedRules"] = new JsonArray(
                     [.. BlockedMenuRules.Select(rule => (JsonNode)rule.ToJson())]),
@@ -1370,7 +1338,6 @@ public sealed class ProjectTriggers
                     triggers.MenuPages.Add(MenuPage.FromJson(page));
                 }
             }
-            triggers.MenuLauncher = menu["launcher"]?.GetValue<string>() ?? string.Empty;
             foreach (var item in menu["blockedRules"] as JsonArray ?? [])
             {
                 if (item is JsonObject rule)

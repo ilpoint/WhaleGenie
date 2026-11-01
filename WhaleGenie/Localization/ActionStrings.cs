@@ -1885,9 +1885,15 @@ internal static class ActionStrings
         ["vision.clickImage.anchorMode.option.window"] = "窗口",
 
         ["vision.findColor.name"] = "查找颜色",
-        ["vision.findColor.desc"] = "在屏幕的一块区域里找某个颜色。",
+        ["vision.findColor.desc"] = "在指定点位或屏幕的一块区域里找某个颜色。",
         ["vision.findColor.color.label"] = "颜色",
         ["vision.findColor.color.hint"] = "要找的颜色，默认 #000000。",
+        ["vision.findColor.x.label"] = "X",
+        ["vision.findColor.x.hint"] = "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时搜索区域。",
+        ["vision.findColor.y.label"] = "Y",
+        ["vision.findColor.y.hint"] = "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时搜索区域。",
+        ["vision.findColor.place.label"] = "位置",
+        ["vision.findColor.place.hint"] = "可选：一条带 x、y 的记录，例如命中、窗口或元素。填写后只看这个像素，并优先于 X、Y 和搜索区域。",
         ["vision.findColor.tolerance.label"] = "容差 %",
         ["vision.findColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
         ["vision.findColor.minCoverage.label"] = "至少占比 %",
@@ -1921,6 +1927,16 @@ internal static class ActionStrings
         ["vision.findColors.color.label"] = "基准色",
         ["vision.findColors.color.hint"] =
             "图案中间的那个颜色，默认 #000000。交回的位置就是它，其他颜色也都从它这里数。",
+        ["vision.findColors.x.label"] = "X",
+        ["vision.findColors.x.hint"] =
+            "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。基准色与周围那些颜色"
+            + "都在这一处比对；X、Y 都留空时搜索区域。",
+        ["vision.findColors.y.label"] = "Y",
+        ["vision.findColors.y.hint"] =
+            "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时搜索区域。",
+        ["vision.findColors.place.label"] = "位置",
+        ["vision.findColors.place.hint"] =
+            "可选：一条带 x、y 的记录，例如命中、窗口或元素。填写后只看这个像素，并优先于 X、Y 和搜索区域。",
         ["vision.findColors.points.label"] = "周围要对的颜色",
         ["vision.findColors.points.hint"] =
             "一行一个，写成相对基准色的偏移与颜色，例如 12,-4,#FF0000，偏移可以是负数。"
@@ -2198,32 +2214,6 @@ internal static class ActionStrings
         ["vision.getPixel.y.hint"] = "取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
         ["vision.getPixel.place.label"] = "位置",
         ["vision.getPixel.place.hint"] = "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
-
-        ["vision.pixelMatches.name"] = "像素是否符合",
-        ["vision.pixelMatches.desc"] = "只读取一次像素，并判断它是否在容差内符合指定颜色。",
-        ["vision.pixelMatches.anchorMode.label"] = "识别方式",
-        ["vision.pixelMatches.anchorMode.hint"] = AnchorModeHint,
-        ["vision.pixelMatches.anchorMode.option.screen"] = "屏幕",
-        ["vision.pixelMatches.anchorMode.option.window"] = "窗口",
-        ["vision.pixelMatches.window.label"] = WindowMatchTextLabel,
-        ["vision.pixelMatches.window.hint"] =
-            "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
-        ["vision.pixelMatches.color.label"] = "颜色",
-        ["vision.pixelMatches.color.hint"] = "要比对的颜色，写成 #RRGGBB。",
-        ["vision.pixelMatches.x.label"] = "X",
-        ["vision.pixelMatches.x.hint"] = "取样点的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
-        ["vision.pixelMatches.y.label"] = "Y",
-        ["vision.pixelMatches.y.hint"] = "取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
-        ["vision.pixelMatches.frameMaxAgeMs.label"] = "接受多旧的画面",
-        ["vision.pixelMatches.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.pixelMatches.intervalMs.label"] = "查看间隔",
-        ["vision.pixelMatches.intervalMs.hint"] = LookGapHint,
-        ["vision.pixelMatches.tolerance.label"] = "颜色容差",
-        ["vision.pixelMatches.tolerance.hint"] = ColourToleranceHint,
-        ["vision.pixelMatches.return.matched.label"] = "是否符合",
-        ["vision.pixelMatches.return.matched.hint"] = "像素在容差内符合指定颜色时为真。",
-        ["vision.pixelMatches.returns.label"] = "要留下的结果",
-        ["vision.pixelMatches.returns.hint"] = ReturnsHintText,
 
         ["vision.waitColor.name"] = "等待颜色",
         ["vision.waitColor.desc"] =
@@ -3980,7 +3970,7 @@ internal static class ActionStrings
     [
         "vision.capture", "vision.findImage", "vision.waitImage", "vision.clickImage",
         "vision.getPixel", "vision.waitColor", "vision.findColor", "vision.findColors",
-        "vision.detect", "vision.waitDetect", "vision.clickDetect", "vision.pixelMatches",
+        "vision.detect", "vision.waitDetect", "vision.clickDetect",
         "vision.waitStable", "ocr.recognize", "ocr.findText", "ocr.clickText",
         "input.mouseMove", "input.mouseClick", "input.mouseDoubleClick", "input.mouseDown",
         "input.mouseUp", "input.mouseScroll", "input.mouseDrag",

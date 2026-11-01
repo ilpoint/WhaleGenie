@@ -2150,6 +2150,140 @@ public class DeviceActionTests
         Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
     }
 
+    /// <summary>
+    /// 图案里的偏移与颜色可以是算出来的：另一个步骤算出的数写进变量，这里直接引用，不必先把它
+    /// 换算成一个数字再敲进来。写死的数仍然照旧。
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_can_name_its_offsets_and_colour_with_variables()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#00FF00",
+                "#000000,#0000FF,#000000");
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "dx"), Param("value", "0")),
+            Step("control.setVariable", Param("name", "dy"), Param("value", "0")),
+            Step("control.setVariable", Param("name", "side"), Param("value", "#00FF00")),
+            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
+                // $dx + 1 是零加一，落在右边那一格：变量与算式都算数。
+                Param("points", "$dx + 1,$dy,$side; 0,1,#0000FF"), Param("tolerance", "1"),
+                Hit("match", "spot"), Returns("found=yes")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["yes"].AsBool());
+        Assert.Equal("1,1", Centre(store, "spot"));
+    }
+
+    /// <summary>
+    /// 图案里的一处可以由函数算出：函数括号里的逗号属于函数，不是三段的那个分隔符。
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_offset_may_be_a_function_that_holds_commas()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#00FF00",
+                "#000000,#0000FF,#000000");
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
+                // 右一格与下一格：两个函数各带一个逗号，段的划分不能把它们算成四段。
+                Param("points", "max(0,1),0,#00FF00; 0,min(1,2),#0000FF"), Param("tolerance", "1"),
+                Hit("match", "spot"), Returns("found=yes")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["yes"].AsBool());
+        Assert.Equal("1,1", Centre(store, "spot"));
+    }
+
+    /// <summary>
+    /// 定位格填了点位时，图案只在这一处比对：基准色与周围那些颜色都从这一点读，区域不再走一遍。
+    /// 这也是"这一点是不是那一个"的问法，比扫一遍区域便宜得多。
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_can_be_checked_at_one_point_without_searching_the_region()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#00FF00",
+                "#000000,#0000FF,#000000");
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
+                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+                Region((0, 0, 1, 1)), Hit("match", "spot"), Returns("found=yes")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["yes"].AsBool());
+        Assert.Equal("1,1", Centre(store, "spot"));
+
+        // 基准色与两个邻色都读了，读的正是写下的那三处。
+        Assert.Contains("pixel 1 1", devices.Calls);
+        Assert.Contains("pixel 2 1", devices.Calls);
+        Assert.Contains("pixel 1 2", devices.Calls);
+
+        // 区域里那一格是黑的：走的是点位，不是把区域扫一遍。
+        Assert.Empty(devices.Screen.Captures);
+        Assert.Equal(1, Field(store, "spot", "width").AsNumber());
+    }
+
+    /// <summary>
+    /// 点位那一处的基准色对了，旁边一处不对，就不是这个图案：这正是多点找色要分的那件事。
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_at_a_point_is_false_when_a_colour_beside_it_is_off()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#123456",
+                "#000000,#0000FF,#000000");
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
+                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+                Hit("match", "spot"), Returns("found=no")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.False(store.Local.Values["no"].AsBool());
+        Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
+    }
+
+    /// <summary>
+    /// 记录优先于两个数字，两个数字优先于区域：与找单色、取像素是同一条顺序，同一个理由——
+    /// 一步不能对"它看了哪儿"有两个答案。这里数字与区域都是黑的，只有记录那一点是图案。
+    /// </summary>
+    [Fact]
+    public async Task A_place_wins_over_the_numbers_and_the_region_for_a_pattern()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#00FF00",
+                "#000000,#0000FF,#000000");
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("vision.findColors", Param("x", "0"), Param("y", "0"), Param("place", "$spot"),
+                Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
+                Param("tolerance", "5"), Region((0, 0, 1, 1)), Returns("found=yes")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["yes"].AsBool());
+        Assert.Contains("pixel 1 1", devices.Calls);
+    }
+
     [Fact]
     public async Task A_colour_that_is_not_there_leaves_the_result_empty()
     {
@@ -2200,30 +2334,59 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Pixel_matches_reports_the_comparison_instead_of_failing()
+    public async Task A_colour_can_be_checked_at_one_point_without_searching_the_region()
     {
         var devices = new FakeDeviceLayer();
         devices.Screen.Pixel = new PixelColor(0x10, 0x20, 0x30);
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
+            Step("vision.findColor", Param("x", "10"), Param("y", "20"),
                 Param("color", "#102030"), Param("tolerance", "5"),
-                Returns("matched=yes")),
+                Region((0, 0, 2, 2)), Hit("match", "spot"),
+                Returns("found=yes")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
         Assert.True(store.Local.Values["yes"].AsBool());
+        Assert.Equal(1, Field(store, "spot", "width").AsNumber());
+        Assert.Contains("pixel 10 20", devices.Calls);
+        Assert.Empty(devices.Screen.Captures);
+    }
 
+    [Fact]
+    public async Task A_colour_search_at_a_point_is_false_when_that_pixel_does_not_match()
+    {
+        var devices = new FakeDeviceLayer();
         devices.Screen.Pixel = new PixelColor(0xFF, 0xFF, 0xFF);
-        var (other, _, otherStore) = await RunAsync(
+        var (result, _, store) = await RunAsync(
         [
-            Step("vision.pixelMatches", Param("x", "0"), Param("y", "0"),
+            Step("vision.findColor", Param("x", "10"), Param("y", "20"),
                 Param("color", "#102030"), Param("tolerance", "5"),
-                Returns("matched=no")),
+                Returns("found=no")),
         ], devices);
 
-        Assert.True(other.Succeeded, other.Key);
-        Assert.False(otherStore.Local.Values["no"].AsBool());
+        Assert.True(result.Succeeded, result.Key);
+        Assert.False(store.Local.Values["no"].AsBool());
+    }
+
+    [Fact]
+    public async Task A_place_wins_over_the_numbers_and_the_region()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Pixel = new PixelColor(0x10, 0x20, 0x30);
+        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("vision.findColor", Param("x", "0"), Param("y", "0"),
+                Param("place", "$spot"), Param("color", "#102030"), Param("tolerance", "5"),
+                Region((0, 0, 2, 2)), Returns("found=yes")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["yes"].AsBool());
+        Assert.Contains("pixel 35 50", devices.Calls);
     }
 
     [Fact]

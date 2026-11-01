@@ -611,7 +611,6 @@ public class ActionDialogTests
     [InlineData("vision.clickImage")]
     [InlineData("vision.findColor")]
     [InlineData("ocr.recognize")]
-    [InlineData("vision.pixelMatches")]
     [InlineData("vision.findColors")]
     public void An_action_that_names_a_position_offers_something_to_measure_it_from(string key)
     {
@@ -644,6 +643,11 @@ public class ActionDialogTests
 
             Assert.True(viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "color").IsColor);
+            var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
+            Assert.True(x.IsNumber);
+            Assert.True(viewModel.Rows.First(row => ReferenceEquals(row.First, x)).IsPointAnchor);
+            var place = viewModel.Parameters.First(parameter => parameter.Definition.Name == "place");
+            Assert.True(place.OffersVariables);
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
@@ -1627,6 +1631,7 @@ public class ActionDialogTests
     [InlineData("input.mouseScroll", "place", "x")]
     [InlineData("vision.getPixel", "place", "x")]
     [InlineData("vision.waitColor", "place", "x")]
+    [InlineData("vision.findColor", "place", "x")]
     [InlineData("vision.capture", "rect", "x")]
     [InlineData("ocr.recognize", "rect", "x")]
     [InlineData("window.move", "rect", "x")]

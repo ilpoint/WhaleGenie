@@ -168,7 +168,7 @@
                         <StackPanel Name="TriggersSettingsPanel">
 
                     <Border Classes="Section" IsVisible="{Binding IsMenuLauncherPage}">
-                        <StackPanel IsEnabled="{Binding HasProject}">
+                        <StackPanel>
                             <TextBlock Classes="FieldLabel"
                                        Text="{Binding [Settings.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">

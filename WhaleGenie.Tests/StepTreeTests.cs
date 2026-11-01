@@ -731,7 +731,7 @@ public class StepTreeTests
             // The modal action window has to be about the step that was double-clicked, and what
             // it returns has to land back inside the block — not on the block that holds it.
             var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
-            var view = Assert.IsType<ActionEditorView>(action.Content);
+            var view = action.View;
             var dialogModel = (AddActionViewModel)view.DataContext!;
             Assert.True(dialogModel.IsEditing, "the dialog opened as a new step, not as an edit");
             Assert.Equal("input.keyPress", dialogModel.SelectedDefinition!.Key);

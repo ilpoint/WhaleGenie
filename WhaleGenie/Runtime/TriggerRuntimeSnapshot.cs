@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Runtime;
@@ -37,7 +38,7 @@ public sealed class TriggerRuntimeSnapshot
         => new(
             [.. triggers.Entries.Select(entry => entry.Copy())],
             [.. macros],
-            triggers.MenuLauncher,
+            LocalSettings.LoadMenuLauncher(),
             [.. triggers.MenuPages]);
 
     /// <summary>
@@ -46,7 +47,7 @@ public sealed class TriggerRuntimeSnapshot
     /// </summary>
     internal static TriggerRuntimeSnapshot FromLive(ProjectTriggers triggers,
         IReadOnlyList<MacroItem> macros)
-        => new([.. triggers.Entries], [.. macros], triggers.MenuLauncher,
+        => new([.. triggers.Entries], [.. macros], LocalSettings.LoadMenuLauncher(),
             [.. triggers.MenuPages]);
 
     public IReadOnlyList<TriggerEntry> ForMacro(string macroName)

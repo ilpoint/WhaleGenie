@@ -50,7 +50,7 @@ public class McpDraftTests
                 var loaded = MacroPackage.Load(path);
                 Assert.Contains(loaded.Macros, macro => macro.Name == "新宏");
                 Assert.Contains(loaded.Macros, macro => macro.Name == "原宏");
-                Assert.True(File.Exists(path + ".bak"));
+                Assert.True(File.Exists(MacroPackage.BackupPathFor(path)));
             }
             finally
             {

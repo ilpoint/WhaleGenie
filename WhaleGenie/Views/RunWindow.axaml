@@ -362,7 +362,9 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
                                             <Border Classes="RunRow" Classes.current="{Binding IsCurrent}"
-                                                    IsVisible="{Binding IsShown}">
+                                                    IsVisible="{Binding IsShown}"
+                                                    ContextRequested="OnStepMenuRequested"
+                                                    PointerReleased="OnStepMenuReleased">
                                                 <ToolTip.Tip>
                                                     <TextBlock Text="{Binding Tooltip}" TextWrapping="Wrap"
                                                                MaxWidth="460" FontSize="12" />
@@ -373,19 +375,24 @@
                                                      never find. The dot keeps no menu of its own, so
                                                      right-clicking it lands here as well. -->
                                                 <Border.ContextMenu>
-                                                    <ContextMenu>
+                                                    <ContextMenu Opening="OnStepMenuOpening"
+                                                                  Opened="OnStepMenuOpened">
                                                         <MenuItem Header="{Binding [Run.BreakpointSet], Source={x:Static loc:Strings.Current}}"
                                                                   IsVisible="{Binding !HasBreakpoint}"
-                                                                  Click="OnBreakpointMenuClicked" Tag="toggle" />
+                                                                  Click="OnBreakpointMenuClicked"
+                                                                  CommandParameter="{Binding}" Tag="toggle" />
                                                         <MenuItem Header="{Binding [Run.BreakpointOff], Source={x:Static loc:Strings.Current}}"
                                                                   IsVisible="{Binding HasBreakpoint}"
-                                                                  Click="OnBreakpointMenuClicked" Tag="toggle" />
+                                                                  Click="OnBreakpointMenuClicked"
+                                                                  CommandParameter="{Binding}" Tag="toggle" />
                                                         <MenuItem Header="{Binding [Run.BreakpointCondition], Source={x:Static loc:Strings.Current}}"
                                                                   IsVisible="{Binding CanBreak}"
-                                                                  Click="OnBreakpointMenuClicked" Tag="condition" />
+                                                                  Click="OnBreakpointMenuClicked"
+                                                                  CommandParameter="{Binding}" Tag="condition" />
                                                         <MenuItem Header="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
                                                                   IsVisible="{Binding HasCondition}"
-                                                                  Click="OnBreakpointMenuClicked" Tag="clear" />
+                                                                  Click="OnBreakpointMenuClicked"
+                                                                  CommandParameter="{Binding}" Tag="clear" />
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
                                                 <Grid ColumnDefinitions="24,Auto,*,Auto">
@@ -520,8 +527,12 @@
                                                         </StackPanel>
                                                     </StackPanel>
                                                     <!-- What this step last looked at. Clicking it
-                                                         opens the picture with its marks on. -->
-                                                    <Button Grid.Column="2" Classes="LookThumb"
+                                                         opens the picture with its marks on.
+                                                         Column 3 is the one left for it: the text
+                                                         takes the starred column, and a thumbnail
+                                                         placed in the same column sits on top of
+                                                         the very lines it is meant to sit beside. -->
+                                                    <Button Grid.Column="3" Classes="LookThumb"
                                                             IsVisible="{Binding HasLook}"
                                                             VerticalAlignment="Center" Margin="8,0,0,0"
                                                             ToolTip.Tip="{Binding [Run.OpenLook], Source={x:Static loc:Strings.Current}}"

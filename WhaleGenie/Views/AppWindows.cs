@@ -6,6 +6,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
@@ -94,7 +96,36 @@ internal sealed class AppWindows : IDisposable
     {
         Dispatcher.UIThread.RunJobs();
         await Task.Yield();
-        ScreenComposed.Wait();
+        ScreenReady.Wait();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    /// <summary>
+    /// The same wait, with the screen that is about to be read: composition is not enough on its
+    /// own, because the duplicator behind a capture keeps answering with the frame it holds until a
+    /// new one arrives. Reading the desk here, and throwing the picture away, is what makes the
+    /// capture the caller is about to take the one without these windows in it.
+    /// </summary>
+    public static async Task SettleAsync(IScreenDevice screen)
+    {
+        Dispatcher.UIThread.RunJobs();
+        await Task.Yield();
+
+        // A device layer without a screen — a check driving a form, a run nobody is watching —
+        // has nothing to wait for, and is not a failure of the thing being tried.
+        try
+        {
+            var desk = screen.Desktop.Bounds;
+            if (desk.Width > 0 && desk.Height > 0)
+            {
+                ScreenReady.Capture(screen, desk.Left, desk.Top, desk.Width, desk.Height);
+            }
+        }
+        catch (Exception)
+        {
+            // The step that comes next says what it could not read; this is only the wait.
+        }
+
         Dispatcher.UIThread.RunJobs();
     }
 

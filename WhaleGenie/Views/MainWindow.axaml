@@ -13,7 +13,7 @@
         Icon="/Assets/WhaleGenie.ico"
         Title="{Binding WindowTitle}"
         Width="480" Height="680"
-        MinWidth="360" MinHeight="480"
+        MinWidth="420" MinHeight="480"
         Background="{DynamicResource SurfaceWindow}">
 
     <Design.DataContext>
@@ -89,16 +89,16 @@
           这一行就是标题栏本体：库不再画图标与标题（内容伸进来了），所以在左边画一遍；右边是主窗自己的
           置顶钮——与系统按钮同尺寸、同悬停，行尾留出它们的宽度。拖动由 `AppWindow` 在这条上做。
         -->
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
-                        VerticalAlignment="Center">
-                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
-                <TextBlock Text="{Binding WindowTitle}" Foreground="{DynamicResource TextPrimary}"
-                           FontSize="13" VerticalAlignment="Center" />
-            </StackPanel>
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}"
+              ColumnDefinitions="Auto,*,Auto,138">
+            <Image Grid.Column="0" Source="/Assets/WhaleGenie.png" Width="22" Height="22"
+                   Stretch="Uniform" Margin="12,0,8,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding WindowTitle}"
+                       Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                       VerticalAlignment="Center" Margin="0,0,12,0" />
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
-                        VerticalAlignment="Center">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Classes="Caption" Name="AlwaysOnTopButton"
                         ToolTip.Tip="{Binding [Main.AlwaysOnTop], Source={x:Static loc:Strings.Current}}">
                     <!-- Pushpin: outline so the needle shows, unlike the filled PathIcon glyphs. -->

@@ -42,6 +42,7 @@ public partial class GlobalVariablesWindow : AppWindow
         string? initialName = null)
     {
         InitializeComponent();
+        WindowChrome.Attach(this);
         Title = Strings.Get("GlobalVariables.Title");
         _expressionVariables = expressionVariables;
         _initialName = initialName;

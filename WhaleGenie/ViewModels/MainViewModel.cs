@@ -295,7 +295,11 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Writes the macro list and the shared variables to a package file.</summary>
     public void SavePackage(string path)
     {
-        Storage.MacroPackage.Save(path, [.. Macros], Triggers, [.. VariableCatalog.Globals], Version);
+        // The pictures are in the folder of the project as it stands now, which is not the folder of
+        // the file being written when this is a save-as: without saying so, a package written
+        // somewhere else silently loses the pictures it refers to.
+        Storage.MacroPackage.Save(path, [.. Macros], Triggers, [.. VariableCatalog.Globals], Version,
+            Storage.ImageAssets.FolderFor(CurrentPath));
         CurrentPath = path;
         IsDirty = false;
     }

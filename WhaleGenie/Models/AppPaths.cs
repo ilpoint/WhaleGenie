@@ -33,4 +33,14 @@ public static class AppPaths
     /// <summary>Images unpacked from the public macro library.</summary>
     public static string PublicMacroAssets { get; } =
         Path.Combine(Root, "library", "public-macros.assets");
+
+    /// <summary>
+    /// The working files one macro package owns: the pictures unpacked out of it and the copy of the
+    /// file the last save replaced. They live here rather than beside the package so a folder of
+    /// projects holds projects — a `.assets` folder and a `.bak` next to every file is a folder
+    /// nobody can read at a glance — and so that opening a package from a read-only place still has
+    /// somewhere to unpack to.
+    /// </summary>
+    public static string Projects { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhaleGenie", "projects");
 }

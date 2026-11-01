@@ -31,6 +31,7 @@ public partial class SettingsWindow : AppWindow
         SettingsSubPage sub = SettingsSubPage.General)
     {
         InitializeComponent();
+        WindowChrome.Attach(this);
 
         _viewModel = new SettingsViewModel(SharedDevices.Current.Driver,
             project: project, packagePath: packagePath);

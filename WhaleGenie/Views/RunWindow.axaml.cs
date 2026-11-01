@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -42,6 +44,13 @@ public partial class RunWindow : AppWindow
 
     /// <summary>The list the steps are shown in, kept so the run can be followed down it.</summary>
     private readonly ScrollViewer? _stepScroll;
+
+    /// <summary>
+    /// The check that a step row's menu actually arrived. It stands while the menu is being opened
+    /// and is cleared once the answer is known, which is also what keeps a second right-click from
+    /// opening a second menu on top of the first.
+    /// </summary>
+    private DispatcherTimer? _menuWatch;
 
     public RunWindow()
         : this([], SharedDevices.Current)
@@ -336,6 +345,148 @@ public partial class RunWindow : AppWindow
     private void OnTriggerTick(object? sender, EventArgs e) => Form?.RefreshTriggers();
 
     /// <summary>
+    /// A context menu is lifted out of the row's logical tree when it is shown, so its items do not
+    /// inherit the row. Stamping the row here keeps both their visibility bindings and the click
+    /// handler looking at the same step.
+    /// </summary>
+    /// <remarks>
+    /// The menu is opened here rather than left to the framework: it has to be opened exactly once,
+    /// with the row already stamped into it, and a second open on top of the first is a menu that
+    /// closes as it appears. What the framework would have done with this event is done instead, and
+    /// the event is marked handled so it does not also do it.
+    /// </remarks>
+    private void OnStepMenuRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is Control { ContextMenu: { } menu } row)
+        {
+            e.Handled = true;
+            OpenStepMenu(row, menu);
+        }
+    }
+
+    /// <summary>
+    /// The same open, reached from the release rather than from the request: a machine that does not
+    /// raise the request still gets its menu, and the two paths cannot open it twice.
+    /// </summary>
+    private void OnStepMenuReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton != MouseButton.Right
+            || sender is not Control { ContextMenu: { } menu } row
+            || menu.IsOpen)
+        {
+            return;
+        }
+
+        OpenStepMenu(row, menu);
+    }
+
+    /// <summary>
+    /// Opens the row's menu at the pointer, and notices when it does not arrive.
+    /// </summary>
+    /// <remarks>
+    /// A context menu is a popup, which is a window of the platform's own making. On the machines
+    /// this went wrong on, it reports itself open and shows nothing; nobody watching the row can tell
+    /// that from a menu that is there. So the open is watched for a moment, and an answer that never
+    /// arrives is recorded and answered with the panel below instead — the same four things, in a
+    /// window this program draws itself.
+    /// </remarks>
+    private void OpenStepMenu(Control row, ContextMenu menu)
+    {
+        if (_menuWatch is not null || menu.IsOpen)
+        {
+            return;
+        }
+
+        var step = row.DataContext as RunStepViewModel;
+        menu.Tag = step;
+        menu.PlacementTarget = row;
+        menu.Placement = PlacementMode.Pointer;
+        StampStepMenu(menu);
+
+        AppDiagnostics.Note("menu.request", $"run:{step?.Id ?? "?"}");
+
+        var opened = false;
+        void OnOpened(object? sender, EventArgs e) => opened = true;
+        void OnClosed(object? sender, EventArgs e) => LetGo();
+
+        menu.Opened += OnOpened;
+        menu.Closed += OnClosed;
+
+        var watch = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        watch.Tick += (_, _) =>
+        {
+            watch.Stop();
+            if (_menuWatch != watch)
+            {
+                return;
+            }
+
+            _menuWatch = null;
+            menu.Opened -= OnOpened;
+
+            // The menu is where it should be: nothing more to do, and the panel is never made.
+            if (opened)
+            {
+                AppDiagnostics.Note("menu.opened", $"run:{step?.Id ?? "?"}");
+                return;
+            }
+
+            AppDiagnostics.Note("menu.notopened", $"run:{step?.Id ?? "?"}");
+        };
+
+        _menuWatch = watch;
+        watch.Start();
+
+        try
+        {
+            menu.Open(row);
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("run.stepmenu.open", error);
+            LetGo();
+        }
+
+        // A menu that has been closed — however it was closed — is no longer being opened, and the
+        // next right-click has to be able to open one again straight away.
+        void LetGo()
+        {
+            if (_menuWatch is { } running)
+            {
+                running.Stop();
+                _menuWatch = null;
+            }
+
+            menu.Opened -= OnOpened;
+            menu.Closed -= OnClosed;
+        }
+    }
+
+    private void OnStepMenuOpening(object? sender, CancelEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+        {
+            StampStepMenu(menu);
+        }
+    }
+
+    private void OnStepMenuOpened(object? sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+        {
+            StampStepMenu(menu);
+        }
+    }
+
+    private static void StampStepMenu(ContextMenu menu)
+    {
+        var row = menu.Tag ?? menu.DataContext ?? (menu.PlacementTarget as Control)?.DataContext;
+        menu.Tag = row;
+        menu.DataContext = row;
+        MainWindow.StampMenu(menu, row);
+    }
+
+    /// <summary>
     /// A step row's own menu, which is where the breakpoint's three things are asked for. Writing the
     /// condition is the same dialog the editor writes one in, held to the conditions: what a breakpoint
     /// waits for and what an <c>if</c> waits for are the same question, and only the place it is asked
@@ -345,12 +496,35 @@ public partial class RunWindow : AppWindow
     {
         e.Handled = true;
 
-        if (sender is not MenuItem { DataContext: RunStepViewModel row } item || Form is not { } viewModel)
+        if (sender is not MenuItem { Tag: string action } item)
         {
             return;
         }
 
-        switch (item.Tag as string)
+        var row = item.DataContext as RunStepViewModel
+                  ?? item.CommandParameter as RunStepViewModel;
+        if (row is null)
+        {
+            AppDiagnostics.Record("run.stepmenu.nodata",
+                new InvalidOperationException($"Breakpoint menu item '{action}' has no step."));
+            return;
+        }
+
+        await ApplyBreakpointAsync(row, action);
+    }
+
+    /// <summary>
+    /// One of the four answers, whether it came from the popup or from the panel that stands in for
+    /// it: the two paths differ in how the question is put, never in what it does.
+    /// </summary>
+    private async Task ApplyBreakpointAsync(RunStepViewModel row, string action)
+    {
+        if (Form is not { } viewModel)
+        {
+            return;
+        }
+
+        switch (action)
         {
             case "toggle":
                 viewModel.ToggleBreakpointCommand.Execute(row);

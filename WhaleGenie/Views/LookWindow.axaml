@@ -56,8 +56,10 @@
                                    TextWrapping="Wrap" />
                         <TextBlock Name="OutcomeLine" FontSize="12" Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Name="NoteLine" FontSize="12" Classes="Code"
-                                   TextWrapping="Wrap" IsVisible="False" />
+                        <TextBox Name="NoteLine" Classes="Code" IsReadOnly="True" FontSize="12"
+                                 TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="84"
+                                 IsVisible="False"
+                                 ToolTip.Tip="{Binding [Look.CopyHint], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -73,33 +75,38 @@
                 </Border>
 
                 <Border Grid.Column="1" Classes="Panel" Margin="10,0,0,0">
-                    <Grid RowDefinitions="Auto,*,Auto">
-                        <TextBlock Grid.Row="0" Classes="SectionHeader"
-                                   Text="{Binding [Look.Marks], Source={x:Static loc:Strings.Current}}" />
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <!-- 每一行标记已经写出它读到的那一行，右上角再列一遍同样的字就是同一件事说两遍；
+                             要看全部、要带走，用这里的全选与复制。 -->
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                            <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
+                                       Text="{Binding [Look.Marks], Source={x:Static loc:Strings.Current}}" />
+                            <Button Grid.Column="1" Name="SelectAllMarks" Classes="Secondary"
+                                    Height="26" Padding="9,0"
+                                    Click="OnSelectAllMarks"
+                                    Content="{Binding [Look.SelectAll], Source={x:Static loc:Strings.Current}}" />
+                            <Button Grid.Column="2" Name="InvertMarks" Classes="Secondary"
+                                    Height="26" Padding="9,0"
+                                    Click="OnInvertMarks"
+                                    Content="{Binding [Look.Invert], Source={x:Static loc:Strings.Current}}" />
+                            <Button Grid.Column="3" Name="CopyMarks" Classes="Secondary"
+                                    Height="26" Padding="9,0"
+                                    Click="OnCopyMarks"
+                                    Content="{Binding [Look.CopyMarks], Source={x:Static loc:Strings.Current}}" />
+                        </Grid>
+                        <TextBox Grid.Row="1" Name="MarkFilter" Classes="Field" Height="30"
+                                 Margin="0,8,0,8"
+                                 PlaceholderText="{Binding [Look.FilterMarks], Source={x:Static loc:Strings.Current}}"
+                                 TextChanged="OnMarkFilterChanged" />
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel Name="Marks" Spacing="0" />
                         </ScrollViewer>
-                        <!-- What was read, somewhere it can be taken away from: the marks on the
-                             picture are for looking at, and a line of text read off the screen is
-                             usually wanted for something else. -->
-                        <StackPanel Grid.Row="2" Name="TextPanel" Spacing="5" Margin="0,8,0,0"
-                                    IsVisible="False">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
-                                           Text="{Binding [Look.ReadText], Source={x:Static loc:Strings.Current}}" />
-                                <Button Grid.Column="1" Name="CopyText" Classes="Secondary"
-                                        Click="OnCopyText"
-                                        Content="{Binding [Look.CopyText], Source={x:Static loc:Strings.Current}}" />
-                            </Grid>
-                            <TextBox Name="ReadText" Classes="Code" IsReadOnly="True"
-                                     AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="150" />
-                        </StackPanel>
                     </Grid>
                 </Border>
             </Grid>
 
             <!-- zoom, and saving the picture -->
-            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
                   Margin="14,0,14,12">
                 <Button Grid.Column="0" Classes="Secondary" Content="−" Width="34"
                         Click="OnZoomOut" />
@@ -117,17 +124,13 @@
                 <Button Grid.Column="4" Name="Again" Classes="Secondary" Margin="8,0,0,0"
                         IsVisible="False" Click="OnLookAgain"
                         Content="{Binding [Look.Again], Source={x:Static loc:Strings.Current}}" />
-                <CheckBox Grid.Column="5" Name="LabelsOnPicture" Margin="12,0,0,0" FontSize="12"
-                          Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center" Click="OnToggleLabels"
-                          Content="{Binding [Look.LabelsOnPicture], Source={x:Static loc:Strings.Current}}"
-                          ToolTip.Tip="{Binding [Look.LabelsHint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Grid.Column="6" Name="Status" Margin="14,0,10,0"
+                <TextBlock Grid.Column="5" Name="Status" Margin="14,0,10,0"
                            VerticalAlignment="Center" FontSize="12" Classes="Code"
                            TextTrimming="CharacterEllipsis" />
-                <Button Grid.Column="7" Name="SaveRaw" Classes="Secondary" Margin="0,0,8,0"
+                <Button Grid.Column="6" Name="SaveRaw" Classes="Secondary" Margin="0,0,8,0"
                         Click="OnSaveRaw"
                         Content="{Binding [Look.SaveRaw], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="8" Name="SaveMarked" Classes="Primary"
+                <Button Grid.Column="7" Name="SaveMarked" Classes="Primary"
                         Click="OnSave"
                         Content="{Binding [Look.Save], Source={x:Static loc:Strings.Current}}" />
             </Grid>

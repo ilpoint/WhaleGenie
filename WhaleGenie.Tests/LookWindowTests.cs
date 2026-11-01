@@ -150,8 +150,8 @@ public class LookWindowTests
     }
 
     /// <summary>
-    /// 读到的字得能带走：右边每一行标记写出它读到的那一行，另有一个只读的框把这一次读到的字一行一条
-    /// 列出来，可以选中，也可以按「复制」放进剪贴板。图上的字是给眼睛看的，带不走。
+    /// 读到的字得能带走：上方的备注框列出这一次读到的全部文字（有上限，识别到的字再多也不会把
+    /// 画面挤走），右边每一行标记写出它读到的那一行；「复制」把勾选的行放走，右键一行只放走那一行。
     /// </summary>
     [Fact]
     public void What_was_read_is_listed_and_can_be_copied()
@@ -160,28 +160,84 @@ public class LookWindowTests
         {
             var (window, _, clipboard) = TextWindow();
 
-            var written = window.FindControl<TextBox>("ReadText")!.Text ?? string.Empty;
+            var note = window.FindControl<TextBox>("NoteLine")!;
             var rows = window.FindControl<StackPanel>("Marks")!
                 .GetVisualDescendants().OfType<TextBlock>()
                 .Select(text => text.Text ?? string.Empty)
                 .ToList();
 
-            window.FindControl<Button>("CopyText")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            window.FindControl<Button>("CopyMarks")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             var copied = clipboard.Text;
 
+            // 没读到字的那些：引擎自己那句话是唯一说清发生过什么的地方，这时上面那个框还在。
+            var plain = new LookWindow(Found() with { Note = "没有找到参考图。" });
+            plain.Show();
+            Dispatcher.UIThread.RunJobs();
+            var fallback = plain.FindControl<TextBox>("NoteLine")!;
+            var fallbackShown = fallback.IsVisible;
+            var fallbackText = fallback.Text ?? string.Empty;
+            plain.Close();
+
             window.Close();
-            return (Written: written, Rows: rows, Copied: copied);
+            return (NoteShown: note.IsVisible, Rows: rows, Copied: copied,
+                FallbackShown: fallbackShown, FallbackText: fallbackText);
         });
 
-        // 引擎交出的 span 一条一行，顺序也一样。
-        Assert.Equal(string.Join(Environment.NewLine, "订单号", "A-1024"), answer.Written);
+        // 读到的字只在右边列一次：同一段字写在两处，看的人要花时间确认哪一处才是。
+        Assert.False(answer.NoteShown, "读到的字已经在右边的标记里，上面不该再列一遍");
 
         // 每一行标记把自己读到的字写出来。
         Assert.Contains("订单号", answer.Rows);
         Assert.Contains("A-1024", answer.Rows);
 
-        // 「复制」放走的是同一段字。
-        Assert.Equal(answer.Written, answer.Copied);
+        // 「复制」放走的是同一段字，一条一行。
+        Assert.Equal(string.Join(Environment.NewLine, "订单号", "A-1024"), answer.Copied);
+
+        // 没有可列的读法时，引擎那句话还要有地方显示。
+        Assert.True(answer.FallbackShown);
+        Assert.Equal(Strings.Format("Look.Note", "没有找到参考图。"), answer.FallbackText);
+    }
+
+    /// <summary>
+    /// 右侧的标记要能收窄、能一次全选：字多的画面里，找某一处读到的东西不该靠滚。
+    /// </summary>
+    [Fact]
+    public void The_marks_can_be_filtered_and_all_of_them_ticked()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var (window, _, _) = TextWindow();
+            var rows = window.FindControl<StackPanel>("Marks")!.Children.OfType<Border>().ToList();
+
+            var filter = window.FindControl<TextBox>("MarkFilter")!;
+            filter.Text = "A-1024";
+            Dispatcher.UIThread.RunJobs();
+            var shown = rows.Count(row => row.IsVisible);
+
+            filter.Text = string.Empty;
+            Dispatcher.UIThread.RunJobs();
+            var all = rows.Count(row => row.IsVisible);
+
+            foreach (var toggle in rows
+                         .SelectMany(row => row.GetVisualDescendants().OfType<CheckBox>())
+                         .ToList())
+            {
+                toggle.IsChecked = false;
+            }
+
+            window.FindControl<Button>("SelectAllMarks")!
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var ticked = rows
+                .SelectMany(row => row.GetVisualDescendants().OfType<CheckBox>())
+                .Count(toggle => toggle.IsChecked == true);
+
+            window.Close();
+            return (Shown: shown, All: all, Ticked: ticked, Rows: rows.Count);
+        });
+
+        Assert.Equal(1, answer.Shown);
+        Assert.Equal(answer.Rows, answer.All);
+        Assert.Equal(answer.Rows, answer.Ticked);
     }
 
     /// <summary>
@@ -234,35 +290,185 @@ public class LookWindowTests
     }
 
     /// <summary>
-    /// 图上的字默认不画：框里就是刚读到的那几行字，标签压在框里正好挡住要对着看的东西。要用带字的图给
-    /// 人看时打开开关，字画在框的上沿外侧；上沿放不下就落到下沿外侧，始终不落进框里。
+    /// 右侧每一行说两件不同的事：框在屏幕的哪儿（中心、左上角、尺寸），和这一步在那儿读到了什么。
+    /// 两件事以前是同一种灰、同一列，读的人分不出哪一行是要复制的文字。现在文字单独装进一个下沉的框，
+    /// 前面写「识别文字」；位置上那句仍留在行首。
     /// </summary>
     [Fact]
-    public void The_writing_is_only_drawn_over_the_picture_when_it_is_asked_for()
+    public void What_was_read_is_boxed_apart_from_where_the_mark_is()
     {
         var answer = Ui.Run(() =>
         {
             var (window, _, _) = TextWindow();
             var board = window.FindControl<Canvas>("Board")!;
-            var toggle = window.FindControl<CheckBox>("LabelsOnPicture")!;
+            var rows = window.FindControl<StackPanel>("Marks")!.Children.OfType<Border>().ToList();
 
-            var before = Writing(board).Count;
+            var texts = rows
+                .SelectMany(row => row.GetVisualDescendants().OfType<TextBlock>())
+                .Select(text => text.Text ?? string.Empty)
+                .ToList();
 
-            toggle.IsChecked = true;
-            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-
-            var pairs = Pairs(board);
-            var apart = pairs.All(pair => !pair.Text.Intersects(pair.Box)
-                && (pair.Text.Bottom <= pair.Box.Top || pair.Text.Top >= pair.Box.Bottom));
+            var caption = Strings.Get("Look.ReadTag");
+            var drawn = board.Children.OfType<TextBlock>().Count();
+            var toggle = window.FindControl<CheckBox>("LabelsOnPicture");
 
             window.Close();
-            return (Before: before, Drawn: pairs.Count, Apart: apart);
+            return (Drawn: drawn, Toggle: toggle is null, Caption: caption, Texts: texts);
         });
 
-        Assert.Equal(0, answer.Before);
-        Assert.Equal(2, answer.Drawn);
-        Assert.True(answer.Apart, "画在框外的字不该压进它自己那个框里");
+        // 图上不再写字：字多了就没有地方放，而框里那段才是要看的。
+        Assert.Equal(0, answer.Drawn);
+        Assert.True(answer.Toggle, "「把文字写在框上」这个开关应该没有了");
+
+        // 读到的字有自己的一行说明，位置那一行另说各的。
+        Assert.Contains(answer.Caption, answer.Texts);
+        Assert.Contains(answer.Texts, text => text.StartsWith("中心", StringComparison.Ordinal));
+        Assert.Contains("A-1024", answer.Texts);
+    }
+
+    /// <summary>
+    /// 反选要能少选：先全选、再反选就一个不剩，再反选又全回来。筛过的行不参与——看得见的那几行才是
+    /// 现在说的「全部」，去动看不见的行只是改了一件没有东西可看的事。
+    /// </summary>
+    [Fact]
+    public void Inverting_turns_the_rows_the_other_way_and_leaves_the_filtered_ones_alone()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var (window, _, _) = TextWindow();
+            var rows = window.FindControl<StackPanel>("Marks")!.Children.OfType<Border>().ToList();
+            var invert = window.FindControl<Button>("InvertMarks")!;
+
+            List<CheckBox> Toggles(IEnumerable<Border> which)
+                => [.. which.SelectMany(row => row.GetVisualDescendants().OfType<CheckBox>())];
+
+            var every = Toggles(rows);
+            invert.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            var afterOne = every.Count(toggle => toggle.IsChecked == true);
+
+            invert.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            var afterTwo = every.Count(toggle => toggle.IsChecked == true);
+
+            // 筛到只剩一行，再反选：那一行落选，别的行不动。
+            window.FindControl<TextBox>("MarkFilter")!.Text = "A-1024";
+            Dispatcher.UIThread.RunJobs();
+            invert.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var shown = rows.Where(row => row.IsVisible).ToList();
+            var hidden = rows.Where(row => !row.IsVisible).ToList();
+            var shownTicked = Toggles(shown).Count(toggle => toggle.IsChecked == true);
+            var hiddenTicked = Toggles(hidden).Count(toggle => toggle.IsChecked == true);
+            var hiddenRows = hidden.Count;
+
+            window.Close();
+            return (Total: every.Count, AfterOne: afterOne, AfterTwo: afterTwo,
+                Shown: shown.Count, ShownTicked: shownTicked, Hidden: hiddenRows, HiddenTicked: hiddenTicked);
+        });
+
+        Assert.Equal(answer.Total, answer.AfterTwo);
+        Assert.True(answer.AfterOne < answer.AfterTwo, "反选一次应该把勾都去掉");
+        Assert.Equal(1, answer.Shown);
+        Assert.Equal(0, answer.ShownTicked);
+        Assert.Equal(answer.Hidden, answer.HiddenTicked);
+    }
+
+    /// <summary>
+    /// 滚轮缩放，并且以指针为准：指针底下那一点在缩放前后是同一处。以窗口中心为准的话，正在瞄的那处
+    /// 标记会从指针底下跑掉。
+    /// </summary>
+    [Fact]
+    public void The_wheel_zooms_about_the_pointer()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var window = new LookWindow(Found() with
+            {
+                Frame = new ImageFrame(1920, 1080, new byte[1920 * 1080 * 4]),
+            });
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var scroll = window.FindControl<ScrollViewer>("Scroll")!;
+            var at = new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2);
+            var wheel = scroll.TranslatePoint(at, window)!.Value;
+
+            // 先放大一格：适应窗口时画面正好铺满宽度，横向没有可滚的余地，"指针底下那点不动"
+            // 就无从谈起。放一格之后两个方向都比窗口大。
+            window.MouseWheel(wheel, new Vector(0, 1), RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            var before = window.ZoomLevel;
+            var content = scroll.Offset + new Vector(at.X, at.Y);
+
+            window.MouseWheel(wheel, new Vector(0, 1), RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            var after = window.ZoomLevel;
+            var now = scroll.Offset + new Vector(at.X, at.Y);
+
+            window.Close();
+            return (Before: before, After: after,
+                KeptX: content.X * (after / before) - now.X,
+                KeptY: content.Y * (after / before) - now.Y);
+        });
+
+        Assert.True(answer.After > answer.Before, "往上滚一格该放大");
+        Assert.InRange(answer.KeptX, -1.5, 1.5);
+        Assert.InRange(answer.KeptY, -1.5, 1.5);
+    }
+
+    /// <summary>
+    /// 拖动画面：按住左键往左上拽，画面跟着走（滚动位置变大，露出右边与下边）。放大之后画面比窗口大，
+    /// 拖动是看另一半的唯一办法。
+    /// </summary>
+    [Fact]
+    public void Dragging_the_picture_moves_it()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var window = new LookWindow(Found() with
+            {
+                Frame = new ImageFrame(1920, 1080, new byte[1920 * 1080 * 4]),
+            });
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var scroll = window.FindControl<ScrollViewer>("Scroll")!;
+            var board = window.FindControl<Canvas>("Board")!;
+            var middle = new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2);
+            var at = scroll.TranslatePoint(middle, window)!.Value;
+
+            // 先放大，否则画面正好铺满，没有可挪的余地。
+            for (var step = 0; step < 3; step++)
+            {
+                window.MouseWheel(at, new Vector(0, 1), RawInputModifiers.None);
+            }
+
+            Dispatcher.UIThread.RunJobs();
+
+            // 从这里开始，往左上拽，位置该往前走同样多。
+            scroll.Offset = new Vector(50, 40);
+            var to = new Point(at.X - 30, at.Y - 20);
+
+            window.MouseDown(at, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseMove(to, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(to, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            Dispatcher.UIThread.RunJobs();
+
+            var moved = scroll.Offset;
+            var cursor = board.Cursor;
+            window.Close();
+            return (Offset: moved, HasCursor: cursor is not null);
+        });
+
+        Assert.InRange(answer.Offset.X, 79, 81);
+        Assert.InRange(answer.Offset.Y, 59, 61);
+        Assert.True(answer.HasCursor, "画面要有一个可以拖的指针");
     }
 
     /// <summary>
@@ -353,20 +559,6 @@ public class LookWindowTests
             new StepParameter { Name = "height", Kind = ActionParameterKind.Number, Value = "20" },
         ],
     };
-
-    /// <summary>画面上那些写着字的控件。</summary>
-    private static List<TextBlock> Writing(Canvas board)
-        => [.. board.Children.OfType<TextBlock>().Where(text => text.Name == "MarkText")];
-
-    /// <summary>画面上那些框，各按它被摆到哪儿量。</summary>
-    private static List<(Rect Text, Rect Box)> Pairs(Canvas board)
-        => [.. Writing(board).Select(text => (Where(text),
-            Where(board.Children.OfType<Border>()
-                .Single(box => Equals(box.Tag, text.Tag)))))];
-
-    private static Rect Where(Control control)
-        => new(Canvas.GetLeft(control), Canvas.GetTop(control), control.Bounds.Width,
-            control.Bounds.Height);
 
     /// <summary>
     /// 一台会读字的机器：每一次读都交出同样那几行，并记住被问过几次 —— "再看一次"到底看没看，看的就是
@@ -642,10 +834,15 @@ public class LookWindowTests
     }
 
     [Fact]
-    public void Fitting_shows_the_whole_picture_without_enlarging_a_small_one()
+    public void Fitting_shows_the_whole_picture_and_enlarges_a_small_one()
     {
         Assert.Equal(0.5, LookGeometry.Fit(1000, 500, 500, 250));
-        Assert.Equal(1, LookGeometry.Fit(100, 50, 500, 250));
+
+        // 参考图只有几十像素宽：留在 100% 就是窗口正中一枚邮票，适应窗口要把它放大。
+        Assert.Equal(5, LookGeometry.Fit(100, 50, 500, 250));
+        Assert.Equal(LookGeometry.LargestZoom, LookGeometry.Fit(10, 10, 5000, 5000));
+
+        // 没有画面时没有可适应的东西，留在原大。
         Assert.Equal(1, LookGeometry.Fit(0, 0, 500, 250));
     }
 
@@ -685,14 +882,16 @@ public class LookWindowTests
     }
 
     /// <summary>
-    /// The offset is only worth picking on an action that looks for a picture: a step that clicks
-    /// writing has an offset too, but there is nothing to point at.
+    /// 偏移点只在"这一步刚好看了一眼屏幕"时才有得拾取：命中的中心是偏移的原点，而那一眼看到的画面
+    /// 就是可点的底图。找图、识别文字、识别图像都在此列；点一下鼠标这类动作有偏移的写法，却没有可点的
+    /// 东西，不给按钮。
     /// </summary>
     [Theory]
     [InlineData("vision.clickImage", true)]
-    [InlineData("ocr.clickText", false)]
+    [InlineData("ocr.clickText", true)]
+    [InlineData("vision.clickDetect", true)]
     [InlineData("input.mouseClick", false)]
-    public void Picking_a_click_point_is_offered_where_there_is_a_picture_to_point_at(
+    public void Picking_a_click_point_is_offered_where_the_step_looked_at_the_screen(
         string key, bool offered)
     {
         Ui.Run(() =>

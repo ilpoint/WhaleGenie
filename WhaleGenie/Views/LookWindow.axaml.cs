@@ -12,6 +12,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.GraphicsCapture;
@@ -35,10 +36,6 @@ public partial class LookWindow : AppWindow
     /// the one part of a window with no decorations that acts like a title bar.</summary>
     private const double TitleBarStrip = 44;
 
-    /// <summary>The room the writing drawn over the picture takes, and the gap above its box.</summary>
-    private const double LabelHeight = 18;
-    private const double LabelGap = 2;
-
     /// <summary>
     /// The step this window was opened on, and the machine it looks at, when whoever opened it had
     /// them: with both of these the window can look again by itself. Null when the picture belongs
@@ -54,10 +51,17 @@ public partial class LookWindow : AppWindow
     private ScrollViewer? _scroll;
     private Canvas? _board;
     private StackPanel? _marks;
+
+    /// <summary>The rows beside the picture, in the order they were drawn: what each one says,
+    /// what it stands for, and the switch that shows it on the picture.</summary>
+    private readonly List<string> _markTexts = [];
+
+    private readonly List<string> _markRoles = [];
+    private readonly List<Border> _markRows = [];
+    private readonly List<CheckBox> _markToggles = [];
     private TextBlock? _zoomText;
     private Border? _needleFrame;
     private Image? _needleShot;
-    private StackPanel? _textPanel;
 
     private readonly List<(LookBox Box, Border Visual)> _drawn = [];
 
@@ -66,11 +70,12 @@ public partial class LookWindow : AppWindow
     /// <summary>Whether the zoom on show is the one that fits; anything else is the user's own.</summary>
     private bool _fitted = true;
 
-    /// <summary>Whether the writing that was read is drawn over the picture as well as listed.</summary>
-    private bool _labelsOnPicture;
+    /// <summary>True while the picture is being dragged, and where the drag started.</summary>
+    private bool _panning;
+    private Point _panFrom;
+    private Vector _panOrigin;
 
     /// <summary>What was read off this picture, one reading to a line, for taking away.</summary>
-    private string _readText = string.Empty;
 
     /// <summary>True while a second look is being taken, so one press is one look.</summary>
     private bool _looking;
@@ -94,6 +99,7 @@ public partial class LookWindow : AppWindow
     public LookWindow(StepLook look, ExecutableStep? step, IDeviceLayer? devices)
     {
         InitializeComponent();
+        WindowChrome.Attach(this);
 
         _look = look;
         _step = step;
@@ -104,24 +110,41 @@ public partial class LookWindow : AppWindow
         _scroll = this.FindControl<ScrollViewer>("Scroll");
         _board = this.FindControl<Canvas>("Board");
         _marks = this.FindControl<StackPanel>("Marks");
+        if (_marks is not null)
+        {
+            // The empty space under the rows is part of the same list, so a right-click there does
+            // what a right-click on it does: copies the lot.
+            var copyAll = new MenuItem { Header = Strings.Get("Look.CopyMarks") };
+            copyAll.Click += OnCopyMarks;
+            _marks.ContextMenu = new ContextMenu { Items = { copyAll } };
+        }
+
         _zoomText = this.FindControl<TextBlock>("ZoomText");
         _needleFrame = this.FindControl<Border>("NeedleFrame");
         _needleShot = this.FindControl<Image>("NeedleShot");
-        _textPanel = this.FindControl<StackPanel>("TextPanel");
 
         Title = Strings.Get("Look.Title");
         FillHeader(look);
-        FillText(look);
         ShowNeedle();
         Zoom(Fit(), false, fitted: true);
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
 
-        // Double-clicking the picture is the zoom everybody already knows from a viewer: it goes
-        // between the size the pixels really are and the size that fits the window.
+        // A picture viewer's three gestures: drag to move it, wheel to zoom it, double-click to go
+        // between its own size and the size that fits. The picture is larger than the window most
+        // of the time — a screenful of it at 100% always is — so moving it is the commonest thing
+        // asked of it and it was the one thing the window could not do.
         if (_board is not null)
         {
+            _board.Cursor = new Cursor(StandardCursorType.Hand);
             _board.PointerPressed += OnPicturePressed;
+            _board.PointerMoved += OnPictureMoved;
+            _board.PointerReleased += OnPictureReleased;
         }
+
+        // Tunnelled: the scroll viewer answers the wheel itself and marks it handled, so a handler
+        // beside it only ever sees the wheel when the picture has nowhere to scroll — the wheel then
+        // meant two different things depending on the zoom. Zooming wins either way.
+        AddHandler(PointerWheelChangedEvent, OnPictureWheel, RoutingStrategies.Tunnel);
 
         // A second look needs the step and something to look with, and is offered only when the
         // window was opened with both. Everything else this window shows works without them.
@@ -218,16 +241,31 @@ public partial class LookWindow : AppWindow
 
         Set("OutcomeLine", Outcome(look));
 
-        if (!string.IsNullOrEmpty(look.Note))
+        // What was read is in the list beside the picture, one reading to a line, in a box of its own.
+        // Repeating it up here as well was the same words twice: with a screenful of writing the top
+        // grew until the picture was a strip. The box stays for the looks that read nothing — the
+        // engine's own note is the only place that says what happened, and then nothing else does.
+        if (Readings(look).Count == 0 && !string.IsNullOrEmpty(look.Note))
         {
             Set("NoteLine", Strings.Format("Look.Note", look.Note));
-            if (this.FindControl<TextBlock>("NoteLine") is { } note)
+            if (this.FindControl<Control>("NoteLine") is { } box)
             {
-                note.IsVisible = true;
+                box.IsVisible = true;
             }
         }
 
     }
+
+    /// <summary>
+    /// What was read off the picture, one reading to a line. The mark that stands for the area the
+    /// step looked at carries a label of its own — where it is and how big — which is a description
+    /// of the search rather than something a person would want to paste anywhere.
+    /// </summary>
+    private static IReadOnlyList<string> Readings(StepLook look)
+        => [.. look.Boxes
+            .Where(box => box.Role is not LookRole.Area)
+            .Select(box => box.Label ?? string.Empty)
+            .Where(label => label.Length > 0)];
 
     /// <summary>
     /// The reference picture, small, beside what the step was after: it says at a glance which of
@@ -243,31 +281,6 @@ public partial class LookWindow : AppWindow
 
         _needleShot.Source = _needle;
         _needleFrame.IsVisible = _needle is not null;
-    }
-
-    /// <summary>
-    /// The writing this look read, one reading to a line, and the box it is read out of. A step
-    /// that read writing is the one case where what is on the picture is meant to be taken away:
-    /// a line read off the screen is usually wanted for somewhere else, and this is the way out
-    /// that does not go through the picture.
-    /// </summary>
-    private void FillText(StepLook look)
-    {
-        if (_textPanel is not { } panel)
-        {
-            return;
-        }
-
-        // Every reading the engine handed over, in the order it read them, which is also what the
-        // marks on the picture are made of.
-        _readText = string.Join(Environment.NewLine,
-            look.Boxes.Select(box => box.Label).Where(label => !string.IsNullOrEmpty(label)));
-
-        panel.IsVisible = _readText.Length > 0;
-        if (this.FindControl<TextBox>("ReadText") is { } box)
-        {
-            box.Text = _readText;
-        }
     }
 
     /// <summary>
@@ -331,39 +344,122 @@ public partial class LookWindow : AppWindow
         _needle = look.Needle is { IsEmpty: false } needle ? ImageAssets.ToBitmap(needle) : null;
 
         FillHeader(look);
-        FillText(look);
         ShowNeedle();
         Draw();
     }
 
     /// <summary>Puts what was read on the clipboard, which is where the person reading it wants it.</summary>
-    private void OnCopyText(object? sender, RoutedEventArgs e)
+    /// <summary>
+    /// Puts the checked rows' writing on the clipboard, one reading to a line. A row that found
+    /// nothing still says what it is — where it looked, what it was after — so the list copied out
+    /// of is the list that was read, not only the rows that happened to hold a label.
+    /// </summary>
+    private void OnCopyMarks(object? sender, RoutedEventArgs e) => CopyRows(null);
+
+    private void OnCopyRow(object? sender, RoutedEventArgs e)
     {
-        if (_devices?.Clipboard is not { } clipboard || _readText.Length == 0)
+        if (sender is MenuItem { Tag: int index })
+        {
+            CopyRows(index);
+        }
+    }
+
+    private void CopyRows(int? only)
+    {
+        if (_devices?.Clipboard is not { } clipboard)
         {
             return;
         }
 
-        clipboard.WriteText(_readText);
+        var lines = new List<string>();
+        for (var index = 0; index < _markTexts.Count; index++)
+        {
+            if (only is { } wanted && wanted != index)
+            {
+                continue;
+            }
+
+            if (!_markRows[index].IsVisible || (only is null && _markToggles[index].IsChecked != true))
+            {
+                continue;
+            }
+
+            // The row that stands for the search area is left out: what is being copied is what the
+            // step read, not where it looked.
+            if (_markRoles[index] == Strings.Get("Look.Role.Area"))
+            {
+                continue;
+            }
+
+            if (_markTexts[index].Length > 0)
+            {
+                lines.Add(_markTexts[index]);
+            }
+        }
+
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        clipboard.WriteText(string.Join(Environment.NewLine, lines));
         SetStatus(Strings.Get("Look.TextCopied"));
     }
 
     /// <summary>
-    /// Shows the writing over the picture as well, or stops showing it, when the switch on the
-    /// toolbar is used. Off by default: the writing is what the box on the picture is for reading,
-    /// and a label drawn over it is in the way of exactly that.
+    /// Checks every row, which is what a person wants before copying the lot: the rows are the
+    /// marks drawn on the picture, and a list where some are already put away is a list that copies
+    /// part of itself without saying so.
     /// </summary>
-    private void OnToggleLabels(object? sender, RoutedEventArgs e)
+    private void OnSelectAllMarks(object? sender, RoutedEventArgs e)
     {
-        _labelsOnPicture = sender is CheckBox { IsChecked: true };
-        Draw();
+        foreach (var toggle in _markToggles)
+        {
+            toggle.IsChecked = true;
+        }
+    }
+
+    /// <summary>
+    /// Turns every row the other way: what was ticked is left out, what was left out is ticked. The
+    /// rows a filter narrowed away are not touched — the list on show is what "all of them" means
+    /// while a filter is on, and turning rows nobody can see is a change with nothing to show for it.
+    /// </summary>
+    private void OnInvertMarks(object? sender, RoutedEventArgs e)
+    {
+        foreach (var item in _markToggles
+                     .Select((toggle, index) => (Toggle: toggle, index))
+                     .Where(item => _markRows[item.index].IsVisible))
+        {
+            item.Toggle.IsChecked = item.Toggle.IsChecked != true;
+        }
+    }
+
+    /// <summary>Narrows the list to the rows whose writing or role mentions what was typed.</summary>
+    private void OnMarkFilterChanged(object? sender, TextChangedEventArgs e) => ApplyMarkFilter();
+
+    private void ApplyMarkFilter()
+    {
+        var wanted = this.FindControl<TextBox>("MarkFilter")?.Text?.Trim() ?? string.Empty;
+        for (var index = 0; index < _markRows.Count; index++)
+        {
+            _markRows[index].IsVisible = wanted.Length == 0
+                || _markTexts[index].Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                || _markRoles[index].Contains(wanted, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private void Set(string name, string text)
     {
-        if (this.FindControl<TextBlock>(name) is { } block)
+        // Asked for by name rather than by type: the lookup that names a type fails loudly when the
+        // control is another one, and the note is a box while the lines above it are text.
+        switch (this.FindControl<Control>(name))
         {
-            block.Text = text;
+            case TextBlock block:
+                block.Text = text;
+                break;
+            case TextBox box:
+                box.Text = text;
+                break;
         }
     }
 
@@ -461,6 +557,9 @@ public partial class LookWindow : AppWindow
         }
     }
 
+    /// <summary>The zoom the picture is drawn at right now, as a number rather than as the label.</summary>
+    internal double ZoomLevel => _zoom;
+
     private void Zoom(double zoom, bool keepPlace, bool fitted = false)
     {
         var was = _zoom;
@@ -496,6 +595,10 @@ public partial class LookWindow : AppWindow
         _drawn.Clear();
         _board.Children.Clear();
         _marks.Children.Clear();
+        _markTexts.Clear();
+        _markRoles.Clear();
+        _markRows.Clear();
+        _markToggles.Clear();
 
         _board.Width = Math.Max(1, _look.Frame.Width * _zoom);
         _board.Height = Math.Max(1, _look.Frame.Height * _zoom);
@@ -532,25 +635,15 @@ public partial class LookWindow : AppWindow
             Canvas.SetTop(visual, visible.Y);
             _board.Children.Add(visual);
 
-            // The writing, when it is asked for, goes over the picture above the box it belongs to.
-            // Inside the box is where the writing that was read is, and covering it is exactly what
-            // this window is for looking at.
-            if (_labelsOnPicture && Label(box) is { } label)
-            {
-                var above = visible.Y - LabelHeight - LabelGap;
-                // The writing and its box carry the same number, so which writing belongs over
-                // which box is a question with one answer rather than a guess from the positions.
-                label.Tag = index;
-                Canvas.SetLeft(label, visible.X);
-                Canvas.SetTop(label, above >= 0 ? above : visible.Y + visible.Height + LabelGap);
-                _board.Children.Add(label);
-            }
-
             var row = MarkRow(index, box, chosen, visible);
             _marks.Children.Add(row);
 
             _drawn.Add((box, visual));
         }
+
+        // A redraw keeps the filter that was typed: looking again at the same step should not put
+        // back the rows the person just narrowed away.
+        ApplyMarkFilter();
     }
 
     /// <summary>
@@ -611,36 +704,6 @@ public partial class LookWindow : AppWindow
     }
 
     /// <summary>
-    /// What was read where a mark is, ready to be put over the picture above the mark's own box, or
-    /// null when there is nothing to write or the writing is not being shown on the picture. Named
-    /// so that what is drawn over the picture can be told apart from everything else on it.
-    /// </summary>
-    private TextBlock? Label(LookBox box)
-    {
-        if (string.IsNullOrEmpty(box.Label))
-        {
-            return null;
-        }
-
-        return new TextBlock
-        {
-            Name = "MarkText",
-            Text = box.Label,
-            // Fixed height, so where the writing ends and the box begins is the same every time:
-            // the two must not overlap, and a line whose height follows its glyphs would decide
-            // that for itself.
-            Height = LabelHeight,
-            FontSize = 11,
-            // **约束**：此标签的前景色假定底是深色薄板（见下一行的 `rgba(200,20,20,20)`）。
-            // 挪到浅色底上必须同时换前景——否则白字直接消失。
-            Foreground = ThemeBrush.Of("TextPrimary") ?? Brushes.White,
-            // 自绘：浮在截图上的深色薄板，要透出一点底下的画面，令牌表里没有这一档。
-            Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)),
-            Padding = new Thickness(3, 0),
-        };
-    }
-
-    /// <summary>
     /// One row of the list beside the picture. Hovering it lights up the mark it stands for, and
     /// clicking it brings that mark into the middle of the window.
     /// </summary>
@@ -652,12 +715,23 @@ public partial class LookWindow : AppWindow
             row.Classes.Add("chosen");
         }
 
+        // What this row says, kept beside it: the filter reads it, and so does copying the list.
+        var role = Strings.Get("Look.Role." + box.Role);
+        _markRoles.Add(role);
+        _markTexts.Add(string.IsNullOrEmpty(box.Label) ? Detail(box) : box.Label);
+        _markRows.Add(row);
+
+        var copy = new MenuItem { Header = Strings.Get("Look.CopyRow"), Tag = index };
+        copy.Click += OnCopyRow;
+        row.ContextMenu = new ContextMenu { Items = { copy } };
+
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"),
         };
 
         var toggle = new CheckBox { IsChecked = true, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+        _markToggles.Add(toggle);
         toggle.IsCheckedChanged += (_, _) =>
         {
             if (_drawn.Count > index)
@@ -685,7 +759,7 @@ public partial class LookWindow : AppWindow
         var words = new StackPanel { Spacing = 1 };
         words.Children.Add(new TextBlock
         {
-            Text = Strings.Get("Look.Role." + box.Role),
+            Text = role,
             FontSize = 12,
             Foreground = ThemeBrush.Of("TextPrimary"),
         });
@@ -698,11 +772,25 @@ public partial class LookWindow : AppWindow
             TextWrapping = TextWrapping.Wrap,
         });
 
-        // What was read here, written out in the list as well as on the picture: this is the line
-        // somebody wants to copy, and reading it off a picture is not copying it.
+        // What was read here, in a box of its own and under a caption of its own. It used to be one
+        // more line of the same grey as the numbers above it, and the two are not the same kind of
+        // thing: one is where on the screen the mark is, the other is what the step read there. The
+        // caption says which is which; the box keeps the writing together when it wraps to four
+        // lines and the numbers stay two lines above it.
         if (!string.IsNullOrEmpty(box.Label))
         {
-            words.Children.Add(new TextBlock
+            var reading = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+
+            reading.Children.Add(new TextBlock
+            {
+                Text = Strings.Get("Look.ReadTag"),
+                FontSize = 10.5,
+                Foreground = ThemeBrush.Of("TextTertiary"),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+                Margin = new Thickness(0, 1, 6, 0),
+            });
+
+            var text = new TextBlock
             {
                 Text = box.Label,
                 FontSize = 11.5,
@@ -710,6 +798,18 @@ public partial class LookWindow : AppWindow
                 // 绿在这套界面已经表示"成功"，再借一次就是两种含义共用一个色。
                 Classes = { "Code" },
                 TextWrapping = TextWrapping.Wrap,
+            };
+
+            Grid.SetColumn(text, 1);
+            reading.Children.Add(text);
+
+            words.Children.Add(new Border
+            {
+                Background = ThemeBrush.Of("SurfaceSunken"),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 4),
+                Margin = new Thickness(0, 3, 0, 0),
+                Child = reading,
             });
         }
 
@@ -828,22 +928,124 @@ public partial class LookWindow : AppWindow
             ? WindowState.Normal
             : WindowState.FullScreen;
 
+    /// <summary>Whether the event came from inside one part of the window.</summary>
+    private static bool Inside(object? source, Visual part)
+    {
+        for (var node = source as Visual; node is not null; node = node.GetVisualParent())
+        {
+            if (ReferenceEquals(node, part))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void OnZoomIn(object? sender, RoutedEventArgs e) => Zoom(LookGeometry.Step(_zoom, true), true);
 
     private void OnZoomOut(object? sender, RoutedEventArgs e) => Zoom(LookGeometry.Step(_zoom, false), true);
 
     private void OnZoomFit(object? sender, RoutedEventArgs e) => Zoom(Fit(), false);
 
-    /// <summary>Double-clicking the picture goes between its real size and the size that fits.</summary>
+    /// <summary>
+    /// A press on the picture starts a drag, or — on the second click — goes between its real size
+    /// and the size that fits. The drag is taken here rather than left to the scroll viewer so that
+    /// it works the same at every zoom, including the zoom where the picture fits and there is
+    /// nothing to scroll yet.
+    /// </summary>
     private void OnPicturePressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.ClickCount < 2)
+        if (e.ClickCount >= 2)
+        {
+            e.Handled = true;
+            ToggleRealSize();
+            return;
+        }
+
+        if (_board is null || _scroll is null
+            || !e.GetCurrentPoint(_board).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        _panning = true;
+        _panFrom = e.GetPosition(_scroll);
+        _panOrigin = _scroll.Offset;
+        e.Pointer.Capture(_board);
+        e.Handled = true;
+    }
+
+    private void OnPictureMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_panning || _scroll is null)
+        {
+            return;
+        }
+
+        // What the pointer moved by is what the picture moves by, the other way round: dragging to
+        // the left brings the part that was off the right edge into view.
+        _scroll.Offset = _panOrigin - (e.GetPosition(_scroll) - _panFrom);
+        e.Handled = true;
+    }
+
+    private void OnPictureReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!_panning)
+        {
+            return;
+        }
+
+        _panning = false;
+        e.Pointer.Capture(null);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// The wheel zooms, and zooms about the pointer: whatever was under it stays under it, which is
+    /// what makes a mark worth aiming at. Scrolling a picture that fills the window would otherwise
+    /// move the one thing the person is pointing at.
+    /// </summary>
+    private void OnPictureWheel(object? sender, PointerWheelEventArgs e)
+    {
+        if (_scroll is null || e.Delta.Y == 0)
+        {
+            return;
+        }
+
+        // Only over the picture: the mark list beside it scrolls with the same wheel.
+        if (!Inside(e.Source, _scroll))
         {
             return;
         }
 
         e.Handled = true;
-        ToggleRealSize();
+        ZoomAt(LookGeometry.Step(_zoom, e.Delta.Y > 0), e.GetPosition(_scroll));
+    }
+
+    /// <summary>
+    /// Zooms while keeping one place on the picture where it is. The place is read before the
+    /// picture is redrawn: after it, the same screen point is a different part of the picture.
+    /// </summary>
+    private void ZoomAt(double zoom, Point at)
+    {
+        var was = _zoom;
+        if (_scroll is null || was <= 0)
+        {
+            Zoom(zoom, false);
+            return;
+        }
+
+        var before = _scroll.Offset + new Vector(at.X, at.Y);
+        Zoom(zoom, false);
+
+        // The picture has just been given a new size, and the viewer answers a scroll position
+        // against the size it knew before the layout that comes next: without this pass the offset
+        // below is quietly cut down to the old range, and the place under the pointer drifts.
+        _scroll.UpdateLayout();
+
+        var ratio = _zoom / was;
+        _scroll.Offset = new Vector(before.X * ratio, before.Y * ratio) - new Vector(at.X, at.Y);
     }
 
     /// <summary>
@@ -995,17 +1197,6 @@ public partial class LookWindow : AppWindow
             Canvas.SetLeft(mark, visible.X);
             Canvas.SetTop(mark, visible.Y);
             board.Children.Add(mark);
-
-            // The same writing the window is showing goes into the picture it saves, so what is
-            // handed to somebody else is what is on the screen here.
-            if (_labelsOnPicture && Label(box) is { } label)
-            {
-                var above = visible.Y - LabelHeight - LabelGap;
-                label.Tag = index;
-                Canvas.SetLeft(label, visible.X);
-                Canvas.SetTop(label, above >= 0 ? above : visible.Y + visible.Height + LabelGap);
-                board.Children.Add(label);
-            }
         }
 
         return board;

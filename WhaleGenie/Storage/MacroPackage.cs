@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -41,7 +42,7 @@ public static class MacroPackage
     /// argument: a 19 package's <c>arg.*</c> keys would be read as fields the action does not have,
     /// so it is refused rather than half-read.
     /// </summary>
-    public const int FormatVersion = 20;
+    public const int FormatVersion = 21;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";
@@ -52,20 +53,56 @@ public static class MacroPackage
 
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
-    /// <summary>Where a package's images are unpacked when it is opened.</summary>
+    /// <summary>Where a package's images are unpacked when it is opened, and written when taken.</summary>
     public static string AssetFolderFor(string packagePath)
-        => Path.Combine(
-            Path.GetDirectoryName(Path.GetFullPath(packagePath)) ?? ".",
-            Path.GetFileNameWithoutExtension(packagePath) + ".assets");
+        => Path.Combine(FolderFor(packagePath), "assets");
+
+    /// <summary>
+    /// The copy of the package that the last save replaced. It is kept under the program's own data
+    /// folder rather than beside the package: a save that turns out to be wrong is still one mistake
+    /// nobody can undo from inside the program, and the copy is for the program and for whoever goes
+    /// looking, not part of the folder the projects are read from.
+    /// </summary>
+    public static string BackupPathFor(string packagePath)
+        => Path.Combine(FolderFor(packagePath), "last.wgmacro.bak");
+
+    /// <summary>
+    /// The folder one package owns, named after it and hashed by its full path: two projects called
+    /// the same in different folders must not unpack over each other, and one project opened again
+    /// must find the pictures it already has.
+    /// </summary>
+    private static string FolderFor(string packagePath)
+    {
+        var full = Path.GetFullPath(packagePath);
+        var stem = Path.GetFileNameWithoutExtension(full);
+        foreach (var bad in Path.GetInvalidFileNameChars())
+        {
+            stem = stem.Replace(bad, '_');
+        }
+
+        var hash = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(full.ToLowerInvariant())))[..8];
+        return Path.Combine(AppPaths.Projects, $"{stem}-{hash}");
+    }
 
     /// <summary>Writes the macros and shared variables into a package file.</summary>
     public static void Save(string path, IReadOnlyList<MacroItem> macros,
-        IReadOnlyList<VariableDefinition> globals, string appVersion)
-        => Save(path, macros, ProjectTriggers.FromMacros(macros), globals, appVersion);
+        IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder = null)
+        => Save(path, macros, ProjectTriggers.FromMacros(macros), globals, appVersion, assetFolder);
 
-    /// <summary>Writes the macro bodies and the project-wide trigger entries into one package.</summary>
+    /// <summary>
+    /// Writes the macro bodies and the project-wide trigger entries into one package.
+    /// </summary>
+    /// <param name="assetFolder">
+    /// Where the pictures are now, when that is not beside the file being written. Exporting a
+    /// macro, saving a project somewhere else and pulling one out of the public library all write
+    /// the package somewhere the images have never been: without this, a value that says
+    /// <c>assets/x.png</c> resolves to nothing, the image is left out of the zip, and the package
+    /// travels with a reference to a file only this machine has.
+    /// </param>
     public static void Save(string path, IReadOnlyList<MacroItem> macros,
-        ProjectTriggers triggers, IReadOnlyList<VariableDefinition> globals, string appVersion)
+        ProjectTriggers triggers, IReadOnlyList<VariableDefinition> globals, string appVersion,
+        string? assetFolder = null)
     {
         triggers.Attach(macros);
 
@@ -98,16 +135,18 @@ public static class MacroPackage
             using (var stream = File.Create(temporary))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                SaveInto(archive, fullPath, macros, triggers, globals, appVersion);
+                SaveInto(archive, fullPath, macros, triggers, globals, appVersion, assetFolder);
             }
 
-            // The package being replaced is kept beside it as .bak. A save that turns out to be wrong
-            // is the one mistake nobody can undo from inside the program, and the copy costs a single
-            // file write. Every path that saves — the window's own Ctrl+S and the MCP tool alike —
-            // comes through here, so none of them can forget it.
+            // The package being replaced is kept as a copy under the program's data folder. A save
+            // that turns out to be wrong is the one mistake nobody can undo from inside the program,
+            // and the copy costs a single file write. Every path that saves — the window's own Ctrl+S
+            // and the MCP tool alike — comes through here, so none of them can forget it.
             if (File.Exists(fullPath))
             {
-                File.Copy(fullPath, fullPath + ".bak", true);
+                var backup = BackupPathFor(fullPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(backup) ?? ".");
+                File.Copy(fullPath, backup, true);
             }
 
             File.Move(temporary, fullPath, true);
@@ -263,9 +302,10 @@ public static class MacroPackage
 
     private static void SaveInto(ZipArchive archive, string packagePath,
         IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
-        IReadOnlyList<VariableDefinition> globals, string appVersion)
+        IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder)
     {
-        var assets = new AssetCollector(archive, AssetFolderFor(packagePath));
+        var assets = new AssetCollector(archive,
+            [AssetFolderFor(packagePath), Path.GetDirectoryName(packagePath), assetFolder]);
         var manifestMacros = new JsonArray();
         var files = new List<(string Name, string Trigger, string Loop, int Steps)>();
         var index = 0;
@@ -527,14 +567,21 @@ public static class MacroPackage
     internal sealed class AssetCollector
     {
         private readonly ZipArchive _archive;
-        private readonly string _sourceFolder;
+        private readonly IReadOnlyList<string> _sourceFolders;
         private readonly Dictionary<string, string> _mapped = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _taken = new(StringComparer.OrdinalIgnoreCase);
 
-        public AssetCollector(ZipArchive archive, string sourceFolder)
+        /// <param name="sourceFolders">
+        /// Where to look for a picture, in order: beside the file being written first, then wherever
+        /// the project it came from kept them. More than one is the normal case for an export.
+        /// </param>
+        public AssetCollector(ZipArchive archive, IEnumerable<string?> sourceFolders)
         {
             _archive = archive;
-            _sourceFolder = sourceFolder;
+            _sourceFolders = [.. sourceFolders
+                .Where(folder => !string.IsNullOrWhiteSpace(folder))
+                .Select(folder => Path.GetFullPath(folder!))
+                .Distinct(StringComparer.OrdinalIgnoreCase)];
         }
 
         /// <summary>Entry names written so far, in the order they were added.</summary>
@@ -577,10 +624,26 @@ public static class MacroPackage
                 return ResolveFile(value);
             }
 
-            // A value already stored as assets/x.png lives beside the package.
+            // A value written as assets/x.png names an entry of the package, and on disk that is one
+            // of two places: the picture sits beside the file (`<folder>/assets/x.png`), or the
+            // folder being searched is itself the unpacked assets folder (`<folder>/x.png`). Which
+            // one it is depends on where the package came from, so both are tried.
             var relative = value.Replace('/', Path.DirectorySeparatorChar);
-            return ResolveFile(Path.Combine(_sourceFolder, relative))
-                ?? ResolveFile(value);
+            var name = Path.GetFileName(relative);
+            foreach (var folder in _sourceFolders)
+            {
+                if (ResolveFile(Path.Combine(folder, relative)) is { } beside)
+                {
+                    return beside;
+                }
+
+                if (ResolveFile(Path.Combine(folder, name)) is { } unpacked)
+                {
+                    return unpacked;
+                }
+            }
+
+            return ResolveFile(value);
         }
 
         private string UniqueName(string name)

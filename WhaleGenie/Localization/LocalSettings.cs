@@ -174,6 +174,40 @@ public static class LocalSettings
     public static void StoreSystemHotkey(string value)
         => Write(model => model.SystemHotkey = value.Trim());
 
+    /// <summary>The key that opens the floating macro menu on this machine. Empty means none.</summary>
+    public static string LoadMenuLauncher() => Read().MenuLauncher.Trim();
+
+    public static void StoreMenuLauncher(string value)
+        => Write(model => model.MenuLauncher = value.Trim());
+
+    /// <summary>
+    /// The size the main window was last closed at. A missing or invalid size means this machine
+    /// has not chosen one yet, so the window keeps the size declared in XAML.
+    /// </summary>
+    public static (double Width, double Height)? LoadMainWindowSize()
+    {
+        var model = Read();
+        return UsableSize(model.MainWindowWidth) && UsableSize(model.MainWindowHeight)
+            ? (model.MainWindowWidth, model.MainWindowHeight)
+            : null;
+    }
+
+    public static void StoreMainWindowSize(double width, double height)
+    {
+        if (!UsableSize(width) || !UsableSize(height))
+        {
+            return;
+        }
+
+        Write(model =>
+        {
+            model.MainWindowWidth = width;
+            model.MainWindowHeight = height;
+        });
+    }
+
+    private static bool UsableSize(double value) => double.IsFinite(value) && value > 0;
+
     public static DockPage LoadDockPage()
         => Enum.TryParse<DockPage>(Read().DockPage, true, out var page) ? page : DockPage.Keys;
 
@@ -228,6 +262,13 @@ public static class LocalSettings
         public string CaptureScreen { get; set; } = string.Empty;
 
         public string SystemHotkey { get; set; } = "Home";
+
+        public string MenuLauncher { get; set; } = string.Empty;
+
+        /// <summary>Zero means no size has been stored, which is not a window size.</summary>
+        public double MainWindowWidth { get; set; }
+
+        public double MainWindowHeight { get; set; }
 
         public string DockPage { get; set; } = nameof(Models.DockPage.Keys);
 

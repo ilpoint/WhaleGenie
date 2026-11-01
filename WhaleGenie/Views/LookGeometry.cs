@@ -19,9 +19,10 @@ internal static class LookGeometry
     public const double LargestZoom = 8;
 
     /// <summary>
-    /// The zoom that shows the whole picture inside the room there is for it. A picture smaller
-    /// than the room is left at its own size rather than blown up: enlarging it would only make
-    /// the marks look more certain than they are.
+    /// The zoom that shows the whole picture inside the room there is for it, enlarging a small
+    /// picture as readily as it shrinks a large one: a reference picture is a few dozen pixels
+    /// across, and "fits the window" leaving it at 100% shows it at the size of a postage stamp in
+    /// the middle of an empty window. Only the range the view allows caps it.
     /// </summary>
     public static double Fit(int pictureWidth, int pictureHeight, double roomWidth, double roomHeight)
     {
@@ -31,7 +32,7 @@ internal static class LookGeometry
         }
 
         var zoom = Math.Min(roomWidth / pictureWidth, roomHeight / pictureHeight);
-        return Math.Clamp(Math.Min(1, zoom), SmallestZoom, LargestZoom);
+        return Math.Clamp(zoom, SmallestZoom, LargestZoom);
     }
 
     /// <summary>Zooming one step in or out, kept inside what the view allows.</summary>

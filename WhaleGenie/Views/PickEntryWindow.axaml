@@ -1,0 +1,72 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="330"
+        x:Class="WhaleGenie.Views.PickEntryWindow"
+        Title="WhaleGenie"
+        Width="520" Height="330"
+        MinWidth="460" MinHeight="320"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="16,0,16,14"
+              RowSpacing="10">
+
+            <TextBlock Grid.Row="0" Classes="Hint" TextWrapping="Wrap" Margin="0,0,0,2"
+                       Text="{Binding [LookPick.EntryHint], Source={x:Static loc:Strings.Current}}" />
+
+            <!-- 一行一个值：偏移 X、偏移 Y、颜色各占一行，右边的按钮才放得下而且对得准。 -->
+            <Grid Grid.Row="1" ColumnDefinitions="60,*,Auto" ColumnSpacing="8">
+                <TextBlock VerticalAlignment="Center" FontSize="12"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Text="{Binding [LookPick.EntryX], Source={x:Static loc:Strings.Current}}" />
+                <TextBox Grid.Column="1" Name="OffsetX" Classes="Field" />
+                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="10,0"
+                        Tag="OffsetX" Click="OnInsertExpression"
+                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [LookPick.ExpressionHint], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+
+            <Grid Grid.Row="2" ColumnDefinitions="60,*,Auto" ColumnSpacing="8">
+                <TextBlock VerticalAlignment="Center" FontSize="12"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Text="{Binding [LookPick.EntryY], Source={x:Static loc:Strings.Current}}" />
+                <TextBox Grid.Column="1" Name="OffsetY" Classes="Field" />
+                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="10,0"
+                        Tag="OffsetY" Click="OnInsertExpression"
+                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [LookPick.ExpressionHint], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+
+            <Grid Grid.Row="3" ColumnDefinitions="60,*,Auto,Auto" ColumnSpacing="8">
+                <TextBlock VerticalAlignment="Center" FontSize="12"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Text="{Binding [LookPick.EntryColour], Source={x:Static loc:Strings.Current}}" />
+                <TextBox Grid.Column="1" Name="Colour" Classes="Field" />
+                <Border Grid.Column="2" Name="Swatch" Width="33" Height="33" CornerRadius="5"
+                        BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
+                <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="10,0"
+                        Tag="Colour" Click="OnInsertExpression"
+                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [LookPick.ExpressionHint], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+
+            <TextBlock Grid.Row="4" Name="Problem" FontSize="11.5"
+                       Foreground="{DynamicResource Danger}" TextWrapping="Wrap" IsVisible="False" />
+
+            <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <Button Grid.Column="1" Classes="Secondary"
+                        Content="{Binding [Common.Cancel], Source={x:Static loc:Strings.Current}}"
+                        Click="OnCancel" />
+                <Button Grid.Column="2" Classes="Primary"
+                        Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                        Click="OnConfirm" />
+            </Grid>
+        </Grid>
+    </Border>
+</views:AppWindow>

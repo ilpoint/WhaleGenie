@@ -310,9 +310,13 @@ public class MenuWindowTests
             Assert.True(cell.ContextMenu!.IsOpen);
             Assert.True(window.HasOpenPopup);
             Assert.True(window.IsVisible);
+            Assert.True(window.ShowActivated,
+                "the popup needs a window that is allowed to activate while it is open");
             cell.ContextMenu.Close();
             Dispatcher.UIThread.RunJobs();
             Assert.False(window.HasOpenPopup);
+            Assert.False(window.ShowActivated,
+                "the menu must return to not taking focus once the popup closes");
             window.Close();
         });
     }

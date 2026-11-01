@@ -390,7 +390,7 @@ public class ActionPageTests
     /// </summary>
     [Theory]
     [InlineData("vision.waitColor")]
-    [InlineData("vision.pixelMatches")]
+    [InlineData("vision.findColor")]
     public void The_colour_of_a_pixel_is_asked_for_above_the_pixel(string action)
     {
         Ui.Run(() =>

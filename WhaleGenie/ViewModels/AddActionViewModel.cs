@@ -403,6 +403,24 @@ public partial class AddActionViewModel : ViewModelBase
     public ObservableCollection<ReturnsRowViewModel> ReturnsRows { get; } = [];
 
     /// <summary>
+    /// The colours a pattern wants around its base colour, as the form lists them. Read from the
+    /// step's own value rather than kept beside it: the picker writes that value, and a second copy
+    /// here would be one more thing to keep in step.
+    /// </summary>
+    public ObservableCollection<ColourPointRow> PatternPoints { get; } = [];
+
+    /// <summary>True when the pattern has at least one colour around its base colour.</summary>
+    public bool HasPatternPoints => PatternPoints.Count > 0;
+
+    /// <summary>True while nothing has been picked yet, which the list says in words.</summary>
+    public bool PatternIsEmpty => !HasPatternPoints;
+
+    /// <summary>The heading of that list, which counts what is in it.</summary>
+    public string PatternTitle => PatternPoints.Count == 0
+        ? Strings.Get("Add.Pattern")
+        : Strings.Format("Add.PatternCount", PatternPoints.Count);
+
+    /// <summary>
     /// What this step passes to the macro it calls, one row per argument the called macro declares.
     /// It is filled from that macro rather than from the catalogue, so it is not a row of the
     /// ordinary parameter list: the names change when the call names another macro.
@@ -1014,6 +1032,7 @@ public partial class AddActionViewModel : ViewModelBase
             MarkCoordinates();
             MarkRegion();
             MarkOffset();
+            MarkColourPoints();
             WireWindowPreview();
 
             if (ReturnsField is { } returns)
@@ -1284,13 +1303,47 @@ public partial class AddActionViewModel : ViewModelBase
                 continue;
             }
 
+            // A value a tool writes has no line of its own: the colours around a base colour are
+            // picked off the picture, and a box repeating them would be a second way to say one
+            // thing — the one that has to be kept in step by hand.
+            if (parameter.WrittenByTool)
+            {
+                continue;
+            }
+
             (parameter.IsAdvanced ? fine : basic).Add(parameter);
         }
 
         FillRows(basic, Rows);
         FillRows(fine, AdvancedRows);
 
+        RefreshPattern();
         RefreshPages();
+    }
+
+    /// <summary>
+    /// Reads the pattern back out of the step's own value. The window that picks it hands back the
+    /// whole list, and this is the same list read for the form: numbers, offsets and colours in the
+    /// order the step keeps them, so what is shown and what will run cannot differ.
+    /// </summary>
+    private void RefreshPattern()
+    {
+        PatternPoints.Clear();
+        var number = 1;
+        foreach (var line in ColourPoints())
+        {
+            if (ColourPointRow.From(number, line) is not { } row)
+            {
+                continue;
+            }
+
+            PatternPoints.Add(row);
+            number++;
+        }
+
+        OnPropertyChanged(nameof(HasPatternPoints));
+        OnPropertyChanged(nameof(PatternIsEmpty));
+        OnPropertyChanged(nameof(PatternTitle));
     }
 
     private static void FillRows(IEnumerable<StepParameterViewModel> parameters,
@@ -1429,15 +1482,17 @@ public partial class AddActionViewModel : ViewModelBase
     private const string CursorPlaceParameter = "useCursor";
 
     /// <summary>
-    /// Notes the offset of an action that clicks a picture, so the two halves sit on one line and
-    /// that line carries the button that picks the point on the picture. An action that clicks
-    /// writing has an offset too, but no picture to point at, and gets no button.
+    /// Notes the offset of an action that clicks what it recognized, so the two halves sit on one
+    /// line and that line carries the button that picks the point. The point is aimed at on the
+    /// picture the step saw, which every action that looks at the screen has — a picture, some
+    /// writing or a detected box. An action with an offset but no screen to look at would have
+    /// nothing to aim on, and gets no button.
     /// </summary>
     private void MarkOffset()
     {
         var x = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "offsetX");
         var y = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "offsetY");
-        if (x is null || y is null || Parameters.All(parameter => parameter.Definition.Name != "images"))
+        if (x is null || y is null || SelectedDefinition is not { LooksAtScreen: true })
         {
             return;
         }
@@ -1445,6 +1500,26 @@ public partial class AddActionViewModel : ViewModelBase
         x.IsRowPair = true;
         y.IsRowPair = true;
         x.IsOffsetAnchor = true;
+    }
+
+    /// <summary>
+    /// Notes the pattern line of a multi-point colour search, so the line carries the button that
+    /// takes its offsets and colours from the screen: working a dozen of them out by eye is the
+    /// kind of arithmetic nobody gets right quietly.
+    /// </summary>
+    /// <summary>
+    /// Marks the tolerance line of a multi-point colour search, so the colours around the base colour
+    /// are listed under it. That line is the last of the ones about the base colour itself — where it
+    /// is, how far off a pixel may be — so the pattern reads as the next question rather than as an
+    /// interruption in the middle of those. The pattern has no line of its own: the picker writes it
+    /// and this list shows it.
+    /// </summary>
+    private void MarkColourPoints()
+    {
+        if (Parameter("tolerance") is { } tolerance && SelectedDefinition?.Key == "vision.findColors")
+        {
+            tolerance.IsColourPointsAnchor = true;
+        }
     }
 
     /// <summary>
@@ -1456,6 +1531,23 @@ public partial class AddActionViewModel : ViewModelBase
         Parameter("offsetX")?.SetNumber(offsetX);
         Parameter("offsetY")?.SetNumber(offsetY);
     }
+
+    /// <summary>
+    /// Writes the pattern the picker settled on. The picker opens with what the step already holds
+    /// and hands the whole list back, so what it shows while it is open is exactly what the step
+    /// ends up with; adding, editing and removing all happen there, and there is no second copy in
+    /// the form to keep in step by hand.
+    /// </summary>
+    public void SetColourPoints(IReadOnlyList<string> entries)
+        => Parameter("points")?.Text = string.Join(Environment.NewLine, entries);
+
+    /// <summary>
+    /// The pattern as the step holds it now, one line each: what the picker starts from.
+    /// </summary>
+    public IReadOnlyList<string> ColourPoints()
+        => [.. (Parameter("points")?.Text ?? string.Empty)
+            .Split([';', '\n', '\r'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
 
     /// <summary>
     /// Notes the parameters that name a rectangle, so one button can take all of them from a drag
@@ -1888,6 +1980,14 @@ public partial class AddActionViewModel : ViewModelBase
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
         KeepPlaceAndNumbersApart(sender, e);
+
+        // The pattern is one value written by a window, so the list shown for it follows that value
+        // rather than a copy of its own.
+        if (sender is StepParameterViewModel { Definition.Name: "points" })
+        {
+            RefreshPattern();
+        }
+
         if (sender is StepParameterViewModel changed
             && changed.Definition.Name is "name" or "scope")
         {

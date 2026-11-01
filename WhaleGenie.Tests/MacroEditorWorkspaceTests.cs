@@ -474,12 +474,11 @@ public class MacroEditorWorkspaceTests
             var list = window.FindControl<ListBox>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
             var marker = window.FindControl<Border>("DropMarker")!;
-            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
-                    row && row.Step.Type == "control.repeat");
+            var head = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: true });
             var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
                 .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var top = head.TranslatePoint(new Point(0, 0), list)!.Value.Y;
             var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
@@ -524,12 +523,11 @@ public class MacroEditorWorkspaceTests
 
             var list = window.FindControl<ListBox>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
-                    row && row.Step.Type == "control.repeat");
+            var head = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: true });
             var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
                 .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var top = head.TranslatePoint(new Point(0, 0), list)!.Value.Y;
             var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
@@ -615,18 +613,17 @@ public class MacroEditorWorkspaceTests
             var list = window.FindControl<ListBox>("StepList")!;
             var marker = window.FindControl<Border>("DropMarker")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
-                    row && row.Step.Type == "control.repeat");
+            var head = list.GetVisualDescendants().OfType<ListBoxItem>()
+                .Single(item => item.DataContext is StepRow { IsHead: true });
             var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
                 .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var top = head.TranslatePoint(new Point(0, 0), list)!.Value.Y;
             var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
-            // Every two pixels from the title of the block to the line that closes it, so a gap
-            // between two of those rows cannot hide a second answer.
+            // Every two pixels of the body — from the title of its list to the line that closes the
+            // block — so a gap between two of those rows cannot hide a second answer.
             var seen = new List<(string? Hint, double? Marker)>();
             for (var y = top; y < bottom; y += 2)
             {

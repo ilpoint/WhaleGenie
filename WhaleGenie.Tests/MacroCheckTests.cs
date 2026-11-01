@@ -1272,6 +1272,47 @@ public class MacroCheckTests
     }
 
     [Fact]
+    public void A_colour_search_can_name_only_its_region()
+    {
+        var region = new StepParameter
+        {
+            Name = "region",
+            Kind = ActionParameterKind.Region,
+            Rows =
+            [
+                new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["x"] = "0",
+                        ["y"] = "0",
+                        ["width"] = "20",
+                        ["height"] = "20",
+                    },
+                },
+            ],
+        };
+
+        var problems = Inspect(Step("vision.findColor", Text("color", "#FF0000"), region));
+
+        Assert.DoesNotContain(problems, problem =>
+            problem.Message.StartsWith(Strings.Get("Editor.Problem.NoPlace").Split("{0}")[0],
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_colour_search_place_and_its_numbers_are_marked()
+    {
+        var step = Step("vision.findColor", Text("color", "#FF0000"),
+            Text("place", "$spot"), Text("x", "10"), Text("y", "20"));
+
+        var label = ActionCatalog.Find("vision.findColor")!.Parameters
+            .First(parameter => parameter.Name == "place").LocalLabel;
+        Assert.Contains(Inspect(step), problem =>
+            problem.Message == Strings.Format("Editor.Problem.PlaceAndNumbers", label));
+    }
+
+    [Fact]
     public void A_region_row_cannot_name_a_place_and_give_its_numbers()
     {
         var region = new StepParameter

@@ -881,7 +881,7 @@
 <!-- Middle: the step documents and their current list. -->
      <Border Grid.Column="2" Name="DocumentPanel"
              Background="{DynamicResource SurfacePanel}" CornerRadius="6">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="18,16">
+            <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="18,14">
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
             <ListBox Name="DocumentTabs" ItemsSource="{Binding Documents}"
                      SelectionMode="Single" SelectionChanged="OnDocumentTabChanged"
@@ -930,10 +930,7 @@
                 </StackPanel>
             </Button>
             </Grid>
-            <TextBlock Grid.Row="1" Classes="SectionHeader" HorizontalAlignment="Center"
-                       Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
-
-             <ItemsControl Grid.Row="2" ItemsSource="{Binding ActionPalette}" Margin="0,0,0,12">
+             <ItemsControl Grid.Row="1" ItemsSource="{Binding ActionPalette}" Margin="0,0,0,12">
                  <ItemsControl.ItemsPanel>
                      <ItemsPanelTemplate>
                          <WrapPanel Orientation="Horizontal" />
@@ -955,7 +952,7 @@
 
                    <!-- What the design-time check made of the steps, so a problem is known while
                         the macro is being written rather than when a trigger fires it. -->
-                   <StackPanel Grid.Row="3" Spacing="2">
+                   <StackPanel Grid.Row="2" Spacing="2">
                        <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasStepProblems}"
                                   Text="{Binding ProblemSummary}" />
                        <TextBlock Classes="Problem" Margin="2,0,0,8" IsVisible="{Binding HasDeclarationProblems}"
@@ -967,7 +964,7 @@
                    </StackPanel>
 
                    <!-- Empty state -->
-                   <StackPanel Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
+                   <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
                                IsVisible="{Binding !HasSteps}" IsHitTestVisible="False">
                        <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="13"
                                   Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
@@ -978,7 +975,7 @@
 
                    <!-- Selection is restored after every edit. Following it would drag a long
                         macro from the reader's place to whichever row the rebuild picked last. -->
-                   <ListBox Grid.Row="4" Name="StepList" Classes="List Bare Gapped"
+                   <ListBox Grid.Row="3" Name="StepList" Classes="List Bare Gapped Steps"
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             AutoScrollToSelectedItem="False"
                             Background="Transparent"
@@ -1017,20 +1014,25 @@
                                   <Border Classes="Card Selectable" Classes.problem="{Binding HasProblem}"
                                           Opacity="{Binding RowOpacity}"
                                           Margin="{Binding Indent}"
-                                          ToolTip.Tip="{Binding IdHint}"
                                           IsVisible="{Binding IsStep}">
-                                      <StackPanel Orientation="Horizontal" Spacing="6">
-                                          <Button Classes="Ghost Tiny" VerticalAlignment="Center" IsVisible="{Binding CanFold}"
+                                      <!-- A grid rather than a horizontal stack: a stack measures its children
+                                           with unlimited width, so the wrapped lines below never wrapped and
+                                           the text was simply cut off once the column got narrow. -->
+                                      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6">
+                                          <Button Grid.Column="0" Classes="Ghost Tiny" VerticalAlignment="Center" IsVisible="{Binding CanFold}"
                                                   ToolTip.Tip="{Binding FoldHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
                                                   CommandParameter="{Binding}">
                                               <views:IconView StrokeThickness="1.4" FitToBounds="True" Data="{Binding FoldIcon}" />
                                           </Button>
-                                          <views:IconView Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
+                                          <views:IconView Grid.Column="1" Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
                                                           StrokeThickness="1.5" Data="{Binding Icon}"
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
-                                          <StackPanel VerticalAlignment="Center">
-                                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                          <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                              <!-- 名称与徽标用 WrapPanel：横向 StackPanel 按无限宽度量孩子，
+                                                   列一窄，排在后面的 ID 与「前台」就顶到卡片外面被裁掉。
+                                                   换行之后它们落在下一行，仍然看得见。 -->
+                                              <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="3">
                                                   <TextBlock Text="{Binding DisplayName}" FontSize="13"
                                                              FontWeight="SemiBold"
                                                              Foreground="{DynamicResource TextPrimary}" />
@@ -1040,9 +1042,13 @@
                                                           IsVisible="{Binding IsSkipped}">
                                                       <TextBlock Text="{Binding SkipLabel}" Classes="Caption" />
                                                   </Border>
-                                                  <!-- id 是**标识**不是状态，用中性徽标 -->
-                                                  <Border Classes="Badge"
+                                                  <!-- id 是**标识**：用强调色，好在一条长步骤里一眼找到它。
+                                                       它不是状态，所以不用四种状态色里的任何一种。
+                                                       提示只挂在 ID 上：整张卡片都提示，等于每一步随手
+                                                       一指都弹同一句，反而挡住要看的内容。 -->
+                                                  <Border Classes="Badge Accent"
                                                           VerticalAlignment="Center"
+                                                          ToolTip.Tip="{Binding IdHint}"
                                                           IsVisible="{Binding HasId}">
                                                       <TextBlock Text="{Binding Id}" Classes="Caption"
                                                                  FontFamily="Consolas,Menlo,monospace" />
@@ -1056,7 +1062,7 @@
                                                           IsVisible="{Binding HasInputMark}">
                                                       <TextBlock Text="{Binding InputMark}" Classes="Caption" />
                                                   </Border>
-                                              </StackPanel>
+                                              </WrapPanel>
                                               <TextBlock Text="{Binding Detail}" Classes="Hint"
                                                          TextWrapping="Wrap" />
                                               <TextBlock Text="{Binding Comment}" FontSize="11"
@@ -1066,20 +1072,21 @@
                                                          Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
-                                          <Border Classes="ProblemTip" IsVisible="{Binding HasProblem}"
+                                          <Border Grid.Column="3" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
                                                               FitToBounds="True"
                                                               Data="{x:Static vm:AppIcons.WarningTriangle}" />
                                           </Border>
-                                      </StackPanel>
+                                      </Grid>
                                   </Border>
 
                                    <!-- The title of one of a block's lists, with an entry that sends
                                         the person to the actions that can be dragged to its end. -->
                                   <Border Classes="StepHead" Margin="{Binding Indent}"
                                           IsVisible="{Binding IsHead}">
-                                      <StackPanel Orientation="Horizontal" Spacing="8">
+                                      <!-- 同样是换行面板：列一窄，「拖入子步骤」不该被挤到卡片外面去。 -->
+                                      <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="4">
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadLabel}" />
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
@@ -1102,7 +1109,7 @@
                                                      Text="{Binding EmptyListHint}"
                                                      Classes="Hint"
                                                      VerticalAlignment="Center" />
-                                      </StackPanel>
+                                      </WrapPanel>
                                   </Border>
 
                                   <!-- The line that closes a block, so "inside the block" and "after
@@ -1118,7 +1125,7 @@
 
                    <!-- The band a dragged action drops on. Sits in the same cell as the list and
                         is not hit-testable, so it never swallows the drag that draws it. -->
-                   <Canvas Grid.Row="4" Name="DropLayer" IsHitTestVisible="False">
+                   <Canvas Grid.Row="3" Name="DropLayer" IsHitTestVisible="False">
                        <Border Name="DropMarker" Classes="DropTarget" MinHeight="30" CornerRadius="4"
                                BorderThickness="3,0,0,0" IsVisible="False">
                            <TextBlock Name="DropHintText" Margin="10,0"

@@ -127,7 +127,8 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 参数读法、值形状、单位、空值、范围、选项、拾取器、子列表、副作用、等待和返回值。
 
 `Models/ActionDisplay.json` 只保存界面标签、提示、编辑器种类和页面归属。`ActionCatalog` 将两类
-信息投影给编辑器；`ActionContractTests` 检查二者对应关系。
+信息投影给编辑器；`ActionContractTests` 检查二者对应关系。显示层另有一个 `WrittenByTool`：这类值
+由专门的窗口写入（基准色周围要对的颜色），表单不给它生成行，值本身照常保存与校验。
 
 `MacroRunner` 是按动作族拆分的 `partial` 类。主文件维护运行状态和循环，各
 `MacroRunner.<Family>.cs` 维护本分族的分派与实现，公共读值集中在 `MacroRunner.Reading.cs`。
@@ -215,13 +216,26 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 `ThemeController` 负责应用和保存主题选择。新增样式时须遵守 `Controls.axaml` 文件头的登记规则，
 并通过相关样式测试。
 
+`FluentAvaloniaTheme` 没有接手 `ContextMenu` 的控件主题。库的 `ControlThemes/BasicControls` 里有
+`Menu`、`MenuItem`、`MenuFlyoutPresenter` 和 `Separator`，唯独没有 `ContextMenu`，而它的模板原本由
+`FluentTheme` 提供。`Themes/Controls.axaml` 的 `Styles.Resources` 里因此有一份按项目令牌写的
+`ContextMenu` 模板：删掉它，每个右键菜单仍会打开、`IsOpen` 仍为真，但屏幕上不画任何东西。
+不要为此重新引入 `<FluentTheme/>`，那会盖掉层 1 已经映射好的颜色。`MenuThemeTests` 核对这份主题
+存在、打开后的菜单有尺寸和 `ItemsPresenter`。
+
 ### 7.3 窗口与覆盖层
 
-普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。主窗、宏编辑器和运行窗将内容扩展到标题栏，
-`AppWindow` 负责该区域的拖动；其他普通窗口使用库提供的默认标题栏。
+普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。主窗、宏编辑器、动作编辑器和运行窗将内容
+扩展到标题栏，`AppWindow` 负责该区域的拖动；其他普通窗口使用库提供的默认标题栏。
+`WindowChrome.Attach(this)` 把这条约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，
+并留出系统按钮需要的宽度。全局变量、这一步看到了什么、表达式、断点条件与设置窗口在构造函数里
+调用它；标题文字跟随 `Window.Title`，所以运行中会改名的窗口（表达式构建器）不必自己同步。
 
 框选、取色、点与元素拾取、屏幕框、菜单浮窗和浮动面板等无标题栏覆盖层继续使用 Avalonia `Window`。
-拾取器打开时先通过 `AppWindows.StepAside` 隐藏鲸灵窗口，并等待桌面合成完成后读取屏幕。
+拾取器打开时先通过 `AppWindows.StepAside` 隐藏鲸灵窗口，再取屏幕；取图一律经过 `ScreenReady`：
+它连拍到相邻两张一致为止，因为桌面复制器在收不到新帧时会继续交出隐藏前的画面，只等合成器
+（`DwmFlush`）不足以保证这一点。取色器铺满整个桌面并显示这张冻结的画面，放大镜是它上面的浮层，
+所以看到的就是取到的，滚轮也不会翻动后面的内容。
 
 无头平台的窗口句柄均为 0，`AppWindow` 清理 FluentAvalonia 在此情形下重复使用的内部句柄表。
 该处理只服务无头会话，真实窗口仍由 FluentAvalonia 管理。
@@ -229,10 +243,20 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 ## 8. 持久化与项目模型
 
 `.wgmacro` 是 ZIP 包，包含 `manifest.json`、说明、`nodes/` 下的宏 JSON 和资源目录。
-`Storage/MacroPackage.cs` 负责读写，采用临时文件加替换的原子写入方式。项目包格式当前为 20，
+`Storage/MacroPackage.cs` 负责读写，采用临时文件加替换的原子写入方式。项目包格式当前为 21，
 加载时要求版本严格相等；公共宏库使用独立格式版本。
 
-`ProjectTriggers` 是触发入口的唯一来源，菜单、界面和计划等配置均属于项目。父宏与内嵌子宏保存在
+包里的图片存在 zip 的 `assets/` 条目里；打开时解出来、截图时写入的是**程序数据目录**下这个包专属的工作目录
+（`%APPDATA%\WhaleGenie\projects\<宏包名>-<路径哈希>\assets`），上一次保存替换掉的包也留在同一目录的
+`last.wgmacro.bak`。它们不放在包旁边：项目文件夹因此只有 `.wgmacro`，包放在只读位置时也有地方解图，
+两个同名的包也不会互相覆盖。
+写包时找图有两个来源：包自己旁边，以及调用方交过来的来源目录（`Save` 的 `assetFolder`）——
+导出所选宏、另存到别处、从公共宏库导出都写在图片从来没去过的地方，不给这一项，`assets/x.png`
+就解析不到，图会被悄悄漏掉。`AssetCollector` 对每个目录先试 `目录/assets/x.png`，再试 `目录/x.png`，
+因为值可能是相对包的路径，也可能只是解包目录里的文件名。
+
+`ProjectTriggers` 是项目级触发入口的唯一来源，触发入口、菜单页面、界面布局和禁止呼出规则属于项目。
+菜单呼出键与系统总开关属于当前机器的 `LocalSettings`，切换项目不改变它们。父宏与内嵌子宏保存在
 同一宏文档中；公共宏拖入项目时复制内容并固定来源版本，不随后续库更新。
 
 包外状态分为：

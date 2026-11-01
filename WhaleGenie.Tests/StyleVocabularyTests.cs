@@ -30,7 +30,7 @@ public class StyleVocabularyTests
         "selected", "chosen", "problem", "Rejected", "Occupied", "Current", "Picked", "DropTarget",
 
         // Variants: colour tiers a family offers.
-        "Success", "Warning", "Danger", "Info", "Disabled",
+        "Success", "Warning", "Danger", "Info", "Accent", "Disabled",
     };
 
     [Fact]

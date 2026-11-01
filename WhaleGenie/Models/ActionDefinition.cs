@@ -446,6 +446,15 @@ public class ActionParameter
     /// are asked for, which is what stops an action with a dozen parameters from being a wall.
     /// </summary>
     public bool Advanced { get; init; }
+
+    /// <summary>
+    /// True for a value that a tool fills in rather than one that is typed: the colours around a
+    /// base colour are picked off the picture, and a box of them is a second way to state the same
+    /// thing — one that has to be learned, kept in step, and read as a line of numbers. The form
+    /// leaves such a field out; the value is still stored, checked and shown by the tool that
+    /// writes it.
+    /// </summary>
+    public bool WrittenByTool { get; init; }
 }
 
 /// <summary>A single entry of the action catalogue, for example <c>control.delay</c>.</summary>

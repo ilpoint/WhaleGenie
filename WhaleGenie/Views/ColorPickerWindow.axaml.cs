@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Views;
 
@@ -28,6 +29,11 @@ public partial class ColorPickerWindow : Window
     /// <summary>How far from the pointer the magnifier sits, so it never covers its own target.</summary>
     private const int Offset = 28;
 
+    /// <summary>The magnifier's size until it has been measured, as written in its markup.</summary>
+    private const double PanelWidth = 292;
+
+    private const double PanelHeight = 452;
+
     /// <summary>The screen the magnifier reads, the pointer it nudges, and the hook it listens on.</summary>
     private readonly IScreenDevice _screen;
 
@@ -36,6 +42,9 @@ public partial class ColorPickerWindow : Window
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(40) };
 
     private Image? _preview;
+    private Image? _desk;
+    private Canvas? _surface;
+    private Border? _panel;
     private Border? _target;
     private Border? _chip;
     private TextBlock? _colourText;
@@ -44,6 +53,18 @@ public partial class ColorPickerWindow : Window
 
     private IInputHook? _hook;
     private WriteableBitmap? _bitmap;
+    private WriteableBitmap? _deskPicture;
+    private PixelPoint _origin;
+    private double _scaling = 1;
+
+    /// <summary>
+    /// Where the magnifier sits on the screen, kept up to date as it is placed. The click that takes
+    /// the colour arrives on the hook's own thread, and a control's bounds read from there is a
+    /// window's visual tree touched by the wrong thread — the crash that made every click during a
+    /// pick take the program with it. Numbers cached on the drawing thread are what that handler is
+    /// allowed to see.
+    /// </summary>
+    private PixelRect _panelAt;
     private PixelColor _colour;
     private ScreenPoint _point;
     private bool _done;
@@ -97,6 +118,9 @@ public partial class ColorPickerWindow : Window
 
         Title = Strings.Get("Picker.Title");
         _preview = this.FindControl<Image>("Preview");
+        _desk = this.FindControl<Image>("Desk");
+        _surface = this.FindControl<Canvas>("Surface");
+        _panel = this.FindControl<Border>("Panel");
         _target = this.FindControl<Border>("Target");
         _chip = this.FindControl<Border>("ColourChip");
         _colourText = this.FindControl<TextBlock>("ColourText");
@@ -140,7 +164,11 @@ public partial class ColorPickerWindow : Window
         try
         {
             var desk = screen.Desktop.Bounds;
-            var frame = screen.Capture(desk.Left, desk.Top, desk.Width, desk.Height);
+
+            // Taken once the screen has stopped changing. The windows this program has went off it a
+            // moment ago, and the duplicator behind the capture answers with the frame it still
+            // holds until the new one arrives — which is the frame with this program in it.
+            var frame = ScreenReady.Capture(screen, desk.Left, desk.Top, desk.Width, desk.Height);
             if (frame.IsEmpty)
             {
                 return;
@@ -149,6 +177,16 @@ public partial class ColorPickerWindow : Window
             _frozen = frame;
             _frozenLeft = desk.Left;
             _frozenTop = desk.Top;
+
+            // The picture stands behind the magnifier, so what the eye is aiming at is the same
+            // pixels the readout is counting: a colour picked off a screen that has moved on is a
+            // colour nobody chose.
+            _deskPicture?.Dispose();
+            _deskPicture = ImageAssets.ToBitmap(frame);
+            if (_desk is not null)
+            {
+                _desk.Source = _deskPicture;
+            }
         }
         catch (Exception)
         {
@@ -170,6 +208,7 @@ public partial class ColorPickerWindow : Window
     {
         base.OnOpened(e);
 
+        Cover();
         Activate();
         Refresh();
         _timer.Start();
@@ -183,9 +222,32 @@ public partial class ColorPickerWindow : Window
         _done = true;
         _timer.Stop();
         DetachHook();
+        // The pictures are still attached to what is on screen for one more frame. Letting go of
+        // them here would hand the renderer a disposed bitmap, so they are dropped from the views
+        // first and released once the frame that used them has been drawn.
         _preview = null;
-        _bitmap?.Dispose();
+        if (_desk is { } picture)
+        {
+            picture.Source = null;
+        }
+
+        var bitmap = _bitmap;
+        var deskPicture = _deskPicture;
         _bitmap = null;
+        _deskPicture = null;
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                bitmap?.Dispose();
+                deskPicture?.Dispose();
+            }
+            catch (Exception)
+            {
+                // A picture the compositor was still holding is not worth taking the program down
+                // for; the memory is reclaimed with the window either way.
+            }
+        }, DispatcherPriority.Background);
     }
 
     /// <summary>Reads the pointer, redraws the magnifier and moves it along with the pointer.</summary>
@@ -345,43 +407,81 @@ public partial class ColorPickerWindow : Window
         }
     }
 
-    /// <summary>Puts the magnifier beside the pointer, kept inside the screen.</summary>
+    /// <summary>
+    /// Stretches the window over the whole desk, whatever its scaling is: the picture underneath is
+    /// the desk, so a place on the picture and a place in the numbers are the same place. Every
+    /// display makes one desk, so a colour on the second one is read as easily as one on the first.
+    /// </summary>
+    private void Cover()
+    {
+        var desk = _screen.Desktop.Bounds;
+        _origin = new PixelPoint(desk.Left, desk.Top);
+        _scaling = RenderScaling <= 0 ? 1 : RenderScaling;
+
+        Width = desk.Width / _scaling;
+        Height = desk.Height / _scaling;
+        Position = _origin;
+
+        if (_desk is { } picture)
+        {
+            picture.Width = Width;
+            picture.Height = Height;
+        }
+
+        if (_surface is { } surface)
+        {
+            surface.Width = Width;
+            surface.Height = Height;
+        }
+    }
+
+    /// <summary>Puts the magnifier beside the pointer, kept inside the desk.</summary>
     private void Place(ScreenPoint point)
     {
-        var scale = RenderScaling <= 0 ? 1 : RenderScaling;
-        var width = (int)Math.Ceiling(Bounds.Width * scale);
-        var height = (int)Math.Ceiling(Bounds.Height * scale);
-        var desk = _screen.Desktop.Bounds;
-
-        var x = point.X + Offset;
-        var y = point.Y + Offset;
-
-        if (width > 0 && x + width > desk.Right)
+        if (_panel is not { } panel)
         {
-            x = point.X - width - Offset;
+            return;
         }
 
-        if (height > 0 && y + height > desk.Bottom)
+        var local = ToLocal(point);
+        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : PanelWidth;
+        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : PanelHeight;
+
+        var x = local.X + Offset;
+        var y = local.Y + Offset;
+
+        if (x + width > Width)
         {
-            y = point.Y - height - Offset;
+            x = local.X - width - Offset;
         }
 
-        x = Math.Clamp(x, desk.Left, Math.Max(desk.Left, desk.Right - width));
-        y = Math.Clamp(y, desk.Top, Math.Max(desk.Top, desk.Bottom - height));
+        if (y + height > Height)
+        {
+            y = local.Y - height - Offset;
+        }
 
-        Position = new PixelPoint(x, y);
+        var left = Math.Clamp(x, 0, Math.Max(0, Width - width));
+        var top = Math.Clamp(y, 0, Math.Max(0, Height - height));
+        Canvas.SetLeft(panel, left);
+        Canvas.SetTop(panel, top);
+
+        _panelAt = new PixelRect(
+            _origin.X + (int)Math.Round(left * _scaling),
+            _origin.Y + (int)Math.Round(top * _scaling),
+            (int)Math.Round(width * _scaling),
+            (int)Math.Round(height * _scaling));
     }
 
-    /// <summary>Whether a screen point falls on the magnifier window itself.</summary>
+    /// <summary>
+    /// Whether a screen point falls on the magnifier itself. Read from the numbers placed on the
+    /// drawing thread, never from the control: this is called by the hook, on the hook's thread.
+    /// </summary>
     private bool Covers(ScreenPoint point)
-    {
-        var scale = RenderScaling <= 0 ? 1 : RenderScaling;
-        var width = (int)Math.Ceiling(Bounds.Width * scale);
-        var height = (int)Math.Ceiling(Bounds.Height * scale);
+        => _panelAt.Contains(new PixelPoint(point.X, point.Y));
 
-        return point.X >= Position.X && point.X < Position.X + width
-            && point.Y >= Position.Y && point.Y < Position.Y + height;
-    }
+    /// <summary>A place on the screen in the window's own units, which is where the panel is drawn.</summary>
+    private Point ToLocal(ScreenPoint point)
+        => new((point.X - _origin.X) / _scaling, (point.Y - _origin.Y) / _scaling);
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {

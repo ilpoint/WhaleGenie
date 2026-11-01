@@ -7,6 +7,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
@@ -35,6 +37,47 @@ public class ActionEditorWindow : AppWindow
     private readonly TaskCompletionSource<MacroStep?> _answer =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private static Grid WithTitleBar(Control content)
+    {
+        var bar = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,138"),
+        };
+        ThemeBrush.Assign(bar, Panel.BackgroundProperty, "SurfaceChrome");
+
+        var icon = new Image
+        {
+            Source = new Bitmap(AssetLoader.Open(new Uri("avares://WhaleGenie/Assets/WhaleGenie.png"))),
+            Width = 22,
+            Height = 22,
+            Margin = new Thickness(12, 0, 8, 0),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        Grid.SetColumn(icon, 0);
+        bar.Children.Add(icon);
+
+        var title = new TextBlock
+        {
+            Text = Strings.Get("Editor.ActionEditor"),
+            FontSize = 13,
+            Margin = new Thickness(0, 0, 12, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        ThemeBrush.Assign(title, TextBlock.ForegroundProperty, "TextPrimary");
+        Grid.SetColumn(title, 1);
+        bar.Children.Add(title);
+
+        var layout = new Grid
+        {
+            RowDefinitions = new RowDefinitions("40,*"),
+        };
+        layout.Children.Add(bar);
+        Grid.SetRow(content, 1);
+        layout.Children.Add(content);
+        return layout;
+    }
+
     public ActionEditorWindow(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
@@ -47,10 +90,16 @@ public class ActionEditorWindow : AppWindow
         MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
+        Icon = new Bitmap(AssetLoader.Open(new Uri("avares://WhaleGenie/Assets/WhaleGenie.ico")));
+
+        // The form is the content, so the title bar has to be part of that content. AppWindow is
+        // what makes the 40px strip draggable; this row only supplies the icon and title inside it.
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 40;
 
         _view = new ActionEditorView(existing, actions, variables, macros, presetKey, assetFolder,
             steps, newStepId);
-        Content = _view;
+        Content = WithTitleBar(_view);
         DataContext = _view.DataContext;
         _view.Finished += CloseWith;
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -61,6 +110,8 @@ public class ActionEditorWindow : AppWindow
     /// modal loop it is shown in is not that answer: see <c>_answer</c>.
     /// </summary>
     internal Task<MacroStep?> Answer => _answer.Task;
+
+    internal ActionEditorView View => _view;
 
     /// <summary>
     /// Closes the window on a step, or on nothing when the form was cancelled. The answer is kept

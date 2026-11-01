@@ -101,7 +101,7 @@ public partial class SettingsViewModel : ViewModelBase
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
-        MenuLauncher = project?.Triggers.MenuLauncher ?? string.Empty;
+        MenuLauncher = LocalSettings.LoadMenuLauncher();
         RefreshMenuRules();
     }
 
@@ -199,11 +199,6 @@ public partial class SettingsViewModel : ViewModelBase
     {
         get
         {
-            if (Project is null)
-            {
-                return Strings.Get("Settings.MenuNoProject");
-            }
-
             if (MenuLauncherMessage.Length > 0)
             {
                 return MenuLauncherMessage;
@@ -214,7 +209,7 @@ public partial class SettingsViewModel : ViewModelBase
                 return Strings.Get("Settings.MenuLauncherMissing");
             }
 
-            if (!Project.IsRunning)
+            if (Project is { IsRunning: false })
             {
                 return Strings.Get("Settings.MenuSystemOff");
             }
@@ -226,13 +221,14 @@ public partial class SettingsViewModel : ViewModelBase
                 return Strings.Get("Settings.MenuLauncherConflict");
             }
 
-            var menuProblems = Project.Triggers.MenuProblems([.. Project.Macros], MenuIconCatalog.Knows);
+            var menuProblems = Project?.Triggers.MenuProblems([.. Project.Macros],
+                MenuIconCatalog.Knows) ?? [];
             if (menuProblems.Count > 0)
             {
                 return menuProblems[0];
             }
 
-            return Project.Triggers.Entries.Any(entry =>
+            return Project is not null && Project.Triggers.Entries.Any(entry =>
                 entry.Kind == TriggerKind.Menu && entry.IsEnabled)
                 ? Strings.Get("Settings.MenuReady")
                 : Strings.Get("Settings.MenuEmpty");
@@ -291,11 +287,7 @@ public partial class SettingsViewModel : ViewModelBase
         IsCapturingMenuLauncher = false;
         MenuLauncherMessage = string.Empty;
         MenuLauncher = binding.Trim();
-        if (Project is not null)
-        {
-            Project.Triggers.MenuLauncher = MenuLauncher;
-            Project.MarkMenuChanged();
-        }
+        LocalSettings.StoreMenuLauncher(MenuLauncher);
         OnPropertyChanged(nameof(MenuLauncherStatus));
         return true;
     }
@@ -305,11 +297,7 @@ public partial class SettingsViewModel : ViewModelBase
         IsCapturingMenuLauncher = false;
         MenuLauncherMessage = string.Empty;
         MenuLauncher = string.Empty;
-        if (Project is not null)
-        {
-            Project.Triggers.MenuLauncher = string.Empty;
-            Project.MarkMenuChanged();
-        }
+        LocalSettings.StoreMenuLauncher(string.Empty);
         OnPropertyChanged(nameof(MenuLauncherStatus));
     }
 
@@ -476,15 +464,16 @@ public partial class SettingsViewModel : ViewModelBase
 
     private IEnumerable<string> ConflictBindings()
     {
+        if (SystemHotkey.Length > 0)
+        {
+            yield return SystemHotkey;
+        }
+
         if (Project is null)
         {
             yield break;
         }
 
-        if (SystemHotkey.Length > 0)
-        {
-            yield return SystemHotkey;
-        }
         foreach (var entry in Project.Triggers.Entries.Where(entry =>
                      entry.IsEnabled && entry.Kind == TriggerKind.Key
                      && entry.BindKey.Trim().Length > 0))

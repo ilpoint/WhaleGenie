@@ -113,6 +113,13 @@ public sealed class MacroMenuWindow : Window
     private bool _menuDragging;
     private bool _restoreAfterMenuDrag;
     private int _openPopupCount;
+
+    /// <summary>
+    /// The check that the menu being opened actually arrived. It stands from the moment the menu
+    /// starts opening until the answer is known, and is what keeps a second right-click from
+    /// starting a second menu on top of the first.
+    /// </summary>
+    private DispatcherTimer? _menuWatch;
     private PixelPoint _anchor;
     private readonly bool _canUseForeground;
     private readonly string _foregroundProcess;
@@ -576,6 +583,20 @@ public sealed class MacroMenuWindow : Window
         return grid;
     }
 
+    /// <summary>Takes a page of the menu away, which is the one answer a page tab has.</summary>
+    private async Task RemovePageAsync(bool common, int page)
+    {
+        var pageId = common
+            ? _layout.CommonPages[page].PageId
+            : _layout.ContextPages[page].PageId;
+        if (await (common
+                ? _actions.RemoveCommonPage(pageId)
+                : _actions.RemoveContextPage(pageId)) is { } updated)
+        {
+            SetLayout(updated);
+        }
+    }
+
     private void RenderLayout()
     {
         _commonPage = Math.Clamp(_commonPage, 0, Math.Max(0, _layout.CommonPages.Count - 1));
@@ -748,7 +769,7 @@ public sealed class MacroMenuWindow : Window
         ToolTip.SetTip(button, description.Length == 0
             ? cell.Macro.Name
             : $"{cell.Macro.Name}\n{description}");
-        AttachContextMenu(button, CellMenu(slot));
+        AttachContextMenu(button, CellMenu(slot), () => CellAnswers(slot));
         button.Click += async (_, _) =>
         {
             if (_suppressClick)
@@ -889,74 +910,186 @@ public sealed class MacroMenuWindow : Window
     private ContextMenu CellMenu(MenuSlotRef slot)
     {
         var menu = new ContextMenu();
-        menu.Items.Add(Item("Menu.EditMacro", () =>
+        foreach (var (label, action) in CellAnswers(slot))
         {
-            CloseForAction();
-            _actions.OpenMacroEditor(slot.Cell!.Macro);
-        }));
-        menu.Items.Add(Item("Menu.Replace", async () =>
-        {
-            if (await _actions.ChooseMacro(slot) is { } updated)
-            {
-                SetLayout(updated);
-            }
-        }));
-        menu.Items.Add(Item("Menu.ChooseIcon", async () =>
-        {
-            if (await _actions.ChooseIcon(slot) is { } updated)
-            {
-                SetLayout(updated);
-            }
-        }));
-        menu.Items.Add(Item("Menu.Debug", () =>
-        {
-            CloseForAction();
-            _actions.DebugMacro(slot.Cell!.Macro);
-        }));
+            menu.Items.Add(Item(label, action));
+        }
+
         return menu;
     }
 
-    private void AttachContextMenu(Control control, ContextMenu menu)
+    /// <summary>
+    /// The four things a cell answers with, written once and used twice: as the menu's items, and as
+    /// the rows of the panel that stands in for the menu when the popup it is does not appear.
+    /// </summary>
+    private List<(string Label, Action Action)> CellAnswers(MenuSlotRef slot)
+        =>
+        [
+            (Strings.Get("Menu.EditMacro"), () =>
+            {
+                CloseForAction();
+                _actions.OpenMacroEditor(slot.Cell!.Macro);
+            }),
+            (Strings.Get("Menu.Replace"), () => _ = ReplaceAsync(slot)),
+            (Strings.Get("Menu.ChooseIcon"), () => _ = ReiconAsync(slot)),
+            (Strings.Get("Menu.Debug"), () =>
+            {
+                CloseForAction();
+                _actions.DebugMacro(slot.Cell!.Macro);
+            }),
+        ];
+
+    private async Task ReplaceAsync(MenuSlotRef slot)
+    {
+        if (await _actions.ChooseMacro(slot) is { } updated)
+        {
+            SetLayout(updated);
+        }
+    }
+
+    private async Task ReiconAsync(MenuSlotRef slot)
+    {
+        if (await _actions.ChooseIcon(slot) is { } updated)
+        {
+            SetLayout(updated);
+        }
+    }
+
+    private void AttachContextMenu(Control control, ContextMenu menu,
+        Func<List<(string Label, Action Action)>> answers)
     {
         control.ContextMenu = menu;
-        menu.Opened += (_, _) =>
-        {
-            if (Interlocked.Increment(ref _openPopupCount) == 1)
-            {
-                PopupOpenChanged?.Invoke(true);
-            }
-        };
+
+        // Whoever opens the menu — the framework on its own or the release below — the window has
+        // to be allowed to activate for the popup to be presented at all, and the open has to be
+        // watched. Doing it here covers both ways in.
+        menu.Opening += (_, _) => PreparePopup(control, menu, answers);
+        menu.Opened += (_, _) => PopupOpened();
         menu.Closed += (_, _) =>
         {
-            if (Interlocked.Decrement(ref _openPopupCount) <= 0)
+            PopupClosed();
+            StopWatching();
+
+            // A context menu is a separate top-level popup. The menu window has to be allowed to
+            // activate for that popup to be presented at all; once it is gone, put the no-activate
+            // style back so the menu does not start taking focus from the program underneath it.
+            if (!IsSearchFocused)
             {
-                Interlocked.Exchange(ref _openPopupCount, 0);
-                PopupOpenChanged?.Invoke(false);
+                ShowActivated = false;
+                ApplyNoActivate();
             }
         };
-        control.PointerPressed += (_, e) =>
+        control.PointerReleased += (_, e) =>
         {
-            if (!e.GetCurrentPoint(control).Properties.IsRightButtonPressed || menu.IsOpen)
+            if (e.InitialPressMouseButton != MouseButton.Right || menu.IsOpen || _closing)
             {
                 return;
             }
 
             e.Handled = true;
-            menu.Open(control);
+            OpenCellMenu(control, menu, answers);
         };
     }
 
-    private static MenuItem Item(string key, Action action)
+    /// <summary>
+    /// Gets the window ready for a popup and starts watching whether it arrives.
+    /// </summary>
+    /// <remarks>
+    /// WS_EX_NOACTIVATE keeps the menu from stealing focus while it is only being looked at. A popup
+    /// cannot be shown inside that style, so this is the same temporary trade the search box makes
+    /// while it needs the keyboard. A menu that reports itself open while showing nothing on some
+    /// machines is what the watch is for: nothing else about the palette can tell those two apart.
+    /// </remarks>
+    private void PreparePopup(Control control, ContextMenu menu,
+        Func<List<(string Label, Action Action)>> answers)
     {
-        var item = new MenuItem { Header = Strings.Get(key) };
-        item.Click += (_, _) => action();
-        return item;
+        ShowActivated = true;
+        SetNoActivate(false);
+        Activate();
+
+        AppDiagnostics.Note("menu.request", $"cell:{control.Name ?? control.GetType().Name}");
+
+        StopWatching();
+
+        var watch = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        watch.Tick += (_, _) =>
+        {
+            watch.Stop();
+            if (!ReferenceEquals(_menuWatch, watch))
+            {
+                return;
+            }
+
+            _menuWatch = null;
+            if (menu.IsOpen)
+            {
+                AppDiagnostics.Note("menu.opened", $"cell:{control.Name ?? control.GetType().Name}");
+                return;
+            }
+
+            AppDiagnostics.Note("menu.notopened", $"cell:{control.Name ?? control.GetType().Name}");
+        };
+
+        _menuWatch = watch;
+        watch.Start();
     }
 
-    private static MenuItem Item(string key, Func<Task> action)
+    private void StopWatching()
     {
-        var item = new MenuItem { Header = Strings.Get(key) };
-        item.Click += async (_, _) => await action();
+        if (_menuWatch is { } watch)
+        {
+            watch.Stop();
+            _menuWatch = null;
+        }
+    }
+
+    /// <summary>
+    /// Opens a cell's menu at the pointer when the framework has not already done so.
+    /// </summary>
+    /// <remarks>
+    /// The release rather than the press: a menu opened while the press is still being routed is
+    /// closed again by the release that follows it, which reads as a menu that never appeared.
+    /// </remarks>
+    private void OpenCellMenu(Control control, ContextMenu menu,
+        Func<List<(string Label, Action Action)>> answers)
+    {
+        if (_closing || menu.IsOpen)
+        {
+            return;
+        }
+
+        try
+        {
+            menu.Open(control);
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("menu.cell.open", error);
+            StopWatching();
+        }
+    }
+
+    private void PopupOpened()
+    {
+        if (Interlocked.Increment(ref _openPopupCount) == 1)
+        {
+            PopupOpenChanged?.Invoke(true);
+        }
+    }
+
+    private void PopupClosed()
+    {
+        if (Interlocked.Decrement(ref _openPopupCount) <= 0)
+        {
+            Interlocked.Exchange(ref _openPopupCount, 0);
+            PopupOpenChanged?.Invoke(false);
+        }
+    }
+
+    private static MenuItem Item(string label, Action action)
+    {
+        var item = new MenuItem { Header = label };
+        item.Click += (_, _) => action();
         return item;
     }
 
@@ -1181,20 +1314,12 @@ public sealed class MacroMenuWindow : Window
             if (index > 0 && count > 1)
             {
                 var remove = new MenuItem { Header = Strings.Get("Menu.RemovePage") };
-                remove.Click += async (_, _) =>
-                {
-                    var pageId = common
-                        ? _layout.CommonPages[page].PageId
-                        : _layout.ContextPages[page].PageId;
-                    if (await (common
-                            ? _actions.RemoveCommonPage(pageId)
-                            : _actions.RemoveContextPage(pageId))
-                        is { } updated)
-                    {
-                        SetLayout(updated);
-                    }
-                };
-                AttachContextMenu(button, new ContextMenu { Items = { remove } });
+                remove.Click += (_, _) => _ = RemovePageAsync(common, page);
+                AttachContextMenu(button, new ContextMenu { Items = { remove } },
+                    () =>
+                    [
+                        (Strings.Get("Menu.RemovePage"), () => _ = RemovePageAsync(common, page)),
+                    ]);
             }
             target.Children.Add(button);
         }

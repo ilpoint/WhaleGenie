@@ -82,7 +82,7 @@ public class TrialRunAsideTests
             "ActionEditorView.axaml.cs"));
 
         Assert.Contains("using (AppWindows.StepAside(HostWindow))", source, StringComparison.Ordinal);
-        Assert.Contains("ScreenComposed.Wait();", source, StringComparison.Ordinal);
+        Assert.Contains("ScreenReady.Wait();", source, StringComparison.Ordinal);
 
         foreach (var trial in new[] { "RunLookingAsync", "RunForRealAsync", "OnTestStep" })
         {

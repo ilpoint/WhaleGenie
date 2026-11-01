@@ -446,17 +446,7 @@ public sealed partial class MacroRunner
                 Watching(() => Sightings(step));
                 break;
 
-            case "vision.findColor":
-            case "vision.waitColor":
-                Watching(() => Scan(step, PixelColor.Parse(ReadValue(step, "color").AsText()),
-                    ReadValue(step, "tolerance").AsNumber(), measured: false));
-                break;
-
-            case "vision.findColors":
-                Watching(() => PatternHits(step));
-                break;
-
-            case "vision.getPixel":
+            case "vision.findColor" when HasPoint(step):
                 Watching(() =>
                 {
                     var (point, window) = Spot(step);
@@ -464,9 +454,29 @@ public sealed partial class MacroRunner
                 });
                 break;
 
-            case "vision.pixelMatches":
-                // The verdict lands in a variable, and a trial writes nothing: what a person needs
-                // to judge the comparison is the colour that is there now.
+            case "vision.findColor":
+            case "vision.waitColor":
+                Watching(() => Scan(step, PixelColor.Parse(ReadValue(step, "color").AsText()),
+                    ReadValue(step, "tolerance").AsNumber(), measured: false));
+                break;
+
+            case "vision.findColors":
+                // A step that names a place is read the way a watched pixel is: one square of screen
+                // around it, which is what a person needs to see to judge the pattern.
+                Watching(() =>
+                {
+                    if (!HasPoint(step))
+                    {
+                        PatternHits(step);
+                        return;
+                    }
+
+                    var (point, window) = Spot(step);
+                    SawPixel(step, point, PixelAt(step, point, window).ToHex(), window);
+                });
+                break;
+
+            case "vision.getPixel":
                 Watching(() =>
                 {
                     var (point, window) = Spot(step);

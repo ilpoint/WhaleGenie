@@ -1,6 +1,8 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -98,41 +100,67 @@ public class RuntimeHookSafetyTests
     [Fact]
     public void A_saved_menu_hotkey_requests_the_menu()
     {
-        var macros = new[] { new MacroItem { Name = "menu" } };
-        var triggers = new ProjectTriggers();
-        triggers.MenuLauncher = "F9";
-        triggers.Entries.Add(new TriggerEntry
+        InOwnSettings("F9", () =>
         {
-            Kind = TriggerKind.Menu,
-            MacroName = "menu",
-            MenuPageId = triggers.CommonMenuPages()[0].Id,
-            MenuRow = 0,
-            MenuColumn = 0,
-        });
-        var store = new TriggerRuntimeSnapshotStore();
-        store.Publish(triggers, macros);
-        using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
-            new NoWindowEvents());
-        var requested = false;
-        service.MenuRequested += () => requested = true;
+            var macros = new[] { new MacroItem { Name = "menu" } };
+            var triggers = new ProjectTriggers();
+            triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Menu,
+                MacroName = "menu",
+                MenuPageId = triggers.CommonMenuPages()[0].Id,
+                MenuRow = 0,
+                MenuColumn = 0,
+            });
+            var store = new TriggerRuntimeSnapshotStore();
+            store.Publish(triggers, macros);
+            using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
+                new NoWindowEvents());
+            var requested = false;
+            service.MenuRequested += () => requested = true;
 
-        Assert.True(service.RequestMenuForCheck("F9"));
-        Assert.True(requested);
+            Assert.True(service.RequestMenuForCheck("F9"));
+            Assert.True(requested);
+        });
     }
 
     [Fact]
     public void The_middle_mouse_button_requests_the_menu()
     {
-        var triggers = new ProjectTriggers { MenuLauncher = "Mouse Middle" };
-        var store = new TriggerRuntimeSnapshotStore();
-        store.Publish(triggers, []);
-        using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
-            new NoWindowEvents());
-        var requested = false;
-        service.MenuRequested += () => requested = true;
+        InOwnSettings("Mouse Middle", () =>
+        {
+            var triggers = new ProjectTriggers();
+            var store = new TriggerRuntimeSnapshotStore();
+            store.Publish(triggers, []);
+            using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
+                new NoWindowEvents());
+            var requested = false;
+            service.MenuRequested += () => requested = true;
 
-        Assert.True(service.RequestMenuForCheck("Mouse Middle"));
-        Assert.True(requested);
+            Assert.True(service.RequestMenuForCheck("Mouse Middle"));
+            Assert.True(requested);
+        });
+    }
+
+    private static void InOwnSettings(string launcher, Action check)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-settings-" + Guid.NewGuid().ToString("N"));
+        var stored = LocalSettings.FilePath;
+        try
+        {
+            Directory.CreateDirectory(folder);
+            LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+            LocalSettings.StoreMenuLauncher(launcher);
+            check();
+        }
+        finally
+        {
+            LocalSettings.FilePath = stored;
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
     }
 
     [Theory]

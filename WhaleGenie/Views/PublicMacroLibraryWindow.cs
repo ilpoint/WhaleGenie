@@ -256,7 +256,8 @@ public sealed class PublicMacroLibraryWindow : AppWindow
         try
         {
             var copy = MacroItem.FromJson(row.Entry.Macro.ToSubMacroJson());
-            MacroPackage.Save(path, [copy], [], AppVersion.Text);
+            MacroPackage.Save(path, [copy], [], AppVersion.Text,
+                PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
             _status.Text = Strings.Format("PublicMacroManager.Exported", Path.GetFileName(path));
         }
         catch (Exception error)

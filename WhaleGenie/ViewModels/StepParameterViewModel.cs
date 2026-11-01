@@ -915,11 +915,17 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool HasBasisNote => BasisNote.Length > 0;
 
     /// <summary>
-    /// True on the parameter whose line carries the button that picks a click point on the
-    /// reference picture. Set by the dialog on the first half of the offset of an action that
-    /// looks for a picture, which is the only place there is something to point at.
+    /// True on the parameter whose line carries the button that picks a click point on the picture
+    /// the step saw. Set by the dialog on the first half of the offset of an action that looks at
+    /// the screen, which is the only place there is something to point at.
     /// </summary>
     public bool IsOffsetAnchor { get; set; }
+
+    /// <summary>
+    /// True on the tolerance line of a multi-point colour search: the colours that have to surround
+    /// the base colour are listed under it, with the button that picks them off the picture.
+    /// </summary>
+    public bool IsColourPointsAnchor { get; set; }
 
     public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
 
@@ -1182,6 +1188,12 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when the parameter belongs behind the dialog's "advanced" fold.</summary>
     public bool IsAdvanced => Definition.Advanced;
+
+    /// <summary>
+    /// True when this value is written by a tool rather than typed, so the form has no line for it:
+    /// the colours around a base colour are picked off the picture.
+    /// </summary>
+    public bool WrittenByTool => Definition.WrittenByTool;
 
     /// <summary>
     /// True while the parameter still holds what it started with. A folded setting that has been

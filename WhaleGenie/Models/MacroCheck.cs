@@ -1130,6 +1130,24 @@ public static class MacroCheck
                 return;
             }
 
+            // The two colour searches treat the region — and the whole screen — as valid answers:
+            // only the place-and-numbers conflict is a mistake then. Reading a pattern at one pixel
+            // is the same question as reading one colour there, so both are let through; a step that
+            // has a region for another reason (a drag's direction, say) is not.
+            if (step.Type is "vision.findColor" or "vision.findColors")
+            {
+                if (definition.Parameters.FirstOrDefault(parameter => parameter.Name == "place")
+                        is { } placeField
+                    && step.Text("place").Trim().Length > 0
+                    && (step.Text("x").Trim().Length > 0 || step.Text("y").Trim().Length > 0))
+                {
+                    Add(step, MacroProblemCode.PlaceAndNumbers,
+                        Strings.Format("Editor.Problem.PlaceAndNumbers", placeField.LocalLabel));
+                }
+
+                return;
+            }
+
             foreach (var (place, numbers) in PlaceGroups)
             {
                 if (definition.Parameters.FirstOrDefault(parameter =>

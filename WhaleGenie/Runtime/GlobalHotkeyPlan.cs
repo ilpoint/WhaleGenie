@@ -38,6 +38,7 @@ public sealed record GlobalHotkeyPlan(
     {
         var claimed = new List<string>();
         var groups = new List<InterfaceHotkeyGroup>();
+        var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
         if (viewModel.IsRunning)
         {
             foreach (var entry in viewModel.Triggers.Entries)
@@ -49,9 +50,9 @@ public sealed record GlobalHotkeyPlan(
                 }
             }
 
-            if (viewModel.Triggers.MenuLauncher.Length > 0)
+            if (menuLauncher.Length > 0)
             {
-                claimed.Add(viewModel.Triggers.MenuLauncher);
+                claimed.Add(menuLauncher);
             }
             var liveGroups = viewModel.Triggers.InterfaceGroups()
                 .Select(group => group.Key)
@@ -69,7 +70,7 @@ public sealed record GlobalHotkeyPlan(
             viewModel.IsRunning,
             [.. claimed],
             [.. groups],
-            viewModel.Triggers.MenuLauncher);
+            menuLauncher);
     }
 
     public GlobalHotkeyMatch Match(string key, IReadOnlyCollection<string> held)

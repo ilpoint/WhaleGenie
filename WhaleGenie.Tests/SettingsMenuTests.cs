@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Avalonia.Controls;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
@@ -12,18 +14,19 @@ public class SettingsMenuTests
     [Fact]
     public void The_menu_launcher_accepts_one_keyboard_or_side_button_binding()
     {
-        var project = new MainViewModel();
-        var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
-            project: project);
+        InOwnSettings(() =>
+        {
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
 
-        Assert.True(viewModel.CaptureMenuLauncher("F11"));
-        Assert.Equal("F11", project.Triggers.MenuLauncher);
-        Assert.True(viewModel.CaptureMenuLauncher("Mouse 4"));
-        Assert.Equal("Mouse 4", project.Triggers.MenuLauncher);
-        Assert.False(viewModel.CaptureMenuLauncher("Wheel Down"));
-        Assert.Equal("Mouse 4", project.Triggers.MenuLauncher);
-        Assert.True(viewModel.CaptureMenuLauncher("Mouse Middle"));
-        Assert.Equal("Mouse Middle", project.Triggers.MenuLauncher);
+            Assert.True(viewModel.CaptureMenuLauncher("F11"));
+            Assert.Equal("F11", LocalSettings.LoadMenuLauncher());
+            Assert.True(viewModel.CaptureMenuLauncher("Mouse 4"));
+            Assert.Equal("Mouse 4", LocalSettings.LoadMenuLauncher());
+            Assert.False(viewModel.CaptureMenuLauncher("Wheel Down"));
+            Assert.Equal("Mouse 4", LocalSettings.LoadMenuLauncher());
+            Assert.True(viewModel.CaptureMenuLauncher("Mouse Middle"));
+            Assert.Equal("Mouse Middle", LocalSettings.LoadMenuLauncher());
+        });
     }
 
     [Fact]
@@ -67,27 +70,30 @@ public class SettingsMenuTests
     [Fact]
     public void The_launcher_status_explains_system_empty_and_ready_states()
     {
-        var project = new MainViewModel();
-        var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
-            project: project);
-        viewModel.CaptureMenuLauncher("F11");
-
-        Assert.Equal(Strings.Get("Settings.MenuSystemOff"), viewModel.MenuLauncherStatus);
-
-        project.IsRunning = true;
-        Assert.Equal(Strings.Get("Settings.MenuEmpty"), viewModel.MenuLauncherStatus);
-
-        var macro = new MacroItem { Name = "run" };
-        project.Macros.Add(macro);
-        project.Triggers.Entries.Add(new TriggerEntry
+        InOwnSettings(() =>
         {
-            Kind = TriggerKind.Menu,
-            MacroName = macro.Name,
-            MenuPageId = project.Triggers.CommonMenuPages()[0].Id,
-            MenuRow = 0,
-            MenuColumn = 0,
+            var project = new MainViewModel();
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
+                project: project);
+            viewModel.CaptureMenuLauncher("F11");
+
+            Assert.Equal(Strings.Get("Settings.MenuSystemOff"), viewModel.MenuLauncherStatus);
+
+            project.IsRunning = true;
+            Assert.Equal(Strings.Get("Settings.MenuEmpty"), viewModel.MenuLauncherStatus);
+
+            var macro = new MacroItem { Name = "run" };
+            project.Macros.Add(macro);
+            project.Triggers.Entries.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Menu,
+                MacroName = macro.Name,
+                MenuPageId = project.Triggers.CommonMenuPages()[0].Id,
+                MenuRow = 0,
+                MenuColumn = 0,
+            });
+            Assert.Equal(Strings.Get("Settings.MenuReady"), viewModel.MenuLauncherStatus);
         });
-        Assert.Equal(Strings.Get("Settings.MenuReady"), viewModel.MenuLauncherStatus);
     }
 
     [Fact]
@@ -126,5 +132,25 @@ public class SettingsMenuTests
             Assert.NotNull(window.FindControl<ListBox>("MenuRuleList"));
             window.Close();
         });
+    }
+
+    private static void InOwnSettings(Action check)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-settings-" + Guid.NewGuid().ToString("N"));
+        var stored = LocalSettings.FilePath;
+        try
+        {
+            Directory.CreateDirectory(folder);
+            LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+            check();
+        }
+        finally
+        {
+            LocalSettings.FilePath = stored;
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
     }
 }

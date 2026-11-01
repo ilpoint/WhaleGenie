@@ -189,12 +189,15 @@ public class LocalSettingsTests
         {
             Assert.Equal("Home", LocalSettings.LoadSystemHotkey());
             Assert.Equal(DockPage.Keys, LocalSettings.LoadDockPage());
+            Assert.Equal(string.Empty, LocalSettings.LoadMenuLauncher());
 
             LocalSettings.StoreSystemHotkey("Ctrl+Alt+Home");
             LocalSettings.StoreDockPage(DockPage.Menu);
+            LocalSettings.StoreMenuLauncher("F9");
 
             Assert.Equal("Ctrl+Alt+Home", LocalSettings.LoadSystemHotkey());
             Assert.Equal(DockPage.Menu, LocalSettings.LoadDockPage());
+            Assert.Equal("F9", LocalSettings.LoadMenuLauncher());
         });
     }
 
@@ -229,6 +232,24 @@ public class LocalSettingsTests
             LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Dark, false, "#445566"));
             Assert.Equal(ThemeMode.Dark, LocalSettings.LoadTheme().Mode);
             Assert.Equal("#445566", LocalSettings.LoadTheme().AccentHex);
+        });
+    }
+
+    [Fact]
+    public void The_main_window_size_is_remembered_only_when_it_is_usable()
+    {
+        InOwnFile(path =>
+        {
+            Assert.Null(LocalSettings.LoadMainWindowSize());
+
+            LocalSettings.StoreMainWindowSize(620, 740);
+            Assert.Equal((620d, 740d), LocalSettings.LoadMainWindowSize());
+
+            LocalSettings.StoreMainWindowSize(0, -1);
+            Assert.Equal((620d, 740d), LocalSettings.LoadMainWindowSize());
+
+            File.WriteAllText(path, """{"MainWindowWidth":-4,"MainWindowHeight":0}""");
+            Assert.Null(LocalSettings.LoadMainWindowSize());
         });
     }
 

@@ -23,6 +23,7 @@ public partial class BreakpointWindow : AppWindow
     public BreakpointWindow(BreakpointRule? current, IReadOnlyList<VariableChoice> variables)
     {
         InitializeComponent();
+        WindowChrome.Attach(this);
         Title = Strings.Get("Run.BreakpointTitle");
         var viewModel = new BreakpointViewModel(current, variables);
         DataContext = viewModel;

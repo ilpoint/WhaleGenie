@@ -93,6 +93,11 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// <summary>True when this line carries the button that picks a click point on the picture.</summary>
     public bool ShowsOffsetPick => First.IsOffsetAnchor;
 
+    /// <summary>
+    /// True when this line carries the list of a pattern's colours and the button that picks them.
+    /// </summary>
+    public bool ShowsColourPointsPick => First.IsColourPointsAnchor;
+
     /// <summary>True when the line says a position can be taken from the pointer with Alt + X.</summary>
     public bool ShowsPositionHint => HasSecond && First.IsCoordinate;
 

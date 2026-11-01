@@ -358,20 +358,9 @@ public partial class RegionPickerWindow : Window
         }
 
         // The program's own windows went off the screen a moment ago, and the desk answers with the
-        // last frame it drew — the one that still has them in it.
-        ScreenComposed.Wait();
-
-        ImageFrame frame;
-        try
-        {
-            frame = _screen.Capture(origin.X, origin.Y, size.Width, size.Height);
-        }
-        catch (Exception)
-        {
-            // A desk that will not be handed over is a picker with no picture under it: the
-            // rectangle is still drawn, and its numbers still say where it is.
-            return;
-        }
+        // last frame it drew — the one that still has them in it. The shot is taken repeatedly until
+        // the desk has stopped changing, which is the first one without them.
+        var frame = ScreenReady.Capture(_screen, origin.X, origin.Y, size.Width, size.Height);
 
         if (frame.IsEmpty || frame.Width != size.Width || frame.Height != size.Height)
         {

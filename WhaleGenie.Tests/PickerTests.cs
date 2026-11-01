@@ -57,16 +57,25 @@ public class PickerTests
         Assert.Equal(".wgmacro", MacroPackage.Extension);
     }
 
+    /// <summary>
+    /// 截图落在**程序自己的数据目录**里、这个包专属的那个文件夹，不落在包旁边：一个项目文件夹里
+    /// 每个 .wgmacro 旁边再挂一个 .assets，读起来就全是目录；而且包放在只读位置时也没处解包。
+    /// 同一个包再来一次还是同一个文件夹，两个同名的包互不覆盖。
+    /// </summary>
     [Fact]
-    public void A_taken_picture_lands_beside_the_macro_package()
+    public void A_taken_picture_lands_in_the_folder_that_package_owns()
     {
         var package = Path.Combine(TempFolder(), "macros", "demo.wgmacro");
+        var folder = ImageAssets.FolderFor(package);
 
-        Assert.Equal(Path.Combine(Path.GetDirectoryName(package)!, "demo.assets"),
-            ImageAssets.FolderFor(package));
+        Assert.Contains(Path.Combine("WhaleGenie", "projects"), folder, StringComparison.Ordinal);
+        Assert.EndsWith("assets", folder, StringComparison.Ordinal);
+        Assert.Equal(folder, ImageAssets.FolderFor(package));
 
-        // With nothing saved yet there is no package to sit beside, so WhaleGenie keeps its own
-        // folder.
+        Assert.NotEqual(folder,
+            ImageAssets.FolderFor(Path.Combine(TempFolder(), "other", "demo.wgmacro")));
+
+        // 还没存过的项目没有包可归属，留在程序自己的图片目录里。
         Assert.EndsWith(Path.Combine("WhaleGenie", "images"), ImageAssets.FolderFor(null));
         Assert.EndsWith(Path.Combine("WhaleGenie", "images"), ImageAssets.FolderFor("   "));
     }

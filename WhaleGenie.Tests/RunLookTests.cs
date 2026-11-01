@@ -1,13 +1,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -90,6 +94,76 @@ public class RunLookTests
 
         Assert.NotNull(look);
         Assert.Equal(LookRole.Hit, look!.Boxes[1].Role);
+    }
+
+    /// <summary>
+    /// 行右边那枚「这一步看到了什么」的缩略图要站在**文字旁边**，不能压在文字上：它落在定宽的
+    /// 那一列，文字在剩下的星号列里，两者不该相交。原先两者都写在第二列，图片正好盖住
+    /// 「第 1 次 20 毫秒」那几行 —— 一行越有内容，被盖掉的越多。
+    /// </summary>
+    [Fact]
+    public void The_picture_on_a_row_sits_beside_the_writing_instead_of_over_it()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var find = new MacroStep
+            {
+                Type = "vision.findImage",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "images",
+                        Kind = ActionParameterKind.Images,
+                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                    },
+                    new StepParameter
+                    {
+                        Name = "confidence",
+                        Kind = ActionParameterKind.Number,
+                        Value = "90",
+                    },
+                    Handed("match", "match"),
+                ],
+            };
+
+            StepIds.Settle([find]);
+            var window = new RunWindow([find], new LookingDevices()) { Width = 900, Height = 620 };
+            window.Show();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            Dispatcher.UIThread.RunJobs();
+
+            var row = window.FindControl<ItemsControl>("StepList")!
+                .GetVisualDescendants().OfType<Border>()
+                .First(border => border.Classes.Contains("RunRow"));
+            var thumb = row.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Classes.Contains("LookThumb"));
+            var picture = new Rect(thumb.TranslatePoint(default, window) ?? default, thumb.Bounds.Size);
+
+            var written = row.GetVisualDescendants().OfType<TextBlock>()
+                .Where(text => !string.IsNullOrEmpty(text.Text) && text.Bounds.Width > 0)
+                .Select(text => new Rect(text.TranslatePoint(default, window) ?? default,
+                    text.Bounds.Size))
+                .ToList();
+
+            var covered = written.Count(text => text.Intersects(picture));
+            var right = written.Select(text => text.Right).DefaultIfEmpty(0).Max();
+
+            window.Close();
+            return (Picture: picture, Covered: covered, TextRight: right);
+        });
+
+        Assert.True(answer.Picture.Width > 0, "缩略图该有大小");
+        Assert.Equal(0, answer.Covered);
+        Assert.True(answer.Picture.X >= answer.TextRight,
+            $"缩略图从 {answer.Picture.X:0} 开始，文字一直到 {answer.TextRight:0}");
     }
 
     /// <summary>

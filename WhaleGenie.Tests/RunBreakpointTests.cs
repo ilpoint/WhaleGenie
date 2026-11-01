@@ -144,6 +144,7 @@ public class RunBreakpointTests
             Assert.Contains(items, item => Equals(item.Tag, "toggle"));
             Assert.Contains(items, item => Equals(item.Tag, "condition"));
             Assert.Contains(items, item => Equals(item.Tag, "clear"));
+            Assert.All(items, item => Assert.Same(row, item.DataContext));
 
             // 没有断点时给的是「下断点」，也没有条件可清；「跳过这一步」不在这一份菜单里 —— 那是工具
             // 栏上那枚按钮的位置。
@@ -285,7 +286,23 @@ public class RunBreakpointTests
     {
         var line = Row(window, row);
 
-        line.ContextMenu!.Open(line);
+        // A menu left open by the click before this one is closed first: a second open on top of it
+        // is refused, and the row would then be stamped nowhere.
+        if (line.ContextMenu!.IsOpen)
+        {
+            line.ContextMenu.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        // A popup loses the row's logical tree when it opens. Clear what the test tree happened to
+        // inherit so the handler has to put the row back for the items to work.
+        line.ContextMenu.DataContext = null;
+        foreach (var entry in line.ContextMenu.Items.OfType<MenuItem>())
+        {
+            entry.DataContext = null;
+        }
+
+        line.RaiseEvent(new ContextRequestedEventArgs());
         Dispatcher.UIThread.RunJobs();
 
         // 同一件事的两个标题（下断点 / 取消断点）各占一项，画出来的那一项才是能点的那一项。
@@ -294,6 +311,13 @@ public class RunBreakpointTests
 
         item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         Dispatcher.UIThread.RunJobs();
+
+        // What taking an item does to a real menu, so the next click starts where a person's would.
+        if (line.ContextMenu.IsOpen)
+        {
+            line.ContextMenu.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     }
 
     /// <summary>The row a step is written on, which is where the breakpoint menu hangs.</summary>

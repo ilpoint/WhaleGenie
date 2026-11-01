@@ -58,6 +58,8 @@ public class ExpressionFieldTests
         ["input.mouseDrag"] = ["startPlace", "endPlace"],
         ["vision.waitColor"] = ["place"],
         ["vision.getPixel"] = ["place"],
+        ["vision.findColor"] = ["place"],
+        ["vision.findColors"] = ["place"],
         ["vision.capture"] = ["rect"],
         ["ocr.recognize"] = ["rect"],
         ["window.move"] = ["rect"],

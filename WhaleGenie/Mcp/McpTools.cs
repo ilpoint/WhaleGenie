@@ -844,9 +844,9 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     /// <summary>
     /// Puts a picture where the macros look for one and answers with the name a step points at. A
-    /// picture is a file beside the package, and the package carries it when the project is saved —
-    /// so it is written here, not inside a draft, and it is behind the same switch as anything else
-    /// that puts something on this machine.
+    /// picture is a file in the folder the package owns, and the package carries it when the project
+    /// is saved — so it is written here, not inside a draft, and it is behind the same switch as
+    /// anything else that puts something on this machine.
     /// </summary>
     [McpServerTool(Name = "whalegenie_put_image", Destructive = true,
             Title = "Store an image for a macro"),

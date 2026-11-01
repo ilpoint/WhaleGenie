@@ -22,14 +22,11 @@
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <StackPanel Margin="18,14,18,16" Spacing="12">
 
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding [Run.BreakpointTitle], Source={x:Static loc:Strings.Current}}"
-                           FontSize="13" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" Classes="Secondary" Height="26" Padding="10,0" FontSize="11.5"
-                        Content="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
-                        Command="{Binding ClearCommand}" />
-            </Grid>
+            <!-- 标题在标题栏里，这里只留下与它同排的按钮。 -->
+            <Button Classes="Secondary" Height="26" Padding="10,0" FontSize="11.5"
+                    HorizontalAlignment="Right"
+                    Content="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ClearCommand}" />
 
             <StackPanel Spacing="6">
                 <TextBlock Classes="BreakpointValue"
