@@ -157,6 +157,7 @@ if ($missing) { $missing; exit 1 }
 | 界面与应用 | `WhaleGenie.Tests` | 参数成型、绑定、触发器、包往返、MCP、文案和无头交互 |
 | 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
+| 界面观感 | `tools/Shot` | 把真实窗口离屏渲染成 PNG，或用程序自己的抓屏读运行中的窗口 |
 
 契约测试应遍历目录或扫描源码，避免手写第二份动作清单。新增目录事实时先增加可失败的断言，
 再修改实现。主要对账关系如下：
@@ -252,7 +253,32 @@ if ($missing) { $missing; exit 1 }
 - 等待条件使用事件、`TaskCompletionSource` 或 `Ui.Until`，不使用固定睡眠推断异步操作已完成。
 - 修改全局状态的测试使用 `[RestoreSharedState]` 并在界面线程还原；共享变量值由相关用例自行清理。
 
-### 手动验收清单
+### 看图与看运行中的程序
+
+界面改动不必每次都靠人眼：`tools/Shot` 用程序自己的窗口类与样式，把一扇窗画成 PNG，
+也能读运行中的程序所占的那块屏幕。它不是程序的一部分，不进解决方案，只在需要看的时候跑。
+
+```bash
+# 设置窗口（可指定子页与深色）
+dotnet run --project tools/Shot -- settings --page=CaptureInput --dark
+
+# 动作编辑器
+dotnet run --project tools/Shot -- editor
+
+# 运行中的程序：按进程找它最大的窗口，抓下来的就是那一扇
+tools/Shot/bin/Release/net10.0-windows10.0.19041/Shot.exe window --app=WhaleGenie
+
+# 整个桌面，或其中一块
+tools/Shot/bin/Release/net10.0-windows10.0.19041/Shot.exe desktop --at=0,0,1280,800
+```
+
+图片落在 `tools/Shot/bin/<配置>/<框架>/shots/`。离屏渲染看的是版式、文案与状态，看不到真实的
+输入、别的程序的窗口，也看不到只在真机上才走的分支；这些仍按手动清单验收。
+
+抓一个运行中的程序时，进程要先起来：在同一条命令里先启动、再抓、再结束，避免它被上一次会话的
+残留实例挡住文件（构建会因此报“文件被锁”）。
+
+## 手动验收清单
 
 按受影响范围选择项目，并在提交信息中记录 Windows 版本、DPI、显示器数量、相关外部程序版本、
 操作步骤和观察结果。环境变化后重新验收受影响项目。

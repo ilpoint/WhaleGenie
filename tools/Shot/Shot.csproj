@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A development tool, not part of the program: it draws a real window into a PNG so a change to
+    the layout can be looked at without a screen, a mouse or a second machine. The program's own
+    windows and styles are used, so what comes out is what would be shown.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" Version="12.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\WhaleGenie\WhaleGenie.csproj" />
+  </ItemGroup>
+
+</Project>
