@@ -32,6 +32,34 @@ public static class LocalSettings
     /// <summary>Remembers the package that is open now. An empty path forgets it.</summary>
     public static void StoreLastProject(string? path) => Write(model => model.LastProject = path ?? string.Empty);
 
+    /// <summary>
+    /// Whether a start opens the project that was open last time. A start without one is a start
+    /// with nothing open, which is what keeping several projects apart asks for.
+    /// </summary>
+    public static bool LoadLastProjectAtStart() => Read().LoadLastProjectAtStart;
+
+    /// <summary>Stores whether the last project is opened at start.</summary>
+    public static void StoreLastProjectAtStart(bool load)
+        => Write(model => model.LoadLastProjectAtStart = load);
+
+    /// <summary>
+    /// Whether triggers are already listening when the program starts. Off means the system stays
+    /// disabled until it is turned on, which is the quieter thing to do on a shared machine.
+    /// </summary>
+    public static bool LoadSystemAtStart() => Read().SystemAtStart;
+
+    /// <summary>Stores whether the system is enabled at start.</summary>
+    public static void StoreSystemAtStart(bool enabled)
+        => Write(model => model.SystemAtStart = enabled);
+
+    /// <summary>
+    /// Whether the macro list puts enabled macros first. Off keeps the order they were made in.
+    /// </summary>
+    public static bool LoadEnabledFirst() => Read().EnabledFirst;
+
+    /// <summary>Stores whether enabled macros are listed first.</summary>
+    public static void StoreEnabledFirst(bool first) => Write(model => model.EnabledFirst = first);
+
     /// <summary>Whether the window frame and controls use the light variant.</summary>
     public static bool LoadLightTheme() => Read().LightTheme;
 
@@ -264,6 +292,24 @@ public static class LocalSettings
         public string SystemHotkey { get; set; } = "Home";
 
         public string MenuLauncher { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Whether a start opens the project that was open when the program was last closed. On by
+        /// default: that is what the program has always done, and the choice is here to turn it off.
+        /// </summary>
+        public bool LoadLastProjectAtStart { get; set; } = true;
+
+        /// <summary>
+        /// Whether triggers listen as soon as the program starts. Off by default: a macro program that
+        /// starts taking keyboard and mouse the moment it opens is a surprise nobody asked for.
+        /// </summary>
+        public bool SystemAtStart { get; set; }
+
+        /// <summary>
+        /// Whether enabled macros are listed above disabled ones. Off by default, which keeps the
+        /// order the project was made in.
+        /// </summary>
+        public bool EnabledFirst { get; set; }
 
         /// <summary>Zero means no size has been stored, which is not a window size.</summary>
         public double MainWindowWidth { get; set; }

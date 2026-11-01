@@ -121,8 +121,10 @@ public partial class App : Application
 
         // The person's last package comes back with the window: an empty list every morning is a
         // step nobody asked for. A file that is not there any more leaves the window empty rather
-        // than failing to start, and the path is kept for the drive that was not plugged in.
-        if (LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
+        // than failing to start, and the path is kept for the drive that was not plugged in. The
+        // setting is here for someone who keeps several projects apart and would rather start empty.
+        if (LocalSettings.LoadLastProjectAtStart()
+            && LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
         {
             try
             {

@@ -2018,6 +2018,9 @@ public partial class MainWindow : AppWindow
         await dialog.ShowDialogOver(this);
         PublishRuntimeState(viewModel);
         viewModel.RefreshHotkeyHints();
+
+        // 列表的排序在设置里可改，关掉设置窗口就按新选择重排一次。
+        viewModel.RefreshVisibleMacros();
     }
 
     private Task OpenMenuSettingsAsync(WindowInfo? foreground)

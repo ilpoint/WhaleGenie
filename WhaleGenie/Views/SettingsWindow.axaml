@@ -51,6 +51,27 @@
                                       SelectedItem="{Binding SelectedLanguage}" />
                             <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                        Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <CheckBox Margin="2,16,0,0" Name="LoadLastProjectCheck"
+                                      Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                      IsChecked="{Binding LoadLastProjectAtStart}"
+                                      Content="{Binding [Settings.LoadLastProject], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Settings.LoadLastProjectHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <CheckBox Margin="2,14,0,0" Name="SystemAtStartCheck"
+                                      Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                      IsChecked="{Binding SystemAtStart}"
+                                      Content="{Binding [Settings.SystemAtStart], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Settings.SystemAtStartHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <CheckBox Margin="2,14,0,0" Name="EnabledFirstCheck"
+                                      Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                      IsChecked="{Binding EnabledFirst}"
+                                      Content="{Binding [Settings.EnabledFirst], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Settings.EnabledFirstHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
 

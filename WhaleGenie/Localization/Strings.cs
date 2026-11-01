@@ -1436,6 +1436,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.Done"] = "Done",
         ["Settings.LanguageHint"] = "Applies immediately to every window. Until changed, follows the "
             + "Windows display language.",
+        ["Settings.LoadLastProject"] = "Open the last project at start",
+        ["Settings.LoadLastProjectHint"] = "Off starts with an empty list, which suits keeping several "
+            + "projects apart from one another.",
+        ["Settings.SystemAtStart"] = "Enable the system at start",
+        ["Settings.SystemAtStartHint"] = "On starts responding to triggers right away. Off by default, "
+            + "which leaves the system disabled until the hotkey turns it on.",
+        ["Settings.EnabledFirst"] = "List enabled macros first",
+        ["Settings.EnabledFirstHint"] = "Off keeps the order the project was made in.",
         ["Settings.CaptureWindow"] = "Reading a window",
         ["Settings.CaptureWindowHint"] =
             "How a picture of a window is taken on this machine, for every step of every macro. "
@@ -3758,6 +3766,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.ResetAccent"] = "改回内置强调色",
         ["Theme.Done"] = "完成",
         ["Settings.LanguageHint"] = "立即应用到所有窗口。未选择时跟随 Windows 显示语言。",
+        ["Settings.LoadLastProject"] = "启动时打开上次的项目",
+        ["Settings.LoadLastProjectHint"] = "关闭后每次启动都是空列表，适合把多个项目分开使用。",
+        ["Settings.SystemAtStart"] = "启动时启用系统",
+        ["Settings.SystemAtStartHint"] = "开启后启动即响应触发；默认关闭，由热键启用。",
+        ["Settings.EnabledFirst"] = "已启用的宏排在前面",
+        ["Settings.EnabledFirstHint"] = "关闭时保持项目中原有的顺序。",
         ["Settings.CaptureWindow"] = "读窗口",
         ["Settings.CaptureWindowHint"] =
             "这台机器上窗口的画面怎么取，对所有宏的每一步都生效。自动（默认）：先走 Graphics "

@@ -93,6 +93,9 @@ public partial class SettingsViewModel : ViewModelBase
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         SelectedTheme = ThemeOptions.First(option => option.Mode == LocalSettings.LoadTheme().Mode);
         _themeReady = true;
+        LoadLastProjectAtStart = LocalSettings.LoadLastProjectAtStart();
+        SystemAtStart = LocalSettings.LoadSystemAtStart();
+        EnabledFirst = LocalSettings.LoadEnabledFirst();
         PreloadOcr = LocalSettings.LoadPreloadOcr();
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
@@ -547,6 +550,27 @@ public partial class SettingsViewModel : ViewModelBase
     public partial LanguageOption SelectedLanguage { get; set; }
 
     /// <summary>
+    /// Whether a start opens the project that was open when the program was last closed. Off starts
+    /// empty, which is what keeping several projects apart from one another asks for.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool LoadLastProjectAtStart { get; set; }
+
+    /// <summary>
+    /// Whether triggers listen as soon as the program starts. Off leaves the system disabled until it
+    /// is turned on, which is the quieter thing to do on a shared machine.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool SystemAtStart { get; set; }
+
+    /// <summary>
+    /// Whether the macro list puts enabled macros above disabled ones. Off keeps the order the
+    /// project was made in.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool EnabledFirst { get; set; }
+
+    /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.
     /// </summary>
     [ObservableProperty]
@@ -664,6 +688,33 @@ public partial class SettingsViewModel : ViewModelBase
             : current.WithMode(value.Mode);
         ThemeController.Apply(next);
         ThemeController.Save(next);
+    }
+
+    /// <summary>Stores whether a start opens the project that was open last time.</summary>
+    partial void OnLoadLastProjectAtStartChanged(bool value)
+    {
+        if (value != LocalSettings.LoadLastProjectAtStart())
+        {
+            LocalSettings.StoreLastProjectAtStart(value);
+        }
+    }
+
+    /// <summary>Stores whether triggers listen as soon as the program starts.</summary>
+    partial void OnSystemAtStartChanged(bool value)
+    {
+        if (value != LocalSettings.LoadSystemAtStart())
+        {
+            LocalSettings.StoreSystemAtStart(value);
+        }
+    }
+
+    /// <summary>Stores whether enabled macros are listed first.</summary>
+    partial void OnEnabledFirstChanged(bool value)
+    {
+        if (value != LocalSettings.LoadEnabledFirst())
+        {
+            LocalSettings.StoreEnabledFirst(value);
+        }
     }
 
     /// <summary>The same, for the choice that holds the text recognition models in memory.</summary>

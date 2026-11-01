@@ -19,6 +19,9 @@ public partial class MainViewModel : ViewModelBase
     {
         _makeMcp = mcp;
         SelectedDock = LocalSettings.LoadDockPage();
+
+        // 启动时是否已经在听触发，由设置决定；默认关着，和按热键启用之前一样。
+        IsRunning = LocalSettings.LoadSystemAtStart();
         Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
@@ -173,14 +176,23 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>True when there are macros but the search left none of them on screen.</summary>
     public bool HasNoMatch => Macros.Count > 0 && VisibleMacros.Count == 0;
 
-    /// <summary>Puts the macros the search box lets through into the list the window shows.</summary>
-    private void RefreshVisibleMacros()
+    /// <summary>
+    /// Puts the macros the search box lets through into the list the window shows. Enabled ones come
+    /// first when that is asked for; the sort is stable, so the order a project was made in survives
+    /// inside each of the two groups.
+    /// </summary>
+    public void RefreshVisibleMacros()
     {
         var wanted = SearchText.Trim();
         var keeping = Macros.Where(macro =>
             Triggers.HasPage(macro.Name, SelectedDock)
             && (wanted.Length == 0
                 || macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)));
+
+        if (LocalSettings.LoadEnabledFirst())
+        {
+            keeping = keeping.OrderByDescending(macro => macro.IsEnabled);
+        }
 
         VisibleMacros.Clear();
         foreach (var macro in keeping.ToList())

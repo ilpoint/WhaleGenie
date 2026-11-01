@@ -40,6 +40,77 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 三项启动设置：默认与今天的行为一致（打开上次项目、系统不随启动启用、宏按原顺序），
+    /// 改一项不碰其他项。默认值就是升级后第一次打开时的样子，不能悄悄改变既有行为。
+    /// </summary>
+    [Fact]
+    public void The_start_settings_default_to_what_the_program_did_before()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.True(LocalSettings.LoadLastProjectAtStart());
+            Assert.False(LocalSettings.LoadSystemAtStart());
+            Assert.False(LocalSettings.LoadEnabledFirst());
+
+            LocalSettings.StoreSystemAtStart(true);
+            LocalSettings.StoreEnabledFirst(true);
+            LocalSettings.StoreLastProjectAtStart(false);
+
+            Assert.False(LocalSettings.LoadLastProjectAtStart());
+            Assert.True(LocalSettings.LoadSystemAtStart());
+            Assert.True(LocalSettings.LoadEnabledFirst());
+
+            // 另一个选择写一次，三项都不动。
+            LocalSettings.StorePreloadOcr(true);
+            Assert.False(LocalSettings.LoadLastProjectAtStart());
+            Assert.True(LocalSettings.LoadSystemAtStart());
+            Assert.True(LocalSettings.LoadEnabledFirst());
+        });
+    }
+
+    /// <summary>
+    /// 启动时启用系统：新建主视图模型时按设置决定系统状态。默认关闭，就是按热键启用之前的样子。
+    /// </summary>
+    [Fact]
+    public void The_system_can_be_enabled_by_the_start_setting()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.False(new MainViewModel().IsRunning);
+
+            LocalSettings.StoreSystemAtStart(true);
+            Assert.True(new MainViewModel().IsRunning);
+        });
+    }
+
+    /// <summary>
+    /// 已启用的宏排在前面：关闭时保持项目原有顺序，打开后只把两组分开，组内顺序不变。
+    /// </summary>
+    [Fact]
+    public void Enabled_macros_can_be_listed_first_without_reordering_each_group()
+    {
+        InOwnFile(_ =>
+        {
+            var viewModel = new MainViewModel();
+            viewModel.SelectedDock = DockPage.Keys;
+
+            viewModel.AddMacro(new MacroItem { Name = "停用一", IsEnabled = false });
+            viewModel.AddMacro(new MacroItem { Name = "启用一" });
+            viewModel.AddMacro(new MacroItem { Name = "停用二", IsEnabled = false });
+            viewModel.AddMacro(new MacroItem { Name = "启用二" });
+
+            Assert.Equal(["停用一", "启用一", "停用二", "启用二"],
+                viewModel.VisibleMacros.Select(macro => macro.Name));
+
+            LocalSettings.StoreEnabledFirst(true);
+            viewModel.RefreshVisibleMacros();
+
+            Assert.Equal(["启用一", "启用二", "停用一", "停用二"],
+                viewModel.VisibleMacros.Select(macro => macro.Name));
+        });
+    }
+
+    /// <summary>
     /// The package that was open last, so the next start does not begin with an empty list. A path
     /// that no longer exists is kept: the work may be on a drive that is not plugged in.
     /// </summary>
