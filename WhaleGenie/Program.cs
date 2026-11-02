@@ -205,7 +205,9 @@ sealed class Program
 #if DEBUG
             .WithDeveloperTools()
             // 给 agent 的界面自省：loopback 的 MCP，只在调试版里开，随进程一起结束。
-            .UseAgentInspector()
+            // 只读那一层默认就在；EnableInteraction 打开后才有 tap / click_at / invoke 这些
+            // 真正驱动界面的工具，它们也才登记上来。不加这一项，连接器里只会有 22 个只读工具。
+            .UseAgentInspector(options => options.EnableInteraction = true)
 #endif
             .WithInterFont()
             .LogToTrace();
