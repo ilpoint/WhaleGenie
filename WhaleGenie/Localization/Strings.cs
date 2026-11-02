@@ -689,14 +689,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Milliseconds"] = "Milliseconds",
         ["Editor.Record"] = "Record",
         ["Editor.StopRecording"] = "Stop Recording",
-        ["Editor.RecordIdle"] = "Press Ctrl + F10 or click Record to start",
+        ["Editor.RecordIdle"] = "Press {0} or click Record to start",
         ["Editor.PlaceTakesOnly"] = "The step was not placed. This list only takes {0}.",
         ["Editor.PlaceCaseOnly"] = "A case can only be placed in a switch's branch list.",
         ["Editor.PlaceUnavailable"] = "This action cannot be placed here: {0}.",
         ["Editor.StepIdsRepaired"] = "Repaired {0} step id(s) that were used twice: {1}",
         ["Editor.PlaceIntoItself"] = "A block cannot be moved inside itself.",
         ["Editor.RecordActive"] = "Recording: {0} captured, Escape is recorded like any other "
-                                  + "key. Press Ctrl + F10 to stop",
+                                  + "key. Press {1} to stop",
         ["Editor.RecordFailed"] = "Recording could not start. Another program may be holding the "
                                   + "keyboard or mouse hook.",
         ["Editor.RecordEmpty"] = "The recording caught nothing, which usually means nothing was done "
@@ -816,7 +816,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.RunDebug"] = "Run and debug",
         ["Editor.Tip.RunDebug"] = "Load these steps into the run and debug window and stop there, "
             + "without saving first. Press Run in that window to run them.",
-        ["Editor.Tip.Record"] = "Start or stop recording what you do on screen (Ctrl + F10)",
+        ["Editor.Tip.Record"] = "Start or stop recording what you do on screen ({0})",
         ["Editor.UnsavedMessage"] = "This macro has changes that are not saved yet.",
         ["Editor.Discard"] = "Discard",
         ["Editor.DeleteTitle"] = "Delete macro",
@@ -988,6 +988,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.SoundOption.Warning"] = "Warning",
         ["Settings.SoundOption.Error"] = "Error",
         ["Settings.SoundOption.Question"] = "Question",
+        ["Settings.RecordStopKey"] = "Recording stop key",
+        ["Settings.RecordStopHint"] = "Press the button, then the shortcut that ends a recording. "
+            + "Ctrl+F10 by default. The recording panel's own line says whichever key is set here, "
+            + "and a recording can always be stopped with the same button as well. The shortcut is "
+            + "written the way every other one is: letters, digits, F1 to F24 and modifier "
+            + "combinations such as Ctrl+Alt+F12.",
         ["Menu.DefaultContext"] = "Default",
         ["Menu.Drag"] = "Drag the title bar to move the menu",
         ["Menu.Search"] = "Search macros",
@@ -1568,6 +1574,13 @@ public sealed class Strings : INotifyPropertyChanged
             + "the problem: driver-level input reaches those windows, because the machine sees it as "
             + "real hardware. Starting a macro from a hotkey in front of them is.",
         ["Settings.AdminRestart"] = "Restart as administrator",
+        ["Settings.RunAsAdmin"] = "Ask for administrator rights at every start",
+        ["Settings.RunAsAdminHint"] = "Off by default. On means every start shows the UAC prompt "
+            + "and runs with those rights, which is what lets a hotkey still reach this program "
+            + "while a window of a higher privilege (Task Manager, or anything started as "
+            + "administrator) is in front. Saying no at the prompt leaves this copy running "
+            + "without them and asks nothing again until the next start. The manifest stays "
+            + "asInvoker, so this is a choice rather than a rule.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -2751,14 +2764,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Milliseconds"] = "毫秒",
         ["Editor.Record"] = "开始录制",
         ["Editor.StopRecording"] = "停止录制",
-        ["Editor.RecordIdle"] = "按 Ctrl + F10 或点“开始录制”",
+        ["Editor.RecordIdle"] = "按 {0} 或点“开始录制”",
         ["Editor.PlaceTakesOnly"] = "这一步没有放进去：这个列表只收{0}。",
         ["Editor.PlaceCaseOnly"] = "Case 只能放进多分支的分支列表。",
         ["Editor.PlaceUnavailable"] = "这个动作不能放进当前位置：{0}。",
         ["Editor.StepIdsRepaired"] = "修复了 {0} 个重复的步骤 ID：{1}",
         ["Editor.PlaceIntoItself"] = "不能把块放进它自己的内部。",
         ["Editor.RecordActive"] = "录制中：已捕获 {0} 个事件（Esc 会被正常录下来），"
-                                  + "按 Ctrl + F10 停止",
+                                  + "按 {1} 停止",
         ["Editor.RecordFailed"] = "无法开始录制。可能有其他程序占用了键盘或鼠标钩子。",
         ["Editor.RecordEmpty"] = "这次录制没有捕获到任何操作，通常是录制期间没有产生任何输入。"
                                  + "此外，远程桌面、虚拟机或自动化工具发送的输入会被系统标记为"
@@ -2870,7 +2883,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Tip.Save"] = "保存这个宏并关闭编辑器",
         ["Editor.RunDebug"] = "运行调试",
         ["Editor.Tip.RunDebug"] = "把这里的步骤装入运行与调试窗口并停在该处，无需先保存；需在该窗口中按「运行」才会执行。",
-        ["Editor.Tip.Record"] = "开始或停止录制屏幕上的操作（Ctrl + F10）",
+        ["Editor.Tip.Record"] = "开始或停止录制屏幕上的操作（{0}）",
         ["Editor.UnsavedMessage"] = "这个宏有尚未保存的修改。",
         ["Editor.Discard"] = "放弃修改",
         ["Editor.DeleteTitle"] = "删除宏",
@@ -3028,6 +3041,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.SoundOption.Warning"] = "警告",
         ["Settings.SoundOption.Error"] = "错误",
         ["Settings.SoundOption.Question"] = "疑问",
+        ["Settings.RecordStopKey"] = "录制停止键",
+        ["Settings.RecordStopHint"] = "按一下按钮，再按要用来结束录制的快捷键，默认 Ctrl+F10。"
+            + "录制面板上那一行会跟着改，写成这里设的键；面板上的同一个按钮也一直能停。键的写法与别处"
+            + "一样：字母、数字、F1–F24，以及 Ctrl+Alt+F12 这样的修饰键组合。",
         ["Menu.DefaultContext"] = "默认",
         ["Menu.Drag"] = "拖动标题栏移动菜单",
         ["Menu.Search"] = "搜索宏",
@@ -3931,6 +3948,11 @@ public sealed class Strings : INotifyPropertyChanged
             + "不是问题：驱动级输入能进那些窗口，因为系统当它是真实硬件；问题是那些窗口在前面时"
             + "热键启不了宏。",
         ["Settings.AdminRestart"] = "以管理员身份重新启动",
+        ["Settings.RunAsAdmin"] = "每次启动都请求管理员权限",
+        ["Settings.RunAsAdminHint"] = "默认关闭。打开后每次启动都会出现 UAC 提示，并以管理员身份"
+            + "运行：一个权限更高的窗口（任务管理器，或者其他“以管理员身份运行”的程序）在前台时，"
+            + "热键还能不能送进本程序就取决于它。在提示上选“否”时，这一份照常以普通权限运行，本次"
+            + "不再问，下次启动再问一次。清单保持 asInvoker，所以这是一项选择，不是规定。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 

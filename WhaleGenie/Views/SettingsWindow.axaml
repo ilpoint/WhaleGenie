@@ -200,6 +200,24 @@
                         <Border Classes="Section">
                             <StackPanel>
                                 <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Settings.RecordStopKey], Source={x:Static loc:Strings.Current}}" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
+                                               VerticalAlignment="Center" Text="{Binding RecordStopDisplay}" />
+                                    <Button Grid.Column="1" Name="CaptureRecordStopButton" Classes="Secondary" Height="30"
+                                            Content="{Binding RecordStopButton}" />
+                                </Grid>
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.RecordStopHint], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Warning}"
+                                           Text="{Binding RecordStopProblem}"
+                                           IsVisible="{Binding RecordStopProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="Section">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
                                 <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowWays}"
                                           SelectedItem="{Binding SelectedWindowWay}" />
@@ -292,6 +310,12 @@
                                         IsVisible="{Binding !IsElevated}"
                                         Click="OnRestartElevatedClicked"
                                         Content="{Binding [Settings.AdminRestart], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Margin="2,12,0,0" Name="RunAsAdminCheck"
+                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                          IsChecked="{Binding RunAsAdmin}"
+                                          Content="{Binding [Settings.RunAsAdmin], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.RunAsAdminHint], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.AdminHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>

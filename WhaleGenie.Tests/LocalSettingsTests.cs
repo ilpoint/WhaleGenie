@@ -193,6 +193,55 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 停止录制的快捷键默认 Ctrl+F10；改过的读得回来，文件里那一格空着也回到默认 —— 一个停不下来的
+    /// 录制比一个用默认键的录制糟得多。设置窗口按下的组合键走同一条路，写坏的键不写进去。
+    /// </summary>
+    [Fact]
+    public void The_recording_stop_key_is_kept_and_falls_back_to_the_default()
+    {
+        InOwnFile(path =>
+        {
+            Assert.Equal("Ctrl+F10", LocalSettings.LoadRecordStopKey());
+
+            LocalSettings.StoreRecordStopKey("F9");
+            Assert.Equal("F9", LocalSettings.LoadRecordStopKey());
+
+            File.WriteAllText(path, """{"RecordStopKey":""}""");
+            Assert.Equal("Ctrl+F10", LocalSettings.LoadRecordStopKey());
+
+            var settings = new SettingsViewModel(() => DriverInputState.Ready);
+            Assert.True(settings.CaptureRecordStop("Ctrl+Alt+F12"));
+            Assert.Equal("Ctrl+Alt+F12", LocalSettings.LoadRecordStopKey());
+            Assert.Equal("Ctrl+Alt+F12", settings.RecordStopDisplay);
+
+            // 读不出来的键不被存下来，原来的键继续管用。
+            Assert.False(settings.CaptureRecordStop("没有这个键"));
+            Assert.Equal("Ctrl+Alt+F12", LocalSettings.LoadRecordStopKey());
+        });
+    }
+
+    /// <summary>「每次启动都请求管理员权限」默认关闭，勾上就存下来；它不会改变当前这一份的权限。</summary>
+    [Fact]
+    public void Asking_for_administrator_rights_at_start_is_a_stored_choice()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.False(LocalSettings.LoadRunAsAdmin());
+
+            var settings = new SettingsViewModel(() => DriverInputState.Ready, elevated: false)
+            {
+                RunAsAdmin = true,
+            };
+
+            Assert.True(LocalSettings.LoadRunAsAdmin());
+            Assert.True(settings.RunAsAdmin);
+
+            // 这一次运行有没有权限是启动时定下的，勾这一格不会让它变。
+            Assert.False(settings.IsElevated);
+        });
+    }
+
+    /// <summary>
     /// The package that was open last, so the next start does not begin with an empty list. A path
     /// that no longer exists is kept: the work may be on a drive that is not plugged in.
     /// </summary>

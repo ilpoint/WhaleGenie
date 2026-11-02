@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Recording;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
@@ -64,6 +65,9 @@ internal sealed class RecordingSession : IDisposable
         recorder.StopRequested += stopRequested;
         recorder.IgnoreInjected = ignoreInjected;
         recorder.RecordController = recordController;
+
+        // 停止键由这一次录制开始时从设置里取：引擎不读设置文件，而用户换成别的键应当立刻生效。
+        recorder.StopShortcut = LocalSettings.LoadRecordStopKey();
 
         try
         {

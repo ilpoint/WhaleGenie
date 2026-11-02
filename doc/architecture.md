@@ -161,6 +161,8 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 
 `StepRun`、`StepAttempt` 和 `StepResult` 记录步骤与尝试结果；`RunLogStore` 向运行界面和 MCP
 提供日志。运行失败使用 `Run.*`，日志事件使用 `Log.*`，MCP 拒绝码使用独立词表。
+`LogRetention` 在启动时按设置份数清理 `logs/` 下一次运行或一天一个文件的失败与 MCP 日志，
+`runtime.log` 与其他文件不在其中。
 
 ## 6. 设备层与画面获取
 

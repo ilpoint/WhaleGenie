@@ -60,6 +60,12 @@ public partial class SettingsWindow : AppWindow
         };
         this.FindControl<Button>("ClearMenuLauncherButton")!.Click += (_, _) =>
             _viewModel.ClearMenuLauncher();
+        this.FindControl<Button>("CaptureRecordStopButton")!.Click += (_, _) =>
+        {
+            _viewModel.IsCapturingSystemHotkey = false;
+            _viewModel.StopMenuLauncherCapture();
+            _viewModel.IsCapturingRecordStop = !_viewModel.IsCapturingRecordStop;
+        };
 
         this.FindControl<Button>("EditMenuRuleButton")!.IsEnabled = project is not null;
         this.FindControl<Button>("RemoveMenuRuleButton")!.IsEnabled = project is not null;
@@ -146,6 +152,26 @@ public partial class SettingsWindow : AppWindow
             return;
         }
 
+        if (_viewModel.IsCapturingRecordStop)
+        {
+            if (HotkeyNameMapper.IsModifier(e.Key))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Escape)
+            {
+                _viewModel.IsCapturingRecordStop = false;
+                e.Handled = true;
+                return;
+            }
+
+            _viewModel.CaptureRecordStop(Chord(e.Key, e.KeyModifiers));
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Escape)
         {
             Close();
@@ -201,6 +227,7 @@ public partial class SettingsWindow : AppWindow
         {
             "CaptureSystemHotkeyButton", "ClearSystemHotkeyButton",
             "CaptureMenuLauncherButton", "ClearMenuLauncherButton",
+            "CaptureRecordStopButton",
         };
 
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())

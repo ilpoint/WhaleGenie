@@ -117,6 +117,13 @@ sealed class Program
             return 0;
         }
 
+        // 设置里要求以管理员身份启动：提权是另一份进程的事，这一份让出位置。放在拿到单实例之后，
+        // 第二次启动仍然是"把窗口叫回来"，不会因为设置里那一格而变成一记 UAC。
+        if (ProcessRights.AutoRestart(args))
+        {
+            return 0;
+        }
+
         Run(args);
         return 0;
     }

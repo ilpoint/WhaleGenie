@@ -1140,7 +1140,7 @@
                                 Click="OnCloseRecording" />
                     </Grid>
                     <TextBlock Classes="Hint" TextWrapping="Wrap"
-                               Text="{Binding [Editor.RecordIdle], Source={x:Static loc:Strings.Current}}" />
+                               Text="{Binding RecordStatusText}" />
                             <Border Classes="Sunken" Margin="0,4,0,0">
                                 <StackPanel>
                                     <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
@@ -1268,7 +1268,7 @@
                             Classes.Recording="{Binding IsRecording}"
                             IsEnabled="{Binding !IsCapturingKey}"
                             AutomationProperties.Name="Record macro actions"
-                            ToolTip.Tip="{Binding [Editor.Tip.Record], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding RecordStartTip}"
                             Command="{Binding ToggleRecordCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="10"
                                     HorizontalAlignment="Center" VerticalAlignment="Center">

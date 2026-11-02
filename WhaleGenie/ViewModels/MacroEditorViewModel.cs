@@ -1482,10 +1482,18 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public string RecordLabel => IsRecording ? Strings.Get("Editor.StopRecording") : Strings.Get("Editor.Record");
 
-    /// <summary>Hint under the record button, so the stop shortcuts stay discoverable.</summary>
+    /// <summary>
+    /// Hint under the record button, so the stop shortcut stays discoverable. The key is read from
+    /// the settings every time it is built: changing it there changes this line, and a line that
+    /// named a fixed key would send people to the wrong one.
+    /// </summary>
     public string RecordStatusText => IsRecording
-        ? Strings.Format("Editor.RecordActive", RecordedEvents)
-        : Strings.Get("Editor.RecordIdle");
+        ? Strings.Format("Editor.RecordActive", RecordedEvents, LocalSettings.LoadRecordStopKey())
+        : Strings.Format("Editor.RecordIdle", LocalSettings.LoadRecordStopKey());
+
+    /// <summary>The record button's tooltip, naming the same shortcut the line under it names.</summary>
+    public string RecordStartTip
+        => Strings.Format("Editor.Tip.Record", LocalSettings.LoadRecordStopKey());
 
     /// <summary>True while the current capture only takes keys, not a mouse button or a pad button.</summary>
     internal bool CaptureKeyboardOnly => _captureKeyboardOnly;

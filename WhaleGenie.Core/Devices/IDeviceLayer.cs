@@ -1355,6 +1355,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         /// </summary>
         public bool RecordController { get; set; } = true;
 
+        /// <summary>The same for the shortcut that ends a recording: asked for, never acted on here.</summary>
+        public string StopShortcut { get; set; } = string.Empty;
+
         event Action<RecordedInput>? IInputRecorder.Captured
         {
             add => throw Missing("a recorder");

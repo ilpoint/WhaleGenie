@@ -806,6 +806,34 @@ public class MacroEditorTests
         }
     }
 
+    /// <summary>
+    /// 录制面板上那行字写的是设置里那个键，不是写死的 F10 —— 改了停止键却还写着旧键，等于教人按错。
+    /// </summary>
+    [Fact]
+    public void The_recording_line_names_the_key_the_settings_kept()
+    {
+        var stored = WhaleGenie.Localization.LocalSettings.FilePath;
+        var folder = Path.Combine(Path.GetTempPath(), "wg-record-key-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(folder);
+            WhaleGenie.Localization.LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+            WhaleGenie.Localization.LocalSettings.StoreRecordStopKey("Ctrl+Alt+F12");
+
+            Ui.Run(() =>
+            {
+                var (_, viewModel) = Open();
+                Assert.Contains("Ctrl+Alt+F12", viewModel.RecordStatusText, StringComparison.Ordinal);
+                Assert.Contains("Ctrl+Alt+F12", viewModel.RecordStartTip, StringComparison.Ordinal);
+            });
+        }
+        finally
+        {
+            WhaleGenie.Localization.LocalSettings.FilePath = stored;
+            Directory.Delete(folder, true);
+        }
+    }
+
     [Fact]
     public void A_macro_whose_declarations_clash_says_so_above_the_steps()
     {

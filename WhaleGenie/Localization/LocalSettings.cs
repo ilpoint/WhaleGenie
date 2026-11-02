@@ -134,6 +134,33 @@ public static class LocalSettings
     public static void StoreLogCount(int count) => Write(model => model.LogCount = Math.Clamp(
         count, LogRetention.Fewest, LogRetention.Most));
 
+    /// <summary>
+    /// The shortcut that ends a recording. Ctrl+F10 by default: it is out of the way of the work
+    /// being recorded, and a recording that could only be stopped with the mouse is a recording
+    /// that keeps writing while the pointer goes looking for the button.
+    /// </summary>
+    public static string LoadRecordStopKey()
+    {
+        var key = Read().RecordStopKey.Trim();
+        return key.Length > 0 ? key : UsualRecordStopKey;
+    }
+
+    /// <summary>What a recording is stopped with when nothing else has been chosen.</summary>
+    public const string UsualRecordStopKey = "Ctrl+F10";
+
+    /// <summary>Stores that shortcut.</summary>
+    public static void StoreRecordStopKey(string key) => Write(model => model.RecordStopKey = key.Trim());
+
+    /// <summary>
+    /// Whether every start asks Windows for the administrator token. Off by default: a macro tool
+    /// that puts a UAC prompt in front of everybody, including the macros that never touch an
+    /// elevated window, is a tool people stop starting.
+    /// </summary>
+    public static bool LoadRunAsAdmin() => Read().RunAsAdmin;
+
+    /// <summary>Stores whether a start asks for the administrator token.</summary>
+    public static void StoreRunAsAdmin(bool run) => Write(model => model.RunAsAdmin = run);
+
     /// <summary>Which sound this moment plays, or the one it starts with when nothing was chosen.</summary>
     public static SoundKind LoadSound(UiSound which)
     {
@@ -472,6 +499,18 @@ public static class LocalSettings
         /// A hundred by default, which is what ordinary use leaves behind without filling a disk.
         /// </summary>
         public int LogCount { get; set; } = LogRetention.Usual;
+
+        /// <summary>
+        /// The shortcut that ends a recording, written as a hotkey is written. Ctrl+F10 by default,
+        /// which is what the recording panel has always said out loud.
+        /// </summary>
+        public string RecordStopKey { get; set; } = UsualRecordStopKey;
+
+        /// <summary>
+        /// Whether every start asks Windows for the administrator token. Off by default: a macro
+        /// tool that puts a UAC prompt in front of everybody is one people stop starting.
+        /// </summary>
+        public bool RunAsAdmin { get; set; }
 
         /// <summary>Zero means no size has been stored, which is not a window size.</summary>
         public double MainWindowWidth { get; set; }

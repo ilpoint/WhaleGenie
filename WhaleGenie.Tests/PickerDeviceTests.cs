@@ -93,6 +93,9 @@ public class PickerDeviceTests
             Assert.True(recorder.IsRunning);
             Assert.Equal(viewModel.RecordIgnoreInjected, recorder.IgnoreInjected);
 
+            // 停止键来自设置，而不是录制器自己写死的一个键。
+            Assert.Equal(Localization.LocalSettings.LoadRecordStopKey(), recorder.StopShortcut);
+
             // What the recorder catches becomes steps, exactly as it would from a real keyboard.
             recorder.Play(RecordedInput.KeyDown("F6", 0));
             recorder.Play(RecordedInput.KeyUp("F6", 120));
@@ -323,6 +326,9 @@ public class PickerDeviceTests
 
         /// <summary>What the editor asked for, so the panel's controller switch can be read back.</summary>
         public bool RecordController { get; set; }
+
+        /// <summary>What the editor asked for, so the setting behind the stop key can be read back.</summary>
+        public string StopShortcut { get; set; } = string.Empty;
 
         public bool Disposed { get; private set; }
 

@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Security.Principal;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Runtime;
 
@@ -23,11 +26,38 @@ public static class ProcessRights
     public static bool IsElevated { get; } = Detect();
 
     /// <summary>
+    /// The word this program passes to the copy it started with the administrator token. A copy that
+    /// sees it knows it is the answer to that request and does not ask again — otherwise a refused
+    /// UAC prompt would leave every start trying to start another one.
+    /// </summary>
+    public const string ElevatedFlag = "--elevated";
+
+    /// <summary>
+    /// Starts an elevated copy when the settings asked for one and this copy does not have those
+    /// rights. True means that copy is on its way and this one should end: two of them would be
+    /// listening for the same hotkeys.
+    /// </summary>
+    public static bool AutoRestart(IReadOnlyList<string> args)
+        => WantsElevation(IsElevated, LocalSettings.LoadRunAsAdmin(), args)
+            && RestartElevated(ElevatedFlag);
+
+    /// <summary>
+    /// Whether this start should hand itself over to an elevated one. Kept on its own so the four
+    /// answers — already elevated, not asked for, answered already, and yes — can be checked without
+    /// changing what this machine's token is.
+    /// </summary>
+    internal static bool WantsElevation(bool elevated, bool asked, IReadOnlyList<string> args)
+        => !elevated
+           && asked
+           && !args.Any(argument =>
+               argument.Equals(ElevatedFlag, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
     /// Starts a second copy of this program with the UAC prompt in front of it, and says whether it
     /// got as far as starting one. The caller closes this copy — two of them would be listening for
     /// the same hotkeys, and the next one is not reached by its own process.
     /// </summary>
-    public static bool RestartElevated()
+    public static bool RestartElevated(params string[] args)
     {
         if (IsElevated || Environment.ProcessPath is not { Length: > 0 } program)
         {
@@ -36,12 +66,21 @@ public static class ProcessRights
 
         try
         {
-            Process.Start(new ProcessStartInfo
+            var start = new ProcessStartInfo
             {
                 FileName = program,
                 UseShellExecute = true,
                 Verb = "runas",
-            });
+            };
+
+            if (args.Length > 0)
+            {
+                // ArgumentList cannot be handed to the shell; the words are this program's own and
+                // none of them holds a space.
+                start.Arguments = string.Join(' ', args);
+            }
+
+            Process.Start(start);
 
             return true;
         }

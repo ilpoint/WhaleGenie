@@ -130,6 +130,7 @@ public partial class SettingsViewModel : ViewModelBase
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
         IsElevated = elevated ?? ProcessRights.IsElevated;
+        RunAsAdmin = LocalSettings.LoadRunAsAdmin();
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
@@ -742,6 +743,14 @@ public partial class SettingsViewModel : ViewModelBase
     public partial bool AttachDriverAtStart { get; set; }
 
     /// <summary>
+    /// Whether every start asks Windows for the administrator token. It is about the next start:
+    /// the rights this copy has were decided when it was launched and cannot be changed now, which
+    /// is what the restart button beside it is for.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool RunAsAdmin { get; set; }
+
+    /// <summary>
     /// Whether this copy of the program was started as an administrator, which decides whether a
     /// hotkey still reaches it while a window of a higher privilege is in front.
     /// </summary>
@@ -751,6 +760,49 @@ public partial class SettingsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(SystemHotkeyDisplay))]
     public partial string SystemHotkey { get; set; } = LocalSettings.LoadSystemHotkey();
 
+    /// <summary>
+    /// The shortcut that ends a recording. It is what the recording panel's hint says, so changing
+    /// it here changes the words there as well.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RecordStopDisplay))]
+    public partial string RecordStopKey { get; set; } = LocalSettings.LoadRecordStopKey();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RecordStopButton))]
+    public partial bool IsCapturingRecordStop { get; set; }
+
+    [ObservableProperty]
+    public partial string RecordStopProblem { get; set; } = string.Empty;
+
+    public string RecordStopDisplay => RecordStopKey.Length == 0
+        ? Strings.Get("Common.None")
+        : RecordStopKey;
+
+    public string RecordStopButton => Strings.Get(
+        IsCapturingRecordStop ? "Settings.HotkeyPress" : "Settings.HotkeySet");
+
+    /// <summary>
+    /// Takes the shortcut just pressed. An empty one is refused rather than stored: a recording
+    /// whose only way out is the mouse keeps writing while the pointer goes looking for the button.
+    /// </summary>
+    public bool CaptureRecordStop(string binding)
+    {
+        var text = binding.Trim();
+        if (text.Length == 0 || !HotkeyBinding.IsSupported(text))
+        {
+            IsCapturingRecordStop = false;
+            RecordStopProblem = Strings.Get("Settings.HotkeyUnsupported");
+            return false;
+        }
+
+        IsCapturingRecordStop = false;
+        RecordStopProblem = string.Empty;
+        RecordStopKey = text;
+        LocalSettings.StoreRecordStopKey(text);
+        return true;
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SystemHotkeyButton))]
     public partial bool IsCapturingSystemHotkey { get; set; }
@@ -758,7 +810,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial string SystemHotkeyProblem { get; set; } = string.Empty;
 
-    public bool IsCapturingHotkey => IsCapturingSystemHotkey || IsCapturingMenuLauncher;
+    public bool IsCapturingHotkey => IsCapturingSystemHotkey || IsCapturingMenuLauncher
+        || IsCapturingRecordStop;
 
     public string SystemHotkeyDisplay => SystemHotkey.Length == 0
         ? Strings.Get("Common.None")
@@ -778,6 +831,18 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnIsCapturingMenuLauncherChanged(bool value)
         => OnPropertyChanged(nameof(IsCapturingHotkey));
+
+    partial void OnIsCapturingRecordStopChanged(bool value)
+        => OnPropertyChanged(nameof(IsCapturingHotkey));
+
+    /// <summary>Stores whether the next start asks for the administrator token.</summary>
+    partial void OnRunAsAdminChanged(bool value)
+    {
+        if (value != LocalSettings.LoadRunAsAdmin())
+        {
+            LocalSettings.StoreRunAsAdmin(value);
+        }
+    }
 
     public bool CaptureSystemHotkey(string binding)
     {

@@ -57,6 +57,33 @@ public class AdministratorTests
         Assert.DoesNotContain("requireAdministrator", manifest, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// 什么时候该把这一次启动换成提权的那一份：没提权、设置里要了、而且这一次不是被请求起来的
+    /// 那一份。最后一条是防止 UAC 被拒之后一直重开 —— 被请求起来的那一份再请求，就成了一个环。
+    /// </summary>
+    [Fact]
+    public void Only_a_start_that_was_asked_for_hands_over_to_an_elevated_copy()
+    {
+        Assert.True(ProcessRights.WantsElevation(elevated: false, asked: true, []));
+        Assert.False(ProcessRights.WantsElevation(elevated: true, asked: true, []));
+        Assert.False(ProcessRights.WantsElevation(elevated: false, asked: false, []));
+        Assert.False(ProcessRights.WantsElevation(elevated: false, asked: true,
+            [ProcessRights.ElevatedFlag]));
+    }
+
+    /// <summary>设置页上那一格与重启按钮并排：一个管下一次启动，一个管这一次。</summary>
+    [Fact]
+    public void The_panel_offers_the_choice_as_well_as_the_restart()
+    {
+        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "SettingsWindow.axaml"));
+
+        var start = xaml.IndexOf("Name=\"RunAsAdminCheck\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the settings window stopped offering to start elevated");
+        Assert.Contains("IsChecked=\"{Binding RunAsAdmin}\"", xaml[start..], StringComparison.Ordinal);
+        Assert.Contains("[Settings.RunAsAdmin]", xaml[start..], StringComparison.Ordinal);
+        Assert.Contains("[Settings.RunAsAdminHint]", xaml[start..], StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_panel_is_written_in_both_languages()
     {

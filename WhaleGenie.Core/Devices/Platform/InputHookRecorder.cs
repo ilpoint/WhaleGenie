@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using SharpHook.Data;
 using WhaleGenie.Core.Recording;
@@ -50,10 +51,13 @@ public sealed class InputHookRecorder : IInputRecorder
     private int _lastMoveY = int.MinValue;
     private int _stopRaised;
 
-    /// <summary>The one shortcut that ends a recording, and the two keys it is held with.</summary>
-    private static readonly HookKey StopKey = SharpKeys.Key(KeyCode.VcF10);
-    private static readonly HookKey LeftControl = SharpKeys.Key(KeyCode.VcLeftControl);
-    private static readonly HookKey RightControl = SharpKeys.Key(KeyCode.VcRightControl);
+    /// <summary>
+    /// The shortcut that ends a recording: the last key of the chord, and the keys that have to be
+    /// held with it. Worked out when the recording starts, because the shortcut is whatever the
+    /// person chose and the hook thread must not be parsing text on every key.
+    /// </summary>
+    private HookKey? _stopKey;
+    private HookKey[] _stopHeld = [];
 
     /// <param name="controller">
     /// The controller in the person's hands, which is read while a recording is going. A recorder made
@@ -73,6 +77,13 @@ public sealed class InputHookRecorder : IInputRecorder
 
     /// <summary>Whether the controller is written down as well; the recording panel turns it off.</summary>
     public bool RecordController { get; set; } = true;
+
+    /// <summary>
+    /// The shortcut that ends a recording, written as a hotkey elsewhere is: <c>Ctrl+F10</c>, or a
+    /// key on its own. A shortcut the key vocabulary does not know leaves no way to stop from the
+    /// keyboard, which is what an empty one means as well.
+    /// </summary>
+    public string StopShortcut { get; set; } = "Ctrl+F10";
 
     public event Action<RecordedInput>? Captured;
 
@@ -103,6 +114,7 @@ public sealed class InputHookRecorder : IInputRecorder
         _stopRaised = 0;
         _clock.Restart();
         _hook = hook;
+        WorkOutStopShortcut();
 
         TakeUpController();
         _buttonTimer = new Timer(_ => ReadButtons(), null, ButtonReadIntervalMs, ButtonReadIntervalMs);
@@ -140,7 +152,7 @@ public sealed class InputHookRecorder : IInputRecorder
 
         // The one shortcut that ends a recording is never part of the recording. Escape is
         // deliberately not one of them: it is a key the work being recorded often uses.
-        if (e.Key == StopKey && (Held(LeftControl) || Held(RightControl)))
+        if (Ends(e.Key))
         {
             RequestStop();
             return;
@@ -321,6 +333,31 @@ public sealed class InputHookRecorder : IInputRecorder
     }
 
     private bool Held(HookKey key) => _down.Contains(key);
+
+    /// <summary>
+    /// Reads the configured shortcut into a key and the keys held with it. A shortcut the vocabulary
+    /// does not know, or an empty one, leaves nothing to press: the panel's own button still stops
+    /// the recording, and a recorder that quietly invented a key would be worse than one that does
+    /// what it was told.
+    /// </summary>
+    private void WorkOutStopShortcut()
+        => (_stopKey, _stopHeld) = ReadShortcut(StopShortcut);
+
+    /// <summary>The same reading, on its own, so what a written shortcut means can be checked.</summary>
+    internal static (HookKey? Stop, HookKey[] Held) ReadShortcut(string shortcut)
+    {
+        var keys = KeyNames.ResolveChord(shortcut, out var unknown);
+        if (unknown is not null || keys.Count == 0)
+        {
+            return (null, []);
+        }
+
+        return (keys[^1], [.. keys.Take(keys.Count - 1)]);
+    }
+
+    /// <summary>True when this key, with the rest of the chord held, is the shortcut that ends it.</summary>
+    private bool Ends(HookKey key)
+        => _stopKey is { } stop && key == stop && _stopHeld.All(Held);
 
     /// <summary>True when an event is input another program sent and the user asked to skip it.</summary>
     private bool Skipped(bool injected) => IgnoreInjected && injected;
