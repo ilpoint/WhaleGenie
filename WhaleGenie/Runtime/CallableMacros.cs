@@ -25,11 +25,11 @@ public static class CallableMacros
     /// order they are listed and then in the order their parents hold them.
     /// </summary>
     public static IReadOnlyList<(string Name, IReadOnlyList<ExecutableStep> Steps,
-        MacroSignature Signature, bool ExclusiveInput)> Entries(IEnumerable<MacroItem> macros)
+        MacroSignature Signature)> Entries(IEnumerable<MacroItem> macros)
         =>
         [
             .. Pieces(macros).Select(piece => (piece.Name, piece.Macro.Steps.ToExecutable(),
-                piece.Macro.Callable.Signature, piece.Macro.ExclusiveInput)),
+                piece.Macro.Callable.Signature)),
         ];
 
     /// <summary>

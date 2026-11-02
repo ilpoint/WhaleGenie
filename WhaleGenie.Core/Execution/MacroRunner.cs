@@ -355,26 +355,17 @@ public sealed partial class MacroRunner
     public IReadOnlyList<MacroStartArgument>? StartArguments { get; init; }
 
     /// <summary>
-    /// True when this run waits for the one input door that the runs asking for it share, so two
-    /// macros set up that way do not send their keys and clicks through each other. Off by default:
-    /// a single macro never has anything to wait for, and one whose author has not thought about
-    /// running two at once is left doing exactly what it did before.
+    /// True when this run waits at the one input door every such run shares, so two macros do not
+    /// send their keys and clicks through each other. It is a setting of the program rather than of
+    /// a macro, handed in by whoever assembles the run: whether input has to be kept apart depends on
+    /// what the person runs at once, not on which macro they happen to start. Off by default, since
+    /// a single macro never has anything to wait for.
     /// </summary>
     /// <remarks>
-    /// A call runs with the called macro's own answer while it is in there — or with that answer
-    /// or the caller's, so a caller that promised to take turns does not drop that promise just
-    /// because the macro it calls says nothing.
+    /// The answer belongs to the run, so a macro it calls runs the same way: taking turns is not
+    /// something a call can switch off for the steps it brings along.
     /// </remarks>
-    public bool ExclusiveInput
-    {
-        get => _exclusiveInput;
-        init => _exclusiveInput = value;
-    }
-
-    private bool _exclusiveInput;
-
-    /// <summary>What a call to this macro runs with: its own answer, and never less than the caller's.</summary>
-    private bool CallExclusiveInput(string name) => _macros.ExclusiveInput(name) || _exclusiveInput;
+    public bool ExclusiveInput { get; init; }
 
     /// <summary>
     /// How many calls deep this run already is. A background run carries the depth of the call that
@@ -821,11 +812,6 @@ public sealed partial class MacroRunner
         _callDepth++;
         PrepareOutcomes(steps);
 
-        // Inside the call, the question "does this run take turns sending input" is the called
-        // macro's to answer — and the caller's answer is not dropped while its steps run in place.
-        var outerExclusive = _exclusiveInput;
-        _exclusiveInput = CallExclusiveInput(name);
-
         // The called macro starts outside every loop, whatever the caller is inside. A break in
         // there belongs to a loop of its own or to nothing; it must never reach out and cut a
         // loop in the caller short.
@@ -863,7 +849,6 @@ public sealed partial class MacroRunner
             _caught = outerCaught;
             _loops = outerLoops;
             _callDepth--;
-            _exclusiveInput = outerExclusive;
             var produced = Variables.SwapLocal(caller);
             if (finished)
             {

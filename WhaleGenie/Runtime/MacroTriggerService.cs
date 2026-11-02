@@ -1691,7 +1691,6 @@ public sealed class MacroTriggerService : IDisposable
                     Name = macro.Name,
                     Scale = macro.DelayScale,
                     Looks = capture,
-                    ExclusiveInput = macro.ExclusiveInput,
                     StartSignature = macro.Callable.Signature,
                 });
                 var result = await runner.RunAsync(steps, token);
@@ -1734,8 +1733,8 @@ public sealed class MacroTriggerService : IDisposable
     private IMacroLibrary Library()
         => new ProjectMacroLibrary(Snapshot()
             .Where(macro => macro.Name.Trim().Length > 0)
-            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable(), macro.Callable.Signature,
-                macro.ExclusiveInput)));
+            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable(),
+                macro.Callable.Signature)));
 
     private IReadOnlyList<MacroItem> Snapshot()
     {

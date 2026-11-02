@@ -748,28 +748,28 @@ public class MacroEditorTests
             .Where(control => control.Classes.Contains("ProblemMark"))];
 
     /// <summary>
-    /// 「与别的宏互斥发输入」写进宏文件：换台机器打开、或者从包里读回来，这个开关还在 —— 它是这个
-    /// 宏自己的性质，不是一个只在这次会话里管用的界面状态。
+    /// 独占输入是程序的设置，不再是宏自己的性质：宏文件里没有这一格，旧包里还留着的按未知字段读过去，
+    /// 读得开、读回来也没有，再存一次就没了。
     /// </summary>
     [Fact]
-    public void Taking_turns_sending_input_is_kept_in_the_macro()
+    public void A_macro_carries_no_input_door_of_its_own()
     {
         Ui.Run(() =>
         {
             var (window, viewModel) = Open();
-            viewModel.ExclusiveInput = true;
 
             viewModel.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
             var saved = window.Result;
             Assert.NotNull(saved);
-            Assert.True(saved!.ExclusiveInput);
-            Assert.True(saved.ToJson()["exclusiveInput"]!.GetValue<bool>());
+            Assert.False(saved!.ToJson().ContainsKey("exclusiveInput"));
+            Assert.False(saved.ToSubMacroJson().ContainsKey("exclusiveInput"));
 
-            // 读回来也还在，而且默认是关的：一个宏单独跑时不该为谁停下来。
-            Assert.True(MacroItem.FromJson(saved.ToJson()).ExclusiveInput);
-            Assert.False(new MacroItem { Name = "other" }.ExclusiveInput);
+            // 旧包：多出来的那一格不该让这个包读不开，也不该被照原样写回去。
+            var older = saved.ToJson();
+            older["exclusiveInput"] = true;
+            Assert.False(MacroItem.FromJson(older).ToJson().ContainsKey("exclusiveInput"));
         });
     }
 

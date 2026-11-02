@@ -820,23 +820,6 @@
                             </Border>
                             </StackPanel>
 
-                            <!-- How this macro behaves when it is running at the same time as
-                                 another one. It is not a trigger: the same question is asked
-                                 whatever starts the macro. -->
-                            <Border Classes="Sunken" Margin="0,4,0,0">
-                                <StackPanel>
-                                    <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,0,0,10"
-                                               Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
-
-                                    <CheckBox Foreground="{DynamicResource TextTertiary}" Classes="Field"
-                                              Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
-                                              IsChecked="{Binding ExclusiveInput}" />
-
-                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
-                                               Text="{Binding [Editor.ExclusiveInputNote], Source={x:Static loc:Strings.Current}}" />
-                                </StackPanel>
-                            </Border>
-
                             <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,16,0,9"
                                        Text="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
                             <ContentControl Name="MacroInterfaceHost" />

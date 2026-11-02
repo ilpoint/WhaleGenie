@@ -1301,13 +1301,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool TriggerOnce { get; set; }
 
-    /// <summary>
-    /// When set, this macro takes turns with the other macros that are set up the same way: only one
-    /// of them sends keys or clicks at a time. It says nothing about when any of them starts.
-    /// </summary>
-    [ObservableProperty]
-    public partial bool ExclusiveInput { get; set; }
-
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
     public partial string HexColor { get; set; } = "#000000";
@@ -2409,7 +2402,6 @@ public partial class MacroEditorViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasSelectedTrigger));
             LoadTriggerFields(_selectedTrigger);
             PositionCapture = macro.PositionCapture;
-            ExclusiveInput = macro.ExclusiveInput;
             RecordMouseMovement = macro.RecordMouseMovement;
             RecordMouseButtons = macro.RecordMouseButtons;
             RecordKeyboardKeys = macro.RecordKeyboardKeys;
@@ -3387,7 +3379,6 @@ public partial class MacroEditorViewModel : ViewModelBase
             Description = Description.Trim(),
             Origin = Origin,
             PositionCapture = PositionCapture,
-            ExclusiveInput = ExclusiveInput,
             RecordMouseMovement = RecordMouseMovement,
             RecordMouseButtons = RecordMouseButtons,
             RecordKeyboardKeys = RecordKeyboardKeys,

@@ -371,6 +371,33 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 独占输入是程序的设置，默认关闭：存下来之后，装配出来的那一次运行拿到的就是这个答案。
+    /// 触发、调试与 MCP 三条路都从这里取，所以它只读一次。
+    /// </summary>
+    [Fact]
+    public void A_run_is_told_what_the_settings_say_about_the_input_door()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.False(LocalSettings.LoadExclusiveInput());
+            Assert.False(RunFactory.Create(NeedsNothing()).ExclusiveInput);
+
+            LocalSettings.StoreExclusiveInput(true);
+            Assert.True(LocalSettings.LoadExclusiveInput());
+            Assert.True(RunFactory.Create(NeedsNothing()).ExclusiveInput);
+        });
+
+        static RunRequest NeedsNothing() => new()
+        {
+            Variables = new WhaleGenie.Core.Variables.VariableStore(),
+            Host = new AskRunHost(null),
+            Devices = NullDeviceLayer.Instance,
+            Library = WhaleGenie.Core.Execution.EmptyMacroLibrary.Instance,
+            Name = "试",
+        };
+    }
+
+    /// <summary>
     /// Runs the check against a file of its own, then puts the real one back. WhaleGenie's own settings
     /// belong to whoever is using it, and a check has no business writing there.
     /// </summary>

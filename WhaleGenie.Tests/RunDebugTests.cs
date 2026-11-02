@@ -986,16 +986,16 @@ public class RunDebugTests
     }
 
     /// <summary>
-    /// 开了「与别的宏互斥发输入」的宏，运行调试里看得见这一行 —— 两个宏同时跑时"现在是谁在发"是
-    /// 唯一能解释"我的按键去哪儿了"的东西；没开这一格的宏不画它，因为答案永远是同一句话。
+    /// 程序开了独占输入，运行调试里看得见这一行 —— 两个宏同时跑时"现在是谁在发"是唯一能解释
+    /// "我的按键去哪儿了"的东西；没开时不画它，因为答案永远是同一句话。
     /// </summary>
     [Fact]
-    public void A_macro_that_takes_turns_says_who_is_sending_input()
+    public void A_run_that_takes_turns_says_who_is_sending_input()
     {
-        Ui.Run(() =>
+        WithExclusiveInput(() => Ui.Run(() =>
         {
             // 这个宏没有步骤，所以它跑不起来，这一行只是把窗口指到它上面。
-            var macro = new MacroItem { Name = "取订单", ExclusiveInput = true };
+            var macro = new MacroItem { Name = "取订单" };
             var window = new RunWindow([], null, 1, null, [macro]);
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -1009,7 +1009,30 @@ public class RunDebugTests
             Assert.Equal(Strings.Get("Run.InputOwnerNone"), viewModel.InputOwnerLine);
 
             window.Close();
-        });
+            return true;
+        }));
+    }
+
+    /// <summary>
+    /// 在打开独占输入的情况下做一件事，做完把设置文件放回原处。这一格是程序的设置，不是宏的，
+    /// 所以窗口得从设置里读到它。
+    /// </summary>
+    private static T WithExclusiveInput<T>(Func<T> check)
+    {
+        var stored = LocalSettings.FilePath;
+        var folder = Path.Combine(Path.GetTempPath(), "wg-input-door-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+        try
+        {
+            LocalSettings.StoreExclusiveInput(true);
+            return check();
+        }
+        finally
+        {
+            LocalSettings.FilePath = stored;
+            Directory.Delete(folder, true);
+        }
     }
 
     /// <summary>
@@ -1175,13 +1198,13 @@ public class RunDebugTests
     [Fact]
     public void The_speed_badge_and_the_input_line_are_not_drawn_on_each_other()
     {
-        var answer = Ui.Run(() =>
+        var answer = WithExclusiveInput(() => Ui.Run(() =>
         {
             var step = SlowStep(5);
             StepIds.Settle([step]);
 
-            // 勾了「与别的宏互斥发输入」，那一行才画；速度调过，徽标才画。
-            var macro = new MacroItem { Name = "取订单", ExclusiveInput = true };
+            // 开了独占输入，那一行才画；速度调过，徽标才画。
+            var macro = new MacroItem { Name = "取订单" };
             macro.Steps.Add(step);
 
             var window = new RunWindow([], NullDeviceLayer.Instance, 2, null, [macro]);
@@ -1202,7 +1225,7 @@ public class RunDebugTests
 
             window.Close();
             return answer;
-        });
+        }));
 
         // 两个都画出来才量得出它们是不是叠在一起，所以先确认这一点，否则这一条什么都没看。
         Assert.True(answer.Both, "倍速徽标与输入那一行都该画出来");

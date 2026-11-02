@@ -443,6 +443,18 @@ internal static class McpPatches
     {
         var changed = 0;
 
+        // A macro no longer carries this: whether input is kept apart belongs to the program, not to
+        // one macro, and a caller that writes it here would be setting something nothing reads.
+        if (operation.ContainsKey("exclusiveInput"))
+        {
+            return Refused(McpErrors.BadArgument,
+                "exclusiveInput is not a macro field any more.",
+                "Taking turns sending input is a setting of the program: ask the person to turn on "
+                + "the exclusive input switch in 设置 → 输入与捕获 (Settings → Input and capture). "
+                + "It applies to every macro the program runs, not to one of them.",
+                false, new { field = "exclusiveInput" });
+        }
+
         if (Said(operation, "description") is { } description)
         {
             macro.Description = description;
@@ -462,13 +474,6 @@ internal static class McpPatches
         {
             macro.IsEnabled = enabled;
             touches.Add(new Touch("macro", null, "enabled"));
-            changed++;
-        }
-
-        if (Flag(operation, "exclusiveInput") is { } exclusive)
-        {
-            macro.ExclusiveInput = exclusive;
-            touches.Add(new Touch("macro", null, "exclusiveInput"));
             changed++;
         }
 
@@ -601,7 +606,7 @@ internal static class McpPatches
 
         return changed == 0
             ? Refused(McpErrors.BadArgument, "The operation names no field this macro has.",
-                "Fields are description, name, enabled, exclusiveInput, bindKey, delayScale, "
+                "Fields are description, name, enabled, bindKey, delayScale, "
                 + "triggerMode, loopMode, scheduleMode, scheduleUnit, scheduleTime, scheduleInterval, "
                 + "watchPath, watchFilter, watchSubfolders, processName, idleSeconds and windowTarget.",
                 true, null)

@@ -105,6 +105,7 @@ public partial class SettingsViewModel : ViewModelBase
         EnabledFirst = LocalSettings.LoadEnabledFirst();
         PreloadOcr = LocalSettings.LoadPreloadOcr();
         InputRate = LocalSettings.LoadInputRate();
+        ExclusiveInput = LocalSettings.LoadExclusiveInput();
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
@@ -618,6 +619,13 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Whether keyboard and mouse input is kept to one macro at a time. It takes effect at the next
+    /// run: a macro already running was handed its answer when it started.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool ExclusiveInput { get; set; }
+
+    /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.
     /// </summary>
     [ObservableProperty]
@@ -761,6 +769,15 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadEnabledFirst())
         {
             LocalSettings.StoreEnabledFirst(value);
+        }
+    }
+
+    /// <summary>Stores whether input is kept to one macro at a time.</summary>
+    partial void OnExclusiveInputChanged(bool value)
+    {
+        if (value != LocalSettings.LoadExclusiveInput())
+        {
+            LocalSettings.StoreExclusiveInput(value);
         }
     }
 

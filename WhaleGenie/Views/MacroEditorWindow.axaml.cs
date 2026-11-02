@@ -2041,14 +2041,13 @@ public partial class MacroEditorWindow : AppWindow
     internal ProjectMacroLibrary BuildLibrary()
     {
         var entries = new List<(string Name, IReadOnlyList<ExecutableStep> Steps,
-            MacroSignature Signature, bool ExclusiveInput)>();
+            MacroSignature Signature)>();
 
         foreach (var macro in _session.Project.Where(macro => !ReferenceEquals(macro, _session.Editing)))
         {
             if (macro.Name.Length > 0)
             {
-                entries.Add((macro.Name, macro.Steps.ToExecutable(), macro.Callable.Signature,
-                    macro.ExclusiveInput));
+                entries.Add((macro.Name, macro.Steps.ToExecutable(), macro.Callable.Signature));
             }
         }
 
@@ -2060,7 +2059,7 @@ public partial class MacroEditorWindow : AppWindow
                     StringComparison.OrdinalIgnoreCase)))
             {
                 entries.Add((edited.Name, page.Editor.Steps.ToExecutable(),
-                    edited.Callable.Signature, edited.ExclusiveInput));
+                    edited.Callable.Signature));
             }
         }
 

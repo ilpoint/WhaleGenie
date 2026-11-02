@@ -177,6 +177,18 @@
                                            Text="{Binding [Settings.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                         </Border>
+                        <Border Classes="Section">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Settings.ExclusiveInput], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Name="ExclusiveInputCheck"
+                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                          IsChecked="{Binding ExclusiveInput}"
+                                          Content="{Binding [Settings.ExclusiveInputTurn], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.ExclusiveInputHint], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
 
                     <StackPanel IsVisible="{Binding IsDevicesPage}">

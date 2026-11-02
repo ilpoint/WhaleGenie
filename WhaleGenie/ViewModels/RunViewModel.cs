@@ -570,14 +570,15 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private bool _skipThisStep;
 
     /// <summary>
-    /// Whether the macro being debugged asked to share the input door with the other macros that
-    /// asked for it. A window opened on its own, with no macro behind it, has nothing to share.
+    /// Whether the program keeps input to one macro at a time. A window opened on its own, with no
+    /// macro behind it, has nothing to say about the door yet; the answer is read again when a run
+    /// starts, from the same setting the run itself is given.
     /// </summary>
     private bool _exclusiveInput;
 
     /// <summary>
-    /// Whose turn it is at the input door, as a line to read. It is shown only for the macros that
-    /// asked to share the door, because for any other macro the answer is always the same and says
+    /// Whose turn it is at the input door, as a line to read. It is shown only while the program is
+    /// set to keep input apart, because for anything else the answer is always the same and says
     /// nothing.
     /// </summary>
     public string InputOwnerLine => InputGate.Owner.Length == 0
@@ -847,7 +848,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _callable = macro.Callable;
         Load(macro.Steps);
         Debugged = macro.Name;
-        _exclusiveInput = macro.ExclusiveInput;
+        _exclusiveInput = LocalSettings.LoadExclusiveInput();
         OnPropertyChanged(nameof(ShowsInputOwner));
         OnPropertyChanged(nameof(InputOwnerLine));
         if (switched)
@@ -1198,6 +1199,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     {
         Lines.Clear();
 
+        // Read when the run starts rather than when the window opened: the line about the door only
+        // means something while input is being kept apart, and this is also where the run itself is
+        // given its answer.
+        _exclusiveInput = LocalSettings.LoadExclusiveInput();
+        OnPropertyChanged(nameof(ShowsInputOwner));
+        OnPropertyChanged(nameof(InputOwnerLine));
+
         // A run asked for after another one was stopped says why the first one ended: a run that
         // stopped by itself and one that was stopped on the way to this read the same otherwise.
         if (_runNote is { } note)
@@ -1234,7 +1242,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Name = Debugged,
                 Scale = _delayScale,
                 Looks = _capture is { } capture ? new RunLooks(capture, this) : this,
-                ExclusiveInput = _exclusiveInput,
                 StartSignature = _callable?.Signature,
                 StartArguments = StartArguments(),
             });

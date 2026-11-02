@@ -95,7 +95,6 @@ public sealed class McpRunTools
             var library = new ProjectMacroLibrary(CallableMacros.Entries(sources.Macros));
 
             var signature = macro.Callable.Signature;
-            var exclusive = macro.ExclusiveInput;
             var scale = macro.DelayScale;
             var runName = macro.Name.Trim();
 
@@ -135,7 +134,6 @@ public sealed class McpRunTools
                     Name = runName,
                     Scale = scale,
                     Looks = capture,
-                    ExclusiveInput = exclusive,
                     StartSignature = signature,
                 });
 

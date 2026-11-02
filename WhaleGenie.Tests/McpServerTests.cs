@@ -1447,6 +1447,46 @@ public class McpServerTests : IDisposable
     }
 
     /// <summary>
+    /// 独占输入不再是宏的字段：补丁里带上它会被拒绝，并说明它已经变成程序的设置 —— 悄悄忽略比
+    /// 拒绝更糟，调用方会以为自己改到了。
+    /// </summary>
+    [Fact]
+    public void A_patch_cannot_set_the_input_door_on_one_macro()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
+
+            var draft = await Draft(client);
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""{"name":"互斥","steps":[]}"""),
+            });
+
+            var refused = await client.CallToolAsync("whalegenie_patch_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "互斥",
+                    ["operations"] = JsonNode.Parse("""[{"op":"macro","exclusiveInput":true}]"""),
+                });
+            Assert.True(refused.IsError == true);
+
+            var said = refused.Content.OfType<TextContentBlock>().First().Text;
+            Assert.Equal(McpErrors.BadArgument,
+                JsonDocument.Parse(said).RootElement.GetProperty("error").GetProperty("code")
+                    .GetString());
+            Assert.Contains("exclusiveInput", said, StringComparison.Ordinal);
+            Assert.Contains("设置", said, StringComparison.Ordinal);
+
+            await loop.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
     /// What a macro asks a call to fill in, and what it hands back, are reachable without resending
     /// the macro either.
     /// </summary>

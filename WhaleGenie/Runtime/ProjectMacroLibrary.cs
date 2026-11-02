@@ -11,18 +11,17 @@ namespace WhaleGenie.Runtime;
 /// </summary>
 public sealed class ProjectMacroLibrary : IMacroLibrary
 {
-    private readonly Dictionary<string, (IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
-        bool ExclusiveInput)> _byName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature)>
+        _byName = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<string> _names = [];
 
     public ProjectMacroLibrary(
-        IEnumerable<(string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
-            bool ExclusiveInput)> macros)
+        IEnumerable<(string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature)> macros)
     {
-        foreach (var (name, steps, signature, exclusiveInput) in macros)
+        foreach (var (name, steps, signature) in macros)
         {
-            if (name.Length == 0 || !_byName.TryAdd(name, (steps, signature, exclusiveInput)))
+            if (name.Length == 0 || !_byName.TryAdd(name, (steps, signature)))
             {
                 continue;
             }
@@ -38,7 +37,4 @@ public sealed class ProjectMacroLibrary : IMacroLibrary
 
     public MacroSignature? Signature(string name)
         => name.Length > 0 && _byName.TryGetValue(name, out var macro) ? macro.Signature : null;
-
-    public bool ExclusiveInput(string name)
-        => name.Length > 0 && _byName.TryGetValue(name, out var macro) && macro.ExclusiveInput;
 }

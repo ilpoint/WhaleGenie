@@ -671,14 +671,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PickedColor"] = "Color captured: {0}",
         ["Editor.PickFailed"] = "That point could not be read from the screen.",
         ["Editor.RecordActions"] = "Record Actions",
-        ["Editor.RunningTogether"] = "Running next to other macros",
-        ["Editor.ExclusiveInput"] = "Take turns sending input",
-        ["Editor.ExclusiveInputNote"] = "Shares one input door with every macro set up the same "
-            + "way: only the steps that send keys or clicks take it, one step at a time, so two "
-            + "such runs take turns and every step arrives whole. On when two macros send input to "
-            + "the same window at once; to keep a whole stretch from being cut into, put that "
-            + "stretch inside \"Hold input\". Reading the screen or waiting for a window does not "
-            + "take the door. Off by default.",
         ["Editor.PositionCapture"] = "Mouse Position Capture :",
         ["Editor.MouseMovement"] = "Mouse Movement",
         ["Editor.MouseButtons"] = "Mouse Buttons",
@@ -1500,6 +1492,16 @@ public sealed class Strings : INotifyPropertyChanged
             + "a limit. Typing, a key press, a click, a wheel notch and a drag each count once, a "
             + "chord counts once, and moving the pointer does not count at all. Range 0 to 999, "
             + "default 120.",
+        ["Settings.ExclusiveInput"] = "Exclusive input",
+        ["Settings.ExclusiveInputTurn"] = "Let only one macro send keys and clicks at a time",
+        ["Settings.ExclusiveInputHint"] =
+            "Applies to every run this program starts, including the macros a run calls: while one "
+            + "macro is in the middle of a keyboard or mouse step, another waits for it, so each "
+            + "step arrives whole rather than interleaved with another macro's. Reading the screen, "
+            + "recognising and waiting for a window are not input and never queue, so two macros "
+            + "may watch the same window at once. Off by default, and a change applies from the "
+            + "next run. To keep a whole stretch from being cut into, put that stretch inside the "
+            + "\"Exclusive input\" action (control.holdInput).",
         ["Settings.Driver"] = "Driver-level input",
         ["Settings.DriverReady"] = "usbip-win2 driver installed, so driver-level input can be used.",
         ["Settings.DriverMissing"] = "The usbip-win2 driver is not installed.",
@@ -2698,11 +2700,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PickedColor"] = "已取色：{0}",
         ["Editor.PickFailed"] = "无法读取该位置的屏幕颜色。",
         ["Editor.RecordActions"] = "录制动作",
-        ["Editor.RunningTogether"] = "与其他宏同时运行时",
-        ["Editor.ExclusiveInput"] = "与别的宏互斥发输入",
-        ["Editor.ExclusiveInputNote"] = "与同样勾选的宏共用同一道输入互斥：只有发键鼠的步骤参与排队，"
-            + "一次放一步，两条宏因此轮流推进、每一步都完整。两条宏同时往同一个窗口发键鼠时勾上；"
-            + "要让一整段都不被打断，把这一段放进「独占输入」。读屏幕、识别与等窗口不参与排队。默认不勾。",
         ["Editor.PositionCapture"] = "鼠标位置记录方式：",
         ["Editor.MouseMovement"] = "鼠标移动",
         ["Editor.MouseButtons"] = "鼠标按键",
@@ -3838,6 +3835,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.InputLimitHint"] =
             "这个程序每秒最多发出多少个键盘或鼠标事件，0 表示不限。打字、按键、点击、滚轮每一档、"
             + "一次拖拽各算一个，组合键算一个，移动鼠标不算。范围 0～999，默认 120。",
+        ["Settings.ExclusiveInput"] = "独占输入",
+        ["Settings.ExclusiveInputTurn"] = "同一时刻只让一个宏发键鼠",
+        ["Settings.ExclusiveInputHint"] =
+            "对本程序启动的每一次运行都生效，宏里调用的子宏也一样：一条宏的键鼠步骤还没发完时，"
+            + "另一条等它发完再发，所以每一步都是完整的，不会与另一条宏的按键穿插。读屏幕、识别与"
+            + "等窗口不算发输入，不参与排队，两条宏可以同时看同一个窗口。默认关闭；改完从下一次"
+            + "运行起生效。要让一整段都不被打断，在宏里用「独占输入」动作（control.holdInput）"
+            + "把这一段包起来。",
         ["Settings.Driver"] = "驱动级输入",
         ["Settings.DriverReady"] = "usbip-win2 驱动已安装，驱动级输入可以用。",
         ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",

@@ -92,6 +92,17 @@ public static class LocalSettings
         => Write(model => model.InputRate = Math.Clamp(rate, 0, WhaleGenie.Core.Devices.InputLimit.Most));
 
     /// <summary>
+    /// Whether the program keeps keyboard and mouse input to one macro at a time. Off by default:
+    /// it only means anything when more than one macro runs at once, and a single macro should not
+    /// stop for a door nothing else is knocking on.
+    /// </summary>
+    public static bool LoadExclusiveInput() => Read().ExclusiveInput;
+
+    /// <summary>Stores whether input is kept to one macro at a time.</summary>
+    public static void StoreExclusiveInput(bool exclusive)
+        => Write(model => model.ExclusiveInput = exclusive);
+
+    /// <summary>
     /// Whether the macro list puts enabled macros first. Off keeps the order they were made in.
     /// </summary>
     public static bool LoadEnabledFirst() => Read().EnabledFirst;
@@ -356,6 +367,13 @@ public static class LocalSettings
         /// keeps a fresh install from typing like a machine on the first run.
         /// </summary>
         public int InputRate { get; set; } = WhaleGenie.Core.Devices.InputLimit.Usual;
+
+        /// <summary>
+        /// Whether keyboard and mouse input is kept to one macro at a time. Off by default: with one
+        /// macro running there is nothing to wait for, and turning it on by default would make every
+        /// macro wait for a door it has never needed.
+        /// </summary>
+        public bool ExclusiveInput { get; set; }
 
         /// <summary>Zero means no size has been stored, which is not a window size.</summary>
         public double MainWindowWidth { get; set; }
