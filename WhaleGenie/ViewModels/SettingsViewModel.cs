@@ -33,6 +33,15 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
     public override string ToString() => Strings.Get(Key);
 }
 
+/// <summary>
+/// One entry of a sound picker, named the way the same sound is named beside a macro's own sound
+/// step: the four moments a sound is offered for all choose from this one list.
+/// </summary>
+public sealed record SoundOption(SoundKind Kind, string Key)
+{
+    public override string ToString() => Strings.Get(Key);
+}
+
 public enum SettingsRootPage
 {
     System,
@@ -107,6 +116,16 @@ public partial class SettingsViewModel : ViewModelBase
         InputRate = LocalSettings.LoadInputRate();
         ExclusiveInput = LocalSettings.LoadExclusiveInput();
         IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
+        LogCount = LocalSettings.LoadLogCount();
+        Sounds = LocalSettings.LoadSounds();
+        SystemOnSound = SoundChoices.First(option =>
+            option.Kind == LocalSettings.LoadSound(UiSound.SystemOn));
+        SystemOffSound = SoundChoices.First(option =>
+            option.Kind == LocalSettings.LoadSound(UiSound.SystemOff));
+        MacroOnSound = SoundChoices.First(option =>
+            option.Kind == LocalSettings.LoadSound(UiSound.MacroOn));
+        MacroOffSound = SoundChoices.First(option =>
+            option.Kind == LocalSettings.LoadSound(UiSound.MacroOff));
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
@@ -124,6 +143,11 @@ public partial class SettingsViewModel : ViewModelBase
         base.RefreshLanguage();
         OnPropertyChanged(nameof(WindowWays));
         OnPropertyChanged(nameof(ScreenWays));
+        OnPropertyChanged(nameof(SoundChoices));
+        OnPropertyChanged(nameof(SystemOnSound));
+        OnPropertyChanged(nameof(SystemOffSound));
+        OnPropertyChanged(nameof(MacroOnSound));
+        OnPropertyChanged(nameof(MacroOffSound));
         OnPropertyChanged(nameof(ThemeOptions));
         OnPropertyChanged(nameof(SelectedTheme));
         OnPropertyChanged(nameof(MenuLauncherStatus));
@@ -201,7 +225,7 @@ public partial class SettingsViewModel : ViewModelBase
         new(Strings.Get("Settings.StorageProjects"), Strings.Get("Settings.StorageProjectsWhat"),
             AppPaths.Projects, AppPaths.Projects),
         new(Strings.Get("Settings.StorageImages"), Strings.Get("Settings.StorageImagesWhat"),
-            Path.Combine(AppPaths.State, "images"), Path.Combine(AppPaths.State, "images")),
+            Storage.ImageAssets.DefaultFolder(), Storage.ImageAssets.DefaultFolder()),
         new(Strings.Get("Settings.StorageLibrary"), Strings.Get("Settings.StorageLibraryWhat"),
             AppPaths.PublicMacroLibrary, Path.GetDirectoryName(AppPaths.PublicMacroLibrary) ?? AppPaths.Root),
     ];
@@ -627,12 +651,64 @@ public partial class SettingsViewModel : ViewModelBase
     public partial bool ExclusiveInput { get; set; }
 
     /// <summary>
+    /// How many failure and MCP logs are kept, counted by modification time. Held as a number
+    /// field's double because that is what the control speaks; it is a count, so the rounded value
+    /// is what is stored.
+    /// </summary>
+    [ObservableProperty]
+    public partial double LogCount { get; set; }
+
+    /// <summary>Stored at once; what it does happens at the next start, which is when the folder is cleaned.</summary>
+    partial void OnLogCountChanged(double value)
+    {
+        var count = Math.Clamp((int)Math.Round(value), LogRetention.Fewest, LogRetention.Most);
+        if (count != LocalSettings.LoadLogCount())
+        {
+            LocalSettings.StoreLogCount(count);
+        }
+    }
+
+    /// <summary>
     /// Whether what this program sends counts as its own rather than as the person's. It reaches the
     /// triggers at once — they ask this on every key — while a recording already open keeps the value
     /// it started with, because that one can be changed for that recording alone.
     /// </summary>
     [ObservableProperty]
     public partial bool IgnoreOwnInput { get; set; }
+
+    /// <summary>
+    /// Whether the interface says out loud that the system switch or a macro changed state. The four
+    /// sounds below are only heard while this is on, and keeping quiet also means a machine in a
+    /// shared room stays quiet.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool Sounds { get; set; }
+
+    /// <summary>The five sounds a moment can be given, the same list the sound step offers.</summary>
+    public IReadOnlyList<SoundOption> SoundChoices { get; } =
+    [
+        new(SoundKind.Default, "Settings.SoundOption.Default"),
+        new(SoundKind.Information, "Settings.SoundOption.Information"),
+        new(SoundKind.Warning, "Settings.SoundOption.Warning"),
+        new(SoundKind.Error, "Settings.SoundOption.Error"),
+        new(SoundKind.Question, "Settings.SoundOption.Question"),
+    ];
+
+    /// <summary>The sound the whole system going quiet plays.</summary>
+    [ObservableProperty]
+    public partial SoundOption SystemOffSound { get; set; }
+
+    /// <summary>The sound the whole system listening again plays.</summary>
+    [ObservableProperty]
+    public partial SoundOption SystemOnSound { get; set; }
+
+    /// <summary>The sound a macro being armed plays.</summary>
+    [ObservableProperty]
+    public partial SoundOption MacroOnSound { get; set; }
+
+    /// <summary>The sound a macro being disarmed plays.</summary>
+    [ObservableProperty]
+    public partial SoundOption MacroOffSound { get; set; }
 
     /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.
@@ -800,6 +876,39 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadIgnoreOwnInput())
         {
             LocalSettings.StoreIgnoreOwnInput(value);
+        }
+    }
+
+    /// <summary>Stores whether the interface plays its state-change sounds.</summary>
+    partial void OnSoundsChanged(bool value)
+    {
+        if (value != LocalSettings.LoadSounds())
+        {
+            LocalSettings.StoreSounds(value);
+        }
+    }
+
+    partial void OnSystemOnSoundChanged(SoundOption value)
+        => KeepSound(UiSound.SystemOn, value);
+
+    partial void OnSystemOffSoundChanged(SoundOption value)
+        => KeepSound(UiSound.SystemOff, value);
+
+    partial void OnMacroOnSoundChanged(SoundOption value)
+        => KeepSound(UiSound.MacroOn, value);
+
+    partial void OnMacroOffSoundChanged(SoundOption value)
+        => KeepSound(UiSound.MacroOff, value);
+
+    /// <summary>
+    /// Writes one choice back, but only when it really changed: opening the window reads the stored
+    /// sound into this property, and that must not count as the person asking for something.
+    /// </summary>
+    private static void KeepSound(UiSound which, SoundOption value)
+    {
+        if (value is not null && value.Kind != LocalSettings.LoadSound(which))
+        {
+            LocalSettings.StoreSound(which, value.Kind);
         }
     }
 

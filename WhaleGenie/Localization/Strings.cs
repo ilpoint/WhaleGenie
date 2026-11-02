@@ -972,6 +972,22 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.HotkeyClear"] = "Clear",
         ["Settings.HotkeySupport"] = "Supports letters, digits, F1–F24, arrows, editing keys, numeric-keypad keys, and modifier combinations.",
         ["Settings.HotkeyUnsupported"] = "This key cannot be read by the global hook and was not saved.",
+        ["Settings.Sounds"] = "Sounds",
+        ["Settings.SoundsOn"] = "Play a sound when the system or a macro changes state",
+        ["Settings.SoundsHint"] = "Two moments, each with a sound of its own: the system switch, which is "
+            + "often pressed blind on a hotkey, and a macro being armed or disarmed in the list. The "
+            + "pair about the whole program and the pair about one macro use different sounds by "
+            + "default, so which of the two changed is clear without looking. On by default; turn it "
+            + "off for a machine that should stay quiet.",
+        ["Settings.SoundSystemOn"] = "System enabled",
+        ["Settings.SoundSystemOff"] = "System disabled",
+        ["Settings.SoundMacroOn"] = "Macro enabled",
+        ["Settings.SoundMacroOff"] = "Macro disabled",
+        ["Settings.SoundOption.Default"] = "Default beep",
+        ["Settings.SoundOption.Information"] = "Information",
+        ["Settings.SoundOption.Warning"] = "Warning",
+        ["Settings.SoundOption.Error"] = "Error",
+        ["Settings.SoundOption.Question"] = "Question",
         ["Menu.DefaultContext"] = "Default",
         ["Menu.Drag"] = "Drag the title bar to move the menu",
         ["Menu.Search"] = "Search macros",
@@ -1443,6 +1459,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Storage"] = "Storage locations",
         ["Settings.StorageHint"] = "All of it lives under your Windows profile, so updating or "
             + "reinstalling the program does not take it away. Each row says what is kept there.",
+        ["Settings.LogCount"] = "Keep recent logs",
+        ["Settings.LogCountUnit"] = "files",
+        ["Settings.LogCountHint"] = "A failure log (failure-…) and the MCP call log (mcp-…) are "
+            + "written one file per run or per day; this many of them are kept, by modification "
+            + "time. The oldest go at the next start. runtime.log rolls by itself and is never "
+            + "counted. Range 1 to 999, default 100.",
         ["Settings.StorageState"] = "Settings, logs and unsaved work",
         ["Settings.StorageStateWhat"] = "settings.json holds the choices in this window and the "
             + "others; logs/ holds the log of a run that failed; recovery.json holds work that was "
@@ -2992,6 +3014,20 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.HotkeyClear"] = "清除",
         ["Settings.HotkeySupport"] = "支持字母、数字、F1–F24、方向键、编辑键、小键盘键和修饰键组合。",
         ["Settings.HotkeyUnsupported"] = "这个按键无法被全局钩子识别，未保存。",
+        ["Settings.Sounds"] = "声音",
+        ["Settings.SoundsOn"] = "系统或宏的状态变了就响一声",
+        ["Settings.SoundsHint"] = "两个时刻各有自己的声音：一个是整台程序听不听键盘的开关（常常是盲按"
+            + "热键换的），另一个是列表里一条宏的启用与停用。整程序那一对与单条宏那一对默认就不是"
+            + "同一种声音，不看屏幕也听得出是哪一类变了。默认开启，要安静就关掉。",
+        ["Settings.SoundSystemOn"] = "系统启用",
+        ["Settings.SoundSystemOff"] = "系统停用",
+        ["Settings.SoundMacroOn"] = "宏启用",
+        ["Settings.SoundMacroOff"] = "宏停用",
+        ["Settings.SoundOption.Default"] = "默认提示音",
+        ["Settings.SoundOption.Information"] = "信息",
+        ["Settings.SoundOption.Warning"] = "警告",
+        ["Settings.SoundOption.Error"] = "错误",
+        ["Settings.SoundOption.Question"] = "疑问",
         ["Menu.DefaultContext"] = "默认",
         ["Menu.Drag"] = "拖动标题栏移动菜单",
         ["Menu.Search"] = "搜索宏",
@@ -3812,6 +3848,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.EnabledFirstHint"] = "关闭时保持项目中原有的顺序。",
         ["Settings.Storage"] = "存储位置",
         ["Settings.StorageHint"] = "这些都在 Windows 用户目录里，升级或重装程序不会带走。每一行写着那一处放的是什么。",
+        ["Settings.LogCount"] = "日志保留",
+        ["Settings.LogCountUnit"] = "份",
+        ["Settings.LogCountHint"] = "失败日志（failure-…）与 MCP 调用日志（mcp-…）是一次运行或一天"
+            + "一个文件，这里说的是按修改时间留下最近多少份，更旧的在下次启动时删掉。runtime.log "
+            + "由自己的滚动机制管理，不算在内。范围 1～999，默认 100。",
         ["Settings.StorageState"] = "设置、日志与未保存的工作",
         ["Settings.StorageStateWhat"] = "settings.json 记着这个窗口与其他窗口里的选择；logs/ 放失败日志；"
             + "recovery.json 放还没保存的工作。",

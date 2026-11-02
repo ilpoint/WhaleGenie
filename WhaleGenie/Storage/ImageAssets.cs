@@ -22,11 +22,25 @@ public static class ImageAssets
     /// </summary>
     public static string FolderFor(string? packagePath)
         => string.IsNullOrWhiteSpace(packagePath)
-            ? Path.Combine(
+            ? DefaultFolder()
+            : MacroPackage.AssetFolderFor(packagePath!);
+
+    /// <summary>
+    /// Where pictures taken before the project has a file of its own go: a folder of the program's
+    /// inside the person's pictures, so a screenshot a macro took can be found and looked at without
+    /// digging through application data. A machine with no pictures folder — a server, or a profile
+    /// that has been stripped down — falls back to the program's own folder, which always exists.
+    /// </summary>
+    public static string DefaultFolder()
+    {
+        var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        return pictures.Length > 0
+            ? Path.Combine(pictures, "WhaleGenie")
+            : Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "WhaleGenie",
-                "images")
-            : MacroPackage.AssetFolderFor(packagePath!);
+                "images");
+    }
 
     /// <summary>Takes a rectangle off the screen and stores it as a PNG, reporting its path.</summary>
     public static string Capture(IScreenDevice screen, int x, int y, int width, int height, string folder)

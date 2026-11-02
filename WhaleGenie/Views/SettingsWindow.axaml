@@ -111,6 +111,20 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- 日志只留最近的那些：一个文件一次失败、一天一次 MCP，攒上一年谁也不会翻。 -->
+                            <TextBlock Classes="FieldLabel" Margin="2,4,0,0"
+                                       Text="{Binding [Settings.LogCount], Source={x:Static loc:Strings.Current}}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:FANumberBox Name="LogCountBox" Width="120"
+                                                Minimum="1" Maximum="999" SmallChange="10"
+                                                SimpleNumberFormat="0"
+                                                Value="{Binding LogCount}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                           Text="{Binding [Settings.LogCountUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Settings.LogCountHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
 
@@ -141,6 +155,46 @@
                                            Foreground="{DynamicResource Warning}"
                                            Text="{Binding SystemHotkeyProblem}"
                                            IsVisible="{Binding SystemHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="Section">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Settings.Sounds], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Name="SoundsCheck"
+                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                          IsChecked="{Binding Sounds}"
+                                          Content="{Binding [Settings.SoundsOn], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.SoundsHint], Source={x:Static loc:Strings.Current}}" />
+                                <!-- 四行各是一个时刻：程序的那一对与单条宏的那一对默认就不是同一个声音，
+                                     不看屏幕也听得出来是哪一类变了。 -->
+                                <Grid Margin="2,12,0,0" ColumnDefinitions="*,160" RowDefinitions="Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="10" RowSpacing="7">
+                                    <TextBlock Classes="Note" VerticalAlignment="Center"
+                                               Text="{Binding [Settings.SoundSystemOn], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding SoundChoices}"
+                                              SelectedItem="{Binding SystemOnSound}" />
+
+                                    <TextBlock Grid.Row="1" Classes="Note" VerticalAlignment="Center"
+                                               Text="{Binding [Settings.SoundSystemOff], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding SoundChoices}"
+                                              SelectedItem="{Binding SystemOffSound}" />
+
+                                    <TextBlock Grid.Row="2" Classes="Note" VerticalAlignment="Center"
+                                               Text="{Binding [Settings.SoundMacroOn], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding SoundChoices}"
+                                              SelectedItem="{Binding MacroOnSound}" />
+
+                                    <TextBlock Grid.Row="3" Classes="Note" VerticalAlignment="Center"
+                                               Text="{Binding [Settings.SoundMacroOff], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding SoundChoices}"
+                                              SelectedItem="{Binding MacroOffSound}" />
+                                </Grid>
                             </StackPanel>
                         </Border>
                         <Border Classes="Section">

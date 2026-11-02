@@ -75,9 +75,16 @@ public class PickerTests
         Assert.NotEqual(folder,
             ImageAssets.FolderFor(Path.Combine(TempFolder(), "other", "demo.wgmacro")));
 
-        // 还没存过的项目没有包可归属，留在程序自己的图片目录里。
-        Assert.EndsWith(Path.Combine("WhaleGenie", "images"), ImageAssets.FolderFor(null));
-        Assert.EndsWith(Path.Combine("WhaleGenie", "images"), ImageAssets.FolderFor("   "));
+        // 还没存过的项目没有包可归属：图放在系统「图片」文件夹下的 WhaleGenie，人找得到。
+        Assert.Equal(ImageAssets.DefaultFolder(), ImageAssets.FolderFor(null));
+        Assert.Equal(ImageAssets.DefaultFolder(), ImageAssets.FolderFor("   "));
+        Assert.EndsWith("WhaleGenie", ImageAssets.DefaultFolder(), StringComparison.Ordinal);
+
+        var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        if (pictures.Length > 0)
+        {
+            Assert.Equal(Path.Combine(pictures, "WhaleGenie"), ImageAssets.DefaultFolder());
+        }
     }
 
     [Fact]

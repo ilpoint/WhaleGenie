@@ -87,6 +87,11 @@ public partial class App : Application
         // answering keys by the time a window exists, and a trigger must not act on a macro's own
         // output in the moment it takes to open one.
         Core.Devices.WhaleGenieInputGate.IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
+
+        // Old run logs are cleared before this start can add to them, so the folder holds what the
+        // setting says rather than one more than that. A folder that cannot be read is not a reason
+        // to stop starting up.
+        LogRetention.Prune(AppPaths.Logs, LocalSettings.LoadLogCount());
     }
 
     /// <summary>

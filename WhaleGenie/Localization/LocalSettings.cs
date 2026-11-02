@@ -114,6 +114,62 @@ public static class LocalSettings
         => Write(model => model.IgnoreOwnInput = ignore);
 
     /// <summary>
+    /// Whether the interface says out loud that the system switch or a macro changed state. On by
+    /// default: those two are the moments a click or a key gives no other proof it landed.
+    /// </summary>
+    public static bool LoadSounds() => Read().Sounds;
+
+    /// <summary>Stores whether the interface plays those sounds.</summary>
+    public static void StoreSounds(bool on) => Write(model => model.Sounds = on);
+
+    /// <summary>
+    /// How many failure and MCP logs are kept, counted by modification time. A hundred is what a
+    /// year of ordinary use leaves behind without filling anything, and it is enough to go back to
+    /// the failure that started all this.
+    /// </summary>
+    public static int LoadLogCount() => Math.Clamp(
+        Read().LogCount, LogRetention.Fewest, LogRetention.Most);
+
+    /// <summary>Stores how many of those logs are kept.</summary>
+    public static void StoreLogCount(int count) => Write(model => model.LogCount = Math.Clamp(
+        count, LogRetention.Fewest, LogRetention.Most));
+
+    /// <summary>Which sound this moment plays, or the one it starts with when nothing was chosen.</summary>
+    public static SoundKind LoadSound(UiSound which)
+    {
+        var model = Read();
+        return UiSounds.Read(which switch
+        {
+            UiSound.SystemOn => model.SoundSystemOn,
+            UiSound.SystemOff => model.SoundSystemOff,
+            UiSound.MacroOn => model.SoundMacroOn,
+            _ => model.SoundMacroOff,
+        }, which);
+    }
+
+    /// <summary>Stores which sound this moment plays.</summary>
+    public static void StoreSound(UiSound which, SoundKind kind)
+        => Write(model =>
+        {
+            var written = UiSounds.Written(kind);
+            switch (which)
+            {
+                case UiSound.SystemOn:
+                    model.SoundSystemOn = written;
+                    break;
+                case UiSound.SystemOff:
+                    model.SoundSystemOff = written;
+                    break;
+                case UiSound.MacroOn:
+                    model.SoundMacroOn = written;
+                    break;
+                default:
+                    model.SoundMacroOff = written;
+                    break;
+            }
+        });
+
+    /// <summary>
     /// Whether the macro list puts enabled macros first. Off keeps the order they were made in.
     /// </summary>
     public static bool LoadEnabledFirst() => Read().EnabledFirst;
@@ -392,6 +448,30 @@ public static class LocalSettings
         /// macro, and a recording made while one runs would play that run back.
         /// </summary>
         public bool IgnoreOwnInput { get; set; } = true;
+
+        /// <summary>
+        /// Whether the interface plays a sound when the system switch or a macro changes state. On
+        /// by default: those two are the moments a click or a key gives no other proof it landed.
+        /// </summary>
+        public bool Sounds { get; set; } = true;
+
+        /// <summary>
+        /// The sound each of the four moments plays. Empty means "the one it starts with", which is
+        /// how a file written before these choices existed is read.
+        /// </summary>
+        public string SoundSystemOn { get; set; } = string.Empty;
+
+        public string SoundSystemOff { get; set; } = string.Empty;
+
+        public string SoundMacroOn { get; set; } = string.Empty;
+
+        public string SoundMacroOff { get; set; } = string.Empty;
+
+        /// <summary>
+        /// How many failure and MCP logs are kept; the rest are deleted at startup, oldest first.
+        /// A hundred by default, which is what ordinary use leaves behind without filling a disk.
+        /// </summary>
+        public int LogCount { get; set; } = LogRetention.Usual;
 
         /// <summary>Zero means no size has been stored, which is not a window size.</summary>
         public double MainWindowWidth { get; set; }
