@@ -165,14 +165,10 @@
                                           Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
                                           IsChecked="{Binding SoundSystem}"
                                           Content="{Binding [Settings.SoundSystem], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.SoundSystemHint], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Name="SoundMacroCheck" Margin="2,12,0,0"
+                                <CheckBox Name="SoundMacroCheck" Margin="2,10,0,0"
                                           Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
                                           IsChecked="{Binding SoundMacro}"
                                           Content="{Binding [Settings.SoundMacro], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.SoundMacroHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                         </Border>
                         <Border Classes="Section">

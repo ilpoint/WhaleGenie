@@ -974,9 +974,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.HotkeyUnsupported"] = "This key cannot be read by the global hook and was not saved.",
         ["Settings.Sounds"] = "Sounds",
         ["Settings.SoundSystem"] = "System switch cue",
-        ["Settings.SoundSystemHint"] = "One cue for enabled, another for disabled.",
         ["Settings.SoundMacro"] = "Macro switch cue",
-        ["Settings.SoundMacroHint"] = "One cue for enabled, another for disabled.",
         ["Settings.RecordStopKey"] = "Recording start/stop key",
         ["Settings.RecordStopHint"] = "Press the button, then the shortcut to use. In the macro "
             + "editor it starts a recording and it ends the one in progress; while a text field has "
@@ -3017,9 +3015,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.HotkeyUnsupported"] = "这个按键无法被全局钩子识别，未保存。",
         ["Settings.Sounds"] = "声音",
         ["Settings.SoundSystem"] = "系统开关提示音",
-        ["Settings.SoundSystemHint"] = "启用与停用各有一个音。",
         ["Settings.SoundMacro"] = "宏开关提示音",
-        ["Settings.SoundMacroHint"] = "启用与停用各有一个音。",
         ["Settings.RecordStopKey"] = "录制开始/停止热键",
         ["Settings.RecordStopHint"] = "按一下按钮，再按要用的热键。在宏编辑器里按它开始录制，录制"
             + "过程中也按它结束；焦点在输入框里时不响应。默认 Ctrl+F10，写法与别处的快捷键一样：字母、"
