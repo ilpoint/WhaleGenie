@@ -79,7 +79,7 @@ public static class RecoveryStore
     /// </remarks>
     private static string _written = string.Empty;
 
-    private static string _path = Path.Combine(AppPaths.Root, "recovery.json");
+    private static string _path = AppPaths.Recovery;
 
     /// <summary>
     /// Where the snapshot lives: beside the program, with the settings, so the safety net belongs

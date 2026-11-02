@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -337,6 +339,34 @@ public partial class SettingsWindow : AppWindow
 
     private static string Chord(Key key, KeyModifiers held)
         => HotkeyNameMapper.Chord(key, held);
+
+    /// <summary>
+    /// Opens the folder one of those rows names, making it first: the folders for a project's
+    /// pictures only exist once something has been saved, and a button that fails on a fresh
+    /// install teaches the wrong thing about where things go.
+    /// </summary>
+    private void OnOpenStorage(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string folder } || folder.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo { FileName = folder, UseShellExecute = true });
+        }
+        catch (Exception error)
+        {
+            // 打不开不是错误该吃掉的地方：目录可能是只读的，说清楚比静悄悄好。
+            if (this.FindControl<TextBlock>("StorageProblem") is { } problem)
+            {
+                problem.Text = error.Message;
+                problem.IsVisible = true;
+            }
+        }
+    }
 
     private void OnInstallDriverClicked(object? sender, RoutedEventArgs e)
         => WebPage.Open(ProjectLinks.DriverDownload);

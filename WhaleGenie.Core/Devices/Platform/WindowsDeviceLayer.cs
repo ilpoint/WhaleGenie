@@ -45,8 +45,11 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
     public WindowsDeviceLayer()
     {
         // The pointer is read from the screen: one device answers where it is, whether a step is
-        // about to send input or a picker is following it.
-        _input = new Lazy<IInputDevice>(() => new SharpHookInputDevice(_screen.Value));
+        // about to send input or a picker is following it. What leaves through it answers to the
+        // input limit, and so does every other way out, so the limit belongs here rather than in
+        // each step that sends something.
+        _input = new Lazy<IInputDevice>(
+            () => ThrottledInputDevice.Of(new SharpHookInputDevice(_screen.Value)));
         _gamepad = new Lazy<ViiperInputDevice>(() => SharedDriverInput.Take(_screen.Value));
         _inputs = new Lazy<IInputRouter>(() => new WindowsInputRouter(_input.Value, _screen.Value));
         _driver = new Lazy<IDriverInput>(() => new ViiperDriver(() => _screen.Value));

@@ -13,16 +13,40 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
 {
     private readonly object _gate = new();
 
-    private readonly Dictionary<long, MessageInputDevice> _posting = [];
+    private readonly Dictionary<long, ThrottledInputDevice> _posting = [];
 
     private ViiperInputDevice? _driver;
 
+    /// <summary>
+    /// The driver device as one step sees it. Kept rather than made per call: a step that sends
+    /// through the driver twice is sending through the same device, and a new wrapper each time
+    /// would say otherwise to anything that compares them.
+    /// </summary>
+    private ThrottledInputDevice? _driverView;
+
+    /// <summary>
+    /// The device a step sends through: in front, one window, or the driver. The three ways share one
+    /// input limit, so changing how a step sends does not change how fast it may send.
+    /// </summary>
     public IInputDevice For(InputRoute route) => route.Delivery switch
     {
         InputDelivery.Background => Posting(route.WindowHandle),
-        InputDelivery.Driver => Driver,
+        InputDelivery.Driver => DriverView,
         _ => front,
     };
+
+    /// <summary>The driver device as a step sends through it, which is the one the limit counts.</summary>
+    private ThrottledInputDevice DriverView
+    {
+        get
+        {
+            lock (_gate)
+            {
+                _driver ??= SharedDriverInput.Take(screen);
+                return _driverView ??= (ThrottledInputDevice)ThrottledInputDevice.Of(_driver);
+            }
+        }
+    }
 
     /// <summary>
     /// The virtual keyboard and mouse, asked for once and kept between steps: a macro that sends
@@ -44,7 +68,7 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
     /// One posting device per window, kept between steps: a macro that works on the same window
     /// over and over should not build a new device every time.
     /// </summary>
-    private MessageInputDevice Posting(long window)
+    private ThrottledInputDevice Posting(long window)
     {
         if (window == 0)
         {
@@ -53,7 +77,7 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
 
         if (!_posting.TryGetValue(window, out var device))
         {
-            device = new MessageInputDevice((IntPtr)window, front);
+            device = (ThrottledInputDevice)ThrottledInputDevice.Of(new MessageInputDevice((IntPtr)window, front));
             _posting[window] = device;
         }
 
@@ -69,6 +93,7 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
         lock (_gate)
         {
             _driver = null;
+            _driverView = null;
         }
     }
 }

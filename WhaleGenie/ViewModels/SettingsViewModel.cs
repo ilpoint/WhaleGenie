@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
@@ -48,6 +49,12 @@ public enum SettingsSubPage
     WindowRules,
     Theme,
 }
+
+/// <summary>
+/// One place something is kept: what it is, what lands there, and where it is. The folder is the one
+/// a button opens, which is the library's own folder rather than the file inside it.
+/// </summary>
+public sealed record StorageRow(string Name, string What, string Where, string Folder);
 
 public sealed record MenuRuleRow(
     string GroupKey,
@@ -97,6 +104,7 @@ public partial class SettingsViewModel : ViewModelBase
         SystemAtStart = LocalSettings.LoadSystemAtStart();
         EnabledFirst = LocalSettings.LoadEnabledFirst();
         PreloadOcr = LocalSettings.LoadPreloadOcr();
+        InputRate = LocalSettings.LoadInputRate();
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
@@ -178,6 +186,23 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     public ObservableCollection<MenuRuleRow> MenuRules { get; } = [];
+
+    /// <summary>
+    /// Where everything the program keeps for the person actually is. It is shown rather than only
+    /// documented: "where did my macros.assets go" is a question this window should answer without
+    /// anybody opening a manual, and an update that moves these again gets one place to say so.
+    /// </summary>
+    public IReadOnlyList<StorageRow> StorageRows { get; } =
+    [
+        new(Strings.Get("Settings.StorageState"), Strings.Get("Settings.StorageStateWhat"),
+            AppPaths.State, AppPaths.State),
+        new(Strings.Get("Settings.StorageProjects"), Strings.Get("Settings.StorageProjectsWhat"),
+            AppPaths.Projects, AppPaths.Projects),
+        new(Strings.Get("Settings.StorageImages"), Strings.Get("Settings.StorageImagesWhat"),
+            Path.Combine(AppPaths.State, "images"), Path.Combine(AppPaths.State, "images")),
+        new(Strings.Get("Settings.StorageLibrary"), Strings.Get("Settings.StorageLibraryWhat"),
+            AppPaths.PublicMacroLibrary, Path.GetDirectoryName(AppPaths.PublicMacroLibrary) ?? AppPaths.Root),
+    ];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MenuLauncherDisplay))]
@@ -569,6 +594,28 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial bool EnabledFirst { get; set; }
+
+    /// <summary>
+    /// How many keyboard or mouse events may leave the program in a second, 0 for no limit. Held as
+    /// a number field's double because that is what the control speaks; it is a count, so what is
+    /// stored and applied is the rounded value.
+    /// </summary>
+    [ObservableProperty]
+    public partial double InputRate { get; set; }
+
+    /// <summary>
+    /// Takes effect at once: a macro that is about to type too fast should be held back from the
+    /// next event, not from the next run. Zero is a real choice here and not an empty field.
+    /// </summary>
+    partial void OnInputRateChanged(double value)
+    {
+        var rate = Math.Clamp((int)Math.Round(value), 0, InputLimit.Most);
+        InputLimit.PerSecond = rate;
+        if (rate != LocalSettings.LoadInputRate())
+        {
+            LocalSettings.StoreInputRate(rate);
+        }
+    }
 
     /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.

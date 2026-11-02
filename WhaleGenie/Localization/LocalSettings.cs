@@ -15,11 +15,39 @@ namespace WhaleGenie.Localization;
 public static class LocalSettings
 {
     /// <summary>
-    /// The file the choices live in: beside the program, so a copy of WhaleGenie carries its own
-    /// choices with it. It can be moved so a check runs against a file of its own instead of the
-    /// one whoever is using WhaleGenie keeps.
+    /// The file the choices live in: in the person's own profile rather than beside the program, so
+    /// an update or a reinstall does not take their settings with it. It can be moved so a check
+    /// runs against a file of its own instead of the one whoever is using WhaleGenie keeps.
     /// </summary>
-    internal static string FilePath { get; set; } = AppPaths.Settings;
+    internal static string FilePath { get; set; } = Adopt(AppPaths.Settings, AppPaths.Root);
+
+    /// <summary>
+    /// Takes over a file an older build left beside the program. Done once, when this class is first
+    /// used: the file is moved rather than copied, so the install folder keeps nothing of the
+    /// person's and no second copy can drift away from the one being read.
+    /// </summary>
+    internal static string Adopt(string wanted, string programFolder)
+    {
+        var beside = Path.Combine(programFolder, Path.GetFileName(wanted));
+
+        try
+        {
+            if (File.Exists(wanted) || !File.Exists(beside))
+            {
+                return wanted;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(wanted)!);
+            File.Move(beside, wanted);
+            return wanted;
+        }
+        catch
+        {
+            // A file that cannot be moved is still readable where it lies: better an old location
+            // than silently starting from the defaults and calling the choices lost.
+            return File.Exists(beside) ? beside : wanted;
+        }
+    }
 
     /// <summary>
     /// The package this copy of the program had open last, so the next start does not begin with an
@@ -51,6 +79,17 @@ public static class LocalSettings
     /// <summary>Stores whether the system is enabled at start.</summary>
     public static void StoreSystemAtStart(bool enabled)
         => Write(model => model.SystemAtStart = enabled);
+
+    /// <summary>
+    /// How many keyboard or mouse events may leave the program in a second, 0 for no limit. The
+    /// ceiling exists because a macro that types as fast as the machine allows reads as a machine:
+    /// games drop the input and windows miss clicks.
+    /// </summary>
+    public static int LoadInputRate() => Read().InputRate;
+
+    /// <summary>Stores the ceiling on how fast input may leave.</summary>
+    public static void StoreInputRate(int rate)
+        => Write(model => model.InputRate = Math.Clamp(rate, 0, WhaleGenie.Core.Devices.InputLimit.Most));
 
     /// <summary>
     /// Whether the macro list puts enabled macros first. Off keeps the order they were made in.
@@ -310,6 +349,13 @@ public static class LocalSettings
         /// order the project was made in.
         /// </summary>
         public bool EnabledFirst { get; set; }
+
+        /// <summary>
+        /// Events per second this program may send. What the program has always done is the default:
+        /// the ceiling is there for the macros that need it, and turning it on by default is what
+        /// keeps a fresh install from typing like a machine on the first run.
+        /// </summary>
+        public int InputRate { get; set; } = WhaleGenie.Core.Devices.InputLimit.Usual;
 
         /// <summary>Zero means no size has been stored, which is not a window size.</summary>
         public double MainWindowWidth { get; set; }

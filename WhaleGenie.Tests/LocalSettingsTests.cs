@@ -40,6 +40,52 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 输入限制：默认每秒 120 个事件，边界 0 与 999 都存得住，越界的值落到边界上。
+    /// 它是"上限"而不是"节拍"，所以 0 必须能存——那是关闭，不是没填。
+    /// </summary>
+    [Fact]
+    public void The_input_limit_defaults_to_120_and_keeps_zero_as_off()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.Equal(WhaleGenie.Core.Devices.InputLimit.Usual, LocalSettings.LoadInputRate());
+            Assert.Equal(120, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(0);
+            Assert.Equal(0, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(999);
+            Assert.Equal(999, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(5000);
+            Assert.Equal(WhaleGenie.Core.Devices.InputLimit.Most, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(-1);
+            Assert.Equal(0, LocalSettings.LoadInputRate());
+        });
+    }
+
+    /// <summary>
+    /// 改了限制立刻生效：正在跑的宏从下一个事件起就受约束，不必等下一次运行。
+    /// </summary>
+    [Fact]
+    public void Changing_the_limit_takes_effect_at_once()
+    {
+        InOwnFile(_ =>
+        {
+            var settings = new SettingsViewModel(() => DriverInputState.Ready) { InputRate = 60 };
+            Assert.Equal(60, WhaleGenie.Core.Devices.InputLimit.PerSecond);
+            Assert.Equal(60, LocalSettings.LoadInputRate());
+
+            settings.InputRate = 0;
+            Assert.Equal(0, WhaleGenie.Core.Devices.InputLimit.PerSecond);
+
+            // 收尾：把限额还给默认值，免得影响同批次的其它用例。
+            WhaleGenie.Core.Devices.InputLimit.PerSecond = WhaleGenie.Core.Devices.InputLimit.Usual;
+        });
+    }
+
+    /// <summary>
     /// 三项启动设置：默认与今天的行为一致（打开上次项目、系统不随启动启用、宏按原顺序），
     /// 改一项不碰其他项。默认值就是升级后第一次打开时的样子，不能悄悄改变既有行为。
     /// </summary>

@@ -1444,6 +1444,24 @@ public sealed class Strings : INotifyPropertyChanged
             + "which leaves the system disabled until the hotkey turns it on.",
         ["Settings.EnabledFirst"] = "List enabled macros first",
         ["Settings.EnabledFirstHint"] = "Off keeps the order the project was made in.",
+        ["Settings.Storage"] = "Storage locations",
+        ["Settings.StorageHint"] = "All of it lives under your Windows profile, so updating or "
+            + "reinstalling the program does not take it away. Each row says what is kept there.",
+        ["Settings.StorageState"] = "Settings, logs and unsaved work",
+        ["Settings.StorageStateWhat"] = "settings.json holds the choices in this window and the "
+            + "others; logs/ holds the log of a run that failed; recovery.json holds work that was "
+            + "not saved yet.",
+        ["Settings.StorageProjects"] = "Project pictures and the last save",
+        ["Settings.StorageProjectsWhat"] = "One folder per macro package. assets/ holds the pictures "
+            + "unpacked out of it, which is what a step's image refers to; last.wgmacro.bak is the "
+            + "package the last save replaced.",
+        ["Settings.StorageImages"] = "Pictures before a project is saved",
+        ["Settings.StorageImagesWhat"] = "Where a capture goes while the project has no file of its "
+            + "own yet.",
+        ["Settings.StorageLibrary"] = "Public macro library",
+        ["Settings.StorageLibraryWhat"] = "Macros shared by every project. It stays beside the "
+            + "program, so a copy carried elsewhere takes it along.",
+        ["Settings.OpenFolder"] = "Open",
         ["Settings.CaptureWindow"] = "Reading a window",
         ["Settings.CaptureWindowHint"] =
             "How a picture of a window is taken on this machine, for every step of every macro. "
@@ -1475,6 +1493,13 @@ public sealed class Strings : INotifyPropertyChanged
             "Loading the models takes a moment, and the first step that reads text would otherwise "
             + "be the one to wait. Off by default, because the models stay in memory while the "
             + "program runs.",
+        ["Settings.InputLimit"] = "Input limit",
+        ["Settings.InputLimitUnit"] = "events per second",
+        ["Settings.InputLimitHint"] =
+            "The most keyboard and mouse events this program may send in a second; 0 sends without "
+            + "a limit. Typing, a key press, a click, a wheel notch and a drag each count once, a "
+            + "chord counts once, and moving the pointer does not count at all. Range 0 to 999, "
+            + "default 120.",
         ["Settings.Driver"] = "Driver-level input",
         ["Settings.DriverReady"] = "usbip-win2 driver installed, so driver-level input can be used.",
         ["Settings.DriverMissing"] = "The usbip-win2 driver is not installed.",
@@ -3772,6 +3797,19 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.SystemAtStartHint"] = "开启后启动即响应触发；默认关闭，由热键启用。",
         ["Settings.EnabledFirst"] = "已启用的宏排在前面",
         ["Settings.EnabledFirstHint"] = "关闭时保持项目中原有的顺序。",
+        ["Settings.Storage"] = "存储位置",
+        ["Settings.StorageHint"] = "这些都在 Windows 用户目录里，升级或重装程序不会带走。每一行写着那一处放的是什么。",
+        ["Settings.StorageState"] = "设置、日志与未保存的工作",
+        ["Settings.StorageStateWhat"] = "settings.json 记着这个窗口与其他窗口里的选择；logs/ 放失败日志；"
+            + "recovery.json 放还没保存的工作。",
+        ["Settings.StorageProjects"] = "项目图片与上次保存的包",
+        ["Settings.StorageProjectsWhat"] = "每个宏包一个文件夹：assets/ 是包里的图解出来的地方，"
+            + "步骤里引用的图片就在这里；last.wgmacro.bak 是上一次保存替换掉的包。",
+        ["Settings.StorageImages"] = "项目尚未保存时的截图",
+        ["Settings.StorageImagesWhat"] = "项目还没有自己的文件时，宏截下来的图先放这里。",
+        ["Settings.StorageLibrary"] = "公共宏库",
+        ["Settings.StorageLibraryWhat"] = "所有项目共用的宏。它跟着程序目录走，程序拷到别处会一起带走。",
+        ["Settings.OpenFolder"] = "打开",
         ["Settings.CaptureWindow"] = "读窗口",
         ["Settings.CaptureWindowHint"] =
             "这台机器上窗口的画面怎么取，对所有宏的每一步都生效。自动（默认）：先走 Graphics "
@@ -3795,6 +3833,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.PreloadOcr"] = "启动时在后台预加载文字识别",
         ["Settings.PreloadOcrHint"] = "加载模型需要时间；不预加载时，这次等待落在第一步读取文字的步骤上。"
             + "默认关闭，因为模型会一直占着内存，直到程序退出。",
+        ["Settings.InputLimit"] = "输入限制",
+        ["Settings.InputLimitUnit"] = "次/秒",
+        ["Settings.InputLimitHint"] =
+            "这个程序每秒最多发出多少个键盘或鼠标事件，0 表示不限。打字、按键、点击、滚轮每一档、"
+            + "一次拖拽各算一个，组合键算一个，移动鼠标不算。范围 0～999，默认 120。",
         ["Settings.Driver"] = "驱动级输入",
         ["Settings.DriverReady"] = "usbip-win2 驱动已安装，驱动级输入可以用。",
         ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",

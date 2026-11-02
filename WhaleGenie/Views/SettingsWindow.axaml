@@ -4,6 +4,7 @@
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:views="using:WhaleGenie.Views"
         xmlns:models="using:WhaleGenie.Models"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
         x:Class="WhaleGenie.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
@@ -75,6 +76,44 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- 东西都放在哪儿：写在窗口里而不是只写在手册里，"我的 macros.assets 去哪了"
+                         是这扇窗该直接回答的问题。每一行都能打开所在文件夹。 -->
+                    <Border Classes="Section" IsVisible="{Binding IsGeneralPage}">
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                       Text="{Binding [Settings.Storage], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Settings.StorageHint], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Name="StorageProblem" Classes="Hint" Margin="2,6,0,0"
+                                       IsVisible="False" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource Warning}" />
+
+                            <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding StorageRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:StorageRow">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="2,0,2,12">
+                                            <StackPanel>
+                                                <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
+                                                           Text="{Binding Name}" />
+                                                <TextBlock Classes="Hint" Margin="0,2,0,0" TextWrapping="Wrap"
+                                                           Text="{Binding What}" />
+                                                <TextBlock Classes="Mono" FontSize="11.5" Margin="0,3,0,0"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource TextTertiary}"
+                                                           Text="{Binding Where}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Classes="Secondary" Height="28"
+                                                    Padding="10,0" VerticalAlignment="Center"
+                                                    Tag="{Binding Folder}"
+                                                    Click="OnOpenStorage"
+                                                    Content="{Binding [Settings.OpenFolder], Source={x:Static loc:Strings.Current}}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
                     <StackPanel IsVisible="{Binding IsCapturePage}">
                         <Border Classes="Section">
                             <StackPanel>
@@ -124,6 +163,18 @@
                                           Content="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />
                                 <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Settings.PreloadOcrHint], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="FieldLabel" Margin="2,18,0,0"
+                                           Text="{Binding [Settings.InputLimit], Source={x:Static loc:Strings.Current}}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <fa:FANumberBox Name="InputLimitBox" Width="120"
+                                                    Minimum="0" Maximum="999" SmallChange="10"
+                                                    SimpleNumberFormat="0"
+                                                    Value="{Binding InputRate}" />
+                                    <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                               Text="{Binding [Settings.InputLimitUnit], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
