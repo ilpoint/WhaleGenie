@@ -596,10 +596,7 @@
                                    IsVisible="{Binding !HasRegions}" />
                     </Grid>
 
-                    <!-- Where the four numbers of every row are counted from, said once for the
-                         whole list: the same numbers mean somewhere else depending on it. -->
-                    <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                               IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
+                    <!-- 四个数的基准由这一行自己在字段末尾说一次（`BasisNote`），这里不再重复。 -->
                 </StackPanel>
 
                 <!-- A run of key combinations: one row per press, in the order they are sent. A

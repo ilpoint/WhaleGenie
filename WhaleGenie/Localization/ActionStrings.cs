@@ -1889,9 +1889,9 @@ internal static class ActionStrings
         ["vision.findColor.color.label"] = "颜色",
         ["vision.findColor.color.hint"] = "要找的颜色，默认 #000000。",
         ["vision.findColor.x.label"] = "X",
-        ["vision.findColor.x.hint"] = "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时搜索区域。",
+        ["vision.findColor.x.hint"] = "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时按搜索区域找。",
         ["vision.findColor.y.label"] = "Y",
-        ["vision.findColor.y.hint"] = "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时搜索区域。",
+        ["vision.findColor.y.hint"] = "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时按搜索区域找。",
         ["vision.findColor.place.label"] = "位置",
         ["vision.findColor.place.hint"] = "可选：一条带 x、y 的记录，例如命中、窗口或元素。填写后只看这个像素，并优先于 X、Y 和搜索区域。",
         ["vision.findColor.tolerance.label"] = "容差 %",
@@ -1930,10 +1930,10 @@ internal static class ActionStrings
         ["vision.findColors.x.label"] = "X",
         ["vision.findColors.x.hint"] =
             "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。基准色与周围那些颜色"
-            + "都在这一处比对；X、Y 都留空时搜索区域。",
+            + "都在这一处比对；X、Y 都留空时按搜索区域找。",
         ["vision.findColors.y.label"] = "Y",
         ["vision.findColors.y.hint"] =
-            "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时搜索区域。",
+            "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时按搜索区域找。",
         ["vision.findColors.place.label"] = "位置",
         ["vision.findColors.place.hint"] =
             "可选：一条带 x、y 的记录，例如命中、窗口或元素。填写后只看这个像素，并优先于 X、Y 和搜索区域。",
