@@ -10,6 +10,9 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Runtime;
+#if DEBUG
+using Declarative.Avalonia.AgentTools;
+#endif
 
 namespace WhaleGenie;
 
@@ -201,6 +204,8 @@ sealed class Program
             .UsePlatformDetect()
 #if DEBUG
             .WithDeveloperTools()
+            // 给 agent 的界面自省：loopback 的 MCP，只在调试版里开，随进程一起结束。
+            .UseAgentInspector()
 #endif
             .WithInterFont()
             .LogToTrace();

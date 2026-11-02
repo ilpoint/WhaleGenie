@@ -89,6 +89,13 @@
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
+    <!--
+      界面自省，只在 Debug 还原：agent 通过 loopback 的 MCP 看视觉树、布局与截图，用来核对对齐、
+      裁字与遮挡。这一包会带进 ASP.NET Core 那一套，所以 Release 干脆不还原它——发布物里既没有
+      这些程序集，也没有额外的框架引用。
+    -->
+    <PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.1.1"
+                      Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Lucide.Avalonia" Version="0.2.27" />
   </ItemGroup>
