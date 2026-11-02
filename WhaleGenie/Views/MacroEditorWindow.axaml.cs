@@ -1453,6 +1453,18 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
+        // 设置里写的是"开始/停止"两半：结束那一次由录制器自己接住（它按全局钩子听），开始这一次
+        // 只有窗口知道，所以在这里接。
+        if (!viewModel.IsRecording
+            && Chord(e.Key, e.KeyModifiers) is { Length: > 0 } pressed
+            && string.Equals(pressed, Localization.LocalSettings.LoadRecordStopKey(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            e.Handled = true;
+            viewModel.ToggleRecordCommand.Execute(null);
+            return;
+        }
+
         var control = e.KeyModifiers.HasFlag(KeyModifiers.Control);
 
         if (control)

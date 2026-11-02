@@ -33,15 +33,6 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
     public override string ToString() => Strings.Get(Key);
 }
 
-/// <summary>
-/// One entry of a sound picker, named the way the same sound is named beside a macro's own sound
-/// step: the four moments a sound is offered for all choose from this one list.
-/// </summary>
-public sealed record SoundOption(SoundKind Kind, string Key)
-{
-    public override string ToString() => Strings.Get(Key);
-}
-
 public enum SettingsRootPage
 {
     System,
@@ -116,16 +107,9 @@ public partial class SettingsViewModel : ViewModelBase
         InputRate = LocalSettings.LoadInputRate();
         ExclusiveInput = LocalSettings.LoadExclusiveInput();
         IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
+        SoundSystem = LocalSettings.LoadSoundSystem();
+        SoundMacro = LocalSettings.LoadSoundMacro();
         LogCount = LocalSettings.LoadLogCount();
-        Sounds = LocalSettings.LoadSounds();
-        SystemOnSound = SoundChoices.First(option =>
-            option.Kind == LocalSettings.LoadSound(UiSound.SystemOn));
-        SystemOffSound = SoundChoices.First(option =>
-            option.Kind == LocalSettings.LoadSound(UiSound.SystemOff));
-        MacroOnSound = SoundChoices.First(option =>
-            option.Kind == LocalSettings.LoadSound(UiSound.MacroOn));
-        MacroOffSound = SoundChoices.First(option =>
-            option.Kind == LocalSettings.LoadSound(UiSound.MacroOff));
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
@@ -144,11 +128,6 @@ public partial class SettingsViewModel : ViewModelBase
         base.RefreshLanguage();
         OnPropertyChanged(nameof(WindowWays));
         OnPropertyChanged(nameof(ScreenWays));
-        OnPropertyChanged(nameof(SoundChoices));
-        OnPropertyChanged(nameof(SystemOnSound));
-        OnPropertyChanged(nameof(SystemOffSound));
-        OnPropertyChanged(nameof(MacroOnSound));
-        OnPropertyChanged(nameof(MacroOffSound));
         OnPropertyChanged(nameof(ThemeOptions));
         OnPropertyChanged(nameof(SelectedTheme));
         OnPropertyChanged(nameof(MenuLauncherStatus));
@@ -677,39 +656,13 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IgnoreOwnInput { get; set; }
 
-    /// <summary>
-    /// Whether the interface says out loud that the system switch or a macro changed state. The four
-    /// sounds below are only heard while this is on, and keeping quiet also means a machine in a
-    /// shared room stays quiet.
-    /// </summary>
+    /// <summary>Whether the program's own switch is heard when it goes on or off.</summary>
     [ObservableProperty]
-    public partial bool Sounds { get; set; }
+    public partial bool SoundSystem { get; set; }
 
-    /// <summary>The five sounds a moment can be given, the same list the sound step offers.</summary>
-    public IReadOnlyList<SoundOption> SoundChoices { get; } =
-    [
-        new(SoundKind.Default, "Settings.SoundOption.Default"),
-        new(SoundKind.Information, "Settings.SoundOption.Information"),
-        new(SoundKind.Warning, "Settings.SoundOption.Warning"),
-        new(SoundKind.Error, "Settings.SoundOption.Error"),
-        new(SoundKind.Question, "Settings.SoundOption.Question"),
-    ];
-
-    /// <summary>The sound the whole system going quiet plays.</summary>
+    /// <summary>Whether arming or disarming one macro is heard.</summary>
     [ObservableProperty]
-    public partial SoundOption SystemOffSound { get; set; }
-
-    /// <summary>The sound the whole system listening again plays.</summary>
-    [ObservableProperty]
-    public partial SoundOption SystemOnSound { get; set; }
-
-    /// <summary>The sound a macro being armed plays.</summary>
-    [ObservableProperty]
-    public partial SoundOption MacroOnSound { get; set; }
-
-    /// <summary>The sound a macro being disarmed plays.</summary>
-    [ObservableProperty]
-    public partial SoundOption MacroOffSound { get; set; }
+    public partial bool SoundMacro { get; set; }
 
     /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.
@@ -944,36 +897,21 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Stores whether the interface plays its state-change sounds.</summary>
-    partial void OnSoundsChanged(bool value)
+    /// <summary>Stores whether the system switch is heard.</summary>
+    partial void OnSoundSystemChanged(bool value)
     {
-        if (value != LocalSettings.LoadSounds())
+        if (value != LocalSettings.LoadSoundSystem())
         {
-            LocalSettings.StoreSounds(value);
+            LocalSettings.StoreSoundSystem(value);
         }
     }
 
-    partial void OnSystemOnSoundChanged(SoundOption value)
-        => KeepSound(UiSound.SystemOn, value);
-
-    partial void OnSystemOffSoundChanged(SoundOption value)
-        => KeepSound(UiSound.SystemOff, value);
-
-    partial void OnMacroOnSoundChanged(SoundOption value)
-        => KeepSound(UiSound.MacroOn, value);
-
-    partial void OnMacroOffSoundChanged(SoundOption value)
-        => KeepSound(UiSound.MacroOff, value);
-
-    /// <summary>
-    /// Writes one choice back, but only when it really changed: opening the window reads the stored
-    /// sound into this property, and that must not count as the person asking for something.
-    /// </summary>
-    private static void KeepSound(UiSound which, SoundOption value)
+    /// <summary>Stores whether arming and disarming a macro is heard.</summary>
+    partial void OnSoundMacroChanged(bool value)
     {
-        if (value is not null && value.Kind != LocalSettings.LoadSound(which))
+        if (value != LocalSettings.LoadSoundMacro())
         {
-            LocalSettings.StoreSound(which, value.Kind);
+            LocalSettings.StoreSoundMacro(value);
         }
     }
 

@@ -452,8 +452,7 @@ public partial class MainWindow : AppWindow
                 RefreshSurface(viewModel);
 
                 // 系统开关常常是盲按热键换的：听得到的确认，比事后去窗口里看那行字有用。
-                AppSound.Play(SharedDevices.Current.System,
-                    viewModel.IsRunning ? UiSound.SystemOn : UiSound.SystemOff);
+                AppSound.Play(viewModel.IsRunning ? UiSound.SystemOn : UiSound.SystemOff);
             }
 
         };
@@ -2318,8 +2317,7 @@ public partial class MainWindow : AppWindow
         RefreshRunning(viewModel);
 
         // 圆点就在眼前，声音不是用来看状态的：它说的是"这一下点到了"，两者成对才好分辨。
-        AppSound.Play(SharedDevices.Current.System,
-            macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
+        AppSound.Play(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
     }
 
     /// <summary>The same switch, chosen from the card's right-click menu.</summary>

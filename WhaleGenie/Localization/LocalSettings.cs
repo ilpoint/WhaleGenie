@@ -114,13 +114,22 @@ public static class LocalSettings
         => Write(model => model.IgnoreOwnInput = ignore);
 
     /// <summary>
-    /// Whether the interface says out loud that the system switch or a macro changed state. On by
-    /// default: those two are the moments a click or a key gives no other proof it landed.
+    /// Whether the program's own switch says out loud that it went on or off. On by default: the
+    /// hotkey is pressed blind, and nothing else on screen answers at that moment.
     /// </summary>
-    public static bool LoadSounds() => Read().Sounds;
+    public static bool LoadSoundSystem() => Read().SoundSystem;
 
-    /// <summary>Stores whether the interface plays those sounds.</summary>
-    public static void StoreSounds(bool on) => Write(model => model.Sounds = on);
+    /// <summary>Stores whether the system switch is heard.</summary>
+    public static void StoreSoundSystem(bool on) => Write(model => model.SoundSystem = on);
+
+    /// <summary>
+    /// Whether arming or disarming one macro is heard. On by default, and a click on the card is the
+    /// moment it answers: the dot changes, but the pointer is usually already moving away.
+    /// </summary>
+    public static bool LoadSoundMacro() => Read().SoundMacro;
+
+    /// <summary>Stores whether arming and disarming a macro is heard.</summary>
+    public static void StoreSoundMacro(bool on) => Write(model => model.SoundMacro = on);
 
     /// <summary>
     /// How many failure and MCP logs are kept, counted by modification time. A hundred is what a
@@ -135,8 +144,8 @@ public static class LocalSettings
         count, LogRetention.Fewest, LogRetention.Most));
 
     /// <summary>
-    /// The shortcut that ends a recording. Ctrl+F10 by default: it is out of the way of the work
-    /// being recorded, and a recording that could only be stopped with the mouse is a recording
+    /// The hotkey that starts and stops a recording. Ctrl+F10 by default: it is out of the way of the
+    /// work being recorded, and a recording that could only be stopped with the mouse is a recording
     /// that keeps writing while the pointer goes looking for the button.
     /// </summary>
     public static string LoadRecordStopKey()
@@ -160,41 +169,6 @@ public static class LocalSettings
 
     /// <summary>Stores whether a start asks for the administrator token.</summary>
     public static void StoreRunAsAdmin(bool run) => Write(model => model.RunAsAdmin = run);
-
-    /// <summary>Which sound this moment plays, or the one it starts with when nothing was chosen.</summary>
-    public static SoundKind LoadSound(UiSound which)
-    {
-        var model = Read();
-        return UiSounds.Read(which switch
-        {
-            UiSound.SystemOn => model.SoundSystemOn,
-            UiSound.SystemOff => model.SoundSystemOff,
-            UiSound.MacroOn => model.SoundMacroOn,
-            _ => model.SoundMacroOff,
-        }, which);
-    }
-
-    /// <summary>Stores which sound this moment plays.</summary>
-    public static void StoreSound(UiSound which, SoundKind kind)
-        => Write(model =>
-        {
-            var written = UiSounds.Written(kind);
-            switch (which)
-            {
-                case UiSound.SystemOn:
-                    model.SoundSystemOn = written;
-                    break;
-                case UiSound.SystemOff:
-                    model.SoundSystemOff = written;
-                    break;
-                case UiSound.MacroOn:
-                    model.SoundMacroOn = written;
-                    break;
-                default:
-                    model.SoundMacroOff = written;
-                    break;
-            }
-        });
 
     /// <summary>
     /// Whether the macro list puts enabled macros first. Off keeps the order they were made in.
@@ -477,22 +451,16 @@ public static class LocalSettings
         public bool IgnoreOwnInput { get; set; } = true;
 
         /// <summary>
-        /// Whether the interface plays a sound when the system switch or a macro changes state. On
-        /// by default: those two are the moments a click or a key gives no other proof it landed.
+        /// Whether the program's own switch is heard when it goes on or off. On by default: that
+        /// hotkey is pressed blind, and nothing else on screen answers at that moment.
         /// </summary>
-        public bool Sounds { get; set; } = true;
+        public bool SoundSystem { get; set; } = true;
 
         /// <summary>
-        /// The sound each of the four moments plays. Empty means "the one it starts with", which is
-        /// how a file written before these choices existed is read.
+        /// Whether arming or disarming one macro is heard. On by default: the dot changes, but the
+        /// pointer is usually already moving away from it.
         /// </summary>
-        public string SoundSystemOn { get; set; } = string.Empty;
-
-        public string SoundSystemOff { get; set; } = string.Empty;
-
-        public string SoundMacroOn { get; set; } = string.Empty;
-
-        public string SoundMacroOff { get; set; } = string.Empty;
+        public bool SoundMacro { get; set; } = true;
 
         /// <summary>
         /// How many failure and MCP logs are kept; the rest are deleted at startup, oldest first.

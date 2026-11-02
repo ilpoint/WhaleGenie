@@ -973,27 +973,19 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.HotkeySupport"] = "Supports letters, digits, F1–F24, arrows, editing keys, numeric-keypad keys, and modifier combinations.",
         ["Settings.HotkeyUnsupported"] = "This key cannot be read by the global hook and was not saved.",
         ["Settings.Sounds"] = "Sounds",
-        ["Settings.SoundsOn"] = "Play a sound when the system or a macro changes state",
-        ["Settings.SoundsHint"] = "Two moments, each with a sound of its own: the system switch, which is "
-            + "often pressed blind on a hotkey, and a macro being armed or disarmed in the list. The "
-            + "pair about the whole program and the pair about one macro use different sounds by "
-            + "default, so which of the two changed is clear without looking. On by default; turn it "
-            + "off for a machine that should stay quiet.",
-        ["Settings.SoundSystemOn"] = "System enabled",
-        ["Settings.SoundSystemOff"] = "System disabled",
-        ["Settings.SoundMacroOn"] = "Macro enabled",
-        ["Settings.SoundMacroOff"] = "Macro disabled",
-        ["Settings.SoundOption.Default"] = "Default beep",
-        ["Settings.SoundOption.Information"] = "Information",
-        ["Settings.SoundOption.Warning"] = "Warning",
-        ["Settings.SoundOption.Error"] = "Error",
-        ["Settings.SoundOption.Question"] = "Question",
-        ["Settings.RecordStopKey"] = "Recording stop key",
-        ["Settings.RecordStopHint"] = "Press the button, then the shortcut that ends a recording. "
-            + "Ctrl+F10 by default. The recording panel's own line says whichever key is set here, "
-            + "and a recording can always be stopped with the same button as well. The shortcut is "
-            + "written the way every other one is: letters, digits, F1 to F24 and modifier "
-            + "combinations such as Ctrl+Alt+F12.",
+        ["Settings.SoundSystem"] = "The system switch: one for on, one for off",
+        ["Settings.SoundSystemHint"] = "On by default. Enabling is one 880 Hz tone of 120 ms, "
+            + "disabling is 440 Hz for the same length. The hotkey is usually pressed without "
+            + "looking at the window, so the tone says which way it went.",
+        ["Settings.SoundMacro"] = "A macro being enabled or disabled in the list",
+        ["Settings.SoundMacroHint"] = "On by default. Enabling is one 1320 Hz tone of 80 ms, "
+            + "disabling is 660 Hz. Both are higher and shorter than the pair above, so the two "
+            + "kinds of change cannot be taken for each other.",
+        ["Settings.RecordStopKey"] = "Recording start/stop key",
+        ["Settings.RecordStopHint"] = "Press the button, then the shortcut to use. In the macro "
+            + "editor it starts a recording and it ends the one in progress; while a text field has "
+            + "the keyboard it is left alone. Ctrl+F10 by default, written the way every other "
+            + "shortcut is: letters, digits, F1 to F24 and combinations such as Ctrl+Alt+F12.",
         ["Menu.DefaultContext"] = "Default",
         ["Menu.Drag"] = "Drag the title bar to move the menu",
         ["Menu.Search"] = "Search macros",
@@ -3028,23 +3020,16 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.HotkeySupport"] = "支持字母、数字、F1–F24、方向键、编辑键、小键盘键和修饰键组合。",
         ["Settings.HotkeyUnsupported"] = "这个按键无法被全局钩子识别，未保存。",
         ["Settings.Sounds"] = "声音",
-        ["Settings.SoundsOn"] = "系统或宏的状态变了就响一声",
-        ["Settings.SoundsHint"] = "两个时刻各有自己的声音：一个是整台程序听不听键盘的开关（常常是盲按"
-            + "热键换的），另一个是列表里一条宏的启用与停用。整程序那一对与单条宏那一对默认就不是"
-            + "同一种声音，不看屏幕也听得出是哪一类变了。默认开启，要安静就关掉。",
-        ["Settings.SoundSystemOn"] = "系统启用",
-        ["Settings.SoundSystemOff"] = "系统停用",
-        ["Settings.SoundMacroOn"] = "宏启用",
-        ["Settings.SoundMacroOff"] = "宏停用",
-        ["Settings.SoundOption.Default"] = "默认提示音",
-        ["Settings.SoundOption.Information"] = "信息",
-        ["Settings.SoundOption.Warning"] = "警告",
-        ["Settings.SoundOption.Error"] = "错误",
-        ["Settings.SoundOption.Question"] = "疑问",
-        ["Settings.RecordStopKey"] = "录制停止键",
-        ["Settings.RecordStopHint"] = "按一下按钮，再按要用来结束录制的快捷键，默认 Ctrl+F10。"
-            + "录制面板上那一行会跟着改，写成这里设的键；面板上的同一个按钮也一直能停。键的写法与别处"
-            + "一样：字母、数字、F1–F24，以及 Ctrl+Alt+F12 这样的修饰键组合。",
+        ["Settings.SoundSystem"] = "系统开关：开一声，关一声",
+        ["Settings.SoundSystemHint"] = "默认开启。启用是 880 赫兹、120 毫秒的一声，停用是 440 赫兹、"
+            + "同样长度。这个热键通常是不看窗口按下的，声音说明它往哪一边去了。",
+        ["Settings.SoundMacro"] = "列表里启用或停用一条宏",
+        ["Settings.SoundMacroHint"] = "默认开启。启用是 1320 赫兹、80 毫秒的一声，停用是 660 赫兹。"
+            + "两声都比上面那一对更高更短，两类变化不会听成同一件事。",
+        ["Settings.RecordStopKey"] = "录制开始/停止热键",
+        ["Settings.RecordStopHint"] = "按一下按钮，再按要用的热键。在宏编辑器里按它开始录制，录制"
+            + "过程中也按它结束；焦点在输入框里时不响应。默认 Ctrl+F10，写法与别处的快捷键一样：字母、"
+            + "数字、F1–F24，以及 Ctrl+Alt+F12 这样的组合。",
         ["Menu.DefaultContext"] = "默认",
         ["Menu.Drag"] = "拖动标题栏移动菜单",
         ["Menu.Search"] = "搜索宏",

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
@@ -109,6 +110,38 @@ public class PickerDeviceTests
             var step = Assert.Single(viewModel.Steps, step => step.Type == "input.keyPress");
             Assert.Equal("F6", step.Parameters.Single(parameter => parameter.Name == "key").Value);
 
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>
+    /// 设置里写的是"开始/停止"两半。结束那一次由录制器按全局钩子接住，开始这一次只有编辑器知道：
+    /// 在那里按这个热键，录制就开始了。
+    /// </summary>
+    [Fact]
+    public void The_recording_hotkey_starts_a_recording_in_the_editor()
+    {
+        Ui.Run(() =>
+        {
+            var recorder = new Recorder();
+            var devices = new ChecksDevices { Recorder = recorder };
+            var macro = new MacroItem { Name = "录制的" };
+
+            var window = new MacroEditorWindow(macro, [macro], null, devices);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = Assert.IsType<MacroEditorViewModel>(window.DataContext);
+            Assert.False(viewModel.IsRecording);
+
+            // 默认是 Ctrl+F10。
+            window.KeyPressQwerty(PhysicalKey.F10, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(recorder.IsRunning);
+            Assert.True(viewModel.IsRecording);
+
+            viewModel.StopRecording();
             Ui.CloseAndAnswer(window);
         });
     }

@@ -1,36 +1,48 @@
-using WhaleGenie.Core.Devices;
+using System;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Runtime;
 
 /// <summary>
-/// The few sounds the program makes on its own account: the system switch and a macro being armed or
-/// disarmed. They are read from the settings window rather than kept here, so what is heard is what
-/// the person chose, and they are played through the same system device a macro's own sound uses.
+/// The few sounds the program makes on its own account: the system switch, and a macro being armed
+/// or disarmed. Each is one tone of a fixed pitch, made on the machine's speaker, so they do not
+/// depend on which sound scheme is installed and stay apart from every other program's sounds.
 /// </summary>
 internal static class AppSound
 {
     /// <summary>
-    /// Plays the sound that moment is set to, unless the interface was told to keep quiet. A machine
-    /// with no sound device refuses; that refusal must not turn "arm this macro" into a failure, so
-    /// it is swallowed here rather than reaching the click that asked for the sound.
+    /// The tone itself, on the machine's speaker. A check hands in its own to read the pitch instead
+    /// of hearing it.
     /// </summary>
-    public static void Play(ISystemDevice system, UiSound which)
+    internal static Action<int, int> Beep { get; set; } = (frequency, milliseconds) =>
+        Console.Beep(frequency, milliseconds);
+
+    /// <summary>
+    /// Plays the tone for this moment, unless those two moments were switched off. A tone lasts as
+    /// long as it says, and all of them are short: this runs on the thread that handled the click.
+    /// A machine that cannot make one is a machine that stays quiet, not a failed click.
+    /// </summary>
+    public static void Play(UiSound which)
     {
-        if (!LocalSettings.LoadSounds())
+        var on = which is UiSound.SystemOn or UiSound.SystemOff
+            ? LocalSettings.LoadSoundSystem()
+            : LocalSettings.LoadSoundMacro();
+
+        if (!on)
         {
             return;
         }
 
+        var (frequency, milliseconds) = UiSounds.Tone(which);
         try
         {
-            system.PlaySound(LocalSettings.LoadSound(which));
+            Beep(frequency, milliseconds);
         }
         catch
         {
-            // A missing sound card, an audio service that is not running, or a device that refuses:
-            // none of these is worth a message, and all of them happen on real machines.
+            // No speaker, an audio service that is not running, a machine that is not Windows: the
+            // switch itself worked, and that is what the click was for.
         }
     }
 }
