@@ -106,6 +106,47 @@ public class SoundSettingsTests
     }
 
     /// <summary>
+    /// 交给系统的是一段完整的 16 位单声道 WAV：头里写的采样率、声道、数据长度必须与后面的字节对得上，
+    /// 否则播放器要么不出声，要么只放半声。首尾都从零起，所以不会"咔"一下。
+    /// </summary>
+    [Fact]
+    public void A_tone_is_a_complete_wave_file()
+    {
+        var wave = AppSound.Wave(880, 120);
+
+        Assert.Equal("RIFF", Text(wave, 0));
+        Assert.Equal("WAVE", Text(wave, 8));
+        Assert.Equal("fmt ", Text(wave, 12));
+        Assert.Equal("data", Text(wave, 36));
+
+        Assert.Equal(1, BitConverter.ToInt16(wave, 20));      // PCM
+        Assert.Equal(1, BitConverter.ToInt16(wave, 22));      // mono
+        Assert.Equal(44100, BitConverter.ToInt32(wave, 24));
+        Assert.Equal(16, BitConverter.ToInt16(wave, 34));
+
+        // 120 毫秒、44100 赫兹、16 位单声道。
+        var data = BitConverter.ToInt32(wave, 40);
+        Assert.Equal(wave.Length - 44, data);
+        Assert.Equal(44100 * 120 / 1000 * 2, data);
+        Assert.Equal(wave.Length - 8, BitConverter.ToInt32(wave, 4));
+
+        // 有声音，但不到满幅；两端是零。
+        var peak = 0;
+        for (var at = 44; at + 1 < wave.Length; at += 2)
+        {
+            peak = Math.Max(peak, Math.Abs((int)BitConverter.ToInt16(wave, at)));
+        }
+
+        Assert.InRange(peak, 6000, 32000);
+        Assert.Equal(0, BitConverter.ToInt16(wave, 44));
+        Assert.Equal(0, BitConverter.ToInt16(wave, wave.Length - 2));
+    }
+
+    /// <summary>The four characters of a chunk name, read as they sit in the file.</summary>
+    private static string Text(byte[] wave, int at)
+        => System.Text.Encoding.ASCII.GetString(wave, at, 4);
+
+    /// <summary>
     /// Runs the check against a settings file of its own, then puts the real one back: the choices
     /// of whoever is using WhaleGenie are not a check's to write.
     /// </summary>
