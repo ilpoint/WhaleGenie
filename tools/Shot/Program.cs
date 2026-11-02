@@ -72,6 +72,41 @@ if (what == "desktop")
     return;
 }
 
+// A macro that types a line, on a key, with no pause between the characters: what the input limit
+// is for. Written through the program's own model so the package is exactly what the editor saves.
+if (what == "typing")
+{
+    var text = args.FirstOrDefault(argument => argument.StartsWith("--text=", StringComparison.Ordinal))
+        is { } said ? said["--text=".Length..] : "输入限制测试：这一行是被宏一个字一个字打出来的。";
+    var key = args.FirstOrDefault(argument => argument.StartsWith("--key=", StringComparison.Ordinal))
+        is { } bound ? bound["--key=".Length..] : "F9";
+    var into = args.FirstOrDefault(argument => argument.StartsWith("--out=", StringComparison.Ordinal))
+        is { } place ? place["--out=".Length..] : Path.Combine(AppContext.BaseDirectory, "typing.wgmacro");
+
+    var macro = new MacroItem { Name = "输入限制测试", BindKey = key };
+    macro.Steps.Add(new MacroStep
+    {
+        Type = "input.typeText",
+        Parameters =
+        [
+            new StepParameter
+            {
+                Name = "inputMode", Kind = ActionParameterKind.Choice, Value = "foreground",
+            },
+            new StepParameter
+            {
+                Name = "window", Kind = ActionParameterKind.WindowRule, Value = string.Empty,
+            },
+            new StepParameter { Name = "typedText", Kind = ActionParameterKind.Text, Value = text },
+            new StepParameter { Name = "intervalMs", Kind = ActionParameterKind.Number, Value = "0" },
+        ],
+    });
+
+    WhaleGenie.Storage.MacroPackage.Save(into, [macro], [], "v0.1.0");
+    Console.WriteLine(into);
+    return;
+}
+
 // A package of the current format, with one macro in it: something for a start to open. Writing one
 // here rather than by hand is what keeps it loadable — the reader refuses any other version.
 if (what == "sample")

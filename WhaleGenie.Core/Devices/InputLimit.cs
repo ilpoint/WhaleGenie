@@ -161,13 +161,22 @@ public sealed class ThrottledInputDevice(IInputDevice inner) : IInputDevice
     }
 
     /// <summary>
-    /// Every character is a keystroke of its own, so a long text is paced rather than sent at once.
-    /// The device already spaces them by the interval it is given; this is the ceiling above it.
+    /// Typing is paced through the interval the device already keeps between characters, raised to
+    /// the ceiling when the step asked for less: waiting the whole batch out first and then handing
+    /// over every character at once looks exactly like input that was never limited — the line
+    /// arrives in one go after a pause, instead of being typed.
     /// </summary>
     public void TypeText(string text, int intervalMs)
     {
+        var rate = InputLimit.PerSecond;
+        var shortest = rate > 0 ? (int)Math.Ceiling(1000.0 / rate) : 0;
+        var pace = Math.Max(intervalMs, shortest);
+
+        inner.TypeText(text ?? string.Empty, pace);
+
+        // The characters took their own time; saying so keeps the next event from being counted
+        // against a moment that is already well in the past.
         InputLimit.Spend(text?.Length ?? 0);
-        inner.TypeText(text ?? string.Empty, intervalMs);
     }
 
     /// <summary>Moving the pointer is not counted: a path of any length is still one movement.</summary>

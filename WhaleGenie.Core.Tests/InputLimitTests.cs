@@ -83,17 +83,46 @@ public class InputLimitTests
         Assert.InRange(limit.Waits[0].TotalMilliseconds, 99, 101);
     }
 
+    /// <summary>
+    /// 打字按字拉开间隔，而不是先等一整批再一次性打出来：后者看起来和没限制一样。
+    /// </summary>
     [Fact]
-    public void Typing_is_counted_by_its_characters_and_a_double_click_as_two()
+    public void Typing_is_paced_character_by_character()
+    {
+        using var limit = new Limit(10);
+        var inner = new Recorder();
+        var devices = new ThrottledInputDevice(inner);
+
+        devices.TypeText("hello", 0);
+
+        // 每秒十个事件就是每个字间隔 100 毫秒；这一步自己要的 0 毫秒被抬到这条线上。
+        Assert.Equal(100, inner.TypedInterval);
+        Assert.Equal("hello", inner.Typed);
+    }
+
+    /// <summary>步骤自己要求更慢的间隔时，以它为准：上限只压过快的，不加快本来就慢的。</summary>
+    [Fact]
+    public void Typing_keeps_a_slower_interval_the_step_asked_for()
+    {
+        using var limit = new Limit(10);
+        var inner = new Recorder();
+
+        new ThrottledInputDevice(inner).TypeText("hi", 250);
+
+        Assert.Equal(250, inner.TypedInterval);
+    }
+
+    [Fact]
+    public void A_double_click_is_counted_as_two()
     {
         using var limit = new Limit(10);
         var devices = new ThrottledInputDevice(new Recorder());
 
-        devices.TypeText("hello", 0);
+        devices.KeyPress("a", 0);
         devices.Click("left", 0, 0, 2, 0);
 
-        // 五个字加两次点击是七个事件，中间六个间隔。
-        Assert.InRange(limit.Waits.Single().TotalMilliseconds, 599, 601);
+        // 一个按键加两次点击是三个事件，中间两个间隔。
+        Assert.InRange(limit.Waits.Single().TotalMilliseconds, 199, 201);
     }
 
     [Fact]
@@ -153,6 +182,11 @@ public class InputLimitTests
 
         public List<string> Calls { get; } = [];
 
+        /// <summary>What the last text was, and the interval it was asked to be typed at.</summary>
+        public string Typed { get; private set; } = string.Empty;
+
+        public int TypedInterval { get; private set; }
+
         public void KeyPress(string key, int holdMs) => Calls.Add(key);
 
         public void KeyDown(string key) => Calls.Add(key);
@@ -161,7 +195,12 @@ public class InputLimitTests
 
         public void Hotkey(IReadOnlyList<string> keys, int holdMs) => Calls.Add(string.Join('+', keys));
 
-        public void TypeText(string text, int intervalMs) => Calls.Add(text);
+        public void TypeText(string text, int intervalMs)
+        {
+            Typed = text;
+            TypedInterval = intervalMs;
+            Calls.Add(text);
+        }
 
         public void MoveMouse(int x, int y, int durationMs) => Calls.Add("move");
 
