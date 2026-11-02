@@ -180,6 +180,18 @@
                         <Border Classes="Section">
                             <StackPanel>
                                 <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Settings.IgnoreOwnInput], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Name="IgnoreOwnInputCheck"
+                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                                          IsChecked="{Binding IgnoreOwnInput}"
+                                          Content="{Binding [Settings.IgnoreOwnInputTurn], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.IgnoreOwnInputHint], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="Section">
+                            <StackPanel>
+                                <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Settings.ExclusiveInput], Source={x:Static loc:Strings.Current}}" />
                                 <CheckBox Name="ExclusiveInputCheck"
                                           Foreground="{DynamicResource TextTertiary}" FontSize="12.5"

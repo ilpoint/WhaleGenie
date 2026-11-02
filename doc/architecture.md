@@ -310,6 +310,9 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 浮层直接发起运行。后台服务只读取 `TriggerRuntimeSnapshot` 和 `GlobalHotkeyPlan`，并通过异常隔离与
 节流日志避免重复故障刷屏。
 
+程序自己发出的输入是否算数由一处全局设置决定：`WhaleGenieInputGate` 记住刚发出去的键名，触发器与
+录制器都问它同一个答案，各自不再保留副本。开关为关时两边照收，用于让本程序驱动自家快捷键。
+
 Core 的录制层将原始输入翻译为去抖、合并后的 `RecordedAction`，阈值集中在 `RecordingOptions`。
 应用层的 `RecordingStepBuilder` 将动作转换为可编辑步骤，编辑器负责保存与恢复快照。
 

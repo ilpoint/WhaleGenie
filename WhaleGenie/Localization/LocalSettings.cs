@@ -103,6 +103,17 @@ public static class LocalSettings
         => Write(model => model.ExclusiveInput = exclusive);
 
     /// <summary>
+    /// Whether what this program sends counts as its own rather than as the person's. On by default:
+    /// a macro that presses a key another macro is bound to must not start it, and a recording must
+    /// not take in what a running macro is doing.
+    /// </summary>
+    public static bool LoadIgnoreOwnInput() => Read().IgnoreOwnInput;
+
+    /// <summary>Stores whether the program answers its own input.</summary>
+    public static void StoreIgnoreOwnInput(bool ignore)
+        => Write(model => model.IgnoreOwnInput = ignore);
+
+    /// <summary>
     /// Whether the macro list puts enabled macros first. Off keeps the order they were made in.
     /// </summary>
     public static bool LoadEnabledFirst() => Read().EnabledFirst;
@@ -374,6 +385,13 @@ public static class LocalSettings
         /// macro wait for a door it has never needed.
         /// </summary>
         public bool ExclusiveInput { get; set; }
+
+        /// <summary>
+        /// Whether what the program sends is ignored by its own triggers and left out of a
+        /// recording. On by default: a macro that presses a bound key would otherwise start another
+        /// macro, and a recording made while one runs would play that run back.
+        /// </summary>
+        public bool IgnoreOwnInput { get; set; } = true;
 
         /// <summary>Zero means no size has been stored, which is not a window size.</summary>
         public double MainWindowWidth { get; set; }

@@ -1328,7 +1328,11 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial decimal? IgnoreDelaysBelowMs { get; set; } = 50;
 
-    /// <summary>When set, input another program sends is left out of the recording.</summary>
+    /// <summary>
+    /// When set, input another program sends is left out of the recording. It is not part of the
+    /// macro: the panel starts from the program's own answer for ignoring its input, and what is
+    /// changed here applies to the next recording made in this window.
+    /// </summary>
     [ObservableProperty]
     public partial bool RecordIgnoreInjected { get; set; } = true;
 
@@ -2408,7 +2412,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordGamepadButtons = macro.RecordGamepadButtons;
             RecordDelays = macro.RecordDelays;
             IgnoreDelaysBelowMs = macro.IgnoreDelaysBelowMs;
-            RecordIgnoreInjected = macro.RecordIgnoreInjected;
+            RecordIgnoreInjected = WhaleGenieInputGate.IgnoreOwnInput;
             DelayScale = macro.DelayScale;
 
             DeclaredParameters.Clear();
@@ -3385,7 +3389,6 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordGamepadButtons = RecordGamepadButtons,
             RecordDelays = RecordDelays,
             IgnoreDelaysBelowMs = (int)(IgnoreDelaysBelowMs ?? 0),
-            RecordIgnoreInjected = RecordIgnoreInjected,
             DelayScale = DelayScale,
         };
         RememberInterfaceHotkey();

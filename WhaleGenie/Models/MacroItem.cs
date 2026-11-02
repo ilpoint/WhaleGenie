@@ -278,13 +278,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
 
     public bool RecordDelays { get; set; } = true;
 
-    /// <summary>
-    /// When set, input the system says another program sent is left out of the recording, so a
-    /// macro never picks up its own playback. Turn it off to record through a remote session or
-    /// a virtual machine, where everything arrives looking injected.
-    /// </summary>
-    public bool RecordIgnoreInjected { get; set; } = true;
-
     /// <summary>Delays shorter than this are dropped from the recording.</summary>
     public int IgnoreDelaysBelowMs { get; set; } = 50;
 
@@ -413,7 +406,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["gamepadButtons"] = RecordGamepadButtons,
                 ["delays"] = RecordDelays,
                 ["ignoreDelaysBelowMs"] = IgnoreDelaysBelowMs,
-                ["ignoreInjected"] = RecordIgnoreInjected,
             },
             ["arguments"] = ArgumentsJson(),
             ["returns"] = ResultsJson(),
@@ -621,7 +613,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             RecordGamepadButtons = ReadBool(record?["gamepadButtons"], true),
             RecordDelays = ReadBool(record?["delays"], true),
             IgnoreDelaysBelowMs = ReadInt(record?["ignoreDelaysBelowMs"], 50),
-            RecordIgnoreInjected = ReadBool(record?["ignoreInjected"], true),
             DelayScale = ReadDouble(node["delayScale"], 1),
             Origin = MacroOrigin.FromJson(node[FieldNames.Origin] as JsonObject),
         };

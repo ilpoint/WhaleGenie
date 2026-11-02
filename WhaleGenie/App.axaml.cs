@@ -82,6 +82,11 @@ public partial class App : Application
         // The ceiling on how fast input may leave is read before anything can send any: a trigger
         // can fire while the window is still being built.
         Core.Devices.InputLimit.PerSecond = LocalSettings.LoadInputRate();
+
+        // The same for whether the program listens to what it sent itself: the hook is already
+        // answering keys by the time a window exists, and a trigger must not act on a macro's own
+        // output in the moment it takes to open one.
+        Core.Devices.WhaleGenieInputGate.IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
     }
 
     /// <summary>

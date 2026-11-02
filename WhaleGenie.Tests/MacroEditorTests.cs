@@ -773,6 +773,39 @@ public class MacroEditorTests
         });
     }
 
+    /// <summary>
+    /// 录制面板那一格不是宏的一部分：打开宏时取的是设置里的「忽略自身输入」，保存时也不写进文件 ——
+    /// 它只对这一次录制说话。
+    /// </summary>
+    [Fact]
+    public void The_recording_panel_starts_from_the_setting_and_saves_nothing()
+    {
+        var was = WhaleGenie.Core.Devices.WhaleGenieInputGate.IgnoreOwnInput;
+        try
+        {
+            Ui.Run(() =>
+            {
+                // 进去再改：无头会话第一次启动时，程序按设置文件把自己那一份答案读一遍，
+                // 在外面改的值会被它盖掉。
+                WhaleGenie.Core.Devices.WhaleGenieInputGate.IgnoreOwnInput = false;
+
+                var (window, viewModel) = Open();
+                Assert.False(viewModel.RecordIgnoreInjected);
+
+                viewModel.SaveCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+
+                var saved = window.Result;
+                Assert.NotNull(saved);
+                Assert.False(saved!.ToJson()["recorder"]!.AsObject().ContainsKey("ignoreInjected"));
+            });
+        }
+        finally
+        {
+            WhaleGenie.Core.Devices.WhaleGenieInputGate.IgnoreOwnInput = was;
+        }
+    }
+
     [Fact]
     public void A_macro_whose_declarations_clash_says_so_above_the_steps()
     {

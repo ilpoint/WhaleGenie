@@ -677,10 +677,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.KeyboardKeys"] = "Keyboard Keys",
         ["Editor.GamepadButtons"] = "Controller Buttons",
         ["Editor.Delays"] = "Wait Time/Delays",
-        ["Editor.IgnoreInjected"] = "Ignore Other Programs' Input",
-        ["Editor.Tip.IgnoreInjected"] = "Leave out input the system marks as injected, so a macro "
-                                        + "never records its own playback. Turn this off to record "
-                                        + "through a remote session or a virtual machine.",
+        ["Editor.IgnoreInjected"] = "Ignore Input Programs Send",
+        ["Editor.Tip.IgnoreInjected"] = "For this recording only: leave out input the system marks "
+                                        + "as injected, which is what another program's macro looks "
+                                        + "like. It starts at the answer in Settings → Input and "
+                                        + "capture, and turning it off here records through a "
+                                        + "remote session or a virtual machine.",
         ["Editor.IgnoreDelays"] = "Ignore delays less than:",
         ["Editor.Milliseconds"] = "Milliseconds",
         ["Editor.Record"] = "Record",
@@ -1492,6 +1494,15 @@ public sealed class Strings : INotifyPropertyChanged
             + "a limit. Typing, a key press, a click, a wheel notch and a drag each count once, a "
             + "chord counts once, and moving the pointer does not count at all. Range 0 to 999, "
             + "default 120.",
+        ["Settings.IgnoreOwnInput"] = "Ignore your own input",
+        ["Settings.IgnoreOwnInputTurn"] = "Do not take keys and clicks this program sent as yours",
+        ["Settings.IgnoreOwnInputHint"] =
+            "On by default. Triggers then pay no attention to keys this program sent, so a macro "
+            + "pressing a key another macro is bound to does not start that macro; a recording "
+            + "leaves the same input out, so a macro that is running is not recorded into a new "
+            + "one. Off takes both in, which is what a flow driving this program's own shortcuts "
+            + "wants. The change reaches the triggers at once; the switch in the recording panel "
+            + "takes its value when a macro is opened and then applies to that recording alone.",
         ["Settings.ExclusiveInput"] = "Exclusive input",
         ["Settings.ExclusiveInputTurn"] = "Let only one macro send keys and clicks at a time",
         ["Settings.ExclusiveInputHint"] =
@@ -2706,9 +2717,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.KeyboardKeys"] = "键盘按键",
         ["Editor.GamepadButtons"] = "手柄按键",
         ["Editor.Delays"] = "等待时间 / 延迟",
-        ["Editor.IgnoreInjected"] = "忽略其他程序的输入",
-        ["Editor.Tip.IgnoreInjected"] = "忽略被系统标记为程序注入的输入，避免把正在运行的宏回放"
-                                        + "录进宏里。若需在远程桌面或虚拟机中录制，请关闭此项。",
+        ["Editor.IgnoreInjected"] = "忽略程序发出的输入",
+        ["Editor.Tip.IgnoreInjected"] = "只影响这一次录制：被系统标记为程序注入的输入不收，别的程序"
+                                        + "发出的键鼠就属于这一类。开始时的值是设置里「忽略自身输入」"
+                                        + "的答案；在远程桌面或虚拟机里录制时关掉它。",
         ["Editor.IgnoreDelays"] = "忽略小于以下值的延迟：",
         ["Editor.Milliseconds"] = "毫秒",
         ["Editor.Record"] = "开始录制",
@@ -3835,6 +3847,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.InputLimitHint"] =
             "这个程序每秒最多发出多少个键盘或鼠标事件，0 表示不限。打字、按键、点击、滚轮每一档、"
             + "一次拖拽各算一个，组合键算一个，移动鼠标不算。范围 0～999，默认 120。",
+        ["Settings.IgnoreOwnInput"] = "忽略自身输入",
+        ["Settings.IgnoreOwnInputTurn"] = "不把程序自己发出的键鼠当成你按下的",
+        ["Settings.IgnoreOwnInputHint"] =
+            "默认开启。触发器不理会这个程序自己发出的键：一条宏按下另一条宏绑定的键，不会把另一条"
+            + "叫起来；录制时也不收这类输入，所以正在跑的宏不会被录进新宏。关掉后两者都照收，适合"
+            + "要拿本程序驱动自家快捷键的流程。改动对触发器立即生效；录制面板里的同一个开关在打开"
+            + "宏时取一次值，之后单独改只影响这一次录制。",
         ["Settings.ExclusiveInput"] = "独占输入",
         ["Settings.ExclusiveInputTurn"] = "同一时刻只让一个宏发键鼠",
         ["Settings.ExclusiveInputHint"] =

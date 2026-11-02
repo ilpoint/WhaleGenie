@@ -106,6 +106,7 @@ public partial class SettingsViewModel : ViewModelBase
         PreloadOcr = LocalSettings.LoadPreloadOcr();
         InputRate = LocalSettings.LoadInputRate();
         ExclusiveInput = LocalSettings.LoadExclusiveInput();
+        IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
@@ -626,6 +627,14 @@ public partial class SettingsViewModel : ViewModelBase
     public partial bool ExclusiveInput { get; set; }
 
     /// <summary>
+    /// Whether what this program sends counts as its own rather than as the person's. It reaches the
+    /// triggers at once — they ask this on every key — while a recording already open keeps the value
+    /// it started with, because that one can be changed for that recording alone.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IgnoreOwnInput { get; set; }
+
+    /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.
     /// </summary>
     [ObservableProperty]
@@ -778,6 +787,19 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadExclusiveInput())
         {
             LocalSettings.StoreExclusiveInput(value);
+        }
+    }
+
+    /// <summary>
+    /// Tells the engine first: the hook asks this on every key press, so a switch that only saved the
+    /// answer would seem to do nothing until the next start.
+    /// </summary>
+    partial void OnIgnoreOwnInputChanged(bool value)
+    {
+        WhaleGenieInputGate.IgnoreOwnInput = value;
+        if (value != LocalSettings.LoadIgnoreOwnInput())
+        {
+            LocalSettings.StoreIgnoreOwnInput(value);
         }
     }
 

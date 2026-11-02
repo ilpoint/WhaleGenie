@@ -398,6 +398,36 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 忽略自身输入默认开启，关掉之后立刻对钩子生效 —— 触发器每次按键都要问它，只存进文件的话，
+    /// 改完这一次看起来什么都没发生。
+    /// </summary>
+    [Fact]
+    public void Turning_off_own_input_reaches_the_hook_at_once()
+    {
+        InOwnFile(_ =>
+        {
+            var was = WhaleGenieInputGate.IgnoreOwnInput;
+            try
+            {
+                Assert.True(LocalSettings.LoadIgnoreOwnInput());
+
+                var settings = new SettingsViewModel(() => DriverInputState.Ready)
+                {
+                    IgnoreOwnInput = false,
+                };
+
+                Assert.False(WhaleGenieInputGate.IgnoreOwnInput);
+                Assert.False(LocalSettings.LoadIgnoreOwnInput());
+                Assert.False(settings.IgnoreOwnInput);
+            }
+            finally
+            {
+                WhaleGenieInputGate.IgnoreOwnInput = was;
+            }
+        });
+    }
+
+    /// <summary>
     /// Runs the check against a file of its own, then puts the real one back. WhaleGenie's own settings
     /// belong to whoever is using it, and a check has no business writing there.
     /// </summary>

@@ -52,4 +52,26 @@ public class OwnInputTests
         Assert.True(WhaleGenieInputGate.RecentlySent("左Ctrl"));
         Assert.True(WhaleGenieInputGate.RecentlySent("End"));
     }
+
+    /// <summary>
+    /// 关掉「忽略自身输入」后，程序自己发出的键照常算数：触发器会响应它们，录制也会收下——这是
+    /// 要用本程序驱动自家快捷键时才想要的。开关是全局的，所以判完要放回默认值。
+    /// </summary>
+    [Fact]
+    public void Turning_off_ignoring_own_input_makes_the_program_answer_its_own_keys()
+    {
+        WhaleGenieInputGate.Note(SharpKeys.Key(KeyCode.VcF7));
+
+        try
+        {
+            Assert.True(WhaleGenieInputGate.RecentlySent("F7"));
+
+            WhaleGenieInputGate.IgnoreOwnInput = false;
+            Assert.False(WhaleGenieInputGate.RecentlySent("F7"));
+        }
+        finally
+        {
+            WhaleGenieInputGate.IgnoreOwnInput = true;
+        }
+    }
 }

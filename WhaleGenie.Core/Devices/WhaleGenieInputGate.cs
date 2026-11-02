@@ -11,7 +11,9 @@ namespace WhaleGenie.Core.Devices;
 /// The platform marks a whole event as injected, but that also covers input forwarded from a
 /// remote session or another tool — input a bound key must still answer to. Knowing which key
 /// was sent is narrower and enough: a macro that presses the very key another macro waits for
-/// will not set it off, while a key a person pressed will.
+/// will not set it off, while a key a person pressed will. Whether the program answers its own
+/// output at all is the setting carried here, so the triggers and the recorder ask one question
+/// instead of each keeping a copy of the answer.
 /// </remarks>
 public static class WhaleGenieInputGate
 {
@@ -20,6 +22,14 @@ public static class WhaleGenieInputGate
 
     private static readonly ConcurrentDictionary<string, long> Sent =
         new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Whether what this program sent counts as its own rather than as the person's. On by default,
+    /// which is what keeps a macro from setting off the very shortcut it is pressing for somebody
+    /// else. Off is for the flows that mean to drive the program's own triggers, and for recording
+    /// what another program's input looks like: the recorder starts from the same answer.
+    /// </summary>
+    public static bool IgnoreOwnInput { get; set; } = true;
 
     /// <summary>Records that WhaleGenie is sending this key.</summary>
     public static void Note(string? key)
@@ -52,6 +62,11 @@ public static class WhaleGenieInputGate
     /// <summary>True when WhaleGenie sent this key a moment ago, so the event is its own doing.</summary>
     public static bool RecentlySent(string? key, int withinMs = WindowMs)
     {
+        if (!IgnoreOwnInput)
+        {
+            return false;
+        }
+
         var name = (key ?? string.Empty).Trim();
         if (name.Length == 0 || !Sent.TryGetValue(name, out var at))
         {
