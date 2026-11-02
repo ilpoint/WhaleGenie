@@ -368,13 +368,17 @@
                     <DataTemplate x:DataType="models:MacroItem">
                         <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <!-- The same three things the card's own buttons do, where a right click
-                                 goes looking for them. -->
+                                 goes looking for them, plus the switch the card answers to with a
+                                 left click: arming one macro is not the same errand as opening it,
+                                 and a right click is where people go looking for it. -->
                             <Border.ContextMenu>
                                 <ContextMenu Opening="OnCardMenuOpening">
                                     <MenuItem Header="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
                                               Click="OnDebugMacroClicked" />
                                     <MenuItem Header="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                               Click="OnEditMacroClicked" />
+                                    <MenuItem Header="{Binding ToggleLabel}"
+                                              Click="OnToggleMacroClicked" />
                                     <MenuItem Header="{Binding [Main.ExportMacro], Source={x:Static loc:Strings.Current}}"
                                               Click="OnExportMacroClicked" />
                                     <MenuItem Header="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"

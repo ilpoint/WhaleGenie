@@ -9,15 +9,15 @@ using WhaleGenie.Views;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// What a right click on a macro card offers. Editing and deleting already have a button each, so
-/// the menu is another way to the same three things those buttons now do. Which macro it is about is
-/// the card that was right-clicked, and the menu is a popup, so that answer has to travel out of the
-/// list with it.
+/// What a right click on a macro card offers. Editing and deleting already have a button each, so the
+/// menu is another way to the same things those buttons now do, plus the switch the card answers to
+/// with a left click. Which macro it is about is the card that was right-clicked, and the menu is a
+/// popup, so that answer has to travel out of the list with it.
 /// </summary>
 public class MacroCardMenuTests
 {
     [Fact]
-    public void The_card_offers_the_three_things_a_right_click_asks_for()
+    public void The_card_offers_what_a_right_click_asks_for()
     {
         var markup = File.ReadAllText(
             Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
@@ -30,6 +30,10 @@ public class MacroCardMenuTests
         Assert.Contains("Click=\"OnEditMacroClicked\"", menu, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnDeleteMacroClicked\"", menu, StringComparison.Ordinal);
         Assert.Contains("[Main.RunDebug]", menu, StringComparison.Ordinal);
+
+        // 启用与停用：卡片左键也能切换，但"打开这条宏"和"让它别动"是两件事，右键该有自己的入口。
+        Assert.Contains("Click=\"OnToggleMacroClicked\"", menu, StringComparison.Ordinal);
+        Assert.Contains("{Binding ToggleLabel}", menu, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -74,7 +78,7 @@ public class MacroCardMenuTests
 
             // The menu inherits the card's macro; its items inherit nothing, because the menu is
             // presented inside a popup that sits outside the card's logical tree. The window stamps
-            // the menu's own DataContext onto every item when it opens — the four handlers read the
+            // the menu's own DataContext onto every item when it opens — the handlers read the
             // sender's DataContext, and a null there means a menu that looks right and does nothing.
             Assert.Same(macro, card.ContextMenu.DataContext);
             MainWindow.StampMenu(card.ContextMenu, card.ContextMenu.DataContext);

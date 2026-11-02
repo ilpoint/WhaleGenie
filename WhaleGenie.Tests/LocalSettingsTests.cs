@@ -157,6 +157,42 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 启用/停用之后列表立刻按「已启用排前」换位，菜单上写的也是接下来会发生的事 —— 否则圆点与顺序
+    /// 会各说各的，直到下一次刷新。
+    /// </summary>
+    [Fact]
+    public void Arming_a_macro_moves_it_within_the_order_at_once()
+    {
+        InOwnFile(_ =>
+        {
+            LocalSettings.StoreEnabledFirst(true);
+            var viewModel = new MainViewModel();
+            viewModel.SelectedDock = DockPage.Keys;
+
+            var first = new MacroItem { Name = "甲" };
+            var second = new MacroItem { Name = "乙", IsEnabled = false };
+            var third = new MacroItem { Name = "丙", IsEnabled = false };
+            viewModel.AddMacro(first);
+            viewModel.AddMacro(second);
+            viewModel.AddMacro(third);
+
+            Assert.Equal(["甲", "乙", "丙"], viewModel.VisibleMacros.Select(macro => macro.Name));
+            Assert.Equal(Strings.Get("Main.DisableMacro"), first.ToggleLabel);
+            Assert.Equal(Strings.Get("Main.EnableMacro"), third.ToggleLabel);
+
+            // 丙启用：进到启用的那一组末尾，乙仍在停用组里。
+            viewModel.ToggleMacro(third);
+            Assert.Equal(["甲", "丙", "乙"], viewModel.VisibleMacros.Select(macro => macro.Name));
+            Assert.Equal(Strings.Get("Main.DisableMacro"), third.ToggleLabel);
+
+            // 甲停用：让出第一位，两个停用的仍按项目里的先后排。
+            viewModel.ToggleMacro(first);
+            Assert.Equal(["丙", "甲", "乙"], viewModel.VisibleMacros.Select(macro => macro.Name));
+            Assert.Equal(Strings.Get("Main.EnableMacro"), first.ToggleLabel);
+        });
+    }
+
+    /// <summary>
     /// The package that was open last, so the next start does not begin with an empty list. A path
     /// that no longer exists is kept: the work may be on a drive that is not plugged in.
     /// </summary>

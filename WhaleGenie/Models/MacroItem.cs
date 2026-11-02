@@ -40,7 +40,14 @@ public partial class MacroItem : ObservableObject, ILanguageAware
 
     /// <summary>Whether the macro is armed; the macro list shows this as a coloured dot.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToggleLabel))]
     public partial bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// What the card's menu calls the switch for this macro: arming one that is off, or disarming
+    /// one that is on. It is read when the menu opens, so the word always matches the dot.
+    /// </summary>
+    public string ToggleLabel => Strings.Get(IsEnabled ? "Main.DisableMacro" : "Main.EnableMacro");
 
     /// <summary>
     /// Whether a trigger is running this macro right now. It is shown on the macro list and is

@@ -2287,20 +2287,42 @@ public partial class MainWindow : AppWindow
             && clicked.FindAncestorOfType<Border>(true) is { DataContext: MacroItem macro }
             && DataContext is MainViewModel viewModel)
         {
-            viewModel.ToggleMacro(macro);
-
-            // Arming a macro again gives a "trigger once" macro a fresh chance to run.
-            if (macro.IsEnabled)
-            {
-                _triggers?.Rearm(macro);
-            }
-            else
-            {
-                _triggers?.Stop(macro);
-            }
-
-            RefreshRunning(viewModel);
+            ToggleMacro(macro, viewModel);
             e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Arms or disarms a macro, which the card answers to with a left click and its menu with
+    /// "Enable" / "Disable". Both come through here: what a switch does must not depend on which of
+    /// the two ways somebody reached it.
+    /// </summary>
+    private void ToggleMacro(MacroItem macro, MainViewModel viewModel)
+    {
+        viewModel.ToggleMacro(macro);
+
+        // Arming a macro again gives a "trigger once" macro a fresh chance to run.
+        if (macro.IsEnabled)
+        {
+            _triggers?.Rearm(macro);
+        }
+        else
+        {
+            _triggers?.Stop(macro);
+        }
+
+        RefreshRunning(viewModel);
+    }
+
+    /// <summary>The same switch, chosen from the card's right-click menu.</summary>
+    private void OnToggleMacroClicked(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is Control { DataContext: MacroItem macro }
+            && DataContext is MainViewModel viewModel)
+        {
+            ToggleMacro(macro, viewModel);
         }
     }
 

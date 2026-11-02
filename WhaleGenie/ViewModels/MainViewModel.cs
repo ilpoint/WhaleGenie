@@ -272,9 +272,14 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>Arms or disarms a macro; the macro list shows the state as a coloured dot.</summary>
+    /// <remarks>
+    /// The list is put back together afterwards because "enabled first" is a list setting: without
+    /// this the dot would say one thing and the order another until something else redrew the list.
+    /// </remarks>
     public void ToggleMacro(MacroItem macro)
     {
         macro.IsEnabled = !macro.IsEnabled;
+        RefreshVisibleMacros();
         MarkDirty();
     }
 
