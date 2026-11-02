@@ -390,8 +390,8 @@ public class ActionPageTests
     /// </summary>
     [Theory]
     [InlineData("vision.waitColor")]
-    [InlineData("vision.findColor")]
-    public void The_colour_of_a_pixel_is_asked_for_above_the_pixel(string action)
+    [InlineData("vision.matchColor")]
+    public void The_colour_of_a_pixel_is_asked_for_after_the_pixel(string action)
     {
         Ui.Run(() =>
         {
@@ -403,7 +403,8 @@ public class ActionPageTests
 
             Assert.True(colour >= 0, "the colour is not on a line of its own");
             Assert.True(where >= 0, "the pixel is not on a line of its own");
-            Assert.True(colour < where, "the colour is asked for below the pixel it belongs to");
+            // 分块之后先问“看哪一个点”，再问“什么颜色”：一块只问一件事，位置是它的第一件事。
+            Assert.True(where < colour, "the colour is asked for before the pixel it belongs to");
         });
     }
 
@@ -480,7 +481,9 @@ public class ActionPageTests
             {
                 var viewModel = Open(action.Key);
                 var drawn = viewModel.ReturnsRows.Select(row => row.Key).ToList();
-                var declared = action.Returns.Select(result => result.Key).ToList();
+                // 引擎照旧算、老宏照旧取，只是「怎么取到画面的」这类结果不再列出来。
+                var declared = action.Returns.Where(result => !result.Hidden)
+                    .Select(result => result.Key).ToList();
 
                 if (!drawn.SequenceEqual(declared, StringComparer.Ordinal))
                 {

@@ -29,6 +29,14 @@ public partial class StepParameterViewModel : ViewModelBase
 
     private WindowPreviewViewModel? _windowPreview;
 
+    /// <summary>
+    /// The results this action can work out but does not offer. They are not drawn — how the picture
+    /// was taken is not something a macro does anything with — but a step written when they were
+    /// offered keeps the ones it handed over: they are put back when the step is saved, so opening
+    /// it and saving it does not quietly drop a result a later step may be reading.
+    /// </summary>
+    private readonly Dictionary<string, string> _keptResults = new(StringComparer.OrdinalIgnoreCase);
+
     public StepParameterViewModel(ActionParameter definition,
         IReadOnlyList<VariableChoice>? variables = null,
         IReadOnlyList<MacroCallable>? macros = null,
@@ -97,20 +105,12 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             foreach (var result in results ?? [])
             {
-                var row = new ReturnsRowViewModel(result);
-                // A tick or a name written on a line is a change to this field, and the dialog
-                // follows the field: without this the returns page would go on being called empty.
-                // Only those two: the row also reports its own warnings, and those are answers to
-                // what this field says rather than changes to it.
-                row.PropertyChanged += (_, e) =>
+                if (result.Hidden)
                 {
-                    if (e.PropertyName is nameof(ReturnsRowViewModel.Ticked)
-                        or nameof(ReturnsRowViewModel.Name))
-                    {
-                        OnPropertyChanged(nameof(HandsOverAnything));
-                    }
-                };
-                ReturnsRows.Add(row);
+                    continue;
+                }
+
+                ReturnsRows.Add(Watch(new ReturnsRowViewModel(result)));
             }
         }
         // A step name is picked from the steps of the macro rather than from the catalogue, so
@@ -160,6 +160,15 @@ public partial class StepParameterViewModel : ViewModelBase
     /// The places this step looks at, when it is one that searches: one row per rectangle, which
     /// the region picker fills in from a drag on the screen.
     /// </summary>
+    /// <summary>The colours a pattern wants around its base colour, in the order they are read.</summary>
+    public ObservableCollection<ColourPointRowViewModel> ColourPointRows { get; } = [];
+
+    /// <summary>True when this parameter is the pattern of a multi-point colour search.</summary>
+    public bool IsColourPoints => Definition.Kind is ActionParameterKind.ColourPoints;
+
+    /// <summary>True while the pattern has at least one row, which is what makes it a pattern.</summary>
+    public bool HasColourPoints => ColourPointRows.Count > 0;
+
     public ObservableCollection<RegionRowViewModel> Regions { get; } = [];
 
     /// <summary>True when this parameter is a list of the places to search.</summary>
@@ -196,6 +205,34 @@ public partial class StepParameterViewModel : ViewModelBase
     /// counts as filled in when it holds keys rather than rows.
     /// </summary>
     private bool HasKeyPress => KeyRows.Any(row => row.ToRow().Columns.Count > 0);
+
+    /// <summary>Puts another colour at the end of the pattern, for the user to fill in.</summary>
+    public void AddColourPoint(ColourPointRowViewModel? row = null)
+    {
+        var added = row ?? new ColourPointRowViewModel();
+        added.Take = RemoveColourPoint;
+        added.PropertyChanged += OnColourPointChanged;
+        ColourPointRows.Add(added);
+        AnnounceColourPoints();
+    }
+
+    /// <summary>Takes one colour out of the pattern.</summary>
+    public void RemoveColourPoint(ColourPointRowViewModel row)
+    {
+        row.PropertyChanged -= OnColourPointChanged;
+        ColourPointRows.Remove(row);
+        AnnounceColourPoints();
+    }
+
+    private void OnColourPointChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        => AnnounceColourPoints();
+
+    private void AnnounceColourPoints()
+    {
+        OnPropertyChanged(nameof(HasColourPoints));
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsDefault));
+    }
 
     /// <summary>Puts a place to look at at the end of the list, for the user to fill in.</summary>
     public void AddRegion(RegionRowViewModel? row = null)
@@ -368,6 +405,9 @@ public partial class StepParameterViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JitterRange))]
     [NotifyPropertyChangedFor(nameof(HasJitterRange))]
+    [NotifyPropertyChangedFor(nameof(PercentValue))]
+    [NotifyPropertyChangedFor(nameof(ChannelNote))]
+    [NotifyPropertyChangedFor(nameof(HasChannelNote))]
     public partial decimal? NumberValue { get; set; }
 
     /// <summary>
@@ -600,8 +640,17 @@ public partial class StepParameterViewModel : ViewModelBase
     /// whichever one is there. This is not the same question as <see cref="OffersFormula"/>, which
     /// asks whether the expression editor is the thing to offer beside this particular editor.
     /// </summary>
-    public bool TakesFormula => Definition.AcceptsFormula
-        || Definition.Kind is ActionParameterKind.Expression or ActionParameterKind.Number;
+    public bool TakesFormula => Definition.Kind is ActionParameterKind.Number
+        ? Definition.Unit != ActionUnit.Percent
+        : Definition.AcceptsFormula || Definition.Kind is ActionParameterKind.Expression;
+
+    /// <summary>
+    /// 这一格要不要摆一个「表达式」按钮。百分比不摆：容差、占比这类是拧出来的量，拧到几就是几，
+    /// 摆一个能把人引去写算式的地方，只会让一行里多一个按钮。数字与算式仍然可以手打，
+    /// 老宏里存着的算式也照旧算。
+    /// </summary>
+    public bool OffersExpressionBuilder => Definition.Kind is not ActionParameterKind.Number
+        || Definition.Unit != ActionUnit.Percent;
 
     /// <summary>
     /// True when this parameter is a UI Automation selector, which the element picker can take
@@ -925,7 +974,6 @@ public partial class StepParameterViewModel : ViewModelBase
     /// True on the tolerance line of a multi-point colour search: the colours that have to surround
     /// the base colour are listed under it, with the button that picks them off the picture.
     /// </summary>
-    public bool IsColourPointsAnchor { get; set; }
 
     public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
 
@@ -951,6 +999,60 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when the number is a length of time rather than a count or a pixel.</summary>
     public bool IsDuration => IsNumber && Definition.IsDuration;
+
+    /// <summary>
+    /// True for a number counted in percent. A share is read by eye rather than counted out, so it
+    /// is given a slider beside the box: dragging says more about "about this much" than typing a
+    /// number does, and the box stays there for the times it does not.
+    /// </summary>
+    public bool IsPercent => IsNumber && Definition.Unit == ActionUnit.Percent && !UseFormula;
+
+    /// <summary>
+    /// The same number the box holds, as the slider holds it. One value, two ways to say it: the
+    /// slider is not a second answer, so it never has to be kept in step with the box.
+    /// </summary>
+    public double PercentValue
+    {
+        get => (double)(NumberValue ?? 0m);
+        set
+        {
+            // The slider is built for every number field and only shown for a percentage. A hidden
+            // slider still holds a value, and one bounded by 0–100 will write 100 back the moment a
+            // pixel field is set to 300 — so the write is refused where the slider has no say.
+            if (!IsPercent)
+            {
+                return;
+            }
+
+            var rounded = decimal.Round((decimal)value, 1, MidpointRounding.AwayFromZero);
+            if (NumberValue != rounded)
+            {
+                NumberValue = rounded;
+            }
+        }
+    }
+
+    /// <summary>
+    /// What this percentage comes to where it is measured against a colour channel: "5%" is what
+    /// the file says, ±13 out of 255 is what the eye can check. Empty for a share of an area or a
+    /// probability, where the same percentage would be a different number entirely.
+    /// </summary>
+    public string ChannelNote
+    {
+        get
+        {
+            if (!Definition.PerChannelPercent || UseFormula || NumberValue is not { } percent)
+            {
+                return string.Empty;
+            }
+
+            var reach = decimal.Round(255m * Math.Clamp(percent, 0m, 100m) / 100m);
+            return Strings.Format("Add.ToleranceChannel", reach);
+        }
+    }
+
+    /// <summary>True when there is a conversion worth showing under the field.</summary>
+    public bool HasChannelNote => ChannelNote.Length > 0;
 
     /// <summary>
     /// What the give does to the number on screen, so the range is never a sum to do in the head.
@@ -1086,7 +1188,41 @@ public partial class StepParameterViewModel : ViewModelBase
     public ObservableCollection<ReturnsRowViewModel> ReturnsRows { get; } = [];
 
     /// <summary>True while the step hands anything over at all.</summary>
-    public bool HandsOverAnything => ReturnsRows.Any(row => row.ToRow() is not null);
+    public bool HandsOverAnything => ReturnsRows.Any(row => row.ToRow() is not null)
+        || _keptResults.Count > 0;
+
+    /// <summary>
+    /// Follows one line of the returns list: a tick or a name written on it is a change to this
+    /// field, and the dialog decides from the field whether the step hands anything over at all.
+    /// Only those two: the row also reports its own warnings, and those are answers to what this
+    /// field says rather than changes to it.
+    /// </summary>
+    private ReturnsRowViewModel Watch(ReturnsRowViewModel row)
+    {
+        row.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ReturnsRowViewModel.Ticked)
+                or nameof(ReturnsRowViewModel.Name))
+            {
+                OnPropertyChanged(nameof(HandsOverAnything));
+            }
+        };
+
+        return row;
+    }
+
+    /// <summary>
+    /// The results a step handed over that are no longer offered, as they were read. They are not
+    /// drawn and cannot be changed here; they are simply written back as they came.
+    /// </summary>
+    private IEnumerable<StepParameterRow> Kept() => _keptResults.Select(kept => new StepParameterRow
+    {
+        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [FieldNames.Key] = kept.Key,
+            [FieldNames.Name] = kept.Value,
+        },
+    });
 
     /// <summary>
     /// Leaves every result unticked: a step that was saved handing nothing over hands nothing over
@@ -1187,6 +1323,11 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsMacro => Definition.Kind is ActionParameterKind.Macro;
 
     /// <summary>True when the parameter belongs behind the dialog's "advanced" fold.</summary>
+    /// <summary>
+    /// The block of the form this field answers, empty when it answers no block of its own.
+    /// </summary>
+    public string Group => Definition.Group;
+
     public bool IsAdvanced => Definition.Advanced;
 
     /// <summary>
@@ -1209,6 +1350,7 @@ public partial class StepParameterViewModel : ViewModelBase
         // A list of them is at its default when it is empty: what such a field holds is not in its
         // text, so reading the text alone would call a filled-in list of pictures untouched.
         ActionParameterKind.Region => Regions.Count == 0,
+        ActionParameterKind.ColourPoints => ColourPointRows.Count == 0,
         ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Images => Pictures.Count == 0,
         // What a page step adds to a selector is at its default while it adds nothing, which is
@@ -1353,6 +1495,10 @@ public partial class StepParameterViewModel : ViewModelBase
         // field's text, so judging them by the text alone would call a filled-in run of keys empty.
         ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Region => Regions.Count == 0,
+        // A pattern is filled in when every row of it says all three things: a row that is half
+        // written is a step that would be refused at run time, so it is refused here instead.
+        ActionParameterKind.ColourPoints => ColourPointRows.Count == 0
+            || ColourPointRows.Any(row => !row.IsComplete),
         // Handing nothing over is a legitimate answer here: the step simply leaves no result.
         ActionParameterKind.Returns => false,
         _ => string.IsNullOrWhiteSpace(CurrentText),
@@ -1370,6 +1516,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 StringComparison.OrdinalIgnoreCase),
         ActionParameterKind.Steps => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
+        ActionParameterKind.ColourPoints => ColourPointRows.Count > 0,
         ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
         ActionParameterKind.Narrow => HasNarrowRows,
@@ -1598,6 +1745,7 @@ public partial class StepParameterViewModel : ViewModelBase
         Rows = Definition.Kind switch
         {
             ActionParameterKind.Region => [.. Regions.Select(row => row.ToRow())],
+            ActionParameterKind.ColourPoints => [.. ColourPointRows.Select(row => row.ToRow())],
             ActionParameterKind.KeySequence => [.. KeyRows.Select(row => row.ToRow())],
             ActionParameterKind.Images => [.. Pictures.Select(picture => picture.ToRow())],
             ActionParameterKind.Narrow => [.. NarrowRows.Select(row => row.ToRow())
@@ -1605,7 +1753,8 @@ public partial class StepParameterViewModel : ViewModelBase
                 .Select(row => row!)],
             ActionParameterKind.Returns => [.. ReturnsRows.Select(row => row.ToRow())
                 .Where(row => row is not null)
-                .Select(row => row!)],
+                .Select(row => row!),
+                .. Kept()],
             _ => [],
         },
     };
@@ -1625,6 +1774,17 @@ public partial class StepParameterViewModel : ViewModelBase
             foreach (var row in stored.Rows)
             {
                 AddRegion(RegionRowViewModel.From(row));
+            }
+
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.ColourPoints)
+        {
+            ColourPointRows.Clear();
+            foreach (var row in stored.Rows)
+            {
+                AddColourPoint(ColourPointRowViewModel.From(row));
             }
 
             return;
@@ -1675,9 +1835,21 @@ public partial class StepParameterViewModel : ViewModelBase
             foreach (var written in stored.Rows)
             {
                 var key = written.Text(FieldNames.Key).Trim();
+                var name = written.Text(FieldNames.Name).Trim();
                 var match = ReturnsRows.FirstOrDefault(row =>
                     string.Equals(row.Key, key, StringComparison.OrdinalIgnoreCase));
-                match?.Load(written.Text(FieldNames.Name));
+                if (match is null)
+                {
+                    // 这一步早就勾过它，而它已经不在列表上了：不画，但保存时原样写回去。
+                    if (name.Length > 0)
+                    {
+                        _keptResults[key] = name;
+                    }
+
+                    continue;
+                }
+
+                match.Load(name);
             }
 
             OnPropertyChanged(nameof(HandsOverAnything));

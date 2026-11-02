@@ -287,13 +287,21 @@
                                            Margin="4,0,0,2" />
                                 <TextBlock Classes="Hint" Text="{Binding VariableCenter.Help}"
                                            Foreground="{DynamicResource TextTertiary}"
-                                           Margin="4,0,0,8" />
+                                           TextWrapping="Wrap" Margin="4,0,8,8" />
                             </StackPanel>
-                            <Button Grid.Column="1" Name="ManageGlobalsButton" Classes="Secondary"
-                                    VerticalAlignment="Top" Margin="0,0,2,0"
-                                    ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
-                                    Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
-                                    Click="OnManageGlobals" />
+                            <!-- 两个按钮并排：这个宏自己的变量，与整个项目共享的变量。以前只有一个
+                                 「管理全局变量」，局部变量只能靠右键一个个改。 -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                        VerticalAlignment="Top" Margin="0,0,2,0">
+                                <Button Name="ManageLocalsButton" Classes="Secondary"
+                                        ToolTip.Tip="{Binding [Editor.ManageLocalsHint], Source={x:Static loc:Strings.Current}}"
+                                        Content="{Binding [Editor.ManageLocals], Source={x:Static loc:Strings.Current}}"
+                                        Click="OnManageLocals" />
+                                <Button Name="ManageGlobalsButton" Classes="Secondary"
+                                        ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
+                                        Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
+                                        Click="OnManageGlobals" />
+                            </StackPanel>
                         </Grid>
                         <views:VariableWall Grid.Row="1" Name="VariableCenterWall"
                                             DataContext="{Binding VariableCenter.Wall}" />

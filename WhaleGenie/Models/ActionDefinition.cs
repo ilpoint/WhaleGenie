@@ -29,6 +29,14 @@ public enum ActionParameterKind
     Images,
 
     /// <summary>
+    /// The colours a pattern wants around its base colour, edited as one row per colour: how far
+    /// right and how far down from the base colour, and the colour that has to be there. A cell may
+    /// be a number, a variable or a sum, so a pattern can be moved by a value another step worked
+    /// out rather than being retyped on every screen.
+    /// </summary>
+    ColourPoints,
+
+    /// <summary>
     /// The places on the screen to look at, edited as a list of rectangles that can be dragged out
     /// one by one: two halves of a screen are two rows rather than one line of punctuation. Each
     /// row says its own rectangle as four numbers, or names a variable holding one — or holding a
@@ -154,6 +162,12 @@ public sealed class ActionReturn
     /// </summary>
     public bool Primary { get; init; }
 
+    /// <summary>
+    /// True for a result the engine works out but does not offer: how the picture was taken, which
+    /// window it came from. Nothing a macro does with it, so it is not put on the list.
+    /// </summary>
+    public bool Hidden { get; init; }
+
     /// <summary>Fully qualified key of the action this result belongs to.</summary>
     internal string OwnerKey { get; set; } = string.Empty;
 
@@ -222,6 +236,11 @@ public class ActionParameter
     /// design-time check decides comes from this object.
     /// </summary>
     public required ActionParameterSemantics Semantics { get; init; }
+
+    /// <summary>
+    /// The block of the form this field answers, or empty for a field that stands on its own.
+    /// </summary>
+    public string Group => Semantics.Group;
 
     /// <summary>How the whole cell is read by the engine.</summary>
     public ActionReadMode ReadMode => Semantics.ReadMode;
@@ -446,6 +465,12 @@ public class ActionParameter
     /// are asked for, which is what stops an action with a dozen parameters from being a wall.
     /// </summary>
     public bool Advanced { get; init; }
+
+    /// <summary>
+    /// True for a percentage measured against a colour channel, where the editor can say what it
+    /// comes to out of 255 instead of leaving a number nobody can feel.
+    /// </summary>
+    public bool PerChannelPercent { get; init; }
 
     /// <summary>
     /// True for a value that a tool fills in rather than one that is typed: the colours around a

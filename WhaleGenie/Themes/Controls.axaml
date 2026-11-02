@@ -133,6 +133,7 @@
       STATIC Border.Card
       STATIC Border.Card.Target
       STATIC Border.Card.Thin
+      STATIC Border.BlockNumber
       STATIC Border.Divider
       STATIC Border.Panel
       STATIC Border.PickerScrim
@@ -146,6 +147,10 @@
       STATIC ListBox.List.Boxed
       STATIC ListBox.List.Pill
       STATIC CheckBox.Field
+      STATIC RadioButton.ChoiceCard
+      STATIC TextBlock.BlockTitle
+      STATIC TextBlock.CardTitle
+      STATIC TextBlock.CardNote
       STATIC Border.Row
       STATIC GridSplitter.Split
       STATIC Button.Thumb
@@ -1397,5 +1402,111 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
         <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
         <Setter Property="Margin" Value="{DynamicResource GapSection}" />
+    </Style>
+
+    <!--
+      一张“几个里选一个”的卡：圆点在左，标题一行，说明一行。
+      四个失败规则用下拉时只看得见四行字的开头，而它们之间的差别是“宏停不停下来”，
+      这个差别必须写在脸上，不能等人展开下拉才看见。
+      模板整份重写而不是改 Fluent 的：单选按钮在这个界面里只用来做这种卡，没有别的用法要兼顾。
+    -->
+    <Style Selector="RadioButton.ChoiceCard">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Card"
+                        Background="{DynamicResource SurfaceField}"
+                        BorderBrush="{DynamicResource BorderControl}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusContainer}"
+                        Padding="11,9">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Border Name="Dot" Width="14" Height="14" CornerRadius="7"
+                                BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1.5"
+                                VerticalAlignment="Top" Margin="0,2,0,0">
+                            <Border Name="Pip" Width="6" Height="6" CornerRadius="3"
+                                    Background="Transparent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ContentPresenter Grid.Column="1"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:pointerover /template/ Border#Card">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+    </Style>
+
+    <!-- 选中的卡：边用强调色，底用强调色压暗的那一层。圆点填实，一眼看出是哪个。 -->
+    <Style Selector="RadioButton.ChoiceCard:checked /template/ Border#Card">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:checked /template/ Border#Dot">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:checked /template/ Border#Pip">
+        <Setter Property="Background" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!-- 卡里的两行字：标题与它会发生什么。 -->
+    <Style Selector="TextBlock.CardTitle">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.CardNote">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:checked TextBlock.CardTitle">
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
+      表单里一块的编号与标题。编号只是一个次序：读者要的是“这一步先问这个、再问那个”，
+      所以它比正文弱一档，靠形状（圆）而不是靠颜色被认出来。
+    -->
+    <Style Selector="Border.BlockNumber">
+        <Setter Property="Width" Value="19" />
+        <Setter Property="Height" Value="19" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.BlockNumber > TextBlock">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBlock.BlockTitle">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 </Styles>

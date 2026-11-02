@@ -182,6 +182,15 @@ public sealed class ActionParameterSemantics
 {
     public required string Name { get; init; }
 
+    /// <summary>
+    /// The block of the form this field answers, or empty for a field that stands on its own. A
+    /// block is one question the step answers — where to look, what colour, what counts as found —
+    /// and the editor draws the question once above the fields that answer it instead of letting
+    /// ten labelled boxes look equally important. The name is a stable key: what the reader sees is
+    /// a line of text in the interface language, keyed by it.
+    /// </summary>
+    public string Group { get; init; } = string.Empty;
+
     public ActionValueShape Shape { get; init; } = ActionValueShape.Text;
 
     public ActionReadMode ReadMode { get; init; } = ActionReadMode.Text;
@@ -356,6 +365,15 @@ public sealed class ActionReturnSemantics
 
     /// <summary>True for the result a step is usually asked for first.</summary>
     public bool Primary { get; init; }
+
+    /// <summary>
+    /// True for a result that is worked out but not offered: how the picture was taken, which
+    /// window it came from. It answers a question nobody writing a macro asks — a macro cannot do
+    /// anything with the name of the capture method — and every row of the returns list costs the
+    /// reader a look. The engine still hands it over, so a macro written when it was offered keeps
+    /// working; it is simply no longer in front of somebody choosing what to keep.
+    /// </summary>
+    public bool Hidden { get; init; }
 }
 
 /// <summary>
@@ -463,6 +481,32 @@ public static class ActionSemanticsCatalog
             {
                 throw new InvalidOperationException(
                     $"{action.Key}: a called-macro signature needs a macro field and a returns list.");
+            }
+
+            // The fields of a block stand together. A catalogue that put two of them on either
+            // side of another block would draw one question as two blocks with the same name and
+            // two numbers, and a block that mixed the two pages of the form would be split by the
+            // page it is on. Both are refused here rather than looking odd on screen.
+            var seen = new List<string>();
+            foreach (var parameter in action.Parameters)
+            {
+                if (parameter.Group.Length == 0)
+                {
+                    continue;
+                }
+
+                if (seen.Count > 0 && seen[^1] == parameter.Group)
+                {
+                    continue;
+                }
+
+                if (seen.Contains(parameter.Group))
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}: the fields of block {parameter.Group} do not stand together.");
+                }
+
+                seen.Add(parameter.Group);
             }
 
             if (action.Parameters.Select(parameter => parameter.Name)

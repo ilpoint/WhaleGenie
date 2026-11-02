@@ -643,16 +643,15 @@ public class ActionDialogTests
 
             Assert.True(viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "color").IsColor);
-            var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            Assert.True(x.IsNumber);
-            Assert.True(viewModel.Rows.First(row => ReferenceEquals(row.First, x)).IsPointAnchor);
-            var place = viewModel.Parameters.First(parameter => parameter.Definition.Name == "place");
-            Assert.True(place.OffersVariables);
+            // 找色只管在区域里找：点位与坐标是「比色」的事，不在这里。
+            Assert.DoesNotContain(viewModel.Parameters,
+                parameter => parameter.Definition.Name is "x" or "y" or "place");
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["found", "match", "every", "coverage", "window", "method", "screenPoint",
-                "windowPoint"],
+            // 来源窗口与取画面方式不列：它们是这一步怎么取到画面的，宏拿着没有用处，
+            // 每行都要看一眼的列表里多两行只为说这个，不值。
+            Assert.Equal(["found", "match", "every", "coverage", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
@@ -669,7 +668,9 @@ public class ActionDialogTests
         {
             var order = Open("vision.findColor").Parameters
                 .First(parameter => parameter.Definition.Name == "orderBy");
-            Assert.Equal(["reading", "score", "random"], order.Definition.Options);
+            // 颜色只有四向搜索的四种数法：两个方向各两个起点，面积对一像素的命中没有意义。
+            Assert.Equal(["reading", "readingBack", "readingUp", "readingBackUp"],
+                order.Definition.Options);
 
             var picture = Open("vision.findImage").Parameters
                 .First(parameter => parameter.Definition.Name == "orderBy");
@@ -685,7 +686,7 @@ public class ActionDialogTests
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal(["found", "match", "every", "window", "method", "screenPoint", "windowPoint"],
+            Assert.Equal(["found", "match", "every", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
@@ -1631,7 +1632,6 @@ public class ActionDialogTests
     [InlineData("input.mouseScroll", "place", "x")]
     [InlineData("vision.getPixel", "place", "x")]
     [InlineData("vision.waitColor", "place", "x")]
-    [InlineData("vision.findColor", "place", "x")]
     [InlineData("vision.capture", "rect", "x")]
     [InlineData("ocr.recognize", "rect", "x")]
     [InlineData("window.move", "rect", "x")]
@@ -2041,7 +2041,7 @@ public class ActionDialogTests
 
             // The step settings carry the same choice, so a long timeout is written the same way.
             // They live on a page of their own, so that page is the one opened to read them.
-            viewModel.Select(viewModel.Pages.First(page => page.Key == AddActionViewModel.OtherPage));
+            viewModel.Select(viewModel.Pages.First(page => page.Key == AddActionViewModel.ExecPage));
             Dispatcher.UIThread.RunJobs();
 
             var settingBox = window.GetVisualDescendants().OfType<ComboBox>()
@@ -3138,6 +3138,88 @@ public class ActionDialogTests
             Assert.Equal("$n", Assert.Single(again.CallArgumentRows, row => row.Name == "次数").Value);
             Assert.Equal("开始", Assert.Single(again.CallArgumentRows, row => row.Name == "标签").Value);
             Assert.True(Assert.Single(again.ReturnsRows).Ticked);
+        });
+    }
+
+    /// <summary>
+    /// 名字旁边那片空说的是「它装的是什么」：一个开关给 true | false，一条记录给它的字段骨架，
+    /// 字段名就是 field($变量, "x") 里要写的那个词。行里只放前几个，全的在悬停里。
+    /// </summary>
+    [Fact]
+    public void A_return_line_shows_the_shape_of_what_it_hands_over()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findColor");
+
+            Assert.Equal("true | false",
+                viewModel.ReturnsRows.First(row => row.Key == "found").Structure);
+
+            // 命中是一像素，记录里前四个字段就是它的位置；十一个字段在行里放不下，用省略号收尾。
+            Assert.Equal("{x, y, left, top, …}",
+                viewModel.ReturnsRows.First(row => row.Key == "match").Structure);
+            Assert.Equal("[{x, y, left, top, …}, …]",
+                viewModel.ReturnsRows.First(row => row.Key == "every").Structure);
+
+            // 悬停里是全的：每个字段都带类型，取法也写在里面。
+            var tip = viewModel.ReturnsRows.First(row => row.Key == "match").StructureTip;
+            Assert.Contains("box: text", tip, StringComparison.Ordinal);
+            Assert.Contains("label: text", tip, StringComparison.Ordinal);
+            Assert.Contains("11", tip, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// 早先勾过、后来不再列出的结果：编辑器不画那一行，但保存时照原样写回去。打开一步再存一次
+    /// 就悄悄少一个结果，读它的步骤会在运行时找不到名字，而错不在那一步上。
+    /// </summary>
+    [Fact]
+    public void A_result_no_longer_offered_is_written_back_as_it_was()
+    {
+        Ui.Run(() =>
+        {
+            var step = new MacroStep
+            {
+                Id = "k3f9",
+                Type = "vision.findColor",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "returns",
+                        Kind = ActionParameterKind.Returns,
+                        Rows =
+                        [
+                            new StepParameterRow
+                            {
+                                Columns = new Dictionary<string, string>(
+                                    StringComparer.OrdinalIgnoreCase)
+                                {
+                                    ["key"] = "method",
+                                    ["name"] = "取法",
+                                },
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            var window = new ActionEditorWindow(step, ActionCatalog.Definitions, []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var form = (AddActionViewModel)window.DataContext!;
+
+            // 不列出来：这一步用哪种方式取的画面，宏拿着做不了什么。
+            Assert.DoesNotContain(form.ReturnsRows, row => row.Key == "method");
+
+            MacroStep? saved = null;
+            form.CloseRequested += written => saved = written;
+            form.SaveCommand.Execute(null);
+
+            var kept = Assert.Single(saved!.Parameters
+                .First(parameter => parameter.Name == "returns").Rows);
+            Assert.Equal("method", kept.Text("key"));
+            Assert.Equal("取法", kept.Text("name"));
         });
     }
 

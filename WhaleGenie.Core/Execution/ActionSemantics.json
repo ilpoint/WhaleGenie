@@ -981,7 +981,7 @@
   },
   {
     "Key": "control.setVariable",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -1032,7 +1032,7 @@
   },
   {
     "Key": "control.incrementGlobal",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -1100,7 +1100,7 @@
   },
   {
     "Key": "control.listAdd",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -1137,7 +1137,7 @@
   },
   {
     "Key": "control.listInsert",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -1185,7 +1185,7 @@
   },
   {
     "Key": "control.listRemoveAt",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -1222,7 +1222,7 @@
   },
   {
     "Key": "control.listSet",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -1270,7 +1270,7 @@
   },
   {
     "Key": "control.listClear",
-    "Category": "Control",
+    "Category": "Data",
     "Hidden": false,
     "SendsInput": false,
     "LooksAtScreen": false,
@@ -8090,12 +8090,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -8271,12 +8273,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -8680,12 +8684,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -9078,12 +9084,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -9545,12 +9553,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -9605,6 +9615,7 @@
     "Parameters": [
       {
         "Name": "anchorMode",
+        "Group": "point",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -9619,6 +9630,7 @@
       },
       {
         "Name": "window",
+        "Group": "point",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -9630,6 +9642,7 @@
       },
       {
         "Name": "x",
+        "Group": "point",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -9643,6 +9656,7 @@
       },
       {
         "Name": "y",
+        "Group": "point",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -9656,6 +9670,7 @@
       },
       {
         "Name": "place",
+        "Group": "point",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -9667,6 +9682,7 @@
       },
       {
         "Name": "frameMaxAgeMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -9681,6 +9697,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "ScreenRefresh",
@@ -9781,6 +9798,7 @@
     "Parameters": [
       {
         "Name": "anchorMode",
+        "Group": "point",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -9795,6 +9813,7 @@
       },
       {
         "Name": "window",
+        "Group": "point",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -9805,18 +9824,8 @@
         "ChildKeys": []
       },
       {
-        "Name": "color",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "Color",
-        "Required": true,
-        "DefaultValue": "#000000",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "x",
+        "Group": "point",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -9830,6 +9839,7 @@
       },
       {
         "Name": "y",
+        "Group": "point",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -9843,6 +9853,7 @@
       },
       {
         "Name": "place",
+        "Group": "point",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -9853,7 +9864,20 @@
         "ChildKeys": []
       },
       {
+        "Name": "color",
+        "Group": "colour",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "Color",
+        "Required": true,
+        "DefaultValue": "#000000",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "tolerance",
+        "Group": "colour",
         "Shape": "Number",
         "Unit": "Percent",
         "EmptyMeans": "Unset",
@@ -9867,6 +9891,7 @@
       },
       {
         "Name": "frameMaxAgeMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -9881,6 +9906,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "ScreenRefresh",
@@ -9959,7 +9985,7 @@
     ]
   },
   {
-    "Key": "vision.findColor",
+    "Key": "vision.matchColor",
     "Category": "Vision",
     "Hidden": false,
     "SendsInput": false,
@@ -9971,6 +9997,7 @@
     "Parameters": [
       {
         "Name": "anchorMode",
+        "Group": "point",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -9985,6 +10012,7 @@
       },
       {
         "Name": "window",
+        "Group": "point",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -9995,7 +10023,48 @@
         "ChildKeys": []
       },
       {
+        "Name": "x",
+        "Group": "point",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "y",
+        "Group": "point",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "place",
+        "Group": "point",
+        "Shape": "Point",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "color",
+        "Group": "colour",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "Color",
@@ -10006,44 +10075,8 @@
         "ChildKeys": []
       },
       {
-        "Name": "x",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "y",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "place",
-        "Shape": "Point",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": true,
-        "ChildKeys": []
-      },
-      {
         "Name": "tolerance",
+        "Group": "colour",
         "Shape": "Number",
         "Unit": "Percent",
         "EmptyMeans": "Unset",
@@ -10056,10 +10089,12 @@
         "ChildKeys": []
       },
       {
-        "Name": "minCoverage",
+        "Name": "frameMaxAgeMs",
+        "Group": "tuning",
         "Shape": "Number",
-        "Unit": "Percent",
-        "EmptyMeans": "Unset",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10069,7 +10104,103 @@
         "ChildKeys": []
       },
       {
+        "Name": "intervalMs",
+        "Group": "tuning",
+        "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "matches",
+        "Type": "Flag",
+        "Primary": true
+      },
+      {
+        "Key": "color",
+        "Type": "Text",
+        "Primary": false
+      },
+      {
+        "Key": "delta",
+        "Type": "Number",
+        "Primary": false
+      }
+    ]
+  },
+  {
+    "Key": "vision.findColor",
+    "Category": "Vision",
+    "Hidden": false,
+    "SendsInput": false,
+    "LooksAtScreen": true,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "anchorMode",
+        "Group": "area",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "screen",
+        "Options": [
+          "screen",
+          "window"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "window",
+        "Group": "area",
+        "Shape": "WindowRule",
+        "ReadMode": "WholeValue",
+        "Picker": "Window",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": []
+      },
+      {
         "Name": "region",
+        "Group": "area",
         "Shape": "Rows",
         "ReadMode": "Text",
         "Picker": "Region",
@@ -10107,7 +10238,60 @@
         ]
       },
       {
+        "Name": "color",
+        "Group": "colour",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "Color",
+        "Required": true,
+        "DefaultValue": "#000000",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "tolerance",
+        "Group": "colour",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "5",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "minCoverage",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "missingIsFailure",
+        "Group": "found",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "frameMaxAgeMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -10122,6 +10306,7 @@
       },
       {
         "Name": "orderBy",
+        "Group": "tuning",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -10129,14 +10314,17 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "random"
+          "readingBack",
+          "readingUp",
+          "readingBackUp"
         ],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "matchIndex",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -10152,6 +10340,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "ScreenRefresh",
@@ -10305,12 +10494,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -10571,6 +10762,7 @@
     "Parameters": [
       {
         "Name": "anchorMode",
+        "Group": "area",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -10585,6 +10777,7 @@
       },
       {
         "Name": "window",
+        "Group": "area",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -10595,80 +10788,8 @@
         "ChildKeys": []
       },
       {
-        "Name": "color",
-        "Shape": "Text",
-        "ReadMode": "WholeValue",
-        "Picker": "Color",
-        "Required": true,
-        "DefaultValue": "#000000",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "x",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "y",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "place",
-        "Shape": "Point",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": true,
-        "ChildKeys": []
-      },
-      {
-        "Name": "points",
-        "Shape": "Text",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "MissingKey": "Run.BadPoints"
-      },
-      {
-        "Name": "tolerance",
-        "Shape": "Number",
-        "Unit": "Percent",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "5",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "region",
+        "Group": "area",
         "Shape": "Rows",
         "ReadMode": "Text",
         "Picker": "Region",
@@ -10706,7 +10827,86 @@
         ]
       },
       {
+        "Name": "color",
+        "Group": "colour",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "Color",
+        "Required": true,
+        "DefaultValue": "#000000",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "tolerance",
+        "Group": "colour",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "5",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "points",
+        "Group": "colour",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "MissingKey": "Run.BadPoints",
+        "Columns": [
+          {
+            "Name": "dx",
+            "Role": "Number",
+            "Required": true
+          },
+          {
+            "Name": "dy",
+            "Role": "Number",
+            "Required": true
+          },
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          },
+          {
+            "Name": "mustNot",
+            "Role": "Flag",
+            "Required": false
+          },
+          {
+            "Name": "tolerance",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
+      },
+      {
+        "Name": "missingIsFailure",
+        "Group": "found",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "frameMaxAgeMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -10721,6 +10921,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "ScreenRefresh",
@@ -10735,6 +10936,7 @@
       },
       {
         "Name": "orderBy",
+        "Group": "tuning",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -10742,14 +10944,17 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "random"
+          "readingBack",
+          "readingUp",
+          "readingBackUp"
         ],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "matchIndex",
+        "Group": "tuning",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -10899,12 +11104,434 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
+      },
+      {
+        "Key": "screenPoint",
+        "Type": "Record",
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "basis",
+            "Type": "Text"
+          }
+        ]
+      },
+      {
+        "Key": "windowPoint",
+        "Type": "Record",
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "basis",
+            "Type": "Text"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "Key": "vision.clickColor",
+    "Category": "Vision",
+    "Hidden": false,
+    "SendsInput": true,
+    "LooksAtScreen": true,
+    "Waits": true,
+    "TimeoutSource": "Step",
+    "TimeoutField": "",
+    "StepTimeoutMs": 10000,
+    "Parameters": [
+      {
+        "Name": "anchorMode",
+        "Group": "area",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "screen",
+        "Options": [
+          "screen",
+          "window"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "window",
+        "Group": "area",
+        "Shape": "WindowRule",
+        "ReadMode": "WholeValue",
+        "Picker": "Window",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": []
+      },
+      {
+        "Name": "region",
+        "Group": "area",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "Region",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
+      },
+      {
+        "Name": "color",
+        "Group": "colour",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "Color",
+        "Required": true,
+        "DefaultValue": "#000000",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "tolerance",
+        "Group": "colour",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "5",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "minCoverage",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "button",
+        "Group": "press",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "middle",
+          "back",
+          "forward"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "offsetX",
+        "Group": "press",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "offsetY",
+        "Group": "press",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "variance",
+        "Group": "press",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "frameMaxAgeMs",
+        "Group": "tuning",
+        "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "orderBy",
+        "Group": "tuning",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "reading",
+        "Options": [
+          "reading",
+          "readingBack",
+          "readingUp",
+          "readingBackUp"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
+      },
+      {
+        "Name": "matchIndex",
+        "Group": "tuning",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "1",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "intervalMs",
+        "Group": "tuning",
+        "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "match",
+        "Type": "Record",
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
+      },
+      {
+        "Key": "every",
+        "Type": "List",
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
+      },
+      {
+        "Key": "window",
+        "Type": "Text",
+        "Primary": false,
+        "Hidden": true
+      },
+      {
+        "Key": "method",
+        "Type": "Text",
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -11290,12 +11917,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -11675,12 +12304,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -12129,12 +12760,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -12893,12 +13526,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -13424,12 +14059,14 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "method",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       },
       {
         "Key": "screenPoint",
@@ -13737,7 +14374,8 @@
       {
         "Key": "window",
         "Type": "Text",
-        "Primary": false
+        "Primary": false,
+        "Hidden": true
       }
     ]
   },

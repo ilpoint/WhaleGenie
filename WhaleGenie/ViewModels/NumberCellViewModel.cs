@@ -24,14 +24,24 @@ public partial class NumberCellViewModel : ViewModelBase
     /// what the box says while it is empty. The last one is given rather than worked out because
     /// what an empty box means is a question about the place the numbers describe.
     /// </summary>
-    public NumberCellViewModel(string label, string hint, string? placeholder = null)
-        => (Label, Hint, _placeholder) = (label, hint, placeholder);
+    public NumberCellViewModel(string label, string hint, string? placeholder = null,
+        string? shortLabel = null)
+        => (Label, Hint, _placeholder, _shortLabel) = (label, hint, placeholder, shortLabel);
 
     /// <summary>What the box says while it is empty, when the caller named one.</summary>
     private readonly string? _placeholder;
 
+    /// <summary>
+    /// What this number is called when the four of a rectangle are pressed onto one line: "X" beside
+    /// a box says the same thing as "top-left X" above it, and only one of them fits.
+    /// </summary>
+    private readonly string? _shortLabel;
+
     /// <summary>What this number is called on the line it stands on.</summary>
     public string Label { get; }
+
+    /// <summary>The name a single row of four numbers has room for.</summary>
+    public string ShortLabel => _shortLabel ?? Label;
 
     /// <summary>One line saying which number this is and what it counts from.</summary>
     public string Hint { get; }

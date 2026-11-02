@@ -46,6 +46,22 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// <summary>The field that belongs beside this line rather than on one of its own.</summary>
     public StepParameterViewModel? Third { get; }
 
+    /// <summary>The block this line belongs to, empty for a line that answers no block of its own.</summary>
+    public string GroupKey { get; init; } = string.Empty;
+
+    /// <summary>Which block of the page this line is in, counted from one; zero when it is in none.</summary>
+    public int GroupIndex { get; init; }
+
+    /// <summary>True on the first line of a block, which is where the block says what it asks.</summary>
+    public bool IsGroupStart { get; init; }
+
+    /// <summary>
+    /// What this block asks, in the interface language. Read on every ask so a language switch
+    /// relabels the block along with the fields under it.
+    /// </summary>
+    public string GroupTitle
+        => GroupKey.Length == 0 ? string.Empty : Strings.Get("Add.Group." + GroupKey);
+
     public bool HasSecond => Second is not null;
 
     public bool HasThird => Third is not null;
@@ -96,7 +112,6 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// <summary>
     /// True when this line carries the list of a pattern's colours and the button that picks them.
     /// </summary>
-    public bool ShowsColourPointsPick => First.IsColourPointsAnchor;
 
     /// <summary>True when the line says a position can be taken from the pointer with Alt + X.</summary>
     public bool ShowsPositionHint => HasSecond && First.IsCoordinate;

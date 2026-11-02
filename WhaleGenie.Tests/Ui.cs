@@ -93,6 +93,45 @@ internal static class Ui
         AnswerUnsavedWork(window);
     }
 
+    /// <summary>
+    /// Closes a window and throws away whatever it asks about on the way out.
+    /// </summary>
+    /// <remarks>
+    /// A close on a window with unsaved work is answered in two steps: the window says no, then
+    /// posts the question. A check that ends on a bare <c>Close()</c> therefore walks away before
+    /// the question exists, and it is asked during whichever dispatch pumps the dispatcher next —
+    /// its modal loop then belongs to a check that never opened it, and the one after dies with
+    /// "You've caused dispatcher loop". Closing through here keeps the question inside the check
+    /// that asked for it, and answers it with the way out that leaves nothing behind.
+    /// </remarks>
+    public static void CloseAndDiscard(Window window)
+    {
+        window.Close();
+
+        // The question is posted, so it takes a pump to appear; answering it is what ends its loop.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            var prompts = window.OwnedWindows.OfType<ConfirmDialog>().ToList();
+            if (prompts.Count == 0)
+            {
+                if (!window.IsVisible)
+                {
+                    return;
+                }
+
+                continue;
+            }
+
+            foreach (var prompt in prompts)
+            {
+                ((ConfirmDialogViewModel)prompt.DataContext!).SecondaryCommand.Execute(null);
+            }
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
+
     /// <summary>Dismisses the question <paramref name="window"/> is showing about unsaved work.</summary>
     public static void AnswerUnsavedWork(Window window)
     {

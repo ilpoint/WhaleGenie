@@ -73,6 +73,36 @@
             </Grid>
         </DataTemplate>
 
+        <!-- The same number, pressed onto one line: a short name, the box, and a small "ƒ" instead
+             of a wide button. Four of these make the four sides of a rectangle, so a place to look
+             reads as one line rather than a block. -->
+        <DataTemplate x:Key="NumberCellTight" x:DataType="vm:NumberCellViewModel">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="5">
+                <TextBlock VerticalAlignment="Center" FontSize="12"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Text="{Binding ShortLabel}"
+                           ToolTip.Tip="{Binding Hint}" />
+
+                <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0"
+                               IsVisible="{Binding IsPlain}" MinWidth="58"
+                               HorizontalAlignment="Stretch"
+                               Value="{Binding Number, Converter={StaticResource Number}}" />
+
+                <AutoCompleteBox Grid.Column="1" Classes="Field"
+                                 IsVisible="{Binding IsFormula}"
+                                 ItemsSource="{Binding Suggestions}"
+                                 Text="{Binding Text}"
+                                 PlaceholderText="{Binding Placeholder}"
+                                 MinimumPrefixLength="1"
+                                 FilterMode="Contains" />
+
+                <Button Grid.Column="2" Classes="Secondary" Height="30" Width="24" Padding="0"
+                        FontSize="12" Tag="{Binding}" Content="ƒ"
+                        ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                        Click="OnOpenCellExpression" />
+            </Grid>
+        </DataTemplate>
+
         <!-- One parameter's editor, shared by every line of the parameter list. -->
         <DataTemplate x:Key="ParameterEditor" x:DataType="vm:StepParameterViewModel">
             <StackPanel>
@@ -333,10 +363,21 @@
                          builder hands back is what the field holds, and a plain number written that
                          way puts the spinner back. -->
                     <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
+                            IsVisible="{Binding OffersExpressionBuilder}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
                 </Grid>
+
+                <!-- 百分比：滑条与数字框说的是同一个值。滑条负责"大概这么多"，数字框负责精确的那一下；
+                     容差这类按颜色通道量的百分比，下面再写一句它等于每通道多少。 -->
+                <StackPanel IsVisible="{Binding IsPercent}" Spacing="3" Margin="0,8,0,0">
+                    <Slider Minimum="0" Maximum="100" SmallChange="1" LargeChange="5"
+                            Value="{Binding PercentValue, Mode=TwoWay}" />
+                    <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
+                               IsVisible="{Binding HasChannelNote}"
+                               Text="{Binding ChannelNote}" />
+                </StackPanel>
 
                 <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
                            IsVisible="{Binding HasJitterRange}"
@@ -527,23 +568,23 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RegionRowViewModel">
                                 <StackPanel Margin="0,0,0,9" Spacing="5">
-                                    <!-- The four numbers of the rectangle, two to a line: X and Y
-                                         say where the corner is and width and height say how far it
-                                         reaches, so each pair reads as one thing. -->
-                                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
-                                          ColumnSpacing="14" RowSpacing="6">
-                                        <ContentControl Grid.Row="0" Grid.Column="0"
+                                    <!-- The four numbers of the rectangle on one line: where the
+                                         corner is, then how far it reaches. Each is a short name, a
+                                         box and a small ƒ — four wide buttons would not fit, and a
+                                         place to look is one line of four numbers, not a block. -->
+                                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                                        <ContentControl Grid.Column="0"
                                                         Content="{Binding X}"
-                                                        ContentTemplate="{StaticResource NumberCell}" />
-                                        <ContentControl Grid.Row="0" Grid.Column="1"
+                                                        ContentTemplate="{StaticResource NumberCellTight}" />
+                                        <ContentControl Grid.Column="1"
                                                         Content="{Binding Y}"
-                                                        ContentTemplate="{StaticResource NumberCell}" />
-                                        <ContentControl Grid.Row="1" Grid.Column="0"
+                                                        ContentTemplate="{StaticResource NumberCellTight}" />
+                                        <ContentControl Grid.Column="2"
                                                         Content="{Binding Width}"
-                                                        ContentTemplate="{StaticResource NumberCell}" />
-                                        <ContentControl Grid.Row="1" Grid.Column="1"
+                                                        ContentTemplate="{StaticResource NumberCellTight}" />
+                                        <ContentControl Grid.Column="3"
                                                         Content="{Binding Height}"
-                                                        ContentTemplate="{StaticResource NumberCell}" />
+                                                        ContentTemplate="{StaticResource NumberCellTight}" />
                                     </Grid>
 
                                     <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
@@ -597,6 +638,102 @@
                     </Grid>
 
                     <!-- 四个数的基准由这一行自己在字段末尾说一次（`BasisNote`），这里不再重复。 -->
+                </StackPanel>
+
+                <!-- 基准色周围要对的颜色：一处一行。四件事按人想它们的顺序排：往右多少、往下多少、
+                     是什么颜色（几种都行就并排写）、这一处是「要是」还是「不能是」、容差多少。
+                     和三段标点比起来，行不会少一段、也不会把分隔符写进颜色里；每一格仍然可以写算式
+                     或变量，所以整块图案能跟着另一步算出来的数一起挪。 -->
+                <StackPanel IsVisible="{Binding IsColourPoints}" Spacing="8">
+                    <!-- 整张表放在一张卡片里：表头一条、下面一条分隔线，几行输入才看得出是同一张表。 -->
+                    <Border Classes="Card" Padding="10,9,10,9">
+                        <StackPanel Spacing="7">
+                    <Grid ColumnDefinitions="*,*,2.4*,72,0.9*,28" ColumnSpacing="10">
+                        <TextBlock Classes="ColumnHeader"
+                                   Text="{Binding [Add.ColourPointDx], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="1" Classes="ColumnHeader"
+                                   Text="{Binding [Add.ColourPointDy], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="2" Classes="ColumnHeader" TextWrapping="Wrap"
+                                   ToolTip.Tip="{Binding [Add.ColourPointColourHint], Source={x:Static loc:Strings.Current}}"
+                                   Text="{Binding [Add.ColourPointColour], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="3" Classes="ColumnHeader" TextWrapping="Wrap"
+                                   HorizontalAlignment="Center"
+                                   ToolTip.Tip="{Binding [Add.ColourPointMustNotHint], Source={x:Static loc:Strings.Current}}"
+                                   Text="{Binding [Add.ColourPointMustNot], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="4" Classes="ColumnHeader"
+                                   Text="{Binding [Add.ColourPointTolerance], Source={x:Static loc:Strings.Current}}" />
+                    </Grid>
+                            <Border Height="1" Background="{DynamicResource BorderSubtle}" />
+
+                    <ItemsControl ItemsSource="{Binding ColourPointRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ColourPointRowViewModel">
+                                <Grid ColumnDefinitions="*,*,2.4*,72,0.9*,28" ColumnSpacing="10" Margin="0,0,0,6">
+                                    <TextBox Classes="Field" Text="{Binding Dx}" PlaceholderText="0" />
+                                    <TextBox Grid.Column="1" Classes="Field" Text="{Binding Dy}"
+                                             PlaceholderText="0" />
+                                    <Grid Grid.Column="2" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                        <TextBox Classes="Field" Text="{Binding Colour, Mode=TwoWay}"
+                                                 PlaceholderText="#RRGGBB"
+                                                 ToolTip.Tip="{Binding [Add.ColourPointColourHint], Source={x:Static loc:Strings.Current}}" />
+                                        <!-- 写下的每个颜色当场看得见：十六进制数读不出对不对；写了两三个，
+                                             这里就排开两三块，看得出竖线是分隔符而不是颜色的一部分。 -->
+                                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Colours}"
+                                                      VerticalAlignment="Center">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="3" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="14" Height="14" CornerRadius="3"
+                                                            BorderThickness="1"
+                                                            BorderBrush="{DynamicResource BorderControl}"
+                                                            Background="{Binding Converter={StaticResource HexBrush}}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                    <!-- 「要是」还是「不能是」：勾上就是这一处不能是这些颜色，
+                                         用来写「这里应该是空的」。 -->
+                                    <CheckBox Grid.Column="3" HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" MinWidth="0"
+                                              IsChecked="{Binding MustNot, Mode=TwoWay}"
+                                              ToolTip.Tip="{Binding [Add.ColourPointMustNotHint], Source={x:Static loc:Strings.Current}}" />
+                                    <!-- 容差留空就跟着基准色那一格：一处要严、其余放宽，是这块最常调的。 -->
+                                    <TextBox Grid.Column="4" Classes="Field" Text="{Binding Tolerance}"
+                                             PlaceholderText="{Binding [Add.ColourPointGlobal], Source={x:Static loc:Strings.Current}}"
+                                             ToolTip.Tip="{Binding [Add.ColourPointToleranceHint], Source={x:Static loc:Strings.Current}}" />
+                                    <Button Grid.Column="5" Classes="Ghost" Width="26" Height="26"
+                                            Content="×"
+                                            ToolTip.Tip="{Binding [Add.ColourPointRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding RemoveCommand}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                        </StackPanel>
+                    </Border>
+
+                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                        <Button Classes="Secondary" Height="28" Padding="10,0"
+                                Content="{Binding [Add.ColourPointAdd], Source={x:Static loc:Strings.Current}}"
+                                Click="OnAddColourPoint" />
+                        <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
+                                Content="{Binding [Add.PickColours], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.PickColoursHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnPickColourPoints" />
+                        <TextBlock Grid.Column="2" Classes="Hint" VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding [Add.ColourPointEmpty], Source={x:Static loc:Strings.Current}}"
+                                   IsVisible="{Binding !HasColourPoints}" />
+                    </Grid>
+
+                    <!-- 两条规则只在 tooltip 里说，等于没说过：颜色可以写几个、勾上就不能是。 -->
+                    <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,0"
+                               Text="{Binding [Add.ColourPointNote], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
 
                 <!-- A run of key combinations: one row per press, in the order they are sent. A
@@ -867,25 +1004,37 @@
              is, and the name it goes by. The name follows the step's note until it is typed in by
              hand, and a name something else already holds is said out loud rather than left to be
              discovered when two steps write into one variable. -->
+        <!-- 返回值排成一张表：留下 / 结果 / 变量名，三列对齐，一眼能看出这一步要留几项、各叫什么。
+             一项的说明不占版面，悬停在它的名字上就有；表头也悬停，告诉人这里的提示在哪。 -->
         <DataTemplate x:Key="ReturnsRowEditor" x:DataType="vm:ReturnsRowViewModel">
-            <StackPanel Margin="0,0,0,14">
-                <CheckBox IsChecked="{Binding Ticked}" Content="{Binding Label}" />
-                <TextBlock Classes="Hint" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
-                           TextWrapping="Wrap" Margin="26,3,0,0" />
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="26,6,0,0"
-                      IsVisible="{Binding ShowsName}">
-                    <TextBox Classes="Field" Text="{Binding Name}"
-                             IsEnabled="{Binding Ticked}" />
-                    <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="9,0"
-                            IsVisible="{Binding IsNameTaken}"
+            <StackPanel Margin="0,0,0,4">
+                <Grid ColumnDefinitions="48,110,*,196" ColumnSpacing="8" MinHeight="30">
+                    <CheckBox IsChecked="{Binding Ticked}" VerticalAlignment="Center"
+                              ToolTip.Tip="{Binding Hint}" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                               Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Hint}" />
+                    <!-- 这一项长什么样：一个开关就是 true | false，一条记录就是它的字段骨架。
+                         名字与变量名之间本来就是空的，正好把「装的是什么」写在那里。 -->
+                    <TextBlock Grid.Column="2" Classes="Mono" FontSize="10.5"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextTertiary}"
+                               Text="{Binding Structure}"
+                               ToolTip.Tip="{Binding StructureTip}" />
+                    <TextBox Grid.Column="3" Classes="Field" Height="30"
+                             Text="{Binding Name}" IsEnabled="{Binding Ticked}"
+                             ToolTip.Tip="{Binding [Add.ReturnNameHint], Source={x:Static loc:Strings.Current}}" />
+                </Grid>
+                <!-- 重名：警告与「换个名字」贴在这一行下面，不占表格的列，别的行因此不会错位。 -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="56,3,0,2"
+                      IsVisible="{Binding IsNameTaken}">
+                    <TextBlock Classes="Hint" Text="{Binding NameWarning}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Danger}" />
+                    <Button Grid.Column="1" Classes="Secondary" Height="26" Padding="8,0"
                             Content="{Binding [Add.NameMakeUnique], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.NameMakeUniqueHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnMakeReturnNameUnique" />
                 </Grid>
-                <!-- 名字已被占用：**"现在就不行" → Danger**。 -->
-                <TextBlock Classes="Hint" Text="{Binding NameWarning}" TextWrapping="Wrap"
-                           Foreground="{DynamicResource Danger}" Margin="26,4,0,0"
-                           IsVisible="{Binding IsNameTaken}" />
             </StackPanel>
         </DataTemplate>
 
@@ -894,8 +1043,20 @@
         <DataTemplate x:Key="ParameterRowEditor" x:DataType="vm:ParameterRowViewModel">
             <!-- A line whose question the step's own settings do not ask is not drawn: a field
                  that is there and does nothing is worse than one that is not there. -->
+            <StackPanel IsVisible="{Binding IsApplicable}">
+                <!-- 一块的第一行先说这一块问的是什么：编号是它在当前页上的次序，标题是问题本身。
+                     再往下才是回答它的字段——十来个同样大小的标签堆在一起时，读者分不清哪个是
+                     主问题、哪个是附属的调整。没有分块的动作这一行不出现，表单与原来一样。 -->
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2,0,9"
+                            IsVisible="{Binding IsGroupStart}">
+                    <Border Classes="BlockNumber">
+                        <TextBlock Text="{Binding GroupIndex}" />
+                    </Border>
+                    <TextBlock Classes="BlockTitle" VerticalAlignment="Center"
+                               Text="{Binding GroupTitle}" />
+                </StackPanel>
+
             <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*,Auto"
-                  IsVisible="{Binding IsApplicable}"
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <!-- What fills the whole rectangle stands above the pair of numbers it fills,
                      because it is one button for both of them rather than an answer to one. -->
@@ -952,50 +1113,6 @@
                             Content="{Binding [Add.PickOffset], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickOffset" />
 
-                    <!-- 基准色周围要对的颜色：有标题、有已加入的那几处、也有拾取它的按钮。列表只读，
-                         改与删都在拾取窗口里做；这里列出来是为了不打开窗口也知道这一步在比对什么。 -->
-                    <StackPanel Spacing="7" Margin="0,2,0,0"
-                                IsVisible="{Binding ShowsColourPointsPick}">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                            <TextBlock Classes="FieldLabel" VerticalAlignment="Center"
-                                       Text="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).PatternTitle}" />
-                            <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
-                                    ToolTip.Tip="{Binding [Add.PickColoursHint], Source={x:Static loc:Strings.Current}}"
-                                    Content="{Binding [Add.PickColours], Source={x:Static loc:Strings.Current}}"
-                                    Click="OnPickColourPoints" />
-                        </Grid>
-
-                        <Border Classes="Sunken" Padding="8,6"
-                                IsVisible="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).HasPatternPoints}">
-                            <ItemsControl
-                                ItemsSource="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).PatternPoints}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ColourPointRow">
-                                        <Grid ColumnDefinitions="26,Auto,*,Auto" ColumnSpacing="10"
-                                              Margin="0,1">
-                                            <TextBlock Text="{Binding Label}" FontSize="12"
-                                                       Foreground="{DynamicResource TextTertiary}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Offset}" FontSize="12"
-                                                       Classes="Mono"
-                                                       Foreground="{DynamicResource TextPrimary}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding Colour}" FontSize="12"
-                                                       Classes="Mono"
-                                                       Foreground="{DynamicResource TextSecondary}" />
-                                            <Border Grid.Column="3" Width="14" Height="14"
-                                                    CornerRadius="3" VerticalAlignment="Center"
-                                                    Background="{Binding Colour, Converter={StaticResource HexBrush}}"
-                                                    BorderBrush="{DynamicResource BorderControl}"
-                                                    BorderThickness="1" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
-
-                        <TextBlock Classes="Hint"
-                                   IsVisible="{Binding $parent[ItemsControl].((vm:AddActionViewModel)DataContext).PatternIsEmpty}"
-                                   Text="{Binding [Add.PatternEmpty], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
                 </StackPanel>
 
                 <!-- Where these numbers are counted from, said once for the line they are on. -->
@@ -1003,6 +1120,7 @@
                            TextWrapping="Wrap"
                            IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
             </Grid>
+            </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
 
@@ -1166,6 +1284,194 @@
 
                             <TextBlock Classes="Hint" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />
+                        
+                            <!-- What the step hands over: the results the engine works out while
+                                 it runs. Ticking one keeps it as a variable for a later step. It is
+                                 part of what the step is, so it sits at the end of the settings
+                                 rather than on a tab of its own: a tab is another place to look,
+                                 and a form of a dozen fields does not need five of them. -->
+                            <StackPanel Margin="0,14,0,0" IsVisible="{Binding HasReturns}">
+                                <!-- 标题旁边只说一句「勾上的各自成为一个变量」，命名与重名的规矩挂在
+                                     标题的悬停里：这几行本来就是一列复选框，先把它们排整齐，比先讲规则有用。 -->
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.Page.Returns], Source={x:Static loc:Strings.Current}}"
+                                               ToolTip.Tip="{Binding [Add.Page.ReturnsHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding [Add.ReturnPickHint], Source={x:Static loc:Strings.Current}}" />
+                                </Grid>
+                                <Border Classes="Card" Padding="10,8,10,6" Margin="0,6,0,0">
+                                    <StackPanel Spacing="6">
+                                        <!-- 表头三列，与下面的行同一套列宽：留下、结果、变量名。 -->
+                                        <Grid ColumnDefinitions="48,110,*,196" ColumnSpacing="8">
+                                            <TextBlock Classes="ColumnHeader"
+                                                       Text="{Binding [Add.ReturnKeep], Source={x:Static loc:Strings.Current}}" />
+                                            <TextBlock Grid.Column="1" Classes="ColumnHeader"
+                                                       Text="{Binding [Add.ReturnResult], Source={x:Static loc:Strings.Current}}"
+                                                       ToolTip.Tip="{Binding [Add.ReturnResultHint], Source={x:Static loc:Strings.Current}}" />
+                                            <TextBlock Grid.Column="2" Classes="ColumnHeader"
+                                                       Text="{Binding [Add.ReturnShape], Source={x:Static loc:Strings.Current}}"
+                                                       ToolTip.Tip="{Binding [Add.ReturnShapeHint], Source={x:Static loc:Strings.Current}}" />
+                                            <TextBlock Grid.Column="3" Classes="ColumnHeader"
+                                                       Text="{Binding [Add.ReturnName], Source={x:Static loc:Strings.Current}}" />
+                                        </Grid>
+                                        <Border Height="1" Background="{DynamicResource BorderSubtle}" />
+                                        <ItemsControl ItemsSource="{Binding ReturnsRows}"
+                                                      ItemTemplate="{StaticResource ReturnsRowEditor}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+</StackPanel>
+                    </Border>
+
+                    <!-- What every step has whichever action it is: how long it may take, how often
+                         it is tried again, and where the macro goes when it does not work out. These
+                         four answers decide whether the run survives a step that did not do what it
+                         was asked, so they are read on their own page instead of standing among an
+                         action's fields looking like one more of them. -->
+                    <Border Classes="Sunken" IsVisible="{Binding OnExec}" Margin="0,16,0,0">
+                        <StackPanel Spacing="0">
+
+                            <!-- 执行节奏：前延迟给界面时间，后延迟给下一步让路。 -->
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <TextBlock Classes="GroupHeader" Margin="0,0,0,8"
+                                           Text="{Binding [Add.Exec.Pace], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                                           Margin="0,0,2,8"
+                                           Text="{Binding [Add.Exec.Scope], Source={x:Static loc:Strings.Current}}" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.StepDelayBefore], Source={x:Static loc:Strings.Current}}" />
+                                    <ContentControl Content="{Binding MetaDelayBefore}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.StepDelayAfter], Source={x:Static loc:Strings.Current}}" />
+                                    <ContentControl Content="{Binding MetaDelayAfter}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Classes="Hint" Margin="2,6,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Add.Exec.PaceHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <Border Classes="Divider" />
+
+                            <!-- 最多花多久：所有尝试共用这一段时间。 -->
+                            <TextBlock Classes="GroupHeader" Margin="0,0,0,8"
+                                       Text="{Binding [Add.Exec.TimeoutGroup], Source={x:Static loc:Strings.Current}}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.StepTimeout], Source={x:Static loc:Strings.Current}}" />
+                                    <ContentControl Content="{Binding MetaTimeout}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Classes="Hint" Margin="2,6,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Add.StepTimeoutHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <Border Classes="Divider" />
+
+                            <!-- 重试：次数、间隔、间隔怎么变，三个一起读才说得清"再试两次"是什么。 -->
+                            <TextBlock Classes="GroupHeader" Margin="0,0,0,8"
+                                       Text="{Binding [Add.Exec.RetryGroup], Source={x:Static loc:Strings.Current}}" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.StepRetry], Source={x:Static loc:Strings.Current}}" />
+                                    <fa:FANumberBox Value="{Binding MetaRetryCount, Converter={StaticResource Number}}"
+                                                   Minimum="0" Maximum="20"
+                                                   SmallChange="1" SimpleNumberFormat="0"
+                                                   HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.StepRetryDelay], Source={x:Static loc:Strings.Current}}" />
+                                    <ContentControl Content="{Binding MetaRetryDelay}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Add.StepBackoff], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Classes="Field" ItemsSource="{Binding BackoffChoices}"
+                                              SelectedItem="{Binding MetaRetryBackoff}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:ActionParameterOption">
+                                                <TextBlock Text="{Binding Display}"
+                                                           FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                            <!-- 三个数字合起来的那句话，由代码算，不让人心算翻倍。 -->
+                            <TextBlock Classes="Note" Margin="2,9,0,0" TextWrapping="Wrap"
+                                       Text="{Binding RetryPlan}" />
+                            <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
+                                       Text="{Binding [Add.Exec.RetryHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <Border Classes="Divider" />
+
+                            <!-- 失败时：四张卡，每张写出它会把宏带到哪里去。 -->
+                            <TextBlock Classes="GroupHeader" Margin="0,0,0,4"
+                                       Text="{Binding [Add.Exec.FailureGroup], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="2,0,0,10" TextWrapping="Wrap"
+                                       Text="{Binding [Add.Exec.FailureHint], Source={x:Static loc:Strings.Current}}" />
+
+                            <RadioButton Classes="ChoiceCard" GroupName="StepFailure"
+                                         IsChecked="{Binding IsStopRule, Mode=TwoWay}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="CardTitle"
+                                               Text="{Binding [Add.OnError.Stop], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="CardNote"
+                                               Text="{Binding [Add.OnError.StopNote], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </RadioButton>
+
+                            <RadioButton Classes="ChoiceCard" GroupName="StepFailure"
+                                         IsChecked="{Binding IsContinueRule, Mode=TwoWay}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="CardTitle"
+                                               Text="{Binding [Add.OnError.Continue], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="CardNote"
+                                               Text="{Binding [Add.OnError.ContinueNote], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </RadioButton>
+
+                            <RadioButton Classes="ChoiceCard" GroupName="StepFailure"
+                                         IsChecked="{Binding IsNextRoundRule, Mode=TwoWay}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="CardTitle"
+                                               Text="{Binding [Add.OnError.NextIteration], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="CardNote"
+                                               Text="{Binding [Add.OnError.NextIterationNote], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </RadioButton>
+
+                            <RadioButton Classes="ChoiceCard" GroupName="StepFailure"
+                                         IsChecked="{Binding IsAskRule, Mode=TwoWay}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Classes="CardTitle"
+                                               Text="{Binding [Add.OnError.AskUser], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="CardNote"
+                                               Text="{Binding [Add.OnError.AskNote], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </RadioButton>
+
+                            <!-- 选了"问我"才说：无人值守时没有人能回答。 -->
+                            <Border Margin="0,4,0,0" Padding="10,8"
+                                    CornerRadius="{DynamicResource RadiusContainer}"
+                                    Background="{DynamicResource WarningSurface}"
+                                    IsVisible="{Binding IsAskRule}">
+                                <TextBlock TextWrapping="Wrap" FontSize="11.5"
+                                           Foreground="{DynamicResource Warning}"
+                                           Text="{Binding [Add.Exec.AskWarn], Source={x:Static loc:Strings.Current}}" />
+                            </Border>
                         </StackPanel>
                     </Border>
 
@@ -1179,17 +1485,7 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- What the step hands over. These are the results the engine works out while
-                         it runs: tick the ones the macro should keep, and each becomes a variable of
-                         its own for a later step to read. -->
-                    <Border Classes="Sunken" IsVisible="{Binding OnReturns}" Margin="0,16,0,0">
-                        <StackPanel>
-                            <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,8"
-                                       Text="{Binding [Add.Page.ReturnsHint], Source={x:Static loc:Strings.Current}}" />
-                            <ItemsControl ItemsSource="{Binding ReturnsRows}"
-                                          ItemTemplate="{StaticResource ReturnsRowEditor}" />
-                        </StackPanel>
-                    </Border>
+
 
                     <Border Classes="Sunken" IsVisible="{Binding OnOther}" Margin="0,16,0,0">
                         <StackPanel>
@@ -1214,81 +1510,6 @@
                                 <TextBlock Classes="Hint" Margin="0,5,0,0" TextWrapping="Wrap"
                                            Text="{Binding [Add.StepIdHint], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
-
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="0,12,0,0">
-                                <StackPanel>
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Add.StepTimeout], Source={x:Static loc:Strings.Current}}" />
-                                    <ContentControl Content="{Binding MetaTimeout}"
-                                                    ContentTemplate="{StaticResource DurationSetting}" />
-                                    <TextBlock Classes="Hint" Margin="0,5,0,0" TextWrapping="Wrap"
-                                               Text="{Binding [Add.StepTimeoutHint], Source={x:Static loc:Strings.Current}}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Add.StepRetry], Source={x:Static loc:Strings.Current}}" />
-                                    <fa:FANumberBox Value="{Binding MetaRetryCount, Converter={StaticResource Number}}" Minimum="0" Maximum="20"
-                                                   SmallChange="1" SimpleNumberFormat="0"
-                                                   Width="150" HorizontalAlignment="Left" />
-                                </StackPanel>
-                            </Grid>
-
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="0,12,0,0">
-                                <StackPanel>
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Add.StepRetryDelay], Source={x:Static loc:Strings.Current}}" />
-                                    <ContentControl Content="{Binding MetaRetryDelay}"
-                                                    ContentTemplate="{StaticResource DurationSetting}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Add.StepOnError], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Classes="Field" ItemsSource="{Binding ErrorChoices}"
-                                              SelectedItem="{Binding MetaOnError}"
-                                              Width="170" HorizontalAlignment="Left">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate x:DataType="models:ActionParameterOption">
-                                                <TextBlock Text="{Binding Display}"
-                                                           FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </StackPanel>
-                            </Grid>
-
-                            <StackPanel Margin="0,12,0,0">
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Add.StepBackoff], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="Field" ItemsSource="{Binding BackoffChoices}"
-                                          SelectedItem="{Binding MetaRetryBackoff}"
-                                          Width="220" HorizontalAlignment="Left">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="models:ActionParameterOption">
-                                            <TextBlock Text="{Binding Display}"
-                                                       FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <TextBlock Classes="Hint" Margin="0,5,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Add.StepBackoffHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Margin="0,4,0,0" FontSize="11.5" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource TextSecondary}" Text="{Binding RetryPlan}" />
-                            </StackPanel>
-
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="0,12,0,0">
-                                <StackPanel>
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Add.StepDelayBefore], Source={x:Static loc:Strings.Current}}" />
-                                    <ContentControl Content="{Binding MetaDelayBefore}"
-                                                    ContentTemplate="{StaticResource DurationSetting}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Add.StepDelayAfter], Source={x:Static loc:Strings.Current}}" />
-                                    <ContentControl Content="{Binding MetaDelayAfter}"
-                                                    ContentTemplate="{StaticResource DurationSetting}" />
-                                </StackPanel>
-                            </Grid>
 
                             <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
                                 <ToggleSwitch IsChecked="{Binding MetaEnabled}" OnContent="" OffContent="" />

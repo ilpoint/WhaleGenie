@@ -54,7 +54,14 @@ public sealed class PointPickerWindow : Window
         TextWrapping = TextWrapping.Wrap,
     };
     private readonly Image _desk = new() { Stretch = Stretch.Fill, IsHitTestVisible = false };
+
+    /// <summary>放大镜：整个屏幕上的一像素，靠它才瞄得准。</summary>
+    private readonly Magnifier _magnifier = new();
+
     private WriteableBitmap? _picture;
+
+    /// <summary>The same desk as pixels, which is what the loupe reads.</summary>
+    private ImageFrame? _deskFrame;
     private IInputHook? _hook;
     private WindowInfo? _window;
     private PixelPoint _origin;
@@ -115,6 +122,7 @@ public sealed class PointPickerWindow : Window
         _overlay.Children.Add(_outline);
         _overlay.Children.Add(_crosshair);
         _overlay.Children.Add(_readout);
+        _overlay.Children.Add(_magnifier);
 
         var root = new Grid();
         root.Children.Add(_desk);
@@ -160,6 +168,7 @@ public sealed class PointPickerWindow : Window
         _timer.Stop();
         DetachHook();
         _picture?.Dispose();
+        _magnifier.Release();
         MacroTriggerGate.Exit();
     }
 
@@ -199,6 +208,7 @@ public sealed class PointPickerWindow : Window
 
         _picture?.Dispose();
         _picture = picture;
+        _deskFrame = frame;
         _desk.Source = picture;
     }
 
@@ -315,6 +325,24 @@ public sealed class PointPickerWindow : Window
         var element = DrawOutline(at, client, showCrosshair);
         UpdateReadout(at, client, _insideClient, element);
         PlaceReadout(at);
+        ShowLoupe(at);
+    }
+
+    /// <summary>
+    /// 放大镜放在指针上方、读数下方的那一角：读数已经占了右下，两样都跟着指针时只有各占一边
+    /// 才都不挡住落点。
+    /// </summary>
+    private void ShowLoupe(ScreenPoint at)
+    {
+        if (_deskFrame is not { } frame || _done)
+        {
+            _magnifier.Hide();
+            return;
+        }
+
+        var local = ToLocal(at);
+        _magnifier.Follow(frame, at.X - _origin.X, at.Y - _origin.Y);
+        _magnifier.PlaceNear(local.X, local.Y, Width, Height, 24, above: true);
     }
 
     private void DrawCrosshair(ScreenPoint at, ClientArea? client, bool show)

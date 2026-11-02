@@ -38,9 +38,11 @@ public class StepParameter
     /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
     /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
     /// <see cref="ActionParameterKind.Images"/>; a <see cref="ActionParameterKind.Returns"/> holds
-    /// one row per result the step hands over, and a <see cref="ActionParameterKind.Narrow"/> one
-    /// row per thing the element has to be like. What the columns of a row mean belongs to the
-    /// action, so this holds the names and what they say rather than a shape of its own.
+    /// one row per result the step hands over, a <see cref="ActionParameterKind.Narrow"/> one row
+    /// per thing the element has to be like, and a <see cref="ActionParameterKind.ColourPoints"/>
+    /// one row per colour the pattern wants beside its base colour. What the columns of a row mean
+    /// belongs to the action, so this holds the names and what they say rather than a shape of its
+    /// own.
     /// </summary>
     public List<StepParameterRow> Rows { get; init; } = [];
 
@@ -52,7 +54,8 @@ public class StepParameter
     /// </summary>
     public bool IsRowList => Kind is ActionParameterKind.Region
         or ActionParameterKind.KeySequence or ActionParameterKind.Images or ActionParameterKind.Returns
-        or ActionParameterKind.Arguments or ActionParameterKind.Narrow;
+        or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+        or ActionParameterKind.ColourPoints;
 
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
@@ -73,7 +76,7 @@ public class StepParameter
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
             or ActionParameterKind.Returns or ActionParameterKind.Arguments
-            or ActionParameterKind.Narrow => RowsJson(),
+            or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => RowsJson(),
         ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
             => JsonNode.Parse(Value),
         _ => JsonValue.Create(Value),
@@ -139,7 +142,7 @@ public class StepParameter
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
                 or ActionParameterKind.KeySequence or ActionParameterKind.Images
                 or ActionParameterKind.Returns or ActionParameterKind.Arguments
-                or ActionParameterKind.Narrow => new StepParameter
+                or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => new StepParameter
                 {
                     Name = name,
                     Kind = definition!.Kind,
@@ -470,10 +473,15 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Narrow when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.NarrowCount", parameter.Rows.Count)}");
                         break;
+                    case ActionParameterKind.ColourPoints when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ColourPointCount",
+                            parameter.Rows.Count)}");
+                        break;
                     case ActionParameterKind.Steps or ActionParameterKind.Region
                         or ActionParameterKind.KeySequence
                         or ActionParameterKind.Images or ActionParameterKind.Returns
-                        or ActionParameterKind.Arguments or ActionParameterKind.Narrow:
+                        or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+                        or ActionParameterKind.ColourPoints:
                         break;
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))

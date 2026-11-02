@@ -146,10 +146,12 @@ internal static class ActionStrings
 
     /// <summary>The hint every search-region field shares, in the wording the English one uses.</summary>
     private const string RegionHintText =
-        "搜索范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；"
-        + "一行也可以填变量：图片变量（在前一步截取的那张图上搜索）或写成 x,y,宽,高 的矩形"
-        + "变量，还可以填一条带矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，"
-        + "「识别方式」只挪写出来的四个数字。留空表示整个屏幕（默认）。";
+        "搜索范围，一行一块，可以填多块。每行填一处地方的左、上、宽、高四个数字，或用“框选”拖出来；"
+        + "一行也可以填变量：图片变量（在前一步截取的那张图上搜索）或写成 left,top,宽,高 的矩形"
+        + "变量，还可以填一条带矩形的记录（命中、窗口、元素都行）。矩形变量与记录里的 left、top、"
+        + "width、height 是同一组字段；记录里的数是屏幕像素，「识别方式」只挪动写出来的四个数字，"
+        + "不会改变记录里的数。"
+        + "留空表示整个屏幕（默认）。";
 
     /// <summary>The hint the "which hit" fields share.</summary>
     private const string MatchIndexHint =
@@ -226,9 +228,10 @@ internal static class ActionStrings
     /// "biggest first", so their hint must not talk about one.
     /// </summary>
     private const string MatchOrderColourHint =
-        "命中按什么顺序编号，也就是“第几个命中”数的是哪一个，默认阅读顺序。阅读顺序：先向下"
-        + "再向右。分数最高：离目标颜色最近的那个像素优先。随机：打乱，用于不希望每次都挑"
-        + "同一个的场景。";
+        "命中按什么顺序编号，也就是“第几个命中”数的是哪一个，也就是找色的四向搜索顺序："
+        + "从左到右、从上到下（默认），从右到左、从上到下，从左到右、从下往上，从右到左、从下往上。"
+        + "默认那种就是人读一页字的顺序；另外三种从别的角开始数，贴着窗口右边或底边排的一排按钮，"
+        + "从那个角数第一个才是人眼里的第一个。";
 
     /// <summary>The hint the three reading actions share for the shape a reading has to have.</summary>
     private const string ExpectedHint =
@@ -373,9 +376,11 @@ internal static class ActionStrings
 
     /// <summary>The same hint for the region a detection step reads, under the name that field goes by.</summary>
     private const string DetectRegionHint =
-        "检测范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；一行也可以"
-        + "填变量：图片变量（在前面截取的那张图上检测）或写成 x,y,宽,高 的矩形变量，还可以填一条带"
-        + "矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，「识别方式」只挪写出来的四个数字。"
+        "检测范围，一行一块，可以填多块。每行填一处地方的左、上、宽、高四个数字，或用“框选”拖出来；"
+        + "一行也可以填变量：图片变量（在前面截取的那张图上检测）或写成 left,top,宽,高 的矩形变量，"
+        + "还可以填一条带矩形的记录（命中、窗口、元素都行）。矩形变量与记录里的 left、top、width、"
+        + "height 是同一组字段。记录里的数是屏幕像素，「识别方式」只挪动写出来的四个数字，"
+        + "不会改变记录里的数。"
         + "留空表示整个屏幕（默认）。";
 
     /// <summary>
@@ -560,7 +565,8 @@ internal static class ActionStrings
         ["control.stop.reason.hint"] = "可选，写进日志的一句话，可以填变量或算式。",
 
         ["control.setVariable.name"] = "设置变量",
-        ["control.setVariable.desc"] = "保存一个值，供后面的步骤使用。",
+        ["control.setVariable.desc"] = "把一个值存进变量，后面的步骤按名字取用；值可以是一个数字、"
+            + "一段文字或一个算式，例如 $count + 1。",
         ["control.setVariable.name.label"] = "变量名",
         ["control.setVariable.name.hint"] = "局部变量在这里命名；选全局范围时，写一个新名字会在保存这一步时创建全局变量。",
         ["control.setVariable.value.label"] = "值",
@@ -1884,18 +1890,87 @@ internal static class ActionStrings
         ["vision.clickImage.anchorMode.option.screen"] = "屏幕",
         ["vision.clickImage.anchorMode.option.window"] = "窗口",
 
-        ["vision.findColor.name"] = "查找颜色",
-        ["vision.findColor.desc"] = "在指定点位或屏幕的一块区域里找某个颜色。",
+        ["vision.clickColor.name"] = "点击颜色",
+        ["vision.clickColor.desc"] =
+            "在搜索区域里找这个颜色，找到就点它，最多等到步骤设置里的「超时」；到点这一步算失败。",
+        ["vision.clickColor.anchorMode.label"] = "识别方式",
+        ["vision.clickColor.anchorMode.hint"] = AnchorModeHint,
+        ["vision.clickColor.anchorMode.option.screen"] = "屏幕",
+        ["vision.clickColor.anchorMode.option.window"] = "窗口",
+        ["vision.clickColor.window.label"] = "窗口",
+        ["vision.clickColor.window.hint"] =
+            "获取窗口：先点目标窗口再按 F1；标题、进程名、窗口类和句柄一起记下，运行时按选中的一项重新认窗口。",
+        ["vision.clickColor.region.label"] = "搜索区域",
+        ["vision.clickColor.region.hint"] = RegionHintText,
+        ["vision.clickColor.color.label"] = "颜色",
+        ["vision.clickColor.color.hint"] = "要找的颜色，默认 #000000。",
+        ["vision.clickColor.tolerance.label"] = "容差 %",
+        ["vision.clickColor.tolerance.hint"] =
+            "允许的颜色偏差，0–100（百分比），默认 5。5% 相当于每个通道各自可以偏离约 13 级（满值 255）。",
+        ["vision.clickColor.minCoverage.label"] = "至少占比 %",
+        ["vision.clickColor.minCoverage.hint"] =
+            "搜索区域里至少要有这么多比例是这个颜色才点下去，0–100（百分比），默认 0，即一找到就点。"
+            + "调高它用来点那种“整块亮起来才算数”的东西，例如只有能按时才会亮的按钮；"
+            + "占比按整个搜索区域算，多行区域合起来算一个。",
+        ["vision.clickColor.button.label"] = "按键",
+        ["vision.clickColor.button.hint"] = MouseButtonHint,
+        ["vision.clickColor.button.option.left"] = "左键",
+        ["vision.clickColor.button.option.right"] = "右键",
+        ["vision.clickColor.button.option.middle"] = "中键",
+        ["vision.clickColor.button.option.back"] = "后退键",
+        ["vision.clickColor.button.option.forward"] = "前进键",
+        ["vision.clickColor.offsetX.label"] = "横向偏移",
+        ["vision.clickColor.offsetX.hint"] =
+            "点击位置在命中位置中心基础上水平偏移的像素数，默认 0，即点在中心。",
+        ["vision.clickColor.offsetY.label"] = "纵向偏移",
+        ["vision.clickColor.offsetY.hint"] =
+            "点击位置在命中位置中心基础上垂直偏移的像素数，正数向下，默认 0，即点在中心。",
+        ["vision.clickColor.variance.label"] = "落点随机范围",
+        ["vision.clickColor.variance.hint"] =
+            "落点与命中位置最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
+            + "随机取一点，连着点两次不会落在同一个像素上。宽按钮上用它避免看起来像机器点的；"
+            + "数字要小到整个范围仍落在被点的对象内部。",
+        ["vision.clickColor.orderBy.label"] = "命中排序",
+        ["vision.clickColor.orderBy.hint"] = MatchOrderColourHint,
+        ["vision.clickColor.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.clickColor.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.clickColor.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.clickColor.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.clickColor.matchIndex.label"] = "第几个命中",
+        ["vision.clickColor.matchIndex.hint"] = MatchIndexHint,
+        ["vision.clickColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.clickColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.clickColor.intervalMs.label"] = LookIntervalLabel,
+        ["vision.clickColor.intervalMs.hint"] = LookGapHint,
+        ["vision.clickColor.returns.label"] = "要留下的结果",
+        ["vision.clickColor.returns.hint"] = ReturnsHintText,
+        ["vision.clickColor.return.match.label"] = HitRecordLabel,
+        ["vision.clickColor.return.match.hint"] = HitRecordHintColour,
+        ["vision.clickColor.return.every.label"] = EveryHitLabel,
+        ["vision.clickColor.return.every.hint"] = EveryHitHint,
+        ["vision.clickColor.return.window.label"] = "来源窗口",
+        ["vision.clickColor.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.clickColor.return.method.label"] = "取画面方式",
+        ["vision.clickColor.return.method.hint"] =
+            "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.clickColor.return.screenPoint.label"] = "屏幕坐标点",
+        ["vision.clickColor.return.screenPoint.hint"] =
+            "这一步实际使用的屏幕坐标，x 与 y 是屏幕像素，basis 为 screen。",
+        ["vision.clickColor.return.windowPoint.label"] = "窗口坐标点",
+        ["vision.clickColor.return.windowPoint.hint"] =
+            "同一点按目标窗口客户区左上角计算，x 与 y 是窗口像素，basis 为 window。",
+
+        ["vision.findColor.name"] = "找色",
+        ["vision.findColor.desc"] = "在搜索区域里找这个颜色，找到就交出它的坐标；要看一个像素是不是某个颜色，用「比色」。",
         ["vision.findColor.color.label"] = "颜色",
         ["vision.findColor.color.hint"] = "要找的颜色，默认 #000000。",
-        ["vision.findColor.x.label"] = "X",
-        ["vision.findColor.x.hint"] = "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时按搜索区域找。",
-        ["vision.findColor.y.label"] = "Y",
-        ["vision.findColor.y.hint"] = "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时按搜索区域找。",
-        ["vision.findColor.place.label"] = "位置",
-        ["vision.findColor.place.hint"] = "可选：一条带 x、y 的记录，例如命中、窗口或元素。填写后只看这个像素，并优先于 X、Y 和搜索区域。",
         ["vision.findColor.tolerance.label"] = "容差 %",
         ["vision.findColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
+        ["vision.findColor.missingIsFailure.label"] = "没找到就算失败",
+        ["vision.findColor.missingIsFailure.hint"] =
+            "默认关着：没找到是一个结果，found 为假，这一步照常成功，交给下一步判断。"
+            + "打开后没找到会抛出 Run.ColourNotFound，再按「执行与容错 › 失败时」处理。"
+            + "只在确定必须命中时打开；可能会落空的一步，用条件分支更清楚。",
         ["vision.findColor.minCoverage.label"] = "至少占比 %",
         ["vision.findColor.minCoverage.hint"] =
             "搜索区域里至少有多少比例是那个颜色才算找到，0–100（百分比），默认 0，即不看占比。"
@@ -1906,9 +1981,10 @@ internal static class ActionStrings
         ["vision.findColor.matchIndex.hint"] = MatchIndexHint,
         ["vision.findColor.orderBy.label"] = "命中排序",
         ["vision.findColor.orderBy.hint"] = MatchOrderColourHint,
-        ["vision.findColor.orderBy.option.reading"] = "阅读顺序",
-        ["vision.findColor.orderBy.option.score"] = "分数最高",
-        ["vision.findColor.orderBy.option.random"] = "随机",
+        ["vision.findColor.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.findColor.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.findColor.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.findColor.orderBy.option.readingBackUp"] = "从右到左，从下往上",
         ["vision.findColor.return.match.label"] = HitRecordLabel,
         ["vision.findColor.return.match.hint"] = HitRecordHintColour,
         ["vision.findColor.return.found.label"] = "是否找到",
@@ -1927,32 +2003,33 @@ internal static class ActionStrings
         ["vision.findColors.color.label"] = "基准色",
         ["vision.findColors.color.hint"] =
             "图案中间的那个颜色，默认 #000000。交回的位置就是它，其他颜色也都从它这里数。",
-        ["vision.findColors.x.label"] = "X",
-        ["vision.findColors.x.hint"] =
-            "可选：只看这一个像素的横坐标，按识别方式选定的基准量起，单位是像素。基准色与周围那些颜色"
-            + "都在这一处比对；X、Y 都留空时按搜索区域找。",
-        ["vision.findColors.y.label"] = "Y",
-        ["vision.findColors.y.hint"] =
-            "可选：只看这一个像素的纵坐标，按识别方式选定的基准量起，单位是像素。X、Y 都留空时按搜索区域找。",
-        ["vision.findColors.place.label"] = "位置",
-        ["vision.findColors.place.hint"] =
-            "可选：一条带 x、y 的记录，例如命中、窗口或元素。填写后只看这个像素，并优先于 X、Y 和搜索区域。",
         ["vision.findColors.points.label"] = "周围要对的颜色",
+        ["vision.findColors.missingIsFailure.label"] = "没找到就算失败",
+        ["vision.findColors.missingIsFailure.hint"] =
+            "默认关着：没找到是一个结果，found 为假，这一步照常成功，交给下一步判断。"
+            + "打开后没找到会抛出 Run.ColourNotFound，再按「执行与容错 › 失败时」处理。"
+            + "只在确定必须命中时打开；可能会落空的一步，用条件分支更清楚。",
         ["vision.findColors.points.hint"] =
-            "一行一个，写成相对基准色的偏移与颜色，例如 12,-4,#FF0000，偏移可以是负数。"
-            + "每一个都要在写的位置上，整个图案还必须落在搜索区域里面：贴着区域边缘、"
+            "一处一行：相对基准色往右多少、往下多少、那里必须是什么颜色，偏移可以是负数。"
+            + "同一个位置会有好几种颜色时，用竖线把它们分开写在同一格里（例如 #E04A3F|#B03A33），"
+            + "命中其中任意一个都算；勾上「必须不是」，这一处就不能是这些颜色，用来写「这里应该是空的」。"
+            + "最后一格是这一处自己的容差，留空就用上面「容差」那一格：锚点要严、周围放宽是常见调法。"
+            + "每一格都能写算式或变量，整块图案因此能跟着另一步算出来的数一起挪。"
+            + "每一处都要在写的位置上，整个图案还必须落在搜索区域里面：贴着区域边缘、"
             + "有一半在区域外的图案不算找到。",
         ["vision.findColors.tolerance.label"] = "容差 %",
-        ["vision.findColors.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
+        ["vision.findColors.tolerance.hint"] =
+            "基准色允许的颜色偏差，0–100（百分比），默认 5；下面每一处没填自己的容差时也用这一格。",
         ["vision.findColors.region.label"] = "搜索区域",
         ["vision.findColors.region.hint"] = RegionHintText,
         ["vision.findColors.intervalMs.label"] = LookIntervalLabel,
         ["vision.findColors.intervalMs.hint"] = LookGapHint,
         ["vision.findColors.orderBy.label"] = "命中排序",
         ["vision.findColors.orderBy.hint"] = MatchOrderColourHint,
-        ["vision.findColors.orderBy.option.reading"] = "阅读顺序",
-        ["vision.findColors.orderBy.option.score"] = "分数最高",
-        ["vision.findColors.orderBy.option.random"] = "随机",
+        ["vision.findColors.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.findColors.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.findColors.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.findColors.orderBy.option.readingBackUp"] = "从右到左，从下往上",
         ["vision.findColors.matchIndex.label"] = "第几个命中",
         ["vision.findColors.matchIndex.hint"] = MatchIndexHint,
         ["vision.findColors.return.match.label"] = HitRecordLabel,
@@ -2205,6 +2282,46 @@ internal static class ActionStrings
             + "的情况。第二次查看只查一次、不再等，所以画面已经变过就直接算没找到。",
         ["vision.clickImage.button.label"] = "按键",
         ["vision.clickImage.button.hint"] = MouseButtonHint,
+
+        ["vision.matchColor.name"] = "比色",
+        ["vision.matchColor.desc"] =
+            "判断一个像素现在是不是这个颜色，立即给出是或否，并把实际看到的颜色一起交回来。",
+        ["vision.matchColor.anchorMode.label"] = "识别方式",
+        ["vision.matchColor.anchorMode.hint"] = AnchorModeHint,
+        ["vision.matchColor.anchorMode.option.screen"] = "屏幕",
+        ["vision.matchColor.anchorMode.option.window"] = "窗口",
+        ["vision.matchColor.window.label"] = "窗口",
+        ["vision.matchColor.window.hint"] = "要看的是这个窗口里的像素。窗口移动后，同一步仍然指向窗口里的同一处。",
+        ["vision.matchColor.x.label"] = "X",
+        ["vision.matchColor.x.hint"] = "要比较的那一个像素的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
+        ["vision.matchColor.y.label"] = "Y",
+        ["vision.matchColor.y.hint"] = "要比较的那一个像素的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。",
+        ["vision.matchColor.place.label"] = "位置",
+        ["vision.matchColor.place.hint"] =
+            "说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心，单位为屏幕像素；"
+            + "上一步刚找到的结果可直接填入此处。填写记录后，旁边两格数字不再参与，也不再写入宏文件。",
+        ["vision.matchColor.color.label"] = "颜色",
+        ["vision.matchColor.color.hint"] =
+            "像素应该显示的颜色，按 #RRGGBB 写，默认 #000000。用吸管取色时，取到的那一点同时写进 X、Y。",
+        ["vision.matchColor.tolerance.label"] = "容差 %",
+        ["vision.matchColor.tolerance.hint"] =
+            "允许的颜色偏差，0–100（百分比），默认 5。5% 相当于每个通道各自可以偏离约 13 级（满值 255）；"
+            + "0 表示三个通道必须完全一致。",
+        ["vision.matchColor.return.matches.label"] = "是否就是这个颜色",
+        ["vision.matchColor.return.matches.hint"] =
+            "颜色在容差内为真，否则为假。不匹配是一个结果，不是失败：这一步照常成功。",
+        ["vision.matchColor.return.color.label"] = "实际看到的颜色",
+        ["vision.matchColor.return.color.hint"] =
+            "这个像素此刻真实的颜色，写成 #RRGGBB。答案是「否」的时候，要看的就是这一行。",
+        ["vision.matchColor.return.delta.label"] = "偏差 %",
+        ["vision.matchColor.return.delta.hint"] =
+            "实际颜色与期望颜色差多远，0 表示完全一致，100 表示两种最远的颜色。调容差时用它判断「差多少」而不是凭感觉试。",
+        ["vision.matchColor.returns.label"] = "要留下的结果",
+        ["vision.matchColor.returns.hint"] = ReturnsHintText,
+        ["vision.matchColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.matchColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.matchColor.intervalMs.label"] = LookIntervalLabel,
+        ["vision.matchColor.intervalMs.hint"] = LookGapHint,
 
         ["vision.getPixel.name"] = "取色",
         ["vision.getPixel.desc"] = "读取某个像素的颜色。",

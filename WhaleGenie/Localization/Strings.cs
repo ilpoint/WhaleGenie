@@ -280,12 +280,18 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionAdd"] = "Add a region",
         ["Add.RegionRemove"] = "Remove",
         ["Add.RegionRemoveHint"] = "Take this region out of the list.",
+        ["Add.RegionXShort"] = "X",
+        ["Add.RegionYShort"] = "Y",
+        ["Add.RegionWidthShort"] = "W",
+        ["Add.RegionHeightShort"] = "H",
         ["Add.RegionX"] = "Top-left X",
         ["Add.RegionXHint"] = "How far the left edge of this place is from the left of the screen, "
-            + "in pixels; under a window anchor, from that window's own left edge.",
+            + "in pixels; under a window anchor, from that window's own left edge. It is the left "
+            + "a result calls left, not the x of the middle of what was found.",
         ["Add.RegionY"] = "Top-left Y",
         ["Add.RegionYHint"] = "How far the top edge of this place is from the top of the screen, "
-            + "in pixels; under a window anchor, from that window's own top edge.",
+            + "in pixels; under a window anchor, from that window's own top edge. It is the top "
+            + "a result calls top, not the y of the middle of what was found.",
         ["Add.RegionWidth"] = "Width to the right",
         ["Add.RegionWidthHint"] = "How wide this place is, in pixels: the distance from its left "
             + "edge to its right one.",
@@ -295,8 +301,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionOrVariable"] = "Or a variable",
         ["Add.RegionOrVariableHint"] = "Name one variable instead of the four numbers: one holding "
             + "a picture an earlier Capture took is searched inside it, and one holding a rectangle "
-            + "written as x,y,width,height is looked at where it says. Filling this in empties the "
-            + "four numbers.",
+            + "written as left,top,width,height, the same four a result hands over, since a place "
+            + "is its top left corner and how far it reaches, is looked at where it says. Filling "
+            + "this in empties the four numbers.",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.EmptyReachesTheEdge"] =
@@ -369,9 +376,31 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickOffsetNeedsImage"] = "This step found nothing this time, so there is nothing to "
             + "aim beside. Make it find something here first, then pick again.",
         ["Add.PickColours"] = "Pick the offsets and colours…",
-        ["Add.Pattern"] = "Compared colours",
-        ["Add.PatternCount"] = "Compared colours ({0})",
-        ["Add.PatternEmpty"] = "Nothing added yet. The button above points at the colours on the picture.",
+        ["Add.ColourPointDx"] = "Right by",
+        ["Add.ColourPointDy"] = "Down by",
+        ["Add.ColourPointColour"] = "Colour",
+        ["Add.ColourPointTolerance"] = "Tolerance %",
+        ["Add.ColourPointMustNot"] = "Not one of",
+        ["Add.ColourPointNote"] =
+            "A cell may name several colours, one after another with a bar between them; the place "
+            + "is satisfied by any of them. Ticked under Not one of, the place has to be none of them "
+            + "instead. Leaving a tolerance empty uses the one filled in above.",
+        ["Add.ColourPointColourHint"] =
+            "One colour as #RRGGBB. A shape drawn in more than one shade may name all of them in the "
+            + "one cell with a bar between them, and the place is satisfied by any of them.",
+        ["Add.ColourPointMustNotHint"] =
+            "Ticked, this place has to be none of the colours written: the way to say that a corner "
+            + "is empty, or that a badge is not there.",
+        ["Add.ColourPointGlobal"] = "as above",
+        ["Add.ColourPointToleranceHint"] =
+            "Left empty, this colour uses the tolerance filled in above. A number here applies to "
+            + "this colour only, which is how an anchor that has to be exact sits beside shapes "
+            + "whose shading drifts.",
+        ["Add.ColourPointAdd"] = "Add a colour",
+        ["Add.ColourPointRemoveHint"] = "Take this colour out of the pattern.",
+        ["Add.ColourPointEmpty"] =
+            "A pattern needs at least one colour beside the base one. Until there is one, this step "
+            + "cannot run: it would be looking for the base colour on its own.",
         ["Add.PickColoursHint"] = "Opens the pattern this step holds: pick the colours around the "
             + "base colour on the picture, and what that window shows is what the step keeps.",
 
@@ -381,7 +410,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["LookPick.OffsetHint"] = "Click the spot to click on the picture. The orange ring is the "
             + "middle of what was found, which an offset of zero aims at.",
         ["LookPick.ColoursHint"] = "Click the colours that must surround the base colour. Drag a dot "
-            + "to move it, right-click a dot to edit or remove it, middle-click to add one.",
+            + "to move it, right-click a dot to edit, give it another colour or remove it. "
+            + "Shift-click a dot to say this place may also be another colour.",
         ["LookPick.Added"] = "Added",
         ["LookPick.NothingAdded"] = "Nothing added yet. Click the picture, or press + to type a point.",
         ["LookPick.OffsetAt"] = "Offset {0}, {1}",
@@ -393,17 +423,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["LookPick.EntryTitle"] = "Edit a point",
         ["LookPick.AddTitle"] = "Add a point",
         ["LookPick.EntryHint"] = "Offsets are counted from the middle of what was found. Any of the "
-            + "three may be a formula or a variable, such as 12+3 or $dx.",
+            + "three may be a formula or a variable, such as 12+3 or $dx. The colour may name "
+            + "several, with a bar between them: #E04A3F|#B03A33 means either one will do.",
         ["LookPick.ExpressionHint"] = "Build a formula",
         ["LookPick.EntryX"] = "Offset X",
         ["LookPick.EntryY"] = "Offset Y",
         ["LookPick.EntryColour"] = "Colour",
+        ["LookPick.EntryVariableTip"] = "A formula may be typed here, such as 12+3, as may a variable: {0}",
         ["LookPick.EntryBad"] = "Write the offset, the offset and the colour, such as 12,-4,#FF0000.",
         ["LookPick.Moved"] = "Moved to {0}, {1}.",
         ["LookPick.ColoursEdited"] = "Changed to {0}.",
         ["LookPick.ColoursLeft"] = "{0} left.",
         ["LookPick.Picked"] = "Picked. Click the picture to move it there.",
         ["LookPick.NothingPicked"] = "Nothing picked.",
+        ["LookPick.AddAlternative"] = "Add an alternative colour…",
+        ["LookPick.AlternativeAdded"] = "Added {0} as another colour; this place now has {1}.",
+        ["LookPick.AlternativeRepeat"] = "This place already has that colour.",
+        ["LookPick.AlternativeFull"] = "One place can hold at most {0} colours.",
+        ["LookPick.AlternativeNeedPoint"] =
+            "Pick a place first: click its dot, or Shift-click a dot to add the colour under the pointer.",
 
         // ------------------------------------------------------------- what a step saw
         ["Look.Title"] = "What the step saw",
@@ -788,6 +826,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.BlockEnd"] = "end of {0}",
         ["Editor.Fold"] = "Fold the steps inside",
         ["Editor.RegionCount"] = "{0} region(s)",
+        ["Editor.ColourPointCount"] = "{0} colour(s) beside it",
         ["Editor.KeyCount"] = "{0} press(es)",
         ["Editor.PictureCount"] = "{0} picture(s)",
         ["Editor.ReturnCount"] = "{0} result(s)",
@@ -1149,13 +1188,43 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.SelectHint"] = "This window has no action yet: close it and drop a card from the "
             + "library where the step should go.",
         ["Add.Page.Base"] = "Basics",
+        ["Add.Page.Exec"] = "Execution",
         ["Add.Page.Advanced"] = "Advanced",
         ["Add.Page.Returns"] = "Returns",
         ["Add.Page.Other"] = "More",
         ["Add.Page.ReturnsHint"] = "What this step works out while it runs. Tick the results the "
             + "macro should keep: each becomes a variable of its own, named after the note, the "
-            + "action and the result, and a later step reads it by that name. Leaving every box "
-            + "alone is allowed, and the step then leaves no result behind.",
+            + "action and the result, and a later step reads it by that name. The name can be "
+            + "changed on the line. Ticking nothing is allowed, and the step then leaves no result "
+            + "behind. What each result holds is in its tooltip.",
+        ["Add.ReturnPickHint"] = "Ticked results each become a variable; hover a result to see what it holds",
+        ["Add.ReturnKeep"] = "Keep",
+        ["Add.ReturnResult"] = "Result",
+        ["Add.ReturnResultHint"] = "Hover a result to see what it holds",
+        ["Add.ReturnShape"] = "Shape",
+        ["Add.ReturnShapeHint"] = "What this result holds; hover to see every field",
+        ["Add.ReturnShapeFlag"] = "true | false",
+        ["Add.ReturnShapeImage"] = "image",
+        ["Add.ReturnShapeText"] = "\"text\"",
+        ["Add.ReturnShapeTip"] = "{0} fields. Read one with field($name, \"field\").",
+        ["Add.ReturnShapeTipBare"] = "One value: {0}",
+        ["Add.ReturnName"] = "Variable name",
+        ["Add.ReturnNameHint"] = "The name later steps read this result by. Leaving it as "
+            + "suggested is fine; changing it makes the step's own wording of what it found.",
+        ["LocalVariables.Title"] = "Local variables",
+        ["LocalVariables.Hint"] = "What this macro makes for itself: a result a step handed over, or a "
+            + "name a Set Variable step wrote. A local variable exists because a step writes to it, so "
+            + "there is nothing to add here; renaming one also renames every place that reads it.",
+        ["LocalVariables.Search"] = "Search names",
+        ["LocalVariables.Empty"] = "This macro has no variables of its own yet.",
+        ["LocalVariables.Type"] = "Holds",
+        ["LocalVariables.Source"] = "From",
+        ["LocalVariables.Rename"] = "Rename",
+        ["LocalVariables.RenameHint"] = "The new name replaces the old one everywhere in this macro. "
+            + "It may not be a name something else already uses.",
+        ["LocalVariables.RenameButton"] = "Rename",
+        ["LocalVariables.UsedBy"] = "Steps that read it",
+        ["LocalVariables.Close"] = "Close",
         ["Add.JsonNode"] = "JSON Node",
         ["Add.JsonPlaceholder"] = "// Select an action to preview its JSON node",
         ["Add.NoParameters"] = "This action takes no parameters.",
@@ -1200,7 +1269,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Category.Control.short"] = "Flow",
         ["Add.Category.System.short"] = "Sys",
         ["Add.Category.File"] = "Files",
-        ["Add.Category.Data"] = "Text and data",
+        ["Add.Category.Data"] = "Data and variables",
         ["Add.Category.Clipboard"] = "Clipboard",
         ["Add.Category.Process"] = "Programs and windows",
         ["Add.Category.System"] = "System",
@@ -1240,6 +1309,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "name overwrite each other, so this one wants a name of its own.",
         ["Add.NameMakeUnique"] = "New name",
         ["Add.NameMakeUniqueHint"] = "Put a number after the name so nothing else is using it.",
+        ["Add.ToleranceChannel"] = "≈ ±{0} of 255 on each channel",
         ["Add.StepTimeout"] = "Timeout",
         ["Add.StepTimeoutHint"] = "The clock starts at the first try and every try shares it, "
             + "including the waits between retries; 0 means no limit. A block's timeout covers the "
@@ -1270,6 +1340,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.OnError.Continue"] = "Carry on with the next step",
         ["Add.OnError.NextIteration"] = "Skip to the next loop round",
         ["Add.OnError.AskUser"] = "Ask me: retry, skip or stop",
+        ["Add.OnError.StopNote"] = "The whole macro stops at this step. The steps after it do not run.",
+        ["Add.OnError.ContinueNote"] = "Note the failure and carry on. For a step that is allowed to miss.",
+        ["Add.OnError.NextIterationNote"] = "Only means something inside a loop: drop this round and start the next. Outside one it carries on.",
+        ["Add.OnError.AskNote"] = "Asks with retry, skip or stop. The macro waits here for the answer.",
+        ["Add.Group.point"] = "Which point",
+        ["Add.Group.area"] = "Where to look",
+        ["Add.Group.colour"] = "The colour",
+        ["Add.Group.found"] = "What counts as found",
+        ["Add.Group.press"] = "How it clicks",
+        ["Add.Group.tuning"] = "Recognition tuning",
+        ["Add.Exec.Scope"] = "every step",
+        ["Add.Exec.Pace"] = "Pace",
+        ["Add.Exec.PaceHint"] = "The pause before gives the interface time to settle, which is what a window that has just opened needs; the pause after gives the next step room.",
+        ["Add.Exec.TimeoutGroup"] = "How long it may take",
+        ["Add.Exec.RetryGroup"] = "Retries",
+        ["Add.Exec.RetryHint"] = "A retry runs the step again, side effects included: a click clicks twice, a send sends twice.",
+        ["Add.Exec.FailureGroup"] = "When it fails",
+        ["Add.Exec.FailureHint"] = "Where the macro goes when this step does not work out.",
+        ["Add.Exec.AskWarn"] = "A macro started by a trigger has nobody beside it: the question waits indefinitely. Do not pick this for a step that runs unattended.",
         ["Expr.Error.Syntax"] = "Expression syntax error: {0}",
         ["Expr.Error.UnknownVariable"] = "The expression uses a variable that is not defined: {0}",
         ["Expr.Error.UnknownFunction"] = "The expression uses a function that does not exist: {0}",
@@ -1851,7 +1940,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadUserFailureKey"] = "A user failure key must start with User. and then be a readable variable name: {0}",
         ["Run.BadPoint"] = "The record this step takes its place from has no x and y in it (a hit, "
             + "a window and an element carry the middle of what they name there): {0}",
-        ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
+        ["Run.BadPoints"] = "Every colour beside the base one needs an offset and a colour: {0}",
+        ["Run.NoColourPoints"] =
+            "This pattern has no colour beside the base one. Looking for the base colour on its own "
+            + "is what Find Colour is for, so this step is refused rather than run.",
         ["Run.RecordWhereNumber"] = "This field takes a number, but it was handed a record: a record is a set of named fields, not a number. Read one field of it with field().",
         ["Run.BadPattern"] = "That is not a usable match pattern: {0}",
         ["Run.RegexTimeout"] = "The regular expression did not finish within one second: {0}",
@@ -1866,6 +1958,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.ImageMissing"] = "It is not on screen; this step handed no position over.",
         ["Run.ImageNotFound"] = "Never found the reference image: {0}",
         ["Log.ClickedImage"] = "Clicked the match at {0},{1}",
+        ["Log.ClickedColour"] = "Clicked the colour at {0},{1}",
         ["Log.Detected"] = "Detected {0}.",
         ["Log.DetectedNothing"] = "Nothing was detected in {0}; this step handed no position over.",
         ["Run.DetectNotFound"] = "Nothing was detected: {0}",
@@ -2049,6 +2142,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.Pasted"] = "Pressed the paste shortcut.",
         ["Run.ClipboardTimeout"] = "The clipboard did not change in time.",
         ["Run.ClipboardBusy"] = "Another program is holding the clipboard.",
+        ["Run.ColourNotFound"] = "The colour was not there: {0}. "
+            + "This step counts a miss as its failure; turn that off to read a miss as an answer.",
         ["Run.ClipboardWriteFailed"] = "The clipboard would not take the text.",
         ["Log.StartedProgram"] = "Started {0}, process id {1}.",
         ["Log.StartedRun"] = "Started \"{0}\" in the background; handle {1}.",
@@ -2154,8 +2249,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.MacroDescription"] = "Description:",
         ["Editor.VariableCenter"] = "Variable center",
         ["Editor.VariableCenterHint"] = "Double-click a local variable to rename it, or a global one to open its definition.",
-        ["Editor.ManageGlobals"] = "Manage globals",
+        ["Editor.ManageGlobals"] = "Global variables",
         ["Editor.ManageGlobalsHint"] = "Create, edit or remove the global variables this project shares.",
+        ["Editor.ManageLocals"] = "Local variables",
+        ["Editor.ManageLocalsHint"] = "Rename this macro's own variables, and see which steps read them.",
         ["GlobalVariables.Title"] = "Global variables",
         ["GlobalVariables.Help"] = "These declarations are shared by every macro in the project. Choose a variable on the left, then edit its definition, default expression, current value and persistence on the right. Save commits the whole window; closing with changes asks whether to save or discard them.",
         ["GlobalVariables.New"] = "New variable",
@@ -2398,20 +2495,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionAdd"] = "加一条区域",
         ["Add.RegionRemove"] = "删除",
         ["Add.RegionRemoveHint"] = "把这一条从列表里去掉了。",
+        ["Add.RegionXShort"] = "X",
+        ["Add.RegionYShort"] = "Y",
+        ["Add.RegionWidthShort"] = "宽",
+        ["Add.RegionHeightShort"] = "高",
         ["Add.RegionX"] = "左上角 X",
         ["Add.RegionXHint"] = "这一处的左边界距屏幕左边的像素数；识别方式选窗口时，从窗口客户区的"
-            + "左边算起。",
+            + "左边算起。这一格就是结果里写作 left 的那个数，不是命中中心的 x。",
         ["Add.RegionY"] = "左上角 Y",
         ["Add.RegionYHint"] = "这一处的上边界距屏幕上边的像素数；识别方式选窗口时，从窗口客户区的"
-            + "上边算起。",
+            + "上边算起。这一格就是结果里写作 top 的那个数，不是命中中心的 y。",
         ["Add.RegionWidth"] = "向右的宽",
         ["Add.RegionWidthHint"] = "这一处有多宽，单位像素：从左边界量到右边界。",
         ["Add.RegionHeight"] = "向下的高",
         ["Add.RegionHeightHint"] = "这一处有多高，单位像素：从上边界量到下边界。",
         ["Add.RegionOrVariable"] = "或者：一个变量",
         ["Add.RegionOrVariableHint"] = "不写四个数，改由一个变量说明看哪里：装着截图动作留下的"
-            + "图片的变量，会在那张图里查找；装着 x,y,宽,高 的变量，按它写的位置查看。此格填写"
-            + "内容后，四个数字即被清空。",
+            + "图片的变量，会在那张图里查找；装着「左,上,宽,高」的变量，按它写的位置查看。"
+            + "这四个数与结果里的 left、top、width、height 是同一组，一处地方就是左上角加宽高。"
+            + "此格填写内容后，四个数字即被清空。",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.EmptyReachesTheEdge"] = "此字段留空表示延伸到参照区域的边缘。",
@@ -2470,9 +2572,28 @@ public sealed class Strings : INotifyPropertyChanged
             + "点在找到的东西旁边、甚至点在它的框外面都可以。",
         ["Add.PickOffsetNeedsImage"] = "这一步这次没有找到东西，旁边就没什么可点的。先让它在这里找到一次，再回来拾取。",
         ["Add.PickColours"] = "拾取偏移与颜色…",
-        ["Add.Pattern"] = "对比色",
-        ["Add.PatternCount"] = "对比色（{0} 处）",
-        ["Add.PatternEmpty"] = "尚未加入。用上面的按钮在画面上点出要对比的颜色。",
+        ["Add.ColourPointDx"] = "往右",
+        ["Add.ColourPointDy"] = "往下",
+        ["Add.ColourPointColour"] = "颜色",
+        ["Add.ColourPointTolerance"] = "容差 %",
+        ["Add.ColourPointMustNot"] = "不能是",
+        ["Add.ColourPointNote"] =
+            "一格可以写几个颜色，用竖线分开，命中其中任意一个都算；勾上「不能是」，这一处就要求"
+            + "这几个都不是。容差留空就用上面那一格。",
+        ["Add.ColourPointColourHint"] =
+            "按 #RRGGBB 写一个颜色。同一个位置会有好几种颜色时（比如按钮按下前和按下后），"
+            + "用竖线把它们分开写在同一格，命中其中任意一个都算。",
+        ["Add.ColourPointMustNotHint"] =
+            "勾上后这一处不能是写下的这些颜色：用来写「这个角应该是空的」「图标这时不在」。",
+        ["Add.ColourPointGlobal"] = "同上面",
+        ["Add.ColourPointToleranceHint"] =
+            "留空就跟着上面「容差」那一格。填了只管这一处：锚点要严、周围那些颜色会随光影偏，"
+            + "一个数同时管住两边，往往不是太松就是太严。",
+        ["Add.ColourPointAdd"] = "再加一处",
+        ["Add.ColourPointRemoveHint"] = "把这一处从图案里删掉。",
+        ["Add.ColourPointEmpty"] =
+            "图案至少要有一处要和基准色一起出现。在加上一处之前，这一步跑不了："
+            + "那时它找的就只是基准色本身。",
         ["Add.PickColoursHint"] = "打开这一步已有的那些点：在画面上点出基准色周围要对的颜色，"
             + "窗里看到的就是这一步保存的内容。",
 
@@ -2481,7 +2602,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["LookPick.ColoursTitle"] = "偏移与颜色",
         ["LookPick.OffsetHint"] = "在画面上点出落点。橙色圈为命中中心，偏移 0 即指向此处。",
         ["LookPick.ColoursHint"] = "在画面上点出基准色周围要对的颜色。拖圆点移动，"
-            + "右键圆点编辑或删除，滚轮键单击新增。",
+            + "右键圆点编辑、加备选色或删除；按住 Shift 点一处，可以给这一处再加一种备选色。",
         ["LookPick.Added"] = "已加入",
         ["LookPick.NothingAdded"] = "尚未加入。在画面上点一处，或按「+」键入一条。",
         ["LookPick.OffsetAt"] = "偏移 {0}, {1}",
@@ -2492,17 +2613,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["LookPick.AddHint"] = "手动新增一处",
         ["LookPick.EntryTitle"] = "编辑一处",
         ["LookPick.AddTitle"] = "新增一处",
-        ["LookPick.EntryHint"] = "偏移相对命中中心。三处均可填算式或变量，如 12+3、$dx。",
+        ["LookPick.EntryHint"] = "偏移相对命中中心。三处均可填算式或变量，如 12+3、$dx；"
+            + "颜色那一格可以写几种，用竖线隔开，如 #E04A3F|#B03A33，命中任一即可。",
         ["LookPick.ExpressionHint"] = "构建表达式",
         ["LookPick.EntryX"] = "偏移 X",
         ["LookPick.EntryY"] = "偏移 Y",
         ["LookPick.EntryColour"] = "颜色",
+        ["LookPick.EntryVariableTip"] = "也可以直接写算式或变量，例如 12+3；能用的变量：{0}",
         ["LookPick.EntryBad"] = "格式为「偏移, 偏移, 颜色」，例如 12,-4,#FF0000。",
         ["LookPick.Moved"] = "已移至 {0}, {1}。",
         ["LookPick.ColoursEdited"] = "已改为 {0}。",
         ["LookPick.ColoursLeft"] = "剩余 {0} 条。",
         ["LookPick.Picked"] = "已选中，在画面上点一处可移动。",
         ["LookPick.NothingPicked"] = "已取消选中。",
+        ["LookPick.AddAlternative"] = "加备选色…",
+        ["LookPick.AlternativeAdded"] = "已加备选色 {0}，这一处共 {1} 种颜色。",
+        ["LookPick.AlternativeRepeat"] = "这一处已经有这个颜色。",
+        ["LookPick.AlternativeFull"] = "一处最多 {0} 种颜色。",
+        ["LookPick.AlternativeNeedPoint"] =
+            "先点中一处：点它的圆点，或按住 Shift 点一处，把这个像素的颜色加进去。",
 
         // ------------------------------------------------------------- 这一步看到了什么
         ["Look.Title"] = "这一步看到了什么",
@@ -2843,6 +2972,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.BlockEnd"] = "{0} 结束",
         ["Editor.Fold"] = "收起里面的步骤",
         ["Editor.RegionCount"] = "{0} 处",
+        ["Editor.ColourPointCount"] = "{0} 处对比色",
         ["Editor.KeyCount"] = "{0} 个组合",
         ["Editor.PictureCount"] = "{0} 张图",
         ["Editor.ReturnCount"] = "{0} 项结果",
@@ -3187,11 +3317,39 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NoSelection"] = "尚未选择动作",
         ["Add.SelectHint"] = "这个窗口还没有动作：关掉它，把动作库里的一张卡片拖到这一步该在的位置。",
         ["Add.Page.Base"] = "基础设置",
+        ["Add.Page.Exec"] = "执行与容错",
         ["Add.Page.Advanced"] = "高级设置",
         ["Add.Page.Returns"] = "返回值",
         ["Add.Page.Other"] = "其它设置",
         ["Add.Page.ReturnsHint"] = "这一步运行时能算出来的结果。勾上要留下的那些：每一项各自成为一个变量，"
-            + "名字由备注、动作和结果名拼成，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+            + "名字由备注、动作和结果名拼成，后面的步骤按名字取用，也可以在那一行自己改。"
+            + "一个都不勾也可以，这一步就不留下任何结果。每一项装的是什么，看它的悬停提示。",
+        ["Add.ReturnPickHint"] = "勾上的各自成为一个变量，悬停结果名看它是什么",
+        ["Add.ReturnKeep"] = "留下",
+        ["Add.ReturnResult"] = "结果",
+        ["Add.ReturnResultHint"] = "悬停某一项，看它装的是什么",
+        ["Add.ReturnShape"] = "结构",
+        ["Add.ReturnShapeHint"] = "这一项装的是什么；悬停看全部字段",
+        ["Add.ReturnShapeFlag"] = "true | false",
+        ["Add.ReturnShapeImage"] = "图片",
+        ["Add.ReturnShapeText"] = "\"文字\"",
+        ["Add.ReturnShapeTip"] = "共 {0} 项。取其中一项：field($变量, \"字段名\")。",
+        ["Add.ReturnShapeTipBare"] = "一个值：{0}",
+        ["Add.ReturnName"] = "变量名",
+        ["Add.ReturnNameHint"] = "后面的步骤按这个名字取这一项结果。用默认给的名字也行；自己改一个，"
+            + "读起来更像这一步找到的东西。",
+        ["LocalVariables.Title"] = "局部变量",
+        ["LocalVariables.Hint"] = "这个宏自己造出来的变量：步骤交回的结果，或「设置变量」写下的名字。"
+            + "局部变量是写出来的，所以这里没有「新建」；改名会连同本宏里读到它的地方一起改。",
+        ["LocalVariables.Search"] = "搜索名字",
+        ["LocalVariables.Empty"] = "这个宏还没有自己的变量。",
+        ["LocalVariables.Type"] = "装着",
+        ["LocalVariables.Source"] = "来自",
+        ["LocalVariables.Rename"] = "改名",
+        ["LocalVariables.RenameHint"] = "新名字会替换本宏里所有用到它的地方。已经被别的变量用着的名字不能再用。",
+        ["LocalVariables.RenameButton"] = "改名",
+        ["LocalVariables.UsedBy"] = "读到它的步骤",
+        ["LocalVariables.Close"] = "关闭",
         ["Add.JsonNode"] = "JSON 节点",
         ["Add.JsonPlaceholder"] = "// 选择一个动作以预览它的 JSON 节点",
         ["Add.NoParameters"] = "这个动作不需要参数。",
@@ -3233,7 +3391,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Category.Control.short"] = "流程",
         ["Add.Category.System.short"] = "系统",
         ["Add.Category.File"] = "文件",
-        ["Add.Category.Data"] = "文本与数据",
+        ["Add.Category.Data"] = "数据与变量",
         ["Add.Category.Clipboard"] = "剪贴板",
         ["Add.Category.Process"] = "程序与窗口",
         ["Add.Category.System"] = "系统",
@@ -3271,6 +3429,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "结果变量应该有自己的名字。",
         ["Add.NameMakeUnique"] = "换个名字",
         ["Add.NameMakeUniqueHint"] = "在名字后面加一个编号，避开已经被占用的名字。",
+        ["Add.ToleranceChannel"] = "≈ 每通道 ±{0} / 255",
         ["Add.StepTimeout"] = "超时",
         ["Add.StepTimeoutHint"] = "从第一次尝试开始计时，所有尝试共用这段时间，包含重试之间的"
             + "等待；0 表示不限。块上的超时覆盖整段，因此包含子步骤的等待。已经开始、无法中途取消的"
@@ -3296,6 +3455,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.OnError.Continue"] = "忽略并继续下一步",
         ["Add.OnError.NextIteration"] = "进入下一轮循环",
         ["Add.OnError.AskUser"] = "暂停并询问（重试 / 跳过 / 停止）",
+        ["Add.OnError.StopNote"] = "整个宏停在这一步，后面的步骤都不再执行。这是默认值。",
+        ["Add.OnError.ContinueNote"] = "记一条失败，然后照常往下走。适合“找不到也行”的可选步骤。",
+        ["Add.OnError.NextIterationNote"] = "只在内层循环里有意义：放弃这一轮，从下一轮接着来。循环外等同“继续下一步”。",
+        ["Add.OnError.AskNote"] = "弹出问题，给重试、跳过、停止三个选择。宏停在这里等回答。",
+        ["Add.Group.point"] = "看哪一个点",
+        ["Add.Group.area"] = "在哪个范围里找",
+        ["Add.Group.colour"] = "什么颜色",
+        ["Add.Group.found"] = "怎样算找到",
+        ["Add.Group.press"] = "怎么点",
+        ["Add.Group.tuning"] = "识别调参",
+        ["Add.Exec.Scope"] = "每个动作都有",
+        ["Add.Exec.Pace"] = "执行节奏",
+        ["Add.Exec.PaceHint"] = "前延迟给界面时间：窗口刚打开、动画还没停时，先等再找。后延迟给下一步让路。",
+        ["Add.Exec.TimeoutGroup"] = "最多花多久",
+        ["Add.Exec.RetryGroup"] = "重试",
+        ["Add.Exec.RetryHint"] = "重试会重新执行这一步，包括它的副作用：点击会再点一次，发送会再发一次。只读的动作重试是安全的。",
+        ["Add.Exec.FailureGroup"] = "失败时",
+        ["Add.Exec.FailureHint"] = "这一步没做成时，整个宏走到哪里去。",
+        ["Add.Exec.AskWarn"] = "触发器启动的宏旁边没有人，问出去的问题会一直等下去。无人值守的步骤不要选这一项。",
         ["Expr.Error.Syntax"] = "表达式语法错误：{0}",
         ["Expr.Error.UnknownVariable"] = "表达式用了未定义的变量：{0}",
         ["Expr.Error.UnknownFunction"] = "表达式用了未知的函数：{0}",
@@ -4188,7 +4366,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadUserFailureKey"] = "用户失败键必须从 User. 开始，后面是能读回来的变量名：{0}",
         ["Run.BadPoint"] = "交给它的那条记录里没有 x、y（命中、窗口、元素都会带着这两个数，取的是"
             + "那块矩形的中心）：{0}",
-        ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
+        ["Run.BadPoints"] = "多点比色的每一处都要有「往右」「往下」和「颜色」：{0}",
+        ["Run.NoColourPoints"] =
+            "这个图案里一处对比色都没有。只找基准色是「找色」的事，所以这一步不会跑。",
         ["Run.RecordWhereNumber"] = "这一格要的是数字，却收到了一条记录：记录是一组有名有姓的字段，不是数。要取其中一项用 field()。",
         ["Run.BadPattern"] = "这不是一个可用的匹配模式：{0}",
         ["Run.RegexTimeout"] = "正则表达式在一秒内没有算完：{0}",
@@ -4203,6 +4383,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.ImageMissing"] = "屏幕上没有，这一步没有交出位置。",
         ["Run.ImageNotFound"] = "始终没有找到参考图片：{0}",
         ["Log.ClickedImage"] = "已点击匹配位置 {0},{1}",
+        ["Log.ClickedColour"] = "已点击颜色所在位置 {0},{1}",
         ["Log.Detected"] = "检测到 {0}。",
         ["Log.DetectedNothing"] = "{0} 中没有检测到对象，这一步没有交出位置。",
         ["Run.DetectNotFound"] = "始终没有检测到：{0}",
@@ -4369,6 +4550,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.Pasted"] = "已发送粘贴快捷键。",
         ["Run.ClipboardTimeout"] = "剪贴板一直没有变化。",
         ["Run.ClipboardBusy"] = "另一个程序正占用剪贴板。",
+        ["Run.ColourNotFound"] = "没有找到这个颜色：{0}。"
+            + "这一步把「没找到」当成了失败；关掉它，没找到就只是一个结果。",
         ["Run.ClipboardWriteFailed"] = "剪贴板没有接受这段文本。",
         ["Log.StartedProgram"] = "已启动 {0}，进程 id 为 {1}。",
         ["Log.StartedRun"] = "已在后台启动“{0}”，句柄为 {1}。",
@@ -4465,8 +4648,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.MacroDescription"] = "描述：",
         ["Editor.VariableCenter"] = "变量中心",
         ["Editor.VariableCenterHint"] = "双击局部变量改名，全局变量打开定义。",
-        ["Editor.ManageGlobals"] = "管理全局变量",
+        ["Editor.ManageGlobals"] = "全局变量",
         ["Editor.ManageGlobalsHint"] = "新建、编辑或删除这个项目共享的全局变量。",
+        ["Editor.ManageLocals"] = "局部变量",
+        ["Editor.ManageLocalsHint"] = "改这个宏自己的变量名，看哪些步骤在用它。",
         ["GlobalVariables.Title"] = "全局变量",
         ["GlobalVariables.Help"] = "这些声明由项目里的所有宏共享。先在左侧选择变量，再在右侧编辑定义、默认表达式、当前值和持久化；保存才提交整窗修改，有修改时关闭会先询问保存还是放弃。",
         ["GlobalVariables.New"] = "新建变量",

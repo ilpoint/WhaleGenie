@@ -681,7 +681,7 @@ public class ActionContractTests
             "clipboard.copy", "clipboard.paste",
             "ocr.clickText",
             "uia.click",
-            "vision.clickImage", "vision.clickDetect",
+            "vision.clickImage", "vision.clickDetect", "vision.clickColor",
         ];
 
         foreach (var key in sending)
@@ -786,6 +786,7 @@ public class ActionContractTests
             ["narrow"] = ["how", "value"],
             ["images"] = ["image"],
             ["keySequence"] = ["keys", "holdMs", "gapMs"],
+            ["points"] = ["dx", "dy", "colour", "mustNot", "tolerance"],
         };
 
         foreach (var action in ActionSemanticsCatalog.All)
@@ -838,6 +839,7 @@ public class ActionContractTests
         ActionParameterKind.Region or ActionParameterKind.KeySequence
             or ActionParameterKind.Images or ActionParameterKind.Returns
             or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+            or ActionParameterKind.ColourPoints
             => ActionValueShape.Rows,
         ActionParameterKind.Image => ActionValueShape.Image,
         ActionParameterKind.Record => ActionValueShape.Record,

@@ -231,7 +231,6 @@ internal static class BenchFixtures
         [("vision.capture", "path")] = "bench-capture.png",
         [("vision.findColors", "color")] = "#000000",
         [("input.mouseMoveRelative", "inputMode")] = "foreground",
-        [("vision.findColors", "points")] = "0,0,#000000",
         [("vision.captureWindow", "path")] = "bench-capture.png",
     };
 
@@ -473,6 +472,16 @@ internal static class BenchFixtures
                     ["y"] = "0",
                     ["width"] = "80",
                     ["height"] = "40",
+                };
+
+            // The colours a pattern wants around its base colour: one offset and the colour at it,
+            // so the step has a pattern to look for rather than an empty list it would refuse.
+            case "points":
+                return new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["dx"] = "0",
+                    ["dy"] = "0",
+                    ["colour"] = "#000000",
                 };
 
             // A chord per row.

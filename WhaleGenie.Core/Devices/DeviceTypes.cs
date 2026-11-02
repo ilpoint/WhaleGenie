@@ -236,6 +236,18 @@ public enum MatchOrder
     /// <summary>Down the screen first and then across, the order a person counts them in.</summary>
     Reading,
 
+    /// <summary>
+    /// The same reading, from the bottom of the area upwards. A list of things stacked against the
+    /// bottom of a window is counted upwards, and the last one drawn is the one nearest the edge.
+    /// </summary>
+    ReadingUp,
+
+    /// <summary>The same reading, from the right of the area to the left.</summary>
+    ReadingBack,
+
+    /// <summary>From the bottom right corner of the area to the top left, the way round that is left.</summary>
+    ReadingBackUp,
+
     /// <summary>The surest first, wherever on the screen it is.</summary>
     Score,
 

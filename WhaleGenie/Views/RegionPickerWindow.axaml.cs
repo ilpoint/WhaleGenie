@@ -39,6 +39,12 @@ public partial class RegionPickerWindow : Window
     /// <summary>How big a handle is drawn, which is also how close to an edge counts as being on it.</summary>
     private const double HandleSize = 7;
 
+    /// <summary>
+    /// 方块往外还能抓住多远。只用几像素：框外再远一点按下去就是「另画一个」，否则想重新框一块
+    /// 紧挨着现有框的地方时，会先抓住旧框的边角，一拖就把旧框拉成一条线。
+    /// </summary>
+    private const double GrabOutside = 3;
+
     /// <summary>Where a handle sits on a rectangle, as a fraction of it: the four corners first,
     /// then the middle of each side.</summary>
     private static readonly (double X, double Y)[] HandlePlaces =
@@ -93,6 +99,15 @@ public partial class RegionPickerWindow : Window
 
     /// <summary>The desk as it was when this opened, which is what stands in for the screen.</summary>
     private WriteableBitmap? _picture;
+
+    /// <summary>The same desk as pixels, which is what the loupe reads.</summary>
+    private ImageFrame? _deskFrame;
+
+    /// <summary>放大镜：拉边、拉角时看得见手里那一像素落在哪。</summary>
+    private readonly Magnifier _magnifier = new();
+
+    /// <summary>放大镜这一帧落在哪，读数气泡要挂在它下面。</summary>
+    private Rect? _loupeAt;
 
     /// <summary>Where the screen starts, in screen pixels; the window sits exactly there.</summary>
     private PixelPoint _origin;
@@ -210,6 +225,9 @@ public partial class RegionPickerWindow : Window
             {
                 surface.Children.Add(handle);
             }
+
+            // 最后加：放大镜要压在选择框和遮罩之上，否则拉角时它自己会被压暗。
+            surface.Children.Add(_magnifier);
 
             if (_arrow)
             {
@@ -381,6 +399,7 @@ public partial class RegionPickerWindow : Window
 
         _picture?.Dispose();
         _picture = picture;
+        _deskFrame = frame;
         _desk.Source = picture;
     }
 
@@ -437,6 +456,25 @@ public partial class RegionPickerWindow : Window
         => new(_origin.X + (int)Math.Round(point.X * _scaling),
                _origin.Y + (int)Math.Round(point.Y * _scaling));
 
+    /// <summary>
+    /// 把放大镜摆到指针右下方，只在拖动的时候出现（画新框、拉边、拉角都算拖动），松手就收起来。
+    /// 读数气泡挂在放大镜下面而不是自己也贴着指针：两样都跟着指针时，各占一处才谁也不遮谁——
+    /// 放大镜压住气泡时，连这一刀切在哪都读不出来了。
+    /// </summary>
+    private void Aim(Point at, bool show)
+    {
+        if (!show || _deskFrame is not { } frame)
+        {
+            _magnifier.Hide();
+            _loupeAt = null;
+            return;
+        }
+
+        var place = ToScreen(at);
+        _magnifier.Follow(frame, place.X - _origin.X, place.Y - _origin.Y);
+        _loupeAt = _magnifier.PlaceNear(at.X, at.Y, Width, Height, 18);
+    }
+
     /// <summary>The other way round: a rectangle of the screen as it sits on the window.</summary>
     private Rect OnWindow(Region region)
         => new((region.X - _origin.X) / _scaling,
@@ -480,6 +518,9 @@ public partial class RegionPickerWindow : Window
         e.Pointer.Capture(this);
         Cursor = CursorFor(_grip);
         e.Handled = true;
+
+        // 先摆放大镜，再画：读数气泡要挂在放大镜下面，得先知道它落在哪。
+        Aim(position, true);
         Update();
     }
 
@@ -510,7 +551,9 @@ public partial class RegionPickerWindow : Window
             }
         }
 
-        Cursor = CursorFor(_active ? _grip : HitTest(position));
+        var pointing = _active ? _grip : HitTest(position);
+        Cursor = CursorFor(pointing);
+        Aim(position, _active);
         Update();
     }
 
@@ -540,7 +583,9 @@ public partial class RegionPickerWindow : Window
             }
         }
 
-        Cursor = CursorFor(HitTest(e.GetPosition(this)));
+        var released = e.GetPosition(this);
+        Cursor = CursorFor(HitTest(released));
+        Aim(released, false);
         Update();
     }
 
@@ -577,12 +622,12 @@ public partial class RegionPickerWindow : Window
         }
 
         var rect = OnWindow(region);
-        var west = Math.Abs(point.X - rect.Left) <= HandleSize;
-        var east = Math.Abs(point.X - rect.Right) <= HandleSize;
-        var north = Math.Abs(point.Y - rect.Top) <= HandleSize;
-        var south = Math.Abs(point.Y - rect.Bottom) <= HandleSize;
-        var acrossX = point.X >= rect.Left - HandleSize && point.X <= rect.Right + HandleSize;
-        var acrossY = point.Y >= rect.Top - HandleSize && point.Y <= rect.Bottom + HandleSize;
+        var west = point.X >= rect.Left - GrabOutside && point.X <= rect.Left + HandleSize;
+        var east = point.X >= rect.Right - HandleSize && point.X <= rect.Right + GrabOutside;
+        var north = point.Y >= rect.Top - GrabOutside && point.Y <= rect.Top + HandleSize;
+        var south = point.Y >= rect.Bottom - HandleSize && point.Y <= rect.Bottom + GrabOutside;
+        var acrossX = point.X >= rect.Left - GrabOutside && point.X <= rect.Right + GrabOutside;
+        var acrossY = point.Y >= rect.Top - GrabOutside && point.Y <= rect.Bottom + GrabOutside;
 
         if (west && north)
         {
@@ -672,7 +717,11 @@ public partial class RegionPickerWindow : Window
         }
     }
 
-    /// <summary>Moves the edges the grabbed handle belongs to, leaving the opposite ones put.</summary>
+    /// <summary>
+    /// Moves the edges the grabbed handle belongs to, leaving the opposite ones put. Dragged past
+    /// the opposite edge the rectangle turns over rather than folding up into a line: what the hand
+    /// is doing is drawing that part of the screen, and a line is not a rectangle anybody asked for.
+    /// </summary>
     private void PullTo(PixelPoint point)
     {
         var left = _left;
@@ -682,22 +731,32 @@ public partial class RegionPickerWindow : Window
 
         if (_grip is Grip.West or Grip.NorthWest or Grip.SouthWest)
         {
-            left = Math.Min(point.X, right - MinimumSize);
+            left = point.X;
         }
 
         if (_grip is Grip.East or Grip.NorthEast or Grip.SouthEast)
         {
-            right = Math.Max(point.X, left + MinimumSize);
+            right = point.X;
         }
 
         if (_grip is Grip.North or Grip.NorthWest or Grip.NorthEast)
         {
-            top = Math.Min(point.Y, bottom - MinimumSize);
+            top = point.Y;
         }
 
         if (_grip is Grip.South or Grip.SouthWest or Grip.SouthEast)
         {
-            bottom = Math.Max(point.Y, top + MinimumSize);
+            bottom = point.Y;
+        }
+
+        if (left > right)
+        {
+            (left, right) = (right, left);
+        }
+
+        if (top > bottom)
+        {
+            (top, bottom) = (bottom, top);
         }
 
         if (_bounds is { } bounds)
@@ -821,15 +880,30 @@ public partial class RegionPickerWindow : Window
             : Strings.Get("Region.Drag");
 
         // The readout follows the pointer rather than a corner of the rectangle: a rectangle being
-        // dragged can put its corner under the text, and a hint nobody can find is no hint.
-        var at = _pointer ?? _end;
-        var left = ((at.X - _origin.X) / _scaling) + 18;
-        var top = ((at.Y - _origin.Y) / _scaling) + 18;
+        // dragged can put its corner under the text, and a hint nobody can find is no hint. While
+        // the loupe is up it hangs under the loupe instead of beside the pointer, so the two never
+        // cover each other — both follow the pointer, so they have to be stacked.
         var width = _readout.Bounds.Width > 0 ? _readout.Bounds.Width : 220;
         var height = _readout.Bounds.Height > 0 ? _readout.Bounds.Height : 60;
+        var roomWidth = Width > 0 ? Width : Bounds.Width;
+        var roomHeight = Height > 0 ? Height : Bounds.Height;
 
-        Canvas.SetLeft(_readout, Math.Clamp(left, 0, Math.Max(0, Bounds.Width - width)));
-        Canvas.SetTop(_readout, Math.Clamp(top, 0, Math.Max(0, Bounds.Height - height)));
+        double left;
+        double top;
+        if (_loupeAt is { } loupe)
+        {
+            left = loupe.X;
+            top = loupe.Bottom + 8;
+        }
+        else
+        {
+            var at = _pointer ?? _end;
+            left = ((at.X - _origin.X) / _scaling) + 18;
+            top = ((at.Y - _origin.Y) / _scaling) + 18;
+        }
+
+        Canvas.SetLeft(_readout, Math.Clamp(left, 0, Math.Max(0, roomWidth - width)));
+        Canvas.SetTop(_readout, Math.Clamp(top, 0, Math.Max(0, roomHeight - height)));
 
         PreviewWindow(region, big);
     }
@@ -975,6 +1049,7 @@ public partial class RegionPickerWindow : Window
 
         _picture?.Dispose();
         _picture = null;
+        _magnifier.Release();
     }
 
     private void Finish(Region? region)

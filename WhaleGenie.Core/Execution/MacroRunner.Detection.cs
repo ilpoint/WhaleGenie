@@ -385,6 +385,9 @@ public sealed partial class MacroRunner
         "score" => MatchOrder.Score,
         "area" => MatchOrder.Area,
         "random" => MatchOrder.Random,
+        "readingup" => MatchOrder.ReadingUp,
+        "readingback" => MatchOrder.ReadingBack,
+        "readingbackup" => MatchOrder.ReadingBackUp,
         _ => MatchOrder.Reading,
     };
 
@@ -408,6 +411,26 @@ public sealed partial class MacroRunner
 
             case MatchOrder.Random:
                 Shuffle(hits);
+                break;
+
+            // The other three readings are the same two questions asked the other way round: which
+            // corner to start from decides which of several identical things counts as the first.
+            case MatchOrder.ReadingUp:
+                hits.Sort((left, right) => left.Location.Y != right.Location.Y
+                    ? right.Location.Y.CompareTo(left.Location.Y)
+                    : left.Location.X.CompareTo(right.Location.X));
+                break;
+
+            case MatchOrder.ReadingBack:
+                hits.Sort((left, right) => left.Location.Y != right.Location.Y
+                    ? left.Location.Y.CompareTo(right.Location.Y)
+                    : right.Location.X.CompareTo(left.Location.X));
+                break;
+
+            case MatchOrder.ReadingBackUp:
+                hits.Sort((left, right) => left.Location.Y != right.Location.Y
+                    ? right.Location.Y.CompareTo(left.Location.Y)
+                    : right.Location.X.CompareTo(left.Location.X));
                 break;
 
             default:
@@ -510,9 +533,23 @@ public sealed partial class MacroRunner
     /// it worth anything, and one step hands that over by ticking the box rather than by a switch of
     /// its own.
     /// </summary>
-    private int Wanted(ExecutableStep step) => Wants(step, "every")
-        ? MatchLimit
-        : Index(step, "matchIndex", 1);
+    private int Wanted(ExecutableStep step)
+    {
+        if (Wants(step, "every") || CountsFromTheFarSide(step))
+        {
+            return MatchLimit;
+        }
+
+        return Index(step, "matchIndex", 1);
+    }
+
+    /// <summary>
+    /// True while the step counts its hits from a corner other than the top left. "The third one"
+    /// then means the third from that corner, which cannot be known until every hit has been read:
+    /// stopping at three would count them from the wrong end and pick the wrong one.
+    /// </summary>
+    private static bool CountsFromTheFarSide(ExecutableStep step) => OrderOf(step) is
+        MatchOrder.ReadingUp or MatchOrder.ReadingBack or MatchOrder.ReadingBackUp;
 
     /// <summary>The hit a step wants, counted from the top left, or null when there are not that many.</summary>
     private ImageMatch? Chosen(IReadOnlyList<ImageMatch> hits, ExecutableStep step)

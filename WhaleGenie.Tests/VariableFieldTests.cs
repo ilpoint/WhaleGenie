@@ -172,7 +172,9 @@ public class VariableFieldTests
             .FirstOrDefault(action => action.Key == "control.setVariable"));
 
         Assert.NotNull(set);
-        Assert.Equal(ActionCategory.Control, set.Category);
+        // 变量不是控制流：它不决定下一步去哪，只是把一个值放下。所以它在「数据与变量」里，
+        // 和编码、摘要这些处理数据的动作放在一起，而不是在流程那一栏。
+        Assert.Equal(ActionCategory.Data, set.Category);
         Assert.Equal("设置变量", ActionStrings.Chinese["control.setVariable.name"]);
         Assert.DoesNotContain(ActionCatalog.RunnableActions, action =>
             action.Key is "control.calculate" or "control.delayRandom" or "control.listCreate"

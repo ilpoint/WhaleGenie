@@ -425,7 +425,7 @@ public class GlobalVariablesTests
             var dialog = Assert.Single(window.OwnedWindows.OfType<GlobalVariablesWindow>());
             dialog.Close();
             Dispatcher.UIThread.RunJobs();
-            window.Close(null);
+            Ui.CloseAndDiscard(window);
         });
     }
 
@@ -658,7 +658,10 @@ public class GlobalVariablesTests
                 PersistentVariables.Flush();
                 Assert.True(PersistentVariables.TryGet("editedByManager", out var saved));
                 Assert.Equal("9", saved);
-                window.Close(null);
+
+                // 关窗时问的“要不要保存”必须在这里答完：编辑器把问题排进队列，走了不管就会在
+                // 下一个检查里冒出来，把那个检查的调度循环留在运行中。
+                Ui.CloseAndDiscard(window);
                 return true;
             }
             finally
@@ -732,7 +735,11 @@ public class GlobalVariablesTests
                 Assert.Equal(6, SharedVariables.Current.Values["newGlobal"].AsNumber());
                 var root = (MacroEditorViewModel)window.DataContext!;
                 Assert.Equal("$newGlobal + 1", root.Steps[0].Text("message"));
-                window.Close(null);
+
+                // 改名会让这一步的文本变脏，关窗时会问要不要保存。这里问的是一件事：改名有没有
+                // 落到步骤上。问句必须在这里答完，否则它会在下一个检查里冒出来，把那个检查的
+                // 调度循环留在运行中。
+                Ui.CloseAndDiscard(window);
                 return true;
             }
             finally
@@ -858,7 +865,7 @@ public class GlobalVariablesTests
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.Equal(11, SharedVariables.Current.Values["liveOnly"].AsNumber());
-                window.Close(null);
+                Ui.CloseAndDiscard(window);
                 return true;
             }
             finally

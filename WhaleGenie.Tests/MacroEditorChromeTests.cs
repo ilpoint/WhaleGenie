@@ -352,7 +352,9 @@ public class MacroEditorChromeTests
             Assert.NotNull(window.FindControl<TextBox>("NameInput"));
             Assert.NotNull(window.FindControl<TextBox>("DescriptionInput"));
 
-            window.Close(null);
+            // 这份文档被改过（加了触发器、切过页签），关窗会问要不要保存。问题必须在这里答完，
+            // 否则它会在下一个检查里才弹出来，把那个检查的调度循环留在运行中。
+            Ui.CloseAndDiscard(window);
         });
     }
 

@@ -1,0 +1,113 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        x:Class="WhaleGenie.Views.LocalVariablesWindow"
+        x:DataType="vm:LocalVariablesViewModel"
+        Title="WhaleGenie"
+        Width="660" Height="540" MinWidth="540" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Grid Margin="18,14,18,14" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <StackPanel Spacing="4">
+            <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimary}" />
+            <TextBlock Classes="Hint" Text="{Binding Help}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="240,12,*">
+            <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                <TextBox Name="SearchBox" Text="{Binding SearchText}" Classes="Field"
+                         PlaceholderText="{Binding [LocalVariables.Search], Source={x:Static loc:Strings.Current}}" />
+
+                <Border Grid.Row="1" Classes="Card" Padding="4">
+                    <ListBox Name="VariableList" ItemsSource="{Binding Shown}"
+                             SelectedItem="{Binding Selected, Mode=TwoWay}"
+                             SelectionMode="Single" Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:VariableChoice">
+                                <StackPanel Spacing="1" Margin="2,4">
+                                    <TextBlock Text="{Binding Display}" FontSize="12.5"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextPrimary}" />
+                                    <TextBlock Text="{Binding Source}" FontSize="11"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextTertiary}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <TextBlock Grid.Row="1" Classes="Hint" IsVisible="{Binding IsEmpty}"
+                           TextWrapping="Wrap" Margin="6,8"
+                           Text="{Binding [LocalVariables.Empty], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+
+            <!-- 右半边只讲这一件事：它是谁、从哪来、谁在读、叫什么名字。 -->
+            <Border Grid.Column="2" Classes="Card" Padding="14" IsVisible="{Binding HasSelection}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="{Binding Selected.Display}" FontSize="14" FontWeight="SemiBold"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextPrimary}" />
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10"
+                              RowSpacing="4">
+                            <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                                       Text="{Binding [LocalVariables.Type], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Grid.Column="1" FontSize="11.5"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="{Binding SelectedType}" />
+                            <TextBlock Grid.Row="1" FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                                       Text="{Binding [LocalVariables.Source], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11.5" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Text="{Binding SelectedSource}" />
+                        </Grid>
+
+                        <TextBlock Classes="Hint" Text="{Binding SelectedDescription}" TextWrapping="Wrap"
+                                   IsVisible="{Binding HasDescription}" />
+
+                        <Border Height="1" Background="{DynamicResource BorderSubtle}" />
+
+                        <TextBlock Classes="SectionHeader"
+                                   Text="{Binding [LocalVariables.Rename], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                   Text="{Binding [LocalVariables.RenameHint], Source={x:Static loc:Strings.Current}}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Name="NameBox" Classes="Field" Text="{Binding DraftName}" />
+                            <Button Grid.Column="1" Classes="Primary" Height="30" Padding="12,0"
+                                    Command="{Binding RenameCommand}"
+                                    Content="{Binding [LocalVariables.RenameButton], Source={x:Static loc:Strings.Current}}" />
+                        </Grid>
+                        <TextBlock Text="{Binding Problem}" TextWrapping="Wrap"
+                                   IsVisible="{Binding HasProblem}"
+                                   Foreground="{DynamicResource Danger}" FontSize="11.5" />
+
+                        <Border Height="1" Background="{DynamicResource BorderSubtle}"
+                                IsVisible="{Binding HasUses}" />
+
+                        <TextBlock Classes="SectionHeader" IsVisible="{Binding HasUses}"
+                                   Text="{Binding [LocalVariables.UsedBy], Source={x:Static loc:Strings.Current}}" />
+                        <ItemsControl ItemsSource="{Binding SelectedUses}" IsVisible="{Binding HasUses}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:VariableUse">
+                                    <TextBlock Text="{Binding Label}" FontSize="11.5"
+                                               TextWrapping="Wrap" Margin="0,0,0,2"
+                                               Foreground="{DynamicResource TextSecondary}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Button Grid.Row="2" Classes="Secondary" Height="32" Padding="16,0"
+                HorizontalAlignment="Right" Click="OnClose"
+                Content="{Binding [LocalVariables.Close], Source={x:Static loc:Strings.Current}}" />
+    </Grid>
+</views:AppWindow>

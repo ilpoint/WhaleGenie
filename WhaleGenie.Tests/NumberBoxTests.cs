@@ -143,8 +143,12 @@ public class NumberBoxTests
         });
     }
 
+    /// <summary>
+    /// 一个地方就是一句话：左上角在哪、有多宽多高，四个数字并排一行。排成两行两列时，
+    /// 「宽」掉到「X」下面，读起来像两件事，而它只是同一个矩形接着说的话。
+    /// </summary>
     [Fact]
-    public void A_search_region_says_its_rectangle_as_two_lines_of_two()
+    public void A_search_region_says_its_rectangle_on_one_line()
     {
         Ui.Run(() =>
         {
@@ -166,13 +170,13 @@ public class NumberBoxTests
             var width = Place(row.Width);
             var height = Place(row.Height);
 
-            // Where the corner is and how far the rectangle reaches are two things, each said by a
-            // pair of numbers side by side.
-            Assert.True(y.X > x.X, "Y is not beside X");
+            // One line, read left to right: where the corner is, then how far it reaches.
             Assert.Equal(x.Y, y.Y, 1);
-            Assert.True(height.X > width.X, "height is not beside width");
+            Assert.Equal(y.Y, width.Y, 1);
             Assert.Equal(width.Y, height.Y, 1);
-            Assert.True(width.Y > x.Y, "width is not on the line below X");
+            Assert.True(y.X > x.X, "Y is not beside X");
+            Assert.True(width.X > y.X, "width is not beside Y");
+            Assert.True(height.X > width.X, "height is not beside width");
         });
     }
 

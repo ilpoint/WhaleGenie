@@ -456,6 +456,47 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Fails the step for a miss when the step asked for it. A colour that is not there is normally
+    /// an answer — <c>found = false</c>, which the next step branches on — and most macros want to
+    /// read it that way. The ones that only make sense when the colour is there say so, and get the
+    /// failure key a branch can catch instead of every author writing the same condition after the
+    /// step. The waiting and clicking actions never needed the switch: they fail on their own.
+    /// </summary>
+    private void MightHaveMissed(ExecutableStep step, string detail = "")
+    {
+        if (!ReadValue(step, "missingIsFailure").AsBool())
+        {
+            return;
+        }
+
+        throw detail.Length == 0
+            ? new StepFailure(RunKeys.ColourNotFound)
+            : new StepFailure(RunKeys.ColourNotFound, detail);
+    }
+
+    /// <summary>
+    /// Whether one named pixel shows a colour, right now. This is the question "is the light on",
+    /// asked of a place that does not move: there is no region to search and nothing to wait for.
+    /// It hands back what it saw as well as whether it matched, because the answer people want when
+    /// it does not match is "so what colour is it".
+    /// </summary>
+    private void MatchColor(ExecutableStep step, int depth)
+    {
+        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
+        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var (point, window) = Spot(step);
+        var colour = PixelAt(step, point, window);
+        var matched = colour.Matches(target, tolerance);
+
+        Give(step, "matches", Value.FromBool(matched));
+        Give(step, "color", Value.FromText(colour.ToHex()));
+        Give(step, "delta", Value.FromNumber(Math.Round(colour.DistanceTo(target) * 100, 1)));
+        SawPixel(step, point, colour.ToHex(), window);
+        Log(LogLevel.Info, depth, step.Type,
+            matched ? LogKeys.SawColor : LogKeys.ImageMissing, colour.ToHex());
+    }
+
+    /// <summary>
     /// Looks for a colour in the search areas and writes where it was found, once: what it does not
     /// find it leaves empty rather than waiting for, the way finding a picture does. A step that
     /// names a least share of the region — how full a bar has to be before it acts — counts as
@@ -467,12 +508,6 @@ public sealed partial class MacroRunner
         var target = PixelColor.Parse(ReadValue(step, "color").AsText());
         var tolerance = ReadValue(step, "tolerance").AsNumber();
         var least = ReadValue(step, "minCoverage").AsNumber() / 100;
-
-        if (HasPoint(step))
-        {
-            FindColorAtPoint(step, depth, target, tolerance, least);
-            return;
-        }
 
         // The share is only measured when the step asks about it, either by handing it over or by
         // saying below which share it will not act: the walk it costs is otherwise wasted.
@@ -488,6 +523,11 @@ public sealed partial class MacroRunner
 
         var hits = pass.Enough(least) ? pass.Hits : [];
         var match = Chosen(hits, step);
+        if (match is null)
+        {
+            MightHaveMissed(step, target.ToHex());
+        }
+
         Give(step, "found", Value.FromBool(match is not null));
         if (match is null)
         {
@@ -501,48 +541,6 @@ public sealed partial class MacroRunner
         GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? LogKeys.ImageMissing : LogKeys.ImageFound,
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
-    }
-
-    /// <summary>
-    /// A place or a pair of coordinates narrows the search to that one pixel. The point rules are
-    /// the same ones the pixel-reading actions use, and giving a point deliberately wins over the
-    /// region so a step cannot keep two answers for where it looked.
-    /// </summary>
-    private bool HasPoint(ExecutableStep step)
-        => RecordedPlaceAndBasis(step, "place") is not null
-           || step.Text("x").Trim().Length > 0
-           || step.Text("y").Trim().Length > 0;
-
-    private void FindColorAtPoint(ExecutableStep step, int depth, PixelColor target,
-        double tolerance, double least)
-    {
-        var (point, window) = Spot(step);
-        var colour = PixelAt(step, point, window);
-        var matched = colour.Matches(target, tolerance) && least <= 1;
-        var hits = matched
-            ? new List<ImageMatch>
-            {
-                new(1 - colour.DistanceTo(target), point, new ScreenSize(1, 1)),
-            }
-            : [];
-
-        Give(step, "coverage", Value.FromNumber(matched ? 100 : 0));
-        Give(step, "found", Value.FromBool(matched));
-        if (!matched)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            var hit = hits[0];
-            GiveMatch(step, hit.Location, hit.Size, hit.Score);
-        }
-
-        GiveEvery(step, HitRecords(hits));
-        SawPixel(step, point, colour.ToHex(), window);
-        Log(LogLevel.Info, depth, step.Type,
-            matched ? LogKeys.ImageFound : LogKeys.ImageMissing,
-            matched ? $"{point.X},{point.Y}" : string.Empty);
     }
 
     /// <summary>
@@ -621,16 +619,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private void FindColours(ExecutableStep step, int depth)
     {
-        // A place or a pair of numbers narrows the pattern to one pixel — the same rule the single
-        // colour follows, for the same reason: a step cannot keep two answers for where it looked.
-        if (HasPoint(step))
-        {
-            FindColoursAtPoint(step, depth);
-            return;
-        }
-
         var hits = PatternHits(step);
         var match = Chosen(hits, step);
+        if (match is null)
+        {
+            MightHaveMissed(step);
+        }
+
         Give(step, "found", Value.FromBool(match is not null));
         if (match is null)
         {
@@ -644,56 +639,6 @@ public sealed partial class MacroRunner
         GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? LogKeys.ImageMissing : LogKeys.ImageFound,
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
-    }
-
-    /// <summary>
-    /// The pattern read at the one pixel the step names rather than looked for across a region: the
-    /// colour in the middle and each colour the pattern says is around it, all read where the step
-    /// points. The score is how close the whole pattern came, worked out the same way it is for a
-    /// found one, so a point whose neighbours are off gives the same number a search would have.
-    /// </summary>
-    private void FindColoursAtPoint(ExecutableStep step, int depth)
-    {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
-        var around = Pattern(step);
-        var (point, window) = Spot(step);
-
-        var colour = PixelAt(step, point, window);
-        var distance = colour.DistanceTo(target);
-        var matched = colour.Matches(target, tolerance);
-        foreach (var beside in around)
-        {
-            // Beside the pixel the step names, in screen pixels: a pattern says where its colours
-            // are relative to the middle, and the middle is the point that was given.
-            var other = PixelAt(step, new ScreenPoint(point.X + beside.Dx, point.Y + beside.Dy), window);
-            distance += other.DistanceTo(beside.Colour);
-            matched &= other.Matches(beside.Colour, tolerance);
-        }
-
-        var hits = matched
-            ? new List<ImageMatch>
-            {
-                new(1 - (distance / (around.Count + 1)), point, new ScreenSize(1, 1)),
-            }
-            : [];
-
-        Give(step, "found", Value.FromBool(matched));
-        if (!matched)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            var hit = hits[0];
-            GiveMatch(step, hit.Location, hit.Size, hit.Score);
-        }
-
-        GiveEvery(step, HitRecords(hits));
-        SawPixel(step, point, colour.ToHex(), window);
-        Log(LogLevel.Info, depth, step.Type,
-            matched ? LogKeys.ImageFound : LogKeys.ImageMissing,
-            matched ? $"{point.X},{point.Y}" : string.Empty);
     }
 
     /// <summary>
@@ -744,36 +689,84 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// The colours a pattern has to have around it. They are written the way the points of a
-    /// multi-point colour comparison are — a line of two numbers and a colour — but the numbers are
-    /// counted from the middle of the pattern rather than from the corner of the screen, because
-    /// the whole point of a pattern is that it is found wherever it happens to be.
+    /// The colours a pattern has to have around it: one row per colour, each saying where it sits
+    /// relative to the base colour and which colour has to be there. The numbers are counted from
+    /// the middle of the pattern rather than from the corner of the screen, because the whole point
+    /// of a pattern is that it is found wherever it happens to be. A row is a place in the pattern,
+    /// so a pattern with nothing in it is a step that would match everywhere and is refused: it is
+    /// a mistake in the step rather than an answer about the screen.
     /// </summary>
     private IReadOnlyList<ColourStep> Pattern(ExecutableStep step)
     {
-        var text = ReadText(step, "points").Trim();
-        var around = new List<ColourStep>();
-        foreach (var entry in text.Split([';', '\n', '\r'],
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        var rows = step.Rows("points");
+        if (rows.Count == 0)
         {
-            // Split where the commas separate the three parts, not inside a function: an offset
-            // may be worked out by one, and max(1,3) holds a comma of its own.
-            var parts = ColourPointText.Split(entry);
-            if (parts.Count != 3)
+            // An empty pattern is not a pattern with something unreadable in it: it is the step
+            // that would match the base colour anywhere, which is what the plain colour search is
+            // for. It says so rather than borrowing the key about a row that cannot be read.
+            throw new StepFailure(RunKeys.NoColourPoints);
+        }
+
+        var around = new List<ColourStep>(rows.Count);
+        foreach (var row in rows)
+        {
+            var dx = Column(row, "dx").Trim();
+            var dy = Column(row, "dy").Trim();
+            var colour = Column(row, "colour").Trim();
+            var entry = $"{dx},{dy},{colour}";
+            if (dx.Length == 0 || dy.Length == 0 || colour.Length == 0)
             {
                 throw new StepFailure(RunKeys.BadPoints, entry);
             }
 
-            around.Add(new ColourStep(PatternOffset(parts[0], entry), PatternOffset(parts[1], entry),
-                PatternColour(parts[2], entry)));
-        }
+            // One place may allow more than one colour, written one after another with a bar
+            // between them: the same button drawn light in one state and dark in another is one
+            // place, not two patterns. A place that says it must not be these is satisfied by
+            // anything else, which is how a pattern says "this corner is empty".
+            var palette = colour
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(token => PatternColour(token, entry))
+                .ToList();
 
-        if (around.Count == 0)
-        {
-            throw new StepFailure(RunKeys.BadPoints, text);
+            // A cell may be a number, a variable or a sum: moving a pattern by a number another
+            // step produced is the same question the text form answered, and it is answered here.
+            around.Add(new ColourStep(PatternOffset(dx, entry), PatternOffset(dy, entry),
+                palette[0], PatternTolerance(row, entry),
+                palette.Count > 1 ? [.. palette[1..]] : null, MustNotHold(row)));
         }
 
         return around;
+    }
+
+    /// <summary>Whether this place is asked to be none of the colours it names, rather than one of them.</summary>
+    private static bool MustNotHold(IReadOnlyDictionary<string, string> row)
+        => string.Equals(Column(row, "mustNot").Trim(), "true", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// How far this one colour may sit from what was written, or nothing when the row leaves it to
+    /// the search as a whole. An anchor that has to be exact often sits next to shapes whose shading
+    /// drifts; one number for both is then either too loose for the anchor or too tight for the
+    /// rest, which is why the step may say a different number per point.
+    /// </summary>
+    private double? PatternTolerance(IReadOnlyDictionary<string, string> row, string entry)
+    {
+        var token = Column(row, "tolerance").Trim();
+        if (token.Length == 0)
+        {
+            return null;
+        }
+
+        var value = PatternValue(token, entry);
+        var percent = value.IsNumber
+            ? value.AsNumber()
+            : double.TryParse(value.AsText().Trim(), NumberStyles.Float, CultureInfo.InvariantCulture,
+                out var written)
+                ? written
+                : double.NaN;
+
+        return double.IsNaN(percent)
+            ? throw new StepFailure(RunKeys.BadPoints, entry)
+            : Math.Clamp(percent, 0, 100);
     }
 
     /// <summary>
@@ -979,6 +972,48 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedImage, at.X, at.Y);
     }
 
+    /// <summary>
+    /// Looks for a colour in the search areas and clicks it once it is there, waiting for it the way
+    /// clicking a picture waits. The colour actions that only look hand a miss back as an answer and
+    /// leave the branch to say what to do about it; this one is the step that has to work, so a
+    /// colour that never turns up fails with the colour's own key, and a run that catches it reads
+    /// the same name the waiting colour action reports.
+    /// </summary>
+    private async Task ClickColor(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
+        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var least = ReadValue(step, "minCoverage").AsNumber() / 100;
+        var interval = LookBeat(step);
+
+        // Enough of the region showing the colour is not the same question as the hit the step
+        // asked for being there: a step that asks for the second hit of a colour that is in one
+        // place has not found what it is waiting for, and must keep waiting rather than click
+        // whatever happened to be first.
+        ColourPass? Present()
+        {
+            var pass = Scan(step, target, tolerance, least > 0);
+            return pass.Enough(least) && Chosen(pass.Hits, step) is not null ? pass : null;
+        }
+
+        var found = await WaitForValueAsync(Present, interval, token);
+        var match = Chosen(found.Hits, step)!;
+
+        // The click aims at the middle of what was found, moved by the offset the step gives, so a
+        // click can land beside the colour it recognised rather than on it.
+        var at = Scattered(new ScreenPoint(
+            match.Center.X + Number(step, "offsetX"),
+            match.Center.Y + Number(step, "offsetY")), Spread(step));
+
+        // Where it was found and everywhere it was found, as the searching action hands them over:
+        // a step that clicks something is also a step whose position a later one may want.
+        GiveMatch(step, match.Location, match.Size, match.Score);
+        GiveEvery(step, HitRecords(found.Hits));
+
+        await ClickAt(step, at, token);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedColour, at.X, at.Y);
+    }
+
     /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
     private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
 
@@ -999,6 +1034,9 @@ public sealed partial class MacroRunner
             case "vision.captureWindow":
                 await Gate(step, token);
                 Watching(() => CaptureWindow(step, depth));
+                return Signal.Normal;
+            case "vision.matchColor":
+                Watching(() => MatchColor(step, depth));
                 return Signal.Normal;
             case "vision.getPixel":
                 await Gate(step, token);
@@ -1027,6 +1065,10 @@ public sealed partial class MacroRunner
             case "vision.waitImage":
                 await Gate(step, token);
                 await Watching(() => WaitForImage(step, depth, token));
+                return Signal.Normal;
+            case "vision.clickColor":
+                await Gate(step, token);
+                await Watching(() => ClickColor(step, depth, token));
                 return Signal.Normal;
             case "vision.clickImage":
                 await Gate(step, token);

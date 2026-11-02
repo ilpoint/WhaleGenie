@@ -229,10 +229,9 @@ public partial class ActionPaletteViewModel : ViewModelBase
         "control.delay" or "control.waitUntil"
             or "control.holdInput" or "control.holdBrowser"
             or "control.runMacro" => "Waiting",
-        "control.setVariable" or "control.incrementGlobal"
-            or "control.listAdd" or "control.listInsert"
-            or "control.listRemoveAt" or "control.listSet" or "control.listClear"
-            or "control.ask" or "control.input" => "Data",
+        // 变量与列表已经归到「数据与变量」这一分类里，走基础动作那一栏；这里只剩向人取一个
+        // 值的两步，它们仍属流程上的一个停顿。
+        "control.ask" or "control.input" => "Data",
         "control.note" or "control.log" => "Notes",
         _ => "Other",
     };

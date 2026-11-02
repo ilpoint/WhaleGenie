@@ -40,6 +40,60 @@ public partial class ReturnsRowViewModel : ViewModelBase
 
     public bool HasHint => Hint.Length > 0;
 
+    /// <summary>
+    /// 这一项长什么样，一句话说得完的那种：一个开关写 <c>true | false</c>，一条记录写
+    /// <c>{x, y, left, top, …}</c>。名字旁边留着一大片空，说的正是「它到底装的是什么」，
+    /// 而写成示例比再写一句说明省地方：字段名就是 <c>field($变量, "x")</c> 里要写的那个词。
+    /// </summary>
+    public string Structure => Shape(Result);
+
+    /// <summary>
+    /// 完整的结构：每个字段的名字与类型，加上取其中一项的写法。行里只放得下前几个字段，
+    /// 有十一个字段的命中记录要在这里才看得全。
+    /// </summary>
+    public string StructureTip
+    {
+        get
+        {
+            if (Result.Fields.Count == 0)
+            {
+                return Strings.Format("Add.ReturnShapeTipBare", Shape(Result));
+            }
+
+            // `field` 在 C# 14 里是属性访问器的上下文关键字，这里不能拿它当参数名。
+            var fields = string.Join(", ",
+                Result.Fields.Select(part => $"{part.Name}: {ActionReturn.TypeNameOf(part.Type)}"));
+            return $"{fields}\n{Strings.Format("Add.ReturnShapeTip", Result.Fields.Count)}";
+        }
+    }
+
+    /// <summary>How many field names a row shows before it says there are more.</summary>
+    private const int FieldsShown = 4;
+
+    /// <summary>
+    /// The shape of a result as it is written on the line: a value for a plain one, and the first
+    /// few field names for a record or a list, with an ellipsis standing for the rest.
+    /// </summary>
+    private static string Shape(ActionReturn result) => result.Type switch
+    {
+        ActionReturnType.Flag => Strings.Get("Add.ReturnShapeFlag"),
+        ActionReturnType.Number => "0",
+        ActionReturnType.Image => Strings.Get("Add.ReturnShapeImage"),
+        ActionReturnType.Text => Strings.Get("Add.ReturnShapeText"),
+        ActionReturnType.List => result.Fields.Count == 0
+            ? $"[{Strings.Get("Add.ReturnShapeText")}, …]"
+            : $"[{{{Fields(result)}}}, …]",
+        _ => $"{{{Fields(result)}}}",
+    };
+
+    /// <summary>The first few field names of a record, with an ellipsis when there are more.</summary>
+    private static string Fields(ActionReturn result)
+    {
+        var shown = result.Fields.Take(FieldsShown).Select(field => field.Name);
+        var names = string.Join(", ", shown);
+        return result.Fields.Count > FieldsShown ? names + ", …" : names;
+    }
+
     /// <summary>True for the result this action nearly always hands over, which starts ticked.</summary>
     public bool IsPrimary => Result.Primary;
 

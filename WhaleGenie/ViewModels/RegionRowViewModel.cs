@@ -26,12 +26,15 @@ public partial class RegionRowViewModel : ViewModelBase
         // The four numbers stand for the same thing a step reads directly, so an empty box says
         // what an empty box says there: the side reaches the edge rather than meaning nothing.
         var empty = Strings.Get("Add.EmptyReachesTheEdge");
-        X = new NumberCellViewModel(Strings.Get("Add.RegionX"), Strings.Get("Add.RegionXHint"), empty);
-        Y = new NumberCellViewModel(Strings.Get("Add.RegionY"), Strings.Get("Add.RegionYHint"), empty);
+        // 四个数压在一行里：短名字放在格子上，长说明在提示里。
+        X = new NumberCellViewModel(Strings.Get("Add.RegionX"), Strings.Get("Add.RegionXHint"), empty,
+            Strings.Get("Add.RegionXShort"));
+        Y = new NumberCellViewModel(Strings.Get("Add.RegionY"), Strings.Get("Add.RegionYHint"), empty,
+            Strings.Get("Add.RegionYShort"));
         Width = new NumberCellViewModel(Strings.Get("Add.RegionWidth"),
-            Strings.Get("Add.RegionWidthHint"), empty);
+            Strings.Get("Add.RegionWidthHint"), empty, Strings.Get("Add.RegionWidthShort"));
         Height = new NumberCellViewModel(Strings.Get("Add.RegionHeight"),
-            Strings.Get("Add.RegionHeightHint"), empty);
+            Strings.Get("Add.RegionHeightHint"), empty, Strings.Get("Add.RegionHeightShort"));
         Cells = [X, Y, Width, Height];
 
         foreach (var cell in Cells)

@@ -31,6 +31,10 @@ public class TemplatePartTests
     /// </summary>
     private static readonly (string Type, string Classes, string Part)[] Reaching =
     [
+        // 单选卡：整份模板重写过，卡边框与圆点都是自己命名的部件。
+        ("RadioButton", "ChoiceCard", "Border#Card"),
+        ("RadioButton", "ChoiceCard", "Border#Dot"),
+        ("RadioButton", "ChoiceCard", "Border#Pip"),
         ("Button", "", "ContentPresenter"),
         ("Button", "BottomButton", "ContentPresenter"),
         ("Button", "Breakpoint on", "ContentPresenter"),
@@ -279,6 +283,8 @@ public class TemplatePartTests
         "ListBoxItem" => new ListBoxItem { Content = "x" },
         "ScrollViewer" => new ScrollViewer { Content = new TextBlock { Text = "x" } },
         "GridSplitter" => new GridSplitter(),
+        // 单选卡：模板整份重写过，卡、圆点、圆心里的小点都是它自己的部件。
+        "RadioButton" => new RadioButton { Content = "x" },
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "no probe for this host"),
     };
 

@@ -1472,6 +1472,7 @@ public sealed partial class MacroRunner
             or RunKeys.WaitColorTimeout or RunKeys.WaitTimeout
             or RunKeys.ImageNotFound or RunKeys.DetectNotFound or RunKeys.ScreenNotStable
             or RunKeys.TextNotFound or RunKeys.ElementNotFound or RunKeys.ClipboardTimeout
+            or RunKeys.ColourNotFound
             or RunKeys.ProcessTimeout or RunKeys.ProgramNotFound or RunKeys.WindowTimeout
             or RunKeys.CommandTimeout or RunKeys.BrowserNotFound or RunKeys.BrowserNoNewTab;
 
@@ -1489,6 +1490,8 @@ public sealed partial class MacroRunner
             return step.Type switch
             {
                 "vision.waitColor" => new StepFailure(RunKeys.WaitColorTimeout,
+                    PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
+                "vision.clickColor" => new StepFailure(RunKeys.ColourNotFound,
                     PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
                 "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
                     Written(step.Rows("images"))),

@@ -105,6 +105,20 @@ public static class RunKeys
     /// <summary>An argument was both given a value and marked as supplied empty.</summary>
     public const string GivenWithValue = "Run.GivenWithValue";
     public const string ImageNotFound = "Run.ImageNotFound";
+
+    /// <summary>
+    /// A colour search that was told a miss is its failure did not find the colour. A step that
+    /// only reads where the colour is hands back <c>found = false</c> instead; this key exists for
+    /// the steps that asked for the same answer as a failure.
+    /// </summary>
+    public const string ColourNotFound = "Run.ColourNotFound";
+
+    /// <summary>
+    /// A multi-point colour search with no colours beside its base colour. That is not a pattern:
+    /// it is the plain colour search, which is a step of its own, so the step is refused instead of
+    /// quietly matching the base colour wherever it is.
+    /// </summary>
+    public const string NoColourPoints = "Run.NoColourPoints";
     public const string IndexOutOfRange = "Run.IndexOutOfRange";
     public const string ItemNotFound = "Run.ItemNotFound";
 
@@ -268,6 +282,8 @@ public static class LogKeys
     public const string CancelledRun = "Log.CancelledRun";
     public const string CleanupFailed = "Log.CleanupFailed";
     public const string ClearedClipboard = "Log.ClearedClipboard";
+    public const string ClickedColour = "Log.ClickedColour";
+
     public const string ClickedElement = "Log.ClickedElement";
     public const string ClickedImage = "Log.ClickedImage";
     public const string ClickedObject = "Log.ClickedObject";

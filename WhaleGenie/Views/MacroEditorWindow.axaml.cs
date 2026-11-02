@@ -470,6 +470,26 @@ public partial class MacroEditorWindow : AppWindow
     private async void OnManageGlobals(object? sender, RoutedEventArgs e)
         => await ManageGlobalsAsync();
 
+    /// <summary>
+    /// 管理这个宏自己的变量：改名是唯一能在这里做的改动，因为局部变量是步骤写出来的，
+    /// 这里既不能凭空新建一个，也不能删掉一条还在写的步骤。
+    /// </summary>
+    private async void OnManageLocals(object? sender, RoutedEventArgs e)
+    {
+        await LocalVariablesWindow.ShowAsync(this,
+            () => _viewModel.CollectVariables(),
+            (old, next) =>
+            {
+                if (!_viewModel.RenameLocalVariable(old, next, out var problem))
+                {
+                    return (false, problem);
+                }
+
+                _viewModel.RefreshVariableCenter();
+                return (true, string.Empty);
+            });
+    }
+
     private async Task ManageGlobalsAsync(string? initialName = null)
     {
         var allMacros = ProjectMacrosForVariableEdits();

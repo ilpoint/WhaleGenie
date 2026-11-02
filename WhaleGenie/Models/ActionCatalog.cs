@@ -66,6 +66,7 @@ public static class ActionCatalog
                     Tall = field.Tall,
                     Increment = field.Increment,
                     Advanced = field.Advanced,
+                    PerChannelPercent = field.PerChannelPercent,
                     WrittenByTool = field.WrittenByTool,
                     AddLabelKey = field.AddLabelKey,
                 });
@@ -84,6 +85,7 @@ public static class ActionCatalog
                     Type = facts.Type,
                     Fields = facts.Fields,
                     Primary = facts.Primary,
+                    Hidden = facts.Hidden,
                     OwnerKey = semantics.Key,
                 });
             }
@@ -194,6 +196,13 @@ public static class ActionCatalog
         public string Placeholder { get; init; } = string.Empty;
 
         public required string Kind { get; init; }
+
+        /// <summary>
+        /// True for a percentage that is measured against a colour channel, where "5%" means
+        /// ±13 out of 255 and the editor can say so. A share of an area or a probability is not
+        /// one of these: the same 5% would be a different number entirely.
+        /// </summary>
+        public bool PerChannelPercent { get; init; }
 
         public IReadOnlyList<string> OptionLabels { get; init; } = [];
 

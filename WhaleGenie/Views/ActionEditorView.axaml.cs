@@ -531,6 +531,15 @@ public partial class ActionEditorView : UserControl
         }
     }
 
+    /// <summary>Adds another colour to the pattern the step is matching.</summary>
+    private void OnAddColourPoint(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.AddColourPoint();
+        }
+    }
+
     /// <summary>Adds another press to a key run.</summary>
     private void OnAddKeyRow(object? sender, RoutedEventArgs e)
     {
@@ -1369,12 +1378,13 @@ public partial class ActionEditorView : UserControl
         // Read before the windows go away: a window-anchored step measures from a window of another
         // program, and finding it is not something to do with this one hidden.
         var area = PickArea(viewModel);
+        var looking = WhatThePickerLooksFor(step);
 
         // Off the thread that draws the window, and with this program's windows out of the picture,
         // for the same reasons the trial run does it. The picture is taken in the same breath as the
         // look, so the marks sit on the screen they were found on.
         var (outcome, picture) = await AwayAsync(() =>
-            (MacroRunner.LookOnce(step, Devices, new TrialFrames(this)),
+            (MacroRunner.LookOnce(looking, Devices, new TrialFrames(this)),
                 ScreenReady.Capture(Devices.Screen, area.X, area.Y, area.Width, area.Height)));
         _trialFrames.Clear();
 
@@ -1397,6 +1407,24 @@ public partial class ActionEditorView : UserControl
         return new LookForPick(look, picture, new ScreenPoint(area.X, area.Y),
             look.Boxes[look.ChosenIndex - 1].Match.Center);
     }
+
+    /// <summary>
+    /// The step as the picker should look at the screen. A multi-point colour search with nothing
+    /// beside its base colour yet cannot run: it would be looking for the base colour alone, which
+    /// is the plain colour search. That is exactly the state the picker is opened from, because
+    /// picking the surroundings is how the pattern gets written, so for this one look it asks the
+    /// question the picker needs answered: where is the base colour.
+    /// </summary>
+    internal static ExecutableStep WhatThePickerLooksFor(ExecutableStep step)
+        => step.Type == "vision.findColors" && step.Rows("points").Count == 0
+            ? new ExecutableStep
+            {
+                Type = "vision.findColor",
+                Id = step.Id,
+                Meta = step.Meta,
+                Parameters = [.. step.Parameters.Where(parameter => parameter.Name != "points")],
+            }
+            : step;
 
     /// <summary>
     /// What the step reads as a whole: the client area of the window it is anchored to, or the whole
