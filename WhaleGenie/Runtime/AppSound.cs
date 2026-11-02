@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -8,31 +10,36 @@ namespace WhaleGenie.Runtime;
 
 /// <summary>
 /// The few sounds the program makes on its own account: the system switch, and a macro being armed
-/// or disarmed. Each is one tone of a fixed pitch, made here rather than taken from the sound
-/// scheme, and played the way any other program plays a sound.
+/// or disarmed. Each is a short WAV packed beside the program, played through the machine's default
+/// output device so it behaves like every other sound on the machine.
 /// </summary>
 /// <remarks>
-/// The tone is synthesised into a WAV and handed to the system's own player. <c>Console.Beep</c> is
-/// not used: on Windows it goes through the legacy beep driver, which on most machines has no
-/// buzzer behind it and drops most of what is sent, so the same call is silent nine times out of ten
-/// and heard once. A WAV through the default output device behaves like every other sound on the
-/// machine: the mixer's volume applies, and it starts at once.
+/// The four are different sounds, and the two pairs are told apart by ear: the program's own switch
+/// and one macro never sound alike. They are read out of the program's resources rather than from
+/// files on disk, so nothing can go missing after an update or a move.
 /// </remarks>
 internal static class AppSound
 {
-    private const int SampleRate = 44100;
+    /// <summary>The file behind each moment, packed into the assembly.</summary>
+    private static readonly Dictionary<UiSound, string> Files = new()
+    {
+        [UiSound.SystemOn] = "notification_pluck_on.wav",
+        [UiSound.SystemOff] = "notification_off.wav",
+        [UiSound.MacroOn] = "pop_on.wav",
+        [UiSound.MacroOff] = "pop_off.wav",
+    };
 
-    /// <summary>About a quarter of full scale: clearly audible, not a shout.</summary>
-    private const short Amplitude = 8000;
-
-    /// <summary>How long the tone takes to come up and go down, which keeps it from clicking.</summary>
-    private const int FadeMs = 5;
-
-    /// <summary>The tone as it goes out. A check hands in its own to read the pitch instead of hearing it.</summary>
-    internal static Action<int, int> Beep { get; set; } = PlayTone;
+    private static readonly Dictionary<UiSound, byte[]> Loaded = [];
+    private static readonly Dictionary<UiSound, IntPtr> Pointed = [];
 
     /// <summary>
-    /// Plays the tone for this moment, unless that pair of moments was switched off. A machine that
+    /// Where a moment's sound goes out. A check hands in its own to see which sound was asked for
+    /// instead of hearing it.
+    /// </summary>
+    internal static Action<UiSound> PlayTone { get; set; } = Start;
+
+    /// <summary>
+    /// Plays the sound for this moment, unless that pair of moments was switched off. A machine that
     /// cannot make a sound stays quiet rather than failing the click that asked for it.
     /// </summary>
     public static void Play(UiSound which)
@@ -46,10 +53,9 @@ internal static class AppSound
             return;
         }
 
-        var (frequency, milliseconds) = UiSounds.Tone(which);
         try
         {
-            Beep(frequency, milliseconds);
+            PlayTone(which);
         }
         catch
         {
@@ -58,85 +64,56 @@ internal static class AppSound
         }
     }
 
-    /// <summary>
-    /// Builds the tone and starts it. The system player keeps reading the buffer after the call
-    /// returns, so each tone's buffer is pinned once and kept: there are four of them, a few
-    /// kilobytes each, and a buffer that moved under the player would be a click or nothing at all.
-    /// </summary>
-    private static void PlayTone(int frequency, int milliseconds)
-        => PlaySound(Pinned(frequency, milliseconds), IntPtr.Zero, SndMemory | SndAsync | SndNoDefault);
-
-    /// <summary>One 16-bit mono PCM tone, header and all, as a WAV file in memory.</summary>
-    internal static byte[] Wave(int frequency, int milliseconds)
+    /// <summary>The bytes of this moment's sound, read out of the program's resources once.</summary>
+    internal static byte[] Wave(UiSound which)
     {
-        var samples = Math.Max(1, SampleRate * Math.Max(1, milliseconds) / 1000);
-        var fade = Math.Max(1, Math.Min(samples / 4, SampleRate * FadeMs / 1000));
-        var data = new byte[samples * 2];
-
-        for (var at = 0; at < samples; at++)
+        lock (Loaded)
         {
-            // Full level in the middle, nothing at either end: a tone that starts mid-air clicks.
-            var level = Math.Min(1.0, Math.Min(at, samples - 1 - at) / (double)fade);
-            var value = (short)(Amplitude * level * Math.Sin(2 * Math.PI * frequency * at / SampleRate));
-            data[at * 2] = (byte)(value & 0xFF);
-            data[(at * 2) + 1] = (byte)((value >> 8) & 0xFF);
-        }
-
-        var wave = new byte[44 + data.Length];
-        Write(wave, 0, "RIFF");
-        Write(wave, 4, 36 + data.Length);
-        Write(wave, 8, "WAVE");
-        Write(wave, 12, "fmt ");
-        Write(wave, 16, 16);              // size of this chunk
-        Write(wave, 20, (short)1);        // PCM
-        Write(wave, 22, (short)1);        // one channel
-        Write(wave, 24, SampleRate);
-        Write(wave, 28, SampleRate * 2);  // bytes per second
-        Write(wave, 32, (short)2);        // bytes per frame
-        Write(wave, 34, (short)16);       // bits per sample
-        Write(wave, 36, "data");
-        Write(wave, 40, data.Length);
-        data.CopyTo(wave, 44);
-        return wave;
-    }
-
-    /// <summary>The pinned buffer of one tone, made the first time that tone is asked for.</summary>
-    private static IntPtr Pinned(int frequency, int milliseconds)
-    {
-        var key = (frequency, milliseconds);
-        lock (PinnedWaves)
-        {
-            if (!PinnedWaves.TryGetValue(key, out var pointed))
+            if (!Loaded.TryGetValue(which, out var wave))
             {
-                var handle = GCHandle.Alloc(Wave(frequency, milliseconds), GCHandleType.Pinned);
-                pointed = handle.AddrOfPinnedObject();
-                PinnedWaves[key] = pointed;
+                using var stream = typeof(AppSound).Assembly.GetManifestResourceStream(
+                    $"WhaleGenie.Sounds.{Files[which]}")
+                    ?? throw new InvalidOperationException(
+                        $"The sound {Files[which]} is not packed into the program.");
+                using var memory = new MemoryStream();
+                stream.CopyTo(memory);
+                wave = memory.ToArray();
+                Loaded[which] = wave;
             }
 
-            return pointed;
+            return wave;
         }
     }
 
-    private static readonly Dictionary<(int Frequency, int Milliseconds), IntPtr> PinnedWaves = [];
-
-    private static void Write(byte[] wave, int at, string text)
+    /// <summary>
+    /// Starts the sound. The player keeps reading the buffer after the call returns, so each one is
+    /// pinned once and kept: there are four of them, and a buffer that moved under the player would
+    /// be a click or nothing at all.
+    /// </summary>
+    private static void Start(UiSound which)
     {
-        for (var index = 0; index < text.Length; index++)
+        IntPtr pointed;
+        lock (Pointed)
         {
-            wave[at + index] = (byte)text[index];
+            if (!Pointed.TryGetValue(which, out pointed))
+            {
+                pointed = GCHandle.Alloc(Wave(which), GCHandleType.Pinned).AddrOfPinnedObject();
+                Pointed[which] = pointed;
+            }
         }
+
+        Win32.PlaySound(pointed, IntPtr.Zero,
+            Win32.SndMemory | Win32.SndAsync | Win32.SndNoDefault);
     }
 
-    private static void Write(byte[] wave, int at, int number)
-        => BitConverter.TryWriteBytes(wave.AsSpan(at, 4), number);
+    /// <summary>The one call this class needs from Windows.</summary>
+    private static class Win32
+    {
+        public const uint SndAsync = 0x0001;
+        public const uint SndNoDefault = 0x0002;
+        public const uint SndMemory = 0x0004;
 
-    private static void Write(byte[] wave, int at, short number)
-        => BitConverter.TryWriteBytes(wave.AsSpan(at, 2), number);
-
-    private const uint SndAsync = 0x0001;
-    private const uint SndNoDefault = 0x0002;
-    private const uint SndMemory = 0x0004;
-
-    [DllImport("winmm.dll", SetLastError = true)]
-    private static extern bool PlaySound(IntPtr sound, IntPtr module, uint flags);
+        [DllImport("winmm.dll", SetLastError = true)]
+        public static extern bool PlaySound(IntPtr sound, IntPtr module, uint flags);
+    }
 }

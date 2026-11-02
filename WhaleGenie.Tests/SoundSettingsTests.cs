@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -10,32 +11,58 @@ using WhaleGenie.ViewModels;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// 系统开关与宏的启用停用各响一声，用固定音高与时长的单音做出来，不借用系统提示音。两类各有一个
-/// 勾选：要安静就把那一类关掉，另一类不受影响。
+/// 系统开关与宏的启用停用各响一声：程序那一对与宏那一对用的是不同的音效，不看屏幕也分得清。
+/// 两类各有一个勾选，关掉一类不影响另一类。
 /// </summary>
 public class SoundSettingsTests
 {
     /// <summary>
-    /// 四种时刻的音两两不同，而且程序那一对与单条宏那一对在音高和长短上都分开：不看屏幕时，
-    /// 听见的是哪一对就说明是哪一类变了。
+    /// 四个时刻各有一个自己的音效文件，而且都真的打得开：资源少了、名字写错了，或放进去的不是
+    /// WAV，声音就会变成静默，而那正是这条设置存在的理由。
     /// </summary>
     [Fact]
-    public void The_two_pairs_of_state_tones_do_not_share_a_tone()
+    public void Every_moment_has_a_sound_of_its_own()
     {
-        var systemOn = UiSounds.Tone(UiSound.SystemOn);
-        var systemOff = UiSounds.Tone(UiSound.SystemOff);
-        var macroOn = UiSounds.Tone(UiSound.MacroOn);
-        var macroOff = UiSounds.Tone(UiSound.MacroOff);
+        var waves = new Dictionary<UiSound, byte[]>();
+        foreach (var which in Enum.GetValues<UiSound>())
+        {
+            var wave = AppSound.Wave(which);
+            Assert.Equal("RIFF", Text(wave, 0));
+            Assert.Equal("WAVE", Text(wave, 8));
 
-        Assert.NotEqual(systemOn, systemOff);
-        Assert.NotEqual(macroOn, macroOff);
-        Assert.DoesNotContain(systemOn, new[] { macroOn, macroOff });
-        Assert.DoesNotContain(systemOff, new[] { macroOn, macroOff });
+            // 头部得是 16 位单声道的 PCM，而且后面真有一段数据；否则播放器只会静默。
+            var format = Chunk(wave, "fmt ");
+            Assert.NotNull(format);
+            Assert.Equal(1, BitConverter.ToInt16(wave, format!.Value.At));
+            Assert.Equal(16, BitConverter.ToInt16(wave, format.Value.At + 14));
 
-        // 程序那一对更长，宏那一对更短；宏那一对的音高也更高。
-        Assert.True(macroOn.Frequency > systemOn.Frequency);
-        Assert.True(macroOff.Frequency > systemOff.Frequency);
-        Assert.True(macroOn.Milliseconds < systemOn.Milliseconds);
+            var data = Chunk(wave, "data");
+            Assert.NotNull(data);
+            Assert.True(data!.Value.Size > 8000, $"{which} is too short to hear");
+
+            waves[which] = wave;
+        }
+
+        // 两两不同：系统启用与停用不是同一个音，程序那一对与宏那一对也不是。
+        var distinct = waves.Values.Select(wave => Convert.ToBase64String(wave)).Distinct().Count();
+        Assert.Equal(4, distinct);
+    }
+
+    /// <summary>The body of one chunk: where its bytes start and how many there are.</summary>
+    private static (int At, int Size)? Chunk(byte[] wave, string id)
+    {
+        for (var at = 12; at + 8 <= wave.Length;)
+        {
+            var size = BitConverter.ToInt32(wave, at + 4);
+            if (Text(wave, at) == id)
+            {
+                return (at + 8, size);
+            }
+
+            at += 8 + size + (size & 1);
+        }
+
+        return null;
     }
 
     /// <summary>默认两类都响；关掉哪一类，哪一类就不响，另一类照旧。</summary>
@@ -44,17 +71,17 @@ public class SoundSettingsTests
     {
         InOwnFile(_ =>
         {
-            var played = new List<(int Frequency, int Milliseconds)>();
-            var was = AppSound.Beep;
+            var played = new List<UiSound>();
+            var was = AppSound.PlayTone;
             try
             {
-                AppSound.Beep = (frequency, milliseconds) => played.Add((frequency, milliseconds));
+                AppSound.PlayTone = moment => played.Add(moment);
 
                 Assert.True(LocalSettings.LoadSoundSystem());
                 Assert.True(LocalSettings.LoadSoundMacro());
 
                 AppSound.Play(UiSound.SystemOn);
-                Assert.Equal([UiSounds.Tone(UiSound.SystemOn)], played);
+                Assert.Equal([UiSound.SystemOn], played);
 
                 LocalSettings.StoreSoundMacro(false);
                 AppSound.Play(UiSound.MacroOff);
@@ -66,7 +93,7 @@ public class SoundSettingsTests
 
                 LocalSettings.StoreSoundMacro(true);
                 AppSound.Play(UiSound.MacroOn);
-                Assert.Equal(UiSounds.Tone(UiSound.MacroOn), played[^1]);
+                Assert.Equal(UiSound.MacroOn, played[^1]);
 
                 // 设置窗口里那两个勾也是同一条路。
                 var settings = new SettingsViewModel(() => DriverInputState.Ready);
@@ -77,69 +104,32 @@ public class SoundSettingsTests
             }
             finally
             {
-                AppSound.Beep = was;
+                AppSound.PlayTone = was;
             }
         });
     }
 
     /// <summary>
-    /// 放不出声音的机器（没有扬声器，或者音频服务没起来）只是听不到：方法返回，不抛，也不影响
+    /// 放不出声音的机器（没有输出设备，或者音频服务没起来）只是听不到：方法返回，不抛，也不影响
     /// 点卡片或按热键那一下本身。
     /// </summary>
     [Fact]
-    public void A_machine_that_cannot_make_a_tone_says_nothing()
+    public void A_machine_that_cannot_play_a_sound_says_nothing()
     {
         InOwnFile(_ =>
         {
-            var was = AppSound.Beep;
+            var was = AppSound.PlayTone;
             try
             {
-                AppSound.Beep = (_, _) => throw new InvalidOperationException("no speaker");
+                AppSound.PlayTone = _ => throw new InvalidOperationException("no output device");
 
                 AppSound.Play(UiSound.SystemOff);
             }
             finally
             {
-                AppSound.Beep = was;
+                AppSound.PlayTone = was;
             }
         });
-    }
-
-    /// <summary>
-    /// 交给系统的是一段完整的 16 位单声道 WAV：头里写的采样率、声道、数据长度必须与后面的字节对得上，
-    /// 否则播放器要么不出声，要么只放半声。首尾都从零起，所以不会"咔"一下。
-    /// </summary>
-    [Fact]
-    public void A_tone_is_a_complete_wave_file()
-    {
-        var wave = AppSound.Wave(880, 120);
-
-        Assert.Equal("RIFF", Text(wave, 0));
-        Assert.Equal("WAVE", Text(wave, 8));
-        Assert.Equal("fmt ", Text(wave, 12));
-        Assert.Equal("data", Text(wave, 36));
-
-        Assert.Equal(1, BitConverter.ToInt16(wave, 20));      // PCM
-        Assert.Equal(1, BitConverter.ToInt16(wave, 22));      // mono
-        Assert.Equal(44100, BitConverter.ToInt32(wave, 24));
-        Assert.Equal(16, BitConverter.ToInt16(wave, 34));
-
-        // 120 毫秒、44100 赫兹、16 位单声道。
-        var data = BitConverter.ToInt32(wave, 40);
-        Assert.Equal(wave.Length - 44, data);
-        Assert.Equal(44100 * 120 / 1000 * 2, data);
-        Assert.Equal(wave.Length - 8, BitConverter.ToInt32(wave, 4));
-
-        // 有声音，但不到满幅；两端是零。
-        var peak = 0;
-        for (var at = 44; at + 1 < wave.Length; at += 2)
-        {
-            peak = Math.Max(peak, Math.Abs((int)BitConverter.ToInt16(wave, at)));
-        }
-
-        Assert.InRange(peak, 6000, 32000);
-        Assert.Equal(0, BitConverter.ToInt16(wave, 44));
-        Assert.Equal(0, BitConverter.ToInt16(wave, wave.Length - 2));
     }
 
     /// <summary>The four characters of a chunk name, read as they sit in the file.</summary>

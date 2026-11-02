@@ -55,6 +55,11 @@
     -->
     <EmbeddedResource Include="Models\ActionDisplay.json" />
     <!--
+      状态提示音。作为程序集资源随 exe 走，不落到磁盘上：换机、升级、被清理工具扫到都不会丢，
+      也不需要在启动时初始化 Avalonia 才能读出来。
+    -->
+    <EmbeddedResource Include="Sounds\*.wav" />
+    <!--
       "关于"窗口要能显示第三方说明，发行包里也要求它跟着 exe 走。同一份文件链接进来，不抄
       第二遍：程序里显示的、仓库里放的就永远是同一段文字。
     -->
