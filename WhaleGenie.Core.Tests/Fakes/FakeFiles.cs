@@ -137,21 +137,38 @@ internal sealed class FakeFiles(FakeDesk desk) : IFileDevice
     }
 
     public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns,
-        bool recurse, int depth)
+        bool recurse, int depth, ListKind kind = ListKind.Files)
     {
-        desk.Note($"listFiles {folder} {string.Join(";", patterns)} {recurse} {depth}");
-        return
-        [
-            .. FolderEntries.Select(path =>
+        // 只有真的要了文件夹才把 kind 写进记录：老用例比的是整串，默认情形不该变。
+        desk.Note(kind == ListKind.Files
+            ? $"listFiles {folder} {string.Join(";", patterns)} {recurse} {depth}"
+            : $"listFiles {folder} {string.Join(";", patterns)} {recurse} {depth} {kind}");
+
+        var listed = new List<FileEntry>();
+        if (kind is ListKind.Files or ListKind.Both)
+        {
+            foreach (var path in FolderEntries)
             {
                 var facts = Facts.TryGetValue(path, out var known)
                     ? known
                     : (Size: 0L, Modified: DateTimeOffset.UnixEpoch);
-                return new FileEntry(path, Path.GetFileName(path),
+                listed.Add(new FileEntry(path, Path.GetFileName(path),
                     Path.GetDirectoryName(path) ?? "", facts.Size, facts.Modified, facts.Modified,
-                    facts.Modified);
-            }),
-        ];
+                    facts.Modified));
+            }
+        }
+
+        if (kind is ListKind.Folders or ListKind.Both)
+        {
+            foreach (var path in Folders)
+            {
+                listed.Add(new FileEntry(path, Path.GetFileName(path),
+                    Path.GetDirectoryName(path) ?? "", 0, DateTimeOffset.UnixEpoch,
+                    DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch));
+            }
+        }
+
+        return listed;
     }
 
     public void CreateFolder(string path)

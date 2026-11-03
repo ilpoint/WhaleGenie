@@ -2204,6 +2204,31 @@
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
+      },
+      {
+        "Name": "encoding",
+        "Label": "Encoding",
+        "Hint": "How the file's text is turned into bytes. UTF-8 is what everything new uses and is the default; UTF-8 with a mark is what Notepad writes; GBK is what a Chinese Windows writes its own text files in; UTF-16 is what some older Windows programs expect. Reading follows the mark at the front of the file when it has one, and reads bytes that are not UTF-8 at all in this machine's own code page, which is how a CSV another machine exported still reads.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "UTF-8",
+          "UTF-8 with BOM",
+          "GBK (Chinese)",
+          "UTF-16"
+        ],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
       }
     ],
     "Returns": []
@@ -2842,6 +2867,30 @@
         "Placeholder": "*.txt",
         "Kind": "Text",
         "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "kind",
+        "Label": "What to list",
+        "Hint": "Files, folders, or both. Files is what this step always collected; folders are how a macro that does the same thing to every subfolder learns their names. A pattern is matched against the name either way.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Files",
+          "Folders",
+          "Both"
+        ],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",

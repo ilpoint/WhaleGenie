@@ -84,6 +84,38 @@
 
 **结论**：元素族不缺参数，缺的是**同一种读法**。所以这一批只做分块，另外补上通配符（引擎 + 提示文案）。
 
+## 对比过的文件与数据动作
+
+数据 8 个、文件 20 个、剪贴板 10 个。这一批对的是 AutoHotkey v2、系统自带的命令行外壳、Python 与 UiPath：
+
+| | AHK v2 | 命令行外壳 / Python | UiPath | 我们（改前） |
+|---|---|---|---|---|
+| 编码 | `FileEncoding`（可指定） | `-Encoding` / `encoding=` | 读写文本都有 | 读、写文本有；**追加日志没有** |
+| 追加 | `FileAppend` | `-Append` / `mode='a'` | Append Line | `writeMode=append`、`appendLog` |
+| 换行 | 自己写 `` `n `` | `newline=` | 自带 | `newline`（none/end/start） |
+| 列文件夹 | `Loop Files, Dir, D` | `Get-ChildItem -Directory` | For Each Folder | **只能列文件** |
+| 递归与深度 | `Loop Files, , R` | `-Recurse -Depth` | 有 | `recurse` + `depth` |
+| 筛选 | 模式 | `-Filter`、`Where-Object` | Filter | 模式、大小窗、时间窗 |
+| 排序 | 无（自己排） | `Sort-Object` | 有 | `sortBy` + `descending` |
+| CSV | 无 | `csv` 模块（delimiter/quotechar） | 读写 CSV | 分隔符、引号、对齐、空单元格、表头、列筛选、起始行、最多行 |
+
+发现两处真的缺：
+
+- **追加日志不能选编码**：引擎早就按 `encoding` 读了（`EncodingOf`），只是目录里没声明这一项，界面就没有。
+  GBK 的日志文件追加 UTF-8 字节会变成乱码。已补上编码字段（四个选项与写文本一致）。
+- **列文件夹列不出来**：`file.listFiles` 只收文件，宏没法知道"这个目录下有哪些子文件夹"。上面几家的
+  文件列举都能选目录。已补 `kind`（文件 / 文件夹 / 两样都要，默认文件），`IFileSystem.List` 多一个
+  `ListKind`，递归时文件夹也按同名规则筛。
+
+其余参数是够的：编码四种、写模式、换行、CSV 的一整套（分隔符、引号、对齐、空单元格）、读 CSV 的列与行
+筛选、列文件的排序与时间/大小窗口，对照上表都不缺。仍然没做的：zip 里是否带顶层文件夹（现在固定按里面
+的相对路径打包），记为后续项。
+
+**顺带修掉一个会要命的错**：上一批把 `control.setVariable` / `incrementGlobal` / 五个 `list*` 从
+`Control` 改到 `Data`，动作库分栏对了，但引擎按分类分派——`DispatchData` 里没有这些 case，运行到它们
+会报 `Run.Unsupported`。现在 `DispatchData` 开头把 `control.*` 交回 `DispatchControl`：分类只管分栏，
+不决定哪段代码回答它。
+
 ## 分类与动作
 
 | 分组 | 动作数 | 现在的状态 | 下一步 |
@@ -143,6 +175,7 @@ narrowing / limit / address / tab`，图标补齐。只问一件事的动作（`
    同时给 `uiaSelector` 加了通配符：`Button[name='保存*']` 是名字以「保存」开头的按钮，`?` 是一个字符；
    不带通配符的选择器仍然按原来的精确比较，老宏不受影响（`TextCompare.Wildcard`、`UiQuery.Answers`）。
 3. **元素族**：`uia.*` 与 `browser.*` 共 37 个，共用"元素（选择器 / 拾取）+ 动作 + 等待"。
+3b. **数据、文件、剪贴板已分块**（本轮）：按「哪个变量 / 从哪儿读 / 存到哪儿 → 挑哪些 → 怎么读 / 怎么写 → 怎么排」重排；新块 `variable / source / clash / doing / reading / writing / picking / order`。补 `file.appendLog.encoding` 与 `file.listFiles.kind`（详见上一节）；修好 `control.*` 归到 `Data` 后引擎分派不到的问题。
 4. **数据与文件**：`data.*`、`file.*`、`clipboard.*` 共 39 个，共用"来源 → 处理 → 落到哪"。
 5. **脚本与系统**：`script.*`、`system.*` 共 15 个，代码框与危险确认。
 6. **流程**：`control.*` 24 个，条件行表与 `try` 的失败策略。

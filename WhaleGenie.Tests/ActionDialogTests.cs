@@ -2541,7 +2541,8 @@ public class ActionDialogTests
             Assert.Empty(writing.ReturnsRows);
 
             var listing = Open("file.listFiles");
-            Assert.Equal(["folder", "pattern", "recurse"],
+            // 「列什么」紧跟匹配模式：要文件还是文件夹，和挑哪些名字是同一句话。
+            Assert.Equal(["folder", "pattern", "kind", "recurse"],
                 listing.Rows.SelectMany(Names).ToList());
             Assert.Equal(["files"], listing.ReturnsRows.Select(row => row.Key).ToList());
 

@@ -299,8 +299,15 @@ public sealed partial class MacroRunner
         var patterns = ReadText(step, "pattern")
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var levels = Number(step, "depth");
+        // 收文件还是收文件夹：默认收文件，跟这个选择出现之前一样。
+        var kind = ReadText(step, "kind").Trim().ToLowerInvariant() switch
+        {
+            "folders" => ListKind.Folders,
+            "both" => ListKind.Both,
+            _ => ListKind.Files,
+        };
         var files = _devices.Files.List(folder, patterns, recurse,
-            recurse ? (levels <= 0 ? -1 : levels) : 0);
+            recurse ? (levels <= 0 ? -1 : levels) : 0, kind);
 
         var since = ChangedSince(step);
         var smallest = Number(step, "minKb") * 1024L;
@@ -1113,6 +1120,13 @@ public sealed partial class MacroRunner
     private async Task<Signal> DispatchData(ExecutableStep step, int depth,
         CancellationToken token)
     {
+        // 变量与列表动作在目录里归「数据与变量」，回答它们的代码仍在控制流那一支。分类是给人
+        // 看的（动作库按它分栏），不该决定哪段代码回答它：这里把 control.* 交回去。
+        if (step.Type.StartsWith("control.", StringComparison.Ordinal))
+        {
+            return await DispatchControl(step, depth, token).ConfigureAwait(false);
+        }
+
         switch (step.Type)
         {
             case "data.base64Encode":

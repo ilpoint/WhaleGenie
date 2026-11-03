@@ -299,7 +299,7 @@ public sealed class LocalFileDevice : IFileDevice
     }
 
     public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse,
-        int depth)
+        int depth, ListKind kind = ListKind.Files)
     {
         var full = Full(folder);
         if (!Directory.Exists(full))
@@ -311,7 +311,7 @@ public sealed class LocalFileDevice : IFileDevice
         var found = Attempt(folder, () =>
         {
             var entries = new List<FileEntry>();
-            Walk(new DirectoryInfo(full), wanted, recurse ? depth : 0, entries);
+            Walk(new DirectoryInfo(full), wanted, recurse ? depth : 0, kind, entries);
             return (IReadOnlyList<FileEntry>)entries;
         });
 
@@ -321,18 +321,37 @@ public sealed class LocalFileDevice : IFileDevice
     }
 
     /// <summary>
-    /// Collects the files of one folder, then of the folders under it while <paramref name="left"/>
-    /// still allows it: zero is this folder alone, and anything below zero is no end to it.
+    /// Collects what is in one folder, then what is in the folders under it while
+    /// <paramref name="left"/> still allows it: zero is this folder alone, and anything below zero
+    /// is no end to it. What counts as "in" is <paramref name="kind"/>: files, folders, or both —
+    /// a macro that does something to each subfolder has no other way to learn their names.
     /// </summary>
     private static void Walk(DirectoryInfo folder, IReadOnlyList<string> patterns, int left,
-        List<FileEntry> into)
+        ListKind kind, List<FileEntry> into)
     {
-        foreach (var file in folder.EnumerateFiles())
+        if (kind is ListKind.Files or ListKind.Both)
         {
-            if (patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, file.Name)))
+            foreach (var file in folder.EnumerateFiles())
             {
-                into.Add(new FileEntry(file.FullName, file.Name, file.DirectoryName ?? "",
-                    file.Length, file.CreationTime, file.LastWriteTime, file.LastAccessTime));
+                if (patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, file.Name)))
+                {
+                    into.Add(new FileEntry(file.FullName, file.Name, file.DirectoryName ?? "",
+                        file.Length, file.CreationTime, file.LastWriteTime, file.LastAccessTime));
+                }
+            }
+        }
+
+        var children = folder.EnumerateDirectories().ToArray();
+        if (kind is ListKind.Folders or ListKind.Both)
+        {
+            foreach (var child in children)
+            {
+                // 文件夹没有"大小"：给 0，读的人在排序或按大小筛的时候看得见这一点。
+                if (patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, child.Name)))
+                {
+                    into.Add(new FileEntry(child.FullName, child.Name, child.Parent?.FullName ?? "",
+                        0, child.CreationTime, child.LastWriteTime, child.LastAccessTime));
+                }
             }
         }
 
@@ -341,9 +360,9 @@ public sealed class LocalFileDevice : IFileDevice
             return;
         }
 
-        foreach (var child in folder.EnumerateDirectories())
+        foreach (var child in children)
         {
-            Walk(child, patterns, left < 0 ? left : left - 1, into);
+            Walk(child, patterns, left < 0 ? left : left - 1, kind, into);
         }
     }
 

@@ -337,7 +337,24 @@ public interface IFileDevice
     /// is how many folders deep to go, where zero is the folder itself and below zero is no end
     /// to it.
     /// </summary>
-    IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse, int depth);
+    IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse, int depth,
+        ListKind kind = ListKind.Files);
+}
+
+/// <summary>
+/// 列文件夹时收哪一类东西。默认只收文件，跟这个参数出现之前一样；收文件夹是为了"每个子文件夹
+/// 各做一遍"这种宏——按名字找得到一个路径，却拿不到它下面有哪几个文件夹。
+/// </summary>
+public enum ListKind
+{
+    /// <summary>Files only, which is what every caller meant before folders could be asked for.</summary>
+    Files,
+
+    /// <summary>Folders only: their names, under the folder that was named.</summary>
+    Folders,
+
+    /// <summary>Both, in one list, ordered by whatever the step asks to order by.</summary>
+    Both,
 }
 
 /// <summary>One file a folder listing turned up, with what it says about itself.</summary>
@@ -1506,7 +1523,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Zip(string folder, string to) => throw Missing("files");
 
         public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse,
-            int depth) => throw Missing("files");
+            int depth, ListKind kind = ListKind.Files) => throw Missing("files");
 
         public int ChangeCount => throw Missing("the clipboard");
 

@@ -102,6 +102,16 @@ public static class AppIcons
         "address" => LucideIconKind.Globe,
         "tab" => LucideIconKind.PanelsTopLeft,
 
+        // 变量、文件与剪贴板
+        "variable" => LucideIconKind.Variable,
+        "source" => LucideIconKind.FileInput,
+        "clash" => LucideIconKind.TriangleAlert,
+        "doing" => LucideIconKind.Wrench,
+        "reading" => LucideIconKind.BookOpenText,
+        "writing" => LucideIconKind.PencilLine,
+        "picking" => LucideIconKind.Funnel,
+        "order" => LucideIconKind.ArrowUpDown,
+
         // 程序与窗口
         "program" => LucideIconKind.Boxes,
         "options" => LucideIconKind.Settings2,

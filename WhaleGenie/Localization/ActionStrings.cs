@@ -738,6 +738,12 @@ internal static class ActionStrings
             + "追加时文件最后一行还没有结束会先补一个换行。",
         ["file.appendLog.timestamp.label"] = "前面写上时间",
         ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间。默认勾选；事后翻看日志需要它分辨先后。",
+        ["file.appendLog.encoding.label"] = "编码",
+        ["file.appendLog.encoding.hint"] = EncodingHintText,
+        ["file.appendLog.encoding.option.utf8"] = EncodingUtf8,
+        ["file.appendLog.encoding.option.utf8bom"] = EncodingUtf8Bom,
+        ["file.appendLog.encoding.option.gbk"] = EncodingGbk,
+        ["file.appendLog.encoding.option.utf16"] = EncodingUtf16,
 
         ["file.exists.name"] = "文件是否存在",
         ["file.exists.desc"] = "检查文件或文件夹是否存在。",
@@ -831,6 +837,12 @@ internal static class ActionStrings
         ["file.listFiles.pattern.label"] = "匹配模式",
         ["file.listFiles.pattern.hint"] = "要收集哪些文件，例如 *.txt。可以使用通配符，也可以用分号一次写多个，"
             + "例如 *.txt; report?.xlsx。默认留空，表示所有文件。",
+        ["file.listFiles.kind.label"] = "列什么",
+        ["file.listFiles.kind.hint"] = "收文件、收文件夹，还是两样都要。默认收文件，和以前一样；"
+            + "要给每个子文件夹各做一遍，就得先拿到它们的名字。匹配模式对名字照样生效。",
+        ["file.listFiles.kind.option.files"] = "文件",
+        ["file.listFiles.kind.option.folders"] = "文件夹",
+        ["file.listFiles.kind.option.both"] = "文件和文件夹",
         ["file.listFiles.recurse.label"] = "包含子文件夹",
         ["file.listFiles.recurse.hint"] = "连上面那个文件夹里的子文件夹一起找，默认关：只列出该文件夹内的内容。",
         ["file.listFiles.sortBy.label"] = "排序依据",

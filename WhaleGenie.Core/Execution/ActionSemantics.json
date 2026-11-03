@@ -992,6 +992,7 @@
     "Parameters": [
       {
         "Name": "name",
+        "Group": "variable",
         "Shape": "Text",
         "ReadMode": "VariableName",
         "Picker": "None",
@@ -1004,6 +1005,7 @@
       },
       {
         "Name": "scope",
+        "Group": "variable",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1018,6 +1020,7 @@
       },
       {
         "Name": "value",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1043,6 +1046,7 @@
     "Parameters": [
       {
         "Name": "name",
+        "Group": "variable",
         "Shape": "Text",
         "ReadMode": "VariableName",
         "Picker": "None",
@@ -1055,6 +1059,7 @@
       },
       {
         "Name": "amount",
+        "Group": "entry",
         "Shape": "Number",
         "Unit": "Integer",
         "EmptyMeans": "Zero",
@@ -1111,6 +1116,7 @@
     "Parameters": [
       {
         "Name": "name",
+        "Group": "variable",
         "Shape": "Text",
         "ReadMode": "VariableName",
         "Picker": "None",
@@ -1123,6 +1129,7 @@
       },
       {
         "Name": "value",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1148,6 +1155,7 @@
     "Parameters": [
       {
         "Name": "name",
+        "Group": "variable",
         "Shape": "Text",
         "ReadMode": "VariableName",
         "Picker": "None",
@@ -1160,6 +1168,7 @@
       },
       {
         "Name": "listIndex",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1171,6 +1180,7 @@
       },
       {
         "Name": "value",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1196,6 +1206,7 @@
     "Parameters": [
       {
         "Name": "name",
+        "Group": "variable",
         "Shape": "Text",
         "ReadMode": "VariableName",
         "Picker": "None",
@@ -1208,6 +1219,7 @@
       },
       {
         "Name": "listIndex",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1233,6 +1245,7 @@
     "Parameters": [
       {
         "Name": "name",
+        "Group": "variable",
         "Shape": "Text",
         "ReadMode": "VariableName",
         "Picker": "None",
@@ -1245,6 +1258,7 @@
       },
       {
         "Name": "listIndex",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1256,6 +1270,7 @@
       },
       {
         "Name": "value",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1557,6 +1572,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1566,6 +1582,61 @@
         "AcceptsVariables": true,
         "ChildKeys": [],
         "MissingKey": "Run.MissingPath"
+      },
+      {
+        "Name": "encoding",
+        "Group": "reading",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "utf8",
+        "Options": [
+          "utf8",
+          "utf8bom",
+          "gbk",
+          "utf16"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "skipBlankLines",
+        "Group": "reading",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "trimLines",
+        "Group": "reading",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "limit",
+        "Group": "limit",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       },
       {
         "Name": "returns",
@@ -1589,57 +1660,6 @@
             "Required": true
           }
         ]
-      },
-      {
-        "Name": "limit",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "skipBlankLines",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "trimLines",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "encoding",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "utf8",
-        "Options": [
-          "utf8",
-          "utf8bom",
-          "gbk",
-          "utf16"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
       }
     ],
     "Returns": [
@@ -1668,6 +1688,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1680,6 +1701,7 @@
       },
       {
         "Name": "fileContent",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1691,6 +1713,7 @@
       },
       {
         "Name": "writeMode",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1705,6 +1728,7 @@
       },
       {
         "Name": "newline",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1720,6 +1744,7 @@
       },
       {
         "Name": "encoding",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1750,6 +1775,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1762,6 +1788,7 @@
       },
       {
         "Name": "logLine",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -1773,12 +1800,30 @@
       },
       {
         "Name": "timestamp",
+        "Group": "entry",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
         "DefaultValue": "true",
         "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "encoding",
+        "Group": "writing",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "utf8",
+        "Options": [
+          "utf8",
+          "utf8bom",
+          "gbk",
+          "utf16"
+        ],
         "AcceptsVariables": false,
         "ChildKeys": []
       }
@@ -1890,6 +1935,7 @@
     "Parameters": [
       {
         "Name": "from",
+        "Group": "from",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1902,6 +1948,7 @@
       },
       {
         "Name": "to",
+        "Group": "to",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1914,6 +1961,7 @@
       },
       {
         "Name": "ifExists",
+        "Group": "clash",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1972,6 +2020,7 @@
     "Parameters": [
       {
         "Name": "from",
+        "Group": "from",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1984,6 +2033,7 @@
       },
       {
         "Name": "to",
+        "Group": "to",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1996,6 +2046,7 @@
       },
       {
         "Name": "ifExists",
+        "Group": "clash",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2080,6 +2131,7 @@
     "Parameters": [
       {
         "Name": "operation",
+        "Group": "doing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2100,6 +2152,7 @@
       },
       {
         "Name": "path",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2113,6 +2166,7 @@
       },
       {
         "Name": "fileName",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2167,6 +2221,7 @@
     "Parameters": [
       {
         "Name": "from",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2179,6 +2234,7 @@
       },
       {
         "Name": "folder",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2191,6 +2247,7 @@
       },
       {
         "Name": "overwrite",
+        "Group": "clash",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2216,6 +2273,7 @@
     "Parameters": [
       {
         "Name": "folder",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2228,6 +2286,7 @@
       },
       {
         "Name": "to",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2291,6 +2350,7 @@
     "Parameters": [
       {
         "Name": "folder",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2303,6 +2363,7 @@
       },
       {
         "Name": "pattern",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2313,7 +2374,140 @@
         "ChildKeys": []
       },
       {
+        "Name": "kind",
+        "Group": "picking",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "files",
+        "Options": [
+          "files",
+          "folders",
+          "both"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "recurse",
+        "Group": "picking",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "depth",
+        "Group": "picking",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Maximum": 64,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "minKb",
+        "Group": "picking",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "maxKb",
+        "Group": "picking",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "withinCount",
+        "Group": "picking",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Maximum": 100000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "withinUnit",
+        "Group": "picking",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "days",
+        "Options": [
+          "minutes",
+          "hours",
+          "days"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "sortBy",
+        "Group": "order",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "name",
+        "Options": [
+          "name",
+          "modified",
+          "created",
+          "size",
+          "extension"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "descending",
+        "Group": "order",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "relative",
+        "Group": "order",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2345,114 +2539,6 @@
             "Required": true
           }
         ]
-      },
-      {
-        "Name": "sortBy",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "name",
-        "Options": [
-          "name",
-          "modified",
-          "created",
-          "size",
-          "extension"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "descending",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "depth",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "Maximum": 64,
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "withinCount",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "Maximum": 100000,
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "withinUnit",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "days",
-        "Options": [
-          "minutes",
-          "hours",
-          "days"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "minKb",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "maxKb",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "relative",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
       }
     ],
     "Returns": [
@@ -2476,6 +2562,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2488,6 +2575,7 @@
       },
       {
         "Name": "query",
+        "Group": "taking",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -2542,6 +2630,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2554,6 +2643,7 @@
       },
       {
         "Name": "query",
+        "Group": "taking",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -2566,6 +2656,7 @@
       },
       {
         "Name": "writeValue",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -2591,6 +2682,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2602,7 +2694,95 @@
         "MissingKey": "Run.MissingPath"
       },
       {
+        "Name": "encoding",
+        "Group": "reading",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "utf8",
+        "Options": [
+          "utf8",
+          "utf8bom",
+          "gbk",
+          "utf16"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "separator",
+        "Group": "reading",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "auto",
+        "Options": [
+          "auto",
+          "comma",
+          "semicolon",
+          "tab",
+          "pipe",
+          "space"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "separatorText",
+        "Group": "reading",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": []
+      },
+      {
+        "Name": "skipBlankLines",
+        "Group": "reading",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "true",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "trimCells",
+        "Group": "reading",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "shape",
+        "Group": "reading",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "rows",
+        "Options": [
+          "rows",
+          "values"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "hasHeader",
+        "Group": "reading",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2614,6 +2794,7 @@
       },
       {
         "Name": "columns",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2624,7 +2805,31 @@
         "ChildKeys": []
       },
       {
+        "Name": "filterMode",
+        "Group": "picking",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "equals",
+        "Options": [
+          "equals",
+          "notEquals",
+          "contains",
+          "startsWith",
+          "endsWith",
+          "greaterThan",
+          "greaterOrEqual",
+          "lessThan",
+          "lessOrEqual",
+          "regex"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchColumn",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2636,6 +2841,7 @@
       },
       {
         "Name": "matchValue",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -2643,6 +2849,35 @@
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": true,
+        "ChildKeys": []
+      },
+      {
+        "Name": "startRow",
+        "Group": "picking",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "1",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "maxRows",
+        "Group": "picking",
+        "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
         "ChildKeys": []
       },
       {
@@ -2667,136 +2902,6 @@
             "Required": true
           }
         ]
-      },
-      {
-        "Name": "encoding",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "utf8",
-        "Options": [
-          "utf8",
-          "utf8bom",
-          "gbk",
-          "utf16"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "separator",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "auto",
-        "Options": [
-          "auto",
-          "comma",
-          "semicolon",
-          "tab",
-          "pipe",
-          "space"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "separatorText",
-        "Shape": "Text",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": true,
-        "ChildKeys": []
-      },
-      {
-        "Name": "skipBlankLines",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "true",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "startRow",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "Minimum": 1,
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "1",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "maxRows",
-        "Shape": "Number",
-        "Unit": "Count",
-        "EmptyMeans": "Unset",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "trimCells",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "shape",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "rows",
-        "Options": [
-          "rows",
-          "values"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "filterMode",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "equals",
-        "Options": [
-          "equals",
-          "notEquals",
-          "contains",
-          "startsWith",
-          "endsWith",
-          "greaterThan",
-          "greaterOrEqual",
-          "lessThan",
-          "lessOrEqual",
-          "regex"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
       }
     ],
     "Returns": [
@@ -2820,6 +2925,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2832,6 +2938,7 @@
       },
       {
         "Name": "rows",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -2843,6 +2950,7 @@
       },
       {
         "Name": "header",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2854,6 +2962,7 @@
       },
       {
         "Name": "writeMode",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2868,6 +2977,7 @@
       },
       {
         "Name": "align",
+        "Group": "writing",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2879,6 +2989,7 @@
       },
       {
         "Name": "separator",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2896,6 +3007,7 @@
       },
       {
         "Name": "separatorText",
+        "Group": "writing",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2907,6 +3019,7 @@
       },
       {
         "Name": "lineEnding",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2921,6 +3034,7 @@
       },
       {
         "Name": "quoteAll",
+        "Group": "writing",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2932,6 +3046,7 @@
       },
       {
         "Name": "emptyCells",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2946,6 +3061,7 @@
       },
       {
         "Name": "encoding",
+        "Group": "writing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2976,6 +3092,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2988,6 +3105,7 @@
       },
       {
         "Name": "names",
+        "Group": "picking",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3013,6 +3131,7 @@
     "Parameters": [
       {
         "Name": "path",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3147,6 +3266,7 @@
     "Parameters": [
       {
         "Name": "hashAlgorithm",
+        "Group": "doing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3163,6 +3283,7 @@
       },
       {
         "Name": "hashSource",
+        "Group": "doing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3177,6 +3298,7 @@
       },
       {
         "Name": "dataText",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -3189,6 +3311,7 @@
       },
       {
         "Name": "path",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3570,6 +3693,7 @@
     "Parameters": [
       {
         "Name": "pasteText",
+        "Group": "entry",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -3581,6 +3705,7 @@
       },
       {
         "Name": "shortcut",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",

@@ -5528,6 +5528,39 @@ public class DeviceActionTests
         Assert.Contains(@"listFiles . *.txt True -1", devices.Calls);
     }
 
+    /// <summary>
+    /// 列文件夹：要"给每个子文件夹各做一遍"，先得拿得到它们的名字。默认仍是只列文件，老宏照旧；
+    /// 说一声 folders 就只回来文件夹，both 是两样一起。
+    /// </summary>
+    [Fact]
+    public async Task A_listing_can_be_asked_for_the_folders_rather_than_the_files()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files.FolderEntries.Add(@"C:/fake/a.txt");
+        devices.Files.Folders.Add(@"C:/fake/2024");
+        devices.Files.Folders.Add(@"C:/fake/2025");
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("kind", "folders"),
+                Returns("files=files")),
+        ], devices);
+
+        var listed = store.Local.Values["files"];
+        Assert.True(listed.IsList);
+        Assert.Equal([@"C:/fake/2024", @"C:/fake/2025"],
+            listed.Items.Select(item => item.AsText()).ToArray());
+
+        // 说 both 时两样都在，文件不会因为要了文件夹而消失。
+        var (_, _, both) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("kind", "both"),
+                Returns("files=files")),
+        ], devices);
+
+        Assert.Equal(3, both.Local.Values["files"].Items.Count);
+    }
+
     [Fact]
     public async Task A_listing_can_ask_for_what_changed_recently()
     {
