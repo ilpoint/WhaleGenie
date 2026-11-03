@@ -104,6 +104,41 @@ public class ActionDialogTests
     /// The same dialog, window and all, for a check that looks at what the form draws rather than
     /// only at what the view model holds.
     /// </summary>
+    /// <summary>
+    /// 表单开在一个新步骤前，可选用"落点之上已经有窗口"这一条件：动作对话框因此会把窗口格默认成
+    /// 「沿用上一次」。
+    /// </summary>
+    private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(
+        string key, bool followsWindowAbove)
+        => OpenWindow(key, WindowRuleChoices.Of([StepOnNotepad()]), followsWindowAbove,
+            followsWindowAbove ? NotepadRule : null);
+
+    private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(
+        string key, IReadOnlyList<WindowRuleChoice> used, bool followsWindowAbove = false,
+        string? windowAbove = null)
+    {
+        // 新步骤有自己的名字，编辑器在真实的流程里也是这么给的：有了它，这一步才算"正在写的"，
+        // 窗口格才会默认沿用上面那个窗口。
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
+            VariableChoicesForChecks.Named("match.x", "match.y", "spot"), [],
+            newStepId: followsWindowAbove ? "new01" : null, windowRules: used,
+            followsWindowAbove: followsWindowAbove, windowAbove: windowAbove);
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewModel = (AddActionViewModel)window.DataContext!;
+        viewModel.SelectAction(key);
+        Dispatcher.UIThread.RunJobs();
+        return (window, viewModel);
+    }
+
+    /// <summary>记事本那条规则的原文，测试里反复要用。</summary>
+    private static string NotepadRule => new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+
+    /// <summary>一步指着记事本的窗口，这样表单就有"上面已经用过的窗口"可列、可沿用。</summary>
+    private static MacroStep StepOnNotepad() => OnWindow(NotepadRule, "prev");
+
     private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
     {
         var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
@@ -1054,6 +1089,177 @@ public class ActionDialogTests
             Assert.Equal("control.delay", Assert.Single(saved.StepLists.Single().Steps).Type);
         });
     }
+
+    /// <summary>
+    /// 窗口那一格说得清自己现在是哪一种：没选就是前台窗口，选了「沿用上一次」就把这句话写出来，
+    /// 而不是显示一串没有标题的括号。
+    /// </summary>
+    [Fact]
+    public void A_window_field_says_which_window_it_stands_for()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            var window = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
+
+            Assert.False(window.HasWindowRule);
+            Assert.False(window.IsFollowingWindow);
+            Assert.Equal(Strings.Get("WindowRule.NotSet"), window.WindowRuleSummary);
+
+            window.FollowWindowRule();
+            Assert.True(window.IsFollowingWindow);
+            Assert.Equal(Strings.Get("WindowRule.Following"), window.WindowRuleSummary);
+            Assert.Equal(WindowRule.FollowPrevious.ToJson().ToJsonString(), window.CurrentText);
+
+            window.ApplyWindowRule(new WindowRule(Title: "Notepad"));
+            Assert.False(window.IsFollowingWindow);
+            Assert.Contains("Notepad", window.WindowRuleSummary, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// 落点之上已经有人指定过窗口时，新写的这一步默认就跟着它走：在同一个窗口里做十件事，前面九次
+    /// 不必各自再绑一遍。上面一个窗口都没提过时不替人做这个决定，空着就是前台窗口。
+    /// </summary>
+    [Fact]
+    public void A_new_step_starts_on_the_window_the_steps_above_it_use()
+    {
+        Ui.Run(() =>
+        {
+            var (_, following) = OpenWindow("vision.findImage", followsWindowAbove: true);
+            var window = following.Parameters.First(parameter => parameter.Definition.Name == "window");
+
+            Assert.True(window.IsFollowingWindow);
+            Assert.Single(following.WindowRules);
+            Assert.Contains("Notepad", following.WindowRules[0].Summary, StringComparison.Ordinal);
+
+            // 摘要说得出它现在会跟到哪个窗口，而不是只说一句"沿用上一次"。
+            Assert.Contains("Notepad", window.WindowRuleSummary, StringComparison.Ordinal);
+
+            var (_, plain) = OpenWindow("vision.findImage");
+            var empty = plain.Parameters.First(parameter => parameter.Definition.Name == "window");
+            Assert.False(empty.HasWindowRule);
+            Assert.False(empty.IsFollowingWindow);
+        });
+    }
+
+    /// <summary>
+    /// 表单拿到的"本宏用过的窗口"就是窗口菜单里列出来的那几条：摘要、原文、用了几处，同一条规则
+    /// 只列一次。
+    /// </summary>
+    [Fact]
+    public void The_window_menu_lists_what_the_macro_already_uses()
+    {
+        Ui.Run(() =>
+        {
+            var notepad = new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+            var calc = new WindowRule(Title: "Calculator").ToJson().ToJsonString();
+            var steps = new List<MacroStep>
+            {
+                OnWindow(notepad),
+                OnWindow(calc),
+                OnWindow(notepad),
+            };
+
+            var used = WindowRuleChoices.Of(steps);
+
+            Assert.Equal(2, used.Count);
+            Assert.Equal(2, used[0].Count);
+            Assert.Equal(1, used[1].Count);
+            Assert.Equal(notepad, used[0].Rule);
+            Assert.Contains("Notepad", used[0].Summary, StringComparison.Ordinal);
+
+            var (_, viewModel) = OpenWindow("vision.findImage", used);
+            Assert.Equal(2, viewModel.WindowRules.Count);
+        });
+    }
+
+    /// <summary>
+    /// 选窗口那颗按钮打开的就是这张菜单：勾在现在这一种上，列出本宏用过的窗口与此刻打开着的窗口，
+    /// 点一条就把那段规则写进这一格。不必再按 F1 对准窗口点一下。
+    /// </summary>
+    [Fact]
+    public void The_window_menu_offers_what_the_macro_and_the_desk_have()
+    {
+        Ui.Run(() =>
+        {
+            var notepad = new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+            var (window, viewModel) = OpenWindow("vision.findImage",
+                WindowRuleChoices.Of([OnWindow(notepad)]), followsWindowAbove: true);
+
+            var view = window.GetVisualDescendants().OfType<ActionEditorView>().First();
+            view.Devices = new ChecksDevices
+            {
+                Windows = new WindowsForChecks().Add(7, "Calculator", "calc", "CalcFrame"),
+            };
+
+            // 窗口那一格只在「识别方式 = 窗口」时露面，这也是它对这一步的含义。
+            Choose(viewModel, "anchorMode", "window");
+            Dispatcher.UIThread.RunJobs();
+
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
+            Assert.Contains(window.GetVisualDescendants().OfType<Button>(),
+                button => button.IsEffectivelyVisible
+                    && button.DataContext == field
+                    && (string?)button.Content == Strings.Get("WindowRule.Choose"));
+
+            var menu = view.BuildWindowMenu(field);
+            var items = menu.Items.OfType<MenuItem>().ToList();
+
+            Assert.Contains(items, item => (string?)item.Header == Strings.Get("WindowRule.Menu.Foreground"));
+            Assert.Contains(items, item => (string?)item.Header == Strings.Get("WindowRule.Following")
+                && item.IsChecked);
+
+            var used = items.First(item => (string?)item.Header == Strings.Get("WindowRule.Menu.Used"));
+            Assert.Single(used.Items.OfType<MenuItem>());
+
+            var open = items.First(item => (string?)item.Header == Strings.Get("WindowRule.Menu.Open"));
+            var row = Assert.Single(open.Items.OfType<MenuItem>());
+            Assert.Contains("Calculator", (string)row.Header!, StringComparison.Ordinal);
+
+            // 点一条就写进这一格：整条规则连程序名一起，改天标题变了也还能找回同一个窗口。
+            row.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.False(field.IsFollowingWindow);
+            Assert.True(WindowRule.TryParse(field.CurrentText, out var applied));
+            Assert.Equal("Calculator", applied.Title);
+            Assert.Equal("calc", applied.Process);
+        });
+    }
+
+    /// <summary>
+    /// 新步骤跟着走的是"落点之上最近那一步"用的窗口：选中第二步时跟第一步，什么都没选（放在末尾）
+    /// 时跟最后一步。判的是顺序，不是记住的上一个，所以插在中间得到的也是它上面那一条。
+    /// </summary>
+    [Fact]
+    public void The_window_a_new_step_follows_is_the_last_one_above_the_landing_point()
+    {
+        var notepad = new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+        var calc = new WindowRule(Title: "Calculator").ToJson().ToJsonString();
+        var steps = new List<MacroStep>
+        {
+            OnWindow(notepad, "first"),
+            OnWindow(calc, "second"),
+        };
+
+        Assert.Equal(notepad, WindowRuleChoices.NearestAbove(steps, "second"));
+        Assert.Equal(calc, WindowRuleChoices.NearestAbove(steps, null));
+        Assert.Equal(string.Empty, WindowRuleChoices.NearestAbove([OnWindow(string.Empty)], null));
+    }
+
+    private static MacroStep OnWindow(string rule, string id = "") => new()
+    {
+        Id = id,
+        Type = "vision.findImage",
+        Parameters =
+        [
+            new StepParameter
+            {
+                Name = "window",
+                Kind = ActionParameterKind.WindowRule,
+                Value = rule,
+            },
+        ],
+    };
 
     /// <summary>
     /// The switch that takes the place from the pointer stands on the line of the numbers it belongs

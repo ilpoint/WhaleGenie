@@ -43,8 +43,26 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private const string ListWindowsKey = "window.list";
 
+    /// <summary>
+    /// 落点之上已经有步骤指定过窗口，所以新建的这一步默认「沿用上一次」。在同一个窗口里做十件事，
+    /// 前面九次不必各自再绑一遍。
+    /// </summary>
+    private readonly bool _followsWindowAbove;
+
     /// <summary>The macro the call's own fields were built for, so a change to it can be noticed.</summary>
     private string _callMacro = string.Empty;
+
+    /// <summary>
+    /// 本宏里已经用过的那几条窗口规则，按第一次出现的顺序，带用了几处。窗口那一格的下拉里列出它们，
+    /// 选一条就等于把那段规则原样写进来，不必重新捕获。
+    /// </summary>
+    public IReadOnlyList<WindowRuleChoice> WindowRules { get; }
+
+    /// <summary>
+    /// 落点之上最近那一条真的窗口规则：窗口格写「沿用上一次」时，它就是要跟到的那一个。摘要里把它
+    /// 写出来，试运行也按它走——试的才是运行时会发生的事。
+    /// </summary>
+    public string WindowAbove { get; }
 
     /// <summary>True while a call's fields are being rebuilt, so putting the name back is not taken
     /// for the user picking another macro.</summary>
@@ -80,12 +98,17 @@ public partial class AddActionViewModel : ViewModelBase
     /// </param>
     public AddActionViewModel(IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
-        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
+        IReadOnlyList<WindowRuleChoice>? windowRules = null,
+        bool followsWindowAbove = false, string? windowAbove = null)
     {
         AvailableActions = actions;
         _variables = variables ?? [];
         _macros = macros ?? [];
         StepChoices = steps ?? [];
+        WindowRules = windowRules ?? [];
+        _followsWindowAbove = followsWindowAbove;
+        WindowAbove = windowAbove ?? string.Empty;
 
         // A step being written has a name already, so the fields that create variables can carry it.
         // The editor hands one in for a new step; an existing step brings its own when it is loaded.
@@ -1097,6 +1120,21 @@ public partial class AddActionViewModel : ViewModelBase
             }
 
             SuggestReturnNames();
+
+            foreach (var editor in Parameters.Where(field => field.IsWindowRule))
+            {
+                editor.WindowAboveRule = WindowAbove;
+            }
+
+            // 新的这一步如果还没指定窗口，而落点之上已经指定过，就默认「沿用上一次」。指向而不是
+            // 复制：上面那一步改了窗口，这一串跟着改。
+            if (_isNewStep
+                && _followsWindowAbove
+                && Parameter("window") is { } window
+                && window.CurrentText.Trim().Length == 0)
+            {
+                window.FollowWindowRule();
+            }
         }
 
         BuildRows();

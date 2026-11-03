@@ -1907,9 +1907,17 @@ public partial class MacroEditorWindow : AppWindow
         IReadOnlyList<ActionDefinition> actions, string? presetKey, string? macroName)
     {
         var editingPage = _viewModel;
+
+        // 窗口那几格现在可以"沿用上一次"：这里把本宏用过的窗口收成一张表交给表单，并告诉它落点
+        // 之上有没有人指定过窗口——有的话，新写的这一步默认就跟着上面那个走，不必再绑一次。
+        var windowRules = WindowRuleChoices.Of(_viewModel.Steps);
+        var windowAbove = WindowRuleChoices
+            .NearestAbove(_viewModel.Steps, _viewModel.SelectedSteps.LastOrDefault()?.Id);
+        var follows = editing is null && windowAbove.Length > 0;
+
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
             MacroCalls(), presetKey, _session.AssetFolder, _viewModel.StepChoices(),
-            editing?.Id ?? _viewModel.NewStepId())
+            editing?.Id ?? _viewModel.NewStepId(), windowRules, follows, windowAbove)
         {
             Devices = Layer,
             Macros = BuildLibrary(),

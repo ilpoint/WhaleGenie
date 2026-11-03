@@ -81,6 +81,9 @@ public class DeviceActionTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>窗口格写成「沿用上一次用的窗口」时，文件里那一小段标记。</summary>
+    private static string Following => WindowRule.FollowPrevious.ToJson().ToJsonString();
+
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
         => SampleFiles.Returns(results);
@@ -8688,6 +8691,83 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 「沿用上一次用的窗口」：这一步不再自己认窗口，用前面某一步已经说过的那句话。宏在同一窗口里
+    /// 做十件事是很平常的，没有道理十次都把窗口重新说一遍。
+    /// </summary>
+    [Fact]
+    public async Task A_step_can_carry_on_with_the_window_a_step_before_it_named()
+    {
+        var devices = WithAWindow();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.activate", Param("window", "Notepad")),
+            Step("window.activate", Param("window", Following)),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, devices.Calls.Count(call => call == "activateWindow 1"));
+    }
+
+    /// <summary>
+    /// 一条什么都没提的步骤（空着就是"前台窗口"）不会把已认下来的窗口冲掉：链子从最近一个真的
+    /// 指定了窗口的步骤接着走，而不是被中间那一步打断。
+    /// </summary>
+    [Fact]
+    public async Task A_step_that_names_no_window_leaves_the_chain_where_it_was()
+    {
+        var devices = WithAWindow();
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator",
+            new ScreenPoint(), new ScreenSize(), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.activate", Param("window", "Notepad")),
+            Step("window.activate"),
+            Step("window.activate", Param("window", Following)),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 中间那一步用的是前台窗口（替身里是列表第一个），第三步仍旧回到前面说过的记事本。
+        Assert.Equal(3, devices.Calls.Count(call => call == "activateWindow 1"));
+    }
+
+    /// <summary>
+    /// 一次都还没有人指定过窗口时，「沿用上一次」和空着一样用前台窗口，而不是报一个找不到的窗口：
+    /// 这是它排在第一个、或者上面全是"看整个屏幕"的步骤时会遇到的情形。
+    /// </summary>
+    [Fact]
+    public async Task Following_before_any_window_is_named_uses_the_one_in_front()
+    {
+        var devices = WithAWindow();
+
+        var (result, _, _) = await RunAsync(
+            [Step("window.activate", Param("window", Following))], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 沿用的规则在文件里是一小段标记，不是一条认识的窗口：读回来还是"沿用"，而且不写这一格时
+    /// 规则与从前一字不差。
+    /// </summary>
+    [Fact]
+    public void A_rule_that_follows_is_written_as_one_flag_and_nothing_else_changes()
+    {
+        var following = WindowRule.FollowPrevious.ToJson();
+        Assert.True(following[FieldNames.Follow]!.GetValue<bool>());
+        Assert.True(WindowRule.TryParse(following.ToJsonString(), out var read));
+        Assert.True(read.Follow);
+        Assert.False(read.HasTarget);
+
+        var named = new WindowRule(Title: "Notepad").ToJson();
+        Assert.Null(named[FieldNames.Follow]);
+        Assert.DoesNotContain(FieldNames.Follow, named.Select(pair => pair.Key));
     }
 
     /// <summary>

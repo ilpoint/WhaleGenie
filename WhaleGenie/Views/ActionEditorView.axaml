@@ -173,12 +173,14 @@
                             Click="OnTestStep" />
                 </Grid>
 
-                <!-- A window is one field even though it remembers several things. The button
-                     captures the window in front after F1 and edits the matching rule there. -->
+                <!-- 窗口是一个字段，但它记得好几件事。以前这里一排三颗按钮：获取窗口（要按 F1
+                     对准窗口点一下）、变量、清除——同一个窗口在一页页宏里要用二十次，就得捕获二十
+                     次。现在一颗「选择窗口」收着全部走法：前台窗口、沿用上一次、本宏用过的窗口、
+                     已经打开的窗口（直接点，不必按 F1）、捕获新的、变量里的。 -->
                 <Border IsVisible="{Binding IsWindowRule}" Background="{DynamicResource SurfaceField}"
                         BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                         CornerRadius="5" Padding="10,8">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                         <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Text="{Binding WindowRuleSummary}" FontSize="12.5"
                                        Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
@@ -186,14 +188,10 @@
                                        Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                         <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
-                                Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnPickWindowRule" />
-                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
-                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnPickWindowVariable" />
-                        <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="10,0"
+                                Content="{Binding [WindowRule.Choose], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [WindowRule.ChooseHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnChooseWindow" />
+                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="10,0"
                                 Content="{Binding [WindowRule.Clear], Source={x:Static loc:Strings.Current}}"
                                 Click="OnClearWindowRule" />
                     </Grid>

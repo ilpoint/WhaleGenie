@@ -832,43 +832,80 @@ public partial class StepParameterViewModel : ViewModelBase
                 return written;
             }
 
-            if (!WindowRule.TryParse(written, out var rule) || !rule.HasTarget)
+            if (!WindowRule.TryParse(written, out var rule))
             {
                 return Strings.Get("WindowRule.NotSet");
             }
 
-            return $"{rule.MatchValue} · {Strings.Get($"WindowRule.Short.{rule.How}", rule.How)}";
+            // 沿用是一次指向，不是一条窗口：说清楚它是什么意思，比显示一串没有标题的括号有用；
+            // 知道上面那一条是什么时，顺手把"现在会跟到哪个窗口"也说出来。
+            if (rule.Follow)
+            {
+                var following = Strings.Get("WindowRule.Following");
+                return Readable(WindowAboveRule) is { Length: > 0 } above
+                    ? $"{following}：{above}"
+                    : following;
+            }
+
+            var readable = Readable(written);
+            return readable.Length > 0 ? readable : Strings.Get("WindowRule.NotSet");
         }
     }
 
+    /// <summary>一条规则写成人看的一行；认不出来、或者里面没有窗口时是空串。</summary>
+    private static string Readable(string written)
+        => WindowRule.TryParse(written, out var rule) && rule.HasTarget
+            ? $"{rule.MatchValue} · {Strings.Get($"WindowRule.Short.{rule.How}", rule.How)}"
+            : string.Empty;
+
+    /// <summary>
+    /// 落点之上最近那一条窗口规则，由编辑器在打开这个表单时交进来：这一格写「沿用上一次」时，
+    /// 摘要里说得出它会跟到哪个窗口。
+    /// </summary>
+    public string WindowAboveRule { get; set; } = string.Empty;
+
     public bool HasWindowRule => !string.IsNullOrWhiteSpace(Text);
+
+    /// <summary>True when this field says "the same window the steps before this one used".</summary>
+    public bool IsFollowingWindow
+        => WindowRule.TryParse(Text, out var rule) && rule.Follow;
 
     /// <summary>Stores a captured rule as the one value this field writes.</summary>
     public void ApplyWindowRule(WindowRule rule)
     {
         Text = rule.ToJson().ToJsonString();
-        OnPropertyChanged(nameof(WindowRuleSummary));
-        OnPropertyChanged(nameof(HasWindowRule));
-        OnPropertyChanged(nameof(IsMissing));
-        OnPropertyChanged(nameof(IsIncluded));
+        NotifyWindowRule();
+    }
+
+    /// <summary>
+    /// 改用上一次用的窗口：不写死任何一个窗口，只说"跟前面一样"。前面那一步改了，这一串跟着改，
+    /// 不用在每一条上重新绑一遍。
+    /// </summary>
+    public void FollowWindowRule()
+    {
+        Text = WindowRule.FollowPrevious.ToJson().ToJsonString();
+        NotifyWindowRule();
     }
 
     /// <summary>Uses a variable that holds a window record instead of a literal rule.</summary>
     public void UseWindowVariable(string name)
     {
         Text = "$" + name.Trim().TrimStart('$');
-        OnPropertyChanged(nameof(WindowRuleSummary));
-        OnPropertyChanged(nameof(HasWindowRule));
-        OnPropertyChanged(nameof(IsMissing));
-        OnPropertyChanged(nameof(IsIncluded));
+        NotifyWindowRule();
     }
 
     /// <summary>Forgets the window this field names.</summary>
     public void ClearWindowRule()
     {
         Text = string.Empty;
+        NotifyWindowRule();
+    }
+
+    private void NotifyWindowRule()
+    {
         OnPropertyChanged(nameof(WindowRuleSummary));
         OnPropertyChanged(nameof(HasWindowRule));
+        OnPropertyChanged(nameof(IsFollowingWindow));
         OnPropertyChanged(nameof(IsMissing));
         OnPropertyChanged(nameof(IsIncluded));
     }
@@ -1385,6 +1422,11 @@ public partial class StepParameterViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
+
+        // 窗口那一行字是用文案表拼出来的（"前台窗口"、"沿用上一次"、匹配方式的叫法），换语言时
+        // 要跟着重拼，否则它会停在打开表单时的那种语言上。
+        OnPropertyChanged(nameof(WindowRuleSummary));
+
         foreach (var row in KeyRows)
         {
             row.RefreshLanguage();

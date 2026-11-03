@@ -30,6 +30,12 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private const int PickReadMs = 3000;
 
+    /// <summary>
+    /// 菜单里直接列出多少个打开的窗口。再多的就不再一条条排，改成一个「更多」打开列表：一张
+    /// 长得要滚的菜单，比列表窗口更难找。
+    /// </summary>
+    private const int OpenWindowLimit = 12;
+
 
     /// <summary>The window this view is standing in, which owns its pickers and dialogs.</summary>
     private Window? HostWindow => TopLevel.GetTopLevel(this) as Window;
@@ -166,11 +172,14 @@ public partial class ActionEditorView : UserControl
     public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
-        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
+        IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
+        string? windowAbove = null)
     {
         InitializeComponent();
 
-        var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId);
+        var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId,
+            windowRules, followsWindowAbove, windowAbove);
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
         // Picking a position has to know where the window a step is anchored to sits right now,
@@ -1112,7 +1121,21 @@ public partial class ActionEditorView : UserControl
         }
 
         // The step as it would be saved: what is tried is what was written, settings and all.
-        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
+        var built = viewModel.BuildStep();
+
+        // 试运行只有这一步，没有"上面那一步"可以跟：把沿用换成它会跟到的那条规则，试的才是运行时
+        // 真正会碰的那个窗口。存的仍旧是原来的写法，这一步不会因此被改掉。
+        if (viewModel.WindowAbove.Length > 0)
+        {
+            foreach (var field in built.Parameters.Where(field =>
+                         string.Equals(field.Name, "window", StringComparison.Ordinal)
+                         && WindowRule.TryParse(field.Value, out var rule) && rule.Follow))
+            {
+                field.Value = viewModel.WindowAbove;
+            }
+        }
+
+        var step = new[] { built }.ToExecutable()[0];
 
         // Out of the way while it is tried, so the key or the control lands on the window that was
         // meant, which is whatever the user had in mind behind this dialog — and so does everything
@@ -1686,16 +1709,128 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Captures the window in front and edits its matching rule. The whole rule is one value, so
-    /// the action stores what the picker saw rather than losing the parts it did not use today.
+    /// 窗口那一格的唯一入口：把"用哪个窗口"的几种走法收在一处。以前是三颗按钮，其中捕获那一颗
+    /// 还要先按 F1 再对准窗口点一下；同一个窗口在一页宏里要用二十次时，这一格是最费手的地方。
     /// </summary>
-    private async void OnPickWindowRule(object? sender, RoutedEventArgs e)
+    private void OnChooseWindow(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        if (sender is Button { DataContext: StepParameterViewModel parameter } button)
         {
-            return;
+            BuildWindowMenu(parameter).ShowAt(button);
+        }
+    }
+
+    /// <summary>
+    /// 窗口那一格的菜单：前台、沿用、本宏用过的、已打开的、捕获、变量。建菜单与显示分开，是因为
+    /// 菜单里列出什么、勾在哪一项，是可以单独核对的东西。
+    /// </summary>
+    internal MenuFlyout BuildWindowMenu(StepParameterViewModel parameter)
+    {
+        if (DataContext is not AddActionViewModel form)
+        {
+            return new MenuFlyout();
         }
 
+        var menu = new MenuFlyout();
+
+        // 不指定就是前台窗口，与从前空着那一格的意思一样。
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.Foreground"),
+            parameter.ClearWindowRule, !parameter.HasWindowRule));
+
+        // 沿用：不写死窗口，跟前面那个走。新步骤默认就是它，所以这一项平时常常是勾上的。
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Following"),
+            parameter.FollowWindowRule, parameter.IsFollowingWindow));
+
+        if (form.WindowRules.Count > 0)
+        {
+            menu.Items.Add(new Separator());
+
+            var used = new MenuItem { Header = Strings.Get("WindowRule.Menu.Used") };
+            foreach (var choice in form.WindowRules)
+            {
+                if (!WindowRule.TryParse(choice.Rule, out var rule))
+                {
+                    continue;
+                }
+
+                var label = choice.Count > 1
+                    ? $"{choice.Summary} {Strings.Get("WindowRule.UsedTimes", choice.Count.ToString(CultureInfo.CurrentCulture))}"
+                    : choice.Summary;
+                used.Items.Add(Choice(label, () => parameter.ApplyWindowRule(rule),
+                    string.Equals(parameter.Text.Trim(), choice.Rule, StringComparison.Ordinal)));
+            }
+
+            menu.Items.Add(used);
+        }
+
+        menu.Items.Add(new Separator());
+        menu.Items.Add(OpenWindows(parameter));
+
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.Capture"),
+            () => _ = CaptureWindowRule(parameter)));
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.Variable"),
+            () => _ = UseWindowVariable(parameter)));
+
+        return menu;
+    }
+
+    /// <summary>The windows that are open right now, ready to be named in one click.</summary>
+    private MenuItem OpenWindows(StepParameterViewModel parameter)
+    {
+        var menu = new MenuItem { Header = Strings.Get("WindowRule.Menu.Open") };
+        IReadOnlyList<WindowInfo> windows;
+        try
+        {
+            windows = Devices.Windows.List();
+        }
+        catch (Exception)
+        {
+            // 列不出来就没有这一项：读窗口的设备不在时，别的走法仍旧可用。
+            menu.IsEnabled = false;
+            return menu;
+        }
+
+        foreach (var window in windows.Take(OpenWindowLimit))
+        {
+            var named = window;
+            menu.Items.Add(Choice(Label(named), () =>
+            {
+                // 记下的是整条规则，程序名与窗口类也一起：改天标题变了，还能按它们找回同一个窗口。
+                parameter.ApplyWindowRule(WindowRule.From(named,
+                    Devices.Windows.ProcessOf(named.Handle), Devices.Windows.ClassOf(named.Handle)));
+            }));
+        }
+
+        if (windows.Count > OpenWindowLimit)
+        {
+            menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.More"),
+                () => _ = PickWindowByTitle(parameter)));
+        }
+
+        if (menu.Items.Count == 0)
+        {
+            menu.IsEnabled = false;
+        }
+
+        return menu;
+    }
+
+    /// <summary>A row for one window: its title, then the program it belongs to.</summary>
+    private string Label(WindowInfo window)
+    {
+        if (window.Title.Length == 0)
+        {
+            return window.Handle.ToString(CultureInfo.CurrentCulture);
+        }
+
+        var program = Devices.Windows.ProcessOf(window.Handle);
+        return program.Length == 0 ? window.Title : $"{window.Title} · {program}";
+    }
+
+    /// <summary>捕获窗口：按 F1 对准窗口点一下，再改匹配方式。仍然是最精确的那条路。</summary>
+    private async Task CaptureWindowRule(StepParameterViewModel parameter)
+    {
         WindowRule.TryParse(parameter.Text, out var current);
         if (await WindowRuleWindow.PickAsync(HostWindow!, Devices.Windows, Devices.Hook, current) is { } picked)
         {
@@ -1703,11 +1838,20 @@ public partial class ActionEditorView : UserControl
         }
     }
 
-    /// <summary>Uses a window record a previous step handed over.</summary>
-    private async void OnPickWindowVariable(object? sender, RoutedEventArgs e)
+    /// <summary>从窗口列表里选一个，只留下标题那一条规则。</summary>
+    private async Task PickWindowByTitle(StepParameterViewModel parameter)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter }
-            || DataContext is not AddActionViewModel viewModel)
+        if (await WindowPickerWindow.PickAsync(HostWindow!, WindowMatch.Title, Devices.Windows)
+            is { Length: > 0 } picked)
+        {
+            parameter.ApplyWindowRule(new WindowRule(Title: picked));
+        }
+    }
+
+    /// <summary>Uses a window record a previous step handed over.</summary>
+    private async Task UseWindowVariable(StepParameterViewModel parameter)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
         {
             return;
         }
@@ -1719,6 +1863,31 @@ public partial class ActionEditorView : UserControl
         }
 
         parameter.UseWindowVariable(picked.Token);
+    }
+
+    /// <summary>One line of the window menu: what it says, what it does, and whether it is the one in force.</summary>
+    private static MenuItem Choice(string text, Action chosen, bool inForce = false)
+    {
+        var item = new MenuItem { Header = text, ToggleType = MenuItemToggleType.Radio,
+            IsChecked = inForce };
+        item.Click += (_, _) => chosen();
+        return item;
+    }
+
+    private async void OnPickWindowRule(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            await CaptureWindowRule(parameter);
+        }
+    }
+
+    private async void OnPickWindowVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            await UseWindowVariable(parameter);
+        }
     }
 
     private void OnClearWindowRule(object? sender, RoutedEventArgs e)

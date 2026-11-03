@@ -74,6 +74,13 @@ public sealed partial class MacroRunner
     private CaptureWay? _takenMethod;
 
     /// <summary>
+    /// 这一轮里最近一次由步骤自己指定的窗口规则。后面的步骤说"沿用上一次"时取的就是它：宏做十
+    /// 件事都在同一个窗口里，没有道理十次都把窗口重新说一遍。记的是**规则**而不是找到的句柄，
+    /// 所以窗口关掉再开、标题变了，后面照样按同一句话重新找。
+    /// </summary>
+    private WindowRule _lastWindowRule = WindowRule.Empty;
+
+    /// <summary>
     /// The last picture taken of each source, for the steps that say a picture a little older will
     /// do. A macro that looks at the same window several times in a row then reads it once, which is
     /// what a per-second budget of looks is really about. It lives for one run: what a macro sees is

@@ -81,7 +81,9 @@ public class ActionEditorWindow : AppWindow
     public ActionEditorWindow(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
-        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
+        IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
+        string? windowAbove = null)
     {
         Title = Strings.Get("Editor.ActionEditor");
 
@@ -101,7 +103,7 @@ public class ActionEditorWindow : AppWindow
         TitleBar.Height = 40;
 
         _view = new ActionEditorView(existing, actions, variables, macros, presetKey, assetFolder,
-            steps, newStepId);
+            steps, newStepId, windowRules, followsWindowAbove, windowAbove);
         Content = WithTitleBar(_view);
         DataContext = _view.DataContext;
         _view.Finished += CloseWith;
