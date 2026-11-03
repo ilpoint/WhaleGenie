@@ -18,18 +18,15 @@ internal static class ActionStrings
     /// once rather than fourteen times, so a change to how input is described stays in one place.
     /// </summary>
     private const string InputModeHint =
-        "这一步的输入怎么送出去。前台发给当前有焦点的窗口；后台把消息投给下面的目标窗口，"
-        + "不用抢焦点，屏幕上的鼠标也不会真的移动；驱动级通过虚拟 USB 设备发送，"
-        + "需要 usbip-win2 驱动，设置窗口里能看它在不在。";
+        "键鼠怎么发。前台：发给当前焦点窗口；后台：消息直接投给目标窗口，不抢焦点、不动真实鼠标；"
+        + "驱动级：经虚拟 USB 设备发送，需要 usbip-win2 驱动。";
 
     /// <summary>
     /// The hint every action that takes a position or a rectangle shares for its coordinate-origin
     /// picker, written once for the same reason the input-mode hint is.
     /// </summary>
     private const string AnchorModeHint =
-        "这一步在哪儿识别，默认屏幕。屏幕＝直接看桌面；窗口＝看目标窗口客户区。选窗口时"
-        + "读取下面的窗口规则，识别画面、区域和坐标都从客户区左上角算起；窗口移动或缩放后，"
-        + "识别仍落在窗口里的同一处。";
+        "这一步在哪里看。屏幕：整个桌面；窗口：目标窗口的客户区，窗口移动或缩放后仍落在同一处。";
 
     /// <summary>
     /// The same rule as the window actions use, said for a step that reads the screen: the window
@@ -37,8 +34,7 @@ internal static class ActionStrings
     /// it is matters twice over.
     /// </summary>
     private const string AnchorWindowRuleHint =
-        "识别方式选窗口时才用：获取一次目标窗口，运行时按这条规则重新找它；"
-        + "这一步读到的画面也取自这个窗口。留空表示运行时最前面的那个窗口。";
+        "识别方式选窗口时使用。运行时按这条规则重新找到目标窗口，画面与坐标都取自它。";
 
 
     /// <summary>
@@ -146,12 +142,8 @@ internal static class ActionStrings
 
     /// <summary>The hint every search-region field shares, in the wording the English one uses.</summary>
     private const string RegionHintText =
-        "搜索范围，一行一块，可以填多块。每行填一处地方的左、上、宽、高四个数字，或用“框选”拖出来；"
-        + "一行也可以填变量：图片变量（在前一步截取的那张图上搜索）或写成 left,top,宽,高 的矩形"
-        + "变量，还可以填一条带矩形的记录（命中、窗口、元素都行）。矩形变量与记录里的 left、top、"
-        + "width、height 是同一组字段；记录里的数是屏幕像素，「识别方式」只挪动写出来的四个数字，"
-        + "不会改变记录里的数。"
-        + "留空表示整个屏幕（默认）。";
+        "要看的区域，一行一处。每行四个数字（左、上、宽、高），或一个变量、一条带矩形的记录；"
+        + "留空就是整个屏幕（或窗口客户区）。";
 
     /// <summary>The hint the "which hit" fields share.</summary>
     private const string MatchIndexHint =
@@ -244,11 +236,8 @@ internal static class ActionStrings
     /// places, so it is written once and all three answer the same way.
     /// </summary>
     private const string ContentHint =
-        "读到的一段文字留下什么：全部文字照原样留下；只读数字、只留字母、只留中文、只留字母与中文"
-        + "这几档只留下要的那类字符（首尾的空格去掉、中间连续的空格并成一个），一个字符也不剩下的"
-        + "段落就当没读到；按正则提取把「提取的正则」套在每一段上，只留下匹配到的那一段。全角字母"
-        + "与全角数字按半角算；随包那一份模型本来就中英文都读，所以「只留中文」是在读出来的结果里"
-        + "挑中文，不是换一份模型。";
+        "读到的文字留下什么。全部文字照原样保留；只读数字或字母只留对应字符；"
+        + "按正则提取只留匹配到的部分。";
 
     private const string ContentAll = "全部文字";
     private const string ContentDigits = "只读数字";

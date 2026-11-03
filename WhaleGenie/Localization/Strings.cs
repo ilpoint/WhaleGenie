@@ -2571,11 +2571,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionWidthShort"] = "宽",
         ["Add.RegionHeightShort"] = "高",
         ["Add.RegionX"] = "左上角 X",
-        ["Add.RegionXHint"] = "这一处的左边界距屏幕左边的像素数；识别方式选窗口时，从窗口客户区的"
-            + "左边算起。这一格就是结果里写作 left 的那个数，不是命中中心的 x。",
+        ["Add.RegionXHint"] = "这一处的左边界，单位像素；就是结果里的 left。",
         ["Add.RegionY"] = "左上角 Y",
-        ["Add.RegionYHint"] = "这一处的上边界距屏幕上边的像素数；识别方式选窗口时，从窗口客户区的"
-            + "上边算起。这一格就是结果里写作 top 的那个数，不是命中中心的 y。",
+        ["Add.RegionYHint"] = "这一处的上边界，单位像素；就是结果里的 top。",
         ["Add.RegionWidth"] = "向右的宽",
         ["Add.RegionWidthHint"] = "这一处有多宽，单位像素：从左边界量到右边界。",
         ["Add.RegionHeight"] = "向下的高",
@@ -2842,7 +2840,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowRule.Menu.Variable"] = "变量里的窗口…",
         ["WindowRule.NotSet"] = "前台窗口。",
         ["WindowRule.Clear"] = "清除",
-        ["WindowRule.FieldHint"] = "选这一步用哪个窗口，再选好用标题、进程名还是窗口类认出它；以后每次运行都按这条规则重新找同一个窗口。",
+        ["WindowRule.FieldHint"] = "选这一步用哪个窗口，以及用标题、进程名还是窗口类认出它。每次运行都按这条规则重新找。",
         ["WindowRule.How.titleContains"] = "标题包含",
         ["WindowRule.How.titleStartsWith"] = "标题开头",
         ["WindowRule.How.titleEndsWith"] = "标题结尾",
