@@ -196,37 +196,81 @@ public class LocalizationTests
     }
 
     /// <summary>
-    /// Every way of narrowing a page down is offered under a name the text tables carry, and the
-    /// dropdown says which questions a row can ask in the reader's own language. A way added to the
-    /// engine without a word for it would show the person filling the form a raw name instead.
+    /// 两个动作不能叫同一个名字：动作库里并排两张同名卡片，人只能靠猜哪张是网页、哪张是界面。
+    /// 中文与英文各过一遍，因为名字分两处写。这里直接读两张表，不去改全局语言：测试是并行跑的，
+    /// 换语言会顺手改到别人正在读的那张表。
     /// </summary>
     [Fact]
-    public void Every_way_of_narrowing_a_page_down_is_named_in_both_languages()
+    public void No_two_actions_are_called_the_same_thing()
+    {
+        var actions = ActionCatalog.Definitions;
+        var languages = new (string Label, Dictionary<string, string> Table)[]
+        {
+            ("中文", Strings.Chinese),
+            ("English", Strings.English),
+        };
+
+        foreach (var (label, table) in languages)
+        {
+            var same = actions
+                .Select(action => (action.Key,
+                    Name: table.GetValueOrDefault(action.Key + ".name", action.DisplayName)))
+                .GroupBy(named => named.Name)
+                .Where(group => group.Count() > 1)
+                .Select(group => $"{label} {group.Key}: "
+                    + string.Join(", ", group.Select(named => named.Key)))
+                .ToList();
+
+            Assert.Empty(same);
+        }
+    }
+
+    /// <summary>
+    /// Every way of narrowing an element down is offered under a name the text tables carry, in both
+    /// families: the page's six and the desktop control's four. A way added to the engine without a
+    /// word for it would show the person filling the form a raw name instead.
+    /// </summary>
+    [Fact]
+    public void Every_way_of_narrowing_an_element_down_is_named_in_both_languages()
     {
         Ui.Run(() =>
         {
-            foreach (var way in Enum.GetValues<PageFilter>())
+            foreach (var family in Enum.GetValues<NarrowFamily>())
             {
-                foreach (var prefix in new[] { "Add.Narrow.", "Add.NarrowValue." })
+                var ways = NarrowWay.For(family);
+                Assert.NotEmpty(ways);
+
+                foreach (var way in ways)
                 {
-                    Assert.True(Strings.English.ContainsKey(prefix + way), prefix + way);
-                    Assert.True(Strings.Chinese.ContainsKey(prefix + way), prefix + way);
+                    foreach (var prefix in new[] { "Add.Narrow.", "Add.NarrowValue." })
+                    {
+                        Assert.True(Strings.English.ContainsKey(prefix + way.Value),
+                            prefix + way.Value);
+                        Assert.True(Strings.Chinese.ContainsKey(prefix + way.Value),
+                            prefix + way.Value);
+                    }
+
+                    Assert.NotEqual(way.Value, way.Display);
                 }
             }
 
-            // The order they are offered in is the order they read in: where the element sits
-            // first, then what it writes, then what it holds, and last the one that asks nothing
-            // beside it. Every way is in the list, read from the table rather than from the engine's
-            // own names.
+            // The order they are offered in is the order they read in: where the element sits first
+            // for a page, then what it writes, then what it holds, and last the one that asks
+            // nothing beside it. A desktop control puts the two that ask nothing first, because they
+            // are the ones a person reaches for most.
             Assert.Equal(
                 [
                     nameof(PageFilter.Inside), nameof(PageFilter.HasText),
                     nameof(PageFilter.HasNotText), nameof(PageFilter.Has),
                     nameof(PageFilter.HasNot), nameof(PageFilter.Visible),
                 ],
-                NarrowRowViewModel.Ways.Select(choice => choice.Value));
-            Assert.All(NarrowRowViewModel.Ways,
-                choice => Assert.NotEqual(choice.Value, choice.Display));
+                NarrowWay.For(NarrowFamily.Page).Select(choice => choice.Value));
+            Assert.Equal(
+                [
+                    nameof(UiConditionHow.Visible), nameof(UiConditionHow.Enabled),
+                    nameof(UiConditionHow.NameHas), nameof(UiConditionHow.NameHasNot),
+                ],
+                NarrowWay.For(NarrowFamily.Element).Select(choice => choice.Value));
         });
     }
 

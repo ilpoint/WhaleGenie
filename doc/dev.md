@@ -266,6 +266,19 @@ if ($missing) { $missing; exit 1 }
   核心测试用 `Region((x, y, w, h))` 或 `RegionFrom("$record")`，界面测试看 `StepParameterViewModel.Regions`
   与 `ApplyRegion`（它往列表里加一行）。`vision.capture` 仍是四个数，两边的界面结构不同是有意的。
 
+- 「还要像什么样」(`narrow`) 现在两族共用一张行表，但问的事不同，由目录声明：
+  `ActionSemantics.NarrowOn` 取 `Page` 或 `Element`，`ActionParameter.NarrowFamily` 读它，
+  `NarrowWay.For(family)` 给出该族的选项（网页六种：里面 / 含有文字 / 不含 / 有元素 / 没有元素 /
+  看得见；桌面元素四种：看得见 / 能用 / 名字含 / 名字不含）。空着或写了不认识的族会抛异常，
+  `Every_narrow_list_says_which_family_it_asks_about` 守着这一条。网页行上的「从页面选取」
+  「看看效果」两颗按钮由 `NarrowRowViewModel.OnPage` 决定画不画。
+- 桌面的窄条件读成 `UiCondition`（`UiConditionHow` + 值），从步骤的 `narrow` 行读；
+  `FlaUiDevice.Matches` 逐条比，`Search` 在有窄条件时走「先按选择器缩，再逐项比」那条路。
+  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在 `doc/manual.md` 的失败键表里。
+- 动作名：`uia.*` 说「界面」、`browser.*` 说「网页」；`No_two_actions_are_called_the_same_thing`
+  直接读 `Strings.Chinese` / `Strings.English` 两张表来查重，不要改全局语言——测试并行跑，
+  换语言会改到别人正在读的表。
+
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或
   `Ui.AnswerUnsavedWork`，避免遗留调度器循环。

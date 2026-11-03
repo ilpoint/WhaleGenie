@@ -4620,6 +4620,68 @@ public class DeviceActionTests
         Assert.Contains("ui Button/Save/", found.Calls[0]);
     }
 
+    /// <summary>
+    /// 「还要像什么样」从步骤里的一行行读成设备要的条件：哪一种、要不要一段字。选择器说它叫
+    /// 什么，这里说它在不在屏幕上、能不能用、名字里有没有一段字。没写完的行与要字却没写的行
+    /// 都不算数，与网页那边同一套读法。
+    /// </summary>
+    [Fact]
+    public async Task The_conditions_an_element_has_to_meet_reach_the_device()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.exists", Param("window", "Notepad"),
+                Param("uiSelector", "Button[name='保存']"),
+                Rows("narrow", Narrow("Visible"), Narrow("Enabled"), Narrow("NameHas", "存"),
+                    Narrow("NameHas"), Narrow("")),
+                Returns("exists=there")),
+        ], devices);
+
+        Assert.True(result.Succeeded, $"{result.Key}: {result.Detail}");
+        var asked = devices.Ui.LastQuery!;
+        Assert.Equal(
+            [UiConditionHow.Visible, UiConditionHow.Enabled, UiConditionHow.NameHas],
+            asked.Conditions.Select(condition => condition.How));
+        Assert.Equal("存", asked.Conditions[2].Value);
+    }
+
+    /// <summary>
+    /// 一个引擎不认识的限定方式要当场报出来：少了一个条件，这一步会落到另一个元素上，而且不说。
+    /// </summary>
+    [Fact]
+    public async Task A_condition_the_engine_does_not_know_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.exists", Param("window", "Notepad"),
+                Param("uiSelector", "Button[name='保存']"),
+                Rows("narrow", Narrow("Colour", "red")),
+                Returns("exists=there")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ElementBadCondition", result.Key);
+    }
+
+    /// <summary>
+    /// 一行限定都不写时，设备收到的查询与没有这一格时完全一样：这一格是加出来的，不是换掉的。
+    /// </summary>
+    [Fact]
+    public async Task A_step_with_no_conditions_asks_for_none()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("uia.exists", Param("window", "Notepad"),
+                Param("uiSelector", "Button[name='保存']"),
+                Returns("exists=there")),
+        ], devices);
+
+        Assert.Empty(devices.Ui.LastQuery!.Conditions);
+    }
+
     [Fact]
     public async Task Waiting_for_an_element_carries_on_when_it_is_there()
     {

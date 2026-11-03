@@ -82,6 +82,7 @@ public static class RunKeys
     public const string DetectNotFound = "Run.DetectNotFound";
     public const string DeviceFailed = "Run.DeviceFailed";
     public const string DuplicateArgument = "Run.DuplicateArgument";
+    public const string ElementBadCondition = "Run.ElementBadCondition";
     public const string ElementNotATable = "Run.ElementNotATable";
     public const string ElementNotCheckable = "Run.ElementNotCheckable";
     public const string ElementNotClickable = "Run.ElementNotClickable";

@@ -317,6 +317,31 @@ public sealed record TextSpan(string Text, ScreenPoint Location, ScreenSize Size
 }
 
 /// <summary>
+/// One thing an element has to be like besides the way the selector names it. Only what UI
+/// Automation answers without hedging: that it is on screen, that it can be used right now, and
+/// that its name holds a run of letters. The last one is not the selector's wildcard written
+/// again — a wildcard anchors at one end or the whole string, and cannot say "somewhere in the
+/// middle".
+/// </summary>
+public enum UiConditionHow
+{
+    /// <summary>The one a person can see, rather than the hidden copy beside it.</summary>
+    Visible,
+
+    /// <summary>The one that can be used, rather than the greyed-out copy.</summary>
+    Enabled,
+
+    /// <summary>Its name holds this run of letters.</summary>
+    NameHas,
+
+    /// <summary>Its name holds no such run.</summary>
+    NameHasNot,
+}
+
+/// <summary>One such condition: which of them, and the letters a name has to hold.</summary>
+public sealed record UiCondition(UiConditionHow How, string Value = "");
+
+/// <summary>
 /// What to look for through UI Automation. Every part is optional. A window or a page often shows
 /// the same control many times over — five rows of one list, four identical buttons — so
 /// <paramref name="Index"/> says which of the matches a step means, counted the way a person counts
@@ -334,8 +359,16 @@ public sealed record UiQuery(
     int Index = 1,
     WindowMatch WindowMatch = WindowMatch.Title,
     string WindowCompare = TextCompare.Contains,
-    TextCompareOptions WindowOptions = default)
+    TextCompareOptions WindowOptions = default,
+    IReadOnlyList<UiCondition>? Narrow = null)
 {
+    /// <summary>
+    /// What else the element has to be like, all of it holding at once. A window often shows the
+    /// same control more than once — five rows of one list, two identical buttons, one of them
+    /// hidden — and the selector alone cannot say "the one I can see".
+    /// </summary>
+    public IReadOnlyList<UiCondition> Conditions => Narrow ?? [];
+
     /// <summary>
     /// True when a part of the query is written with wildcards, which cannot go into the search
     /// condition: the provider only knows exact matches. Such a query is answered by walking what

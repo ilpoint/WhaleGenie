@@ -147,6 +147,42 @@ public partial class ActionPaletteViewModel : ViewModelBase
         Rebuild();
     }
 
+    /// <summary>
+    /// 一张卡片答不答得上这句搜索。先按整句去对；对不上时再按两个字一段拆开，每一段都要在
+    /// 卡片里出现过。拆开来是因为动作名现在按族分开了（「点击界面元素」与「点击网页元素」），
+    /// 而人还是照老说法问「点击元素」——整句已经不在名字里，两个字一段仍在。
+    /// </summary>
+    private static bool Answers(ActionPaletteCardViewModel card, string search)
+    {
+        if (search.Length == 0 || Says(card, search))
+        {
+            return true;
+        }
+
+        // 两个字一段地拆才有意义：只拆一个字时，几乎每一张卡片都答得上，搜索就不再是搜索。
+        if (search.Length < 4)
+        {
+            return false;
+        }
+
+        for (var at = 0; at < search.Length; at += 2)
+        {
+            if (!Says(card, search.Substring(at, Math.Min(2, search.Length - at))))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>True when one piece of the question appears in what the card says about itself.</summary>
+    private static bool Says(ActionPaletteCardViewModel card, string text)
+        => card.Key.Contains(text, StringComparison.OrdinalIgnoreCase)
+           || card.Title.Contains(text, StringComparison.OrdinalIgnoreCase)
+           || card.Description.Contains(text, StringComparison.OrdinalIgnoreCase)
+           || card.CategoryLabel.Contains(text, StringComparison.OrdinalIgnoreCase);
+
     private void Rebuild()
     {
         var search = Search.Trim();
@@ -176,12 +212,7 @@ public partial class ActionPaletteViewModel : ViewModelBase
             _ => [],
         };
 
-        foreach (var card in source.Where(card =>
-                     search.Length == 0
-                     || card.Key.Contains(search, StringComparison.OrdinalIgnoreCase)
-                     || card.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
-                     || card.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
-                     || card.CategoryLabel.Contains(search, StringComparison.OrdinalIgnoreCase)))
+        foreach (var card in source.Where(card => Answers(card, search)))
         {
             Cards.Add(card);
         }

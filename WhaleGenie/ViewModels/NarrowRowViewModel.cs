@@ -9,35 +9,39 @@ using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
 
+/// <summary>一条限定，按引擎要的写法说：哪一种，以及要一段什么字。</summary>
+public sealed record NarrowCondition(string How, string Value);
+
 /// <summary>
-/// One thing a page step says the element it means has to be like, as the dialog edits it: which way
-/// of narrowing the page down, and what to look for by it — words the element writes, an element it
+/// One thing a step says the element it means has to be like, as the dialog edits it: which way of
+/// narrowing the element down, and what to look for by it — words the element shows, an element it
 /// holds, where it sits, or nothing at all when the answer is "only one a person could see".
 /// </summary>
 /// <remarks>
-/// The ways offered are the ones the browser engine itself puts on an element, so the dialog is
-/// asking the page a question the page already answers rather than a matching rule of the program's
-/// own. A row is what the person filling the form sees; the step writes down the way and the value.
+/// The ways offered depend on which family the field belongs to, which the catalogue declares: a
+/// page and a desktop control can be told apart by different things. A row is what the person
+/// filling the form sees; the step writes down the way and the value.
 /// </remarks>
 public partial class NarrowRowViewModel : ViewModelBase
 {
-    /// <summary>
-    /// The ways of narrowing a page down, in the order they are offered. Looking inside a container
-    /// comes first because it is the one that reads as a sentence about where the element is; only
-    /// what can be seen comes last because it is the one that needs nothing typed beside it.
-    /// </summary>
-    public static IReadOnlyList<ActionParameterOption> Ways { get; } =
-    [
-        .. new[]
-        {
-            PageFilter.Inside, PageFilter.HasText, PageFilter.HasNotText, PageFilter.Has,
-            PageFilter.HasNot, PageFilter.Visible,
-        }.Select(way => new ActionParameterOption(way.ToString(),
-            Strings.Get("Add.Narrow." + way))),
-    ];
+    public NarrowRowViewModel(NarrowFamily family)
+    {
+        Family = family;
+        Choices = NarrowWay.For(family);
+        Way = Choices[0];
+    }
 
-    /// <summary>The same list for one row to offer, which is what the dropdown in it is bound to.</summary>
-    public IReadOnlyList<ActionParameterOption> Choices => Ways;
+    /// <summary>Which family of element this field narrows down, which is what its ways come from.</summary>
+    public NarrowFamily Family { get; }
+
+    /// <summary>
+    /// True for a page step, whose rows can be looked at on the page itself. A desktop control has
+    /// no page to look at, so those two buttons are not drawn for it.
+    /// </summary>
+    public bool OnPage => Family is NarrowFamily.Page;
+
+    /// <summary>The ways this row may ask for, which is what the dropdown in it offers.</summary>
+    public IReadOnlyList<NarrowWay> Choices { get; }
 
     /// <summary>
     /// Which way of narrowing this row asks for. Changing it changes whether the row needs a value
@@ -45,9 +49,9 @@ public partial class NarrowRowViewModel : ViewModelBase
     /// that was chosen then.
     /// </summary>
     [ObservableProperty]
-    public partial ActionParameterOption Way { get; set; } = Ways[0];
+    public partial NarrowWay Way { get; set; }
 
-    /// <summary>What this row looks for: a selector, or a piece of the writing the element shows.</summary>
+    /// <summary>What this row looks for: a selector, or the letters a name has to hold.</summary>
     [ObservableProperty]
     public partial string Value { get; set; } = string.Empty;
 
@@ -70,16 +74,16 @@ public partial class NarrowRowViewModel : ViewModelBase
     /// element beyond being on screen, so its value box is not drawn and what is left in it is not
     /// written down either.
     /// </summary>
-    public bool NeedsValue => Chosen() is not PageFilter.Visible;
+    public bool NeedsValue => Chosen().NeedsValue;
 
     /// <summary>
     /// True when this row looks for writing rather than for an element, which is what decides what a
     /// pick off the page fills the value in with: the words the element shows, or the element.
     /// </summary>
-    public bool WantsWords => Chosen() is PageFilter.HasText or PageFilter.HasNotText;
+    public bool WantsWords => Chosen().WantsWords;
 
     /// <summary>What the value box says it is for, which the way chosen is what it depends on.</summary>
-    public string ValueHint => Strings.Get("Add.NarrowValue." + Way.Value);
+    public string ValueHint => Chosen().ValueHint;
 
     /// <summary>Takes this row out of the list.</summary>
     [RelayCommand]
@@ -94,11 +98,11 @@ public partial class NarrowRowViewModel : ViewModelBase
     /// This row the way the engine reads it, or nothing when the row says nothing: a row that has
     /// been added and not filled in is a form somebody is still working on, not a condition.
     /// </summary>
-    public PageCondition? ToCondition()
+    public NarrowCondition? ToCondition()
     {
         var value = NeedsValue ? Value.Trim() : string.Empty;
         return value.Length > 0 || !NeedsValue
-            ? new PageCondition(Chosen(), value)
+            ? new NarrowCondition(Chosen().Value, value)
             : null;
     }
 
@@ -125,25 +129,20 @@ public partial class NarrowRowViewModel : ViewModelBase
     }
 
     /// <summary>One row back out of the macro file, opening on the first way when it names none.</summary>
-    public static NarrowRowViewModel From(StepParameterRow row)
+    public static NarrowRowViewModel From(StepParameterRow row, NarrowFamily family)
     {
         var written = row.Text("how").Trim();
-        var way = Ways.FirstOrDefault(choice =>
-            string.Equals(choice.Value, written, StringComparison.OrdinalIgnoreCase));
-        return new NarrowRowViewModel
-        {
-            Way = way ?? Ways[0],
-            Value = row.Text("value"),
-        };
+        var opened = new NarrowRowViewModel(family);
+        opened.Way = opened.Choices.FirstOrDefault(choice =>
+            string.Equals(choice.Value, written, StringComparison.OrdinalIgnoreCase)) ?? opened.Choices[0];
+        opened.Value = row.Text("value");
+        return opened;
     }
 
-    /// <summary>Which way of narrowing this row asks for, as the engine knows it.</summary>
-    private PageFilter Chosen()
-        => Enum.TryParse<PageFilter>(Way?.Value ?? string.Empty, ignoreCase: true, out var way)
-            ? way
-            : PageFilter.HasText;
+    /// <summary>Which way of narrowing this row asks for, as the form knows it.</summary>
+    private NarrowWay Chosen() => Way ?? Choices[0];
 
-    partial void OnWayChanged(ActionParameterOption value)
+    partial void OnWayChanged(NarrowWay value)
     {
         Count = string.Empty;
         OnPropertyChanged(nameof(NeedsValue));

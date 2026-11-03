@@ -815,7 +815,7 @@
                                                   SelectedItem="{Binding Way}"
                                                   Width="210" HorizontalAlignment="Left">
                                             <ComboBox.ItemTemplate>
-                                                <DataTemplate x:DataType="models:ActionParameterOption">
+                                                <DataTemplate x:DataType="vm:NarrowWay">
                                                     <TextBlock Text="{Binding Display}"
                                                                FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
                                                 </DataTemplate>
@@ -826,12 +826,14 @@
                                                  Text="{Binding Value}"
                                                  PlaceholderText="{Binding ValueHint}" />
                                         <Button Grid.Column="2" Classes="Secondary" Height="33"
-                                                Padding="11,0" IsVisible="{Binding NeedsValue}"
+                                                Padding="11,0"
+                                                IsVisible="{Binding OnPage}"
                                                 Content="{Binding [Add.NarrowPick], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.NarrowPickHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickNarrowValue" />
                                         <Button Grid.Column="3" Classes="Secondary" Height="33"
                                                 Padding="11,0"
+                                                IsVisible="{Binding OnPage}"
                                                 Content="{Binding [Add.NarrowLook], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.NarrowLookHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnLookNarrowRow" />

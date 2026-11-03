@@ -429,7 +429,7 @@ public class ElementPickerTests
 
             // A row is handed to the engine the way it was written, and it is what says the element
             // has to be like that as well as being found by the selector.
-            Assert.Equal([new PageCondition(PageFilter.HasText, "确定")], narrow.Conditions());
+            Assert.Equal([new NarrowCondition("HasText", "确定")], narrow.Conditions());
             Assert.True(narrow.IsIncluded);
 
             // What the step writes down is the way of narrowing and what it looks for. A row that
@@ -467,7 +467,7 @@ public class ElementPickerTests
             row.Way = Way(row, PageFilter.Visible);
             Assert.False(row.NeedsValue);
             Assert.False(row.WantsWords);
-            Assert.Equal([new PageCondition(PageFilter.Visible, string.Empty)], narrow.Conditions());
+            Assert.Equal([new NarrowCondition("Visible", string.Empty)], narrow.Conditions());
 
             var written = Assert.Single(narrow.ToStepParameter().Rows);
             Assert.Equal("Visible", written.Text("how"));
@@ -499,7 +499,7 @@ public class ElementPickerTests
             rows[2].Way = Way(rows[2], PageFilter.HasText);
             rows[2].Value = "第三";
 
-            Assert.Equal([new PageCondition(PageFilter.HasText, "第一")], narrow.Conditions(rows[0]));
+            Assert.Equal([new NarrowCondition("HasText", "第一")], narrow.Conditions(rows[0]));
             Assert.Equal(2, narrow.Conditions(rows[1]).Count);
             Assert.Equal(3, narrow.Conditions(rows[2]).Count);
             Assert.Equal(3, narrow.Conditions().Count);
@@ -540,7 +540,7 @@ public class ElementPickerTests
             .Parameters.First(parameter => parameter.Name == "narrow"));
 
     /// <summary>One way of narrowing, as the row offers it.</summary>
-    private static ActionParameterOption Way(NarrowRowViewModel row, PageFilter way)
+    private static NarrowWay Way(NarrowRowViewModel row, PageFilter way)
         => row.Choices.First(choice => choice.Value == way.ToString());
 
     /// <summary>The control a test pretends the pointer was put on.</summary>

@@ -14604,6 +14604,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -14686,6 +14711,31 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "MissingKey": "Run.EmptySelector"
+      },
+      {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
       },
       {
         "Name": "matchIndex",
@@ -14881,6 +14931,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15033,6 +15108,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15106,6 +15206,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15159,6 +15284,31 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "MissingKey": "Run.EmptySelector"
+      },
+      {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
       },
       {
         "Name": "matchIndex",
@@ -15238,6 +15388,31 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "MissingKey": "Run.EmptySelector"
+      },
+      {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
       },
       {
         "Name": "matchIndex",
@@ -15378,6 +15553,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15460,6 +15660,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15529,6 +15754,31 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "MissingKey": "Run.EmptySelector"
+      },
+      {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
       },
       {
         "Name": "matchIndex",
@@ -15602,6 +15852,31 @@
         "MissingKey": "Run.EmptySelector"
       },
       {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15655,6 +15930,31 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "MissingKey": "Run.EmptySelector"
+      },
+      {
+        "Name": "narrow",
+        "Group": "narrowing",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ],
+        "NarrowOn": "Element"
       },
       {
         "Name": "matchIndex",
@@ -15884,7 +16184,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "clickHow",
@@ -15979,7 +16280,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "fillText",
@@ -16087,7 +16389,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "readWhat",
@@ -16211,7 +16514,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "readWhat",
@@ -16350,7 +16654,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "matchIndex",
@@ -16510,7 +16815,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "optionValue",
@@ -16604,7 +16910,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "checked",
@@ -16683,7 +16990,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "matchIndex",
@@ -16749,7 +17057,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "keyChord",
@@ -16828,7 +17137,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "elementState",
@@ -16985,7 +17295,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "scrollHow",
@@ -17068,7 +17379,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "folder",
@@ -17316,7 +17628,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "uploadFiles",
@@ -18172,7 +18485,8 @@
             "Role": "Text",
             "Required": false
           }
-        ]
+        ],
+        "NarrowOn": "Page"
       },
       {
         "Name": "elementState",

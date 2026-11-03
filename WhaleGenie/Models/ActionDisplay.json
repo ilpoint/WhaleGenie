@@ -1878,7 +1878,7 @@
   },
   {
     "Key": "file.readText",
-    "DisplayName": "Read Text",
+    "DisplayName": "Read Text File",
     "Description": "Read a text file into a variable.",
     "Parameters": [
       {
@@ -15153,7 +15153,7 @@
   },
   {
     "Key": "uia.exists",
-    "DisplayName": "Exists",
+    "DisplayName": "UI Element Exists",
     "Description": "Check whether a UI Automation element exists.",
     "Parameters": [
       {
@@ -15182,6 +15182,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15247,7 +15267,7 @@
   },
   {
     "Key": "uia.find",
-    "DisplayName": "Find Element",
+    "DisplayName": "Find UI Element",
     "Description": "Find a UI Automation element and remember where it is.",
     "Parameters": [
       {
@@ -15276,6 +15296,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15356,7 +15396,7 @@
   },
   {
     "Key": "uia.waitElement",
-    "DisplayName": "Wait Element",
+    "DisplayName": "Wait for UI Element",
     "Description": "Wait until a UI Automation element exists.",
     "Parameters": [
       {
@@ -15385,6 +15425,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15470,7 +15530,7 @@
   },
   {
     "Key": "uia.click",
-    "DisplayName": "Click Element",
+    "DisplayName": "Click UI Element",
     "Description": "Click a UI Automation element.",
     "Parameters": [
       {
@@ -15499,6 +15559,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15558,7 +15638,7 @@
   },
   {
     "Key": "uia.invoke",
-    "DisplayName": "Press Element",
+    "DisplayName": "Invoke UI Element",
     "Description": "Work a UI Automation element's own action, without moving the mouse.",
     "Parameters": [
       {
@@ -15602,6 +15682,26 @@
         "AddLabelKey": ""
       },
       {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
         "Name": "matchIndex",
         "Label": "Match number",
         "Hint": "Which of the hits to use, numbered the way “count them in” says, from 1. The default is 1. More hits than were found is treated as finding nothing.",
@@ -15626,7 +15726,7 @@
   },
   {
     "Key": "uia.setText",
-    "DisplayName": "Set Text",
+    "DisplayName": "Set UI Element Text",
     "Description": "Type text into a UI Automation element.",
     "Parameters": [
       {
@@ -15655,6 +15755,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15734,7 +15854,7 @@
   },
   {
     "Key": "uia.read",
-    "DisplayName": "Read Element",
+    "DisplayName": "Read UI Element",
     "Description": "Read everything one UI Automation element says about itself.",
     "Parameters": [
       {
@@ -15763,6 +15883,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15828,7 +15968,7 @@
   },
   {
     "Key": "uia.select",
-    "DisplayName": "Select Item",
+    "DisplayName": "Select UI List Item",
     "Description": "Pick an entry of a drop-down, a list or a set of tabs.",
     "Parameters": [
       {
@@ -15857,6 +15997,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15941,7 +16101,7 @@
   },
   {
     "Key": "uia.check",
-    "DisplayName": "Check Box",
+    "DisplayName": "Tick UI Check Box",
     "Description": "Turn a check box, a switch or a radio button on or off.",
     "Parameters": [
       {
@@ -15970,6 +16130,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -16033,7 +16213,7 @@
   },
   {
     "Key": "uia.expand",
-    "DisplayName": "Expand or Collapse",
+    "DisplayName": "Expand or Collapse UI Node",
     "Description": "Open or close a tree branch, a menu or a collapsed panel.",
     "Parameters": [
       {
@@ -16062,6 +16242,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -16125,7 +16325,7 @@
   },
   {
     "Key": "uia.scrollIntoView",
-    "DisplayName": "Scroll Into View",
+    "DisplayName": "Scroll UI Element into View",
     "Description": "Scroll an element into view inside the list or panel holding it.",
     "Parameters": [
       {
@@ -16169,6 +16369,26 @@
         "AddLabelKey": ""
       },
       {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
         "Name": "matchIndex",
         "Label": "Match number",
         "Hint": "Which of the hits to use, numbered the way “count them in” says, from 1. The default is 1. More hits than were found is treated as finding nothing.",
@@ -16193,7 +16413,7 @@
   },
   {
     "Key": "uia.readTable",
-    "DisplayName": "Read Table",
+    "DisplayName": "Read UI Table",
     "Description": "Read a table or a grid into a list of rows.",
     "Parameters": [
       {
@@ -16222,6 +16442,26 @@
         "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Narrow down",
+        "Hint": "What else the element has to be like, one row each, all of them holding at once: only the one on screen, only the one that can be used, or only the one whose name holds (or has no) a run of letters. A value may name a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -16457,7 +16697,7 @@
   },
   {
     "Key": "browser.click",
-    "DisplayName": "Click Element",
+    "DisplayName": "Click Web Element",
     "Description": "Clicks the element a selector names.",
     "Parameters": [
       {
@@ -16569,7 +16809,7 @@
   },
   {
     "Key": "browser.fill",
-    "DisplayName": "Fill In",
+    "DisplayName": "Fill Web Input",
     "Description": "Types text into the element a selector names.",
     "Parameters": [
       {
@@ -16702,7 +16942,7 @@
   },
   {
     "Key": "browser.readText",
-    "DisplayName": "Read Text",
+    "DisplayName": "Read Web Text",
     "Description": "Reads one part of an element, or of the whole page.",
     "Parameters": [
       {
@@ -16846,7 +17086,7 @@
   },
   {
     "Key": "browser.readAll",
-    "DisplayName": "Read Every Match",
+    "DisplayName": "Read All Web Text",
     "Description": "Reads every element a selector names, one entry each.",
     "Parameters": [
       {
@@ -17006,7 +17246,7 @@
   },
   {
     "Key": "browser.readTable",
-    "DisplayName": "Read Table",
+    "DisplayName": "Read Web Table",
     "Description": "Reads a table of a page into rows.",
     "Parameters": [
       {
@@ -17159,7 +17399,7 @@
   },
   {
     "Key": "browser.select",
-    "DisplayName": "Select Option",
+    "DisplayName": "Choose Web Option",
     "Description": "Picks an option of a dropdown.",
     "Parameters": [
       {
@@ -17270,7 +17510,7 @@
   },
   {
     "Key": "browser.check",
-    "DisplayName": "Tick or Untick",
+    "DisplayName": "Tick Web Check Box",
     "Description": "Leaves a checkbox or a radio button ticked, or unticked.",
     "Parameters": [
       {
@@ -17358,7 +17598,7 @@
   },
   {
     "Key": "browser.hover",
-    "DisplayName": "Move Over Element",
+    "DisplayName": "Hover Web Element",
     "Description": "Moves the pointer over an element and leaves it there.",
     "Parameters": [
       {
@@ -17518,7 +17758,7 @@
   },
   {
     "Key": "browser.waitFor",
-    "DisplayName": "Wait For Element",
+    "DisplayName": "Wait for Web Element",
     "Description": "Waits for an element of the page to appear or to go away.",
     "Parameters": [
       {
@@ -17665,7 +17905,7 @@
   },
   {
     "Key": "browser.waitForLoad",
-    "DisplayName": "Wait For Load",
+    "DisplayName": "Wait for Page Load",
     "Description": "Waits for the page to finish loading.",
     "Parameters": [
       {
@@ -17796,7 +18036,7 @@
   },
   {
     "Key": "browser.download",
-    "DisplayName": "Download A File",
+    "DisplayName": "Download Web File",
     "Description": "Saves the next file the page hands over.",
     "Parameters": [
       {
@@ -17919,7 +18159,7 @@
   },
   {
     "Key": "browser.dialog",
-    "DisplayName": "Answer A Dialog",
+    "DisplayName": "Answer Web Dialog",
     "Description": "Answers the next dialog the page puts up, around the steps that raise it.",
     "Parameters": [
       {
@@ -18016,7 +18256,7 @@
   },
   {
     "Key": "browser.evaluate",
-    "DisplayName": "Run a JS Script",
+    "DisplayName": "Run Web Script",
     "Description": "Run a piece of JavaScript in the page and take back what it returns. A string comes back as it is; a number, flag, list or record comes back as JSON and can be handed straight to the next step, such as Go to.",
     "Parameters": [
       {
@@ -18070,7 +18310,7 @@
   },
   {
     "Key": "browser.upload",
-    "DisplayName": "Upload Files",
+    "DisplayName": "Upload Web File",
     "Description": "Hands files to a file input on the page.",
     "Parameters": [
       {
@@ -19114,7 +19354,7 @@
   },
   {
     "Key": "browser.exists",
-    "DisplayName": "Element Exists",
+    "DisplayName": "Web Element Exists",
     "Description": "Looks once for a page element and reports whether it is in the chosen state.",
     "Parameters": [
       {

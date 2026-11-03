@@ -183,6 +183,14 @@ internal static class ActionStrings
         + "一条都不写时只用选择器认元素，与没有这一格时完全一样。";
 
     /// <summary>
+    /// 桌面元素那一族的「还要像什么样」。与网页那条分开写，因为能问的事不一样：这边只问
+    /// UI Automation 答得干脆的三件，说不出网页那种「元素里面还有某个元素」。
+    /// </summary>
+    private const string UiNarrowHint =
+        "除了选择器说的那几项，这个元素还得像什么样：一行一条，全部同时成立。只看屏幕上看得见的、"
+        + "只看能用的，或者名字里含（不含）一段字时用它；值里可以写 $变量。";
+
+    /// <summary>
     /// The hint every action that lists several reference pictures shares for its picker: which of
     /// the pictures the step goes with.
     /// </summary>
@@ -678,7 +686,7 @@ internal static class ActionStrings
             + "每勾一行就得到一个本宏变量，名字可以在这一行里改。没勾就什么都不带回来。"
             + "这一步等待执行完毕，因此结果写完后即可读取。",
         // --------------------------------------------------------------------- file
-        ["file.readText.name"] = "读取文本",
+        ["file.readText.name"] = "读取文本文件",
         ["file.readText.desc"] = "把文本文件读入变量。",
         ["file.readText.path.label"] = "文件",
         ["file.readText.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
@@ -2486,19 +2494,23 @@ internal static class ActionStrings
         ["ocr.clickText.button.hint"] = MouseButtonHint,
 
         // ---------------------------------------------------------------------- uia
-        ["uia.exists.name"] = "元素是否存在",
-        ["uia.exists.desc"] = "判断某个 UI Automation 元素是否存在。",
+        ["uia.exists.name"] = "界面元素是否存在",
+        ["uia.exists.desc"] = "看一次某个界面元素是否存在（UI Automation）。",
         ["uia.exists.window.label"] = WindowMatchTextLabel,
         ["uia.exists.uiSelector.label"] = "选择器",
         ["uia.exists.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.exists.narrow.label"] = "限定",
+        ["uia.exists.narrow.hint"] = "要查看的那个元素" + UiNarrowHint,
         ["uia.exists.matchIndex.label"] = "第几个命中",
         ["uia.exists.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要的是第几个。" + MatchIndexHint,
 
-        ["uia.find.name"] = "查找元素",
+        ["uia.find.name"] = "查找界面元素",
         ["uia.find.desc"] = "查找一个 UI Automation 元素，并记住它在屏幕上的位置。",
         ["uia.find.window.label"] = WindowMatchTextLabel,
         ["uia.find.uiSelector.label"] = "选择器",
         ["uia.find.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.find.narrow.label"] = "限定",
+        ["uia.find.narrow.hint"] = "要找的那个元素" + UiNarrowHint,
         ["uia.find.matchIndex.label"] = "第几个命中",
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
         ["uia.find.return.match.label"] = HitRecordLabel,
@@ -2508,11 +2520,13 @@ internal static class ActionStrings
         ["uia.find.return.every.label"] = EveryHitLabel,
         ["uia.find.return.every.hint"] = EveryHitHint,
 
-        ["uia.waitElement.name"] = "等待元素",
-        ["uia.waitElement.desc"] = "等待某个 UI Automation 元素出现。",
+        ["uia.waitElement.name"] = "等待界面元素",
+        ["uia.waitElement.desc"] = "等一个界面元素出现（UI Automation）。",
         ["uia.waitElement.window.label"] = WindowMatchTextLabel,
         ["uia.waitElement.uiSelector.label"] = "选择器",
         ["uia.waitElement.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.waitElement.narrow.label"] = "限定",
+        ["uia.waitElement.narrow.hint"] = "要等到的那个元素" + UiNarrowHint,
         ["uia.waitElement.matchIndex.label"] = "第几个命中",
         ["uia.waitElement.matchIndex.hint"] =
             "选择器可能匹配到多个元素，这里填要等的是第几个。" + MatchIndexHint,
@@ -2521,29 +2535,35 @@ internal static class ActionStrings
         ["uia.waitElement.returns.label"] = "要留下的结果",
         ["uia.waitElement.returns.hint"] = ReturnsHintText,
 
-        ["uia.click.name"] = "点击元素",
-        ["uia.click.desc"] = "点击一个 UI Automation 元素。",
+        ["uia.click.name"] = "点击界面元素",
+        ["uia.click.desc"] = "点击一个界面元素（UI Automation）。",
         ["uia.click.window.label"] = WindowMatchTextLabel,
         ["uia.click.uiSelector.label"] = "选择器",
         ["uia.click.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.click.narrow.label"] = "限定",
+        ["uia.click.narrow.hint"] = "要点击的那个元素" + UiNarrowHint,
         ["uia.click.matchIndex.label"] = "第几个命中",
         ["uia.click.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要点击的是第几个。" + MatchIndexHint,
         ["uia.click.button.label"] = "按键",
         ["uia.click.button.hint"] = MouseButtonHint,
 
-        ["uia.invoke.name"] = "按下元素",
+        ["uia.invoke.name"] = "按下界面元素",
         ["uia.invoke.desc"] = "用元素自己的方式完成它的默认动作，不移动鼠标。",
         ["uia.invoke.window.label"] = WindowMatchTextLabel,
         ["uia.invoke.uiSelector.label"] = "选择器",
         ["uia.invoke.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.invoke.narrow.label"] = "限定",
+        ["uia.invoke.narrow.hint"] = "要按下的那个元素" + UiNarrowHint,
         ["uia.invoke.matchIndex.label"] = "第几个命中",
         ["uia.invoke.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要按下的是第几个。" + MatchIndexHint,
 
-        ["uia.setText.name"] = "设置元素文本",
+        ["uia.setText.name"] = "设置界面元素文本",
         ["uia.setText.desc"] = "向 UI Automation 元素输入文本。",
         ["uia.setText.window.label"] = WindowMatchTextLabel,
         ["uia.setText.uiSelector.label"] = "选择器",
         ["uia.setText.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.setText.narrow.label"] = "限定",
+        ["uia.setText.narrow.hint"] = "要填写的那个元素" + UiNarrowHint,
         ["uia.setText.matchIndex.label"] = "第几个命中",
         ["uia.setText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要写入的是第几个。" + MatchIndexHint,
         ["uia.setText.valueText.label"] = "文本",
@@ -2551,11 +2571,13 @@ internal static class ActionStrings
         ["uia.setText.clearFirst.label"] = "先清空",
         ["uia.setText.clearFirst.hint"] = "写入前先清空元素里已有的内容，默认开；要接着原有内容往下写时关掉它。",
 
-        ["uia.read.name"] = "读取元素",
+        ["uia.read.name"] = "读取界面元素",
         ["uia.read.desc"] = "读取一个 UI Automation 元素能说出的全部内容。",
         ["uia.read.window.label"] = WindowMatchTextLabel,
         ["uia.read.uiSelector.label"] = "选择器",
         ["uia.read.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.read.narrow.label"] = "限定",
+        ["uia.read.narrow.hint"] = "要读取的那个元素" + UiNarrowHint,
         ["uia.read.matchIndex.label"] = "第几个命中",
         ["uia.read.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.read.return.element.label"] = "元素",
@@ -2566,16 +2588,18 @@ internal static class ActionStrings
             + "按钮上的标题，元素本身不持有内容时为空。",
 
         ["uia.waitElement.return.element.label"] = "等到的元素",
-        ["uia.waitElement.return.element.hint"] = "让这一次等待结束的那个元素，与「读取元素」同一种记录："
+        ["uia.waitElement.return.element.hint"] = "让这一次等待结束的那个元素，与「读取界面元素」同一种记录："
             + "enabled 与 visible、value、name、automationId、controlType，然后是 x、y（它的中心），"
             + "以及 left、top、width、height 与 box。取其中一项用 field($变量, \"value\")；"
             + "等一个输入框出现再看它里面写着什么，一条步骤就够了，读到的就是让等待结束的那一个。",
 
-        ["uia.select.name"] = "选择列表项",
+        ["uia.select.name"] = "选择界面列表项",
         ["uia.select.desc"] = "在下拉框、列表或标签页里选中一项。",
         ["uia.select.window.label"] = WindowMatchTextLabel,
         ["uia.select.uiSelector.label"] = "选择器",
         ["uia.select.uiSelector.hint"] = "下拉框、列表或标签页的选择器。" + SelectorPickHint,
+        ["uia.select.narrow.label"] = "限定",
+        ["uia.select.narrow.hint"] = "要选的那个元素" + UiNarrowHint,
         ["uia.select.matchIndex.label"] = "第几个命中",
         ["uia.select.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.select.item.label"] = "选项文字",
@@ -2583,11 +2607,13 @@ internal static class ActionStrings
         ["uia.select.itemIndex.label"] = "选项序号",
         ["uia.select.itemIndex.hint"] = "要选第几项，从 1 开始数；默认 0，表示用上面写的文字来选。",
 
-        ["uia.check.name"] = "勾选框",
+        ["uia.check.name"] = "勾选界面复选框",
         ["uia.check.desc"] = "把勾选框、开关或单选框打开或关掉。",
         ["uia.check.window.label"] = WindowMatchTextLabel,
         ["uia.check.uiSelector.label"] = "选择器",
         ["uia.check.uiSelector.hint"] = "勾选框、开关或单选框的选择器。" + SelectorPickHint,
+        ["uia.check.narrow.label"] = "限定",
+        ["uia.check.narrow.hint"] = "要勾选的那个元素" + UiNarrowHint,
         ["uia.check.matchIndex.label"] = "第几个命中",
         ["uia.check.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.check.checkState.label"] = "状态",
@@ -2597,11 +2623,13 @@ internal static class ActionStrings
         ["uia.check.checkState.option.off"] = "关闭",
         ["uia.check.checkState.option.toggle"] = "反过来",
 
-        ["uia.expand.name"] = "展开/收起",
+        ["uia.expand.name"] = "展开/收起界面节点",
         ["uia.expand.desc"] = "展开或收起树节点、菜单、折叠面板。",
         ["uia.expand.window.label"] = WindowMatchTextLabel,
         ["uia.expand.uiSelector.label"] = "选择器",
         ["uia.expand.uiSelector.hint"] = "要展开或收起的节点选择器。" + SelectorPickHint,
+        ["uia.expand.narrow.label"] = "限定",
+        ["uia.expand.narrow.hint"] = "要展开或收起的那个元素" + UiNarrowHint,
         ["uia.expand.matchIndex.label"] = "第几个命中",
         ["uia.expand.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.expand.expandState.label"] = "状态",
@@ -2610,19 +2638,23 @@ internal static class ActionStrings
         ["uia.expand.expandState.option.collapse"] = "收起",
         ["uia.expand.expandState.option.toggle"] = "反过来",
 
-        ["uia.scrollIntoView.name"] = "滚动到可见",
+        ["uia.scrollIntoView.name"] = "滚动界面元素到可见",
         ["uia.scrollIntoView.desc"] = "把列表或面板里的某个元素滚动到看得见的位置。",
         ["uia.scrollIntoView.window.label"] = WindowMatchTextLabel,
         ["uia.scrollIntoView.uiSelector.label"] = "选择器",
         ["uia.scrollIntoView.uiSelector.hint"] = "要滚动到可见的元素选择器。" + SelectorPickHint,
+        ["uia.scrollIntoView.narrow.label"] = "限定",
+        ["uia.scrollIntoView.narrow.hint"] = "要滚到眼前的那个元素" + UiNarrowHint,
         ["uia.scrollIntoView.matchIndex.label"] = "第几个命中",
         ["uia.scrollIntoView.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
 
-        ["uia.readTable.name"] = "读取表格",
-        ["uia.readTable.desc"] = "把表格或网格读成一个按行存放的列表。",
+        ["uia.readTable.name"] = "读取界面表格",
+        ["uia.readTable.desc"] = "把界面上的表格或网格读成一个按行存放的列表。",
         ["uia.readTable.window.label"] = WindowMatchTextLabel,
         ["uia.readTable.uiSelector.label"] = "选择器",
         ["uia.readTable.uiSelector.hint"] = "表格或网格的选择器。" + SelectorPickHint,
+        ["uia.readTable.narrow.label"] = "限定",
+        ["uia.readTable.narrow.hint"] = "要读取的那张表格" + UiNarrowHint,
         ["uia.readTable.matchIndex.label"] = "第几个命中",
         ["uia.readTable.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.readTable.maxRows.label"] = "读取行数",
@@ -2662,8 +2694,8 @@ internal static class ActionStrings
         ["browser.goTo.url.hint"] = "要让当前页面转到的网址。按一个值读取，变量或表达式都可以写成它。"
             + "等页面加载完要多久由这一步设置里的「超时」说，默认 10000 毫秒。",
 
-        ["browser.click.name"] = "点击元素",
-        ["browser.click.desc"] = "点击选择器指定的元素。",
+        ["browser.click.name"] = "点击网页元素",
+        ["browser.click.desc"] = "点击网页上选择器指定的元素。",
         ["browser.click.pageSelector.label"] = "选择器",
         ["browser.click.pageSelector.hint"] = PageTargetHint + "元素在哪，写法是 Playwright 的选择器。"
             + "选择器像 CSS，也能按文字找：「text=登录」认的是显示这段文字的元素。",
@@ -2683,7 +2715,7 @@ internal static class ActionStrings
         ["browser.click.narrow.hint"] = "要点击的那个元素" + NarrowHint,
         ["browser.click.matchIndex.hint"] = PageMatchIndexHint("要点击的"),
 
-        ["browser.fill.name"] = "填写",
+        ["browser.fill.name"] = "填写网页输入",
         ["browser.fill.desc"] = "往选择器指定的元素里输入文本。",
         ["browser.fill.pageSelector.label"] = "选择器",
         ["browser.fill.pageSelector.hint"] = PageTargetHint + "要输入到哪个元素，写法与「点击元素」相同。",
@@ -2703,8 +2735,8 @@ internal static class ActionStrings
         ["browser.fill.narrow.hint"] = "要填写的那个元素" + NarrowHint,
         ["browser.fill.matchIndex.hint"] = PageMatchIndexHint("要填写的"),
 
-        ["browser.readText.name"] = "读取文本",
-        ["browser.readText.desc"] = "读取某个元素的一部分、或整个页面的文本。",
+        ["browser.readText.name"] = "读取网页文本",
+        ["browser.readText.desc"] = "读取网页上某个元素的一部分、或整个页面的文本。",
         ["browser.readText.pageSelector.label"] = "选择器",
         ["browser.readText.pageSelector.hint"] = PageTargetHint + "要读取哪个元素，写法与「点击元素」相同。"
             + "一行都不写，也就是默认，读的是整个页面的文本。",
@@ -2724,7 +2756,7 @@ internal static class ActionStrings
         ["browser.readText.narrow.hint"] = "要读取的那个元素" + NarrowHint,
         ["browser.readText.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
 
-        ["browser.readAll.name"] = "读取全部",
+        ["browser.readAll.name"] = "读取网页多处文本",
         ["browser.readAll.desc"] = "把选择器认到的每个元素各读一条，组成一个列表。",
         ["browser.readAll.pageSelector.label"] = "选择器",
         ["browser.readAll.pageSelector.hint"] = PageTargetHint + "要读取哪些元素，写法与「点击元素」相同。"
@@ -2748,8 +2780,8 @@ internal static class ActionStrings
         ["browser.readAll.maxItems.hint"] = "最多读几条，1 到 10000。默认 100，与程序里其它读列表的地方"
             + "同一个上限，免得页面一边读一边变长时读不完。",
 
-        ["browser.readTable.name"] = "读取表格",
-        ["browser.readTable.desc"] = "把页面上的一个表格读成一行一条的表格。",
+        ["browser.readTable.name"] = "读取网页表格",
+        ["browser.readTable.desc"] = "把网页上的一个表格读成一行一条的表格。",
         ["browser.readTable.pageSelector.label"] = "选择器",
         ["browser.readTable.pageSelector.hint"] = PageTargetHint + "要读哪个表格，写法与「点击元素」相同。"
             + "默认写的是 table，也就是页面自己的表格元素。",
@@ -2785,7 +2817,7 @@ internal static class ActionStrings
         ["browser.close.name"] = "关闭浏览器",
         ["browser.close.desc"] = "关闭宏打开的浏览器。",
 
-        ["browser.select.name"] = "下拉选择",
+        ["browser.select.name"] = "选择网页下拉项",
         ["browser.select.desc"] = "在页面上的下拉框里选中一个选项。",
         ["browser.select.pageSelector.label"] = "选择器",
         ["browser.select.pageSelector.hint"] = PageTargetHint + "要操作哪个下拉框，写法与「点击元素」相同。",
@@ -2803,7 +2835,7 @@ internal static class ActionStrings
         ["browser.select.narrow.hint"] = "要选的那个下拉框" + NarrowHint,
         ["browser.select.matchIndex.hint"] = PageMatchIndexHint("要选中的"),
 
-        ["browser.check.name"] = "勾选",
+        ["browser.check.name"] = "勾选网页复选框",
         ["browser.check.desc"] = "把复选框或单选框留在勾上或没勾的状态。",
         ["browser.check.pageSelector.label"] = "选择器",
         ["browser.check.pageSelector.hint"] = PageTargetHint + "要让哪个框留在该状态，写法与「点击元素」相同。",
@@ -2815,7 +2847,7 @@ internal static class ActionStrings
         ["browser.check.narrow.hint"] = "要勾选的那个方框" + NarrowHint,
         ["browser.check.matchIndex.hint"] = PageMatchIndexHint("要勾选或取消勾选的"),
 
-        ["browser.hover.name"] = "悬停",
+        ["browser.hover.name"] = "悬停网页元素",
         ["browser.hover.desc"] = "把指针移到某个元素上并停在那里。",
         ["browser.hover.pageSelector.label"] = "选择器",
         ["browser.hover.pageSelector.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
@@ -2838,8 +2870,8 @@ internal static class ActionStrings
         ["browser.press.narrow.hint"] = "接按键的那个元素" + NarrowHint,
         ["browser.press.matchIndex.hint"] = PageMatchIndexHint("按键前要取得焦点的"),
 
-        ["browser.waitFor.name"] = "等待元素",
-        ["browser.waitFor.desc"] = "等待页面上的某个元素出现或消失。",
+        ["browser.waitFor.name"] = "等待网页元素",
+        ["browser.waitFor.desc"] = "等网页上的某个元素出现或消失。",
         ["browser.waitFor.pageSelector.label"] = "选择器",
         ["browser.waitFor.pageSelector.hint"] = PageTargetHint + "要等哪个元素，写法与「点击元素」相同。"
             + "页面自己去取内容时要用这一步，而不是固定停一会儿：状态一到，这一步立刻结束。"
@@ -2857,8 +2889,8 @@ internal static class ActionStrings
         ["browser.waitFor.narrow.hint"] = "要等到的那个元素" + NarrowHint,
         ["browser.waitFor.matchIndex.hint"] = PageMatchIndexHint("要等的"),
 
-        ["browser.exists.name"] = "元素是否存在",
-        ["browser.exists.desc"] = "只查看一次页面元素是否处于指定状态。",
+        ["browser.exists.name"] = "网页元素是否存在",
+        ["browser.exists.desc"] = "看一次网页上的元素是否处于指定状态。",
         ["browser.exists.pageSelector.label"] = "选择器",
         ["browser.exists.pageSelector.hint"] = PageTargetHint + "要查看哪个元素，写法与「点击元素」相同。",
         ["browser.exists.elementState.label"] = "查看状态",
@@ -2892,7 +2924,7 @@ internal static class ActionStrings
         ["browser.waitForUrl.urlHow.option.equals"] = "等于",
         ["browser.waitForUrl.urlHow.option.regex"] = "正则匹配",
 
-        ["browser.waitForLoad.name"] = "等待加载",
+        ["browser.waitForLoad.name"] = "等待网页加载",
         ["browser.waitForLoad.desc"] = "等到页面加载到指定的那一步。",
         ["browser.waitForLoad.loadState.label"] = "等到",
         ["browser.waitForLoad.loadState.hint"] = "等到页面加载的哪一步。「加载完成」是默认，一次把内容全部画出来"
@@ -2922,7 +2954,7 @@ internal static class ActionStrings
         ["browser.scroll.narrow.hint"] = "要滚到眼前的那个元素" + NarrowHint,
         ["browser.scroll.matchIndex.hint"] = PageMatchIndexHint("要滚到眼前的"),
 
-        ["browser.download.name"] = "下载文件",
+        ["browser.download.name"] = "下载网页文件",
         ["browser.download.desc"] = "把页面接下来交出的文件保存到磁盘上。",
         ["browser.download.pageSelector.label"] = "选择器",
         ["browser.download.pageSelector.hint"] = PageTargetHint + "点哪个元素开始下载，写法与「点击元素」相同，"
@@ -2936,7 +2968,7 @@ internal static class ActionStrings
         ["browser.download.narrow.hint"] = "要点击以开始下载的那个元素" + NarrowHint,
         ["browser.download.matchIndex.hint"] = PageMatchIndexHint("要点击开始下载的"),
 
-        ["browser.dialog.name"] = "回答对话框",
+        ["browser.dialog.name"] = "回答网页对话框",
         ["browser.dialog.desc"] = "回答页面接下来弹出的对话框，把触发它的步骤包在里面。",
         ["browser.dialog.dialogHow.label"] = "怎么回答",
         ["browser.dialog.dialogHow.hint"] = "对话框是答应还是取消。想要接着往下走就答应，下面那格填的字也由它带过去；"
@@ -2951,7 +2983,7 @@ internal static class ActionStrings
         ["browser.dialog.body.hint"] = "让对话框弹出来的那些步骤，例如点击那个会提问的按钮。它们之所以写在盒子"
             + "里，是因为对话框没人回答时页面就停在那里：触发它的那一步要等到被回答之后才会返回。",
 
-        ["browser.evaluate.name"] = "执行 JS 脚本",
+        ["browser.evaluate.name"] = "执行网页脚本",
         ["browser.evaluate.desc"] = "在页面里执行一段 JavaScript，取回它的返回值。字符串原样返回；"
             + "数字、真假、列表与记录按 JSON 返回，可直接交给下一步（例如「浏览器打开」）。",
         ["browser.evaluate.script.label"] = "脚本",
@@ -2965,7 +2997,7 @@ internal static class ActionStrings
             + "// return { rows: 3, first: '甲' }; 返回一条记录，结果中仍是记录。\n"
             + "return document.querySelectorAll('a').length;\n",
 
-        ["browser.upload.name"] = "上传文件",
+        ["browser.upload.name"] = "上传网页文件",
         ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
         ["browser.upload.pageSelector.label"] = "选择器",
         ["browser.upload.pageSelector.hint"] = PageTargetHint + "要交给哪个文件选择框，写法与「点击元素」相同。",

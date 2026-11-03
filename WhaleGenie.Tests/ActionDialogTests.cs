@@ -1091,6 +1091,47 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 桌面元素也能说「还要像什么样」，用的是与网页同一张行表，只是能问的事不一样：看不看得见、
+    /// 能不能用、名字里有没有一段字。网页那两颗「从页面选取」「看看效果」在桌面元素这一族不画，
+    /// 因为没有页面可以看。
+    /// </summary>
+    [Fact]
+    public void A_desktop_element_can_say_what_else_it_has_to_be_like()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("uia.click");
+            var narrow = Field(viewModel, "narrow")!;
+
+            Assert.True(narrow.IsNarrow);
+            Assert.Equal(NarrowFamily.Element, narrow.Definition.NarrowFamily);
+            Assert.Empty(narrow.NarrowRows);
+            Assert.False(narrow.IsIncluded);
+
+            narrow.AddNarrowRow();
+            var row = Assert.Single(narrow.NarrowRows);
+
+            Assert.False(row.OnPage);
+            Assert.Equal(
+                ["Visible", "Enabled", "NameHas", "NameHasNot"],
+                row.Choices.Select(choice => choice.Value));
+
+            // 看得见与能用都不需要再填一段字，名字那两条才要。
+            Assert.False(row.NeedsValue);
+            Assert.Equal([new NarrowCondition("Visible", string.Empty)], narrow.Conditions());
+
+            row.Way = row.Choices[2];
+            row.Value = "保存";
+            Assert.True(row.NeedsValue);
+            Assert.Equal([new NarrowCondition("NameHas", "保存")], narrow.Conditions());
+
+            var written = Assert.Single(narrow.ToStepParameter().Rows);
+            Assert.Equal("NameHas", written.Text("how"));
+            Assert.Equal("保存", written.Text("value"));
+        });
+    }
+
+    /// <summary>
     /// 识别文字的"搜索范围"与找色、找字那几个动作是同一个结构：一处一行，四个数、或者一个变量，
     /// 行末可以删掉，下面可以再加一处。从前它是四个独立数字，与别处对不上，也没有"再找一处"。
     /// </summary>

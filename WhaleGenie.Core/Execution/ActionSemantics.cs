@@ -208,6 +208,14 @@ public sealed class ActionParameterSemantics
     /// </summary>
     public ActionUnit? Unit { get; init; }
 
+    /// <summary>
+    /// 一个「还要像什么样」的列表问的是哪一族元素：<c>Page</c> 是网页，<c>Element</c> 是桌面
+    /// 元素。两族能问的事不一样，网页那边是元素里的文字、里面有什么、在哪个容器里；桌面元素这边
+    /// 只有 UI Automation 答得干脆的三件。同一个编辑器于是照着这个说法摆选项，不会把对面那一族
+    /// 的方式也列出来。
+    /// </summary>
+    public string NarrowOn { get; init; } = string.Empty;
+
     /// <summary>What a blank cell comes to. Every number field declares one; other fields do not.</summary>
     public ActionEmptyMeans? EmptyMeans { get; init; }
 

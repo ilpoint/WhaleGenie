@@ -493,12 +493,16 @@ internal static class BenchFixtures
                     ["gapMs"] = "120",
                 };
 
-            // The page narrowing: a way to find the page and the value of that way. The way has to
-            // be one the engine parses, or the step is refused before it reaches the page.
+            // The narrowing: a way to tell the element apart and the value of that way. The way has
+            // to be one the engine parses for this family, or the step is refused before it reaches
+            // the element: a page says what the element writes, a desktop control what it is called.
             case "narrow":
                 return new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["how"] = "hasText",
+                    ["how"] = string.Equals(parameter.NarrowOn, "Element",
+                        StringComparison.OrdinalIgnoreCase)
+                        ? "NameHas"
+                        : "hasText",
                     ["value"] = "bench",
                 };
 

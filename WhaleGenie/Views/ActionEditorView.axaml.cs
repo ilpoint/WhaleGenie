@@ -2158,8 +2158,13 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private static PageTarget Target(AddActionViewModel viewModel, NarrowRowViewModel? upto = null)
         => PageTarget.Of(ParameterText(viewModel, "pageSelector"), MatchIndex(viewModel),
-            viewModel.Parameters.FirstOrDefault(parameter => parameter.IsNarrow)?.Conditions(upto)
-                ?? []);
+            [.. (viewModel.Parameters.FirstOrDefault(parameter => parameter.IsNarrow)?.Conditions(upto)
+                    ?? [])
+                .Select(condition => new PageCondition(
+                    Enum.TryParse<PageFilter>(condition.How, ignoreCase: true, out var how)
+                        ? how
+                        : PageFilter.HasText,
+                    condition.Value))]);
 
     /// <summary>
     /// Writes the name of a variable into a selector field, on a line of its own: a macro that works

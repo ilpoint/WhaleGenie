@@ -1207,7 +1207,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Puts another thing the element has to be like at the end of the list.</summary>
     public void AddNarrowRow(NarrowRowViewModel? row = null)
     {
-        var added = row ?? new NarrowRowViewModel();
+        var added = row ?? new NarrowRowViewModel(Definition.NarrowFamily);
         added.Take = RemoveNarrowRow;
         NarrowRows.Add(added);
         OnPropertyChanged(nameof(HasNarrowRows));
@@ -1225,9 +1225,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// are left out, and with <paramref name="upto"/> named the rows after that one are left out as
     /// well, which is how one row is looked at on top of the rows above it.
     /// </summary>
-    public IReadOnlyList<PageCondition> Conditions(NarrowRowViewModel? upto = null)
+    public IReadOnlyList<NarrowCondition> Conditions(NarrowRowViewModel? upto = null)
     {
-        var conditions = new List<PageCondition>();
+        var conditions = new List<NarrowCondition>();
         foreach (var row in NarrowRows)
         {
             if (row.ToCondition() is { } condition)
@@ -1882,7 +1882,7 @@ public partial class StepParameterViewModel : ViewModelBase
             NarrowRows.Clear();
             foreach (var row in stored.Rows)
             {
-                AddNarrowRow(NarrowRowViewModel.From(row));
+                AddNarrowRow(NarrowRowViewModel.From(row, Definition.NarrowFamily));
             }
 
             return;

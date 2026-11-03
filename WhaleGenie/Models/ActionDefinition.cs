@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
@@ -129,6 +130,19 @@ public enum ActionParameterKind
     Narrow,
 }
 
+/// <summary>
+/// 「还要像什么样」问的是哪一族元素。网页与桌面元素能问的事本来就不一样，所以不是一张更长
+/// 的表，而是两套各自的说法。
+/// </summary>
+public enum NarrowFamily
+{
+    /// <summary>网页：元素里的文字、里面有没有某个元素、在哪个容器里、看不看得见。</summary>
+    Page,
+
+    /// <summary>桌面元素：看不看得见、能不能用、名字里有没有一段字。</summary>
+    Element,
+}
+
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:
 /// the value written to JSON together with the text shown for it.</summary>
 public sealed record ActionParameterOption(string Value, string Display);
@@ -250,6 +264,16 @@ public class ActionParameter
 
     /// <summary>Which picker, if any, can fill this field from the machine.</summary>
     public ActionPickerKind Picker => Semantics.Picker;
+
+    /// <summary>
+    /// 一个「还要像什么样」的列表问的是哪一族元素。目录测试要求每个这样的字段都写清楚，
+    /// 漏了会当场报出来；写了一个不认识的族同样报出来，不猜。
+    /// </summary>
+    public NarrowFamily NarrowFamily => Enum.TryParse<NarrowFamily>(Semantics.NarrowOn,
+        ignoreCase: true, out var family)
+        ? family
+        : throw new InvalidOperationException(
+            $"{OwnerKey}.{Name}: unknown narrow family {Semantics.NarrowOn}.");
 
     /// <summary>
     /// Which file dialog the field beside this one offers, or <see cref="PathIntent.None"/> when
