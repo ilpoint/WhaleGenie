@@ -1484,13 +1484,14 @@
       表单里一块的编号与标题。编号只是一个次序：读者要的是“这一步先问这个、再问那个”，
       所以它比正文弱一档，靠形状（圆）而不是靠颜色被认出来。
     -->
+    <!--
+      块头的标记：**一圈边都没有**。里面装的是一枚线形图标（这一块问的是什么），图标本身已经有
+      轮廓，再套一圈就是两道边；序号时代的圆圈只是为了"这是一个标记"，图标自己就说明了这点。
+      没有图标的块仍旧摆序号，那时数字就是标记本身。
+    -->
     <Style Selector="Border.BlockNumber">
-        <Setter Property="Width" Value="19" />
-        <Setter Property="Height" Value="19" />
-        <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 

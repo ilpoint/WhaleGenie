@@ -110,9 +110,19 @@
                      written in it. The box looks the same either way, which is why the mark is
                      there rather than left to the hint under it. -->
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Classes="FormulaMark" Text="ƒ"
-                               IsVisible="{Binding TakesFormula}"
-                               ToolTip.Tip="{Binding [Add.FieldTakesFormula], Source={x:Static loc:Strings.Current}}" />
+                    <!-- 两个小标记，左边一个：算符说这一格按算式读，变量说名字会被换成变量的值。
+                         以前这两句各是一整行写在框下面，一页十来个字段就复述十来遍。图标用界面
+                         已有的线形那一套，比自造的字形更像同一副面孔。 -->
+                    <views:IconView Width="16" Height="16" Data="SquareFunction"
+                                   Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"
+                                   IsVisible="{Binding TakesFormula}"
+                                   ToolTip.Tip="{Binding [Add.FieldTakesFormula], Source={x:Static loc:Strings.Current}}" />
+                    <views:IconView Width="16" Height="16" Data="Variable"
+                                   Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"
+                                   IsVisible="{Binding ShowsVariableMark}"
+                                   ToolTip.Tip="{Binding [Add.FieldIsText], Source={x:Static loc:Strings.Current}}" />
                     <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
                 </StackPanel>
 
@@ -1047,8 +1057,17 @@
                      主问题、哪个是附属的调整。没有分块的动作这一行不出现，表单与原来一样。 -->
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2,0,9"
                             IsVisible="{Binding IsGroupStart}">
+                    <!-- 圈里换成这一块的图标：序号只说得出"第几块"，说不出"这一块问什么"。
+                         没有对应图标的块（以后新加的）仍旧显示序号，不会空着一个圈。 -->
                     <Border Classes="BlockNumber">
-                        <TextBlock Text="{Binding GroupIndex}" />
+                        <Panel>
+                            <views:IconView Width="20" Height="20" Data="{Binding GroupIcon}"
+                                           Stroke="{DynamicResource TextSecondary}"
+                                           StrokeThickness="1.6"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           IsVisible="{Binding HasGroupIcon}" />
+                            <TextBlock Text="{Binding GroupIndex}" IsVisible="{Binding !HasGroupIcon}" />
+                        </Panel>
                     </Border>
                     <TextBlock Classes="BlockTitle" VerticalAlignment="Center"
                                Text="{Binding GroupTitle}" />
@@ -1128,19 +1147,6 @@
           表单前后缀：`±`、`%`、`按住`、`毫秒`、`间隔`。它们不是"次要文字"——单位要紧贴控件，
           附注可以离远，排版要求不同，所以不进库、留在这个窗口里。
         -->
-        <!-- The mark on a field that is read as one value: small, and in the colour the interface
-             already uses for a name it made itself. -->
-        <!--
-          公式标记：`ƒ` 字形自己表意（"这个值由程序算出"），颜色只需**比正文弱**。
-          原来那个蓝会被读成"语法高亮"，而这套界面没有语法高亮。
-        -->
-        <Style Selector="TextBlock.FormulaMark">
-            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
-            <Setter Property="Margin" Value="2,3,5,6" />
-        </Style>
-
         <!-- The fold that keeps the settings an action can live without out of the way. -->
 
         <!-- One page of a step's settings. -->

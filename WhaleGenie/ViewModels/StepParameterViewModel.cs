@@ -605,6 +605,12 @@ public partial class StepParameterViewModel : ViewModelBase
         && (Definition.AcceptsVariables || Definition.AcceptsFormula);
 
     /// <summary>
+    /// 这一格的左边要不要摆一个 $：整格按文本读，写进去的 $名字 会被换掉。认算式的那种格不摆，
+    /// 它左边的 ƒ 已经说了这一格怎么读，两个标记一起出现只会让人先猜哪个算数。
+    /// </summary>
+    public bool ShowsVariableMark => OffersVariables && !TakesFormula;
+
+    /// <summary>
     /// True when the names of variables are offered beside the page picker rather than over the
     /// box. Picking and testing take the place the list of names would stand in, and what a name
     /// does here is become one more line for the step to try instead of standing for the whole
@@ -1436,14 +1442,9 @@ public partial class StepParameterViewModel : ViewModelBase
 
     private IEnumerable<string> Hints()
     {
-        if (TakesFormula)
-        {
-            yield return Strings.Get("Add.FieldTakesFormula");
-        }
-        else if (OffersVariables)
-        {
-            yield return Strings.Get("Add.FieldIsText");
-        }
+        // 「可以写算式」「按文本读取」这两句不在这里说。一页上十来个字段，每个都先把同一句话
+        // 复述一遍，真正属于这一格的话就被埋在底下，读的人会往下跳过而不是往下读。它们改由
+        // 标签左边的 ƒ 与 $ 两个小标记承担，各自的含义在悬停里；这一行只留这一格自己的事。
 
         // A search region is a list of places rather than four numbers, but it is the same question
         // asked the same way: a place left out reaches the edge, so it says so the same way.

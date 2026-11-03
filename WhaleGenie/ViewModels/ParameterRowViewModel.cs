@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Lucide.Avalonia;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
@@ -61,6 +62,15 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// </summary>
     public string GroupTitle
         => GroupKey.Length == 0 ? string.Empty : Strings.Get("Add.Group." + GroupKey);
+
+    /// <summary>
+    /// 这一块的图标：一眼说是"在哪儿找"还是"怎么点"。没有对应图标时为空，那一块头上仍旧
+    /// 摆序号——序号说不清问的是什么，但总比空着一个圈强。
+    /// </summary>
+    public LucideIconKind? GroupIcon => AppIcons.Block(GroupKey);
+
+    /// <summary>True when this block says what it asks with an icon rather than a number.</summary>
+    public bool HasGroupIcon => GroupIcon is not null;
 
     public bool HasSecond => Second is not null;
 

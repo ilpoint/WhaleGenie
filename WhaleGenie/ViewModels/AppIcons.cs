@@ -58,6 +58,47 @@ public static class AppIcons
     public static LucideIconKind Sparkle => LucideIconKind.Sparkles;
     public static LucideIconKind Message => LucideIconKind.MessageCircle;
     public static LucideIconKind QuestionMark => LucideIconKind.CircleQuestionMark;
+
+    /// <summary>
+    /// 动作表单里每一块问的是什么。块头原来是一个圈里的序号，序号只说得清"第几块"，说不出
+    /// "这一块问什么"；换成图标以后，扫一眼就知道该往哪儿看。没有对应的块返回 null，那里仍然
+    /// 显示序号，不至于空着一个圈。
+    /// </summary>
+    public static LucideIconKind? Block(string group) => group switch
+    {
+        // 找东西：在哪儿、看哪一点、找什么、什么颜色、怎样算找到、按内容挑
+        "area" => LucideIconKind.Crop,
+        "point" => LucideIconKind.Crosshair,
+        "target" => LucideIconKind.ScanSearch,
+        "colour" => LucideIconKind.Palette,
+        "content" => LucideIconKind.ListFilter,
+        "found" => LucideIconKind.CheckCheck,
+        "stable" => LucideIconKind.Focus,
+
+        // 动作本身：怎么点、发给谁、按什么、点哪儿、滚多少、从哪儿到哪儿
+        "press" => LucideIconKind.MousePointerClick,
+        "sender" => LucideIconKind.Send,
+        "keys" => LucideIconKind.Keyboard,
+        "where" => LucideIconKind.MapPin,
+        "wheel" => LucideIconKind.ArrowDownToLine,
+        "from" => LucideIconKind.CircleDot,
+        "to" => LucideIconKind.Target,
+        "axis" => LucideIconKind.Joystick,
+
+        // 节奏、调参、取画面、存文件、识别前后
+        "pacing" => LucideIconKind.Timer,
+        "tuning" => LucideIconKind.SlidersHorizontal,
+        "capture" => LucideIconKind.Frame,
+        "save" => LucideIconKind.Save,
+        "read" => LucideIconKind.TextQuote,
+        "before" => LucideIconKind.WandSparkles,
+
+        // 程序与窗口
+        "program" => LucideIconKind.Boxes,
+        "options" => LucideIconKind.Settings2,
+        "place" => LucideIconKind.Move,
+        _ => null,
+    };
     public static LucideIconKind Info => LucideIconKind.Info;
     public static LucideIconKind List => LucideIconKind.List;
     public static LucideIconKind Mouse => LucideIconKind.Mouse;

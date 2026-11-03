@@ -63,6 +63,25 @@ public class LocalizationTests
         }
     }
 
+    /// <summary>
+    /// 每一块都有图标。块头原来摆序号，现在摆图标；目录里加了新块却忘了给它一枚图标时，界面会
+    /// 悄悄退回显示序号，看起来像"这一块不重要"，所以在这里就拦住。
+    /// </summary>
+    [Fact]
+    public void Every_block_a_field_stands_in_has_an_icon()
+    {
+        var blocks = ActionCatalog.Definitions
+            .SelectMany(action => action.Parameters)
+            .Select(parameter => parameter.Group)
+            .Where(group => group.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.NotEmpty(blocks);
+        Assert.DoesNotContain(blocks, block => AppIcons.Block(block) is null);
+    }
+
     [Fact]
     public void No_text_is_left_empty()
     {

@@ -3606,6 +3606,7 @@
     "Parameters": [
       {
         "Name": "programFile",
+        "Group": "program",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3618,6 +3619,7 @@
       },
       {
         "Name": "commandArguments",
+        "Group": "program",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -3629,6 +3631,7 @@
       },
       {
         "Name": "workingDirectory",
+        "Group": "program",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3640,6 +3643,7 @@
       },
       {
         "Name": "hidden",
+        "Group": "options",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3651,6 +3655,7 @@
       },
       {
         "Name": "runAsAdmin",
+        "Group": "options",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3662,6 +3667,7 @@
       },
       {
         "Name": "environment",
+        "Group": "options",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -4081,6 +4087,7 @@
     "Parameters": [
       {
         "Name": "commandFile",
+        "Group": "program",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -4093,6 +4100,7 @@
       },
       {
         "Name": "commandArguments",
+        "Group": "program",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -4104,6 +4112,7 @@
       },
       {
         "Name": "workingDirectory",
+        "Group": "program",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -4115,6 +4124,7 @@
       },
       {
         "Name": "environment",
+        "Group": "options",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -4126,6 +4136,7 @@
       },
       {
         "Name": "standardInput",
+        "Group": "options",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -4137,6 +4148,7 @@
       },
       {
         "Name": "streamOutput",
+        "Group": "options",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -4148,6 +4160,7 @@
       },
       {
         "Name": "outputEncoding",
+        "Group": "options",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5118,6 +5131,7 @@
       },
       {
         "Name": "x",
+        "Group": "place",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Keep",
@@ -5131,6 +5145,7 @@
       },
       {
         "Name": "y",
+        "Group": "place",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Keep",
@@ -5144,6 +5159,7 @@
       },
       {
         "Name": "width",
+        "Group": "place",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Keep",
@@ -5158,6 +5174,7 @@
       },
       {
         "Name": "height",
+        "Group": "place",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Keep",
@@ -5172,6 +5189,7 @@
       },
       {
         "Name": "rect",
+        "Group": "place",
         "Shape": "Rect",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -5489,6 +5507,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5504,6 +5523,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -5517,6 +5537,7 @@
       },
       {
         "Name": "key",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5528,6 +5549,7 @@
       },
       {
         "Name": "holdMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5541,6 +5563,7 @@
       },
       {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -5555,6 +5578,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5582,6 +5606,7 @@
     "Parameters": [
       {
         "Name": "key",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5593,6 +5618,7 @@
       },
       {
         "Name": "event",
+        "Group": "keys",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5608,6 +5634,7 @@
       },
       {
         "Name": "swallow",
+        "Group": "found",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5666,6 +5693,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5681,6 +5709,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -5694,6 +5723,7 @@
       },
       {
         "Name": "key",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5719,6 +5749,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5734,6 +5765,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -5747,6 +5779,7 @@
       },
       {
         "Name": "key",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5772,6 +5805,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5787,6 +5821,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -5800,6 +5835,7 @@
       },
       {
         "Name": "keys",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5811,6 +5847,7 @@
       },
       {
         "Name": "holdMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5824,6 +5861,7 @@
       },
       {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -5838,6 +5876,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5865,6 +5904,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5880,6 +5920,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -5893,6 +5934,7 @@
       },
       {
         "Name": "keySequence",
+        "Group": "keys",
         "Shape": "Rows",
         "ReadMode": "Text",
         "Picker": "None",
@@ -5921,6 +5963,7 @@
       },
       {
         "Name": "holdMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5934,6 +5977,7 @@
       },
       {
         "Name": "gapMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5947,6 +5991,7 @@
       },
       {
         "Name": "afterMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -5960,6 +6005,7 @@
       },
       {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -5974,6 +6020,7 @@
       },
       {
         "Name": "sequenceIntervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6001,6 +6048,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6016,6 +6064,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -6029,6 +6078,7 @@
       },
       {
         "Name": "typedText",
+        "Group": "keys",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -6040,6 +6090,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6067,6 +6118,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6082,6 +6134,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -6095,6 +6148,7 @@
       },
       {
         "Name": "x",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6108,6 +6162,7 @@
       },
       {
         "Name": "y",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6121,6 +6176,7 @@
       },
       {
         "Name": "place",
+        "Group": "where",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -6132,6 +6188,7 @@
       },
       {
         "Name": "durationMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6145,6 +6202,7 @@
       },
       {
         "Name": "style",
+        "Group": "pacing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6236,6 +6294,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6250,6 +6309,7 @@
       },
       {
         "Name": "dx",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6263,6 +6323,7 @@
       },
       {
         "Name": "dy",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6276,6 +6337,7 @@
       },
       {
         "Name": "durationMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6289,6 +6351,7 @@
       },
       {
         "Name": "style",
+        "Group": "pacing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6361,6 +6424,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6376,6 +6440,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -6388,7 +6453,60 @@
         "MissingKey": "Run.MissingTargetWindow"
       },
       {
+        "Name": "x",
+        "Group": "where",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "y",
+        "Group": "where",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "useCursor",
+        "Group": "where",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "place",
+        "Group": "where",
+        "Shape": "Point",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "button",
+        "Group": "press",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6405,55 +6523,8 @@
         "ChildKeys": []
       },
       {
-        "Name": "useCursor",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "x",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "y",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "place",
-        "Shape": "Point",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "variance",
+        "Group": "press",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6467,6 +6538,7 @@
       },
       {
         "Name": "moveBack",
+        "Group": "press",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6478,6 +6550,7 @@
       },
       {
         "Name": "holdMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6491,6 +6564,7 @@
       },
       {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -6505,6 +6579,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6594,6 +6669,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6609,6 +6685,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -6621,7 +6698,60 @@
         "MissingKey": "Run.MissingTargetWindow"
       },
       {
+        "Name": "x",
+        "Group": "where",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "y",
+        "Group": "where",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "useCursor",
+        "Group": "where",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "place",
+        "Group": "where",
+        "Shape": "Point",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "button",
+        "Group": "press",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6638,55 +6768,8 @@
         "ChildKeys": []
       },
       {
-        "Name": "useCursor",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "x",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "y",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "place",
-        "Shape": "Point",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "variance",
+        "Group": "press",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6700,6 +6783,7 @@
       },
       {
         "Name": "moveBack",
+        "Group": "press",
         "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6711,6 +6795,7 @@
       },
       {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -6725,6 +6810,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -6814,6 +6900,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6829,6 +6916,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -6841,35 +6929,8 @@
         "MissingKey": "Run.MissingTargetWindow"
       },
       {
-        "Name": "button",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "left",
-        "Options": [
-          "left",
-          "right",
-          "middle",
-          "back",
-          "forward"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "useCursor",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "x",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6883,6 +6944,7 @@
       },
       {
         "Name": "y",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -6895,13 +6957,44 @@
         "ChildKeys": []
       },
       {
+        "Name": "useCursor",
+        "Group": "where",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "place",
+        "Group": "where",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "button",
+        "Group": "press",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "middle",
+          "back",
+          "forward"
+        ],
         "AcceptsVariables": false,
         "ChildKeys": []
       },
@@ -6983,6 +7076,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -6998,6 +7092,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -7010,35 +7105,8 @@
         "MissingKey": "Run.MissingTargetWindow"
       },
       {
-        "Name": "button",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "left",
-        "Options": [
-          "left",
-          "right",
-          "middle",
-          "back",
-          "forward"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "useCursor",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "x",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -7052,6 +7120,7 @@
       },
       {
         "Name": "y",
+        "Group": "where",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -7064,13 +7133,44 @@
         "ChildKeys": []
       },
       {
+        "Name": "useCursor",
+        "Group": "where",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "place",
+        "Group": "where",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "button",
+        "Group": "press",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "middle",
+          "back",
+          "forward"
+        ],
         "AcceptsVariables": false,
         "ChildKeys": []
       },
@@ -7152,6 +7252,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7167,6 +7268,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -7179,7 +7281,60 @@
         "MissingKey": "Run.MissingTargetWindow"
       },
       {
+        "Name": "x",
+        "Group": "where",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "y",
+        "Group": "where",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "useCursor",
+        "Group": "where",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "place",
+        "Group": "where",
+        "Shape": "Point",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "direction",
+        "Group": "wheel",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7196,6 +7351,7 @@
       },
       {
         "Name": "unit",
+        "Group": "wheel",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7210,6 +7366,7 @@
       },
       {
         "Name": "amount",
+        "Group": "wheel",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -7224,6 +7381,7 @@
       },
       {
         "Name": "smoothMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -7236,55 +7394,8 @@
         "ChildKeys": []
       },
       {
-        "Name": "x",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "y",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "0",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "useCursor",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "place",
-        "Shape": "Point",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -7299,6 +7410,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -7388,6 +7500,7 @@
     "Parameters": [
       {
         "Name": "inputMode",
+        "Group": "sender",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7403,6 +7516,7 @@
       },
       {
         "Name": "window",
+        "Group": "sender",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
@@ -7416,6 +7530,7 @@
       },
       {
         "Name": "startX",
+        "Group": "from",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -7429,6 +7544,7 @@
       },
       {
         "Name": "startY",
+        "Group": "from",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -7442,6 +7558,7 @@
       },
       {
         "Name": "startPlace",
+        "Group": "from",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -7453,6 +7570,7 @@
       },
       {
         "Name": "endX",
+        "Group": "to",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -7466,6 +7584,7 @@
       },
       {
         "Name": "endY",
+        "Group": "to",
         "Shape": "Number",
         "Unit": "Pixels",
         "EmptyMeans": "Zero",
@@ -7479,6 +7598,7 @@
       },
       {
         "Name": "endPlace",
+        "Group": "to",
         "Shape": "Point",
         "ReadMode": "WholeValue",
         "Picker": "None",
@@ -7490,6 +7610,7 @@
       },
       {
         "Name": "button",
+        "Group": "press",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7507,6 +7628,7 @@
       },
       {
         "Name": "durationMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -7520,6 +7642,7 @@
       },
       {
         "Name": "dragSteps",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -7534,6 +7657,7 @@
       },
       {
         "Name": "style",
+        "Group": "pacing",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7549,6 +7673,7 @@
       },
       {
         "Name": "settleMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -7689,6 +7814,7 @@
     "Parameters": [
       {
         "Name": "button",
+        "Group": "keys",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7718,6 +7844,7 @@
       },
       {
         "Name": "buttonMode",
+        "Group": "keys",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7733,6 +7860,7 @@
       },
       {
         "Name": "holdMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -7746,6 +7874,7 @@
       },
       {
         "Name": "repeat",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Count",
         "EmptyMeans": "Unset",
@@ -7760,6 +7889,7 @@
       },
       {
         "Name": "intervalMs",
+        "Group": "pacing",
         "Shape": "Number",
         "Unit": "Milliseconds",
         "EmptyMeans": "Zero",
@@ -7787,6 +7917,7 @@
     "Parameters": [
       {
         "Name": "stick",
+        "Group": "keys",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7801,6 +7932,7 @@
       },
       {
         "Name": "x",
+        "Group": "axis",
         "Shape": "Number",
         "Unit": "Axis",
         "EmptyMeans": "Zero",
@@ -7814,6 +7946,7 @@
       },
       {
         "Name": "y",
+        "Group": "axis",
         "Shape": "Number",
         "Unit": "Axis",
         "EmptyMeans": "Zero",
@@ -7841,6 +7974,7 @@
     "Parameters": [
       {
         "Name": "trigger",
+        "Group": "keys",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -7855,6 +7989,7 @@
       },
       {
         "Name": "amount",
+        "Group": "axis",
         "Shape": "Number",
         "Unit": "Percent",
         "EmptyMeans": "Unset",

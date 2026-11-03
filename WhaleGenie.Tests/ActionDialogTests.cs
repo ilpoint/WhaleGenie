@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
@@ -340,12 +341,12 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// Two boxes that look exactly alike are read very differently: one holds a whole value that is
-    /// worked out while the macro runs, the other holds text with the names in it replaced. The
-    /// form says which is which beside the label, and says it again in the line under the box.
+    /// 两个框长得一样，读法却不同：一个整格是一个在运行时才算出来的值，另一个是带 $名字 的文字。
+    /// 区别写在标签左边那一个小标记上：ƒ 认算式，$ 认变量名，各自的含义在悬停里。框下面那行只说
+    /// 这一格自己的事——同一句话每格复述一遍，真正属于这一格的话就被埋了。
     /// </summary>
     [Fact]
-    public void A_box_that_is_read_as_one_value_carries_the_formula_mark()
+    public void A_box_says_how_it_is_read_by_a_mark_beside_its_label()
     {
         Ui.Run(() =>
         {
@@ -353,27 +354,49 @@ public class ActionDialogTests
             var looked = viewModel.Parameters.First(parameter => parameter.Definition.Name == "queryText");
 
             Assert.True(looked.TakesFormula);
-            Assert.StartsWith(Strings.Get("Add.FieldTakesFormula"), looked.Hint);
+            Assert.DoesNotContain(Strings.Get("Add.FieldTakesFormula"), looked.Hint,
+                StringComparison.Ordinal);
 
-            var marked = window.GetVisualDescendants().OfType<TextBlock>()
-                .Where(block => block.IsEffectivelyVisible && block.Text == "ƒ")
-                .Select(block => (StepParameterViewModel)block.DataContext!)
-                .ToList();
+            var marked = Marks(window, LucideIconKind.SquareFunction);
 
-            Assert.Contains(looked, marked);
-            Assert.All(marked, field => Assert.True(field.TakesFormula));
+            Assert.Contains(looked, marked.Select(mark => mark.Field));
+            Assert.All(marked, mark => Assert.True(mark.Field.TakesFormula));
 
-            // Text with the names in it replaced is not that, and says so instead.
+            // 标记自己把那句话带在悬停里，读的人想知道的时候才看得见。
+            var own = marked.First(mark => ReferenceEquals(mark.Field, looked));
+            Assert.Equal(Strings.Get("Add.FieldTakesFormula"), ToolTip.GetTip(own.Icon));
+
+            // 带 $名字 的文字不是那一种：它的左边是 $，说的也是另一句话。
             var (plainWindow, plain) = OpenWindow("file.listFiles");
             var pattern = plain.Parameters.First(parameter => parameter.Definition.Name == "pattern");
 
             Assert.False(pattern.TakesFormula);
-            Assert.StartsWith(Strings.Get("Add.FieldIsText"), pattern.Hint);
-            Assert.DoesNotContain(pattern, plainWindow.GetVisualDescendants().OfType<TextBlock>()
-                .Where(block => block.IsEffectivelyVisible && block.Text == "ƒ")
-                .Select(block => (StepParameterViewModel)block.DataContext!));
+            Assert.True(pattern.ShowsVariableMark);
+            Assert.DoesNotContain(Strings.Get("Add.FieldIsText"), pattern.Hint,
+                StringComparison.Ordinal);
+
+            var dollars = Marks(plainWindow, LucideIconKind.Variable);
+
+            Assert.Contains(dollars, mark => ReferenceEquals(mark.Field, pattern));
+            Assert.All(dollars, mark => Assert.True(mark.Field.ShowsVariableMark));
+            Assert.Equal(Strings.Get("Add.FieldIsText"),
+                ToolTip.GetTip(dollars.First(mark => ReferenceEquals(mark.Field, pattern)).Icon));
+
+            Assert.DoesNotContain(pattern, Marks(plainWindow, LucideIconKind.SquareFunction)
+                .Select(mark => mark.Field));
         });
     }
+
+    /// <summary>
+    /// 标签左边的标记：哪一种图标的标记，各自挂在哪一格的模型上。
+    /// </summary>
+    private static List<(IconView Icon, StepParameterViewModel Field)> Marks(
+        ActionEditorWindow window, LucideIconKind kind)
+        => [.. window.GetVisualDescendants().OfType<IconView>()
+            .Where(icon => icon.IsEffectivelyVisible && icon.Data == kind)
+            .Select(icon => (icon, icon.DataContext as StepParameterViewModel))
+            .Where(pair => pair.Item2 is not null)
+            .Select(pair => (pair.icon, pair.Item2!))];
 
     /// <summary>
     /// What an empty number box means depends on the field, and the box cannot say it: a side of a
@@ -1033,7 +1056,7 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// The switch that takes the place from the pointer stands on the line of the button it belongs
+    /// The switch that takes the place from the pointer stands on the line of the numbers it belongs
     /// to rather than taking a line of its own, and with it on the pair of numbers is not asked for:
     /// a step that works wherever the pointer is carries no coordinates for anything to read as a
     /// position of its own.
@@ -1045,15 +1068,15 @@ public class ActionDialogTests
         {
             var viewModel = Open("input.mouseClick");
             var row = viewModel.Rows.First(candidate =>
-                candidate.First.Definition.Name == "button");
+                candidate.HasThird && candidate.Third!.Definition.Name == "useCursor");
 
-            Assert.True(row.HasThird);
-            Assert.Equal("useCursor", row.Third!.Definition.Name);
+            // 它跟着「点哪儿」那一块：点不点在指针当前位置，问的是位置，不是按哪个键。
+            Assert.Equal("where", row.First.Group);
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
 
-            row.Third.Flag = true;
+            row.Third!.Flag = true;
             Dispatcher.UIThread.RunJobs();
             viewModel.SaveCommand.Execute(null);
 
