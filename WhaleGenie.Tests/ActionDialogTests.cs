@@ -485,38 +485,31 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// The same four numbers say a place on the screen, a place inside a window or a place inside a
-    /// control depending on what the step counts them from, so the page says which one it is — once
-    /// for the step, under the corner the numbers are counted from.
+    /// 同一组数字，按识别基准的不同，说的是屏幕上的位置、窗口客户区里的位置，所以这一页必须说清
+    /// 是哪一种。这句话现在并进了「在哪个范围里找」这一块的说明，不再在表格下面单占一行：一句话
+    /// 本来就在回答这个块的问题，跟着块走比另起一行更省地方，也不会在每处矩形的下面重复。
     /// </summary>
     [Fact]
-    public void The_numbers_that_place_a_step_say_what_they_are_counted_from()
+    public void The_basis_the_numbers_are_counted_from_is_said_by_the_area_block()
     {
         Ui.Run(() =>
         {
-            var capture = Open("vision.capture");
-            var x = capture.Parameters.First(parameter => parameter.Definition.Name == "x");
-            var y = capture.Parameters.First(parameter => parameter.Definition.Name == "y");
-            var width = capture.Parameters.First(parameter => parameter.Definition.Name == "width");
+            foreach (var (key, block) in new[]
+                     {
+                         ("vision.findImage", "area"),
+                         ("ocr.recognize", "area"),
+                         ("vision.capture", "capture"),
+                         ("vision.captureWindow", "capture"),
+                     })
+            {
+                var row = Open(key).Rows.FirstOrDefault(line => line.GroupKey == block);
+                Assert.NotNull(row);
+                Assert.Contains("左上角", row.GroupHint);
+            }
 
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Screen")),
-                x.BasisNote);
-            Assert.Equal(string.Empty, y.BasisNote);
-            Assert.Equal(string.Empty, width.BasisNote);
-
-            // The line follows the origin the moment it is changed.
-            Choose(capture, "anchorMode", "window");
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Window")),
-                x.BasisNote);
-
-            // A step that looks in places of its own says it under the list of places.
-            var find = Open("vision.findImage");
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Screen")),
-                find.Parameters.First(parameter => parameter.Definition.Name == "region").BasisNote);
-
-            // And a step that reads nothing off the screen has no such line at all.
-            Assert.All(Open("input.keyPress").Parameters,
-                parameter => Assert.Equal(string.Empty, parameter.BasisNote));
+            // 一个不读屏的步骤没有这一块，自然也没有这句话。
+            Assert.DoesNotContain(Open("input.keyPress").Rows,
+                row => row.GroupKey == "area");
         });
     }
 

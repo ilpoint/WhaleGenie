@@ -994,19 +994,6 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsRegionAnchor { get; set; }
 
     /// <summary>
-    /// One line saying where the numbers that say where this step works are counted from, written
-    /// by the dialog because only it knows what the step's coordinate origin says right now. Empty
-    /// on the fields that do not carry it: it belongs under the corner those numbers are counted
-    /// from, not under every pair of numbers the step has.
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasBasisNote))]
-    public partial string BasisNote { get; set; } = string.Empty;
-
-    /// <summary>True when this field carries that line.</summary>
-    public bool HasBasisNote => BasisNote.Length > 0;
-
-    /// <summary>
     /// True on the parameter whose line carries the button that picks a click point on the picture
     /// the step saw. Set by the dialog on the first half of the offset of an action that looks at
     /// the screen, which is the only place there is something to point at.

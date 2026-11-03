@@ -883,36 +883,6 @@ public partial class AddActionViewModel : ViewModelBase
         => Parameter("inputMode")?.CurrentText.Trim().ToLowerInvariant() == "background";
 
     /// <summary>
-    /// Says under the fields that place a step where their four numbers are counted from, and gives
-    /// that line to the one field of the step that carries it: the search region when the step
-    /// looks in places of its own, otherwise the first of the numbers that say where it reads. The
-    /// same four numbers mean a place on the screen or inside a window's client area depending on
-    /// the origin, and none of that is written in the numbers themselves.
-    /// </summary>
-    private void RefreshOriginNote()
-    {
-        var note = Strings.Format("Add.OriginNote",
-            Strings.Get(Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() switch
-            {
-                "window" => "Add.Origin.Window",
-                _ => "Add.Origin.Screen",
-            }));
-
-        // The line belongs under the field the other numbers are counted from, which is the list
-        // of places when the step has one, and otherwise the corner those numbers name. A step
-        // that presses a key or waits for a moment has numbers too, but none of them is a place.
-        var carrier = Parameters.FirstOrDefault(parameter =>
-                parameter.Definition.Kind is ActionParameterKind.Region)
-            ?? Parameters.FirstOrDefault(parameter =>
-                parameter.Definition.Name is "x" or "startX");
-
-        foreach (var parameter in Parameters)
-        {
-            parameter.BasisNote = ReferenceEquals(parameter, carrier) ? note : string.Empty;
-        }
-    }
-
-    /// <summary>
     /// True for an action that holds steps of its own: it is a block in the macro rather than
     /// something the run just does.
     /// </summary>
@@ -2019,8 +1989,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private void RefreshGates()
     {
-        RefreshOriginNote();
-
         var rows = 0;
         foreach (var editor in Parameters)
         {

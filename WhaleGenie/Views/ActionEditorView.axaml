@@ -638,7 +638,6 @@
                                    IsVisible="{Binding !HasRegions}" />
                     </Grid>
 
-                    <!-- 四个数的基准由这一行自己在字段末尾说一次（`BasisNote`），这里不再重复。 -->
                 </StackPanel>
 
                 <!-- 基准色周围要对的颜色：一处一行。四件事按人想它们的顺序排：往右多少、往下多少、
@@ -1142,10 +1141,6 @@
 
                 </StackPanel>
 
-                <!-- Where these numbers are counted from, said once for the line they are on. -->
-                <TextBlock Grid.Row="3" Grid.ColumnSpan="5" Classes="Hint" Margin="2,6,0,0"
-                           TextWrapping="Wrap"
-                           IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
             </Grid>
             </StackPanel>
         </DataTemplate>

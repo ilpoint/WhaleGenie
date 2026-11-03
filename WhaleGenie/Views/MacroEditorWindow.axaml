@@ -884,13 +884,19 @@
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:MacroDocumentPageViewModel">
-                        <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="4">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="4">
                             <TextBlock Classes="Note" Text="{Binding Title}" />
-                            <views:IconView Grid.Column="1" Width="12" Height="12"
+                            <!-- 有未保存的修改：一小枚实心点，悬停说明它是什么。 -->
+                            <Ellipse Grid.Column="1" Width="6" Height="6" Margin="1,0,0,0"
+                                     VerticalAlignment="Center"
+                                     IsVisible="{Binding IsUnsaved}"
+                                     Fill="{DynamicResource TextSecondary}"
+                                     ToolTip.Tip="{Binding [Editor.Unsaved], Source={x:Static loc:Strings.Current}}" />
+                            <views:IconView Grid.Column="2" Width="12" Height="12"
                                             IsVisible="{Binding HasProblem}"
                                             Stroke="{DynamicResource Danger}" StrokeThickness="1.4"
                                             Data="{x:Static vm:AppIcons.WarningTriangle}" />
-                            <Button Grid.Column="2" Name="CloseDocumentButton"
+                            <Button Grid.Column="3" Name="CloseDocumentButton"
                                     Classes="Ghost Tiny"
                                     IsVisible="{Binding !IsCurrent}"
                                     ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}"

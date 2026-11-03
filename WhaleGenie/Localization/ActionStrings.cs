@@ -177,18 +177,16 @@ internal static class ActionStrings
     /// being meant change from one action to the next, so the rest is written once.
     /// </summary>
     private const string NarrowHint =
-        "还必须是哪一个：选择器同时对上多个元素时，用这里的限定说清要的是它们中的哪一个，一行一条，"
-        + "所有限定同时成立。可以限定元素里面显示的文字、里面有没有某个元素、它在哪个容器里面、"
-        + "或者只要看得见的。值里可以写变量名，运行时替换成它的值；一行什么都没填就不算数。"
-        + "一条都不写时只用选择器认元素，与没有这一格时完全一样。";
+        "元素除选择器已确定的属性外还需满足的条件；每行一条，同时成立。可限定元素内部文本、"
+        + "所含元素、所在容器，或仅取可见元素；值中可使用变量，未填写的行不生效。";
 
     /// <summary>
     /// 桌面元素那一族的「还要像什么样」。与网页那条分开写，因为能问的事不一样：这边只问
     /// UI Automation 答得干脆的三件，说不出网页那种「元素里面还有某个元素」。
     /// </summary>
     private const string UiNarrowHint =
-        "除了选择器说的那几项，这个元素还得像什么样：一行一条，全部同时成立。只看屏幕上看得见的、"
-        + "只看能用的，或者名字里含（不含）一段字时用它；值里可以写 $变量。";
+        "元素除选择器已确定的属性外还需满足的条件；每行一条，同时成立。可限定元素可见、可用，"
+        + "或名称包含（不包含）指定文本；值中可使用 $变量。";
 
     /// <summary>
     /// The hint every action that lists several reference pictures shares for its picker: which of
@@ -2499,7 +2497,7 @@ internal static class ActionStrings
         ["uia.exists.window.label"] = WindowMatchTextLabel,
         ["uia.exists.uiSelector.label"] = "选择器",
         ["uia.exists.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.exists.narrow.label"] = "限定",
+        ["uia.exists.narrow.label"] = "条件",
         ["uia.exists.narrow.hint"] = "要查看的那个元素" + UiNarrowHint,
         ["uia.exists.matchIndex.label"] = "第几个命中",
         ["uia.exists.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要的是第几个。" + MatchIndexHint,
@@ -2509,7 +2507,7 @@ internal static class ActionStrings
         ["uia.find.window.label"] = WindowMatchTextLabel,
         ["uia.find.uiSelector.label"] = "选择器",
         ["uia.find.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.find.narrow.label"] = "限定",
+        ["uia.find.narrow.label"] = "条件",
         ["uia.find.narrow.hint"] = "要找的那个元素" + UiNarrowHint,
         ["uia.find.matchIndex.label"] = "第几个命中",
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
@@ -2525,7 +2523,7 @@ internal static class ActionStrings
         ["uia.waitElement.window.label"] = WindowMatchTextLabel,
         ["uia.waitElement.uiSelector.label"] = "选择器",
         ["uia.waitElement.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.waitElement.narrow.label"] = "限定",
+        ["uia.waitElement.narrow.label"] = "条件",
         ["uia.waitElement.narrow.hint"] = "要等到的那个元素" + UiNarrowHint,
         ["uia.waitElement.matchIndex.label"] = "第几个命中",
         ["uia.waitElement.matchIndex.hint"] =
@@ -2540,7 +2538,7 @@ internal static class ActionStrings
         ["uia.click.window.label"] = WindowMatchTextLabel,
         ["uia.click.uiSelector.label"] = "选择器",
         ["uia.click.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.click.narrow.label"] = "限定",
+        ["uia.click.narrow.label"] = "条件",
         ["uia.click.narrow.hint"] = "要点击的那个元素" + UiNarrowHint,
         ["uia.click.matchIndex.label"] = "第几个命中",
         ["uia.click.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要点击的是第几个。" + MatchIndexHint,
@@ -2552,7 +2550,7 @@ internal static class ActionStrings
         ["uia.invoke.window.label"] = WindowMatchTextLabel,
         ["uia.invoke.uiSelector.label"] = "选择器",
         ["uia.invoke.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.invoke.narrow.label"] = "限定",
+        ["uia.invoke.narrow.label"] = "条件",
         ["uia.invoke.narrow.hint"] = "要按下的那个元素" + UiNarrowHint,
         ["uia.invoke.matchIndex.label"] = "第几个命中",
         ["uia.invoke.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要按下的是第几个。" + MatchIndexHint,
@@ -2562,7 +2560,7 @@ internal static class ActionStrings
         ["uia.setText.window.label"] = WindowMatchTextLabel,
         ["uia.setText.uiSelector.label"] = "选择器",
         ["uia.setText.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.setText.narrow.label"] = "限定",
+        ["uia.setText.narrow.label"] = "条件",
         ["uia.setText.narrow.hint"] = "要填写的那个元素" + UiNarrowHint,
         ["uia.setText.matchIndex.label"] = "第几个命中",
         ["uia.setText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要写入的是第几个。" + MatchIndexHint,
@@ -2576,7 +2574,7 @@ internal static class ActionStrings
         ["uia.read.window.label"] = WindowMatchTextLabel,
         ["uia.read.uiSelector.label"] = "选择器",
         ["uia.read.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.read.narrow.label"] = "限定",
+        ["uia.read.narrow.label"] = "条件",
         ["uia.read.narrow.hint"] = "要读取的那个元素" + UiNarrowHint,
         ["uia.read.matchIndex.label"] = "第几个命中",
         ["uia.read.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
@@ -2598,7 +2596,7 @@ internal static class ActionStrings
         ["uia.select.window.label"] = WindowMatchTextLabel,
         ["uia.select.uiSelector.label"] = "选择器",
         ["uia.select.uiSelector.hint"] = "下拉框、列表或标签页的选择器。" + SelectorPickHint,
-        ["uia.select.narrow.label"] = "限定",
+        ["uia.select.narrow.label"] = "条件",
         ["uia.select.narrow.hint"] = "要选的那个元素" + UiNarrowHint,
         ["uia.select.matchIndex.label"] = "第几个命中",
         ["uia.select.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
@@ -2612,7 +2610,7 @@ internal static class ActionStrings
         ["uia.check.window.label"] = WindowMatchTextLabel,
         ["uia.check.uiSelector.label"] = "选择器",
         ["uia.check.uiSelector.hint"] = "勾选框、开关或单选框的选择器。" + SelectorPickHint,
-        ["uia.check.narrow.label"] = "限定",
+        ["uia.check.narrow.label"] = "条件",
         ["uia.check.narrow.hint"] = "要勾选的那个元素" + UiNarrowHint,
         ["uia.check.matchIndex.label"] = "第几个命中",
         ["uia.check.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
@@ -2628,7 +2626,7 @@ internal static class ActionStrings
         ["uia.expand.window.label"] = WindowMatchTextLabel,
         ["uia.expand.uiSelector.label"] = "选择器",
         ["uia.expand.uiSelector.hint"] = "要展开或收起的节点选择器。" + SelectorPickHint,
-        ["uia.expand.narrow.label"] = "限定",
+        ["uia.expand.narrow.label"] = "条件",
         ["uia.expand.narrow.hint"] = "要展开或收起的那个元素" + UiNarrowHint,
         ["uia.expand.matchIndex.label"] = "第几个命中",
         ["uia.expand.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
@@ -2643,7 +2641,7 @@ internal static class ActionStrings
         ["uia.scrollIntoView.window.label"] = WindowMatchTextLabel,
         ["uia.scrollIntoView.uiSelector.label"] = "选择器",
         ["uia.scrollIntoView.uiSelector.hint"] = "要滚动到可见的元素选择器。" + SelectorPickHint,
-        ["uia.scrollIntoView.narrow.label"] = "限定",
+        ["uia.scrollIntoView.narrow.label"] = "条件",
         ["uia.scrollIntoView.narrow.hint"] = "要滚到眼前的那个元素" + UiNarrowHint,
         ["uia.scrollIntoView.matchIndex.label"] = "第几个命中",
         ["uia.scrollIntoView.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
@@ -2653,7 +2651,7 @@ internal static class ActionStrings
         ["uia.readTable.window.label"] = WindowMatchTextLabel,
         ["uia.readTable.uiSelector.label"] = "选择器",
         ["uia.readTable.uiSelector.hint"] = "表格或网格的选择器。" + SelectorPickHint,
-        ["uia.readTable.narrow.label"] = "限定",
+        ["uia.readTable.narrow.label"] = "条件",
         ["uia.readTable.narrow.hint"] = "要读取的那张表格" + UiNarrowHint,
         ["uia.readTable.matchIndex.label"] = "第几个命中",
         ["uia.readTable.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要读取的是第几个。" + MatchIndexHint,
@@ -2711,7 +2709,7 @@ internal static class ActionStrings
             + "页面挡住不让点的按钮，多半是这一步点下去也达不到作者想要的结果。页面用一层不可见元素遮盖"
             + "自己的按钮时，才需要勾上它。",
         ["browser.click.matchIndex.label"] = "第几个命中",
-        ["browser.click.narrow.label"] = "限定",
+        ["browser.click.narrow.label"] = "条件",
         ["browser.click.narrow.hint"] = "要点击的那个元素" + NarrowHint,
         ["browser.click.matchIndex.hint"] = PageMatchIndexHint("要点击的"),
 
@@ -2731,7 +2729,7 @@ internal static class ActionStrings
         ["browser.fill.keyIntervalMs.hint"] = "两个键之间停多久，0 到 10000 毫秒。默认 0，也就是不停，"
             + "按页面能跟上的最快速度发；只有在「逐键输入」时才读它，页面嫌来得太快而漏掉按键时可以调大。",
         ["browser.fill.matchIndex.label"] = "第几个命中",
-        ["browser.fill.narrow.label"] = "限定",
+        ["browser.fill.narrow.label"] = "条件",
         ["browser.fill.narrow.hint"] = "要填写的那个元素" + NarrowHint,
         ["browser.fill.matchIndex.hint"] = PageMatchIndexHint("要填写的"),
 
@@ -2752,7 +2750,7 @@ internal static class ActionStrings
         ["browser.readText.attribute.hint"] = "读哪个属性，按页面标记里的写法写：链接的地址是 href，"
             + "图片的出处是 src，标记里写的值是 value。元素没有这个属性时读回来是空的，不算找不到。",
         ["browser.readText.matchIndex.label"] = "第几个命中",
-        ["browser.readText.narrow.label"] = "限定",
+        ["browser.readText.narrow.label"] = "条件",
         ["browser.readText.narrow.hint"] = "要读取的那个元素" + NarrowHint,
         ["browser.readText.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
 
@@ -2771,7 +2769,7 @@ internal static class ActionStrings
         ["browser.readAll.attribute.hint"] = "读哪个属性，按页面标记里的写法写，例如 href、src、value。"
             + "元素没有这个属性时读回来是空的，不算找不到。",
         ["browser.readAll.matchIndex.label"] = "第几个命中",
-        ["browser.readAll.narrow.label"] = "限定",
+        ["browser.readAll.narrow.label"] = "条件",
         ["browser.readAll.narrow.hint"] = "要读取的那些元素" + NarrowHint,
         ["browser.readAll.matchIndex.hint"] = "从第几个命中开始读：选择器可能同时对上多个元素，这里说从它们"
             + "中的第几个开始读，按在页面上出现的顺序从 1 数起，它后面的也照读，直到读满「最多几条」。"
@@ -2786,7 +2784,7 @@ internal static class ActionStrings
         ["browser.readTable.pageSelector.hint"] = PageTargetHint + "要读哪个表格，写法与「点击元素」相同。"
             + "默认写的是 table，也就是页面自己的表格元素。",
         ["browser.readTable.matchIndex.label"] = "第几个命中",
-        ["browser.readTable.narrow.label"] = "限定",
+        ["browser.readTable.narrow.label"] = "条件",
         ["browser.readTable.narrow.hint"] = "要读取的那张表格" + NarrowHint,
         ["browser.readTable.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
         ["browser.readTable.maxRows.label"] = "最多几行",
@@ -2831,7 +2829,7 @@ internal static class ActionStrings
         ["browser.select.by.option.value"] = "按值或文字",
         ["browser.select.by.option.index"] = "按序号",
         ["browser.select.matchIndex.label"] = "第几个命中",
-        ["browser.select.narrow.label"] = "限定",
+        ["browser.select.narrow.label"] = "条件",
         ["browser.select.narrow.hint"] = "要选的那个下拉框" + NarrowHint,
         ["browser.select.matchIndex.hint"] = PageMatchIndexHint("要选中的"),
 
@@ -2843,7 +2841,7 @@ internal static class ActionStrings
         ["browser.check.checked.hint"] = "这个框最后是不是要勾上，默认勾上；关掉它表示把已经"
             + "勾上的框取消勾选。要求的状态与当前相同就什么都不做，不像点击那样把勾着的框点掉。",
         ["browser.check.matchIndex.label"] = "第几个命中",
-        ["browser.check.narrow.label"] = "限定",
+        ["browser.check.narrow.label"] = "条件",
         ["browser.check.narrow.hint"] = "要勾选的那个方框" + NarrowHint,
         ["browser.check.matchIndex.hint"] = PageMatchIndexHint("要勾选或取消勾选的"),
 
@@ -2853,7 +2851,7 @@ internal static class ActionStrings
         ["browser.hover.pageSelector.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
             + "菜单、提示框、整排按钮都是这么出现的；这一步不点击任何元素。",
         ["browser.hover.matchIndex.label"] = "第几个命中",
-        ["browser.hover.narrow.label"] = "限定",
+        ["browser.hover.narrow.label"] = "条件",
         ["browser.hover.narrow.hint"] = "要把指针移上去的那个元素" + NarrowHint,
         ["browser.hover.matchIndex.hint"] = PageMatchIndexHint("要悬停的"),
 
@@ -2866,7 +2864,7 @@ internal static class ActionStrings
         ["browser.press.keyChord.hint"] = "要发送哪个键：键盘选择器里列出的名字（Enter、Esc、F5、"
             + "Down），或者用「+」连起来的组合键（Ctrl+S）。键盘里没有的名字在运行前就会被拒绝。",
         ["browser.press.matchIndex.label"] = "第几个命中",
-        ["browser.press.narrow.label"] = "限定",
+        ["browser.press.narrow.label"] = "条件",
         ["browser.press.narrow.hint"] = "接按键的那个元素" + NarrowHint,
         ["browser.press.matchIndex.hint"] = PageMatchIndexHint("按键前要取得焦点的"),
 
@@ -2885,7 +2883,7 @@ internal static class ActionStrings
         ["browser.waitFor.elementState.option.attached"] = "在页面上",
         ["browser.waitFor.elementState.option.detached"] = "不在页面上",
         ["browser.waitFor.matchIndex.label"] = "第几个命中",
-        ["browser.waitFor.narrow.label"] = "限定",
+        ["browser.waitFor.narrow.label"] = "条件",
         ["browser.waitFor.narrow.hint"] = "要等到的那个元素" + NarrowHint,
         ["browser.waitFor.matchIndex.hint"] = PageMatchIndexHint("要等的"),
 
@@ -2901,7 +2899,7 @@ internal static class ActionStrings
         ["browser.exists.elementState.option.detached"] = "不在页面上",
         ["browser.exists.matchIndex.label"] = "第几个命中",
         ["browser.exists.matchIndex.hint"] = PageMatchIndexHint("要查看的"),
-        ["browser.exists.narrow.label"] = "限定",
+        ["browser.exists.narrow.label"] = "条件",
         ["browser.exists.narrow.hint"] = "要查看的那个元素" + NarrowHint,
         ["browser.exists.return.found.label"] = "状态是否符合",
         ["browser.exists.return.found.hint"] = "页面元素处于指定状态时为真。",
@@ -2950,7 +2948,7 @@ internal static class ActionStrings
         ["browser.scroll.scrollHow.option.bottom"] = "到页面底部",
         ["browser.scroll.scrollHow.option.top"] = "到页面顶部",
         ["browser.scroll.matchIndex.label"] = "第几个命中",
-        ["browser.scroll.narrow.label"] = "限定",
+        ["browser.scroll.narrow.label"] = "条件",
         ["browser.scroll.narrow.hint"] = "要滚到眼前的那个元素" + NarrowHint,
         ["browser.scroll.matchIndex.hint"] = PageMatchIndexHint("要滚到眼前的"),
 
@@ -2964,7 +2962,7 @@ internal static class ActionStrings
         ["browser.download.folder.hint"] = "文件存到哪个文件夹；留空就是宏文件所在的那个文件夹。按一个值读取，"
             + "变量或表达式都可以写成它。同名的文件会被覆盖，与别的程序里保存一次一样。",
         ["browser.download.matchIndex.label"] = "第几个命中",
-        ["browser.download.narrow.label"] = "限定",
+        ["browser.download.narrow.label"] = "条件",
         ["browser.download.narrow.hint"] = "要点击以开始下载的那个元素" + NarrowHint,
         ["browser.download.matchIndex.hint"] = PageMatchIndexHint("要点击开始下载的"),
 
@@ -3006,7 +3004,7 @@ internal static class ActionStrings
             + "的文件夹算起，与别的步骤里的路径同一条规则。浏览器的规矩是不许脚本告诉页面一个"
             + "路径，这一步是绕开这条规矩的唯一办法。",
         ["browser.upload.matchIndex.label"] = "第几个命中",
-        ["browser.upload.narrow.label"] = "限定",
+        ["browser.upload.narrow.label"] = "条件",
         ["browser.upload.narrow.hint"] = "要交给文件的那个文件框" + NarrowHint,
         ["browser.upload.matchIndex.hint"] = PageMatchIndexHint("要交给的"),
 

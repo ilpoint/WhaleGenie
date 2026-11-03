@@ -722,38 +722,4 @@ public class ActionPageTests
             }
         });
     }
-
-    /// <summary>
-    /// 一步里“四个数从哪儿量”只说一次。那句话管的是同一个基准，说两遍像是有两条互不相干的规定；
-    /// 搜索区域那块曾经自己说一次、字段末尾又说一次。
-    /// </summary>
-    [Fact]
-    public void The_basis_of_the_numbers_is_said_once_per_step()
-    {
-        Ui.Run(() =>
-        {
-            foreach (var key in new[] { "vision.findColors", "vision.findImage", "input.mouseClick" })
-            {
-                var viewModel = Open(key);
-                var view = new ActionEditorView { DataContext = viewModel };
-                var window = new Window { Width = 1024, Height = 900, Content = view };
-                window.Show();
-                Dispatcher.UIThread.RunJobs();
-
-                var said = 0;
-                foreach (var page in viewModel.Pages.Where(page => page.IsPresent).ToList())
-                {
-                    viewModel.Select(page);
-                    Dispatcher.UIThread.RunJobs();
-                    said += view.GetVisualDescendants().OfType<TextBlock>()
-                        .Count(block => block.IsEffectivelyVisible
-                            && block.Text?.Contains("识别基准", StringComparison.Ordinal) == true);
-                }
-
-                window.Close();
-
-                Assert.True(said == 1, $"{key}: the basis is said {said} times");
-            }
-        });
-    }
 }
