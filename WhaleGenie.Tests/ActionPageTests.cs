@@ -44,6 +44,12 @@ public class ActionPageTests
         {
             yield return third.Definition.Name;
         }
+
+        // 一个矩形的四个数一行说完，第四个也在这条线上。
+        if (row.Fourth is { } fourth)
+        {
+            yield return fourth.Definition.Name;
+        }
     }
 
     /// <summary>

@@ -29,6 +29,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// </summary>
     private const int SeenByTheEye = 9;
 
+    /// <summary>The ancestor flag that walks from a control up to its top-level window.</summary>
+    private const uint GaRoot = 2;
+
     public IReadOnlyList<WindowInfo> List()
     {
         Require();
@@ -44,6 +47,39 @@ public sealed class WindowsWindowDevice : IWindowDevice
         Require();
         var handle = GetForegroundWindow();
         if (handle == IntPtr.Zero || !IsWindowVisible(handle) || !Seen(handle, out var bounds))
+        {
+            return null;
+        }
+
+        var title = TitleOf(handle);
+        return new WindowInfo(handle.ToInt64(), title, new ScreenPoint(bounds.Left, bounds.Top),
+            new ScreenSize(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top),
+            IsIconic(handle), IsZoomed(handle));
+    }
+
+    /// <summary>
+    /// The window under a place on the screen. Asked of Windows rather than worked out from the
+    /// list, because the list leaves out windows with no title, and one of those can still be the
+    /// one a macro is meant for. The point usually lands on a control inside the window, so the
+    /// walk goes up to the window that owns it.
+    /// </summary>
+    public WindowInfo? At(int x, int y)
+    {
+        Require();
+
+        var under = WindowFromPoint(new NativePoint { X = x, Y = y });
+        if (under == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        var handle = GetAncestor(under, GaRoot);
+        if (handle == IntPtr.Zero)
+        {
+            handle = under;
+        }
+
+        if (!IsWindowVisible(handle) || !Seen(handle, out var bounds))
         {
             return null;
         }
@@ -355,6 +391,12 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr handle, uint flags);
 
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr handle);

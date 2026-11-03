@@ -1067,6 +1067,18 @@ public interface IWindowDevice
     WindowInfo? Foreground() => List().FirstOrDefault();
 
     /// <summary>
+    /// The window under a place on the screen, or null when there is nothing there. The default
+    /// walks the list a device gives, first to last, which is front to back for a real desktop;
+    /// the Windows device asks the machine, so that a window with no title in the title bar — the
+    /// one thing <see cref="List"/> leaves out — can still be picked.
+    /// </summary>
+    WindowInfo? At(int x, int y) => List().FirstOrDefault(window =>
+        !window.Minimized
+        && window.Size.Width > 0 && window.Size.Height > 0
+        && x >= window.Location.X && x < window.Location.X + window.Size.Width
+        && y >= window.Location.Y && y < window.Location.Y + window.Size.Height);
+
+    /// <summary>
     /// Every window that matches <paramref name="value"/> the way <paramref name="match"/> and
     /// <paramref name="compare"/> say, ignoring case, in the order <see cref="List"/> gives them,
     /// or nothing when none does. An empty value matches the frontmost window alone — the one window

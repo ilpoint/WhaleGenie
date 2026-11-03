@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -20,28 +22,44 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class WindowRulePickerTests
 {
+    /// <summary>
+    /// 按 F1 与按那颗「取窗口」是同一件事：到桌面上指一扇。指的那一会儿这个窗口让开，取回来之后
+    /// 规则已经填好；F1 的按下与抬起都被吞掉，不漏到别的程序里。
+    /// </summary>
     [Fact]
-    public void F1_captures_the_foreground_window_and_both_edges_are_swallowed()
+    public void F1_takes_a_window_and_both_edges_are_swallowed()
     {
-        Ui.Run(() =>
+        Ui.RunAsync(async () =>
         {
             var hook = new KeyHook();
             var windows = new WindowsForChecks().Add(7, "Game", "game", "GameClass");
             var devices = new ChecksDevices { Windows = windows, Hook = hook };
             var picker = new WindowRuleWindow(devices.Windows, devices.Hook, null);
+
+            // 测试会话里的窗口不在桌面的清单上：把它交给让位的那一段，才看得见"让开"这件事。
+            var desk = AppWindows.Open;
+            var steppedAside = false;
             try
             {
                 picker.Show();
                 Dispatcher.UIThread.RunJobs();
+                AppWindows.Open = () => [picker];
+
+                picker.Picking = () =>
+                {
+                    steppedAside = !picker.IsVisible;
+                    return Task.FromResult<WindowInfo?>(new WindowInfo(7, "Game",
+                        new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
+                };
 
                 var f1 = KeyNames.Resolve("F1")!.Value;
                 Assert.True(hook.Press(f1, down: true));
-                Dispatcher.UIThread.RunJobs();
                 Assert.True(hook.Press(f1, down: false));
 
                 var match = picker.FindControl<Avalonia.Controls.TextBox>("MatchBox");
-                Assert.NotNull(match);
-                Assert.Equal("Game", match.Text);
+                await Ui.Until(() => match?.Text == "Game", "the picked window did not reach the form");
+
+                Assert.True(steppedAside);
                 Assert.True(picker.FindControl<Avalonia.Controls.Button>("UseButton")!.IsEnabled);
 
                 picker.FindControl<Avalonia.Controls.Button>("UseButton")!
@@ -52,6 +70,38 @@ public class WindowRulePickerTests
                 Assert.Equal(7, picker.Chosen!.Handle);
                 Assert.Equal("game", picker.Chosen.Process);
                 Assert.Equal("GameClass", picker.Chosen.ClassName);
+                return true;
+            }
+            finally
+            {
+                AppWindows.Open = desk;
+                picker.Close();
+            }
+        });
+    }
+
+    /// <summary>
+    /// 鲸灵自己的窗口不是宏要操作的那一个：指针停在它上面时框不起来，也取不走。主窗口这类
+    /// 不进让位名单的窗口仍可能露着，这条按程序名把它认出来。
+    /// </summary>
+    [Fact]
+    public void The_picker_never_takes_whalegenies_own_window()
+    {
+        Ui.Run(() =>
+        {
+            var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath!);
+            var windows = new WindowsForChecks().Add(8, "WhaleGenie", own, "Window");
+            var picker = new WindowPickWindow(windows, new ScreenAt(new ScreenPoint(50, 50)), null);
+            try
+            {
+                picker.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                picker.ProbeAt(50, 50);
+                Assert.Null(picker.Hovered);
+
+                picker.Confirm();
+                Assert.Null(picker.Chosen);
             }
             finally
             {
@@ -60,32 +110,65 @@ public class WindowRulePickerTests
         });
     }
 
+    /// <summary>
+    /// 指到哪扇就框哪扇：框的是整扇窗口，连边框一起，而不是指针那一点；点一下把它取走。
+    /// </summary>
     [Fact]
-    public void F1_ignores_whalegenies_own_window()
+    public void Pointing_at_a_window_frames_the_whole_of_it_and_a_click_takes_it()
     {
         Ui.Run(() =>
         {
-            var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath!);
-            var windows = new WindowsForChecks().Add(8, "WhaleGenie", own, "Window");
-            var hook = new KeyHook();
-            var devices = new ChecksDevices { Windows = windows, Hook = hook };
-            var picker = new WindowRuleWindow(devices.Windows, devices.Hook, null);
+            var windows = new WindowsForChecks()
+                .Add(7, "Game", "game", "GameClass")
+                .Place(7, 100, 100, 300, 200);
+            var picker = new WindowPickWindow(windows, new ScreenAt(new ScreenPoint(150, 150)), null);
             try
             {
                 picker.Show();
                 Dispatcher.UIThread.RunJobs();
 
-                var status = picker.FindControl<Avalonia.Controls.TextBlock>("Status");
-                Assert.Equal(Strings.Get("WindowRule.Waiting"), status?.Text);
+                picker.ProbeAt(150, 150);
 
-                // The device's foreground reader is the first listed window; the picker refuses it
-                // because it is this program rather than the one the macro should use.
-                hook.Press(KeyNames.Resolve("F1")!.Value, down: true);
+                Assert.Equal(7, picker.Hovered!.Handle);
+                Assert.Equal(new PixelPoint(97, 97), picker.Position);
+                Assert.Equal(306, picker.Width);
+                Assert.Equal(206, picker.Height);
+
+                picker.Confirm();
+                Assert.Equal(7, picker.Chosen!.Handle);
+                Assert.False(picker.IsVisible);
+            }
+            finally
+            {
+                picker.Close();
+            }
+        });
+    }
+
+    /// <summary>
+    /// 一扇没有标题的窗口框得出来，却不该拿去当目标：那只能按句柄认，而句柄是最容易过期的一格。
+    /// 拾取器把话说明白，留着继续挑。
+    /// </summary>
+    [Fact]
+    public void A_window_with_no_title_is_shown_but_not_taken()
+    {
+        Ui.Run(() =>
+        {
+            var windows = new WindowsForChecks()
+                .Add(9, string.Empty, "game", "GameClass")
+                .Place(9, 0, 0, 200, 200);
+            var picker = new WindowPickWindow(windows, new ScreenAt(new ScreenPoint(60, 60)), null);
+            try
+            {
+                picker.Show();
                 Dispatcher.UIThread.RunJobs();
-                hook.Press(KeyNames.Resolve("F1")!.Value, down: false);
 
-                Assert.Equal(Strings.Get("WindowRule.OwnWindow"), status?.Text);
-                Assert.False(picker.FindControl<Avalonia.Controls.Button>("UseButton")!.IsEnabled);
+                picker.ProbeAt(60, 60);
+                Assert.Equal(9, picker.Hovered!.Handle);
+
+                picker.Confirm();
+                Assert.Null(picker.Chosen);
+                Assert.True(picker.IsVisible);
             }
             finally
             {

@@ -4,7 +4,7 @@
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:loc="using:WhaleGenie.Localization"
         x:Class="WhaleGenie.Views.WindowRuleWindow"
-        Title="WhaleGenie"
+        Title="{Binding [WindowRule.Title], Source={x:Static loc:Strings.Current}}"
         Width="780" Height="580"
         MinWidth="640" MinHeight="520"
         CanResize="True"
@@ -127,8 +127,17 @@
                        FontSize="12.5" Foreground="{DynamicResource TextSecondary}" />
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <Button Name="CaptureButton" Classes="Secondary" Height="36" MinWidth="132"
-                        Content="{Binding [WindowRule.CaptureKey], Source={x:Static loc:Strings.Current}}" />
+                <!-- 去桌面上指一扇窗口：按一下，这个窗口与鲸灵自己的都让开，指针底下的窗口会被
+                     框出来，点一下取走。不是"取当前窗口"——按按钮时当前窗口就是鲸灵自己。 -->
+                <Button Name="PickButton" Classes="Secondary" Height="36" MinWidth="132"
+                        Padding="12,0" Click="OnPickWindow">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <views:IconView Width="15" Height="15"
+                                        Data="{x:Static vm:AppIcons.Crosshair}" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{Binding [WindowRule.PickWindow], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </Button>
                 <Button Name="CancelButton" Classes="Secondary" Height="36" MinWidth="92"
                         Content="{Binding [WindowRule.Cancel], Source={x:Static loc:Strings.Current}}" />
                 <Button Name="UseButton" Classes="Primary" Height="36" MinWidth="112" IsEnabled="False"

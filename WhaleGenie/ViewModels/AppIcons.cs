@@ -128,6 +128,9 @@ public static class AppIcons
     public static LucideIconKind Mouse => LucideIconKind.Mouse;
     public static LucideIconKind GameController => LucideIconKind.Gamepad2;
     public static LucideIconKind Dropper => LucideIconKind.Pipette;
+
+    /// <summary>准星：到桌面上指一样东西，指哪儿取哪儿。</summary>
+    public static LucideIconKind Crosshair => LucideIconKind.Crosshair;
     public static LucideIconKind Cursor => LucideIconKind.MousePointer2;
     public static LucideIconKind Filter => LucideIconKind.ListFilter;
     public static LucideIconKind Record => LucideIconKind.CircleDot;

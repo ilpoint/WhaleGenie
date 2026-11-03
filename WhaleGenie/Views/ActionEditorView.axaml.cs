@@ -1101,51 +1101,25 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Tries the step for real, once, which is the same question the element picker's test asks:
-    /// is this the thing I meant? A key name can be spelled another way and a controller control
-    /// can be the wrong one of a pair, so the answer is to send it and let the user watch — in the
-    /// window they meant it for, which is why the dialog steps aside first, the way picking does.
+    /// 试运行要跑的那一步：存的是它写下来的样子，但"沿用上一次"在单步里没有上一步可跟，换成它
+    /// 会跟到的那条规则——试的才是运行时真正会碰的那个窗口。存的仍旧是原来的写法。
     /// </summary>
-    private async void OnTestStep(object? sender, RoutedEventArgs e)
+    private static MacroStep BuildStepForTrial(AddActionViewModel viewModel)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter }
-            || DataContext is not AddActionViewModel viewModel)
-        {
-            return;
-        }
-
-        if (parameter.CurrentText.Trim().Length == 0)
-        {
-            await ReportTestAsync(Strings.Get("Add.TestFieldEmpty"));
-            return;
-        }
-
-        // The step as it would be saved: what is tried is what was written, settings and all.
         var built = viewModel.BuildStep();
-
-        // 试运行只有这一步，没有"上面那一步"可以跟：把沿用换成它会跟到的那条规则，试的才是运行时
-        // 真正会碰的那个窗口。存的仍旧是原来的写法，这一步不会因此被改掉。
-        if (viewModel.WindowAbove.Length > 0)
+        if (viewModel.WindowAbove.Length == 0)
         {
-            foreach (var field in built.Parameters.Where(field =>
-                         string.Equals(field.Name, "window", StringComparison.Ordinal)
-                         && WindowRule.TryParse(field.Value, out var rule) && rule.Follow))
-            {
-                field.Value = viewModel.WindowAbove;
-            }
+            return built;
         }
 
-        var step = new[] { built }.ToExecutable()[0];
-
-        // Out of the way while it is tried, so the key or the control lands on the window that was
-        // meant, which is whatever the user had in mind behind this dialog — and so does everything
-        // else of this program, because minimizing this window alone leaves the editor behind it in
-        // front of the very window the trial is aimed at.
-        var outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices));
-        if (outcome.Status is not RunStatus.Completed && !_closed)
+        foreach (var field in built.Parameters.Where(field =>
+                     string.Equals(field.Name, "window", StringComparison.Ordinal)
+                     && WindowRule.TryParse(field.Value, out var rule) && rule.Follow))
         {
-            await ReportTestAsync(TrialFailure(outcome));
+            field.Value = viewModel.WindowAbove;
         }
+
+        return built;
     }
 
     /// <summary>Why a step could not be tried, in the interface's own words.</summary>
@@ -1168,7 +1142,7 @@ public partial class ActionEditorView : UserControl
         }
 
         // The step as it would be saved, so what is run is what was written.
-        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
+        var step = new[] { BuildStepForTrial(viewModel) }.ToExecutable()[0];
 
         // Some steps put the machine out of use. A debug button is one click, and one click should
         // not sign the user out or shut their machine down without being asked.

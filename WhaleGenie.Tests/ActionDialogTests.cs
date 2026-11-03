@@ -1091,6 +1091,37 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 一个矩形的四个数站在同一行：左上角、宽、高。原来两两一行，每个数字底下还各带一段说明，
+    /// 四个数占掉一整屏；现在与"搜索区域"那一行同一个样子，短名、框、ƒ，说明在提示里。
+    /// 格子里写的东西要真的回到步骤的参数上，反过来也一样。
+    /// </summary>
+    [Fact]
+    public void The_four_numbers_of_a_rectangle_share_one_line()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+
+            var row = Assert.Single(viewModel.Rows, line => line.IsQuad);
+            Assert.Equal(["x", "y", "width", "height"],
+                new[] { row.First, row.Second!, row.Third!, row.Fourth! }
+                    .Select(parameter => parameter.Definition.Name));
+            Assert.Equal(4, row.QuadCells.Count);
+            Assert.Equal(["X", "Y",
+                    Strings.Get("Add.RegionWidthShort"), Strings.Get("Add.RegionHeightShort")],
+                row.QuadCells.Select(cell => cell.ShortLabel));
+
+            // 格子里写一个数，参数跟着变；参数改了，格子也跟着变。
+            row.QuadCells[0].Write("120");
+            Assert.Equal("120", row.First.CurrentText);
+            Assert.Same(row.First, Field(viewModel, "x"));
+
+            Field(viewModel, "width")!.SetNumber(80);
+            Assert.Equal("80", row.QuadCells[2].Text);
+        });
+    }
+
+    /// <summary>
     /// 窗口那一格说得清自己现在是哪一种：没选就是前台窗口，选了「沿用上一次」就把这句话写出来，
     /// 而不是显示一串没有标题的括号。
     /// </summary>
@@ -3209,8 +3240,12 @@ public class ActionDialogTests
             => NullDeviceLayer.Instance.Screen.Capture(request);
     }
 
+    /// <summary>
+    /// 键、组合键与手柄不再各有一颗"测试"按钮：那几颗按钮做的正是"按现在这一步跑一次"，
+    /// 和表单下方的运行按钮是同一件事。这里试的是那颗运行按钮：它仍旧把这一步真的发出去。
+    /// </summary>
     [Fact]
-    public void A_key_field_can_be_tried_on_the_spot()
+    public void A_key_field_is_tried_on_the_spot_from_the_run_button()
     {
         Ui.RunAsync(async () =>
         {
@@ -3228,7 +3263,7 @@ public class ActionDialogTests
             var devices = new RecordingDevices();
             window.Devices = devices;
 
-            TestButton(window, key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            RunButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
             // The step is tried off the thread that draws the window, so what it sent arrives a
             // moment after the click.
@@ -3242,7 +3277,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_controller_control_can_be_tried_on_the_spot()
+    public void A_controller_control_is_tried_on_the_spot_from_the_run_button()
     {
         Ui.RunAsync(async () =>
         {
@@ -3260,7 +3295,7 @@ public class ActionDialogTests
             var devices = new RecordingDevices();
             window.Devices = devices;
 
-            TestButton(window, button).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            RunButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
             // A tap, then the letting go that keeps a tried button from staying down in the game.
             Assert.True(await devices.WaitUntil(() => devices.Calls.Count >= 3),
@@ -3494,12 +3529,11 @@ public class ActionDialogTests
     private static StepParameterViewModel? Field(AddActionViewModel viewModel, string name)
         => viewModel.Parameters.FirstOrDefault(parameter => parameter.Definition.Name == name);
 
-    /// <summary>The "test" button that belongs to one parameter, the way the user finds it.</summary>
-    private static Button TestButton(Window window, StepParameterViewModel parameter)
+    /// <summary>The run button under the form, found the way a user finds it: by what it says.</summary>
+    private static Button RunButton(Window window)
         => window.GetVisualDescendants().OfType<Button>()
             .First(item => item.IsEffectivelyVisible
-                && Equals(item.Content, Strings.Get("Add.TestField"))
-                && ReferenceEquals(item.DataContext, parameter));
+                && Equals(item.Content, Strings.Get("Add.RunStep")));
 
     /// <summary>
     /// A device layer with a notebook behind it: what a trial sent is written down, and everything

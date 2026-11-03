@@ -129,16 +129,16 @@ public class NumberBoxTests
             var window = Open("vision.capture");
             Dispatcher.UIThread.RunJobs();
 
-            // Nothing has been said about where to look, so nothing is what the field shows: a box
-            // that displayed its lower bound would look like an answer the step had written down.
-            foreach (var name in new[] { "x", "y", "width", "height" })
+            // Nothing has been said about where to look, so nothing is what the four boxes show:
+            // a box that displayed its lower bound would look like an answer the step had written
+            // down. The four stand on one line now, so they are found as the boxes on the screen.
+            var boxes = Boxes(window);
+            Assert.Equal(4, boxes.Count);
+            for (var at = 0; at < boxes.Count; at++)
             {
-                var box = window.GetVisualDescendants().OfType<FANumberBox>()
-                    .First(one => one.IsEffectivelyVisible
-                        && ReferenceEquals(one.DataContext, Parameter(window, name)));
-
-                Assert.True(double.IsNaN(box.Value));
-                Assert.True(string.IsNullOrWhiteSpace(box.Text), $"{name} shows \"{box.Text}\"");
+                Assert.True(double.IsNaN(boxes[at].Value));
+                Assert.True(string.IsNullOrWhiteSpace(boxes[at].Text),
+                    $"box {at} shows \"{boxes[at].Text}\"");
             }
         });
     }
@@ -195,9 +195,10 @@ public class NumberBoxTests
             var button = window.GetVisualDescendants().OfType<Button>()
                 .First(pressed => pressed.IsEffectivelyVisible
                     && pressed.Content as string == Strings.Get("Add.PickRegion"));
-            var x = window.GetVisualDescendants().OfType<FANumberBox>()
-                .First(box => box.IsEffectivelyVisible
-                    && ReferenceEquals(box.DataContext, Parameter(window, "x")));
+
+            // 四个数压成一行之后，格子里的数字是这一行的第一格：按"屏幕上看得到的第一个数字框"
+            // 找它，而不是按参数对象——那一格里装的是这一格的数，不是整个参数。
+            var x = Boxes(window)[0];
 
             var above = button.TranslatePoint(default, window)!.Value;
             var below = x.TranslatePoint(default, window)!.Value;

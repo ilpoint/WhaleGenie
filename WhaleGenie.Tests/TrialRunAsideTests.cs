@@ -70,10 +70,11 @@ public class TrialRunAsideTests
     }
 
     /// <summary>
-    /// Three ways a step is tried out of this form — the run button's look, the run button's real
-    /// step, and a field's own test — and each one has to open the scope before it touches the
-    /// machine. What the scope does with the windows is checked above; this is here so a fourth way
-    /// of trying a step cannot quietly ask the screen with this program's windows still in front.
+    /// Two ways a step is tried out of this form — the run button's look, and the run button's real
+    /// step — and each one has to open the scope before it touches the machine. (The field's own
+    /// test button used to be a third; it is gone, because it did what the run button does.) What
+    /// the scope does with the windows is checked above; this is here so another way of trying a
+    /// step cannot quietly ask the screen with this program's windows still in front.
     /// </summary>
     [Fact]
     public void Every_trial_of_the_form_puts_this_programs_windows_away_first()
@@ -84,7 +85,7 @@ public class TrialRunAsideTests
         Assert.Contains("using (AppWindows.StepAside(HostWindow))", source, StringComparison.Ordinal);
         Assert.Contains("ScreenReady.Wait();", source, StringComparison.Ordinal);
 
-        foreach (var trial in new[] { "RunLookingAsync", "RunForRealAsync", "OnTestStep" })
+        foreach (var trial in new[] { "RunLookingAsync", "RunForRealAsync" })
         {
             Assert.Contains("Away", MemberOf(source, trial), StringComparison.Ordinal);
         }

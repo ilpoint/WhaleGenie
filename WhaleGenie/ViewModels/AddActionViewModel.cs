@@ -1439,21 +1439,53 @@ public partial class AddActionViewModel : ViewModelBase
                 && string.Equals(laid[index + 1].Group, current.Group, StringComparison.Ordinal);
 
             StepParameterViewModel? second = null;
-            if (same && (current.IsRowPair && laid[index + 1].IsRowPair
-                         || current.IsCoordinate && laid[index + 1].IsCoordinate))
+            var third = (StepParameterViewModel?)null;
+            var fourth = (StepParameterViewModel?)null;
+
+            if (current.IsRegionQuad)
+            {
+                // 一个矩形的四个数站在同一行：左上角、宽、高一格接一格。它们是一句话，拆成两行
+                // 只是把同一件事说两遍。
+                foreach (var next in new[] { 1, 2, 3 })
+                {
+                    if (index + 1 >= laid.Count
+                        || !string.Equals(laid[index + 1].Group, current.Group, StringComparison.Ordinal)
+                        || !laid[index + 1].IsRegionQuad)
+                    {
+                        break;
+                    }
+
+                    var taken = laid[++index];
+                    if (next == 1)
+                    {
+                        second = taken;
+                    }
+                    else if (next == 2)
+                    {
+                        third = taken;
+                    }
+                    else
+                    {
+                        fourth = taken;
+                    }
+                }
+            }
+            else if (same && (current.IsRowPair && laid[index + 1].IsRowPair
+                              || current.IsCoordinate && laid[index + 1].IsCoordinate))
             {
                 second = laid[++index];
             }
 
             // A field that belongs beside the line rather than on one of its own — the switch that
             // takes a mouse step's place from the pointer — rides on this line.
-            var beside = index + 1 < laid.Count
+            var beside = fourth is null && index + 1 < laid.Count
                 && string.Equals(laid[index + 1].Group, current.Group, StringComparison.Ordinal)
                 && laid[index + 1].IsRowCompanion
                 ? laid[++index]
                 : null;
 
-            rows.Add(new ParameterRowViewModel(current, second, beside)
+            // 四格行里第三格是宽，第四格是高；普通行里第三格是那个伴随字段。
+            rows.Add(new ParameterRowViewModel(current, second, fourth is null ? beside : third, fourth)
             {
                 GroupKey = current.Group,
                 GroupIndex = block,
@@ -1682,6 +1714,20 @@ public partial class AddActionViewModel : ViewModelBase
         if (anchor is not null)
         {
             anchor.IsRegionAnchor = true;
+        }
+
+        // 一个矩形的四个数是一句话：左上角在哪、伸出去多远。原来它们两两一行，四格分两行，
+        // 每格底下还各带一段说明，四个数占掉一整屏。压成一行，与"搜索区域"那一行同一个样子。
+        if (Parameter("x") is { IsNumber: true } left
+            && left.Definition.Picker is ActionPickerKind.Region)
+        {
+            foreach (var name in new[] { "x", "y", FieldNames.Width, FieldNames.Height })
+            {
+                if (Parameter(name) is { IsNumber: true } cell)
+                {
+                    cell.IsRegionQuad = true;
+                }
+            }
         }
 
         // How far a rectangle reaches is one thing said in two numbers, so the two read better side

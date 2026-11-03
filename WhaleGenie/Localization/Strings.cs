@@ -549,12 +549,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.WindowPreview.Unreadable"] = "The open windows cannot be read right now.",
         ["WindowRule.Title"] = "Capture a window",
         ["WindowRule.CaptureHint"] =
-            "Pick a window on the left, or click the target and press F1 to take it. F1 is kept "
-            + "from the other program while this picker is open. Press Esc to cancel.",
-        ["WindowRule.Waiting"] = "No window chosen yet: pick one on the left, or press F1 to take the one in front.",
-        ["WindowRule.None"] = "No window in front to take. Click the target, then press F1.",
-        ["WindowRule.OwnWindow"] =
-            "That is WhaleGenie's own window. Choose the window the macro should work on.",
+            "Pick a window on the left, or press “Pick a window” and point at one on the desktop: "
+            + "it is framed as the pointer moves over it, and a click takes it. F1 does the same, "
+            + "Esc cancels.",
+        ["WindowRule.Waiting"] = "No window chosen yet: pick one on the left, or point at one on the desktop.",
+        ["WindowRule.None"] = "Nothing was picked. This field keeps the window it had.",
         ["WindowRule.Captured"] = "Window chosen. Pick the part that identifies it, and check what it matches below.",
         ["WindowRule.Process"] = "Process",
         ["WindowRule.Class"] = "Class",
@@ -571,7 +570,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowRule.Preview.Title"] = "What it matches now",
         ["WindowRule.Preview.Waiting"] = "Once a window is chosen, what the rule matches is listed here.",
         ["WindowRule.NoneMatch"] = "Nothing matches with this rule yet.",
-        ["WindowRule.CaptureKey"] = "Take the one in front (F1)",
+        ["WindowRule.PickWindow"] = "Pick a window",
+        ["WindowPick.Title"] = "Pick a window",
+        ["WindowPick.Empty"] = "No window here.",
+        ["WindowPick.Untitled"] = "A window with no title",
+        ["WindowPick.NoTitle"] =
+            "This window has no title, so it could only be matched by handle. Point at another one.",
         ["WindowRule.Matches"] = "{0} window(s) match now.",
         ["WindowRule.More"] = "…and {0} more.",
         ["WindowRule.BadPattern"] = "The matching pattern cannot be read.",
@@ -706,15 +710,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NarrowLookHint"] = "Counts what the page holds with this condition and the ones above "
             + "it, and outlines the element the step would act on. Nothing is clicked.",
 
-        // A field that sends something is tested by sending it, which is a thing to be told
-        // rather than surprised by.
-        ["Add.TestField"] = "Test",
-        ["Add.TestKeyHint"] = "Presses this key once, for real, the way the step's own input "
-            + "setting says, so it can be watched landing in the window it is meant for. The "
-            + "dialog steps aside first.",
-        ["Add.TestGamepadHint"] = "Drives the virtual controller once, for real, then lets go of "
-            + "it again. Put the game in front to watch it land.",
-        ["Add.TestFieldEmpty"] = "Write or pick a value first.",
         ["Add.BrowserPickBanner"] =
             "Open the page to work on in the browser, then click the element to use. Esc gives up.",
         ["Add.BrowserPickFailed"] =
@@ -2786,10 +2781,9 @@ public sealed class Strings : INotifyPropertyChanged
             "字段中写有变量，其取值要等宏运行后确定，这里按字面显示。",
         ["Add.WindowPreview.Unreadable"] = "现在读不到窗口列表。",
         ["WindowRule.Title"] = "获取窗口",
-        ["WindowRule.CaptureHint"] = "在左边挑一个窗口，或者点一下目标窗口再按 F1 取它；拾取期间 F1 不会交给别的程序。按 Esc 取消。",
-        ["WindowRule.Waiting"] = "还没选窗口：在左边挑一个，或者按 F1 取当前窗口。",
-        ["WindowRule.None"] = "前台没有可取的窗口：点一下目标窗口，再按 F1。",
-        ["WindowRule.OwnWindow"] = "这是鲸灵自己的窗口。请点宏要操作的那个窗口。",
+        ["WindowRule.CaptureHint"] = "在左边挑一个窗口，或者按「取窗口」到桌面上点一下：指针移到哪扇窗口，它就被框出来，点一下即取。F1 也是这个动作，Esc 取消。",
+        ["WindowRule.Waiting"] = "还没选窗口：在左边挑一个，或者到桌面上点一扇。",
+        ["WindowRule.None"] = "没有取到窗口，这一格保持原样。",
         ["WindowRule.Captured"] = "已选好窗口。挑一项认出它，下面就是现在会认到的窗口。",
         ["WindowRule.Process"] = "进程名",
         ["WindowRule.Class"] = "窗口类",
@@ -2806,7 +2800,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowRule.Preview.Title"] = "现在会认到",
         ["WindowRule.Preview.Waiting"] = "选好窗口后，这里会列出按这条规则认到的窗口。",
         ["WindowRule.NoneMatch"] = "按这条规则现在一个也认不到。",
-        ["WindowRule.CaptureKey"] = "取当前窗口（F1）",
+        ["WindowRule.PickWindow"] = "取窗口",
+        ["WindowPick.Title"] = "取窗口",
+        ["WindowPick.Empty"] = "这里没有窗口。",
+        ["WindowPick.Untitled"] = "没有标题的窗口",
+        ["WindowPick.NoTitle"] = "这扇窗口没有标题，只能按句柄认。换一扇有标题的。",
         ["WindowRule.Matches"] = "现在会认到 {0} 个窗口。",
         ["WindowRule.More"] = "……还有 {0} 个。",
         ["WindowRule.BadPattern"] = "这条匹配模式读不出来。",
@@ -2921,12 +2919,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NarrowLookHint"] = "按这一条与它上面的限定在页面上数一次，并框出这一步会认到的那个元素。"
             + "只框不点。",
 
-        // 会真的发出去的东西，测试就是真的发一次——这件事要说清楚，不能让人措手不及。
-        ["Add.TestField"] = "测试",
-        ["Add.TestKeyHint"] = "真的按一次这个键，按这一步自己的输入方式来（前台 / 后台消息 / "
-            + "驱动级），好在目标窗口里看一眼对不对。按之前对话框会让开。",
-        ["Add.TestGamepadHint"] = "真的驱动一次虚拟手柄，随后再松开。要看见效果，游戏得在前台。",
-        ["Add.TestFieldEmpty"] = "先填一个值再测。",
         ["Add.BrowserPickBanner"] = "先在浏览器中打开要操作的页面，再单击要使用的元素；按 Esc 放弃。",
         ["Add.BrowserPickFailed"] = "没能打开页面，或者没能从页面上拾取到元素。",
         ["Element.Title"] = "拾取元素",

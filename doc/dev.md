@@ -249,6 +249,14 @@ if ($missing) { $missing; exit 1 }
   外观与落点仍需真机检查。
 - 读屏幕的图必须经过 `ScreenReady`，不要直接 `screen.Capture`：桌面复制器会把隐藏前的画面继续交出来，
   `DwmFlush` 并不能保证新帧已经到了。拾取器、框选后的成图和单步试看都走这一条。
+- 一个矩形的四个数（`vision.capture`、`ocr.recognize` 的 x/y/width/height）现在压在一行里，
+  每格是 `NumberCellViewModel`（短名 + 框 + ƒ），不再各自是一个参数对象：测试里按参数
+  `DataContext` 找数字框会落空，要看 `ParameterRowViewModel.IsQuad` 与 `QuadCells`，或者按可见的
+  数字框找。格与参数之间的同步在 `ParameterRowViewModel.Cell` 里，数字字段要连 `NumberValue`
+  一起写，只写 `Text` 会让框里有字、步骤却是空的。
+- 拾取窗口的检查用 `WindowRuleWindow.Picking` 换掉桌面那一步，不真的让位与指窗口；拾取器本身
+  （`WindowPickWindow`）用 `ProbeAt`/`Confirm` 驱动，和元素拾取器一样。
+
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或
   `Ui.AnswerUnsavedWork`，避免遗留调度器循环。

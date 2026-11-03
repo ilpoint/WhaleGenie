@@ -1034,6 +1034,27 @@ public partial class StepParameterViewModel : ViewModelBase
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;
 
+    /// <summary>
+    /// True on one of the four numbers a rectangle is said with — where its corner is, how far it
+    /// reaches. The four are one sentence and are edited on one line, the way a place in a search
+    /// is; two lines of two, each with its own paragraph underneath, is a page of words for four
+    /// numbers.
+    /// </summary>
+    public bool IsRegionQuad { get; set; }
+
+    /// <summary>
+    /// What this number is called on the one line the four of a rectangle share: "X" beside a box
+    /// says what "top-left X" says above it, and only one of them fits across four.
+    /// </summary>
+    public string QuadShortLabel => Definition.Name switch
+    {
+        "x" => Strings.Get("Add.RegionXShort"),
+        "y" => Strings.Get("Add.RegionYShort"),
+        FieldNames.Width => Strings.Get("Add.RegionWidthShort"),
+        FieldNames.Height => Strings.Get("Add.RegionHeightShort"),
+        _ => Definition.LocalLabel,
+    };
+
     /// <summary>True when the number is dialled in with the spinner.</summary>
     public bool IsNumberValue => IsNumber && !UseFormula;
 

@@ -139,7 +139,7 @@
                 <!-- A key is chosen as a character button: the field itself opens the keyboard
                      laid out on screen, while capture takes the key pressed on the physical
                      keyboard instead of hunting for it on the drawing. -->
-                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <Button Classes="Field"
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
@@ -148,17 +148,11 @@
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnCaptureKey" />
-                    <!-- The same question the element picker answers with its test: is this the
-                         thing I meant? For a key that is answered by pressing it once. -->
-                    <Button Grid.Column="2" Classes="Secondary" Height="34" Padding="11,0"
-                            Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnTestStep" />
                 </Grid>
 
                 <!-- A combination is built the same way the keyboard drawn on screen builds it:
                      one key at a time, so the keys pressed are joined to what is already there. -->
-                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <Button Classes="Field"
                             Content="{Binding KeyFieldDisplay}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
@@ -167,10 +161,6 @@
                             Content="{Binding KeyCaptureLabel}"
                             ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnCaptureKey" />
-                    <Button Grid.Column="2" Classes="Secondary" Height="34" Padding="11,0"
-                            Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnTestStep" />
                 </Grid>
 
                 <!-- 窗口是一个字段，但它记得好几件事。以前这里一排三颗按钮：获取窗口（要按 F1
@@ -872,7 +862,7 @@
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />
 
-                <Grid IsVisible="{Binding IsChoice}" ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="6"
+                <Grid IsVisible="{Binding IsChoice}" ColumnDefinitions="Auto,Auto" ColumnSpacing="6"
                       HorizontalAlignment="Left">
                     <ComboBox Classes="Field"
                               ItemsSource="{Binding Choices}"
@@ -895,11 +885,6 @@
                             Content="{Binding [Add.OpenGamepad], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.OpenGamepadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenGamepadPad" />
-                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
-                            IsVisible="{Binding IsGamepadPad}"
-                            Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.TestGamepadHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnTestStep" />
                 </Grid>
 
                 <!-- A variable, which may also be a whole value of its own: an operand of a
@@ -1070,7 +1055,10 @@
                                Text="{Binding GroupTitle}" />
                 </StackPanel>
 
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*,Auto"
+            <!-- 五栏：前四栏是普通行的两个字段与"一个矩形的四个数"那一行，最后一栏窄，
+                 留给紧挨着这一行站的那个字段。四个数直接用这四栏，不必再套一层自己的网格，
+                 也就不会因为里面那层的最小宽度被撑成四条长短不一的格。 -->
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*,*,*,Auto"
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <!-- What fills the whole rectangle stands above the pair of numbers it fills,
                      because it is one button for both of them rather than an answer to one. -->
@@ -1098,25 +1086,46 @@
                 <ContentControl Grid.Row="1" Grid.Column="0"
                                 Grid.ColumnSpan="{Binding FirstSpan}"
                                 Content="{Binding First}"
-                                ContentTemplate="{StaticResource ParameterEditor}" />
-                <ContentControl Grid.Row="1" Grid.Column="1"
+                                ContentTemplate="{StaticResource ParameterEditor}"
+                                IsVisible="{Binding ShowsFirst}" />
+                <ContentControl Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
                                 Content="{Binding Second}"
                                 ContentTemplate="{StaticResource ParameterEditor}"
-                                IsVisible="{Binding HasSecond}" />
+                                IsVisible="{Binding ShowsSecond}" />
+
+                <!-- 一个矩形的四个数一行说完：X、Y、宽、高。与"搜索区域"那一行同一个样子，
+                     四个格子都短名、框、ƒ，说明在提示里；四个完整字段并排会各带一段话，
+                     那正是要收起来的东西。 -->
+                <ContentControl Grid.Row="1" Grid.Column="0"
+                                IsVisible="{Binding IsQuad}"
+                                Content="{Binding QuadCells[0]}"
+                                ContentTemplate="{StaticResource NumberCellTight}" />
+                <ContentControl Grid.Row="1" Grid.Column="1"
+                                IsVisible="{Binding IsQuad}"
+                                Content="{Binding QuadCells[1]}"
+                                ContentTemplate="{StaticResource NumberCellTight}" />
+                <ContentControl Grid.Row="1" Grid.Column="2"
+                                IsVisible="{Binding IsQuad}"
+                                Content="{Binding QuadCells[2]}"
+                                ContentTemplate="{StaticResource NumberCellTight}" />
+                <ContentControl Grid.Row="1" Grid.Column="3"
+                                IsVisible="{Binding IsQuad}"
+                                Content="{Binding QuadCells[3]}"
+                                ContentTemplate="{StaticResource NumberCellTight}" />
                 <!-- A field that belongs beside the line rather than under it: the switch that
                      takes a mouse step's place from the pointer stands at the end of the row of
                      the button it belongs to. It is held to a width of its own, because this
                      column is measured before the two beside it: a wordy explanation would
                      otherwise ask for as much room as it has words and leave the fields it stands
                      beside with none. -->
-                <ContentControl Grid.Row="1" Grid.Column="2" MaxWidth="260"
+                <ContentControl Grid.Row="1" Grid.Column="4" MaxWidth="260"
                                 Content="{Binding Third}"
                                 ContentTemplate="{StaticResource ParameterEditor}"
-                                IsVisible="{Binding HasThird}" />
+                                IsVisible="{Binding ShowsThird}" />
                 <!-- A position is taken from the pointer with Alt + X, and a click point from the
                      reference picture itself; a pattern's colours are picked off the picture too.
                      都在同一格里：同一个 `Grid.Row` 上放两个元素，它们会叠在一起。 -->
-                <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="2,6,0,0" Spacing="6">
+                <StackPanel Grid.Row="2" Grid.ColumnSpan="5" Margin="2,6,0,0" Spacing="6">
                     <TextBlock Classes="Hint" TextWrapping="Wrap"
                                IsVisible="{Binding ShowsPositionHint}"
                                Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
@@ -1130,7 +1139,7 @@
                 </StackPanel>
 
                 <!-- Where these numbers are counted from, said once for the line they are on. -->
-                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="Hint" Margin="2,6,0,0"
+                <TextBlock Grid.Row="3" Grid.ColumnSpan="5" Classes="Hint" Margin="2,6,0,0"
                            TextWrapping="Wrap"
                            IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
             </Grid>

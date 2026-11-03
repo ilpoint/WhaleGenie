@@ -25,10 +25,12 @@ public partial class WindowRuleWindow : AppWindow
     private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
 
     private readonly IWindowDevice _windows;
+    private readonly IScreenDevice _screen;
     private readonly IInputHook? _hookSource;
     private IInputHook? _hook;
     private WindowRule? _rule;
     private bool _done;
+    private bool _picking;
     private bool _swallowF1Up;
     private bool _swallowEscapeUp;
 
@@ -45,10 +47,12 @@ public partial class WindowRuleWindow : AppWindow
     /// catches F1. Taking the two rather than the whole device layer says what this window needs,
     /// and lets a stand-in be the two things instead of twenty.
     /// </summary>
-    internal WindowRuleWindow(IWindowDevice windows, IInputHook hook, WindowRule? current)
+    internal WindowRuleWindow(IWindowDevice windows, IInputHook hook, WindowRule? current,
+        IScreenDevice? screen = null)
     {
         InitializeComponent();
         _windows = windows;
+        _screen = screen ?? SharedDevices.Current.Screen;
         _hookSource = hook;
         _rule = current;
 
@@ -65,7 +69,7 @@ public partial class WindowRuleWindow : AppWindow
         SearchBox.TextChanged += (_, _) => FillWindows();
         RefreshButton.Click += (_, _) => FillWindows();
         WindowList.SelectionChanged += OnWindowChosen;
-        CaptureButton.Click += (_, _) => Capture();
+        PickButton.Click += (_, _) => _ = PickWindowAsync();
         CancelButton.Click += (_, _) => Finish(null);
         UseButton.Click += (_, _) => Finish(_rule is { } rule ? rule with { How = How() } : null);
         AddHandler(KeyDownEvent, OnLocalKeyDown, RoutingStrategies.Tunnel);
@@ -85,6 +89,13 @@ public partial class WindowRuleWindow : AppWindow
     }
 
     internal WindowRule? Chosen { get; private set; }
+
+    /// <summary>
+    /// How the window to use is taken from the desk. Left alone it is the picker; a check hands in
+    /// something that answers without a desktop, so what is checked is this window handing over and
+    /// taking back, not the pointing itself — that has checks of its own.
+    /// </summary>
+    internal Func<Task<WindowInfo?>>? Picking { get; set; }
 
     public static async Task<WindowRule?> PickAsync(Window owner, IWindowDevice windows,
         IInputHook hook, WindowRule? current = null)
@@ -163,39 +174,76 @@ public partial class WindowRuleWindow : AppWindow
             Handle: entry.Handle) with { How = How() });
     }
 
-    private void Capture()
+    /// <summary>
+    /// 到桌面上指一扇窗口：这个窗口连同鲸灵自己的都先让开，指针底下的窗口被框出来，点一下取走。
+    /// 以前这里取的是"前台窗口"，而这个按钮一按下去，前台就是鲸灵自己——那一步从来取不到东西。
+    /// </summary>
+    private async Task PickWindowAsync()
     {
-        WindowInfo? found;
+        if (_picking || _done)
+        {
+            return;
+        }
+
+        _picking = true;
+
+        // 让位期间这个窗口的钩子不该还在听：拾取器按 Esc 时，两处都会以为那是给自己的。
+        DetachHook();
+
+        WindowInfo? found = null;
         try
         {
-            found = _windows.Foreground();
+            using (AppWindows.StepAside(this))
+            {
+                await AppWindows.SettleAsync();
+                found = Picking is { } pick
+                    ? await pick()
+                    : await WindowPickWindow.PickAsync(
+                        _windows, _screen, _hookSource ?? SharedDevices.Current.Hook);
+            }
         }
         catch (Exception)
         {
             found = null;
         }
+        finally
+        {
+            _picking = false;
+
+            // 让位期间 F1 的抬起没人接：留着这个标记，下一次 F1 就会被当成"已经按过"而不再响应。
+            _swallowF1Up = false;
+            _swallowEscapeUp = false;
+            AttachHook();
+        }
 
         if (found is null)
         {
+            // 取消不是失败：话还是留在状态栏，窗口这一格原样不动。
             Status.Text = Strings.Get("WindowRule.None");
             return;
         }
 
-        var process = _windows.ProcessOf(found.Handle);
-        var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
-        if (string.Equals(process, own, StringComparison.OrdinalIgnoreCase))
+        var process = string.Empty;
+        var className = string.Empty;
+        try
         {
-            Status.Text = Strings.Get("WindowRule.OwnWindow");
-            return;
+            process = _windows.ProcessOf(found.Handle);
+            className = _windows.ClassOf(found.Handle);
+        }
+        catch (Exception)
+        {
+            // 名字拿不到不妨碍按标题认它；那两项留空。
         }
 
-        _rule = WindowRule.From(found, process, _windows.ClassOf(found.Handle));
-        Activate();
+        _rule = WindowRule.From(found, process, className);
         FillWindows();
         Show(_rule);
+        Activate();
         MatchBox.Focus();
         MatchBox.SelectAll();
     }
+
+    private void OnPickWindow(object? sender, RoutedEventArgs e) => _ = PickWindowAsync();
 
     private void Show(WindowRule rule)
     {
@@ -343,7 +391,7 @@ public partial class WindowRuleWindow : AppWindow
             _swallowF1Up = true;
             if (first)
             {
-                Dispatcher.UIThread.Post(Capture);
+                Dispatcher.UIThread.Post(() => _ = PickWindowAsync());
             }
         }
         else if (e.Key == Escape)
