@@ -1018,6 +1018,7 @@
                          名字与变量名之间本来就是空的，正好把「装的是什么」写在那里。 -->
                     <TextBlock Grid.Column="2" Classes="Mono" FontSize="10.5"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               TextAlignment="Right"
                                Foreground="{DynamicResource TextTertiary}"
                                Text="{Binding Structure}"
                                ToolTip.Tip="{Binding StructureTip}" />
@@ -1311,6 +1312,7 @@
                                                        Text="{Binding [Add.ReturnResult], Source={x:Static loc:Strings.Current}}"
                                                        ToolTip.Tip="{Binding [Add.ReturnResultHint], Source={x:Static loc:Strings.Current}}" />
                                             <TextBlock Grid.Column="2" Classes="ColumnHeader"
+                                                       TextAlignment="Right"
                                                        Text="{Binding [Add.ReturnShape], Source={x:Static loc:Strings.Current}}"
                                                        ToolTip.Tip="{Binding [Add.ReturnShapeHint], Source={x:Static loc:Strings.Current}}" />
                                             <TextBlock Grid.Column="3" Classes="ColumnHeader"

@@ -145,6 +145,12 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>Row the dragged block would land at, or -1 while there is no drop target.</summary>
     private int _dropSlot = -1;
 
+    /// <summary>
+    /// True while the add-action window is open, so a double-click that lands twice does not stack
+    /// two forms on top of each other. The window is modal; a second one would sit on the first.
+    /// </summary>
+    private bool _actionEditorOpen;
+
     /// <summary>Block a dragged step would be put inside, or null while it lands between rows.</summary>
     private MacroStep? _dropInto;
 
@@ -268,6 +274,7 @@ public partial class MacroEditorWindow : AppWindow
         ActionPalette.AddBlankSubMacroRequested += AddBlankSubMacro;
         ActionPalette.CopyProjectMacroRequested += CopyProjectMacroAsSub;
         ActionPalette.ManagePublicMacrosRequested += ManagePublicMacros;
+        ActionPalette.CardActivated += OnCardActivated;
         RefreshPalette();
         EnsureInterface();
         // Save keeps the editor open and hands the same snapshot to the project list immediately.
@@ -1783,6 +1790,35 @@ public partial class MacroEditorWindow : AppWindow
 
         RefreshPalette();
         ActionPalette.FocusSearch();
+    }
+
+    /// <summary>
+    /// 双击动作卡：把这张动作交给和拖放同一个表单，保存后由编辑器放到当前落点（有选中就放在它
+    /// 后面，空列表就是末尾）。拖放要真的按住拖过去，键盘与自动化都做不来，双击是它的等价物。
+    /// </summary>
+    private async void OnCardActivated(ActionPaletteCardViewModel card)
+    {
+        if (_actionEditorOpen || card.Kind != ActionPaletteCardKind.Action)
+        {
+            return;
+        }
+
+        var actions = _viewModel.AddableActions;
+        if (!actions.Any(action => string.Equals(action.Key, card.Key, StringComparison.Ordinal)))
+        {
+            // 当前落点不收这种步骤，拖放也会被拒绝：不必开一个注定存不下的表单。
+            return;
+        }
+
+        _actionEditorOpen = true;
+        try
+        {
+            await ShowActionEditor(null, actions, card.Key, null);
+        }
+        finally
+        {
+            _actionEditorOpen = false;
+        }
     }
 
     /// <summary>The same, preset on the "run another macro" step.</summary>
