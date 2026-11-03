@@ -2374,6 +2374,21 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(SelectedSteps));
         RefreshPaletteState();
+        RefreshRowDetails();
+    }
+
+    /// <summary>
+    /// 点中哪一步，哪一步就在原处展开，把一行装不下的说明、备注与执行节奏露出来。只展开选中
+    /// 的那一步：选了好几行时一个都不展开，那会让人以为只选中了一条。展开在行里而不是列表
+    /// 下面另起一条，是为了点一下看细节时视线不离开那一行，列表也不跳。
+    /// </summary>
+    private void RefreshRowDetails()
+    {
+        var only = _selection.Count == 1 ? _selection[0] : null;
+        foreach (var row in Rows)
+        {
+            row.ShowsDetail = row.IsStep && ReferenceEquals(row.Step, only);
+        }
     }
 
     /// <summary>
@@ -3029,6 +3044,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();
         RefreshVariableCenter();
+        RefreshRowDetails();
         SelectionRefreshRequested?.Invoke();
     }
 

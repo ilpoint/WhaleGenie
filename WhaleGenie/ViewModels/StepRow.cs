@@ -28,7 +28,7 @@ public enum StepRowKind
 /// written with be read straight off the list and edited in place, instead of hiding inside the
 /// dialog of the block that holds it.
 /// </summary>
-public sealed class StepRow : ILanguageAware
+public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -152,6 +152,9 @@ public sealed class StepRow : ILanguageAware
 
     public string Detail => Step.Detail;
 
+    /// <summary>True when this step has a line to say about itself at all.</summary>
+    public bool HasDetail => Detail.Length > 0;
+
     public string Comment => Step.Comment;
 
     public bool HasComment => Step.HasComment;
@@ -159,6 +162,28 @@ public sealed class StepRow : ILanguageAware
     public string MetaSummary => Step.MetaSummary;
 
     public bool HasMetaSummary => Step.HasMetaSummary;
+
+    /// <summary>
+    /// True on the row the click is on. That row opens **in place** to show what does not fit on
+    /// the line — the rest of the summary, the comment, the beat it runs at — so reading one step
+    /// does not move the list or push the others apart; every other row stays one line.
+    /// </summary>
+    public bool ShowsDetail
+    {
+        get => _showsDetail;
+        set
+        {
+            if (_showsDetail == value)
+            {
+                return;
+            }
+
+            _showsDetail = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowsDetail)));
+        }
+    }
+
+    private bool _showsDetail;
 
     public bool IsSkipped => Step.IsSkipped;
 

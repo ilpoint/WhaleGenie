@@ -1352,10 +1352,10 @@
         <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
 
-    <!-- 步骤行：两行字（名称 + 说明）加上下留白是 42 起步。它比别的行高，因为一行装不下这一步
-         是什么；换行时行还会继续长高，定高会把第二行压到边框上。 -->
+    <!-- 步骤行：一行就是一步，30 够装图标、名称、徽标与一句截断的摘要。备注与执行节奏收在
+         列表下面的详情里，行不再换行；原来按两行字定的 42 会把一屏的步数压掉三分之一。 -->
     <Style Selector="ListBox.List.Steps ListBoxItem">
-        <Setter Property="MinHeight" Value="42" />
+        <Setter Property="MinHeight" Value="30" />
     </Style>
 
     <!--

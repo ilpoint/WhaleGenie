@@ -1006,16 +1006,16 @@
                        <ListBox.ItemTemplate>
                            <DataTemplate x:DataType="vm:StepRow">
                               <Panel>
-                                  <!-- A step, indented by how deep it sits. A block carries a
-                                       fold arrow, so what is inside it can be put away. -->
+                                  <!-- 一行一步：折叠箭头、图标、名称与三枚徽标、一句摘要，最后是问题。
+                                       备注与执行节奏不再铺在行上——它们收在列表下面那条详情里，
+                                       选中哪一步就说哪一步。行高因此从固定的两行降成一行，
+                                       一屏能看十几步，而要看细节点一下就有。 -->
                                   <Border Classes="Card Selectable" Classes.problem="{Binding HasProblem}"
                                           Opacity="{Binding RowOpacity}"
                                           Margin="{Binding Indent}"
                                           IsVisible="{Binding IsStep}">
-                                      <!-- A grid rather than a horizontal stack: a stack measures its children
-                                           with unlimited width, so the wrapped lines below never wrapped and
-                                           the text was simply cut off once the column got narrow. -->
-                                      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6">
+                                      <StackPanel Spacing="4">
+                                      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6">
                                           <Button Grid.Column="0" Classes="Ghost Tiny" VerticalAlignment="Center" IsVisible="{Binding CanFold}"
                                                   ToolTip.Tip="{Binding FoldHint}"
                                                   Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
@@ -1025,57 +1025,69 @@
                                           <views:IconView Grid.Column="1" Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
                                                           StrokeThickness="1.5" Data="{Binding Icon}"
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
-                                          <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                              <!-- 名称与徽标用 WrapPanel：横向 StackPanel 按无限宽度量孩子，
-                                                   列一窄，排在后面的 ID 与「前台」就顶到卡片外面被裁掉。
-                                                   换行之后它们落在下一行，仍然看得见。 -->
-                                              <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="3">
-                                                  <TextBlock Text="{Binding DisplayName}" FontSize="13"
-                                                             FontWeight="SemiBold"
-                                                             Foreground="{DynamicResource TextPrimary}" />
-                                                  <!-- 跳过是**状态**，走 `Warning`；颜色由 `Badge.Warning` 给 -->
-                                                  <Border Classes="Badge Warning"
-                                                          VerticalAlignment="Center"
-                                                          IsVisible="{Binding IsSkipped}">
-                                                      <TextBlock Text="{Binding SkipLabel}" Classes="Caption" />
-                                                  </Border>
-                                                  <!-- id 是**标识**：用强调色，好在一条长步骤里一眼找到它。
-                                                       它不是状态，所以不用四种状态色里的任何一种。
-                                                       提示只挂在 ID 上：整张卡片都提示，等于每一步随手
-                                                       一指都弹同一句，反而挡住要看的内容。 -->
-                                                  <Border Classes="Badge Accent"
-                                                          VerticalAlignment="Center"
-                                                          ToolTip.Tip="{Binding IdHint}"
-                                                          IsVisible="{Binding HasId}">
-                                                      <TextBlock Text="{Binding Id}" Classes="Caption"
-                                                                 FontFamily="Consolas,Menlo,monospace" />
-                                                  </Border>
-                                                  <!-- Where this step's input goes. It costs
-                                                       different things in each of the three ways,
-                                                       so it is read off the row like the name. -->
-                                                  <Border Classes="Badge Info"
-                                                          VerticalAlignment="Center"
-                                                          ToolTip.Tip="{Binding InputMarkHint}"
-                                                          IsVisible="{Binding HasInputMark}">
-                                                      <TextBlock Text="{Binding InputMark}" Classes="Caption" />
-                                                  </Border>
-                                              </WrapPanel>
-                                              <TextBlock Text="{Binding Detail}" Classes="Hint"
-                                                         TextWrapping="Wrap" />
-                                              <TextBlock Text="{Binding Comment}" FontSize="11"
-                                                         Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"
-                                                         IsVisible="{Binding HasComment}" />
-                                              <TextBlock Text="{Binding MetaSummary}" Classes="Caption"
-                                                         Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"
-                                                         IsVisible="{Binding HasMetaSummary}" />
+                                          <!-- 名称与徽标不换行：换行会把这一行撑成两行，正是要收掉的东西。
+                                               名字太长时省略号截断，完整名字在详情里。 -->
+                                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                                                      VerticalAlignment="Center">
+                                              <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
+                                                         FontWeight="SemiBold"
+                                                         Foreground="{DynamicResource TextPrimary}"
+                                                         TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                                              <!-- 跳过是**状态**，走 `Warning`；颜色由 `Badge.Warning` 给 -->
+                                              <Border Classes="Badge Warning"
+                                                      VerticalAlignment="Center"
+                                                      IsVisible="{Binding IsSkipped}">
+                                                  <TextBlock Text="{Binding SkipLabel}" Classes="Caption" />
+                                              </Border>
+                                              <!-- id 是**标识**：用强调色，好在一条长步骤里一眼找到它。 -->
+                                              <Border Classes="Badge Accent"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip.Tip="{Binding IdHint}"
+                                                      IsVisible="{Binding HasId}">
+                                                  <TextBlock Text="{Binding Id}" Classes="Caption"
+                                                             FontFamily="Consolas,Menlo,monospace" />
+                                              </Border>
+                                              <!-- Where this step's input goes. -->
+                                              <Border Classes="Badge Info"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip.Tip="{Binding InputMarkHint}"
+                                                      IsVisible="{Binding HasInputMark}">
+                                                  <TextBlock Text="{Binding InputMark}" Classes="Caption" />
+                                              </Border>
                                           </StackPanel>
-                                          <Border Grid.Column="3" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
+                                          <!-- 这一句是这一行里唯一会变长的东西：截断，完整的那句在详情里，
+                                               也在悬停提示里。 -->
+                                          <TextBlock Grid.Column="3" Classes="Hint" VerticalAlignment="Center"
+                                                     Text="{Binding Detail}"
+                                                     TextWrapping="NoWrap"
+                                                     TextTrimming="CharacterEllipsis"
+                                                     ToolTip.Tip="{Binding Detail}"
+                                                     IsVisible="{Binding !ShowsDetail}" />
+                                          <Border Grid.Column="4" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
                                                               FitToBounds="True"
                                                               Data="{x:Static vm:AppIcons.WarningTriangle}" />
                                           </Border>
                                       </Grid>
+
+                                      <!-- 点中这一行时才展开：截断的那句在这里完整说一遍，再把备注与
+                                           执行节奏接上。别的行仍是一行，列表不因为看一步而变长。 -->
+                                      <StackPanel Spacing="2" IsVisible="{Binding ShowsDetail}">
+                                          <TextBlock Text="{Binding Detail}" FontSize="11.5"
+                                                     Foreground="{DynamicResource TextPrimary}"
+                                                     TextWrapping="Wrap"
+                                                     IsVisible="{Binding HasDetail}" />
+                                          <TextBlock Text="{Binding Comment}" FontSize="11.5"
+                                                     Foreground="{DynamicResource TextSecondary}"
+                                                     TextWrapping="Wrap"
+                                                     IsVisible="{Binding HasComment}" />
+                                          <TextBlock Text="{Binding MetaSummary}" Classes="Caption"
+                                                     Foreground="{DynamicResource TextPrimary}"
+                                                     TextWrapping="Wrap"
+                                                     IsVisible="{Binding HasMetaSummary}" />
+                                      </StackPanel>
+                                      </StackPanel>
                                   </Border>
 
                                    <!-- The title of one of a block's lists, with an entry that sends
@@ -1131,6 +1143,8 @@
                                       FontSize="12" TextWrapping="Wrap" />
                        </Border>
                    </Canvas>
+
+
 
                </Grid>
             </Border>

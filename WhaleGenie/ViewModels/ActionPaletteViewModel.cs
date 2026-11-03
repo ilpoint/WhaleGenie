@@ -190,8 +190,21 @@ public partial class ActionPaletteViewModel : ViewModelBase
         Sections.Clear();
         var wanted = SelectedCategory?.Value;
 
+        // 一输入搜索词，就不再分「基础动作 / 流程控制」两个页签：动作库是一个库，人问「延迟」
+        // 的时候不该先知道它归哪一栏。页签仍然管浏览，清空搜索就回到原来那一页；分类芯片仍管
+        // 收窄——那是人自己点的筛子，搜索不该把它扔了。
+        var everywhere = search.Length > 0
+            && SelectedTab.Dock is ActionPaletteDock.Basic or ActionPaletteDock.Flow;
+
         IEnumerable<ActionPaletteCardViewModel> source = SelectedTab.Dock switch
         {
+            _ when everywhere => _availableActions
+                .Where(action => wanted is null
+                    || ActionCategoryPresentation.PickerCategory(action.Category) == wanted)
+                .OrderBy(action => ActionCategoryPresentation.PickerCategory(action.Category))
+                .ThenBy(action => action.LocalName)
+                .Select(ActionCard),
+
             ActionPaletteDock.Basic => _availableActions
                 .Where(action => action.Category != ActionCategory.Control)
                 .Where(action => wanted is null
