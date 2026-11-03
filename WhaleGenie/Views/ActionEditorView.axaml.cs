@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -2045,7 +2045,10 @@ public partial class ActionEditorView : UserControl
     /// <summary>Puts another thing the element has to be like at the end of the list.</summary>
     private void OnAddNarrowRow(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        // The button is only drawn for a field that narrows an element down, but a hidden control
+        // is still reachable from automation, and asking a condition field for a narrow family is
+        // a question it has no answer to.
+        if (sender is Control { DataContext: StepParameterViewModel { IsNarrow: true } parameter })
         {
             parameter.AddNarrowRow();
         }

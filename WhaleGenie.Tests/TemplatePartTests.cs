@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -75,6 +75,9 @@ public class TemplatePartTests
         ("ToggleButton", "Chip", "ContentPresenter"),
         ("ToggleButton", "Chip Key", "ContentPresenter"),
         ("ListBoxItem", "", "ContentPresenter"),
+        // 树的行：选中态由卡片自己画，模板里那层底与那条小竖条都让开。
+        ("TreeViewItem", "", "Border#PART_LayoutRoot"),
+        ("TreeViewItem", "", "Rectangle#SelectionIndicator"),
         ("ScrollViewer", "VarWallScroll", "ScrollBar#PART_VerticalScrollBar"),
     ];
 
@@ -281,6 +284,7 @@ public class TemplatePartTests
         "Button" => new Button { Content = "x" },
         "ToggleButton" => new ToggleButton { Content = "x" },
         "ListBoxItem" => new ListBoxItem { Content = "x" },
+        "TreeViewItem" => new TreeViewItem { Header = "x" },
         "ScrollViewer" => new ScrollViewer { Content = new TextBlock { Text = "x" } },
         "GridSplitter" => new GridSplitter(),
         // 单选卡：模板整份重写过，卡、圆点、圆心里的小点都是它自己的部件。

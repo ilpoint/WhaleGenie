@@ -54,6 +54,13 @@ public enum ActionParameterKind
     Steps,
 
     /// <summary>
+    /// A condition on a block, edited as comparisons: a table for "a and b and c", a tree for
+    /// "a and (b or c)". Both write the same expression the engine reads, so which view was used
+    /// is not something the saved macro remembers.
+    /// </summary>
+    Condition,
+
+    /// <summary>
     /// A value written as an expression, edited with suggestions for the variables in
     /// scope and for the built-in functions.
     /// </summary>

@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -71,14 +71,14 @@ public class MacroEditorWorkspaceTests
         var editor = new MacroEditorViewModel();
         editor.AddStep(Step("control.delay"));
         editor.AddStep(Step("control.delay"));
-        editor.PrepareInsertionAt(1, null);
+        editor.PrepareInsertionAt(editor.Steps, 1);
 
         editor.AddStepHere(Step("control.log"));
 
         Assert.Equal(["control.delay", "control.log", "control.delay"],
             editor.Steps.Select(step => step.Type));
 
-        editor.PrepareInsertionAt(0, null);
+        editor.PrepareInsertionAt(editor.Steps, 0);
         editor.ClearPendingInsertion();
         editor.AddStepHere(Step("control.log"));
         Assert.Equal("control.log", editor.Steps[^1].Type);
@@ -178,7 +178,7 @@ public class MacroEditorWorkspaceTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
             var editor = (MacroEditorViewModel)window.DataContext!;
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
@@ -207,7 +207,7 @@ public class MacroEditorWorkspaceTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
             var editor = (MacroEditorViewModel)window.DataContext!;
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
 
             Drag(list, DragDrop.DropEvent,
                 new ActionDragPayload(ActionPaletteCardKind.Action, "control.log").Transfer());
@@ -296,7 +296,7 @@ public class MacroEditorWorkspaceTests
             Dispatcher.UIThread.RunJobs();
 
             var root = (MacroEditorViewModel)window.DataContext!;
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             Drag(list, DragDrop.DropEvent,
                 new ActionDragPayload(ActionPaletteCardKind.Action,
                     "control.setVariable").Transfer());
@@ -348,7 +348,7 @@ public class MacroEditorWorkspaceTests
                 Dispatcher.UIThread.RunJobs();
 
                 var root = (MacroEditorViewModel)window.DataContext!;
-                var list = window.FindControl<ListBox>("StepList")!;
+                var list = window.FindControl<TreeView>("StepList")!;
                 Drag(list, DragDrop.DropEvent,
                     new ActionDragPayload(ActionPaletteCardKind.Action,
                         "control.setVariable").Transfer());
@@ -415,7 +415,7 @@ public class MacroEditorWorkspaceTests
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
-                var list = window.FindControl<ListBox>("StepList")!;
+                var list = window.FindControl<TreeView>("StepList")!;
                 Drag(list, DragDrop.DropEvent,
                     new ActionDragPayload(ActionPaletteCardKind.Action,
                         "control.setVariable").Transfer());
@@ -471,14 +471,14 @@ public class MacroEditorWorkspaceTests
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
             Dispatcher.UIThread.RunJobs();
 
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
             var marker = window.FindControl<Border>("DropMarker")!;
-            var head = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: true });
-            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = head.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var head = Header(list, row => row.IsBlock);
+            var foot = Header(list, row => row.IsFoot);
+            // The body starts under the block's own row: that row's lower third is still "before
+            // the block", and only what is under it belongs to the body.
+            var top = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
             var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
@@ -521,13 +521,13 @@ public class MacroEditorWorkspaceTests
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
             Dispatcher.UIThread.RunJobs();
 
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var head = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: true });
-            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = head.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var head = Header(list, row => row.IsBlock);
+            var foot = Header(list, row => row.IsFoot);
+            // The body starts under the block's own row: that row's lower third is still "before
+            // the block", and only what is under it belongs to the body.
+            var top = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
             var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
@@ -566,14 +566,11 @@ public class MacroEditorWorkspaceTests
             editor.AddStep(loop);
             Dispatcher.UIThread.RunJobs();
 
-            var list = window.FindControl<ListBox>("StepList")!;
-            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
-                    row && row.Step.Type == "control.repeat");
-            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
-            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var list = window.FindControl<TreeView>("StepList")!;
+            var block = Header(list, row => row.IsStep && row.Step.Type == "control.repeat");
+            var foot = Header(list, row => row.IsFoot);
+            var top = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
+            var bottom = foot.TranslatePoint(new Point(0, 0), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.delay").Transfer();
 
@@ -610,14 +607,14 @@ public class MacroEditorWorkspaceTests
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
             Dispatcher.UIThread.RunJobs();
 
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var marker = window.FindControl<Border>("DropMarker")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var head = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: true });
-            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsFoot: true });
-            var top = head.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var head = Header(list, row => row.IsBlock);
+            var foot = Header(list, row => row.IsFoot);
+            // The body starts under the block's own row: that row's lower third is still "before
+            // the block", and only what is under it belongs to the body.
+            var top = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
             var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
@@ -665,11 +662,9 @@ public class MacroEditorWorkspaceTests
                 }));
             Dispatcher.UIThread.RunJobs();
 
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow { IsHead: false, IsFoot: false }
-                    row && row.Step.Type == "control.repeat");
+            var block = Header(list, row => row.IsStep && row.Step.Type == "control.repeat");
             var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
             var bottom = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
@@ -695,7 +690,7 @@ public class MacroEditorWorkspaceTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var marker = window.FindControl<Border>("DropMarker")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
             var transfer = new ActionDragPayload(
@@ -726,8 +721,7 @@ public class MacroEditorWorkspaceTests
             model.AddStep(loop);
             Dispatcher.UIThread.RunJobs();
 
-            var block = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .First(item => item.DataContext is StepRow { IsStep: true, CanFold: true });
+            var block = Header(list, row => row.IsStep && row.IsBlock);
             var center = block.TranslatePoint(
                 new Point(block.Bounds.Width / 2, block.Bounds.Height / 2), list);
             Assert.NotNull(center);
@@ -769,8 +763,8 @@ public class MacroEditorWorkspaceTests
             Dispatcher.UIThread.RunJobs();
 
             var editor = (MacroEditorViewModel)window.DataContext!;
-            var list = window.FindControl<ListBox>("StepList")!;
-            var foot = list.GetVisualDescendants().OfType<ListBoxItem>()
+            var list = window.FindControl<TreeView>("StepList")!;
+            var foot = list.GetVisualDescendants().OfType<TreeViewItem>()
                 .Single(item => item.DataContext is StepRow
                 {
                     IsFoot: true,
@@ -822,15 +816,10 @@ public class MacroEditorWorkspaceTests
             var editor = (MacroEditorViewModel)window.DataContext!;
             editor.AddStep(switchStep);
             Dispatcher.UIThread.RunJobs();
-            var list = window.FindControl<ListBox>("StepList")!;
+            var list = window.FindControl<TreeView>("StepList")!;
             var marker = window.FindControl<Border>("DropMarker")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var casesHead = list.GetVisualDescendants().OfType<ListBoxItem>()
-                .Single(item => item.DataContext is StepRow
-                {
-                    IsHead: true,
-                    List: { Name: "cases" },
-                });
+            var casesHead = Header(list, row => row.IsSection && row.List?.Name == "cases");
             var point = casesHead.TranslatePoint(
                 new Point(casesHead.Bounds.Width / 2, casesHead.Bounds.Height / 2), list)!.Value;
             var transfer = new ActionDragPayload(
@@ -854,6 +843,12 @@ public class MacroEditorWorkspaceTests
             Ui.CloseAndAnswer(window);
         });
     }
+
+    /// <summary>One row's own header, which is where a drop seam is measured.</summary>
+    private static Panel Header(TreeView list, Func<StepRow, bool> match)
+        => list.GetVisualDescendants().OfType<Panel>()
+            .Single(panel => panel.Name == "RowHeader"
+                && panel.DataContext is StepRow row && match(row));
 
     private static MacroStep Step(string type, params StepParameter[] parameters)
         => new() { Type = type, Parameters = [.. parameters] };

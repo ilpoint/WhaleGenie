@@ -1,4 +1,4 @@
-<!-- What this opens at is up to the desktop that holds it, and so is whether it stands beside the
+﻿<!-- What this opens at is up to the desktop that holds it, and so is whether it stands beside the
      macro editor or over it: see DialogSize. MinWidth is the narrowest that leaves those fields
      readable, which is narrower than the size it opens at on a desktop with less room than it
      would like — standing beside the editor is worth the tighter columns. -->
@@ -939,6 +939,17 @@
                                  PlaceholderText="{Binding Placeholder}"
                                  MinimumPrefixLength="0"
                                  FilterMode="Contains" />
+
+                <!-- 条件不是一格表达式：行表适合把"甲且乙且丙"一条条填进去，条件树适合
+                     "甲且（乙或丙）"。两者写出来的仍是同一格表达式，引擎与文件格式都不用动。 -->
+                <ContentControl IsVisible="{Binding IsCondition}"
+                                Content="{Binding ConditionEditor}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate x:DataType="vm:ConditionEditorViewModel">
+                            <views:ConditionEditorView />
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
 
                 <StackPanel IsVisible="{Binding IsExpression}">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">

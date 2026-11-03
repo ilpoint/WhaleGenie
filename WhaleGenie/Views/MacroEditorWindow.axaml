@@ -971,13 +971,28 @@
                    </StackPanel>
 
                    <!-- Selection is restored after every edit. Following it would drag a long
-                        macro from the reader's place to whichever row the rebuild picked last. -->
-                   <ListBox Grid.Row="3" Name="StepList" Classes="List Bare Gapped Steps"
-                            ItemsSource="{Binding Rows}" SelectionMode="Multiple"
-                            AutoScrollToSelectedItem="False"
-                            Background="Transparent"
-                            DoubleTapped="OnStepDoubleTapped">
-                       <ListBox.ContextMenu>
+                        macro from the reader's place to whichever row the rebuild picked last.
+
+                        步骤是一棵树：块自己的子步骤挂在它下面，不再靠"行上写一个缩进数字"假装。
+                        `IsExpanded` 连着步骤自己的折叠状态，所以折叠是树控件的本分，不必重建行。 -->
+                   <TreeView Grid.Row="3" Name="StepList" Classes="Steps"
+                             ItemsSource="{Binding Roots}" SelectionMode="Multiple"
+                             AutoScrollToSelectedItem="False"
+                             Background="Transparent">
+                       <TreeView.ItemContainerTheme>
+                           <ControlTheme TargetType="TreeViewItem"
+                                         BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                               <!-- 折叠状态住在步骤节点上，树里的每一层都绑同一份，所以块和分节
+                                    都各自记得自己是开是合。这里用反射绑定：主题没有 `x:DataType`，
+                                    编译期绑定会拿窗口的 DataContext 去解析它。 -->
+                               <Setter Property="IsExpanded"
+                                       Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+                               <Setter Property="Padding" Value="0" />
+                               <Setter Property="MinHeight" Value="0" />
+                               <Setter Property="Margin" Value="0,0,0,2" />
+                           </ControlTheme>
+                       </TreeView.ItemContainerTheme>
+                       <TreeView.ContextMenu>
                            <ContextMenu>
                                <MenuItem Header="{Binding [Editor.Context.Edit], Source={x:Static loc:Strings.Current}}"
                                          Click="OnStepContextEdit" />
@@ -1002,32 +1017,26 @@
                                <MenuItem Header="{Binding [Editor.Context.ToggleEnabled], Source={x:Static loc:Strings.Current}}"
                                          Click="OnStepContextToggleEnabled" />
                            </ContextMenu>
-                       </ListBox.ContextMenu>
-                       <ListBox.ItemTemplate>
-                           <DataTemplate x:DataType="vm:StepRow">
-                              <Panel>
-                                  <!-- 一行一步：折叠箭头、图标、名称与三枚徽标、一句摘要，最后是问题。
-                                       备注与执行节奏不再铺在行上——它们收在列表下面那条详情里，
-                                       选中哪一步就说哪一步。行高因此从固定的两行降成一行，
-                                       一屏能看十几步，而要看细节点一下就有。 -->
+                       </TreeView.ContextMenu>
+                       <TreeView.ItemTemplate>
+                           <TreeDataTemplate x:DataType="vm:StepRow" ItemsSource="{Binding Items}">
+                              <!-- 一排三选一：步骤卡片、分节标题、收尾线。放在同一个 `Panel` 里，
+                                   是为了让"这一行占多高"只有一个答案——拖动落点按它算。 -->
+                              <Panel Name="RowHeader">
+                                  <!-- 一行一步：图标、名称与三枚徽标、一句摘要，最后是问题。
+                                       展开箭头归树控件；块里有几步写在块的右边。 -->
                                   <Border Classes="Card Selectable" Classes.problem="{Binding HasProblem}"
+                                          Classes.selected="{Binding IsPicked}"
                                           Opacity="{Binding RowOpacity}"
-                                          Margin="{Binding Indent}"
                                           IsVisible="{Binding IsStep}">
                                       <StackPanel Spacing="4">
-                                      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6">
-                                          <Button Grid.Column="0" Classes="Ghost Tiny" VerticalAlignment="Center" IsVisible="{Binding CanFold}"
-                                                  ToolTip.Tip="{Binding FoldHint}"
-                                                  Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
-                                                  CommandParameter="{Binding}">
-                                              <views:IconView StrokeThickness="1.4" FitToBounds="True" Data="{Binding FoldIcon}" />
-                                          </Button>
-                                          <views:IconView Grid.Column="1" Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
+                                      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="6">
+                                          <views:IconView Grid.Column="0" Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
                                                           StrokeThickness="1.5" Data="{Binding Icon}"
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <!-- 名称与徽标不换行：换行会把这一行撑成两行，正是要收掉的东西。
                                                名字太长时省略号截断，完整名字在详情里。 -->
-                                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                                          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                                                       VerticalAlignment="Center">
                                               <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
                                                          FontWeight="SemiBold"
@@ -1057,12 +1066,32 @@
                                           </StackPanel>
                                           <!-- 这一句是这一行里唯一会变长的东西：截断，完整的那句在详情里，
                                                也在悬停提示里。 -->
-                                          <TextBlock Grid.Column="3" Classes="Hint" VerticalAlignment="Center"
+                                          <TextBlock Grid.Column="2" Classes="Hint" VerticalAlignment="Center"
                                                      Text="{Binding Detail}"
                                                      TextWrapping="NoWrap"
                                                      TextTrimming="CharacterEllipsis"
                                                      ToolTip.Tip="{Binding Detail}"
                                                      IsVisible="{Binding !ShowsDetail}" />
+                                          <!-- 块跑几步，折起来也看得见；只有单列表的块才把它写在块自己这一行，
+                                               多列表的块分节写，节上已经有数了。 -->
+                                          <Border Grid.Column="3" Classes="Badge Info"
+                                                  VerticalAlignment="Center"
+                                                  IsVisible="{Binding ShowsBodyCount}">
+                                              <TextBlock Text="{Binding BodyCount}" Classes="Caption" />
+                                          </Border>
+                                          <!-- 添加往里加一步：单列表的块只有块这一行，按钮就长在这里。 -->
+                                          <Button Grid.Column="4" Classes="Ghost Tiny" Width="18" Height="18"
+                                                  VerticalAlignment="Center"
+                                                  IsVisible="{Binding Body}"
+                                                  ToolTip.Tip="{Binding AddHint}"
+                                                  Command="{Binding $parent[TreeView].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
+                                                  CommandParameter="{Binding}">
+                                              <views:IconView Width="11" Height="11"
+                                                              Stroke="{DynamicResource TextTertiary}"
+                                                              StrokeThickness="1.6"
+                                                              FitToBounds="True"
+                                                              Data="{x:Static vm:AppIcons.Plus}" />
+                                          </Button>
                                           <Border Grid.Column="4" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
@@ -1090,26 +1119,24 @@
                                       </StackPanel>
                                   </Border>
 
-                                   <!-- The title of one of a block's lists, with an entry that sends
-                                        the person to the actions that can be dragged to its end. -->
-                                  <Border Classes="StepHead" Margin="{Binding Indent}"
-                                          IsVisible="{Binding IsHead}">
-                                      <!-- 同样是换行面板：列一窄，「拖入子步骤」不该被挤到卡片外面去。 -->
+                                   <!-- 多列表的块才有的一行：这一节叫什么、几步、往里加一步。
+                                        单列表的块不出这一行——块自己那行就是它的开头。 -->
+                                  <Border Classes="StepHead" IsVisible="{Binding IsSection}">
                                       <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="4">
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadLabel}" />
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
-                                          <Button Classes="Secondary" Height="28"
+                                          <Button Classes="Secondary" Height="26"
                                                   ToolTip.Tip="{Binding AddHint}"
-                                                  Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
+                                                  Command="{Binding $parent[TreeView].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
                                                   CommandParameter="{Binding}">
                                               <StackPanel Orientation="Horizontal" Spacing="5">
-                                                  <views:IconView Width="14" Height="14"
+                                                  <views:IconView Width="13" Height="13"
                                                                   Stroke="{DynamicResource TextPrimary}"
                                                                   StrokeThickness="1.6"
                                                                   FitToBounds="True"
-                                                  Data="{x:Static vm:AppIcons.ArrowDown}" />
+                                                                  Data="{x:Static vm:AppIcons.Plus}" />
                                                   <TextBlock Text="{Binding AddLabel}"
                                                              VerticalAlignment="Center" />
                                               </StackPanel>
@@ -1121,18 +1148,16 @@
                                       </WrapPanel>
                                   </Border>
 
-                                  <!-- The line that closes a block, so "inside the block" and "after
-                                       the block" never read as the same place. -->
-                                  <Border Classes="StepFoot" Margin="{Binding Indent}"
-                                          IsVisible="{Binding IsFoot}">
+                                  <!-- 收尾线：块到哪儿结束，和"块后面"不是同一个地方。 -->
+                                  <Border Classes="StepFoot" IsVisible="{Binding IsFoot}">
                                       <TextBlock Classes="Caption" VerticalAlignment="Center" Text="{Binding FootLabel}" />
                                   </Border>
                               </Panel>
-                           </DataTemplate>
-                       </ListBox.ItemTemplate>
-                   </ListBox>
+                           </TreeDataTemplate>
+                       </TreeView.ItemTemplate>
+                   </TreeView>
 
-                   <!-- The band a dragged action drops on. Sits in the same cell as the list and
+                   <!-- The band a dragged action drops on. Sits in the same cell as the tree and
                         is not hit-testable, so it never swallows the drag that draws it. -->
                    <Canvas Grid.Row="3" Name="DropLayer" IsHitTestVisible="False">
                        <Border Name="DropMarker" Classes="DropTarget" MinHeight="30" CornerRadius="4"

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -570,7 +570,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
 
             viewModel.SetSelection([first]);
-            viewModel.MoveSelectionTo(2);
+            viewModel.MoveSelectionTo(viewModel.Steps, 2);
 
             Assert.Equal(2, viewModel.Steps.Count);
             Assert.Same(second, viewModel.Steps[0]);
@@ -593,7 +593,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
 
             viewModel.SetSelection([second]);
-            viewModel.MoveSelectionTo(1);
+            viewModel.MoveSelectionTo(viewModel.Steps, 1);
 
             Assert.Equal(["control.delay", "control.log"],
                 viewModel.Steps.Select(step => step.Type));
@@ -619,7 +619,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
             Dispatcher.UIThread.RunJobs();
 
-            var rows = window.FindControl<ListBox>("StepList")!.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+            var rows = window.FindControl<TreeView>("StepList")!.GetVisualDescendants().OfType<TreeViewItem>().ToList();
             Assert.Equal(2, rows.Count);
 
             // Grab the first row by its middle and let go past the middle of the second,
@@ -1204,11 +1204,11 @@ public class MacroEditorTests
             viewModel.SetSelection([]);
             Dispatcher.UIThread.RunJobs();
 
-            var rows = window.FindControl<ListBox>("StepList")!
-                .GetVisualDescendants().OfType<ListBoxItem>().ToList();
+            var rows = window.FindControl<TreeView>("StepList")!
+                .GetVisualDescendants().OfType<TreeViewItem>().ToList();
             Assert.Equal(2, rows.Count);
 
-            Border Card(ListBoxItem item) => item.GetVisualDescendants().OfType<Border>()
+            Border Card(TreeViewItem item) => item.GetVisualDescendants().OfType<Border>()
                 .First(border => border.Classes.Contains("Card"));
 
             foreach (var item in rows)
@@ -1248,8 +1248,8 @@ public class MacroEditorTests
             viewModel.AddStep(new MacroStep { Type = "control.delay" });
             Dispatcher.UIThread.RunJobs();
 
-            var item = window.FindControl<ListBox>("StepList")!
-                .GetVisualDescendants().OfType<ListBoxItem>().First();
+            var item = window.FindControl<TreeView>("StepList")!
+                .GetVisualDescendants().OfType<TreeViewItem>().First();
             var card = item.GetVisualDescendants().OfType<Border>()
                 .First(border => border.Classes.Contains("Card"));
             var badge = card.GetVisualDescendants().OfType<Border>()

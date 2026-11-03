@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -844,7 +844,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_block_condition_is_an_expression_field()
+    public void A_block_condition_is_edited_as_rows_over_one_expression()
     {
         Ui.Run(() =>
         {
@@ -852,9 +852,11 @@ public class ActionDialogTests
             var expression = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "condition");
 
-            // The field is the one with live checking and suggestions, not a plain text box.
-            Assert.True(expression.IsExpression);
-            Assert.Contains("$found", expression.Placeholder);
+            // The condition has an editor of its own: rows over the same expression, with the
+            // macro's names and the language's functions offered in each side.
+            Assert.True(expression.IsCondition);
+            Assert.False(expression.IsExpression);
+            Assert.NotNull(expression.ConditionEditor);
             Assert.Contains("$spot", expression.ExpressionSuggestions);
             Assert.Contains("contains(", expression.ExpressionSuggestions);
         });
@@ -998,7 +1000,7 @@ public class ActionDialogTests
             var test = Open("control.if");
             var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
 
-            Assert.True(condition.IsExpression);
+            Assert.True(condition.IsCondition);
             Assert.Null(condition.List);
         });
     }
@@ -2093,7 +2095,7 @@ public class ActionDialogTests
             var condition = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "condition");
 
-            Assert.True(condition.IsExpression);
+            Assert.True(condition.IsCondition);
 
             // How long the wait may last is not the action's business: the step's own timeout
             // says it, and this action names the "waiting on something outside" length, ten

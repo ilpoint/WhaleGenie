@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Models;
@@ -89,7 +89,8 @@ public class ExpressionFieldTests
                 // write the whole value as a formula; asking the catalogue to offer the builder
                 // again would draw the same question twice.
                 if (parameter.Kind is ActionParameterKind.Number
-                    or ActionParameterKind.Expression or ActionParameterKind.Color)
+                    or ActionParameterKind.Expression or ActionParameterKind.Condition
+                    or ActionParameterKind.Color)
                 {
                     Assert.Equal(WhaleGenie.Core.Execution.ActionReadMode.WholeValue,
                         parameter.ReadMode);

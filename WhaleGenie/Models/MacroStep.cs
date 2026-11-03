@@ -35,6 +35,13 @@ public class StepParameter
     public List<MacroStep> Steps { get; init; } = [];
 
     /// <summary>
+    /// Whether this list is open in the editor. A block that runs several lists gives each of them
+    /// a row of its own, and those rows fold like a block does. It is the editor's memory rather
+    /// than part of the macro, so it is never written to the file.
+    /// </summary>
+    public bool IsExpanded { get; set; } = true;
+
+    /// <summary>
     /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
     /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
     /// <see cref="ActionParameterKind.Images"/>; a <see cref="ActionParameterKind.Returns"/> holds

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -70,6 +70,7 @@ public partial class StepParameterViewModel : ViewModelBase
         // taken literally.
         var knowsFunctions = definition.Kind
             is ActionParameterKind.Expression or ActionParameterKind.Number
+                or ActionParameterKind.Condition
             || definition.AcceptsFormula;
 
         // A field that takes a record suggests only the names known to hold one: a number is not a
@@ -96,6 +97,11 @@ public partial class StepParameterViewModel : ViewModelBase
         // message tables carry like a label or a hint rather than something written into the
         // catalogue once.
         Text = definition.LocalDefault;
+
+        if (IsCondition)
+        {
+            ConditionEditor = new ConditionEditorViewModel(Text, WriteCondition, ExpressionSuggestions);
+        }
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);
 
         // The results this action can hand over are listed here, one line each, with the one a step
@@ -1344,6 +1350,38 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is edited as an expression.</summary>
     public bool IsExpression => Definition.Kind is ActionParameterKind.Expression;
 
+    /// <summary>True when this parameter is a block's condition, edited as rows and as a tree.</summary>
+    public bool IsCondition => Definition.Kind is ActionParameterKind.Condition;
+
+    /// <summary>
+    /// The condition of a block, seen two ways — a table of comparisons and a tree of them — over
+    /// one model. It writes the same expression the engine reads, so the macro file is unchanged
+    /// and a condition written by hand still opens.
+    /// </summary>
+    public ConditionEditorViewModel? ConditionEditor { get; private set; }
+
+    /// <summary>True while the condition is writing the value rather than reading it.</summary>
+    private bool _writingCondition;
+
+    /// <summary>Takes what the condition editor says as the value of this parameter.</summary>
+    private void WriteCondition()
+    {
+        if (ConditionEditor is null)
+        {
+            return;
+        }
+
+        _writingCondition = true;
+        try
+        {
+            Text = ConditionEditor.Text;
+        }
+        finally
+        {
+            _writingCondition = false;
+        }
+    }
+
     /// <summary>True when this parameter names a variable and offers suggestions.</summary>
     public bool IsVariable => Definition.Kind is ActionParameterKind.Variable;
 
@@ -1603,6 +1641,15 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        // A condition written by something other than the rows — an expression typed in the raw
+        // view, a value read back from a file — has to be read into the rows again, or the two
+        // views would be showing different conditions.
+        if (IsCondition && ConditionEditor is { } condition && !_writingCondition
+            && condition.Text != value)
+        {
+            condition.Read(value);
+        }
+
         if (IsWindowRule)
         {
             OnPropertyChanged(nameof(WindowRuleSummary));
