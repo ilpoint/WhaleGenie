@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.ComponentModel;
@@ -86,6 +87,25 @@ public sealed class ParameterRowViewModel : ViewModelBase
     /// </summary>
     public string GroupTitle
         => GroupKey.Length == 0 ? string.Empty : Strings.Get("Add.Group." + GroupKey);
+
+    /// <summary>
+    /// 这一块在问什么，一句话：放在标题旁那枚信息图标里，而不是铺在字段上面。没有写说明的块
+    /// 不显示图标——空的图标比没有更让人分心。
+    /// </summary>
+    public string GroupHint
+    {
+        get
+        {
+            if (GroupKey.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var key = "Add.Group." + GroupKey + ".hint";
+            var text = Strings.Get(key);
+            return string.Equals(text, key, StringComparison.Ordinal) ? string.Empty : text;
+        }
+    }
 
     /// <summary>
     /// 这一块的图标：一眼说是"在哪儿找"还是"怎么点"。没有对应图标时为空，那一块头上仍旧

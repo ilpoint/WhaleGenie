@@ -1503,6 +1503,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this field has anything to say about itself.</summary>
     public bool HasHint => Hint.Length > 0;
 
+
     private IEnumerable<string> Hints()
     {
         // 「可以写算式」「按文本读取」这两句不在这里说。一页上十来个字段，每个都先把同一句话

@@ -1357,6 +1357,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.OnError.ContinueNote"] = "Note the failure and carry on. For a step that is allowed to miss.",
         ["Add.OnError.NextIterationNote"] = "Only means something inside a loop: drop this round and start the next. Outside one it carries on.",
         ["Add.OnError.AskNote"] = "Asks with retry, skip or stop. The macro waits here for the answer.",
+        ["Add.ShowHint"] = "Show the explanation",
+        ["Add.Group.area.hint"] =
+            "Which part of the screen this step looks at. One place or several; leave it empty "
+            + "and it is the whole screen, or the whole client area of the window it names.",
+        ["Add.Group.point.hint"] =
+            "The point to look at: take it from the pointer, or write where it is.",
+        ["Add.Group.colour.hint"] = "The colour to look for, and how far off it may be.",
+        ["Add.Group.found.hint"] =
+            "What counts as found: which of the hits to act on, and whether missing is a failure.",
+        ["Add.Group.press.hint"] =
+            "How it is pressed: which button, how many times, and the gap between down and up.",
+        ["Add.Group.keys.hint"] = "The keys or combinations to send, in this order.",
+        ["Add.Group.sender.hint"] =
+            "Where the input goes, and how it is sent: the front window, posted messages, or the "
+            + "driver.",
+        ["Add.Group.content.hint"] =
+            "Picking by content: keep the digits, the letters, or what a pattern matches.",
+        ["Add.Group.target.hint"] = "What is being looked for: some writing, a picture, a control.",
+        ["Add.Group.capture.hint"] = "Which part to take, and what to call what was taken.",
         ["Add.Group.point"] = "Which point",
         ["Add.Group.target"] = "What to look for",
         ["Add.Group.content"] = "Picking by content",
@@ -3526,6 +3545,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.OnError.ContinueNote"] = "记一条失败，然后照常往下走。适合“找不到也行”的可选步骤。",
         ["Add.OnError.NextIterationNote"] = "只在内层循环里有意义：放弃这一轮，从下一轮接着来。循环外等同“继续下一步”。",
         ["Add.OnError.AskNote"] = "弹出问题，给重试、跳过、停止三个选择。宏停在这里等回答。",
+        ["Add.ShowHint"] = "查看说明",
+        ["Add.Group.area.hint"] = "这一步在屏幕的哪一块里看。可以是一处，也可以几处；一处都不写就是整块屏幕，命名了窗口时是它的整个客户区。",
+        ["Add.Group.point.hint"] = "要看的那一点落在哪儿：从指针取，或者直接写出来。",
+        ["Add.Group.colour.hint"] = "要找的颜色，以及允许偏多少。",
+        ["Add.Group.found.hint"] = "什么算找到：几处里取第几处，找不到时算不算失败。",
+        ["Add.Group.press.hint"] = "这一下怎么按：哪个键、按几次、按下与抬起之间隔多久。",
+        ["Add.Group.keys.hint"] = "要发的键或组合键，按这个顺序发。",
+        ["Add.Group.sender.hint"] = "输入发给谁、怎么发：前台窗口、后台消息，还是驱动级。",
+        ["Add.Group.content.hint"] = "按内容挑：只留数字、只留字母，或者只留正则匹配到的。",
+        ["Add.Group.target.hint"] = "要找的是什么：一段文字、一张图，还是一个控件。",
+        ["Add.Group.capture.hint"] = "截哪一块，截下来的东西叫什么。",
         ["Add.Group.point"] = "看哪一个点",
         ["Add.Group.target"] = "找什么",
         ["Add.Group.content"] = "按内容挑",

@@ -633,6 +633,8 @@ public partial class AddActionViewModel : ViewModelBase
     public string Description => SelectedDefinition?.LocalDescription
         ?? Strings.Get("Add.SelectHint");
 
+
+
     /// <summary>
     /// Formatting for the preview only. The relaxed encoder keeps Chinese text and the
     /// operators an expression uses (<c>+ ( ) &gt; &amp;</c>) readable instead of writing
@@ -764,6 +766,7 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         SelectedDefinition = definition;
+
     }
 
     /// <summary>

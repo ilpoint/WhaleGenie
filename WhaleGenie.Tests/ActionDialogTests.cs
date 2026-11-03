@@ -1258,7 +1258,7 @@ public class ActionDialogTests
             Assert.Contains(window.GetVisualDescendants().OfType<Button>(),
                 button => button.IsEffectivelyVisible
                     && button.DataContext == field
-                    && (string?)button.Content == Strings.Get("WindowRule.Choose"));
+                    && button.Content as string == Strings.Get("WindowRule.Choose"));
 
             var menu = view.BuildWindowMenu(field);
             var items = menu.Items.OfType<MenuItem>().ToList();

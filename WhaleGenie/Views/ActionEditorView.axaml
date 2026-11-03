@@ -109,7 +109,7 @@
                 <!-- 一行三格：标记、标记、名字。外面这一圈承担原来标签自己的下边距，
                      三样东西才在同一个 18 高的行盒里居中对齐——把边距留在标签上时，行盒会多出
                      8 像素，居中的图标就比字低 4 像素，看上去像没对齐。 -->
-                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="3"
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="4"
                       Margin="{DynamicResource GapField}">
                     <views:IconView Width="16" Height="16" Data="SquareFunction"
                                    Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
@@ -123,6 +123,7 @@
                                    ToolTip.Tip="{Binding [Add.FieldIsText], Source={x:Static loc:Strings.Current}}" />
                     <TextBlock Grid.Column="2" Classes="FieldLabel" Margin="0"
                                Text="{Binding Label}" />
+                    <views:HintInfo Grid.Column="3" Text="{Binding Hint}" />
                 </Grid>
 
                 <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
@@ -170,21 +171,24 @@
                 <Border IsVisible="{Binding IsWindowRule}" Background="{DynamicResource SurfaceField}"
                         BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
                         CornerRadius="5" Padding="10,8">
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                         <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Text="{Binding WindowRuleSummary}" FontSize="12.5"
                                        Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
-                            <TextBlock Classes="Hint" TextWrapping="Wrap"
-                                       Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
-                        <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                        <views:HintInfo Grid.Column="1"
+                                        Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
+                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
                                 Content="{Binding [WindowRule.Choose], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [WindowRule.ChooseHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnChooseWindow" />
-                        <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="10,0"
+                        <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="10,0"
                                 Content="{Binding [WindowRule.Clear], Source={x:Static loc:Strings.Current}}"
                                 Click="OnClearWindowRule" />
                     </Grid>
+
+                    </StackPanel>
                 </Border>
 
                 <!-- A value that may name variables: the names are offered while it is typed in,
@@ -714,7 +718,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
                         <Button Classes="Secondary" Height="28" Padding="10,0"
                                 Content="{Binding [Add.ColourPointAdd], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddColourPoint" />
@@ -726,11 +730,10 @@
                                    TextWrapping="Wrap"
                                    Text="{Binding [Add.ColourPointEmpty], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasColourPoints}" />
+                        <!-- 两条规则只在 tooltip 里说，等于没说过；常驻又会把这张表撑长。 -->
+                        <views:HintInfo Grid.Column="3"
+                                        Text="{Binding [Add.ColourPointNote], Source={x:Static loc:Strings.Current}}" />
                     </Grid>
-
-                    <!-- 两条规则只在 tooltip 里说，等于没说过：颜色可以写几个、勾上就不能是。 -->
-                    <TextBlock Classes="Hint" TextWrapping="Wrap" Margin="2,0,0,0"
-                               Text="{Binding [Add.ColourPointNote], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
 
                 <!-- A run of key combinations: one row per press, in the order they are sent. A
@@ -961,10 +964,8 @@
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
 
-                <TextBlock Classes="Hint" Text="{Binding Hint}"
-                           IsVisible="{Binding HasHint}"
-                           TextWrapping="Wrap" Margin="2,5,0,0" />
-
+                <!-- 说明不铺在这里：它收在标签右边那枚信息图标里（点开看）。一段话常驻在每一格
+                     底下，是这套表单最长的那块版面，读的人多半会跳过它。 -->
             </StackPanel>
         </DataTemplate>
 
@@ -1053,6 +1054,7 @@
                     </Border>
                     <TextBlock Classes="BlockTitle" VerticalAlignment="Center"
                                Text="{Binding GroupTitle}" />
+                    <views:HintInfo Text="{Binding GroupHint}" />
                 </StackPanel>
 
             <!-- 五栏：前四栏是普通行的两个字段与"一个矩形的四个数"那一行，最后一栏窄，
@@ -1173,9 +1175,13 @@
                      fields is not one wall of them. -->
                 <Grid RowDefinitions="Auto,Auto,*">
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
-                        <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                        <TextBlock Classes="Hint" Text="{Binding Description}" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock Text="{Binding SelectedActionName}" FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <!-- 动作的说明收进这一枚图标：一页表单的正文从"说明 + 字段"变成"字段"。 -->
+                            <views:HintInfo Text="{Binding Description}" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!--
