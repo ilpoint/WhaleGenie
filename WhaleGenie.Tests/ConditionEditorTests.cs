@@ -235,6 +235,41 @@ public class ConditionEditorTests
         });
     }
 
+    /// <summary>One row is wide enough for two boxes and the comparison between them.</summary>
+    [Fact]
+    public void A_row_draws_both_sides_and_the_comparison()
+    {
+        Ui.Run(() =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], [],
+                "control.if");
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var form = (AddActionViewModel)window.DataContext!;
+            var parameter = form.Parameters.Single(item => item.Definition.Name == "condition");
+            var editor = parameter.ConditionEditor!;
+            editor.AddRow();
+            editor.Rows[0].Left = "$found";
+            editor.Rows[0].Right = "3";
+            editor.Show(tree: false);
+            Dispatcher.UIThread.RunJobs();
+
+            var row = window.GetVisualDescendants().OfType<Grid>()
+                .First(grid => grid.Classes.Contains("ConditionRow") && grid.IsEffectivelyVisible);
+            var boxes = row.GetVisualDescendants().OfType<AutoCompleteBox>()
+                .Where(box => box.IsEffectivelyVisible)
+                .ToList();
+            Assert.Equal(2, boxes.Count);
+            Assert.All(boxes, box => Assert.True(box.Bounds.Width > 60,
+                $"一侧只有 {box.Bounds.Width:0} 宽"));
+
+            var compare = row.GetVisualDescendants().OfType<ComboBox>()
+                .First(box => box.IsEffectivelyVisible);
+            Assert.True(compare.Bounds.Width >= 100, $"比较词只有 {compare.Bounds.Width:0} 宽");
+            window.Close();
+        });
+    }
+
     /// <summary>The editor draws both views, and the switch at the top is what changes which one.</summary>
     [Fact]
     public void Both_views_are_drawn_from_one_model()

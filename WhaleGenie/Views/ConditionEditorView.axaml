@@ -81,7 +81,7 @@
                                              Text="{Binding Left}"
                                              MinimumPrefixLength="1"
                                              FilterMode="Contains" />
-                            <ComboBox Grid.Column="1"
+                            <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding Choices}"
                                       SelectedItem="{Binding Choice, Mode=TwoWay}" />
                             <AutoCompleteBox Grid.Column="2" Classes="Field" IsVisible="{Binding NeedsValue}"
@@ -172,7 +172,7 @@
                                              Text="{Binding Left}"
                                              MinimumPrefixLength="1"
                                              FilterMode="Contains" />
-                            <ComboBox Grid.Column="1"
+                            <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding Choices}"
                                       SelectedItem="{Binding Choice, Mode=TwoWay}" />
                             <AutoCompleteBox Grid.Column="2" Classes="Field" IsVisible="{Binding NeedsValue}"
