@@ -54,7 +54,7 @@
 | 分组 | 动作数 | 现在的状态 | 下一步 |
 |---|---|---|---|
 | 输入 `Input` | 20 | 旧版式 | 与视觉族同构：目标窗口 → 动作参数 → 节奏 → 失败 |
-| 视觉 `Vision` | 15 | 颜色族已是样板，找图/找字/找元素仍旧 | 把颜色族的分块与结果表套到 `findImage/waitImage/clickImage` 一族 |
+| 视觉 `Vision` | 15 | **全部按块分组**（本轮），颜色族仍是最完整的样板 | 只剩横向对齐细节：截图/识字的四个数还是 2×2，区域行已是一行四格 |
 | 界面 `Uia` | 13 | 旧版式 | 元素拾取器统一；`read/readTable` 的结果结构进结构列 |
 | 浏览器 `Browser` | 24 | 旧版式，最杂 | 选择器、等待、页面元素拾取三块统一；与 Uia 共用一个"元素"编辑块 |
 | 脚本 `Script` | 6 | 旧版式 | 代码框占主位，参数与超时收到下面；错误输出进结果表 |
@@ -73,8 +73,28 @@
    `Add.Group.content`。另外 `findImage` 的 `orderBy` 与 `matchIndex` 归入 `found`，`frameMaxAgeMs` /
    `intervalMs` 归入 `tuning`，与颜色族同一套读法。
 
-1. **视觉族收口**（下一步）：`findImage / waitImage / clickImage`、`ocr.*`、`detect` 三族套颜色族的分块
-   与结果表。它们的问题同构：区域、要找的东西、命中怎么挑、结果，四块。
+1. **视觉族收口已完成**（本轮）：15 个 `vision.*` 与 3 个 `ocr.*` 全部按块重排，
+   读法统一成「范围 → 找什么 → 怎么点 → 怎样算成功 → 识别调参」：
+
+   | 动作 | 块 |
+   |---|---|
+   | `findColor` / `findColors` / `clickColor` | 范围 · 什么颜色 · 怎样算找到 · 怎么点 · 识别调参 |
+   | `findImage` / `waitImage` / `clickImage` | 范围 · 找什么 · 怎样算找到 · 怎么点 · 识别调参 |
+   | `detect` / `waitDetect` / `clickDetect` | 范围 · 找什么 · 怎样算找到 · 怎么点 · 识别调参 |
+   | `findText` / `clickText` | 范围 · 找什么 · 按内容挑 · 怎样算找到 · 怎么点 · 识别调参 |
+   | `capture` | 抓哪儿 · 存到哪个文件 · 识别调参 |
+   | `captureWindow` | 抓哪儿 · 存到哪个文件 · 识别调参 |
+   | `waitStable` | 范围 · 怎样算稳定 · 识别调参 |
+   | `recognize` | 范围 · 识别什么 · 识别前处理 · 识别调参 |
+   | `getPixel` / `waitColor` / `matchColor` | 看哪一个点 · 什么颜色 · 识别调参 |
+
+   颜色族的 `orderBy` / `matchIndex` 从「识别调参」移到「怎样算找到」：它们决定的是"挑哪一个"，
+   不是识别参数。新块标题 `Add.Group.capture` / `save` / `stable` / `read` / `before`（中英各一），
+   并加了一条测试 `Every_block_a_field_stands_in_is_named_in_both_languages`：目录里出现的每个块
+   都必须在两张文案表里有名字，漏一条就报。
+
+   **还没做**：`capture` / `recognize` 的四个数字仍是 2×2（区域行已经是一行四格），要统一得让
+   四个连续的数字字段也能落到一行里。
 2. **输入与窗口**：`input.*`、`window.*`、`process.*` 共 38 个动作，共用"目标窗口 + 坐标/按键 + 节奏"。
    这一步同时把窗口选择器收敛成一个控件。
 3. **元素族**：`uia.*` 与 `browser.*` 共 37 个，共用"元素（选择器 / 拾取）+ 动作 + 等待"。

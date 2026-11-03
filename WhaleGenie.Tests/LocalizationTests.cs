@@ -39,6 +39,30 @@ public class LocalizationTests
             .Order());
     }
 
+    /// <summary>
+    /// 表单里每一块（「② 找什么」那行）都要有名字，中英各一条。分组写在动作目录里，标题写在
+    /// 文案表里，两处各写各的，漏一条就会在界面上冒出一串 Key 或者干脆空一行。
+    /// </summary>
+    [Fact]
+    public void Every_block_a_field_stands_in_is_named_in_both_languages()
+    {
+        var blocks = ActionCatalog.Definitions
+            .SelectMany(action => action.Parameters)
+            .Select(parameter => parameter.Group)
+            .Where(group => group.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.NotEmpty(blocks);
+        foreach (var block in blocks)
+        {
+            var key = "Add.Group." + block;
+            Assert.True(Strings.English.ContainsKey(key), $"English {key} is missing");
+            Assert.True(Strings.Chinese.ContainsKey(key), $"Chinese {key} is missing");
+        }
+    }
+
     [Fact]
     public void No_text_is_left_empty()
     {
