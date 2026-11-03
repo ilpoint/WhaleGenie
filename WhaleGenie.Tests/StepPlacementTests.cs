@@ -247,8 +247,8 @@ public class StepPlacementTests
 
         static void AddInside(MacroEditorViewModel editor, MacroStep owner, string list, MacroStep child)
         {
-            editor.AddInsideCommand.Execute(editor.Rows.Single(row =>
-                row.IsSection && ReferenceEquals(row.Step, owner) && row.List?.Name == list));
+            editor.PrepareInsertionAt(
+                owner.StepLists.Single(parameter => parameter.Name == list).Steps, 0);
             Assert.Null(editor.AddStepHere(child));
         }
     }

@@ -1353,8 +1353,28 @@
     </Style>
 
     <!-- 步骤树：一行就是一步，30 够装图标、名称、徽标与一句截断的摘要。展开箭头由树控件画，
-         所以行里不再留折叠钮；行的高亮由卡片自己画（`.Card.Selectable.selected`），
-         树控件自己那层底与描边全部让开，免得两套高亮叠在一起。 -->
+         所以行里不再留折叠钮；行的高亮由这一行自己画，树控件自己那层底与描边全部让开，
+         免得两套高亮叠在一起。
+
+         行是**平**的，不是卡片：一列卡片摞起来会先读出"一堆方块"，读不出"谁在谁里面"。
+         层级交给缩进线与分节行，方块只在选中与悬停时出现。 -->
+    <Style Selector="Border.StepLine">
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.StepLine:pointerover:not(.selected)">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="Border.StepLine.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+    </Style>
+    <!-- 有问题的那一步：左边一条警示色的边，与"选中"的整块底不同通道。 -->
+    <Style Selector="Border.StepLine.problem">
+        <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+    </Style>
     <Style Selector="TreeView.Steps">
         <Setter Property="Padding" Value="{DynamicResource Pad0}" />
     </Style>

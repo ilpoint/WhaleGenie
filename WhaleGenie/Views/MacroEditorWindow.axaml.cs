@@ -2783,25 +2783,13 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
-        // Below every row: the steps go past the last one, which is the end of the macro when the
-        // last row is a step and the end of the list a block sits in when it is a closing line.
-        // "At the end of the block" is the closing line itself, which is one row up.
+        // The space below the last row is the end of the macro: a pointer down there is past
+        // everything, so that is what it means rather than "after whichever block happened to be
+        // last". Ending a block's own list is the lower half of the block's row.
         var last = boxes[^1];
         if (point.Y >= last.Top + last.Height)
         {
-            if (last.Row.IsFoot)
-            {
-                // Past the closing line is past the block: the step it belongs to, plus one, in
-                // the list that block sits in.
-                var parent = StepsOf(last.Row);
-                var place = parent.IndexOf(last.Row.Step);
-                Place(parent, place < 0 ? parent.Count : place + 1,
-                    last.Top + last.Height, 0, "Editor.DropAfterBlock", actionKey);
-                return;
-            }
-
-            var (list, index) = After(last.Row);
-            Place(list, index, last.Top + last.Height, last.Row.Depth * 18,
+            Place(_viewModel.Steps, _viewModel.Steps.Count, last.Top + last.Height, 0,
                 "Editor.DropAfterStep", actionKey);
             return;
         }
@@ -2809,11 +2797,11 @@ public partial class MacroEditorWindow : AppWindow
         // The gaps between rows belong to the row above them, so a pointer never falls into a
         // height no row answers for.
         var at = 0;
-        for (var index = 0; index < boxes.Count; index++)
+        for (var candidate = 0; candidate < boxes.Count; candidate++)
         {
-            if (point.Y >= boxes[index].Top)
+            if (point.Y >= boxes[candidate].Top)
             {
-                at = index;
+                at = candidate;
             }
         }
 
@@ -2823,81 +2811,46 @@ public partial class MacroEditorWindow : AppWindow
         var bottom = top + box.Height;
         var middle = top + (box.Height / 2);
 
-        // The strip above a block's closing line is its body, empty or not. Landing it on the row
-        // above would have said "before this block" for a place that is plainly inside it — the
-        // bug that made an empty block impossible to drop into from above.
-        if (point.Y >= bottom
-            && at + 1 < boxes.Count
-            && boxes[at + 1].Row is { IsFoot: true } foot
-            && Belongs(foot, row))
+        // A section title is one list: its top half is the top of that list, its bottom half the
+        // end of it. That is the whole of what a section means, so it has no other seams.
+        if (row.IsSection && row.List is { } section)
         {
-            var tail = foot.Step.StepLists.Last();
-            Place(tail.Steps, tail.Steps.Count, boxes[at + 1].Top, foot.Depth * 18,
-                tail.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
-                actionKey);
+            var atEnd = point.Y >= middle;
+            Place(section.Steps, atEnd ? section.Steps.Count : 0,
+                atEnd ? BottomOf(row, boxes) : bottom, (row.Depth + 1) * 16,
+                "Editor.DropAtBlockStart", actionKey);
             return;
         }
 
-        switch (row.Kind)
-        {
-            // The line that closes a block stands for the end of the block's last list — the one
-            // place "inside this block, at the end" means.
-            case StepRowKind.Foot:
-                if (row.Step.StepLists.LastOrDefault() is { } lastList)
-                {
-                    Place(lastList.Steps, lastList.Steps.Count, top, row.Depth * 18,
-                        lastList.Steps.Count == 0
-                            ? "Editor.DropIntoEmptyList"
-                            : "Editor.DropAtBlockEnd",
-                        actionKey);
-                    return;
-                }
-
-                break;
-
-            // The title of one of several lists stands for the whole list: the top half is its
-            // first seam, the bottom half its last.
-            case StepRowKind.Section when row.List is { } section:
-                var atEnd = point.Y >= middle;
-                Place(section.Steps, atEnd ? section.Steps.Count : 0,
-                    atEnd ? BottomOf(row, boxes) : bottom, (row.Depth + 1) * 18,
-                    "Editor.DropAtBlockStart", actionKey);
-                return;
-        }
-
-        // A block that runs one list of steps offers three places on its own row: before it,
-        // inside it at the top, and after it. A block with several lists leaves "inside" to the
-        // row of the list meant, because "inside" would not say which one.
+        // A block that runs one list takes a drop in its lower half as "inside, at the end". Before
+        // it is its upper half; after it is the top half of whatever follows, or the space below
+        // the tree. A block that runs several lists leaves "inside" to its sections, because
+        // "inside" there would not say which list was meant.
         if (row.IsBlock && row.Step.StepLists.Count() == 1 && row.Body is { } body)
         {
-            if (point.Y < top + (box.Height / 3))
+            // A folded block is one line, so its two halves are before and after it. Only an open
+            // block has a body to drop into, and then its lower half is "inside, at the end".
+            if (point.Y < middle || !row.Step.IsExpanded)
             {
-                Place(StepsOf(row), Math.Max(0, row.Index),
-                    top, row.Depth * 18, "Editor.DropBeforeBlock", actionKey);
+                var above = point.Y < middle;
+                Place(StepsOf(row), Math.Max(0, row.Index) + (above ? 0 : 1),
+                    above ? top : bottom, row.Depth * 16,
+                    above ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock", actionKey);
                 return;
             }
 
-            if (point.Y >= bottom - (box.Height / 3))
-            {
-                Place(StepsOf(row), Math.Max(0, row.Index) + 1,
-                    bottom, row.Depth * 18, "Editor.DropAfterBlock", actionKey);
-                return;
-            }
-
-            Place(body.Steps, body.Steps.Count, bottom, (row.Depth + 1) * 18,
-                "Editor.DropAtBlockEnd", actionKey);
+            Place(body.Steps, body.Steps.Count, bottom, (row.Depth + 1) * 16,
+                body.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
+                actionKey);
             return;
         }
 
-        if (row.IsStep)
-        {
-            var before = point.Y < middle;
-            var (list, index) = before ? Before(row) : After(row);
-            Place(list, index, before ? top : bottom, row.Depth * 18,
-                row.IsBlock ? (before ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock")
-                            : (before ? "Editor.DropBeforeStep" : "Editor.DropAfterStep"),
-                actionKey);
-        }
+        var before = point.Y < middle;
+        var (list, index) = before ? Before(row) : After(row);
+        Place(list, index, before ? top : bottom, row.Depth * 16,
+            row.IsBlock ? (before ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock")
+                        : (before ? "Editor.DropBeforeStep" : "Editor.DropAfterStep"),
+            actionKey);
     }
 
     /// <summary>Records the seam under the pointer and draws the marker on it.</summary>
@@ -2923,25 +2876,13 @@ public partial class MacroEditorWindow : AppWindow
 
     /// <summary>
     /// The seam behind a row. Behind a block that is the next step of the list it sits in rather
-    /// than the end of its body, which is what its closing line is for.
+    /// than the end of its body: the body's end is the lower half of the block's own row.
     /// </summary>
     private (IList<MacroStep> List, int Index) After(StepRow row)
     {
-        if (row.IsFoot)
-        {
-            return row.Step.StepLists.LastOrDefault() is { } last
-                ? (last.Steps, last.Steps.Count)
-                : ((IList<MacroStep>)_viewModel.Steps, _viewModel.Steps.Count);
-        }
-
         var list = StepsOf(row);
         return (list, Math.Clamp(row.Index + 1, 0, list.Count));
     }
-
-    /// <summary>True when a row sits in one of the lists of the block a closing line closes.</summary>
-    private static bool Belongs(StepRow foot, StepRow row)
-        => ReferenceEquals(foot.Step, row.Step)
-           || (row.List is { } list && foot.Step.StepLists.Contains(list));
 
     /// <summary>Where the last row inside a section is drawn, so "at the end of it" can be shown.</summary>
     private static double BottomOf(StepRow section, IReadOnlyList<RowBox> boxes)

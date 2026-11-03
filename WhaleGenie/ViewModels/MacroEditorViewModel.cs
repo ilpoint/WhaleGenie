@@ -1626,23 +1626,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Asks the window to open the dialog for a step to go at the end of one of a block's lists,
-    /// which is what the "add" button on a section row, or on a block that runs one list, does.
-    /// </summary>
-    [RelayCommand]
-    private void AddInside(StepRow? row)
-    {
-        if (row?.Body is not { } parameter)
-        {
-            return;
-        }
-
-        _insertAt = new StepInsertionTarget(parameter.Steps, parameter.Steps.Count,
-            row.Step, parameter);
-        AddStepRequested?.Invoke();
-    }
-
-    /// <summary>
     /// What the "Add Action" dialog may offer for the step being built: a switch's branch list
     /// only takes branches, everything else takes anything. Read by the window when it opens the
     /// dialog.
@@ -2795,7 +2778,19 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Where a step asked for now should go: below the picked one, in its own block.</summary>
     private StepInsertionTarget? InsertionPoint()
     {
-        if (Ordered(_selection).LastOrDefault() is not { } anchor || OwnerOf(anchor) is not { } at)
+        if (Ordered(_selection).LastOrDefault() is not { } anchor)
+        {
+            return null;
+        }
+
+        // Picking a block means "add inside it": it runs one list, so there is only one place that
+        // could mean, and it is where a person who just picked the loop wants the step to land.
+        if (anchor.StepLists.Count() == 1 && anchor.StepLists.First() is { } body)
+        {
+            return new StepInsertionTarget(body.Steps, body.Steps.Count, anchor, body);
+        }
+
+        if (OwnerOf(anchor) is not { } at)
         {
             return null;
         }
@@ -3089,6 +3084,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 Problem = _problemByStep.GetValueOrDefault(step) ?? string.Empty,
                 Folded = OnRowFolded,
             };
+            row.Guide(depth);
             into.Add(row);
 
             var lists = step.StepLists.ToList();
@@ -3113,6 +3109,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                         Depth = depth + 1,
                         Folded = OnRowFolded,
                     };
+                    section.Guide(depth + 1);
                     row.Children.Add(section);
                     AddNodes(list.Steps, list, depth + 2, section.Children);
                 }
@@ -3122,12 +3119,6 @@ public partial class MacroEditorViewModel : ViewModelBase
                 }
             }
 
-            row.Children.Add(new StepRow
-            {
-                Kind = StepRowKind.Foot,
-                Step = step,
-                Depth = depth + 1,
-            });
         }
     }
 

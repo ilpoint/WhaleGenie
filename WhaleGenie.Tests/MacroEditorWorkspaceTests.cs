@@ -475,11 +475,10 @@ public class MacroEditorWorkspaceTests
             var hint = window.FindControl<TextBlock>("DropHintText")!;
             var marker = window.FindControl<Border>("DropMarker")!;
             var head = Header(list, row => row.IsBlock);
-            var foot = Header(list, row => row.IsFoot);
-            // The body starts under the block's own row: that row's lower third is still "before
-            // the block", and only what is under it belongs to the body.
-            var top = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
-            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            // The lower half of the block's own row is its empty body: the upper half is still
+            // "before the block", and there is no closing line to walk down to any more.
+            var top = head.TranslatePoint(new Point(0, head.Bounds.Height / 2), list)!.Value.Y;
+            var bottom = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
@@ -524,11 +523,8 @@ public class MacroEditorWorkspaceTests
             var list = window.FindControl<TreeView>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
             var head = Header(list, row => row.IsBlock);
-            var foot = Header(list, row => row.IsFoot);
-            // The body starts under the block's own row: that row's lower third is still "before
-            // the block", and only what is under it belongs to the body.
-            var top = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
-            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var top = head.TranslatePoint(new Point(0, head.Bounds.Height / 2), list)!.Value.Y;
+            var bottom = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
@@ -568,13 +564,12 @@ public class MacroEditorWorkspaceTests
 
             var list = window.FindControl<TreeView>("StepList")!;
             var block = Header(list, row => row.IsStep && row.Step.Type == "control.repeat");
-            var foot = Header(list, row => row.IsFoot);
-            var top = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
-            var bottom = foot.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var middle = block.TranslatePoint(
+                new Point(60, block.Bounds.Height * 0.75), list)!.Value;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.delay").Transfer();
 
-            DragAt(list, DragDrop.DropEvent, transfer, new Point(60, (top + bottom) / 2));
+            DragAt(list, DragDrop.DropEvent, transfer, middle);
             Dispatcher.UIThread.RunJobs();
 
             var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
@@ -611,16 +606,12 @@ public class MacroEditorWorkspaceTests
             var marker = window.FindControl<Border>("DropMarker")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
             var head = Header(list, row => row.IsBlock);
-            var foot = Header(list, row => row.IsFoot);
-            // The body starts under the block's own row: that row's lower third is still "before
-            // the block", and only what is under it belongs to the body.
-            var top = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
-            var bottom = foot.TranslatePoint(new Point(0, foot.Bounds.Height), list)!.Value.Y;
+            var top = head.TranslatePoint(new Point(0, head.Bounds.Height / 2), list)!.Value.Y;
+            var bottom = head.TranslatePoint(new Point(0, head.Bounds.Height), list)!.Value.Y;
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
-            // Every two pixels of the body — from the title of its list to the line that closes the
-            // block — so a gap between two of those rows cannot hide a second answer.
+            // Every two pixels of the block row's lower half, so a gap cannot hide a second answer.
             var seen = new List<(string? Hint, double? Marker)>();
             for (var y = top; y < bottom; y += 2)
             {
@@ -673,7 +664,7 @@ public class MacroEditorWorkspaceTests
             DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, top + 3));
             Assert.Equal(Strings.Get("Editor.DropBeforeBlock"), hint.Text);
 
-            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, (top + bottom) / 2));
+            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, top + (block.Bounds.Height * 0.75)));
             Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
 
             Ui.CloseAndAnswer(window);
@@ -764,14 +755,9 @@ public class MacroEditorWorkspaceTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             var list = window.FindControl<TreeView>("StepList")!;
-            var foot = list.GetVisualDescendants().OfType<TreeViewItem>()
-                .Single(item => item.DataContext is StepRow
-                {
-                    IsFoot: true,
-                    Step: var step,
-                } && ReferenceEquals(step, loop));
-            var top = foot.TranslatePoint(new Point(0, 0), list)!.Value.Y;
-            var point = new Point(80, top + foot.Bounds.Height - 2);
+
+            // Below the whole tree is past everything, which is the top level.
+            var point = new Point(80, list.Bounds.Height - 4);
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.delay").Transfer();
 

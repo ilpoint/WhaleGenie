@@ -1,4 +1,4 @@
-<views:AppWindow xmlns="https://github.com/avaloniaui"
+﻿<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -1023,9 +1023,28 @@
                               <!-- 一排三选一：步骤卡片、分节标题、收尾线。放在同一个 `Panel` 里，
                                    是为了让"这一行占多高"只有一个答案——拖动落点按它算。 -->
                               <Panel Name="RowHeader">
+                                  <!-- 缩进线：每套一层画一格 16px 的竖线，整条往左挪出这段宽度，
+                                       所以上下相邻的行接成一条线，块一结束线也结束。 -->
+                                  <Panel Margin="{Binding GuideMargin}" Width="{Binding GuideWidth}"
+                                         HorizontalAlignment="Left" IsHitTestVisible="False">
+                                      <ItemsControl ItemsSource="{Binding Guides}">
+                                          <ItemsControl.ItemsPanel>
+                                              <ItemsPanelTemplate>
+                                                  <StackPanel Orientation="Horizontal" />
+                                              </ItemsPanelTemplate>
+                                          </ItemsControl.ItemsPanel>
+                                          <ItemsControl.ItemTemplate>
+                                              <DataTemplate x:DataType="vm:GuideCell">
+                                                  <Border Width="16"
+                                                          BorderThickness="1,0,0,0"
+                                                          BorderBrush="{DynamicResource BorderControl}" />
+                                              </DataTemplate>
+                                          </ItemsControl.ItemTemplate>
+                                      </ItemsControl>
+                                  </Panel>
                                   <!-- 一行一步：图标、名称与三枚徽标、一句摘要，最后是问题。
                                        展开箭头归树控件；块里有几步写在块的右边。 -->
-                                  <Border Classes="Card Selectable" Classes.problem="{Binding HasProblem}"
+                                  <Border Classes="StepLine" Classes.problem="{Binding HasProblem}"
                                           Classes.selected="{Binding IsPicked}"
                                           Opacity="{Binding RowOpacity}"
                                           IsVisible="{Binding IsStep}">
@@ -1079,19 +1098,6 @@
                                                   IsVisible="{Binding ShowsBodyCount}">
                                               <TextBlock Text="{Binding BodyCount}" Classes="Caption" />
                                           </Border>
-                                          <!-- 添加往里加一步：单列表的块只有块这一行，按钮就长在这里。 -->
-                                          <Button Grid.Column="4" Classes="Ghost Tiny" Width="18" Height="18"
-                                                  VerticalAlignment="Center"
-                                                  IsVisible="{Binding Body}"
-                                                  ToolTip.Tip="{Binding AddHint}"
-                                                  Command="{Binding $parent[TreeView].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
-                                                  CommandParameter="{Binding}">
-                                              <views:IconView Width="11" Height="11"
-                                                              Stroke="{DynamicResource TextTertiary}"
-                                                              StrokeThickness="1.6"
-                                                              FitToBounds="True"
-                                                              Data="{x:Static vm:AppIcons.Plus}" />
-                                          </Button>
                                           <Border Grid.Column="4" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
@@ -1127,20 +1133,6 @@
                                                      Text="{Binding HeadLabel}" />
                                           <TextBlock Classes="Note" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
-                                          <Button Classes="Secondary" Height="26"
-                                                  ToolTip.Tip="{Binding AddHint}"
-                                                  Command="{Binding $parent[TreeView].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
-                                                  CommandParameter="{Binding}">
-                                              <StackPanel Orientation="Horizontal" Spacing="5">
-                                                  <views:IconView Width="13" Height="13"
-                                                                  Stroke="{DynamicResource TextPrimary}"
-                                                                  StrokeThickness="1.6"
-                                                                  FitToBounds="True"
-                                                                  Data="{x:Static vm:AppIcons.Plus}" />
-                                                  <TextBlock Text="{Binding AddLabel}"
-                                                             VerticalAlignment="Center" />
-                                              </StackPanel>
-                                          </Button>
                                           <TextBlock IsVisible="{Binding IsEmptyList}"
                                                      Text="{Binding EmptyListHint}"
                                                      Classes="Hint"
@@ -1148,10 +1140,6 @@
                                       </WrapPanel>
                                   </Border>
 
-                                  <!-- 收尾线：块到哪儿结束，和"块后面"不是同一个地方。 -->
-                                  <Border Classes="StepFoot" IsVisible="{Binding IsFoot}">
-                                      <TextBlock Classes="Caption" VerticalAlignment="Center" Text="{Binding FootLabel}" />
-                                  </Border>
                               </Panel>
                            </TreeDataTemplate>
                        </TreeView.ItemTemplate>

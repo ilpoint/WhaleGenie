@@ -53,7 +53,6 @@ public class StepTreeTests
                 "0:Step:control.repeat",
                 "1:Step:control.delay",
                 "1:Step:control.delay",
-                "1:Foot:control.repeat",
             ], Shape(editor));
         });
     }
@@ -133,14 +132,14 @@ public class StepTreeTests
             editor.AddStep(loop);
 
             Assert.True(editor.Rows[0].IsBlock);
-            Assert.Equal(["0:Step:control.repeat", "1:Foot:control.repeat"], Shape(editor));
+            Assert.Equal(["0:Step:control.repeat"], Shape(editor));
 
             editor.SetExpanded(loop, false);
             Assert.Equal(["0:Step:control.repeat"], Shape(editor));
             Assert.True(Assert.Single(editor.Rows).IsBlock);
 
             editor.SetExpanded(loop, true);
-            Assert.Equal(["0:Step:control.repeat", "1:Foot:control.repeat"], Shape(editor));
+            Assert.Equal(["0:Step:control.repeat"], Shape(editor));
         });
     }
 
@@ -163,7 +162,6 @@ public class StepTreeTests
             Assert.Equal(["then", "else"],
                 conditional.StepLists.Select(list => list.Name));
             Assert.Equal(2, editor.Rows.Count(row => row.IsSection));
-            Assert.Contains(editor.Rows, row => row.IsFoot);
         });
     }
 
@@ -193,49 +191,32 @@ public class StepTreeTests
             item.IsExpanded = true;
             Dispatcher.UIThread.RunJobs();
             Assert.True(loop.IsExpanded);
-            Assert.Contains(editor.Rows, row => row.IsSection || row.IsFoot);
+            Assert.Single(editor.Rows);
             Ui.CloseAndAnswer(window);
         });
     }
 
     [Fact]
-    public void The_add_branch_button_opens_the_case_form_and_inserts_it()
+    public void A_branch_list_only_takes_branches()
     {
         Ui.Run(() =>
         {
-            var macro = new MacroItem { Name = "probe" };
-            var window = new MacroEditorWindow(macro, [macro]);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var editor = (MacroEditorViewModel)window.DataContext!;
+            var editor = new MacroEditorViewModel();
             var choice = Step("control.switch");
             editor.AddStep(choice);
-            Dispatcher.UIThread.RunJobs();
 
-            var casesHead = editor.Rows.Single(row => row.IsSection && row.List!.Name == "cases");
-            var addBranch = RowButton(window, row => ReferenceEquals(row, casesHead));
-            Assert.Equal(26, addBranch.Height);
-            Assert.Contains(addBranch.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.Text == Strings.Get("Add.Case"));
-            Click(window, addBranch);
-            Dispatcher.UIThread.RunJobs();
-            var dialog = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
-            var form = (AddActionViewModel)dialog.DataContext!;
-            Assert.Equal("control.case", form.SelectedDefinition!.Key);
-            form.Parameters.First(parameter =>
-                parameter.Definition.Name == "values").Text = "one";
-            Assert.True(form.CanSave, form.ValidationMessage);
-            form.SaveCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
-            Dispatcher.UIThread.RunJobs();
-
+            // The restriction belongs to the place the step is going, not to the dialog: pointing
+            // at a switch's case list narrows the catalogue to the one action that fits there.
             var cases = choice.StepLists.Single(list => list.Name == "cases");
-            var added = Assert.Single(cases.Steps);
-            Assert.Equal("control.case", added.Type);
-            Assert.True(added.IsExpanded);
-            Assert.Single(added.StepLists);
-            Ui.CloseAndAnswer(window);
+            editor.PrepareInsertionAt(cases.Steps, 0);
+            Assert.Equal(["control.case"], editor.InsertChoices!.Select(action => action.Key));
+
+            var branch = Step("control.case", Text("values", "one"));
+            editor.AddStep(branch);
+
+            Assert.Equal("control.case", Assert.Single(cases.Steps).Type);
+            Assert.True(branch.IsExpanded);
+            Assert.Single(branch.StepLists);
         });
     }
 
@@ -373,7 +354,7 @@ public class StepTreeTests
     }
 
     [Fact]
-    public void The_button_on_a_block_title_adds_a_step_at_the_end_of_that_list()
+    public void Picking_a_block_puts_a_new_step_inside_it()
     {
         Ui.Run(() =>
         {
@@ -382,7 +363,10 @@ public class StepTreeTests
             var loop = Loop(inside);
             editor.AddStep(loop);
 
-            editor.AddInsideCommand.Execute(editor.Rows.First(row => ReferenceEquals(row.Step, loop)));
+            // Picking the loop says where the next step goes: it runs one list, so "inside it" is
+            // the only place that could mean.
+            editor.SetSelection([loop]);
+            editor.NewStepCommand.Execute(null);
             var added = Step("control.log");
             editor.AddStep(added);
 
@@ -410,13 +394,12 @@ public class StepTreeTests
             // A switch's list holds branches and nothing else, so that is all the dialog offers
             // when the step is meant for it. The restriction travels with the place the step is
             // going, not with the dialog.
-            editor.AddInsideCommand.Execute(
-                editor.Rows.First(row => row.IsSection && row.List!.Name == "cases"));
+            var cases = switchStep.StepLists.Single(list => list.Name == "cases");
+            editor.PrepareInsertionAt(cases.Steps, 0);
             Assert.Equal(["control.case"], editor.InsertChoices!.Select(action => action.Key));
 
             // A block that runs ordinary steps takes anything.
-            editor.AddInsideCommand.Execute(
-                editor.Rows.First(row => row.IsStep && ReferenceEquals(row.Step, loop)));
+            editor.PrepareInsertionAt(loop.StepLists.Single().Steps, 0);
             Assert.Null(editor.InsertChoices);
         });
     }
@@ -526,7 +509,7 @@ public class StepTreeTests
     }
 
     [Fact]
-    public void The_buttons_on_a_blocks_rows_do_what_they_say()
+    public void The_fold_arrow_is_the_only_control_a_row_carries()
     {
         Ui.Run(() =>
         {
@@ -540,15 +523,11 @@ public class StepTreeTests
             editor.AddStep(loop);
             Dispatcher.UIThread.RunJobs();
 
-            // A single-list block carries its own "add a step" button, and pressing it sends focus
-            // to the one action library instead of opening a form.
-            Click(window, RowButton(window, row => ReferenceEquals(row.Step, loop)));
-            Dispatcher.UIThread.RunJobs();
-            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
-            var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
-            Assert.True(palette.FindControl<TextBox>("PaletteSearch")!.IsFocused);
+            // A row has no buttons of its own: the arrow belongs to the tree, and what goes inside
+            // a block is a drop on the block's row or a step added while the block is picked.
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(),
+                button => button.IsEffectivelyVisible && button.DataContext is StepRow);
 
-            // The arrow is the tree's own, and it is bound to the step it stands for.
             var item = Row(window, row => ReferenceEquals(row.Step, loop));
             Assert.True(loop.IsExpanded);
             item.IsExpanded = false;
@@ -714,12 +693,10 @@ public class StepTreeTests
             var outer = Loop(inner);
             editor.AddStep(outer);
 
-            // The plus on the inner block's title line is what says "a step goes in here".
-            var head = editor.Rows.First(row => row.IsStep && ReferenceEquals(row.Step, inner));
-            editor.AddInsideCommand.Execute(head);
-
-            // The dialog that opens is about that list, so what it returns lands inside the inner
-            // block rather than beside it.
+            // Picking the inner block says "the step goes in here", and inside a block that runs
+            // one list that can only mean the end of it.
+            editor.SetSelection([inner]);
+            editor.NewStepCommand.Execute(null);
             editor.AddStep(Step("control.log"));
 
             Assert.Equal(["control.log"], Inside(inner).Select(step => step.Type));
@@ -784,7 +761,7 @@ public class StepTreeTests
     }
 
     [Fact]
-    public void Picking_a_block_title_picks_the_block_and_highlights_its_own_row()
+    public void A_section_title_picks_the_block_it_belongs_to()
     {
         Ui.Run(() =>
         {
@@ -794,22 +771,15 @@ public class StepTreeTests
             Dispatcher.UIThread.RunJobs();
 
             var editor = (MacroEditorViewModel)window.DataContext!;
-            var loop = Loop(Step("control.delay"));
-            editor.AddStep(loop);
+            var choice = Step("control.switch",
+                new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps },
+                new StepParameter { Name = "otherwise", Kind = ActionParameterKind.Steps });
+            editor.AddStep(choice);
             Dispatcher.UIThread.RunJobs();
 
-            // Probe: does a press on the step inside the block pick that step?
-            var inner = editor.Rows.First(row => row.IsStep && ReferenceEquals(row.Step, Inside(loop)[0]));
-            var innerItem = window.FindControl<TreeView>("StepList")!.GetVisualDescendants().OfType<TreeViewItem>()
-                .First(box => ReferenceEquals(box.DataContext, inner));
-            var innerPoint = innerItem.TranslatePoint(
-                new Point(innerItem.Bounds.Width * 0.3, innerItem.Bounds.Height / 2), window) ?? default;
-            window.MouseDown(innerPoint, MouseButton.Left, RawInputModifiers.LeftMouseButton);
-            window.MouseUp(innerPoint, MouseButton.Left);
-            Dispatcher.UIThread.RunJobs();
-            Assert.Same(Inside(loop)[0], Assert.Single(editor.SelectedSteps));
-
-            var title = editor.Rows.First(row => row.IsFoot);
+            // A section title stands for the whole block: picking it picks the block, and the
+            // highlight is put back on the block's own row because that is the row commands act on.
+            var title = editor.Rows.First(row => row.IsSection);
             var item = window.FindControl<TreeView>("StepList")!.GetVisualDescendants().OfType<TreeViewItem>()
                 .First(box => ReferenceEquals(box.DataContext, title));
             var point = item.TranslatePoint(new Point(item.Bounds.Width * 0.1, item.Bounds.Height / 2), window)
@@ -819,11 +789,11 @@ public class StepTreeTests
             window.MouseUp(point, MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Same(loop, Assert.Single(editor.SelectedSteps));
+            Assert.Same(choice, Assert.Single(editor.SelectedSteps));
 
             var list = window.FindControl<TreeView>("StepList")!;
             Assert.Contains(list.SelectedItems!.OfType<StepRow>(),
-                row => row.IsStep && ReferenceEquals(row.Step, loop));
+                row => row.IsStep && ReferenceEquals(row.Step, choice));
         });
     }
 
@@ -844,17 +814,16 @@ public class StepTreeTests
             editor.AddStep(loop);
             Dispatcher.UIThread.RunJobs();
 
-            // The loop's own row, the step inside it and the line closing it make the block three
-            // rows tall; the step before it is the fourth.
+            // The loop's own row and the step inside it: the block is two rows, the step before it
+            // makes three.
             var rows = window.FindControl<TreeView>("StepList")!.GetVisualDescendants().OfType<TreeViewItem>().ToList();
-            Assert.Equal(4, rows.Count);
+            Assert.Equal(3, rows.Count);
 
             var from = Waypoint(window, rows[0], 0.5, 0.5);
 
-            // Below the closing line is outside the block, which is where this drag ends.
-            var last = rows[3].TranslatePoint(
-                new Point(rows[3].Bounds.Width / 2, rows[3].Bounds.Height + 8), window) ?? default;
-            var to = last;
+            // Below the whole tree is past everything, which is where this drag ends.
+            var list = window.FindControl<TreeView>("StepList")!;
+            var to = list.TranslatePoint(new Point(200, list.Bounds.Height - 4), window)!.Value;
             window.MouseDown(from, MouseButton.Left, RawInputModifiers.LeftMouseButton);
             window.MouseMove(to, RawInputModifiers.LeftMouseButton);
             window.MouseUp(to, MouseButton.Left);
@@ -888,7 +857,7 @@ public class StepTreeTests
             Dispatcher.UIThread.RunJobs();
 
             var rows = window.FindControl<TreeView>("StepList")!.GetVisualDescendants().OfType<TreeViewItem>().ToList();
-            var from = Waypoint(window, rows[3], 0.5, 0.5);
+            var from = Waypoint(window, rows[2], 0.5, 0.5);
 
             // The middle of the block's own row, not of the container it shares with its children.
             var header = Header(window, row => row.IsStep && ReferenceEquals(row.Step, loop));

@@ -1,4 +1,4 @@
-# WhaleGenie 开发说明
+﻿# WhaleGenie 开发说明
 
 本文件说明如何构建、修改、验证和发布 WhaleGenie。长期规范见仓库根目录的
 [AGENTS.md](../AGENTS.md)，当前实现结构见 [architecture.md](architecture.md)，未完成工作见
@@ -282,7 +282,8 @@ if ($missing) { $missing; exit 1 }
 - 已知抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`
   与 `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing` 在**全量**跑时偶发失败
   （单跑、单类跑都过），两条都动 `VariableCatalog.Globals` / `SharedVariables` / `PersistentVariables`
-  这类进程级状态。再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
+  这类进程级状态。全量跑时 `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`
+  也偶发同一种挂法（单跑通过），同样是进程级状态。再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
 
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或

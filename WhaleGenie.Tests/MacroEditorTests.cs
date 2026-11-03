@@ -1208,16 +1208,16 @@ public class MacroEditorTests
                 .GetVisualDescendants().OfType<TreeViewItem>().ToList();
             Assert.Equal(2, rows.Count);
 
-            Border Card(TreeViewItem item) => item.GetVisualDescendants().OfType<Border>()
-                .First(border => border.Classes.Contains("Card"));
+            Border RowLine(TreeViewItem item) => item.GetVisualDescendants().OfType<Border>()
+                .First(border => border.Classes.Contains("StepLine"));
 
             foreach (var item in rows)
             {
                 Assert.True(item.Bounds.Height >= 30, $"步骤行只有 {item.Bounds.Height:0} 高");
-                Assert.True(item.Bounds.Height + 0.5 >= Card(item).Bounds.Height,
-                    $"行高 {item.Bounds.Height:0} 装不下卡片 {Card(item).Bounds.Height:0}");
-                Assert.True(Card(item).Bounds.Height <= 40,
-                    $"没点中的卡片长到了 {Card(item).Bounds.Height:0}，说明被折成了多行");
+                Assert.True(item.Bounds.Height + 0.5 >= RowLine(item).Bounds.Height,
+                    $"行高 {item.Bounds.Height:0} 装不下卡片 {RowLine(item).Bounds.Height:0}");
+                Assert.True(RowLine(item).Bounds.Height <= 40,
+                    $"没点中的卡片长到了 {RowLine(item).Bounds.Height:0}，说明被折成了多行");
             }
 
             // 点中带长备注的那一步：这一行在原处长高，另一行不动。选的是行上那一步本身，
@@ -1226,10 +1226,10 @@ public class MacroEditorTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(((StepRow)rows[1].DataContext!).ShowsDetail, "行没有标记为展开");
-            Assert.True(Card(rows[1]).Bounds.Height > 40,
-                $"点中的那一行没有展开：{Card(rows[1]).Bounds.Height:0}");
-            Assert.True(Card(rows[0]).Bounds.Height <= 40,
-                $"没点中的那一行跟着长到了 {Card(rows[0]).Bounds.Height:0}");
+            Assert.True(RowLine(rows[1]).Bounds.Height > 40,
+                $"点中的那一行没有展开：{RowLine(rows[1]).Bounds.Height:0}");
+            Assert.True(RowLine(rows[0]).Bounds.Height <= 40,
+                $"没点中的那一行跟着长到了 {RowLine(rows[0]).Bounds.Height:0}");
 
             window.Close();
         });
@@ -1251,7 +1251,7 @@ public class MacroEditorTests
             var item = window.FindControl<TreeView>("StepList")!
                 .GetVisualDescendants().OfType<TreeViewItem>().First();
             var card = item.GetVisualDescendants().OfType<Border>()
-                .First(border => border.Classes.Contains("Card"));
+                .First(border => border.Classes.Contains("StepLine"));
             var badge = card.GetVisualDescendants().OfType<Border>()
                 .First(border => border.Classes.Contains("Accent"));
 

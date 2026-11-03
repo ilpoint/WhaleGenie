@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using Avalonia;
 using Avalonia.Media;
 using WhaleGenie.Localization;
 
@@ -21,9 +22,6 @@ public enum StepRowKind
     /// such row: its steps hang straight under it.
     /// </summary>
     Section,
-
-    /// <summary>The line that closes a block.</summary>
-    Foot,
 }
 
 /// <summary>
@@ -31,11 +29,10 @@ public enum StepRowKind
 /// step that runs other steps holds them, and the nesting is the structure rather than an
 /// indentation worked out from a flat list.
 ///
-/// A node is also the row it is drawn as: a <see cref="StepRowKind.Step"/> is the step itself, a
-/// <see cref="StepRowKind.Section"/> is the title of one list a block runs, and a
-/// <see cref="StepRowKind.Foot"/> is the line that says the block ends there. The foot is the one
-/// thing the tree cannot say on its own — a space below the last child belongs either to the block
-/// or to whatever follows it, and only a row of its own tells the two apart.
+/// A node is also the row it is drawn as: a <see cref="StepRowKind.Step"/> is the step itself and a
+/// <see cref="StepRowKind.Section"/> is the title of one list a block runs. A block has no closing
+/// row: what ends it is the indent, drawn as a guide line down its children and gone on the row
+/// after them.
 /// </summary>
 public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 {
@@ -80,11 +77,32 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 
     public bool IsStep => Kind is StepRowKind.Step;
 
+    /// <summary>
+    /// The indent guides this row draws to its left: one cell per level it is nested in. Cells are
+    /// laid side by side, each 16 wide with a 1px line on its left, so stacked rows line up into a
+    /// continuous guide down a block's body and stop where the block does.
+    /// </summary>
+    public IReadOnlyList<GuideCell> Guides => _guides;
+
+    private IReadOnlyList<GuideCell> _guides = [];
+
+    /// <summary>Width of the guide strip, which is also how far left of the row it starts.</summary>
+    public double GuideWidth => Guides.Count * 16;
+
+    /// <summary>Moves the strip left so its cells land on the indents of the rows it belongs to.</summary>
+    public Thickness GuideMargin => new(-GuideWidth, 0, 0, 0);
+
+    /// <summary>Sets the guides this row draws; called when the row is laid into the tree.</summary>
+    internal void Guide(int depth)
+    {
+        _guides = [.. Enumerable.Range(0, depth).Select(index => new GuideCell(index))];
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Guides)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GuideWidth)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GuideMargin)));
+    }
+
     /// <summary>True on the title of one of a block's lists.</summary>
     public bool IsSection => Kind is StepRowKind.Section;
-
-    /// <summary>True on the line that closes a block.</summary>
-    public bool IsFoot => Kind is StepRowKind.Foot;
 
     /// <summary>True on a step the check has something to say about.</summary>
     public bool HasProblem => Problem.Length > 0;
@@ -172,24 +190,6 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
             ? Step.StepLists.First()
             : null;
 
-    /// <summary>What the line closing this block says, named after the block it closes.</summary>
-    public string FootLabel => Strings.Format("Editor.BlockEnd", Step.DisplayName);
-
-    /// <summary>
-    /// What the button that adds to this list says. A list the catalogue names — the branches of
-    /// a switch — names itself, so the button says "add a branch" rather than "add a step".
-    /// </summary>
-    public string AddHint => Body is { } list
-        && Step.ParameterDefinition(list) is { AddLabelKey.Length: > 0 } definition
-            ? Strings.Get(definition.AddLabelKey)
-            : Strings.Get("Editor.AddInside");
-
-    /// <summary>The short words on the add button at the start of one child-step list.</summary>
-    public string AddLabel => Body is { } list
-        && Step.ParameterDefinition(list) is { AddLabelKey.Length: > 0 } definition
-            ? Strings.Get(definition.AddLabelKey)
-            : Strings.Get("Add.AddStepToBlock");
-
     /// <summary>True on the title of a list that does not hold its first step yet.</summary>
     public bool IsEmptyList => IsSection && List?.Steps.Count == 0;
 
@@ -264,4 +264,11 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
         : string.Empty;
 
     public double RowOpacity => Step.RowOpacity;
+}
+
+/// <summary>One level of the indent guide: a 16-wide cell drawing a 1px line on its left edge.</summary>
+public sealed record GuideCell(int Level)
+{
+    /// <summary>How wide one level is, which is also the indent step the tree uses.</summary>
+    public double Width => 16;
 }
