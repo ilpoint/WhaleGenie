@@ -93,6 +93,15 @@ public static class AppIcons
         "read" => LucideIconKind.TextQuote,
         "before" => LucideIconKind.WandSparkles,
 
+        // 元素与网页
+        "narrowing" => LucideIconKind.ListFilter,
+        "taking" => LucideIconKind.TextQuote,
+        "entry" => LucideIconKind.TextCursorInput,
+        "state" => LucideIconKind.ToggleLeft,
+        "limit" => LucideIconKind.ListOrdered,
+        "address" => LucideIconKind.Globe,
+        "tab" => LucideIconKind.PanelsTopLeft,
+
         // 程序与窗口
         "program" => LucideIconKind.Boxes,
         "options" => LucideIconKind.Settings2,

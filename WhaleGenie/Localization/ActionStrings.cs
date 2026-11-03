@@ -402,7 +402,8 @@ internal static class ActionStrings
 
     /// <summary>How a selector is written, as much of it as every element action says.</summary>
     private const string SelectorPickHint =
-        "也可用“拾取元素”直接在屏幕上拾取控件；每次查找都重新找一遍，元素挪了位置也找得到。";
+        "值里可以写通配符：Button[name='保存*'] 是名字以“保存”开头的按钮，? 表示正好一个字符。"
+        + "也可用“拾取元素”直接在屏幕上拾取控件；每次查找都重新找一遍，元素挪了位置也找得到。";
 
     internal static readonly Dictionary<string, string> Chinese = new()
     {

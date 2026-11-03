@@ -595,13 +595,20 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
             }
 
             var condition = Condition(query);
-            if (condition is null)
+            if (condition is null && !query.HasWildcard)
             {
                 // Only a window was named, so the window itself is the answer.
                 return [root];
             }
 
-            var found = new List<AutomationElement>(root.FindAllDescendants(condition));
+            // 只剩下通配符那几项时条件会是空的：这时一层层走下去，再按 Matches 逐项比。慢一点，
+            // 但名字每次都变的那种元素只有这样才找得到。
+            var candidates = condition is null
+                ? Descendants(root)
+                : root.FindAllDescendants(condition);
+            var found = query.HasWildcard
+                ? [.. candidates.Where(element => Matches(element, query))]
+                : new List<AutomationElement>(candidates);
             if (Matches(root, query))
             {
                 found.Add(root);
@@ -837,17 +844,19 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
 
         void Add(ConditionBase part) => condition = condition is null ? part : condition.And(part);
 
-        if (!string.IsNullOrWhiteSpace(query.Name))
+        // 带通配符的那一项不进条件：提供方只认精确值，把 `保存*` 塞进去会一个都找不到。
+        // 它留到 Matches 里按字面比，其余几项仍旧先把范围缩小。
+        if (!string.IsNullOrWhiteSpace(query.Name) && !TextCompare.HasWildcard(query.Name))
         {
             Add(factory.ByName(query.Name!));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.AutomationId))
+        if (!string.IsNullOrWhiteSpace(query.AutomationId) && !TextCompare.HasWildcard(query.AutomationId))
         {
             Add(factory.ByAutomationId(query.AutomationId!));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.ClassName))
+        if (!string.IsNullOrWhiteSpace(query.ClassName) && !TextCompare.HasWildcard(query.ClassName))
         {
             Add(factory.ByClassName(query.ClassName!));
         }
@@ -863,21 +872,19 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     private static bool Matches(AutomationElement element, UiQuery query)
     {
         if (!string.IsNullOrWhiteSpace(query.Name)
-            && !string.Equals(Read(() => element.Name), query.Name, StringComparison.OrdinalIgnoreCase))
+            && !UiQuery.Answers(Read(() => element.Name), query.Name!))
         {
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(query.AutomationId)
-            && !string.Equals(Read(() => element.AutomationId), query.AutomationId,
-                StringComparison.OrdinalIgnoreCase))
+            && !UiQuery.Answers(Read(() => element.AutomationId), query.AutomationId!))
         {
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(query.ClassName)
-            && !string.Equals(Read(() => element.ClassName), query.ClassName,
-                StringComparison.OrdinalIgnoreCase))
+            && !UiQuery.Answers(Read(() => element.ClassName), query.ClassName!))
         {
             return false;
         }
@@ -893,6 +900,32 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 每一个后代，一层层走下去。只有查询里写着通配符、条件为空时才用它：提供方只认精确值，
+    /// 没法把 `保存*` 交给它去筛，只能自己走一遍。
+    /// </summary>
+    private static IEnumerable<AutomationElement> Descendants(AutomationElement root)
+    {
+        AutomationElement[] children;
+        try
+        {
+            children = root.FindAllChildren();
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            yield break;
+        }
+
+        foreach (var child in children)
+        {
+            yield return child;
+            foreach (var deeper in Descendants(child))
+            {
+                yield return deeper;
+            }
+        }
     }
 
     /// <summary>The kind of control an element is, or null when the provider will not say.</summary>

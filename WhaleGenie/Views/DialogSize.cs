@@ -10,13 +10,20 @@ namespace WhaleGenie.Views;
 /// </summary>
 internal static class DialogSize
 {
+    /// <summary>
+    /// 这张表最窄能站住的宽度，也是它打开时的宽度。两列字段各带一个「表达式」按钮，再窄下去
+    /// 就得折行；宽出来的部分并不让信息变多，只让每一行更长、眼睛要走更远，所以默认就取这一档，
+    /// 需要看清长文字时再自己拉宽。
+    /// </summary>
+    public const double NarrowWidth = 800;
+
     /// <summary>The size the dialog opens at when there is room for it.</summary>
-    public const double WantedWidth = 1024;
+    public const double WantedWidth = NarrowWidth;
 
     public const double WantedHeight = 800;
 
     /// <summary>Below this the four pages stop being readable, so it is never gone below.</summary>
-    public const double SmallestWidth = 900;
+    public const double SmallestWidth = NarrowWidth;
 
     public const double SmallestHeight = 560;
 
@@ -26,7 +33,7 @@ internal static class DialogSize
     /// that give ground; below this they stop being read comfortably, and covering the window would
     /// have been the better trade.
     /// </summary>
-    public const double SmallestBesideWidth = 800;
+    public const double SmallestBesideWidth = NarrowWidth;
 
     /// <summary>
     /// Room left at every edge of the desktop, so the dialog is never flush against it and the

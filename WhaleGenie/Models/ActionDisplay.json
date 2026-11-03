@@ -15127,7 +15127,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15221,7 +15221,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15330,7 +15330,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15444,7 +15444,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15532,7 +15532,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15600,7 +15600,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15708,7 +15708,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15802,7 +15802,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -15915,7 +15915,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -16007,7 +16007,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -16099,7 +16099,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],
@@ -16167,7 +16167,7 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
         "OptionLabels": [],

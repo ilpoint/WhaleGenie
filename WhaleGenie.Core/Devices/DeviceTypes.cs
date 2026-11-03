@@ -336,6 +336,27 @@ public sealed record UiQuery(
     string WindowCompare = TextCompare.Contains,
     TextCompareOptions WindowOptions = default)
 {
+    /// <summary>
+    /// True when a part of the query is written with wildcards, which cannot go into the search
+    /// condition: the provider only knows exact matches. Such a query is answered by walking what
+    /// the rest of it narrows down to and comparing by hand.
+    /// </summary>
+    public bool HasWildcard
+        => TextCompare.HasWildcard(Name)
+            || TextCompare.HasWildcard(AutomationId)
+            || TextCompare.HasWildcard(ClassName);
+
+    /// <summary>
+    /// Whether one property of an element answers to what the query wrote for it: with `*` and `?`
+    /// when the writing has them (`Button[name='保存*']` is "a button whose name starts with 保存"),
+    /// and exactly, letter case aside, when it does not. Exact is the older behaviour and stays the
+    /// one for a selector without wildcards, so nothing written before this changes meaning.
+    /// </summary>
+    public static bool Answers(string? text, string written)
+        => TextCompare.HasWildcard(written)
+            ? TextCompare.Wildcard(text, written)
+            : string.Equals(text, written, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when the query would match anything, which is never what was meant.</summary>
     public bool IsEmpty
         => string.IsNullOrWhiteSpace(Name)

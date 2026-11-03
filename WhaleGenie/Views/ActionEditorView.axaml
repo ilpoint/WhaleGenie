@@ -106,25 +106,24 @@
         <!-- One parameter's editor, shared by every line of the parameter list. -->
         <DataTemplate x:Key="ParameterEditor" x:DataType="vm:StepParameterViewModel">
             <StackPanel>
-                <!-- What is written in this box is read as one value, so an expression may be
-                     written in it. The box looks the same either way, which is why the mark is
-                     there rather than left to the hint under it. -->
-                <StackPanel Orientation="Horizontal">
-                    <!-- 两个小标记，左边一个：算符说这一格按算式读，变量说名字会被换成变量的值。
-                         以前这两句各是一整行写在框下面，一页十来个字段就复述十来遍。图标用界面
-                         已有的线形那一套，比自造的字形更像同一副面孔。 -->
+                <!-- 一行三格：标记、标记、名字。外面这一圈承担原来标签自己的下边距，
+                     三样东西才在同一个 18 高的行盒里居中对齐——把边距留在标签上时，行盒会多出
+                     8 像素，居中的图标就比字低 4 像素，看上去像没对齐。 -->
+                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="3"
+                      Margin="{DynamicResource GapField}">
                     <views:IconView Width="16" Height="16" Data="SquareFunction"
                                    Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"
+                                   VerticalAlignment="Center"
                                    IsVisible="{Binding TakesFormula}"
                                    ToolTip.Tip="{Binding [Add.FieldTakesFormula], Source={x:Static loc:Strings.Current}}" />
-                    <views:IconView Width="16" Height="16" Data="Variable"
+                    <views:IconView Grid.Column="1" Width="16" Height="16" Data="Variable"
                                    Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"
+                                   VerticalAlignment="Center"
                                    IsVisible="{Binding ShowsVariableMark}"
                                    ToolTip.Tip="{Binding [Add.FieldIsText], Source={x:Static loc:Strings.Current}}" />
-                    <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
-                </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="FieldLabel" Margin="0"
+                               Text="{Binding Label}" />
+                </Grid>
 
                 <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <TextBox Classes="Field" Text="{Binding Text}"

@@ -84,9 +84,12 @@ public class ActionEditorWindow : AppWindow
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
         Title = Strings.Get("Editor.ActionEditor");
-        Width = 1024;
+
+        // 默认就按最窄那一档打开：这是一张填字段的表，不是一块要摆开的画布。宽出来的部分
+        // 只是让每一行更长、眼睛要走更远，信息并没有变多；需要看清长文字时再自己拉宽。
+        Width = DialogSize.WantedWidth;
         Height = 800;
-        MinWidth = 800;
+        MinWidth = DialogSize.SmallestWidth;
         MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
