@@ -1004,23 +1004,22 @@
              is, and the name it goes by. The name follows the step's note until it is typed in by
              hand, and a name something else already holds is said out loud rather than left to be
              discovered when two steps write into one variable. -->
-        <!-- 一项结果就是两行小字：叫什么，装的是什么。结构写在名字下面而不是单开一列——
-             单独一列时，短内容（0、true | false）不管是靠左还是靠右，旁边都留着一大片空；
-             写成副标题，两样就近配对，多长的结构都跟着名字走。 -->
+        <!-- 一项结果一行：留下、叫什么、装的是什么、变量名各占一列。结构不缩在名字下面——
+             缩成小字就没人看得清了；宁可旁边空一点，也要能一眼读到它是什么形状。 -->
         <DataTemplate x:Key="ReturnsRowEditor" x:DataType="vm:ReturnsRowViewModel">
             <StackPanel Margin="0,0,0,4">
-                <Grid ColumnDefinitions="48,*,196" ColumnSpacing="8" MinHeight="34">
+                <Grid ColumnDefinitions="48,110,*,196" ColumnSpacing="8" MinHeight="30">
                     <CheckBox IsChecked="{Binding Ticked}" VerticalAlignment="Center"
                               ToolTip.Tip="{Binding Hint}" />
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"
-                                   ToolTip.Tip="{Binding Hint}" />
-                        <TextBlock Classes="Mono" FontSize="10.5" MaxLines="2" TextWrapping="Wrap"
-                                   Foreground="{DynamicResource TextTertiary}"
-                                   Text="{Binding Structure}"
-                                   ToolTip.Tip="{Binding StructureTip}" />
-                    </StackPanel>
-                    <TextBox Grid.Column="2" Classes="Field" Height="30"
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                               Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Hint}" />
+                    <TextBlock Grid.Column="2" Classes="Mono" FontSize="11.5"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Text="{Binding Structure}"
+                               ToolTip.Tip="{Binding StructureTip}" />
+                    <TextBox Grid.Column="3" Classes="Field" Height="30"
                              Text="{Binding Name}" IsEnabled="{Binding Ticked}"
                              ToolTip.Tip="{Binding [Add.ReturnNameHint], Source={x:Static loc:Strings.Current}}" />
                 </Grid>
@@ -1303,13 +1302,16 @@
                                 <Border Classes="Card" Padding="10,8,10,6" Margin="0,6,0,0">
                                     <StackPanel Spacing="6">
                                         <!-- 表头三列，与下面的行同一套列宽：留下、结果、变量名。 -->
-                                        <Grid ColumnDefinitions="48,*,196" ColumnSpacing="8">
+                                        <Grid ColumnDefinitions="48,110,*,196" ColumnSpacing="8">
                                             <TextBlock Classes="ColumnHeader"
                                                        Text="{Binding [Add.ReturnKeep], Source={x:Static loc:Strings.Current}}" />
                                             <TextBlock Grid.Column="1" Classes="ColumnHeader"
                                                        Text="{Binding [Add.ReturnResult], Source={x:Static loc:Strings.Current}}"
                                                        ToolTip.Tip="{Binding [Add.ReturnResultHint], Source={x:Static loc:Strings.Current}}" />
                                             <TextBlock Grid.Column="2" Classes="ColumnHeader"
+                                                       Text="{Binding [Add.ReturnShape], Source={x:Static loc:Strings.Current}}"
+                                                       ToolTip.Tip="{Binding [Add.ReturnShapeHint], Source={x:Static loc:Strings.Current}}" />
+                                            <TextBlock Grid.Column="3" Classes="ColumnHeader"
                                                        Text="{Binding [Add.ReturnName], Source={x:Static loc:Strings.Current}}" />
                                         </Grid>
                                         <Border Height="1" Background="{DynamicResource BorderSubtle}" />
