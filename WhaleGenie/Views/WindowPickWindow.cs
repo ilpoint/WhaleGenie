@@ -536,19 +536,10 @@ public sealed class WindowPickWindow : Window
             return;
         }
 
-        var x = e.X;
-        var y = e.Y;
-
-        // 点在框边或读数上不算取窗口：那是拾取器自己的几像素。
-        if (Handles(new ScreenPoint(x, y)))
-        {
-            return;
-        }
-
-        // 左键只把框挪过去：取走与区域拾取器一样是 F1。点击若落到目标窗口上，
-        // 可能会按到人家的按钮，所以这一下吞掉。
-        e.Suppress = true;
-        Dispatcher.UIThread.Post(() => ProbeAt(x, y));
+        // 左键不拦：拾取器开着的时候，人还要去点别的窗口、点任务栏启动一个应用，把要取的那扇
+        // 摆到前面来，再来按 F1。框的中间本来就是空的，点击落到目标上；取走只由 F1 决定。
+        var at = new ScreenPoint(e.X, e.Y);
+        Dispatcher.UIThread.Post(() => ProbeAt(at.X, at.Y));
     }
 
     private void OnKeyDown(KeyHookEvent e)

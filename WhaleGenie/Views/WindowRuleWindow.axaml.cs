@@ -422,10 +422,20 @@ public partial class WindowRuleWindow : AppWindow
 
     private void OnLocalKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key != Key.Escape)
         {
-            e.Handled = true;
-            Finish(null);
+            return;
         }
+
+        e.Handled = true;
+
+        // 拾取时这个窗口藏起来了，焦点却可能还留在它的某个框里：那一下 Esc 是给拾取器的，
+        // 不能顺手把这个窗口也关掉——关掉之后取完/取消就回不来了。
+        if (_picking)
+        {
+            return;
+        }
+
+        Finish(null);
     }
 }

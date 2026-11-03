@@ -179,6 +179,40 @@ public class WindowRulePickerTests
     }
 
     /// <summary>
+    /// 拾取时左键是放行的：人还要去点别的窗口、点任务栏启动一个应用，把要取的那扇摆到前面来。
+    /// 点击不取走，也不吞掉。
+    /// </summary>
+    [Fact]
+    public void A_click_goes_through_and_does_not_take_the_window()
+    {
+        Ui.Run(() =>
+        {
+            var hook = new KeyHook();
+            var windows = new WindowsForChecks()
+                .Add(7, "Game", "game", "GameClass")
+                .Place(7, 0, 0, 200, 200);
+            var picker = new WindowPickWindow(windows, new ScreenAt(new ScreenPoint(50, 50)), hook);
+            try
+            {
+                picker.Show();
+                Dispatcher.UIThread.RunJobs();
+                picker.ProbeAt(50, 50);
+
+                Assert.False(hook.Click(50, 50));
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Null(picker.Chosen);
+                Assert.True(picker.IsVisible);
+                Assert.Equal(7, picker.Hovered!.Handle);
+            }
+            finally
+            {
+                picker.Close();
+            }
+        });
+    }
+
+    /// <summary>
     /// 一扇没有标题的窗口框得出来，却不该拿去当目标：那只能按句柄认，而句柄是最容易过期的一格。
     /// 拾取器把话说明白，留着继续挑。
     /// </summary>
@@ -583,10 +617,12 @@ public class WindowRulePickerTests
 
         public event Action<KeyHookEvent>? KeyUp;
 
+        private Action<MouseHookEvent>? _mouseDown;
+
         public event Action<MouseHookEvent>? MouseDown
         {
-            add { }
-            remove { }
+            add => _mouseDown += value;
+            remove => _mouseDown -= value;
         }
 
         public event Action<MouseHookEvent>? MouseUp
@@ -611,6 +647,17 @@ public class WindowRulePickerTests
         {
             add { }
             remove { }
+        }
+
+        /// <summary>
+        /// 按下鼠标左键，返回它有没有被拾取器吞掉。取窗口时这一下要放行：人还要去点别的窗口、
+        /// 点任务栏启动应用，所以"吞掉"才是错的。
+        /// </summary>
+        public bool Click(int x, int y, HookMouseButton button = HookMouseButton.Left)
+        {
+            var e = new MouseHookEvent(button, x, y, injected: false);
+            _mouseDown?.Invoke(e);
+            return e.Suppress;
         }
 
         public bool Press(HookKey key, bool down)
