@@ -113,6 +113,7 @@ public sealed partial class MacroRunner
         // the message and the flag on the steps after this one.
         Give(step, "output", Value.FromText(output));
         Give(step, "error", Value.FromText(error));
+        Give(step, "exitCode", Value.FromNumber(exitCode));
         Give(step, "success", Value.FromBool(exitCode == 0));
 
         if (exitCode != 0)
@@ -339,6 +340,7 @@ public sealed partial class MacroRunner
     {
         Give(step, "packages", outcome.Result);
         Give(step, "error", Value.FromText(outcome.Error.Trim()));
+        Give(step, "exitCode", Value.FromNumber(outcome.ExitCode));
         Give(step, "success", Value.FromBool(
             outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
 
@@ -371,6 +373,10 @@ public sealed partial class MacroRunner
     {
         Give(step, resultKey, outcome.Result);
         Give(step, "error", Value.FromText(outcome.Error.Trim()));
+
+        // 退出码单独交回一份，而不是只留一个「成功与否」：脚本常用不同的代码说不同的意思，
+        // 失败规则放行之后，后面的步骤要按它分支就得看得见这个数。
+        Give(step, "exitCode", Value.FromNumber(outcome.ExitCode));
         Give(step, "success", Value.FromBool(
             outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
 

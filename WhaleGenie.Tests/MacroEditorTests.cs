@@ -1166,7 +1166,15 @@ public class MacroEditorTests
             model.SelectDock(ActionPaletteDock.Basic);
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(model.Cards, card => card.Key == "input.keyPress");
-            Assert.DoesNotContain(model.Cards, card => card.Key.StartsWith("control."));
+
+            // 日常那一栏里没有“流程”那一类的动作。判的是分类，不是名字前缀：变量与列表那几个
+            // 动作虽然还叫 control.*，分类早已归到「数据与变量」，它们本来就该在这一栏里。
+            var flow = ActionCatalog.Definitions
+                .Where(action => action.Category == ActionCategory.Control)
+                .Select(action => action.Key)
+                .ToHashSet(StringComparer.Ordinal);
+            Assert.NotEmpty(flow);
+            Assert.DoesNotContain(model.Cards, card => flow.Contains(card.Key));
 
             model.SelectDock(ActionPaletteDock.Flow);
             Dispatcher.UIThread.RunJobs();

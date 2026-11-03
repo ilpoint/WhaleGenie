@@ -492,6 +492,12 @@ public interface ISystemDevice
     void PlaySound(SoundKind kind);
 
     /// <summary>
+    /// 放一个 wav 文件。宏自己带的声音比系统那五声能说的话多得多：一句「做完了」、一段提示音、
+    /// 一声只有自己认得的响。文件不在就失败并说明是哪一个，而不是安静地什么都不放。
+    /// </summary>
+    void PlaySoundFile(string path);
+
+    /// <summary>
     /// Shows a notification beside the notification area, so a macro can say something happened
     /// while the window is out of the way. A machine with its notifications switched off shows
     /// nothing and is left alone; one where the program has nowhere to show it refuses, and the
@@ -1597,6 +1603,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void SetMuted(bool muted) => throw Missing("the sound card");
 
         public void PlaySound(SoundKind kind) => throw Missing("the sound card");
+
+        public void PlaySoundFile(string path) => throw Missing("the sound card");
 
         public void Notify(string title, string text, NotificationKind kind)
             => throw Missing("somewhere to show notifications");

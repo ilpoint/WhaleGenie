@@ -4381,7 +4381,12 @@
           "onAcPower",
           "dpi",
           "dpiPercent",
-          "uptimeSeconds"
+          "uptimeSeconds",
+          "idleSeconds",
+          "isElevated",
+          "freeRamMb",
+          "totalRamMb",
+          "freeDiskMb"
         ],
         "AcceptsVariables": false,
         "ChildKeys": []
@@ -4608,6 +4613,35 @@
     "Returns": []
   },
   {
+    "Key": "system.showDesktop",
+    "Category": "System",
+    "Hidden": false,
+    "SendsInput": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "desktopAction",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "minimizeAll",
+        "Options": [
+          "minimizeAll",
+          "restoreAll"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownDesktopAction"
+      }
+    ],
+    "Returns": []
+  },
+  {
     "Key": "system.volume",
     "Category": "System",
     "Hidden": false,
@@ -4709,6 +4743,20 @@
     "StepTimeoutMs": 0,
     "Parameters": [
       {
+        "Name": "soundSource",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "system",
+        "Options": [
+          "system",
+          "file"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "sound",
         "Shape": "Choice",
         "ReadMode": "Text",
@@ -4725,6 +4773,19 @@
         "AcceptsVariables": false,
         "ChildKeys": [],
         "OptionKey": "Run.UnknownSound"
+      },
+      {
+        "Name": "soundFile",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "Conditional": true,
+        "MissingKey": "Run.MissingPath"
       }
     ],
     "Returns": []
@@ -17418,18 +17479,8 @@
     "StepTimeoutMs": 600000,
     "Parameters": [
       {
-        "Name": "sendsInput",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "kind",
+        "Group": "code",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17450,7 +17501,49 @@
         "OptionKey": "Run.UnknownScriptKind"
       },
       {
+        "Name": "scriptSource",
+        "Group": "code",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "text",
+        "Options": [
+          "text",
+          "file"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "script",
+        "Group": "code",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Conditional": true
+      },
+      {
+        "Name": "scriptFile",
+        "Group": "code",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "Conditional": true
+      },
+      {
         "Name": "encoding",
+        "Group": "code",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17467,56 +17560,20 @@
         "ChildKeys": []
       },
       {
-        "Name": "scriptSource",
-        "Shape": "Choice",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "text",
-        "Options": [
-          "text",
-          "file"
-        ],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "script",
-        "Shape": "Text",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": [],
-        "Conditional": true
-      },
-      {
-        "Name": "scriptFile",
-        "Shape": "Text",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": true,
-        "ChildKeys": [],
-        "Conditional": true
-      },
-      {
-        "Name": "scriptArguments",
-        "Shape": "Text",
+        "Name": "sendsInput",
+        "Group": "code",
+        "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
-        "DefaultValue": "",
+        "DefaultValue": "false",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
       },
       {
         "Name": "interpreter",
+        "Group": "runner",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17528,6 +17585,7 @@
       },
       {
         "Name": "extension",
+        "Group": "runner",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17538,7 +17596,20 @@
         "ChildKeys": []
       },
       {
+        "Name": "scriptArguments",
+        "Group": "passing",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "folder",
+        "Group": "passing",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17587,6 +17658,11 @@
         "Key": "success",
         "Type": "Flag",
         "Primary": false
+      },
+      {
+        "Key": "exitCode",
+        "Type": "Number",
+        "Primary": false
       }
     ]
   },
@@ -17602,18 +17678,8 @@
     "StepTimeoutMs": 600000,
     "Parameters": [
       {
-        "Name": "sendsInput",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "script",
+        "Group": "code",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17624,18 +17690,20 @@
         "ChildKeys": []
       },
       {
-        "Name": "scriptArguments",
-        "Shape": "Text",
+        "Name": "sendsInput",
+        "Group": "code",
+        "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
-        "DefaultValue": "",
+        "DefaultValue": "false",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
       },
       {
         "Name": "python",
+        "Group": "runner",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17646,7 +17714,20 @@
         "ChildKeys": []
       },
       {
+        "Name": "scriptArguments",
+        "Group": "passing",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "folder",
+        "Group": "passing",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17694,6 +17775,11 @@
       {
         "Key": "success",
         "Type": "Flag",
+        "Primary": false
+      },
+      {
+        "Key": "exitCode",
+        "Type": "Number",
         "Primary": false
       }
     ]
@@ -17770,6 +17856,11 @@
         "Key": "success",
         "Type": "Flag",
         "Primary": false
+      },
+      {
+        "Key": "exitCode",
+        "Type": "Number",
+        "Primary": false
       }
     ]
   },
@@ -17785,18 +17876,8 @@
     "StepTimeoutMs": 600000,
     "Parameters": [
       {
-        "Name": "sendsInput",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "script",
+        "Group": "code",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17807,7 +17888,20 @@
         "ChildKeys": []
       },
       {
+        "Name": "sendsInput",
+        "Group": "code",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "scriptArguments",
+        "Group": "passing",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17819,6 +17913,7 @@
       },
       {
         "Name": "folder",
+        "Group": "passing",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17866,6 +17961,11 @@
       {
         "Key": "success",
         "Type": "Flag",
+        "Primary": false
+      },
+      {
+        "Key": "exitCode",
+        "Type": "Number",
         "Primary": false
       }
     ]
@@ -17882,18 +17982,8 @@
     "StepTimeoutMs": 600000,
     "Parameters": [
       {
-        "Name": "sendsInput",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
         "Name": "script",
+        "Group": "code",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17904,18 +17994,20 @@
         "ChildKeys": []
       },
       {
-        "Name": "scriptArguments",
-        "Shape": "Text",
+        "Name": "sendsInput",
+        "Group": "code",
+        "Shape": "Flag",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
-        "DefaultValue": "",
+        "DefaultValue": "false",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
       },
       {
         "Name": "ahk",
+        "Group": "runner",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17926,7 +18018,20 @@
         "ChildKeys": []
       },
       {
+        "Name": "scriptArguments",
+        "Group": "passing",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "folder",
+        "Group": "passing",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -17974,6 +18079,11 @@
       {
         "Key": "success",
         "Type": "Flag",
+        "Primary": false
+      },
+      {
+        "Key": "exitCode",
+        "Type": "Number",
         "Primary": false
       }
     ]
@@ -18038,6 +18148,11 @@
       {
         "Key": "success",
         "Type": "Flag",
+        "Primary": false
+      },
+      {
+        "Key": "exitCode",
+        "Type": "Number",
         "Primary": false
       }
     ]

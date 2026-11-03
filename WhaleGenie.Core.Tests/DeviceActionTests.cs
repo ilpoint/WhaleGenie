@@ -6931,6 +6931,28 @@ public class DeviceActionTests
         Assert.False(store.Local.Values["ok"].Flag);
     }
 
+    /// <summary>
+    /// 退出码单独交回一份。脚本用不同的代码说不同的意思很常见——3 可能是「今天没有要做的事」——
+    /// 只留一个「成功与否」时，这个意思就没了；失败规则放行之后，后面的步骤要按它分支。
+    /// </summary>
+    [Fact]
+    public async Task A_script_hands_over_the_code_it_ended_with()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(3, "nothing to do", string.Empty);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.run", Param("kind", "ps1"), Param("script", "exit 3"),
+                Returns("exitCode=code", "success=ok")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScriptFailed", result.Key);
+        Assert.Equal(3d, store.Local.Values["code"].Number);
+        Assert.False(store.Local.Values["ok"].Flag);
+    }
+
     [Fact]
     public async Task A_script_step_with_nothing_in_it_fails()
     {
@@ -7686,6 +7708,82 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownSound", result.Key);
+        Assert.Empty(Asked(devices));
+    }
+
+    /// <summary>
+    /// 宏自己带的 wav 文件也放得了。相对路径按与别处相同的规则解析——这一步收到的应该是解析之后的
+    /// 全路径，而不是把相对路径原样交给 Windows，那会按程序自己的工作目录去找，找不到。
+    /// </summary>
+    [Fact]
+    public async Task A_sound_can_be_the_file_the_macro_brings()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("system.sound", Param("soundSource", "file"), Param("soundFile", @".\done.wav")),
+        ], devices);
+
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("soundFile ", StringComparison.Ordinal)
+            && call.EndsWith("done.wav", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_sound_file_named_nowhere_fails_the_step_instead_of_playing_nothing()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.sound", Param("soundSource", "file"), Param("soundFile", "  "))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingPath", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("soundFile", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 显示桌面：把没收起来的都收起来，已经收起来的不必再叫一次；反过来做就是把收起来的放回去。
+    /// 任务是按窗口一个一个做的，所以每一下都要有回答，而没有标题的窗口不在名单里。
+    /// </summary>
+    [Fact]
+    public async Task The_desktop_can_be_cleared_and_the_windows_brought_back()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Window.Open.Add(new WindowInfo(1, "Editor",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Browser",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), false, false));
+        devices.Window.Open.Add(new WindowInfo(3, "Already small",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), true, false));
+
+        await RunAsync([Step("system.showDesktop")], devices);
+
+        Assert.Equal(["listWindows", "minimizeWindow 1", "minimizeWindow 2"], devices.Calls);
+
+        devices.Window.Open.Clear();
+        devices.Calls.Clear();
+        devices.Window.Open.Add(new WindowInfo(4, "Editor",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), true, false));
+        devices.Window.Open.Add(new WindowInfo(5, "Browser",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), false, false));
+
+        await RunAsync([Step("system.showDesktop", Param("desktopAction", "restoreAll"))], devices);
+
+        Assert.Equal(["listWindows", "restoreWindow 4"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task Clearing_the_desktop_refuses_a_word_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.showDesktop", Param("desktopAction", "tidy"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownDesktopAction", result.Key);
+
+        // 认不出这个词时什么都没有碰：窗口一个也没动。
         Assert.Empty(Asked(devices));
     }
 

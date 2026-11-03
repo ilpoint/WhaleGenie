@@ -1794,6 +1794,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.UndeclaredArgument` | 被调用的宏没有形参“{0}”，这一步传的值没有去处。 |
 | `Run.UndeclaredResult` | 被调用的宏没有声明要交回“{0}”。 |
 | `Run.UnknownBrightnessAction` | 无法识别这个亮度动作：{0} |
+| `Run.UnknownDesktopAction` | 无法识别这种整理桌面的方式：{0} |
 | `Run.UnknownGamepadButton` | 虚拟手柄没有这个按键：{0} |
 | `Run.UnknownGamepadStick` | 这不是一个手柄摇杆：{0} |
 | `Run.UnknownGamepadTrigger` | 这不是一个手柄扳机：{0} |

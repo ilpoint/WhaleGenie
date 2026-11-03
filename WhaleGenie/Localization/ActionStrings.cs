@@ -1186,6 +1186,11 @@ internal static class ActionStrings
         ["system.info.field.option.dpi"] = "DPI",
         ["system.info.field.option.dpiPercent"] = "缩放百分比",
         ["system.info.field.option.uptimeSeconds"] = "已开机秒数",
+        ["system.info.field.option.idleSeconds"] = "空闲秒数",
+        ["system.info.field.option.isElevated"] = "以管理员身份运行",
+        ["system.info.field.option.freeRamMb"] = "可用内存（MB）",
+        ["system.info.field.option.totalRamMb"] = "内存总量（MB）",
+        ["system.info.field.option.freeDiskMb"] = "系统盘剩余（MB）",
 
         ["screen.list.name"] = "列出显示器",
         ["screen.list.desc"] = "读出桌面是怎么摆的：每一块显示器和它占的那块矩形。",
@@ -1222,6 +1227,14 @@ internal static class ActionStrings
             + "其他选项用不到这个值。",
         ["system.volume.name"] = "音量",
         ["system.volume.desc"] = "读取或调整 Windows 正在用的那只音箱的音量。",
+        ["system.showDesktop.name"] = "显示桌面",
+        ["system.showDesktop.desc"] = "把所有窗口都收起来，或者把收起来的窗口再放回来。",
+        ["system.showDesktop.desktopAction.label"] = "执行",
+        ["system.showDesktop.desktopAction.hint"] = "把所有有标题的窗口都收起来，或者把已经收起来的窗口放回来："
+            + "任务栏最右端那个按钮做的两件事，这里各是一半。宏要在桌面上做点什么、或者要开一个盖在当前窗口上的"
+            + "东西时，先把桌面清出来。它只看得到有标题、看得见的窗口。",
+        ["system.showDesktop.desktopAction.option.minimizeAll"] = "收起所有窗口",
+        ["system.showDesktop.desktopAction.option.restoreAll"] = "放回来",
         ["system.volume.volumeAction.label"] = "执行",
         ["system.volume.volumeAction.hint"] = "执行哪一项：读取、设为指定值、调大、调小、静音、取消静音，默认「读取」。"
             + "这是整台机器的音量，与键盘上的音量键不同：音量键调的是当前有焦点的那个程序。",
@@ -1238,7 +1251,15 @@ internal static class ActionStrings
         ["system.volume.stepPercent.hint"] = "一次调大或调小多少个百分点，范围为 1 到 100，默认 5。只在「调大」和「调小」时使用，"
             + "两端都不会超过 0 和 100。",
         ["system.sound.name"] = "提示音",
-        ["system.sound.desc"] = "播放系统自带的一种提示音。",
+        ["system.sound.desc"] = "播放系统自带的提示音，也可以播放一个 wav 文件。",
+        ["system.sound.soundSource.label"] = "来源",
+        ["system.sound.soundSource.hint"] = "放系统自带的提示音，还是宏自己带的 wav 文件。系统提示音跟着用户选的声音方案走，"
+            + "是他听惯的那一声；文件则原样播放，宏想说什么、系统提示音说不出来的，用这个。",
+        ["system.sound.soundSource.option.system"] = "系统提示音",
+        ["system.sound.soundSource.option.file"] = "wav 文件",
+        ["system.sound.soundFile.label"] = "声音文件",
+        ["system.sound.soundFile.hint"] = "要播放的 wav 文件，按它所在的位置写；相对路径按与别处相同的规则从宏所在的文件夹算起。"
+            + "Windows 自己只放得了 wav，mp3 之类要先转成 wav。这一格可以写变量和表达式。",
         ["system.sound.sound.label"] = "播放",
         ["system.sound.sound.hint"] = "播放哪一种系统提示音，默认「默认提示音」。宏执行完毕或中途出错时，可以用它发出声音，"
             + "不必在屏幕上留下内容。具体是什么声音跟着系统的声音设置走：已经静音的机器没有声音，"
@@ -3713,6 +3734,8 @@ internal static class ActionStrings
         ["script.run.return.success.label"] = "是否执行成功",
         ["script.run.return.success.hint"] = "脚本以退出码 0 结束为真，否则为假。退出码不是 0 时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
+        ["script.run.return.exitCode.label"] = "退出码",
+        ["script.run.return.exitCode.hint"] = "脚本结束时返回的代码，0 通常表示顺利跑完。单独拿出来，是因为脚本常用不同的代码表示不同的意思：3 可以是「今天没有要做的事」，不是失败；失败规则放行之后，后面的步骤就可以按它分支。",
         ["script.run.returns.label"] = "要留下的结果",
         ["script.run.returns.hint"] = ReturnsHintText,
 
@@ -3726,6 +3749,8 @@ internal static class ActionStrings
         ["script.python.return.success.label"] = "是否执行成功",
         ["script.python.return.success.hint"] = "脚本无错误并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
+        ["script.python.return.exitCode.label"] = "退出码",
+        ["script.python.return.exitCode.hint"] = "脚本结束时返回的代码，0 通常表示顺利跑完。单独拿出来，是因为脚本常用不同的代码表示不同的意思：3 可以是「今天没有要做的事」，不是失败；失败规则放行之后，后面的步骤就可以按它分支。",
         ["script.python.returns.label"] = "要留下的结果",
         ["script.python.returns.hint"] = ReturnsHintText,
 
@@ -3736,6 +3761,8 @@ internal static class ActionStrings
         ["script.pip.return.error.hint"] = "pip 没能做成这件事时写在错误输出上的内容。顺利时为空。",
         ["script.pip.return.success.label"] = "是否执行成功",
         ["script.pip.return.success.hint"] = "pip 顺利结束为真，否则为假；失败时这一步也会判失败。",
+        ["script.pip.return.exitCode.label"] = "退出码",
+        ["script.pip.return.exitCode.hint"] = "安装结束时返回的代码，0 表示全都装上了。装了一半时它可以指出是哪一步出的问题。",
         ["script.pip.returns.label"] = "要留下的结果",
         ["script.pip.returns.hint"] = ReturnsHintText,
 
@@ -3749,6 +3776,8 @@ internal static class ActionStrings
         ["script.csharp.return.success.label"] = "是否执行成功",
         ["script.csharp.return.success.hint"] = "脚本编译通过并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
+        ["script.csharp.return.exitCode.label"] = "退出码",
+        ["script.csharp.return.exitCode.hint"] = "脚本结束时返回的代码，0 通常表示顺利跑完。单独拿出来，是因为脚本常用不同的代码表示不同的意思：3 可以是「今天没有要做的事」，不是失败；失败规则放行之后，后面的步骤就可以按它分支。",
         ["script.csharp.returns.label"] = "要留下的结果",
         ["script.csharp.returns.hint"] = ReturnsHintText,
 
@@ -3762,6 +3791,8 @@ internal static class ActionStrings
         ["script.ahk.return.success.label"] = "是否执行成功",
         ["script.ahk.return.success.hint"] = "脚本无错误并执行完毕为真，否则为假。脚本失败时这一步也会判失败，"
             + "所以这一项是在失败策略放行之后读的。",
+        ["script.ahk.return.exitCode.label"] = "退出码",
+        ["script.ahk.return.exitCode.hint"] = "脚本结束时返回的代码，0 通常表示顺利跑完。单独拿出来，是因为脚本常用不同的代码表示不同的意思：3 可以是「今天没有要做的事」，不是失败；失败规则放行之后，后面的步骤就可以按它分支。",
         ["script.ahk.returns.label"] = "要留下的结果",
         ["script.ahk.returns.hint"] = ReturnsHintText,
 
@@ -3774,6 +3805,8 @@ internal static class ActionStrings
             + "或者 NuGet 自己报的错。顺利时为空。",
         ["script.nuget.return.success.label"] = "是否执行成功",
         ["script.nuget.return.success.hint"] = "要的包都就绪为真，否则为假；失败时这一步也会判失败。",
+        ["script.nuget.return.exitCode.label"] = "退出码",
+        ["script.nuget.return.exitCode.hint"] = "安装结束时返回的代码，0 表示全都装上了。",
         ["script.nuget.returns.label"] = "要留下的结果",
         ["script.nuget.returns.hint"] = ReturnsHintText,
 

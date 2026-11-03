@@ -112,6 +112,11 @@ public static class AppIcons
         "picking" => LucideIconKind.Funnel,
         "order" => LucideIconKind.ArrowUpDown,
 
+        // 脚本：跑什么、交给谁跑、传什么给它
+        "code" => LucideIconKind.FileCode,
+        "runner" => LucideIconKind.SquareTerminal,
+        "passing" => LucideIconKind.ArrowRightToLine,
+
         // 程序与窗口
         "program" => LucideIconKind.Boxes,
         "options" => LucideIconKind.Settings2,

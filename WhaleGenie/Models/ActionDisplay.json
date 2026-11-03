@@ -4767,7 +4767,7 @@
       {
         "Key": "exitCode",
         "Label": "Exit code",
-        "Hint": "The code the program ended with; 0 usually means it was happy."
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -5171,7 +5171,7 @@
       {
         "Key": "exitCode",
         "Label": "Exit code",
-        "Hint": "The code the command ended with; 0 usually means it succeeded."
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -5208,7 +5208,12 @@
           "On mains power",
           "DPI",
           "DPI percent",
-          "Seconds since start"
+          "Seconds since start",
+          "Seconds idle",
+          "Running as administrator",
+          "Free memory (MB)",
+          "Memory in total (MB)",
+          "Free space on C: (MB)"
         ],
         "ForeignText": false,
         "Advanced": false,
@@ -5401,6 +5406,37 @@
     "Returns": []
   },
   {
+    "Key": "system.showDesktop",
+    "DisplayName": "Show the desktop",
+    "Description": "Take every open window out of the way, or bring back the ones that were shrunk.",
+    "Parameters": [
+      {
+        "Name": "desktopAction",
+        "Label": "Do what",
+        "Hint": "Shrink every window that has a title, or bring back the ones that were shrunk; these are the two halves of what the button at the far end of the taskbar does. A macro that is about to work through the desktop, or open something over it, clears the way first.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Shrink every window",
+          "Bring them back"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": []
+  },
+  {
     "Key": "system.volume",
     "DisplayName": "Volume",
     "Description": "Read or change the volume of the speakers Windows is using.",
@@ -5510,8 +5546,31 @@
   {
     "Key": "system.sound",
     "DisplayName": "Sound",
-    "Description": "Play one of the sounds this machine plays for an event.",
+    "Description": "Play one of the sounds this machine plays for an event, or a .wav file the macro brings with it.",
     "Parameters": [
+      {
+        "Name": "soundSource",
+        "Label": "Where it comes from",
+        "Hint": "One of the machine's own sounds, or a .wav file the macro brings with it. The machine's own sounds follow the sound scheme the user chose, so they are what they expect to hear; a file is played as the file is, which is how a macro says something no beep says.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "The machine's own sounds",
+          "A .wav file"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
       {
         "Name": "sound",
         "Label": "Play which sound",
@@ -5528,12 +5587,36 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "soundSource",
+        "AppliesWhenValues": [
+          "system"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "soundFile",
+        "Label": "Sound file",
+        "Hint": "The .wav file to play, named where it stands; a path relative to the macros folder is read the way every other path is. Windows plays these itself, so anything else, such as an mp3 or a recording, has to be turned into one first. Reaches into variables and expressions like any other box.",
+        "Placeholder": "C://Windows//Media//notify.wav",
+        "Kind": "Variable",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "soundSource",
+        "AppliesWhenValues": [
+          "file"
+        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 1,
+        "PathFilter": "*.wav",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18251,26 +18334,6 @@
     "Description": "Run a command, a batch file, a PowerShell or an AutoHotkey script, or a program of your own choosing.",
     "Parameters": [
       {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
         "Name": "kind",
         "Label": "Kind of script",
         "Hint": "What this step hands the script to. The three command kinds write the text out as a batch file and run it with cmd.exe: the first one leaves its window open afterwards so what it printed can be read, the second closes the window when the command is done, and the third shows no window at all. The two file kinds and the PowerShell and AutoHotkey kinds run without a window; a program of your own choosing is for anything else the machine has. PowerShell by default.",
@@ -18291,34 +18354,6 @@
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "encoding",
-        "Label": "Script file encoding",
-        "Hint": "How the copy of the script handed to the program is written. Left to decide for itself, a batch file or a command gets this machine's own code page, PowerShell and AutoHotkey get a byte-order mark, and a program of your own choosing gets plain UTF-8, which is what each of them reads correctly. A program that reads the system code page instead, cscript for one, needs GBK to read Chinese text. Reading it as the kind of script expects is the default.",
-        "Placeholder": "",
-        "Kind": "Choice",
-        "OptionLabels": [
-          "As this kind of script expects",
-          "UTF-8",
-          "UTF-8 with BOM",
-          "GBK (Chinese)",
-          "UTF-16"
-        ],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "scriptSource",
-        "AppliesWhenValues": [
-          "text"
-        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -18395,13 +18430,41 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "scriptArguments",
-        "Label": "Arguments",
-        "Hint": "Extra arguments for the script's command line. {{name}} is filled in here as well. Empty, which is the default, passes nothing.",
-        "Placeholder": "first second",
-        "Kind": "Text",
+        "Name": "encoding",
+        "Label": "Script file encoding",
+        "Hint": "How the copy of the script handed to the program is written. Left to decide for itself, a batch file or a command gets this machine's own code page, PowerShell and AutoHotkey get a byte-order mark, and a program of your own choosing gets plain UTF-8, which is what each of them reads correctly. A program that reads the system code page instead, cscript for one, needs GBK to read Chinese text. Reading it as the kind of script expects is the default.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "As this kind of script expects",
+          "UTF-8",
+          "UTF-8 with BOM",
+          "GBK (Chinese)",
+          "UTF-16"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "scriptSource",
+        "AppliesWhenValues": [
+          "text"
+        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
         "OptionLabels": [],
-        "ForeignText": true,
+        "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
@@ -18454,6 +18517,26 @@
         "AppliesWhenAlsoValues": [
           "text"
         ],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scriptArguments",
+        "Label": "Arguments",
+        "Hint": "Extra arguments for the script's command line. {{name}} is filled in here as well. Empty, which is the default, passes nothing.",
+        "Placeholder": "first second",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": true,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -18516,6 +18599,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script ended with exit code 0, false when it did not. A script that ended with anything else fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18524,26 +18612,6 @@
     "DisplayName": "Run Python Script",
     "Description": "Run a Python script, with the macro's values and steps in reach of it while it runs.",
     "Parameters": [
-      {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
       {
         "Name": "script",
         "Label": "Script",
@@ -18565,14 +18633,14 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "scriptArguments",
-        "Label": "Arguments",
-        "Hint": "Extra arguments for the script's command line, which the script finds in sys.argv the way a program started from a command line does. Empty, which is the default, passes nothing.",
-        "Placeholder": "first second",
-        "Kind": "Text",
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
         "OptionLabels": [],
-        "ForeignText": true,
-        "Advanced": false,
+        "ForeignText": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -18600,6 +18668,26 @@
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
         "PathFilter": "*.exe",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scriptArguments",
+        "Label": "Arguments",
+        "Hint": "Extra arguments for the script's command line, which the script finds in sys.argv the way a program started from a command line does. Empty, which is the default, passes nothing.",
+        "Placeholder": "first second",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": true,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18660,6 +18748,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script ran to the end without a mistake, false when it did not. A script that ended badly fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18744,6 +18837,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when pip ended well, false when it did not. A run that ended badly fails the step as well."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18752,26 +18850,6 @@
     "DisplayName": "Run C# Script",
     "Description": "Compile a C# script and run it, with the macro's values and steps in reach of it while it runs.",
     "Parameters": [
-      {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
       {
         "Name": "script",
         "Label": "Script",
@@ -18790,6 +18868,26 @@
         "PathFilter": "",
         "Increment": 1,
         "Tall": true,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
         "AddLabelKey": ""
       },
       {
@@ -18868,6 +18966,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script compiled and ran to the end without a mistake, false when it did not. A script that ended badly fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18876,26 +18979,6 @@
     "DisplayName": "Run AutoHotkey Script",
     "Description": "Run an AutoHotkey script, with the macro's values and steps in reach of it while it runs.",
     "Parameters": [
-      {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
       {
         "Name": "script",
         "Label": "Script",
@@ -18917,14 +19000,14 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "scriptArguments",
-        "Label": "Arguments",
-        "Hint": "Extra arguments for the script's command line, which the script finds in A_Args the way a program started from a command line does. Empty, which is the default, passes nothing.",
-        "Placeholder": "first second",
-        "Kind": "Text",
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
         "OptionLabels": [],
-        "ForeignText": true,
-        "Advanced": false,
+        "ForeignText": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -18952,6 +19035,26 @@
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
         "PathFilter": "*.exe",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scriptArguments",
+        "Label": "Arguments",
+        "Hint": "Extra arguments for the script's command line, which the script finds in A_Args the way a program started from a command line does. Empty, which is the default, passes nothing.",
+        "Placeholder": "first second",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": true,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -19012,6 +19115,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script ran to the end without a mistake, false when it did not. A script that ended badly fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -19076,6 +19184,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when everything asked for is there and ready, false when it is not. A run that ended badly fails the step as well."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },

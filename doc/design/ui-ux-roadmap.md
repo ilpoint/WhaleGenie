@@ -116,6 +116,45 @@
 会报 `Run.Unsupported`。现在 `DispatchData` 开头把 `control.*` 交回 `DispatchControl`：分类只管分栏，
 不决定哪段代码回答它。
 
+## 对比过的脚本与系统动作
+
+脚本 6 个、系统 9 个（本轮变成 10 个）。这一批对的是 Power Automate Desktop、AutoHotkey v2 与
+Keyboard Maestro：
+
+| | Power Automate Desktop | AutoHotkey v2 | 我们（改前） |
+|---|---|---|---|
+| 跑脚本 | Run PowerShell / Python / VBScript / JavaScript / .NET / DOS | `Run` | `script.run`（cmd/bat/ps1/ahk/自有解释器）加 python、C#、AHK 三个专用动作 |
+| 装依赖 | 无（自己调 pip） | 无 | `script.pip`、`script.nuget` |
+| 交回结果 | 输出到变量 | 输出、`ExitApp` 的代码 | 输出、错误、成功与否，**没有退出码** |
+| 系统声音 | Play sound：系统声**或 wav 文件** | `SoundPlay`、`SoundBeep` | 只有五声系统提示音 |
+| 显示桌面 | Show desktop：最小化 / 还原全部 | `WinMinimizeAll`、`WinMinimizeAllUndo` | **没有** |
+| 机器事实 | 屏幕分辨率、默认打印机 | `A_TimeIdle`、`A_IsAdmin`、`DriveSpaceFree` | 22 项，用户名到开机秒数 |
+| 环境变量 | Get / Set / Delete | `EnvGet`、`EnvSet` | 只读 |
+| 注册表 | Open / Read / Write / Create / Delete 六个动作 | `RegRead`、`RegWrite`、`RegDelete` | 无 |
+
+**补了四处真的缺的：**
+
+- **脚本交回退出码**：`command.run` 早就有 `exitCode`，脚本一族只给「成功与否」。引擎本来就算着这个数
+  （`ScriptResult.ExitCode`），只是没交出去。脚本用不同代码说不同意思是常事（3 可以是「今天没有要做的
+  事」），失败规则放行之后没法分支，等于把这层意思丢了。五个脚本动作都补上。
+- **提示音能放自己的文件**：系统那五声说不出一句「你的活儿好了」。PAD 与 AHK 都能放 wav，我们只能五选一。
+  补 `soundSource`（系统提示音 / wav 文件）与 `soundFile`（路径，按与别处相同的规则解析相对路径）。
+  Windows 自己只放得了 wav，这一点写在提示里。
+- **显示桌面**：`system.showDesktop`，收起来或者放回来，就是任务栏最右端那个按钮的两半。实现落在已有的
+  窗口设备上（列窗口，逐个最小化 / 还原），不新增系统调用，也因此在测试里跑得起来。
+- **五个机器事实**：`idleSeconds`（键盘鼠标多久没动，对应 `A_TimeIdle`）、`isElevated`（是不是拿着管理员
+  权限，对应 `A_IsAdmin`）、`freeRamMb`、`totalRamMb`、`freeDiskMb`。前两个是宏最常问的两件事：人走了
+  没有，以及我能不能写这里。
+
+**没做的两项，写明理由：**
+
+- **注册表读写**：PAD 有六个动作，AHK 有三条命令。真要做，得先有一套路径校验与「只碰 HKCU」的默认，
+  否则宏能悄悄改掉整台机器的行为；它与「录一遍操作」的定位也离得远。记为后续项。
+- **环境变量写入**：`process.start` 已经能给子进程单独设环境，`system.environment` 只读。写用户级或机器级
+  变量要广播 `WM_SETTINGCHANGE` 才当场生效，且会影响此后所有程序，比读重得多。同样记为后续项。
+
+屏幕分辨率与默认打印机不做：前者改的是整台机器的显示方式，后者要配合「打印一份文档」才自洽。
+
 ## 分类与动作
 
 | 分组 | 动作数 | 现在的状态 | 下一步 |
@@ -177,6 +216,7 @@ narrowing / limit / address / tab`，图标补齐。只问一件事的动作（`
 3. **元素族**：`uia.*` 与 `browser.*` 共 37 个，共用"元素（选择器 / 拾取）+ 动作 + 等待"。
 3b. **数据、文件、剪贴板已分块**（本轮）：按「哪个变量 / 从哪儿读 / 存到哪儿 → 挑哪些 → 怎么读 / 怎么写 → 怎么排」重排；新块 `variable / source / clash / doing / reading / writing / picking / order`。补 `file.appendLog.encoding` 与 `file.listFiles.kind`（详见上一节）；修好 `control.*` 归到 `Data` 后引擎分派不到的问题。
 4. **数据与文件**：`data.*`、`file.*`、`clipboard.*` 共 39 个，共用"来源 → 处理 → 落到哪"。
+5b. **脚本与系统已分块**（本轮）：`script.run`、`python`、`csharp`、`ahk` 按「跑什么，交给谁跑，传什么给它」重排（`pip` 与 `nuget` 只有装什么、交给谁两格，不分块）；系统族补了 `system.showDesktop` 与 `soundSource`、`soundFile`，`system.info` 多五项。详见上一节。
 5. **脚本与系统**：`script.*`、`system.*` 共 15 个，代码框与危险确认。
 6. **流程**：`control.*` 24 个，条件行表与 `try` 的失败策略。
 

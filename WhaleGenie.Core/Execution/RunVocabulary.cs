@@ -201,6 +201,7 @@ public static class RunKeys
     public const string UndeclaredArgument = "Run.UndeclaredArgument";
     public const string UndeclaredResult = "Run.UndeclaredResult";
     public const string UnknownBrightnessAction = "Run.UnknownBrightnessAction";
+    public const string UnknownDesktopAction = "Run.UnknownDesktopAction";
     public const string UnknownGamepadButton = "Run.UnknownGamepadButton";
     public const string UnknownGamepadStick = "Run.UnknownGamepadStick";
     public const string UnknownGamepadTrigger = "Run.UnknownGamepadTrigger";
@@ -302,6 +303,8 @@ public static class LogKeys
     public const string CopiedImageToClipboard = "Log.CopiedImageToClipboard";
     public const string CopiedToClipboard = "Log.CopiedToClipboard";
     public const string DeletedFile = "Log.DeletedFile";
+    public const string DesktopCleared = "Log.DesktopCleared";
+    public const string DesktopRestored = "Log.DesktopRestored";
     public const string Detected = "Log.Detected";
     public const string DetectedNothing = "Log.DetectedNothing";
     public const string ElementChecked = "Log.ElementChecked";
