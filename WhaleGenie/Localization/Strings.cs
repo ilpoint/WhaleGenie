@@ -550,8 +550,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowRule.Title"] = "Capture a window",
         ["WindowRule.CaptureHint"] =
             "Pick a window on the left, or press “Pick a window” and point at one on the desktop: "
-            + "it is framed as the pointer moves over it, and a click takes it. F1 does the same, "
-            + "Esc cancels.",
+            + "it is framed as the pointer moves over it, and F1 takes it. Esc cancels.",
         ["WindowRule.Waiting"] = "No window chosen yet: pick one on the left, or point at one on the desktop.",
         ["WindowRule.None"] = "Nothing was picked. This field keeps the window it had.",
         ["WindowRule.Captured"] = "Window chosen. Pick the part that identifies it, and check what it matches below.",
@@ -576,6 +575,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPick.Untitled"] = "A window with no title",
         ["WindowPick.NoTitle"] =
             "This window has no title, so it could only be matched by handle. Point at another one.",
+        ["WindowPick.Confirm"] = "F1 confirms · Esc cancels",
         ["WindowRule.Matches"] = "{0} window(s) match now.",
         ["WindowRule.More"] = "…and {0} more.",
         ["WindowRule.BadPattern"] = "The matching pattern cannot be read.",
@@ -2781,7 +2781,7 @@ public sealed class Strings : INotifyPropertyChanged
             "字段中写有变量，其取值要等宏运行后确定，这里按字面显示。",
         ["Add.WindowPreview.Unreadable"] = "现在读不到窗口列表。",
         ["WindowRule.Title"] = "获取窗口",
-        ["WindowRule.CaptureHint"] = "在左边挑一个窗口，或者按「取窗口」到桌面上点一下：指针移到哪扇窗口，它就被框出来，点一下即取。F1 也是这个动作，Esc 取消。",
+        ["WindowRule.CaptureHint"] = "在左边挑一个窗口，或者按「取窗口」到桌面上指一扇：指针移到哪扇窗口，它就被框出来，按 F1 确认。Esc 取消。",
         ["WindowRule.Waiting"] = "还没选窗口：在左边挑一个，或者到桌面上点一扇。",
         ["WindowRule.None"] = "没有取到窗口，这一格保持原样。",
         ["WindowRule.Captured"] = "已选好窗口。挑一项认出它，下面就是现在会认到的窗口。",
@@ -2805,6 +2805,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPick.Empty"] = "这里没有窗口。",
         ["WindowPick.Untitled"] = "没有标题的窗口",
         ["WindowPick.NoTitle"] = "这扇窗口没有标题，只能按句柄认。换一扇有标题的。",
+        ["WindowPick.Confirm"] = "F1 确认 · Esc 取消",
         ["WindowRule.Matches"] = "现在会认到 {0} 个窗口。",
         ["WindowRule.More"] = "……还有 {0} 个。",
         ["WindowRule.BadPattern"] = "这条匹配模式读不出来。",

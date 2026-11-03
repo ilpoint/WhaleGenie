@@ -1637,7 +1637,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("ocr.recognize", Param("rect", "$spot"),
+            Step("ocr.recognize", RegionFrom("$spot"),
                 Returns("text=words")),
         ], devices);
 
@@ -1646,6 +1646,27 @@ public class DeviceActionTests
         var asked = devices.Screen.Captures[^1];
         Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal("42", store.Local.Values["words"].AsText());
+    }
+
+    /// <summary>
+    /// 搜索范围写下几处时，每一处都读：同一段话分在两个框里，读出来的仍是一句话。
+    /// </summary>
+    [Fact]
+    public async Task Reading_looks_at_every_place_the_search_region_names()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#FFFFFF");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("ocr.recognize", Region((0, 0, 10, 10), (20, 20, 10, 10)),
+                Returns("text=words")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, devices.Screen.Captures.Count);
+        Assert.Equal("42 42", store.Local.Values["words"].AsText());
     }
 
     /// <summary>
@@ -1695,7 +1716,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
-            Step("ocr.recognize", Param("rect", "get($table, 0)"),
+            Step("ocr.recognize", RegionFrom("get($table, 0)"),
                 Returns("text=words")),
         ], devices);
 

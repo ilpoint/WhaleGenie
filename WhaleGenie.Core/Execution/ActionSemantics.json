@@ -13279,74 +13279,43 @@
         "ChildKeys": []
       },
       {
-        "Name": "x",
+        "Name": "region",
         "Group": "area",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
+        "Shape": "Rows",
+        "ReadMode": "Text",
         "Picker": "Region",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "y",
-        "Group": "area",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "Zero",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "width",
-        "Group": "area",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "ToEdge",
-        "Minimum": 1,
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "height",
-        "Group": "area",
-        "Shape": "Number",
-        "Unit": "Pixels",
-        "EmptyMeans": "ToEdge",
-        "Minimum": 1,
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "rect",
-        "Group": "area",
-        "Shape": "Rect",
-        "ReadMode": "WholeValue",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "content",

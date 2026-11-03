@@ -146,6 +146,39 @@ public class WindowRulePickerTests
     }
 
     /// <summary>
+    /// 取走窗口与框选区域是同一套确认方式：悬浮时框住它，按 F1 确认，Esc 走开。左键不再取走，
+    /// 免得点在目标窗口上顺手按到人家的按钮。
+    /// </summary>
+    [Fact]
+    public void F1_takes_the_window_that_is_framed()
+    {
+        Ui.Run(() =>
+        {
+            var hook = new KeyHook();
+            var windows = new WindowsForChecks()
+                .Add(7, "Game", "game", "GameClass")
+                .Place(7, 100, 100, 300, 200);
+            var picker = new WindowPickWindow(windows, new ScreenAt(new ScreenPoint(150, 150)), hook);
+            try
+            {
+                picker.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                picker.ProbeAt(150, 150);
+                var f1 = KeyNames.Resolve("F1")!.Value;
+                Assert.True(hook.Press(f1, down: true));
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(7, picker.Chosen!.Handle);
+            }
+            finally
+            {
+                picker.Close();
+            }
+        });
+    }
+
+    /// <summary>
     /// 一扇没有标题的窗口框得出来，却不该拿去当目标：那只能按句柄认，而句柄是最容易过期的一格。
     /// 拾取器把话说明白，留着继续挑。
     /// </summary>

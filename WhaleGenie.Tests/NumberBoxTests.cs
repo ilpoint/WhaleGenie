@@ -182,7 +182,6 @@ public class NumberBoxTests
 
     [Theory]
     [InlineData("vision.capture")]
-    [InlineData("ocr.recognize")]
     public void The_button_that_drags_a_whole_rectangle_stands_above_its_numbers(string key)
     {
         Ui.Run(() =>

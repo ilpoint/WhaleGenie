@@ -2382,22 +2382,9 @@ internal static class ActionStrings
 
         // ---------------------------------------------------------------------- ocr
         ["ocr.recognize.name"] = "识别文字",
-        ["ocr.recognize.desc"] = "识别屏幕某块区域里的文字；四个数都不填就是整块屏幕。",
-        ["ocr.recognize.x.label"] = "左上角 X",
-        ["ocr.recognize.x.hint"] = "要读的那块屏幕的左边界距屏幕左边多少像素；识别方式选窗口"
-            + "时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
-            + "用「框选区域」拖一次会把四个数一起填好。",
-        ["ocr.recognize.y.label"] = "左上角 Y",
-        ["ocr.recognize.y.hint"] = "要读的那块屏幕的上边界距屏幕上边多少像素；识别方式选窗口"
-            + "时，从窗口自己的上边算起。留空就从那条边开始。",
-        ["ocr.recognize.width.label"] = "向右的宽",
-        ["ocr.recognize.width.hint"] = "要读的那块屏幕有多宽，单位像素，至少 1；从左上角向右"
-            + "量，留空就一直量到屏幕右边缘。",
-        ["ocr.recognize.height.label"] = "向下的高",
-        ["ocr.recognize.height.hint"] = "要读的那块屏幕有多高，单位像素，至少 1；从左上角向下"
-            + "量，留空就一直量到屏幕下边缘。",
-        ["ocr.recognize.rect.label"] = "矩形",
-        ["ocr.recognize.rect.hint"] = "一条说明矩形的记录：命中、窗口、截图都带着 left、top、width、height，单位是屏幕像素；要读刚找到或刚截下的那一块时填它。填了记录，旁边四格数字不参与，也不再写进宏文件。",
+        ["ocr.recognize.desc"] = "识别屏幕上几块区域里的文字；一处都不填就是整块屏幕。",
+        ["ocr.recognize.region.label"] = "搜索区域",
+        ["ocr.recognize.region.hint"] = RegionHintText,
         ["ocr.recognize.content.label"] = "读取内容",
         ["ocr.recognize.content.hint"] = ContentHint,
         ["ocr.recognize.contentPattern.label"] = ContentPatternLabel,

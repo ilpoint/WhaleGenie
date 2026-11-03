@@ -1705,11 +1705,11 @@ public partial class AddActionViewModel : ViewModelBase
     {
         // Which field owns the region button is a fact of the action catalogue: the picker fills
         // the corner and the size together, or the one field that holds the whole rectangle.
+        // 一个列表（搜索区域）不给顶上的按钮：它的每一行都有自己的「框选区域」，顶上再放一个
+        // 只是把"加一处"说两遍。这里只认"四个数字 + 一个框选"那一种动作。
         var anchor = Parameters.FirstOrDefault(parameter =>
-                         parameter.Definition.Picker is ActionPickerKind.Region
-                         && parameter.Definition.Kind is not ActionParameterKind.Region)
-                     ?? Parameters.FirstOrDefault(parameter =>
-                         parameter.Definition.Picker is ActionPickerKind.Region);
+            parameter.Definition.Picker is ActionPickerKind.Region
+            && parameter.Definition.Kind is not ActionParameterKind.Region);
 
         if (anchor is not null)
         {

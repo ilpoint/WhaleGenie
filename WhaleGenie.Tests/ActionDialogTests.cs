@@ -337,7 +337,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            foreach (var key in new[] { "vision.capture", "ocr.recognize" })
+            foreach (var key in new[] { "vision.capture" })
             {
                 var viewModel = Open(key);
 
@@ -1091,6 +1091,32 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 识别文字的"搜索范围"与找色、找字那几个动作是同一个结构：一处一行，四个数、或者一个变量，
+    /// 行末可以删掉，下面可以再加一处。从前它是四个独立数字，与别处对不上，也没有"再找一处"。
+    /// </summary>
+    [Fact]
+    public void The_search_region_of_a_reading_step_is_a_list_of_places()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var region = Field(viewModel, "region")!;
+
+            Assert.True(region.IsRegion);
+            Assert.Empty(region.Regions);
+            Assert.DoesNotContain(viewModel.Rows, line => line.IsQuad);
+
+            // 一处：四个数，或者一个变量说出了整块矩形。
+            region.AddRegion(new RegionRowViewModel());
+            Assert.Single(region.Regions);
+            Assert.True(region.HasRegions);
+
+            region.Regions[0].OrVariable = "$shot";
+            Assert.Equal("$shot", region.Regions[0].OrVariable);
+        });
+    }
+
+    /// <summary>
     /// 一个矩形的四个数站在同一行：左上角、宽、高。原来两两一行，每个数字底下还各带一段说明，
     /// 四个数占掉一整屏；现在与"搜索区域"那一行同一个样子，短名、框、ƒ，说明在提示里。
     /// 格子里写的东西要真的回到步骤的参数上，反过来也一样。
@@ -1100,7 +1126,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("ocr.recognize");
+            var viewModel = Open("vision.capture");
 
             var row = Assert.Single(viewModel.Rows, line => line.IsQuad);
             Assert.Equal(["x", "y", "width", "height"],
@@ -1642,10 +1668,7 @@ public class ActionDialogTests
     }
 
     [Theory]
-    [InlineData("ocr.findText", "region")]
-    [InlineData("vision.findImage", "region")]
     [InlineData("vision.capture", "x")]
-    [InlineData("ocr.recognize", "x")]
     [InlineData("input.mouseDrag", "startX")]
     public void The_region_picker_sits_on_the_row_that_names_a_rectangle(string key, string anchor)
     {
@@ -1683,7 +1706,7 @@ public class ActionDialogTests
                 button => button.IsEffectivelyVisible
                     && Equals(button.Content, Strings.Get("Add.PickRegionDrag")));
 
-            var region = Open("ocr.recognize");
+            var region = Open("vision.capture");
             var regionRow = region.Rows.First(row => row.First.Definition.Name == "x");
 
             Assert.Equal(Strings.Get("Add.PickRegion"), regionRow.RegionPickerLabel);
@@ -1729,8 +1752,9 @@ public class ActionDialogTests
         var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
             "ActionEditorView.axaml.cs"));
 
-        Assert.Contains("RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds)", code,
-            StringComparison.Ordinal);
+        Assert.Contains(
+            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows,",
+            code, StringComparison.Ordinal);
         Assert.DoesNotContain("RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, bounds, bounds)", code,
             StringComparison.Ordinal);
     }
@@ -1743,7 +1767,7 @@ public class ActionDialogTests
             "ActionEditorView.axaml.cs"));
 
         Assert.Contains(
-            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial, null, target.Handle)",
+            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial,",
             code, StringComparison.Ordinal);
     }
 
@@ -1754,7 +1778,6 @@ public class ActionDialogTests
     /// written as a formula of its own.
     /// </summary>
     [Theory]
-    [InlineData("ocr.recognize")]
     [InlineData("vision.capture")]
     public void A_rectangle_fills_the_one_region_a_step_reads(string key)
     {
@@ -1769,6 +1792,27 @@ public class ActionDialogTests
             Assert.Equal("30", Value(viewModel, "width"));
             Assert.Equal("40", Value(viewModel, "height"));
             Assert.Contains("x", viewModel.Rows.SelectMany(Names));
+        });
+    }
+
+    /// <summary>
+    /// 识别文字的范围是一张列表：拖一次就多一处，与找色、找字一样。
+    /// </summary>
+    [Fact]
+    public void A_rectangle_adds_a_place_to_what_a_reading_step_reads()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var region = Field(viewModel, "region")!;
+
+            Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
+
+            var row = Assert.Single(region.Regions);
+            Assert.Equal("10", row.X.Text);
+            Assert.Equal("20", row.Y.Text);
+            Assert.Equal("30", row.Width.Text);
+            Assert.Equal("40", row.Height.Text);
         });
     }
 
@@ -1893,7 +1937,6 @@ public class ActionDialogTests
     [InlineData("vision.getPixel", "place", "x")]
     [InlineData("vision.waitColor", "place", "x")]
     [InlineData("vision.capture", "rect", "x")]
-    [InlineData("ocr.recognize", "rect", "x")]
     [InlineData("window.move", "rect", "x")]
     [InlineData("input.mouseDrag", "startPlace", "startX")]
     [InlineData("input.mouseDrag", "endPlace", "endX")]

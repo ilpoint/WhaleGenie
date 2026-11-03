@@ -380,6 +380,15 @@ public class ActionPageTests
             var basic = viewModel.Rows.SelectMany(Names).ToList();
             var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
+            if (action == "ocr.recognize")
+            {
+                // 识别文字与"搜索区域"那几行同一个结构：一处一行，四个数、或者一个变量。
+                Assert.Contains("region", basic);
+                Assert.DoesNotContain("x", basic);
+                Assert.DoesNotContain("region", advanced);
+                return;
+            }
+
             Assert.Contains("x", basic);
             Assert.Contains("y", basic);
             Assert.Contains("width", basic);

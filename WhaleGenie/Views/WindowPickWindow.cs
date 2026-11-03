@@ -34,6 +34,7 @@ public sealed class WindowPickWindow : Window
     /// A name that does not resolve leaves a key nothing can match, which is the safe way round.
     /// </summary>
     private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
+    private static readonly HookKey F1 = KeyNames.Resolve("F1") ?? default;
 
     private readonly IWindowDevice _windows;
     private readonly IScreenDevice _screen;
@@ -205,7 +206,9 @@ public sealed class WindowPickWindow : Window
         }
 
         Hovered = found;
-        _readoutText.Text = found is null ? Strings.Get("WindowPick.Empty") : Describe(found);
+        _readoutText.Text = found is null
+            ? Strings.Get("WindowPick.Empty")
+            : Describe(found) + Environment.NewLine + Strings.Get("WindowPick.Confirm");
         Outline(found);
         PlaceReadout(new ScreenPoint(x, y));
     }
@@ -314,6 +317,7 @@ public sealed class WindowPickWindow : Window
             _readoutText.Foreground = Brushes.White;
             _readoutText.FontSize = 12;
             _readoutText.MaxWidth = 460;
+            _readoutText.TextWrapping = TextWrapping.Wrap;
             _readoutText.TextTrimming = TextTrimming.CharacterEllipsis;
 
             _readout = new Window
@@ -541,16 +545,21 @@ public sealed class WindowPickWindow : Window
             return;
         }
 
+        // 左键只把框挪过去：取走与区域拾取器一样是 F1。点击若落到目标窗口上，
+        // 可能会按到人家的按钮，所以这一下吞掉。
         e.Suppress = true;
-        Dispatcher.UIThread.Post(() =>
-        {
-            ProbeAt(x, y);
-            Confirm();
-        });
+        Dispatcher.UIThread.Post(() => ProbeAt(x, y));
     }
 
     private void OnKeyDown(KeyHookEvent e)
     {
+        if (e.Key == F1)
+        {
+            e.Suppress = true;
+            Dispatcher.UIThread.Post(Confirm);
+            return;
+        }
+
         if (e.Key != Escape)
         {
             return;

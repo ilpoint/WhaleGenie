@@ -256,6 +256,12 @@ if ($missing) { $missing; exit 1 }
   一起写，只写 `Text` 会让框里有字、步骤却是空的。
 - 拾取窗口的检查用 `WindowRuleWindow.Picking` 换掉桌面那一步，不真的让位与指窗口；拾取器本身
   （`WindowPickWindow`）用 `ProbeAt`/`Confirm` 驱动，和元素拾取器一样。
+- 拾取器的确认键要从 `IInputHook` 读，不能只靠窗口自己的 `KeyDown`：拾取器开在最上面，但 Windows
+  不保证把前台交给它，交不出去时 F1/Esc 就落到别的窗口上了。`RegionPickerWindow` 与 `WindowPickWindow`
+  都同时挂了钩子与窗口按键，`Finish` 只做一次。
+- `ocr.recognize` 的矩形是一张 `region` 列表（与找色、找字同一个参数），不再有 `x`/`y`/`width`/`height`/`rect`。
+  核心测试用 `Region((x, y, w, h))` 或 `RegionFrom("$record")`，界面测试看 `StepParameterViewModel.Regions`
+  与 `ApplyRegion`（它往列表里加一行）。`vision.capture` 仍是四个数，两边的界面结构不同是有意的。
 
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或

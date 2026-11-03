@@ -522,7 +522,6 @@ public class ActionContractTests
             ("input.mouseDrag", "startPlace", ActionValueShape.Point),
             ("input.mouseDrag", "endPlace", ActionValueShape.Point),
             ("vision.capture", "rect", ActionValueShape.Rect),
-            ("ocr.recognize", "rect", ActionValueShape.Rect),
             ("window.move", "rect", ActionValueShape.Rect),
         ];
 

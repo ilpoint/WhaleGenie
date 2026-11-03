@@ -31,8 +31,8 @@ public sealed class PointPickerWindow : Window
     private readonly IUiDevice _ui;
     private readonly WindowRule? _target;
     private readonly IInputHook? _hookSource;
-    // 30 帧就够跟手了：指针的感觉来自十字线，不是来自每 16ms 去问一次另一个进程。
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(33) };
+    // 60 帧：放大镜与读数要贴着指针走，慢了就像拖着一块湿布。跨进程那一步已经不在每帧里。
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
 
     private readonly Canvas _overlay = new() { Name = "Overlay", IsHitTestVisible = false };
     private readonly Canvas _crosshair = new() { Name = "Crosshair", IsVisible = false };
@@ -89,6 +89,10 @@ public sealed class PointPickerWindow : Window
     /// <summary>The readout as it stands, so the same words are not laid out again every tick.</summary>
     private string _readoutShown = string.Empty;
 
+    /// <summary>Where the pointer was drawn last, so a pointer that has not moved costs nothing.</summary>
+    private ScreenPoint _drawnAt;
+    private bool _haveDrawn;
+
     /// <summary>
     /// The crosshair over just what it reads: the screen it draws from, the windows it measures
     /// against and the element under the pointer. Taking those four rather than the whole device
@@ -143,7 +147,7 @@ public sealed class PointPickerWindow : Window
         root.Children.Add(_overlay);
         Content = root;
 
-        _timer.Tick += (_, _) => Follow();
+        _timer.Tick += (_, _) => FollowIfMoved();
     }
 
     internal ScreenPoint? Chosen { get; private set; }
@@ -285,6 +289,28 @@ public sealed class PointPickerWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
+
+    /// <summary>
+    /// 每帧只做指针真的挪了的那一次：指针停着时重画一遍十字线、重排一遍读数，看不到任何变化，
+    /// 却正是先前"发滞"的来源之一。`Follow` 本身仍旧强制跑一次，检查要靠它。
+    /// </summary>
+    private void FollowIfMoved()
+    {
+        if (_done)
+        {
+            return;
+        }
+
+        var at = _screen.Cursor;
+        if (_haveDrawn && at.X == _drawnAt.X && at.Y == _drawnAt.Y)
+        {
+            return;
+        }
+
+        _drawnAt = at;
+        _haveDrawn = true;
+        Follow();
+    }
 
     private void Follow()
     {

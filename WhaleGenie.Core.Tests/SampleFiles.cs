@@ -189,10 +189,10 @@ internal static class SampleFiles
         params ExecutableParameter[] rest)
         => Step("vision.capture", [.. Coords(x, y, width, height), .. rest]);
 
-    /// <summary>Reads one part of the screen: the four numbers it covers, then the rest of its settings.</summary>
+    /// <summary>Reads one part of the screen: a row of the search region, then the rest of its settings.</summary>
     public static ExecutableStep Recognize(int x, int y, int width, int height,
         params ExecutableParameter[] rest)
-        => Step("ocr.recognize", [.. Coords(x, y, width, height), .. rest]);
+        => Step("ocr.recognize", [Region((x, y, width, height)), .. rest]);
 
     /// <summary>
     /// Copies the whole screen: a step that names no rectangle at all, which is how one is written

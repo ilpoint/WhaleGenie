@@ -8,6 +8,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using WhaleGenie.Core.Devices;
@@ -114,6 +115,16 @@ public partial class RegionPickerWindow : Window
 
     private double _scaling = 1;
 
+    /// <summary>
+    /// 键盘从钩子读而不是从这个窗口读：拾取器开在最上面，但 Windows 不保证把前台交给它，
+    /// 交不出去的时候 F1 与 Esc 就落到了别的窗口上，看起来像"按了没反应"。钩子读得到。
+    /// </summary>
+    private static readonly HookKey F1 = KeyNames.Resolve("F1") ?? default;
+    private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
+
+    private readonly IInputHook? _hookSource;
+    private IInputHook? _hook;
+
     private Border? _selection;
     private Border? _allowedArea;
     private Border? _readout;
@@ -148,9 +159,10 @@ public partial class RegionPickerWindow : Window
     /// wants a rectangle drawn against a desk of its own.
     /// </summary>
     internal RegionPickerWindow(IScreenDevice screen, IWindowDevice windows, Region? initial = null,
-        Region? bounds = null, long liveWindow = 0, bool arrow = false)
+        Region? bounds = null, long liveWindow = 0, bool arrow = false, IInputHook? hook = null)
     {
         _screen = screen;
+        _hookSource = hook;
         _windows = windows;
         _initial = initial;
         _bounds = bounds is { Width: > 0, Height: > 0 } ? bounds : null;
@@ -277,13 +289,15 @@ public partial class RegionPickerWindow : Window
         => await PickAsync(owner, screen, windows, null, null);
 
     public static async Task<Region?> PickAsync(Window owner, IScreenDevice screen,
-        IWindowDevice windows, Region? initial, Region? bounds = null, long liveWindow = 0)
+        IWindowDevice windows, Region? initial, Region? bounds = null, long liveWindow = 0,
+        IInputHook? hook = null)
     {
         using var aside = AppWindows.StepAside(owner);
         // Waited for, not assumed: the picker's overlay and the picture taken through it come from
         // the desktop's own frame, and that frame still has our windows in it until it is drawn again.
         await AppWindows.SettleAsync();
-        return await new RegionPickerWindow(screen, windows, initial, bounds, liveWindow).TakeAsync();
+        return await new RegionPickerWindow(screen, windows, initial, bounds, liveWindow, hook: hook)
+            .TakeAsync();
     }
 
     /// <summary>
@@ -291,11 +305,11 @@ public partial class RegionPickerWindow : Window
     /// order the pointer visited them.
     /// </summary>
     public static async Task<DragSpan?> PickDragAsync(Window owner, IScreenDevice screen,
-        IWindowDevice windows, Region? bounds = null)
+        IWindowDevice windows, Region? bounds = null, IInputHook? hook = null)
     {
         using var aside = AppWindows.StepAside(owner);
         await AppWindows.SettleAsync();
-        var picker = new RegionPickerWindow(screen, windows, null, bounds, arrow: true);
+        var picker = new RegionPickerWindow(screen, windows, null, bounds, arrow: true, hook: hook);
         _ = await picker.TakeAsync();
         return picker.ConfirmedDrag;
     }
@@ -306,12 +320,13 @@ public partial class RegionPickerWindow : Window
     /// window put back in front of where the rectangle was drawn would be in the picture.
     /// </summary>
     public static async Task<string?> CaptureAsync(Window owner, IScreenDevice screen,
-        IWindowDevice windows, string folder, Region? bounds = null)
+        IWindowDevice windows, string folder, Region? bounds = null, IInputHook? hook = null)
     {
         using var aside = AppWindows.StepAside(owner);
         await AppWindows.SettleAsync();
 
-        if (await new RegionPickerWindow(screen, windows, null, bounds).TakeAsync() is not { } region)
+        if (await new RegionPickerWindow(screen, windows, null, bounds, hook: hook).TakeAsync()
+            is not { } region)
         {
             return null;
         }
@@ -347,6 +362,7 @@ public partial class RegionPickerWindow : Window
         Cover();
         Activate();
         Focus();
+        AttachHook();
         var at = _screen.Cursor;
         _pointer = PointIn(new PixelPoint(at.X, at.Y));
         Update();
@@ -589,6 +605,63 @@ public partial class RegionPickerWindow : Window
         Update();
     }
 
+    /// <summary>
+    /// 勾住键盘：这个窗口不一定拿得到前台，拿不到时 F1 与 Esc 会落到别的窗口上。两处都收，
+    /// 谁先到谁做，`Finish` 自己只做一次。
+    /// </summary>
+    private void AttachHook()
+    {
+        try
+        {
+            if (_hookSource is not { } hook)
+            {
+                return;
+            }
+
+            hook.KeyDown += OnHookKeyDown;
+            _hook = hook;
+        }
+        catch (Exception)
+        {
+            // 没有钩子时窗口自己那份按键处理还在，只是要求它拿得到焦点。
+            _hook = null;
+        }
+    }
+
+    private void DetachHook()
+    {
+        if (_hook is not { } hook)
+        {
+            return;
+        }
+
+        hook.KeyDown -= OnHookKeyDown;
+        _hook = null;
+    }
+
+    private void OnHookKeyDown(KeyHookEvent e)
+    {
+        if (e.Key == Escape)
+        {
+            e.Suppress = true;
+            Dispatcher.UIThread.Post(() => Finish(null));
+        }
+        else if (e.Key == F1)
+        {
+            e.Suppress = true;
+            Dispatcher.UIThread.Post(Confirm);
+        }
+    }
+
+    /// <summary>F1 背后那件事：框够大、框得住，就把它交出去。</summary>
+    private void Confirm()
+    {
+        if (Picked is { } region && Ready(region))
+        {
+            Finish(region);
+        }
+    }
+
     /// <summary>F1 takes the rectangle, Esc leaves without one.</summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
@@ -599,9 +672,9 @@ public partial class RegionPickerWindow : Window
                 Finish(null);
                 break;
 
-            case Key.F1 when Picked is { } region && Ready(region):
+            case Key.F1:
                 e.Handled = true;
-                Finish(region);
+                Confirm();
                 break;
         }
     }
@@ -1041,6 +1114,7 @@ public partial class RegionPickerWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
+        DetachHook();
 
         if (!_done)
         {
