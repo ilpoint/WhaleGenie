@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -9,13 +10,14 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// Captures the window in front when F1 is pressed, then edits the one rule that finds it again.
-/// It stands above everything but does not take the focus until a window has been captured, so the
-/// click that chooses the target lands where the person aimed it.
+/// 选这个步骤要用哪个窗口，以及用哪一项认出它。两条路并存：左边是此刻开着的窗口，点一条即可；
+/// 或者点一下目标窗口再按 F1，把它抓下来。窗口一直压在最上面，但打开时不抢焦点，所以那一次
+/// 点击会落在使用者瞄准的窗口上。
 /// </summary>
 public partial class WindowRuleWindow : AppWindow
 {
@@ -29,6 +31,9 @@ public partial class WindowRuleWindow : AppWindow
     private bool _done;
     private bool _swallowF1Up;
     private bool _swallowEscapeUp;
+
+    /// <summary>把列表里的选择写回去时置上，免得"程序选中"被当成"人选中了它"。</summary>
+    private bool _restoring;
 
     public WindowRuleWindow()
         : this(SharedDevices.Current.Windows, SharedDevices.Current.Hook, null)
@@ -57,14 +62,25 @@ public partial class WindowRuleWindow : AppWindow
         TrimBox.IsCheckedChanged += (_, _) => { if (_rule is { } rule) Show(rule with { Trim = TrimBox.IsChecked != false }); };
         MultilineBox.IsCheckedChanged += (_, _) => { if (_rule is { } rule) Show(rule with { Multiline = MultilineBox.IsChecked == true }); };
 
-        AgainButton.Click += (_, _) => Capture();
+        SearchBox.TextChanged += (_, _) => FillWindows();
+        RefreshButton.Click += (_, _) => FillWindows();
+        WindowList.SelectionChanged += OnWindowChosen;
+        CaptureButton.Click += (_, _) => Capture();
         CancelButton.Click += (_, _) => Finish(null);
         UseButton.Click += (_, _) => Finish(_rule is { } rule ? rule with { How = How() } : null);
         AddHandler(KeyDownEvent, OnLocalKeyDown, RoutingStrategies.Tunnel);
 
-        if (current is not null)
+        FillWindows();
+
+        // 空着的那一格也是"一条规则"，但它没有窗口：打开时仍旧是"还没选"的样子，不能一进来就
+        // 说"已选好窗口"。下面那格"现在会认到"也要先把话摆上，否则它是一块空板。
+        if (current is { HasTarget: true })
         {
             Show(current);
+        }
+        else
+        {
+            Preview(WindowRule.Empty);
         }
     }
 
@@ -99,6 +115,54 @@ public partial class WindowRuleWindow : AppWindow
         MacroTriggerGate.Exit();
     }
 
+    /// <summary>
+    /// 列表里此刻开着的窗口，按搜索框筛过。鲸灵自己的窗口不算：宏要做的事都在别的窗口里，
+    /// 而它排在最前面，正是最容易误选的那个。
+    /// </summary>
+    private void FillWindows()
+    {
+        var wanted = SearchBox.Text?.Trim() ?? string.Empty;
+        var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
+
+        IReadOnlyList<WindowEntry> open;
+        try
+        {
+            open = WindowPickerViewModel.From(_windows);
+        }
+        catch (Exception)
+        {
+            open = [];
+        }
+
+        var shown = open
+            .Where(entry => !string.Equals(entry.Process, own, StringComparison.OrdinalIgnoreCase)
+                            && (wanted.Length == 0
+                                || entry.Title.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                                || entry.Process.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                                || entry.Class.Contains(wanted, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        _restoring = true;
+        WindowList.ItemsSource = shown;
+        // 重新筛选一遍之后，当前这条规则指着的那个窗口仍旧是选中的那一条。
+        WindowList.SelectedItem = shown.FirstOrDefault(entry => _rule?.Handle == entry.Handle);
+        _restoring = false;
+
+        EmptyText.IsVisible = shown.Count == 0;
+    }
+
+    /// <summary>在列表里点了一条：整条规则连程序名与窗口类一起记下，改天标题变了还能找回来。</summary>
+    private void OnWindowChosen(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_restoring || WindowList.SelectedItem is not WindowEntry entry)
+        {
+            return;
+        }
+
+        Show(new WindowRule(Title: entry.Title, Process: entry.Process, ClassName: entry.Class,
+            Handle: entry.Handle) with { How = How() });
+    }
+
     private void Capture()
     {
         WindowInfo? found;
@@ -127,6 +191,7 @@ public partial class WindowRuleWindow : AppWindow
 
         _rule = WindowRule.From(found, process, _windows.ClassOf(found.Handle));
         Activate();
+        FillWindows();
         Show(_rule);
         MatchBox.Focus();
         MatchBox.SelectAll();
@@ -135,14 +200,18 @@ public partial class WindowRuleWindow : AppWindow
     private void Show(WindowRule rule)
     {
         _rule = rule;
-        HandleText.Text = Strings.Format("WindowRule.Handle", rule.Handle);
-        TitleText.Text = rule.Title;
-        ProcessText.Text = $"{Strings.Get("WindowRule.Process")}: {rule.Process}";
-        ClassText.Text = $"{Strings.Get("WindowRule.Class")}: {rule.ClassName}";
+
+        // 认的是这个窗口，说的是它的名字：标题在上，程序名与窗口类在下，空的那几项不摆出来。
+        var name = rule.Title.Length > 0 ? rule.Title : rule.MatchValue;
+        ChosenText.Text = name;
+        ChosenText.IsVisible = name.Length > 0;
+
+        var facts = string.Join(" · ",
+            new[] { rule.Process, rule.ClassName }.Where(part => part.Length > 0));
+        FactsText.Text = facts;
+        FactsText.IsVisible = facts.Length > 0;
+
         Status.Text = Strings.Get("WindowRule.Captured");
-        RuleFields.IsVisible = true;
-        AgainButton.IsVisible = true;
-        UseButton.IsVisible = true;
         if (HowBox.SelectedIndex != WindowHow.IndexOf(rule.How))
         {
             HowBox.SelectedIndex = WindowHow.IndexOf(rule.How);
@@ -159,6 +228,15 @@ public partial class WindowRuleWindow : AppWindow
         var textComparison = WindowHow.UsesTextComparison(rule.How);
         ComparisonSwitches.IsVisible = textComparison;
         HandleHint.IsVisible = !textComparison;
+
+        if (!_restoring)
+        {
+            _restoring = true;
+            WindowList.SelectedItem = WindowList.ItemsSource?.Cast<WindowEntry>()
+                .FirstOrDefault(entry => entry.Handle == rule.Handle);
+            _restoring = false;
+        }
+
         Preview(rule);
     }
 
@@ -171,14 +249,19 @@ public partial class WindowRuleWindow : AppWindow
             return;
         }
 
-        UseButton.IsEnabled = true;
         var (match, compare) = rule.Reading;
         try
         {
-            var found = _windows.Filter(rule.MatchValue, match, compare, options: rule.Options);
-            var lines = new System.Collections.Generic.List<string>
+            var found = rule.HasTarget
+                ? _windows.Filter(rule.MatchValue, match, compare, options: rule.Options)
+                : [];
+
+            // 一条空规则会认到"全部窗口"，那不是这一步的意思：还没选窗口时就说还没选。
+            var lines = new List<string>
             {
-                Strings.Format("WindowRule.Matches", found.Count),
+                !rule.HasTarget ? Strings.Get("WindowRule.Preview.Waiting")
+                : found.Count > 0 ? Strings.Format("WindowRule.Matches", found.Count)
+                : Strings.Get("WindowRule.NoneMatch"),
             };
             lines.AddRange(found.Take(8).Select(window => window.Title));
             if (found.Count > 8)
@@ -187,10 +270,12 @@ public partial class WindowRuleWindow : AppWindow
             }
 
             PreviewText.Text = string.Join(Environment.NewLine, lines);
+            UseButton.IsEnabled = rule.HasTarget;
         }
         catch (Exception)
         {
             PreviewText.Text = Strings.Get("WindowRule.BadPattern");
+            UseButton.IsEnabled = false;
         }
     }
 

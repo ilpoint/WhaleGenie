@@ -1,73 +1,139 @@
 <views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:loc="using:WhaleGenie.Localization"
         x:Class="WhaleGenie.Views.WindowRuleWindow"
         Title="WhaleGenie"
-        Width="560" Height="430"
-        CanResize="False"
+        Width="780" Height="580"
+        MinWidth="640" MinHeight="520"
+        CanResize="True"
         ShowInTaskbar="False"
         ShowActivated="False"
         Topmost="True"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource SurfaceWindow}">
-    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="8" Padding="20">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
-            <TextBlock Grid.Row="0" FontSize="17" FontWeight="SemiBold"
+    <!-- 左边挑窗口、右边定规则。原来是"只能按 F1 抓 + 一串竖排字段"，抓到的窗口叫什么都只写在
+         一行小字里，句柄与进程名还常常是空的；现在窗口是一个可以直接点的列表，规则与"会认到谁"
+         并排放在它旁边，选哪个、怎么认、认到没认到一眼能对上。 -->
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20,18,20,16" RowSpacing="12">
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock FontSize="18" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimary}"
                        Text="{Binding [WindowRule.Title], Source={x:Static loc:Strings.Current}}" />
-
-            <TextBlock Grid.Row="1" TextWrapping="Wrap" FontSize="12.5"
+            <TextBlock TextWrapping="Wrap" FontSize="12.5"
                        Foreground="{DynamicResource TextTertiary}"
                        Text="{Binding [WindowRule.CaptureHint], Source={x:Static loc:Strings.Current}}" />
+        </StackPanel>
 
-            <Border Grid.Row="2" Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="12">
-                <StackPanel Spacing="4">
-                    <TextBlock Name="Status" FontSize="12.5" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
-                    <TextBlock Name="HandleText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
-                    <TextBlock Name="TitleText" FontSize="12" Foreground="{DynamicResource TextPrimary}"
-                               TextWrapping="Wrap" />
-                    <TextBlock Name="ProcessText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
-                    <TextBlock Name="ClassText" FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
-                </StackPanel>
+        <Grid Grid.Row="1" ColumnDefinitions="320,14,*">
+
+            <!-- 哪个窗口 -->
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceField}"
+                    CornerRadius="6" Padding="12">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="9">
+                    <TextBlock Grid.Row="0" Classes="BlockTitle"
+                               Text="{Binding [WindowRule.Pick], Source={x:Static loc:Strings.Current}}" />
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBox Name="SearchBox" Classes="Field" Height="33"
+                                 Watermark="{Binding [WindowRule.Search], Source={x:Static loc:Strings.Current}}" />
+                        <Button Grid.Column="1" Name="RefreshButton" Classes="Secondary"
+                                Height="33" Padding="10,0"
+                                Content="{Binding [WindowRule.Refresh], Source={x:Static loc:Strings.Current}}" />
+                    </Grid>
+
+                    <ListBox Grid.Row="2" Name="WindowList" Background="Transparent"
+                             BorderThickness="0" Padding="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WindowEntry">
+                                <StackPanel Spacing="1">
+                                    <TextBlock Text="{Binding Title}" FontSize="12.5"
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Summary}" FontSize="11"
+                                               Foreground="{DynamicResource TextTertiary}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock Grid.Row="3" Name="EmptyText" IsVisible="False"
+                               FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextTertiary}"
+                               Text="{Binding [WindowRule.NoWindows], Source={x:Static loc:Strings.Current}}" />
+                </Grid>
             </Border>
 
-            <StackPanel Grid.Row="3" Name="RuleFields" IsVisible="False" Spacing="8">
-                <Grid ColumnDefinitions="180,*" ColumnSpacing="10">
-                    <TextBlock VerticalAlignment="Center" FontSize="12.5"
-                               Foreground="{DynamicResource TextTertiary}"
-                               Text="{Binding [WindowRule.How], Source={x:Static loc:Strings.Current}}" />
-                    <ComboBox Grid.Column="1" Name="HowBox" />
-                </Grid>
-                <Grid ColumnDefinitions="180,*" ColumnSpacing="10">
-                    <TextBlock VerticalAlignment="Center" FontSize="12.5"
-                               Foreground="{DynamicResource TextTertiary}"
-                               Text="{Binding [WindowRule.MatchText], Source={x:Static loc:Strings.Current}}" />
-                    <TextBox Grid.Column="1" Name="MatchBox" />
-                </Grid>
-                <WrapPanel Name="ComparisonSwitches">
-                    <CheckBox Name="CaseBox" Margin="0,0,14,0"
-                              Content="{Binding [WindowRule.CaseSensitive], Source={x:Static loc:Strings.Current}}" />
-                    <CheckBox Name="TrimBox" Margin="0,0,14,0"
-                              Content="{Binding [WindowRule.Trim], Source={x:Static loc:Strings.Current}}" />
-                    <CheckBox Name="MultilineBox"
-                              Content="{Binding [WindowRule.Multiline], Source={x:Static loc:Strings.Current}}" />
-                </WrapPanel>
-                <TextBlock Name="HandleHint" IsVisible="False" FontSize="11.5" TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextTertiary}"
-                           Text="{Binding [WindowRule.HandleHint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Name="PreviewText" FontSize="11.5" TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextTertiary}" />
-            </StackPanel>
+            <!-- 怎么认出它：上面是规则，下面那格"现在会认到"撑到与左边列表齐底，
+                 两栏一样高，才不会一边长一边短。 -->
+            <Grid Grid.Column="2" RowDefinitions="Auto,*">
+                <StackPanel Grid.Row="0" Spacing="9">
+                    <TextBlock Name="ChosenText" IsVisible="False" TextWrapping="Wrap"
+                               FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}" />
+                    <TextBlock Name="FactsText" IsVisible="False" TextWrapping="Wrap"
+                               FontSize="11.5" Foreground="{DynamicResource TextTertiary}" />
 
-            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Name="AgainButton" Width="110" Height="34" IsVisible="False"
-                        Content="{Binding [WindowRule.GetAgain], Source={x:Static loc:Strings.Current}}" />
-                <Button Name="CancelButton" Width="90" Height="34"
+                    <TextBlock Classes="BlockTitle" Margin="0,4,0,0"
+                               Text="{Binding [WindowRule.Rule], Source={x:Static loc:Strings.Current}}" />
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{Binding [WindowRule.How], Source={x:Static loc:Strings.Current}}" />
+                        <ComboBox Grid.Column="1" Name="HowBox" Classes="Field"
+                                  HorizontalAlignment="Stretch" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <TextBlock VerticalAlignment="Center" FontSize="12.5"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{Binding [WindowRule.MatchText], Source={x:Static loc:Strings.Current}}" />
+                        <TextBox Grid.Column="1" Name="MatchBox" Classes="Field" />
+                    </Grid>
+
+                    <WrapPanel Name="ComparisonSwitches">
+                        <CheckBox Name="CaseBox" Margin="0,0,14,0"
+                                  Content="{Binding [WindowRule.CaseSensitive], Source={x:Static loc:Strings.Current}}" />
+                        <CheckBox Name="TrimBox" Margin="0,0,14,0"
+                                  Content="{Binding [WindowRule.Trim], Source={x:Static loc:Strings.Current}}" />
+                        <CheckBox Name="MultilineBox"
+                                  Content="{Binding [WindowRule.Multiline], Source={x:Static loc:Strings.Current}}" />
+                    </WrapPanel>
+
+                    <TextBlock Name="HandleHint" IsVisible="False" FontSize="11.5" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextTertiary}"
+                               Text="{Binding [WindowRule.HandleHint], Source={x:Static loc:Strings.Current}}" />
+
+                    <TextBlock Classes="BlockTitle" Margin="0,4,0,0"
+                               Text="{Binding [WindowRule.Preview.Title], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+
+                <Border Grid.Row="1" Background="{DynamicResource SurfaceField}" CornerRadius="6"
+                        Padding="10,8" Margin="0,6,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <TextBlock Name="PreviewText" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondary}" />
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Name="Status" VerticalAlignment="Center" TextWrapping="Wrap"
+                       FontSize="12.5" Foreground="{DynamicResource TextSecondary}" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Name="CaptureButton" Classes="Secondary" Height="36" MinWidth="132"
+                        Content="{Binding [WindowRule.CaptureKey], Source={x:Static loc:Strings.Current}}" />
+                <Button Name="CancelButton" Classes="Secondary" Height="36" MinWidth="92"
                         Content="{Binding [WindowRule.Cancel], Source={x:Static loc:Strings.Current}}" />
-                <Button Name="UseButton" Width="120" Height="34" IsVisible="False"
+                <Button Name="UseButton" Classes="Primary" Height="36" MinWidth="112" IsEnabled="False"
                         Content="{Binding [WindowRule.Use], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
         </Grid>
-    </Border>
+    </Grid>
 </views:AppWindow>
