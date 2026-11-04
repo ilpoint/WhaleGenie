@@ -2636,13 +2636,102 @@ public partial class MacroEditorWindow : AppWindow
     private void FocusCaseValues(StepRow row)
         => Dispatcher.UIThread.Post(() =>
         {
-            if (_stepList?.GetVisualDescendants().OfType<TextBox>()
-                .FirstOrDefault(box => ReferenceEquals(box.DataContext, row)) is { } box)
+            if (FindCaseValueBox(row) is { } box)
             {
                 box.Focus();
                 box.SelectAll();
             }
         }, DispatcherPriority.Loaded);
+
+    /// <summary>The box a branch row is being typed into, if that row is on screen and open.</summary>
+    private TextBox? FindCaseValueBox(StepRow row)
+        => _stepList?.GetVisualDescendants().OfType<TextBox>()
+            .FirstOrDefault(box => box.Name == "CaseValueBox" && ReferenceEquals(box.DataContext, row));
+
+    /// <summary>
+    /// A branch's values are read as text with the names in them replaced, so "1; 2" and "$key" are
+    /// the same kind of thing. The button therefore does what the same button does on the step's own
+    /// form: put a name where the caret is, or hand the whole line to the expression editor through
+    /// the picker's own "write it as an expression" entry.
+    /// </summary>
+    private async void OnPickCaseValuesVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepRow { IsCase: true } row })
+        {
+            return;
+        }
+
+        // The pickers are windows of their own, and taking the focus is how a dialog opens: without
+        // this the row would read the loss as "the user moved on" and close the line under the
+        // dialog, leaving what comes back nowhere to go.
+        _pickingCaseValues = true;
+        try
+        {
+            if (await VariablePickerWindow.ShowFor(this, _viewModel.CollectVariables(),
+                    offerBuilder: true) is not { } picked)
+            {
+                return;
+            }
+
+            if (picked.WantsExpression)
+            {
+                if (await ExpressionBuilderWindow.ShowFor(this, row.CaseValues,
+                        _viewModel.CollectVariables()) is { } built)
+                {
+                    row.CaseValuesText = built;
+                    var end = built.Length;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (FindCaseValueBox(row) is { } box)
+                        {
+                            box.Focus();
+                            box.CaretIndex = end;
+                        }
+                    }, DispatcherPriority.Loaded);
+                }
+
+                return;
+            }
+
+            if (picked.Token.Length > 0)
+            {
+                InsertIntoCaseValues(row, picked.Token);
+            }
+        }
+        finally
+        {
+            _pickingCaseValues = false;
+            Dispatcher.UIThread.Post(() => FindCaseValueBox(row)?.Focus(), DispatcherPriority.Loaded);
+        }
+    }
+
+    /// <summary>True while one of the pickers is open over the branch being typed.</summary>
+    private bool _pickingCaseValues;
+
+    /// <summary>
+    /// Puts a name where the caret is, replacing whatever was selected. The caret is read off the
+    /// live box rather than kept on the row: it is the control that knows where the person was
+    /// typing, and the line may have been edited since the button was pressed.
+    /// </summary>
+    private void InsertIntoCaseValues(StepRow row, string token)
+    {
+        var text = row.CaseValuesText;
+        var box = FindCaseValueBox(row);
+        var start = Math.Clamp(box?.SelectionStart ?? text.Length, 0, text.Length);
+        var end = Math.Clamp(box?.SelectionEnd ?? text.Length, start, text.Length);
+
+        row.CaseValuesText = string.Concat(text.AsSpan(0, start), token, text.AsSpan(end));
+
+        var caret = start + token.Length;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (FindCaseValueBox(row) is { } again)
+            {
+                again.Focus();
+                again.CaretIndex = caret;
+            }
+        }, DispatcherPriority.Loaded);
+    }
 
     /// <summary>
     /// Enter keeps the values and leaves the line, Escape puts back what was there. Both end the
@@ -2663,10 +2752,26 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>Leaving the line is keeping what was typed: there is no "cancel" to be had by leaving.</summary>
     private void OnCaseValuesLostFocus(object? sender, RoutedEventArgs e)
     {
-        if (sender is TextBox { DataContext: StepRow row } && row.IsEditingValues)
+        // A picker opening over the row takes the focus with it; that is not the user leaving.
+        if (_pickingCaseValues || sender is not TextBox { DataContext: StepRow row } box
+            || !row.IsEditingValues)
         {
-            row.EndEditingValues(keep: true);
+            return;
         }
+
+        // So is the row being rebuilt under the box: the list is laid out again whenever a branch
+        // is added, and the focus lands on the row's own container on the way. Focus that never
+        // left this row — or that has nowhere to go yet — is not the person moving on.
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
+        if (_viewModel.IsRebuildingRows
+            || (focused is not null
+                && box.FindAncestorOfType<TreeViewItem>(true) is { } owner
+                && owner.IsVisualAncestorOf(focused)))
+        {
+            return;
+        }
+
+        row.EndEditingValues(keep: true);
     }
 
     /// <summary>Context-menu commands for the step list, so they are not keyboard-only.</summary>

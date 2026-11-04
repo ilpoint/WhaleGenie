@@ -1142,6 +1142,15 @@
                                                    KeyDown="OnCaseValuesKeyDown"
                                                    LostFocus="OnCaseValuesLostFocus"
                                                    ToolTip.Tip="{Binding [Editor.CaseValuesHint], Source={x:Static loc:Strings.Current}}" />
+                                          <!-- 一行值也是一格"写成文本、里面的 $名字 会被换掉"的字段，
+                                               所以旁边那一枚「变量」和步骤表单里的同一颗按钮做同一件事：
+                                               把名字放进光标处，或者在挑选窗口里改写成表达式。
+                                               按钮不吃焦点（Focusable=False）：按下它时编辑框不该关掉。 -->
+                                          <Button Classes="Secondary Chip Dense" Focusable="False"
+                                                  IsVisible="{Binding IsEditingValues}"
+                                                  Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
+                                                  ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
+                                                  Click="OnPickCaseValuesVariable" />
                                           <!-- 值后面断开一下：'值 1, 2' 和 '1 个步骤' 挨在一起时会读成
                                                '值 1, 21 个步骤'。 -->
                                           <TextBlock Classes="Caption" VerticalAlignment="Center"

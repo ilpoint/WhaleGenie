@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Localization;
@@ -126,6 +127,56 @@ public class StepTreeTests
             Assert.True(row.IsCase);
             Assert.True(row.IsEditingValues);
             Assert.False(row.HasCaseValues);
+        });
+    }
+
+    [Fact]
+    public void A_branch_value_offers_the_variable_list_while_it_is_being_typed()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var choice = Step("control.switch");
+            editor.AddStep(choice);
+            var branch = editor.AddBranch(choice)!;
+            Dispatcher.UIThread.RunJobs();
+
+            var row = editor.Rows.Single(candidate => ReferenceEquals(candidate.Step, branch));
+
+            // A branch value is read as text with the names in it replaced, so it is the same kind
+            // of field the step's own form gives a picker to — and a line typed on the row must not
+            // be the one place where a name has to be spelled from memory.
+            var pickerButton = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.IsEffectivelyVisible
+                    && ReferenceEquals(button.DataContext, row)
+                    && Equals(button.Content, Strings.Get("Add.VariablePicker")));
+            pickerButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs();
+
+            var picker = Assert.Single(window.OwnedWindows.OfType<VariablePickerWindow>());
+
+            // Picking a name puts it in the line where the caret is — a branch value is text, and a
+            // name in it is the same thing the step's own form writes.
+            var chip = picker.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is VariableChoice);
+            var token = ((VariableChoice)chip.DataContext!).Name;
+            chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("$" + token, row.CaseValuesText);
+
+            // Closing the picker leaves the line open: the person was picking a name for it, not
+            // leaving it.
+            Assert.True(row.IsEditingValues);
+
+            Ui.CloseAndDiscard(window);
         });
     }
 
