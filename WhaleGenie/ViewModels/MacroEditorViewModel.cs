@@ -3007,6 +3007,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
         finally
         {
+            _valuesToEdit = null;
             IsRebuildingRows = false;
         }
     }
@@ -3120,7 +3121,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 // a node per branch spends two levels of indentation on one line of content, and the
                 // values — the only thing that tells one branch from another — end up buried in the
                 // node's summary.
-                if (IsBranches(list))
+                if (IsBranches(step, list))
                 {
                     AddBranches(list, row, depth, deeper, sectionNext);
                     continue;
@@ -3142,15 +3143,21 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
     }
 
-    /// <summary>True on the list a switch keeps its branches in, when it has branches to show.</summary>
-    private static bool IsBranches(StepParameter list)
-        => list.Name == "cases"
-            && list.Steps.Count > 0
-            && list.Steps.All(step => step.Type == "control.case");
+    /// <summary>
+    /// True on the list a switch keeps its branches in. It is read as a table whether or not it
+    /// holds a branch yet: an empty switch still needs the line that adds the first one, and a
+    /// section titled "branches" with nothing under it says neither what a branch is nor how to
+    /// make one.
+    /// </summary>
+    private static bool IsBranches(MacroStep step, StepParameter list)
+        => step.Type == "control.switch"
+            && list.Name == "cases"
+            && list.Steps.All(branch => branch.Type == "control.case");
 
     /// <summary>
     /// Lays a switch's branches out as one row each: the row is named by the branch's values, and
-    /// the branch's own steps hang under it, so the whole switch reads as a table of values.
+    /// the branch's own steps hang under it, so the whole switch reads as a table of values. The
+    /// table ends with the line that adds the next branch.
     /// </summary>
     private void AddBranches(StepParameter list, StepRow block, int depth,
         IReadOnlyList<bool> continues, bool lastList)
@@ -3169,7 +3176,17 @@ public partial class MacroEditorViewModel : ViewModelBase
                 List = body,
                 Depth = depth + 1,
                 Folded = OnRowFolded,
+                ValuesEdited = OnRowValuesEdited,
             };
+
+            // A branch that was just added opens its values for typing: a branch is one line of
+            // values and the steps that run for them, and until the values are written it matches
+            // nothing. This is the one moment the form knows what the person came here to type.
+            if (ReferenceEquals(choice, _valuesToEdit))
+            {
+                section.BeginEditingValues();
+            }
+
             section.Guide(depth + 1, continues, hasNext, hasBox: false);
             block.Children.Add(section);
 
@@ -3178,6 +3195,71 @@ public partial class MacroEditorViewModel : ViewModelBase
                 AddNodes(body.Steps, body, depth + 2, continues.Append(hasNext).ToList(), section.Children);
             }
         }
+
+        _valuesToEdit = null;
+
+        // The foot of the table. A branch cannot be dragged in from the library the way every other
+        // step can — there is no branch card — so the block offers it here, where the next branch
+        // would be written, rather than relying on "pick the switch, then ask for a step".
+        var foot = new StepRow
+        {
+            Kind = StepRowKind.Add,
+            Step = block.Step,
+            List = list,
+            Depth = depth + 1,
+            Folded = OnRowFolded,
+        };
+        foot.Guide(depth + 1, continues, lastList, hasBox: false);
+        block.Children.Add(foot);
+    }
+
+    /// <summary>The branch a freshly added row is about to open for its values, if any.</summary>
+    private MacroStep? _valuesToEdit;
+
+    /// <summary>
+    /// Adds a branch under a switch and opens its values for typing. The branch starts with no
+    /// values, which is what "no branch matches this yet" honestly is: guessing one would put a
+    /// value the user never wrote into the macro.
+    /// </summary>
+    public MacroStep? AddBranch(MacroStep block)
+    {
+        if (block.StepLists.FirstOrDefault(list => list.Name == "cases") is not { } cases)
+        {
+            return null;
+        }
+
+        PushUndo();
+        block.IsExpanded = true;
+
+        var branch = new MacroStep
+        {
+            Type = "control.case",
+            Id = NewStepId(),
+            Meta = StepMeta.New,
+            Parameters =
+            [
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps },
+            ],
+        };
+
+        cases.Steps.Add(branch);
+        _valuesToEdit = branch;
+        SettleStepIds();
+        RestoreSelection([branch]);
+        NotifyStepsChanged();
+        return branch;
+    }
+
+    /// <summary>
+    /// A branch's values were typed in and kept. They are written into the step as they are typed,
+    /// so there is nothing to copy here — only a macro that has been changed, and a check that may
+    /// have something new to say about the switch.
+    /// </summary>
+    private void OnRowValuesEdited(StepRow row)
+    {
+        MarkDirty();
+        RefreshProblems();
     }
 
     /// <summary>

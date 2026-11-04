@@ -206,15 +206,24 @@ public partial class ActionEditorView : UserControl
         // Tunnelling so Escape cancels before any focused editor consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
 
-        // A variable picker shows nothing until a key is pressed, so open its candidate
-        // list as soon as the field is clicked or receives focus.
-        AddHandler(GotFocusEvent, OnVariablePickerFocused, RoutingStrategies.Bubble);
-        AddHandler(PointerPressedEvent, OnVariablePickerPressed, RoutingStrategies.Tunnel);
+        // A macro's name is picked rather than typed: there is nothing to remember it by, and no
+        // button beside that box to ask for the list. Every other name box is a value box — the
+        // names are offered while typing, and the button beside it opens the whole list — so
+        // clicking into one of those must not cover the form with every name the macro knows.
+        AddHandler(PointerPressedEvent, OnMacroFieldPressed, RoutingStrategies.Tunnel);
     }
 
-    private void OnVariablePickerFocused(object? sender, RoutedEventArgs e) => OpenCandidates(e.Source);
-
-    private void OnVariablePickerPressed(object? sender, PointerPressedEventArgs e) => OpenCandidates(e.Source);
+    private void OnMacroFieldPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.Source is Visual visual
+            && visual.FindAncestorOfType<AutoCompleteBox>(true) is
+                { DataContext: StepParameterViewModel { IsMacro: true, Text.Length: 0 } } picker
+            && picker.ItemsSource is { } items
+            && items.Cast<object>().Any())
+        {
+            picker.IsDropDownOpen = true;
+        }
+    }
 
     /// <summary>
     /// Listens for the keys of a capture on the window the form stands in rather than on the form:
@@ -353,20 +362,6 @@ public partial class ActionEditorView : UserControl
     {
         var scale = owner.RenderScaling > 0 ? owner.RenderScaling : 1;
         return (owner.Position.X / scale, owner.Position.Y / scale, owner.Bounds.Width, owner.Bounds.Height);
-    }
-
-    /// <summary>Opens the dropdown of a variable picker that has something to offer.</summary>
-    private static void OpenCandidates(object? source)
-    {
-        if (source is not Visual visual
-            || visual.FindAncestorOfType<AutoCompleteBox>(true) is not { } picker
-            || picker.ItemsSource is not { } items
-            || !items.Cast<object>().Any())
-        {
-            return;
-        }
-
-        picker.IsDropDownOpen = true;
     }
 
     /// <summary>

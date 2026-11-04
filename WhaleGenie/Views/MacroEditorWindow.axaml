@@ -1121,8 +1121,27 @@
                                            离标题太远，读起来像另一行的东西。 -->
                                       <StackPanel Orientation="Horizontal" Spacing="6"
                                                   VerticalAlignment="Center">
+                                          <!-- 普通分节只是这一段的标题，点它等于点它上面那一块。 -->
                                           <TextBlock Classes="Note" FontSize="12"
-                                                     Text="{Binding HeadLabel}" />
+                                                     Text="{Binding HeadLabel}"
+                                                     IsVisible="{Binding IsRegularSection}" />
+                                          <!-- 分支的名字是它接的值：值本身就是那一行唯一的内容，
+                                               所以它是一枚能点的片——点开就在原地改，不必为一个字段
+                                               打开整张表单，也不必先猜双击能改。 -->
+                                          <Button Classes="Secondary Chip Dense"
+                                                  IsVisible="{Binding ShowsCaseValues}"
+                                                  Content="{Binding HeadLabel}"
+                                                  Click="OnEditCaseValues"
+                                                  ToolTip.Tip="{Binding [Editor.CaseValuesHint], Source={x:Static loc:Strings.Current}}" />
+                                          <TextBox Name="CaseValueBox" Classes="Field" Height="24"
+                                                   MinWidth="200" MaxWidth="420"
+                                                   IsVisible="{Binding IsEditingValues}"
+                                                   Text="{Binding CaseValuesText, Mode=TwoWay}"
+                                                   PlaceholderText="{Binding [Editor.CaseValuesPlaceholder], Source={x:Static loc:Strings.Current}}"
+                                                   AttachedToVisualTree="OnCaseValueBoxAttached"
+                                                   KeyDown="OnCaseValuesKeyDown"
+                                                   LostFocus="OnCaseValuesLostFocus"
+                                                   ToolTip.Tip="{Binding [Editor.CaseValuesHint], Source={x:Static loc:Strings.Current}}" />
                                           <!-- 值后面断开一下：'值 1, 2' 和 '1 个步骤' 挨在一起时会读成
                                                '值 1, 21 个步骤'。 -->
                                           <TextBlock Classes="Caption" VerticalAlignment="Center"
@@ -1131,9 +1150,19 @@
                                                      Text="{Binding HeadCount}" />
                                           <TextBlock Classes="Hint" VerticalAlignment="Center"
                                                      TextTrimming="CharacterEllipsis"
-                                                     IsVisible="{Binding IsEmptyList}"
+                                                     IsVisible="{Binding ShowsEmptyListHint}"
                                                      Text="{Binding EmptyListHint}" />
                                       </StackPanel>
+                                  </Border>
+
+                                  <!-- 分支表的末尾：下一支从这里加。多分支是唯一的"子步骤没法从动作库里
+                                       拖进来"的块——库里没有分支这张卡片——所以它自己得给一条能点的行，
+                                       而不是让人先选中多分支、再点新建，才碰巧加出一支。 -->
+                                  <Border Classes="StepBody" IsVisible="{Binding IsAddRow}">
+                                      <Button Classes="Secondary Chip Dense" HorizontalAlignment="Left"
+                                              Content="{Binding AddLabel}"
+                                              ToolTip.Tip="{Binding AddHint}"
+                                              Click="OnAddBranch" />
                                   </Border>
                               </Panel>
                            </TreeDataTemplate>

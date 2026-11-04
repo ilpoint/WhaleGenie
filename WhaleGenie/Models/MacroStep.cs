@@ -456,6 +456,11 @@ public class MacroStep : INotifyPropertyChanged
     {
         get
         {
+            if (Type == "control.switch")
+            {
+                return SwitchDetail;
+            }
+
             var parts = new List<string>();
             foreach (var parameter in Parameters)
             {
@@ -510,6 +515,31 @@ public class MacroStep : INotifyPropertyChanged
             ? " " + Strings.Format("Editor.JitterDetail",
                 (parameter.Jitter * 100m).ToString("0.##", CultureInfo.InvariantCulture))
             : string.Empty;
+
+    /// <summary>
+    /// What a switch says on its own row: the value it compares and how it compares them. The two
+    /// field names ("value (operand)", "match mode (operator)") are how the form asks for them, not
+    /// how the block reads — with the branches laid out underneath, the one sentence the block
+    /// stands for is "this value, compared this way", and spelling out which field is which twice
+    /// per switch costs the row its whole line without saying anything more.
+    /// </summary>
+    private string SwitchDetail
+    {
+        get
+        {
+            var value = Text("switchValue").Trim();
+            var mode = Text("switchMode").Trim();
+            var how = mode.Length == 0
+                ? string.Empty
+                : Strings.Get($"control.switch.switchMode.option.{mode}", mode);
+            if (value.Length == 0)
+            {
+                return Strings.Get("Editor.SwitchNoValue");
+            }
+
+            return how.Length == 0 ? value : $"{value} {how}";
+        }
+    }
 
     /// <summary>Localized label of a parameter, falling back to its raw name.</summary>
     public string ParameterLabel(StepParameter parameter)

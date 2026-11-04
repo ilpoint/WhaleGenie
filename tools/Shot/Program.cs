@@ -42,6 +42,10 @@ if (dark)
 {
     Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
 }
+else if (args.Contains("--light"))
+{
+    Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
+}
 
 // The whole desk, as this machine reads it: what the program itself would see. This is the one mode
 // that works on the real screen rather than on a window drawn here, so it is how a running instance
@@ -176,6 +180,7 @@ var window = what switch
     "settings" => (Window)new SettingsWindow(null, null, SettingsRootPage.System, page),
     "editor" => new ActionEditorWindow(null, ActionCatalog.Definitions, [], []),
     "variables" => new GlobalVariablesWindow(),
+    "steps" => StepTreeShot(args.Contains("--add")),
     _ => throw new ArgumentException($"unknown window '{what}'"),
 };
 
@@ -197,6 +202,68 @@ shot.Save(path, PngBitmapEncoderOptions.Default);
 
 Console.WriteLine(path);
 window.Close();
+
+/// <summary>
+/// The step list as the editor draws it, with the block that needs the most of it: a switch whose
+/// branches are the rows of a table, a loop with steps inside it, and a plain step above and below.
+/// </summary>
+static Window StepTreeShot(bool addBranch)
+{
+    static MacroStep Step(string type, params StepParameter[] parameters)
+        => new() { Type = type, Parameters = [.. parameters] };
+
+    static StepParameter Text(string name, string value)
+        => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
+
+    static MacroStep Branch(string values, params MacroStep[] body)
+        => Step("control.case",
+            Text("values", values),
+            new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [.. body] });
+
+    var macro = new MacroItem { Name = "分支示例", Description = "多分支与循环" };
+    macro.Steps.Add(Step("control.setVariable",
+        Text("name", "key"),
+        Text("value", "a")));
+    macro.Steps.Add(Step("control.switch",
+        Text("switchValue", "$key"),
+        Text("switchMode", "equals"),
+        new StepParameter
+        {
+            Name = "cases",
+            Kind = ActionParameterKind.Steps,
+            Steps =
+            [
+                Branch("a", Step("control.log", Text("text", "按了 A"))),
+                Branch("b; c"),
+            ],
+        },
+        new StepParameter
+        {
+            Name = "otherwise",
+            Kind = ActionParameterKind.Steps,
+            Steps = [Step("control.delay")],
+        }));
+    macro.Steps.Add(Step("control.repeat",
+        new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "3" },
+        new StepParameter
+        {
+            Name = "body",
+            Kind = ActionParameterKind.Steps,
+            Steps = [Step("control.note", Text("text", "回路里的一步"))],
+        }));
+
+    var board = new MacroEditorWindow(macro, [macro]);
+
+    // --add presses the line that adds a branch, so the picture shows what that leaves behind: a
+    // new row with its values open for typing.
+    if (addBranch)
+    {
+        var editor = (MacroEditorViewModel)board.DataContext!;
+        editor.AddBranch(macro.Steps[1]);
+    }
+
+    return board;
+}
 
 /// <summary>The one rectangle the program does not already have a way to ask for.</summary>
 internal static class Native

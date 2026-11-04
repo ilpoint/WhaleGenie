@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -940,6 +941,46 @@ public class ActionDialogTests
             // The other side is an operand too, so the branch values read the same way the value
             // they are compared with does.
             Assert.True(values.IsVariable);
+        });
+    }
+
+    [Fact]
+    public void A_value_field_does_not_open_every_variable_when_it_is_clicked()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = OpenWindow("control.switch");
+            var value = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "switchValue");
+            Dispatcher.UIThread.RunJobs();
+
+            // The box that actually edits the operand: the same parameter also carries a hidden
+            // one, and picking by DataContext alone finds whichever came first in the template.
+            var picker = window.GetVisualDescendants().OfType<AutoCompleteBox>()
+                .First(box => box.IsEffectivelyVisible && ReferenceEquals(box.DataContext, value));
+            var at = picker.TranslatePoint(
+                new Point(picker.Bounds.Width / 2, picker.Bounds.Height / 2), window)!.Value;
+
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left,
+                Avalonia.Input.RawInputModifiers.LeftMouseButton);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            // Clicking a field is how one starts typing into it. Opening the list there covers the
+            // form with every name the macro knows, over the very field that was clicked — the
+            // names are offered while typing, and the button beside the box opens the whole list
+            // for anyone who would rather pick than remember.
+            Assert.False(picker.IsDropDownOpen);
+
+            value.Text = "count";
+            Dispatcher.UIThread.RunJobs();
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left,
+                Avalonia.Input.RawInputModifiers.LeftMouseButton);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(picker.IsDropDownOpen);
+
+            Ui.CloseAndAnswer(window);
         });
     }
 

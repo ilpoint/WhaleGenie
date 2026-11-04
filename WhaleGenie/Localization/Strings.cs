@@ -826,6 +826,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.CaseValues"] = "value {0}",
         ["Editor.CaseNoValues"] = "no value yet",
         ["Editor.EmptyBranchList"] = "Drag a branch into this area.",
+        ["Editor.AddBranch"] = "＋ Add branch",
+        ["Editor.AddBranchHint"] = "Adds the next branch to this switch and opens its values for "
+            + "typing. A switch tries its branches from the top down and runs the first one that "
+            + "matches.",
+        ["Editor.CaseValuesHint"] = "Click to change the values this branch answers to. Several "
+            + "values go on one line, separated by \";\", and this branch catches any of them.",
+        ["Editor.CaseValuesPlaceholder"] = "e.g. 1; 2; 3",
+        ["Editor.SwitchNoValue"] = "no value to compare yet",
         ["Editor.JsonTree"] = "JSON Tree",
         ["Editor.NoSteps"] = "No steps yet.",
         ["Editor.StepDisabled"] = "skipped",
@@ -3075,6 +3083,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.CaseValues"] = "值 {0}",
         ["Editor.CaseNoValues"] = "还没填值",
         ["Editor.EmptyBranchList"] = "将分支拖入此区域。",
+        ["Editor.AddBranch"] = "＋ 添加分支",
+        ["Editor.AddBranchHint"] = "给这个多分支再加一支，并把这一支的值打开来写。多分支从上往下"
+            + "比对，命中第一支就执行它。",
+        ["Editor.CaseValuesHint"] = "点这里改这一支接的值。几个值写在一行里、用“;”隔开，命中任意一个"
+            + "都算命中这一支。",
+        ["Editor.CaseValuesPlaceholder"] = "例如 1; 2; 3",
+        ["Editor.SwitchNoValue"] = "还没填要比对的值",
         ["Editor.JsonTree"] = "JSON 树",
         ["Editor.NoSteps"] = "还没有步骤。",
         ["Editor.StepDisabled"] = "已停用",

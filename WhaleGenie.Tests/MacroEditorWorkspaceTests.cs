@@ -806,7 +806,9 @@ public class MacroEditorWorkspaceTests
             var list = window.FindControl<TreeView>("StepList")!;
             var marker = window.FindControl<Border>("DropMarker")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var casesHead = Header(list, row => row.IsSection && row.List?.Name == "cases");
+            // The branch table of an empty switch is the line that adds the first branch, so that
+            // is the place a dragged action lands on — and a land there is a branch, nothing else.
+            var casesHead = Header(list, row => row.IsAddRow);
             var point = casesHead.TranslatePoint(
                 new Point(casesHead.Bounds.Width / 2, casesHead.Bounds.Height / 2), list)!.Value;
             var transfer = new ActionDragPayload(

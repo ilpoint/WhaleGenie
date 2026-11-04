@@ -519,7 +519,7 @@ internal static class ActionStrings
         ["control.switch.switchMode.option.regex"] = "正则匹配",
         ["control.switch.cases.label"] = "分支",
         ["control.switch.cases.hint"] = "一行一个分支，从上到下比对；命中第一个分支后执行该分支，其余分支不再比对。",
-        ["control.switch.otherwise.label"] = "其他情况步骤",
+        ["control.switch.otherwise.label"] = "其他情况",
         ["control.switch.otherwise.hint"] = "所有分支都没命中时执行的子步骤。",
 
         ["control.case.name"] = "分支",

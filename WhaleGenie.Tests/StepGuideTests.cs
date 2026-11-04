@@ -246,6 +246,47 @@ public class StepGuideTests
         });
     }
 
+    [Fact]
+    public void The_line_that_adds_a_branch_hangs_off_the_same_column_as_the_branches()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var branch = Step("control.case",
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable, Value = "1" },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.note")],
+                });
+            editor.AddStep(Step("control.switch",
+                new StepParameter { Name = "switchValue", Kind = ActionParameterKind.Variable, Value = "$mode" },
+                new StepParameter
+                {
+                    Name = "cases",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [branch],
+                },
+                new StepParameter
+                {
+                    Name = "otherwise",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.log")],
+                }));
+
+            var add = editor.Rows.Single(row => row.IsAddRow);
+
+            // The foot of the table is a row of it, not a caption floating under it: the branch
+            // column turns into it the way it turns into a branch...
+            var elbow = Assert.Single(add.Guides, line => line.Elbow);
+            Assert.Equal(-(StepRow.IndentWidth + StepRow.ChevronCenter), elbow.Left);
+
+            // ...and carries on past it to the otherwise steps, which follow the branch list.
+            Assert.True(elbow.Full);
+        });
+    }
+
     private static MacroStep Step(string type, params StepParameter[] parameters)
         => new() { Type = type, Parameters = [.. parameters] };
 }

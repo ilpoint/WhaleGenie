@@ -887,7 +887,7 @@
       },
       {
         "Name": "otherwise",
-        "Label": "Otherwise steps",
+        "Label": "Otherwise",
         "Hint": "Steps to run when no case matched.",
         "Placeholder": "",
         "Kind": "Steps",

@@ -63,7 +63,9 @@ public class StepTreeTests
             editor.AddStep(choice);
 
             // One row per value, its steps straight underneath: no section collecting the branches,
-            // and no node per branch, which is what the tree used to spend four levels on.
+            // and no node per branch, which is what the tree used to spend four levels on. The
+            // table ends with the line that adds the next branch, which is the one thing a branch
+            // cannot be brought in from the library as.
             Assert.Equal(
             [
                 "0:Step:control.switch",
@@ -71,6 +73,7 @@ public class StepTreeTests
                 "2:Step:control.note",
                 "1:Section:control.case",
                 "2:Step:control.delay",
+                "1:Add:control.switch",
                 "1:Section:control.switch",
                 "2:Step:control.log",
             ], Shape(editor));
@@ -80,6 +83,77 @@ public class StepTreeTests
             Assert.Equal("值 1, 2", editor.Rows[1].HeadLabel);
             Assert.Equal("值 5", editor.Rows[3].HeadLabel);
             Assert.DoesNotContain(editor.Rows, row => row.IsSection && row.List?.Name == "cases");
+        });
+    }
+
+    [Fact]
+    public void An_empty_switch_offers_the_line_that_adds_the_first_branch()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            editor.AddStep(Step("control.switch"));
+
+            // A section titled "branches" holding nothing says neither what a branch is nor how to
+            // make one; the line that adds the first branch says both.
+            Assert.DoesNotContain(editor.Rows, row => row.IsSection && row.List?.Name == "cases");
+
+            var add = Assert.Single(editor.Rows, row => row.IsAddRow);
+            Assert.Equal(1, add.Depth);
+            Assert.False(string.IsNullOrEmpty(add.AddLabel));
+        });
+    }
+
+    [Fact]
+    public void Adding_a_branch_writes_one_and_opens_its_values_for_typing()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var choice = Step("control.switch");
+            editor.AddStep(choice);
+
+            var branch = editor.AddBranch(choice);
+
+            Assert.NotNull(branch);
+            var cases = choice.StepLists.Single(list => list.Name == "cases");
+            Assert.Same(branch, Assert.Single(cases.Steps));
+            Assert.Contains(branch, editor.SelectedSteps);
+
+            // A branch is a line of values and the steps that run for them, so the values are what
+            // is asked for first — not a note, and not a second trip through the action dialog.
+            var row = editor.Rows.Single(candidate => ReferenceEquals(candidate.Step, branch));
+            Assert.True(row.IsCase);
+            Assert.True(row.IsEditingValues);
+            Assert.False(row.HasCaseValues);
+        });
+    }
+
+    [Fact]
+    public void A_branch_takes_its_values_where_they_are_typed_and_Escape_puts_them_back()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var choice = Step("control.switch");
+            editor.AddStep(choice);
+            var branch = editor.AddBranch(choice)!;
+            var row = editor.Rows.Single(candidate => ReferenceEquals(candidate.Step, branch));
+
+            row.CaseValuesText = "1; 2";
+            Assert.Equal("1; 2", row.CaseValues);
+            Assert.True(row.HasCaseValues);
+
+            // Escape is the one way out that does not keep what was typed.
+            row.EndEditingValues(keep: false);
+            Assert.False(row.IsEditingValues);
+            Assert.False(row.HasCaseValues);
+
+            row.BeginEditingValues();
+            row.CaseValuesText = "3";
+            row.EndEditingValues(keep: true);
+            Assert.False(row.IsEditingValues);
+            Assert.Equal("3", branch.Parameters.Single(parameter => parameter.Name == "values").Value);
         });
     }
 
@@ -467,8 +541,7 @@ public class StepTreeTests
     }
 
     [Fact]
-    public void Picking_a_switch_and_adding_a_step_adds_a_branch()
-    {
+    public void Picking_a_switch_and_adding_a_step_adds_a_branch()    {
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();
@@ -761,7 +834,7 @@ public class StepTreeTests
                 && button.DataContext is StepRow row && match(row));
 
     [Fact]
-    public void Double_clicking_a_branch_opens_that_branch_where_its_values_are_written()
+    public void A_branchs_values_are_edited_on_its_own_row()
     {
         Ui.Run(() =>
         {
@@ -788,15 +861,17 @@ public class StepTreeTests
             Dispatcher.UIThread.RunJobs();
 
             var branch = editor.Rows.First(row => row.IsCase);
-            var header = Header(window, row => ReferenceEquals(row, branch));
+            var chip = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.IsEffectivelyVisible
+                    && ReferenceEquals(button.DataContext, branch));
 
+            Click(window, chip);
+            Dispatcher.UIThread.RunJobs();
 
-            DoubleClick(window, header.TranslatePoint(
-                new Point(16, Math.Min(8, header.Bounds.Height / 2)), window) ?? default);
-
-            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
-            Assert.Equal("control.case",
-                ((AddActionViewModel)action.View.DataContext!).SelectedDefinition!.Key);
+            // A branch is one line of values and the steps that run for them, so its values are
+            // typed where they are read — no dialog for a field that fits on the row.
+            Assert.True(branch.IsEditingValues);
+            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
             Ui.CloseAndAnswer(window);
         });
     }

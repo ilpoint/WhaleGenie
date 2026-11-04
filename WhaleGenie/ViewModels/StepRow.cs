@@ -22,6 +22,15 @@ public enum StepRowKind
     /// such row: its steps hang straight under it.
     /// </summary>
     Section,
+
+    /// <summary>
+    /// A line that is not a step and holds no steps: the foot of a switch's branch table, which is
+    /// where the next branch is added. A branch is the one thing in this editor that cannot be
+    /// dragged in from the library — the library has no such card — so the block has to offer it on
+    /// a line of its own rather than leave a person guessing that picking the switch and asking for
+    /// a step is how a branch is made.
+    /// </summary>
+    Add,
 }
 
 /// <summary>
@@ -80,6 +89,16 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// <summary>True on the title of one of a block's lists.</summary>
     public bool IsSection => Kind is StepRowKind.Section;
 
+    /// <summary>True on the line a switch keeps for adding the next branch.</summary>
+    public bool IsAddRow => Kind is StepRowKind.Add;
+
+    /// <summary>
+    /// True on a list title that names a list rather than a branch of a switch. A branch is titled
+    /// by the values it catches, which is a thing one may click and change; every other list title
+    /// is just a name, and clicking it selects the block the way the rest of the row does.
+    /// </summary>
+    public bool IsRegularSection => IsSection && !IsCase;
+
     /// <summary>
     /// True on the row that stands for one branch of a switch. A branch is a step — the thing that
     /// carries the values — but it is drawn as a section, because what it holds is a run of steps
@@ -90,6 +109,99 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// <summary>The values this branch catches, as written.</summary>
     public string CaseValues => Step.Parameters
         .FirstOrDefault(parameter => parameter.Name == "values")?.Value.Trim() ?? string.Empty;
+
+    /// <summary>True when this branch says which values it answers to.</summary>
+    public bool HasCaseValues => CaseValues.Length > 0;
+
+    /// <summary>
+    /// True while the values read as a line of their own. The line and the box that replaces it are
+    /// never both on screen: two things saying the same thing next to each other read as two values.
+    /// </summary>
+    public bool ShowsCaseValues => IsCase && !_editingValues;
+
+    /// <summary>
+    /// The values as they are being typed. A branch is one line of text — several values separated
+    /// by ";", which the runner reads the same way — so changing it is typing on the row rather
+    /// than opening the step's whole form for its one field.
+    /// </summary>
+    public string CaseValuesText
+    {
+        get => CaseValues;
+        set
+        {
+            var values = Step.Parameters.FirstOrDefault(parameter => parameter.Name == "values");
+            if (values is null)
+            {
+                values = new StepParameter
+                {
+                    Name = "values",
+                    Kind = ActionParameterKind.Text,
+                };
+                Step.Parameters.Add(values);
+            }
+
+            if (values.Value == value)
+            {
+                return;
+            }
+
+            values.Value = value ?? string.Empty;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValues)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesText)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeadLabel)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCaseValues)));
+        }
+    }
+
+    /// <summary>True while this row's values are being typed in place.</summary>
+    public bool IsEditingValues => _editingValues;
+
+    /// <summary>What the values said before the typing began, so Escape can put them back.</summary>
+    private string _valuesBeforeEdit = string.Empty;
+
+    private bool _editingValues;
+
+    /// <summary>Opens the row's values for typing, remembering what they were.</summary>
+    public void BeginEditingValues()
+    {
+        if (!IsCase || _editingValues)
+        {
+            return;
+        }
+
+        _valuesBeforeEdit = CaseValues;
+        _editingValues = true;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEditingValues)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowsCaseValues)));
+    }
+
+    /// <summary>
+    /// Closes the values again: kept as typed, or put back the way they were when the edit began.
+    /// A commit is handed to the editor, which is the one that knows the macro has changed.
+    /// </summary>
+    public void EndEditingValues(bool keep)
+    {
+        if (!_editingValues)
+        {
+            return;
+        }
+
+        _editingValues = false;
+        if (!keep)
+        {
+            CaseValuesText = _valuesBeforeEdit;
+        }
+
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEditingValues)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowsCaseValues)));
+        if (keep)
+        {
+            ValuesEdited?.Invoke(this);
+        }
+    }
+
+    /// <summary>Told when a row's branch values were changed and kept, so the macro counts as edited.</summary>
+    public Action<StepRow>? ValuesEdited { get; init; }
 
     /// <summary>True on a step the check has something to say about.</summary>
     public bool HasProblem => Problem.Length > 0;
@@ -119,9 +231,9 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// to that row has to be drawn. Counting steps instead leaves the column starting one row late
     /// on every block whose lists are still empty — which is every block the moment it is added.
     /// </summary>
-    private bool HasChildren => IsSection
-        ? List is { Steps.Count: > 0 }
-        : Step.StepLists.Any();
+    private bool HasChildren => IsStep
+        ? Step.StepLists.Any()
+        : IsSection && List is { Steps.Count: > 0 };
 
     /// <summary>
     /// Works out the lines this row draws. <paramref name="continues"/> says, for each level above
@@ -302,6 +414,11 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
         ? string.Empty
         : Strings.Format("Common.StepCount", List.Steps.Count);
 
+    /// <summary>What the foot of a switch's branch table says, and what pressing it does.</summary>
+    public string AddLabel => Strings.Get("Editor.AddBranch");
+
+    public string AddHint => Strings.Get("Editor.AddBranchHint");
+
     /// <summary>
     /// The list a new step added from this row goes into: a section's own list, or the one list a
     /// block runs when it runs only that.
@@ -314,6 +431,13 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
 
     /// <summary>True on the title of a list that does not hold its first step yet.</summary>
     public bool IsEmptyList => IsSection && List?.Steps.Count == 0;
+
+    /// <summary>
+    /// True on an empty list where "drag a step in here" is worth saying. A branch says how many
+    /// steps it runs on the same line, and a branch with none is the normal case while its values
+    /// are still being typed — the sentence would be noise on every row of the table.
+    /// </summary>
+    public bool ShowsEmptyListHint => IsEmptyList && !IsCase;
 
     /// <summary>What an empty section says about its first action.</summary>
     public string EmptyListHint => List is not null

@@ -2569,15 +2569,13 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// True when the point came from inside a row's own content — the card, its text, the badges —
-    /// rather than from the indent strip beside it or from a control the row carries.
-    /// </summary>
+    /// <summary>True when the point came from inside a row's own content — the card, its text, the badges —
+    /// rather than from the indent strip beside it or from a control the row carries.</summary>
     private static bool OnRowContent(object? source)
     {
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
         {
-            if (visual is ToggleButton)
+            if (visual is ToggleButton or TextBox)
             {
                 return false;
             }
@@ -2594,6 +2592,81 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         return false;
+    }
+
+    /// <summary>Adds the next branch of a switch; the new row opens its values for typing.</summary>
+    private void OnAddBranch(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepRow { IsAddRow: true } row })
+        {
+            _viewModel.AddBranch(row.Step);
+        }
+    }
+
+    /// <summary>
+    /// Turns a branch's values into the line that is typed in their place. A branch is one line of
+    /// values — several of them separated by ";" — so this is all the form that field needs.
+    /// </summary>
+    private void OnEditCaseValues(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepRow { IsCase: true } row })
+        {
+            row.BeginEditingValues();
+            FocusCaseValues(row);
+        }
+    }
+
+    /// <summary>
+    /// A branch that was just added opens for typing the moment its row exists: the box is built
+    /// with the row, so this is where the caret can go without the list being touched again.
+    /// </summary>
+    private void OnCaseValueBoxAttached(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (sender is TextBox { DataContext: StepRow { IsEditingValues: true } row } box)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                box.Focus();
+                box.SelectAll();
+            }, DispatcherPriority.Loaded);
+        }
+    }
+
+    /// <summary>Puts the caret in a branch's value box, selecting what is there so it can be replaced.</summary>
+    private void FocusCaseValues(StepRow row)
+        => Dispatcher.UIThread.Post(() =>
+        {
+            if (_stepList?.GetVisualDescendants().OfType<TextBox>()
+                .FirstOrDefault(box => ReferenceEquals(box.DataContext, row)) is { } box)
+            {
+                box.Focus();
+                box.SelectAll();
+            }
+        }, DispatcherPriority.Loaded);
+
+    /// <summary>
+    /// Enter keeps the values and leaves the line, Escape puts back what was there. Both end the
+    /// edit, because a branch is read as a table: the row is its values, not a form left open.
+    /// </summary>
+    private void OnCaseValuesKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: StepRow row } || e.Key is not (Key.Enter or Key.Escape))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        row.EndEditingValues(keep: e.Key == Key.Enter);
+        _stepList?.Focus();
+    }
+
+    /// <summary>Leaving the line is keeping what was typed: there is no "cancel" to be had by leaving.</summary>
+    private void OnCaseValuesLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox { DataContext: StepRow row } && row.IsEditingValues)
+        {
+            row.EndEditingValues(keep: true);
+        }
     }
 
     /// <summary>Context-menu commands for the step list, so they are not keyboard-only.</summary>
@@ -2629,7 +2702,11 @@ public partial class MacroEditorWindow : AppWindow
     {
         var point = e.GetCurrentPoint(this);
         var onButton = IsOnButton(e.Source);
-        var row = onButton ? null : RowUnder(e.Source);
+
+        // A text box a row carries owns its own presses: clicking into it is putting the caret
+        // somewhere, not picking the row up as a drag or clearing the selection around it.
+        var onText = IsOnText(e.Source);
+        var row = onButton || onText ? null : RowUnder(e.Source);
 
         // The second press of a double click opens the row it landed on. Doing it here rather than
         // on the double-tap keeps it independent of what selection did with the first click, and
@@ -2667,7 +2744,7 @@ public partial class MacroEditorWindow : AppWindow
         // A press on the empty part of the list — the space after the last row — is the user
         // saying "none of these", so the selection goes, the way it does in any other list. The
         // scrollbar is not empty space.
-        if (pressed && row is null && !onButton && !IsOnScrollbar(e.Source))
+        if (pressed && row is null && !onButton && !onText && !IsOnScrollbar(e.Source))
         {
             _viewModel.SetSelection([]);
 
@@ -2849,6 +2926,16 @@ public partial class MacroEditorWindow : AppWindow
         var row = box.Row;
         var top = box.Top;
         var bottom = top + box.Height;
+
+        // The foot of a switch's branch table is the end of the branch list: a branch dragged onto
+        // it is saying "put it last", which is the same thing the row itself offers to do.
+        if (row.IsAddRow && row.List is { } table)
+        {
+            Place(table.Steps, table.Steps.Count, bottom, row.Depth * 16,
+                table.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
+                actionKey);
+            return;
+        }
 
         // A body row is one list, and the whole of it means the end of that list: a pointer over
         // "body steps" is saying "put it in there", and the end is where a person's next step
@@ -3163,6 +3250,10 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>True when the event landed on a button, which handles its own presses.</summary>
     private static bool IsOnButton(object? source)
         => source is Visual visual && visual.FindAncestorOfType<Button>(true) is not null;
+
+    /// <summary>True when the event landed in a text box, which owns its own presses and keys.</summary>
+    private static bool IsOnText(object? source)
+        => source is Visual visual && visual.FindAncestorOfType<TextBox>(true) is not null;
 
     /// <summary>True when the event landed on the list's scrollbar rather than on its rows.</summary>
     private static bool IsOnScrollbar(object? source)
