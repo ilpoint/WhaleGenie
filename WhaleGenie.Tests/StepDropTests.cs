@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
@@ -19,43 +19,46 @@ namespace WhaleGenie.Tests;
 public class StepDropTests
 {
     [Fact]
-    public void A_folded_block_with_an_empty_body_still_offers_a_seam_above_and_below()
+    public void A_folded_block_still_says_where_its_body_is()
     {
-        var (above, below, steps) = Ui.Run(() =>
+        var (above, below, steps, body) = Ui.Run(() =>
         {
-            var window = Open(Block(expanded: false, children: 0), out var list, out var editor);
+            var block = Block(expanded: false, children: 0);
+            var window = Open(block, out var list, out var editor);
             var row = Rows(list).Single();
-            var above = window.DropTargetAt(new Point(20, 2), "input.keyPress");
-            var below = window.DropTargetAt(new Point(20, row.Bounds.Height - 2), "input.keyPress");
+            var top = row.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var above = window.DropTargetAt(new Point(20, top + (row.Bounds.Height * 0.25)), "input.keyPress");
+            var below = window.DropTargetAt(new Point(20, top + (row.Bounds.Height * 0.85)), "input.keyPress");
             window.Close();
-            return (above, below, editor.Steps);
+            return (above, below, editor.Steps, block.StepLists.Single().Steps);
         });
 
-        Assert.Same(steps, above.Into);
+        // A folded block is still a block: its row means "into it, at the end", not "before it".
+        Assert.Same(body, above.Into);
         Assert.Equal(0, above.Index);
+        Assert.Same(body, below.Into);
+        Assert.Equal(0, below.Index);
         Assert.True(above.Allowed);
-
-        Assert.Same(steps, below.Into);
-        Assert.Equal(1, below.Index);
-        Assert.True(below.Allowed);
     }
 
     [Fact]
-    public void A_folded_block_that_holds_steps_takes_a_drop_above_and_below_it()
+    public void A_folded_block_that_holds_steps_puts_the_drop_at_the_end_of_them()
     {
-        var (above, below, steps) = Ui.Run(() =>
+        var (above, below, body) = Ui.Run(() =>
         {
-            var window = Open(Block(expanded: false, children: 1), out var list, out var editor);
+            var block = Block(expanded: false, children: 1);
+            var window = Open(block, out var list, out _);
             var row = Rows(list).Single();
-            var above = window.DropTargetAt(new Point(20, 2), "input.keyPress");
-            var below = window.DropTargetAt(new Point(20, row.Bounds.Height - 2), "input.keyPress");
+            var top = row.TranslatePoint(new Point(0, 0), list)!.Value.Y;
+            var above = window.DropTargetAt(new Point(20, top + (row.Bounds.Height * 0.25)), "input.keyPress");
+            var below = window.DropTargetAt(new Point(20, top + (row.Bounds.Height * 0.85)), "input.keyPress");
             window.Close();
-            return (above, below, editor.Steps);
+            return (above, below, block.StepLists.Single().Steps);
         });
 
-        Assert.Same(steps, above.Into);
-        Assert.Equal(0, above.Index);
-        Assert.Same(steps, below.Into);
+        Assert.Same(body, above.Into);
+        Assert.Equal(1, above.Index);
+        Assert.Same(body, below.Into);
         Assert.Equal(1, below.Index);
     }
 
@@ -77,7 +80,8 @@ public class StepDropTests
             var inside = window.DropTargetAt(new Point(20, body), "input.keyPress");
 
             // Under the whole tree is past the block rather than inside it.
-            var bottom = window.DropTargetAt(new Point(20, list.Bounds.Height - 4), "input.keyPress");
+            var last = rows[^1].TranslatePoint(new Point(0, rows[^1].Bounds.Height), list)!.Value.Y;
+            var bottom = window.DropTargetAt(new Point(20, last + 24), "input.keyPress");
             window.Close();
             return (top, inside, bottom, editor.Steps,
                 block.StepLists.Single().Steps);

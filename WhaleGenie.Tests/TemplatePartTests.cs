@@ -78,6 +78,7 @@ public class TemplatePartTests
         // 树的行：选中态由卡片自己画，模板里那层底与那条小竖条都让开。
         ("TreeViewItem", "", "Border#PART_LayoutRoot"),
         ("TreeViewItem", "", "Rectangle#SelectionIndicator"),
+        ("TreeViewItem", "", "ToggleButton#PART_ExpandCollapseChevron"),
         ("ScrollViewer", "VarWallScroll", "ScrollBar#PART_VerticalScrollBar"),
     ];
 

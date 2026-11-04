@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="using:System">
 
@@ -31,6 +31,8 @@
 
             <!-- 边框与焦点 -->
             <Color x:Key="BorderSubtleColor">#303030</Color>
+            <!-- 树的连接线：退到背景层，别和图标抢。深色下是 20% 的白。 -->
+            <Color x:Key="TreeGuideColor">#33FFFFFF</Color>
             <Color x:Key="BorderControlColor">#555555</Color>
             <Color x:Key="BorderControlHoverColor">#6E6E6E</Color>
             <Color x:Key="BorderStrongColor">#767676</Color>
@@ -85,6 +87,7 @@
 
             <!-- 边框与焦点 -->
             <SolidColorBrush x:Key="BorderSubtle" Color="{StaticResource BorderSubtleColor}" />
+            <SolidColorBrush x:Key="TreeGuide" Color="{StaticResource TreeGuideColor}" />
             <SolidColorBrush x:Key="BorderControl" Color="{StaticResource BorderControlColor}" />
             <SolidColorBrush x:Key="BorderControlHover" Color="{StaticResource BorderControlHoverColor}" />
             <SolidColorBrush x:Key="BorderStrong" Color="{StaticResource BorderStrongColor}" />
@@ -138,6 +141,7 @@
 
             <!-- 边框与焦点 -->
             <Color x:Key="BorderSubtleColor">#E0DCD4</Color>
+            <Color x:Key="TreeGuideColor">#1F000000</Color>
             <Color x:Key="BorderControlColor">#C4BFB5</Color>
             <Color x:Key="BorderControlHoverColor">#A9A296</Color>
             <Color x:Key="BorderStrongColor">#8C857A</Color>
@@ -191,6 +195,7 @@
 
             <!-- 边框与焦点 -->
             <SolidColorBrush x:Key="BorderSubtle" Color="{StaticResource BorderSubtleColor}" />
+            <SolidColorBrush x:Key="TreeGuide" Color="{StaticResource TreeGuideColor}" />
             <SolidColorBrush x:Key="BorderControl" Color="{StaticResource BorderControlColor}" />
             <SolidColorBrush x:Key="BorderControlHover" Color="{StaticResource BorderControlHoverColor}" />
             <SolidColorBrush x:Key="BorderStrong" Color="{StaticResource BorderStrongColor}" />

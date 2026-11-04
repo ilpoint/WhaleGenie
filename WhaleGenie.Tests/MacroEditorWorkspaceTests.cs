@@ -632,7 +632,7 @@ public class MacroEditorWorkspaceTests
     /// the block, or inside it at the end — and the band says which.
     /// </summary>
     [Fact]
-    public void A_block_row_with_a_step_inside_still_offers_before_and_inside()
+    public void A_block_row_puts_the_step_at_the_end_of_its_body()
     {
         Ui.Run(() =>
         {
@@ -655,17 +655,18 @@ public class MacroEditorWorkspaceTests
 
             var list = window.FindControl<TreeView>("StepList")!;
             var hint = window.FindControl<TextBlock>("DropHintText")!;
-            var block = Header(list, row => row.IsStep && row.Step.Type == "control.repeat");
-            var top = block.TranslatePoint(new Point(0, 0), list)!.Value.Y;
-            var bottom = block.TranslatePoint(new Point(0, block.Bounds.Height), list)!.Value.Y;
+            var block = Header(list, row => row.IsStep && row.IsBlock);
             var transfer = new ActionDragPayload(
                 ActionPaletteCardKind.Action, "control.log").Transfer();
 
-            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, top + 3));
-            Assert.Equal(Strings.Get("Editor.DropBeforeBlock"), hint.Text);
-
-            DragAt(list, DragDrop.DragOverEvent, transfer, new Point(60, top + (block.Bounds.Height * 0.75)));
-            Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
+            // The whole of a block's row means the same thing: put it in this block, at the end.
+            // That is what a body row is for, and it does not depend on which half was aimed at.
+            foreach (var fraction in new[] { 0.2, 0.5, 0.9 })
+            {
+                DragAt(list, DragDrop.DragOverEvent, transfer,
+                    block.TranslatePoint(new Point(60, block.Bounds.Height * fraction), list)!.Value);
+                Assert.Equal(Strings.Get("Editor.DropAtBlockEnd"), hint.Text);
+            }
 
             Ui.CloseAndAnswer(window);
         });

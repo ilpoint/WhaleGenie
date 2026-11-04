@@ -3093,30 +3093,22 @@ public partial class MacroEditorViewModel : ViewModelBase
                 continue;
             }
 
-            // A block that runs one list needs no title for it: the block's own row says what it
-            // runs and how many steps are in there. Several lists — the then and the else of an
-            // if — do need naming, or the two would read as one run of steps.
-            var named = lists.Count > 1;
+            // Every list a block runs gets a row of its own, one list or several: it is the body a
+            // person drags into, and without it there is nothing on screen that says where the
+            // block's steps begin and end.
             foreach (var list in lists)
             {
-                if (named)
+                var section = new StepRow
                 {
-                    var section = new StepRow
-                    {
-                        Kind = StepRowKind.Section,
-                        Step = step,
-                        List = list,
-                        Depth = depth + 1,
-                        Folded = OnRowFolded,
-                    };
-                    section.Guide(depth + 1);
-                    row.Children.Add(section);
-                    AddNodes(list.Steps, list, depth + 2, section.Children);
-                }
-                else
-                {
-                    AddNodes(list.Steps, list, depth + 1, row.Children);
-                }
+                    Kind = StepRowKind.Section,
+                    Step = step,
+                    List = list,
+                    Depth = depth + 1,
+                    Folded = OnRowFolded,
+                };
+                section.Guide(depth + 1);
+                row.Children.Add(section);
+                AddNodes(list.Steps, list, depth + 2, section.Children);
             }
 
         }

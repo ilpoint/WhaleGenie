@@ -283,7 +283,9 @@ if ($missing) { $missing; exit 1 }
   与 `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing` 在**全量**跑时偶发失败
   （单跑、单类跑都过），两条都动 `VariableCatalog.Globals` / `SharedVariables` / `PersistentVariables`
   这类进程级状态。全量跑时 `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`
-  也偶发同一种挂法（单跑通过），同样是进程级状态。再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
+  也偶发同一种挂法（单跑通过），同样是进程级状态；`StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step`
+  在全量跑时偶尔不认第二次点击（连续三次单跑都过），属于同一种"机器忙时手势计时被拉长"。
+再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
 
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或

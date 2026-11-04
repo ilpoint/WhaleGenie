@@ -92,6 +92,15 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
     /// <summary>Moves the strip left so its cells land on the indents of the rows it belongs to.</summary>
     public Thickness GuideMargin => new(-GuideWidth, 0, 0, 0);
 
+    /// <summary>True when this row sits inside a block, which is what the faint band marks.</summary>
+    public bool IsNested => Depth > 0;
+
+    /// <summary>True when this row hangs under something, so a stub joins it to the line above.</summary>
+    public bool HasElbow => Guides.Count > 0;
+
+    /// <summary>The stub that joins this row to its parent's line, one indent wide.</summary>
+    public Thickness ElbowMargin => new(-16, 0, 0, 0);
+
     /// <summary>Sets the guides this row draws; called when the row is laid into the tree.</summary>
     internal void Guide(int depth)
     {
@@ -99,6 +108,8 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Guides)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GuideWidth)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GuideMargin)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasElbow)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ElbowMargin)));
     }
 
     /// <summary>True on the title of one of a block's lists.</summary>
@@ -121,6 +132,16 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 
     /// <summary>True on a step that runs steps of its own.</summary>
     public bool IsBlock => IsStep && Step.StepLists.Any();
+
+    /// <summary>
+    /// How a block reads against the steps it holds: heavier and a size up, so the two levels are
+    /// told apart by weight before the indent is even looked at.
+    /// </summary>
+    public string NameWeight => IsBlock ? "SemiBold" : "Normal";
+
+    public double NameSize => IsBlock ? 13 : 12.5;
+
+    public double IconSize => IsBlock ? 16 : 14;
 
     /// <summary>True while what hangs under this row is on screen.</summary>
     public bool IsExpanded
@@ -172,15 +193,6 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
         : Strings.Format("Common.StepCount", List.Steps.Count);
 
     /// <summary>
-    /// How many steps the block runs, written on its own row. Only a block that runs one list has
-    /// a single number to give: the then and the else of an if are counted apart, on their own
-    /// rows, because adding them up would say "3 steps" about a branch that runs two of them.
-    /// </summary>
-    public string BodyCount => ShowsBodyCount
-        ? Strings.Format("Common.StepCount", Step.StepLists.First().Steps.Count)
-        : string.Empty;
-
-    /// <summary>
     /// The list a new step added from this row goes into: a section's own list, or the one list a
     /// block runs when it runs only that.
     /// </summary>
@@ -198,9 +210,6 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
         && Step.ParameterDefinition(List) is { ChildKeys.Count: > 0 }
             ? Strings.Get("Editor.EmptyBranchList")
             : Strings.Get("Editor.EmptyStepList");
-
-    /// <summary>True when a block runs a single list, so its steps hang straight under it.</summary>
-    public bool ShowsBodyCount => IsBlock && Step.StepLists.Count() == 1;
 
     // The step's own look, passed through so one row template binds one kind of thing.
 

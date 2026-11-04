@@ -2783,9 +2783,17 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
+        // The top edge of the first row is the start of the macro: a block that is first still has
+        // a place in front of it, and a few pixels there are what says so.
+        if (point.Y < boxes[0].Top + 6)
+        {
+            Place(_viewModel.Steps, 0, boxes[0].Top, 0, "Editor.DropBeforeStep", actionKey);
+            return;
+        }
+
         // The space below the last row is the end of the macro: a pointer down there is past
         // everything, so that is what it means rather than "after whichever block happened to be
-        // last". Ending a block's own list is the lower half of the block's row.
+        // last".
         var last = boxes[^1];
         if (point.Y >= last.Top + last.Height)
         {
@@ -2809,43 +2817,32 @@ public partial class MacroEditorWindow : AppWindow
         var row = box.Row;
         var top = box.Top;
         var bottom = top + box.Height;
-        var middle = top + (box.Height / 2);
 
-        // A section title is one list: its top half is the top of that list, its bottom half the
-        // end of it. That is the whole of what a section means, so it has no other seams.
+        // A body row is one list, and the whole of it means the end of that list: a pointer over
+        // "body steps" is saying "put it in there", and the end is where a person's next step
+        // goes. Landing it at the top is what made an empty body feel like it swallowed the drop.
         if (row.IsSection && row.List is { } section)
         {
-            var atEnd = point.Y >= middle;
-            Place(section.Steps, atEnd ? section.Steps.Count : 0,
-                atEnd ? BottomOf(row, boxes) : bottom, (row.Depth + 1) * 16,
-                "Editor.DropAtBlockStart", actionKey);
+            Place(section.Steps, section.Steps.Count, BottomOf(row, boxes), (row.Depth + 1) * 16,
+                section.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
+                actionKey);
             return;
         }
 
-        // A block that runs one list takes a drop in its lower half as "inside, at the end". Before
-        // it is its upper half; after it is the top half of whatever follows, or the space below
-        // the tree. A block that runs several lists leaves "inside" to its sections, because
-        // "inside" there would not say which list was meant.
+        // A block that runs one list is the same promise one level up: the whole row means "into
+        // it, at the end", whether it is open or folded. A block that runs several lists leaves
+        // "inside" to its body rows, because "inside" there would not say which.
         if (row.IsBlock && row.Step.StepLists.Count() == 1 && row.Body is { } body)
         {
-            // A folded block is one line, so its two halves are before and after it. Only an open
-            // block has a body to drop into, and then its lower half is "inside, at the end".
-            if (point.Y < middle || !row.Step.IsExpanded)
-            {
-                var above = point.Y < middle;
-                Place(StepsOf(row), Math.Max(0, row.Index) + (above ? 0 : 1),
-                    above ? top : bottom, row.Depth * 16,
-                    above ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock", actionKey);
-                return;
-            }
-
-            Place(body.Steps, body.Steps.Count, bottom, (row.Depth + 1) * 16,
+            var tail = row.Children.FirstOrDefault(child => child.IsSection);
+            Place(body.Steps, body.Steps.Count,
+                tail is null ? bottom : BottomOf(tail, boxes), (row.Depth + 1) * 16,
                 body.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
                 actionKey);
             return;
         }
 
-        var before = point.Y < middle;
+        var before = point.Y < top + (box.Height / 2);
         var (list, index) = before ? Before(row) : After(row);
         Place(list, index, before ? top : bottom, row.Depth * 16,
             row.IsBlock ? (before ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock")

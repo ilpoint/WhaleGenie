@@ -989,7 +989,7 @@
                                        Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
                                <Setter Property="Padding" Value="0" />
                                <Setter Property="MinHeight" Value="0" />
-                               <Setter Property="Margin" Value="0,0,0,2" />
+                               <Setter Property="Margin" Value="0" />
                            </ControlTheme>
                        </TreeView.ItemContainerTheme>
                        <TreeView.ContextMenu>
@@ -1037,28 +1037,36 @@
                                               <DataTemplate x:DataType="vm:GuideCell">
                                                   <Border Width="16"
                                                           BorderThickness="1,0,0,0"
-                                                          BorderBrush="{DynamicResource BorderControl}" />
+                                                          BorderBrush="{DynamicResource TreeGuide}" />
                                               </DataTemplate>
                                           </ItemsControl.ItemTemplate>
                                       </ItemsControl>
                                   </Panel>
+                                  <!-- 横枝：从上一层的竖线接到这一行的内容，读起来就是 ├ 。 -->
+                                  <Border Margin="{Binding ElbowMargin}" Width="16" Height="1"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center"
+                                          Background="{DynamicResource TreeGuide}"
+                                          IsVisible="{Binding HasElbow}" IsHitTestVisible="False" />
                                   <!-- 一行一步：图标、名称与三枚徽标、一句摘要，最后是问题。
                                        展开箭头归树控件；块里有几步写在块的右边。 -->
                                   <Border Classes="StepLine" Classes.problem="{Binding HasProblem}"
                                           Classes.selected="{Binding IsPicked}"
+                                          Classes.container="{Binding IsBlock}"
+                                          Classes.nested="{Binding IsNested}"
                                           Opacity="{Binding RowOpacity}"
                                           IsVisible="{Binding IsStep}">
                                       <StackPanel Spacing="4">
-                                      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="6">
-                                          <views:IconView Grid.Column="0" Width="16" Height="16" Stroke="{DynamicResource TextPrimary}"
+                                      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6">
+                                          <views:IconView Grid.Column="0" Width="{Binding IconSize}" Height="{Binding IconSize}"
+                                                          Stroke="{DynamicResource TextPrimary}"
                                                           StrokeThickness="1.5" Data="{Binding Icon}"
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <!-- 名称与徽标不换行：换行会把这一行撑成两行，正是要收掉的东西。
                                                名字太长时省略号截断，完整名字在详情里。 -->
                                           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                                                       VerticalAlignment="Center">
-                                              <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
-                                                         FontWeight="SemiBold"
+                                              <TextBlock Text="{Binding DisplayName}" FontSize="{Binding NameSize}"
+                                                         FontWeight="{Binding NameWeight}"
                                                          Foreground="{DynamicResource TextPrimary}"
                                                          TextTrimming="CharacterEllipsis" MaxWidth="260" />
                                               <!-- 跳过是**状态**，走 `Warning`；颜色由 `Badge.Warning` 给 -->
@@ -1091,14 +1099,7 @@
                                                      TextTrimming="CharacterEllipsis"
                                                      ToolTip.Tip="{Binding Detail}"
                                                      IsVisible="{Binding !ShowsDetail}" />
-                                          <!-- 块跑几步，折起来也看得见；只有单列表的块才把它写在块自己这一行，
-                                               多列表的块分节写，节上已经有数了。 -->
-                                          <Border Grid.Column="3" Classes="Badge Info"
-                                                  VerticalAlignment="Center"
-                                                  IsVisible="{Binding ShowsBodyCount}">
-                                              <TextBlock Text="{Binding BodyCount}" Classes="Caption" />
-                                          </Border>
-                                          <Border Grid.Column="4" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
+                                          <Border Grid.Column="3" Classes="ProblemTip" IsVisible="{Binding HasProblem}"
                                                   ToolTip.Tip="{Binding Problem}">
                                               <views:IconView Classes="ProblemMark" StrokeThickness="1.4"
                                                               FitToBounds="True"
@@ -1125,21 +1126,23 @@
                                       </StackPanel>
                                   </Border>
 
-                                   <!-- 多列表的块才有的一行：这一节叫什么、几步、往里加一步。
-                                        单列表的块不出这一行——块自己那行就是它的开头。 -->
-                                  <Border Classes="StepHead" IsVisible="{Binding IsSection}">
-                                      <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="4">
-                                          <TextBlock Classes="Note" VerticalAlignment="Center"
+                                   <!-- 块的"体"：这一块跑的是哪些步骤，从这一行往下都属于它。
+                                        单列表的块也有这一行——没有它，屏幕上就没有"循环体"可以拖进去。 -->
+                                  <Border Classes="StepBody" IsVisible="{Binding IsSection}">
+                                      <!-- 名字、步数、空的时候那句话挨着写：拉到行尾的提示在宽窗口里
+                                           离标题太远，读起来像另一行的东西。 -->
+                                      <StackPanel Orientation="Horizontal" Spacing="6"
+                                                  VerticalAlignment="Center">
+                                          <TextBlock Classes="Note" FontSize="12"
                                                      Text="{Binding HeadLabel}" />
-                                          <TextBlock Classes="Note" VerticalAlignment="Center"
+                                          <TextBlock Classes="Caption" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
-                                          <TextBlock IsVisible="{Binding IsEmptyList}"
-                                                     Text="{Binding EmptyListHint}"
-                                                     Classes="Hint"
-                                                     VerticalAlignment="Center" />
-                                      </WrapPanel>
+                                          <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                                     TextTrimming="CharacterEllipsis"
+                                                     IsVisible="{Binding IsEmptyList}"
+                                                     Text="{Binding EmptyListHint}" />
+                                      </StackPanel>
                                   </Border>
-
                               </Panel>
                            </TreeDataTemplate>
                        </TreeView.ItemTemplate>

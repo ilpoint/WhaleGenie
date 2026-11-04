@@ -136,6 +136,7 @@
       STATIC Border.BlockNumber
       STATIC Border.Divider
       STATIC Border.Panel
+      STATIC Border.StepBody
       STATIC Border.PickerScrim
       STATIC Border.PickerTarget
       STATIC Border.Readout
@@ -1365,15 +1366,51 @@
         <Setter Property="BorderThickness" Value="2,0,0,0" />
         <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
+    <!-- 容器：块自己那一行是一张很淡的卡片，和它下面的动作分开。 -->
+    <Style Selector="Border.StepLine.container">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="8,5" />
+    </Style>
+    <!-- 块里的行铺一层几乎看不见的底，上下相接，连成一条"这一块"的带子。 -->
+    <Style Selector="Border.StepLine.nested">
+        <Setter Property="Background" Value="#0DFFFFFF" />
+    </Style>
     <Style Selector="Border.StepLine:pointerover:not(.selected)">
         <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
     </Style>
     <Style Selector="Border.StepLine.selected">
         <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
     </Style>
-    <!-- 有问题的那一步：左边一条警示色的边，与"选中"的整块底不同通道。 -->
+    <!-- 块的"体"：一块列表的头，参考软件里它叫「循环体」。给它一层浅底，让人一眼看出
+         "从这里往下都属于这个块"，也给它一个可以把步骤拖进去的地方。 -->
+    <Style Selector="Border.StepBody">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="8,2" />
+    </Style>
+    <Style Selector="Border.StepBody TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+
+    <!-- 树的展开钮：一个小方块，参考软件里就是这个形状，比一个细箭头好点得多。 -->
+    <Style Selector="TreeView.Steps TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="3" />
+    </Style>
+
+    <!-- 有问题的那一步：左边一条警示色的边，与"选中"的整块底不同通道。
+         容器行是一张卡片，整圈变黄会把一块宏都染成警报色，所以它只留右边那枚图标。 -->
     <Style Selector="Border.StepLine.problem">
         <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+    </Style>
+    <Style Selector="Border.StepLine.container.problem">
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
     </Style>
     <Style Selector="TreeView.Steps">
         <Setter Property="Padding" Value="{DynamicResource Pad0}" />
