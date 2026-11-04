@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using Avalonia;
 using Avalonia.Media;
 using WhaleGenie.Localization;
 
@@ -93,16 +92,13 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 
     private IReadOnlyList<GuideLine> _guides = [];
 
-    private int _depth;
-
     /// <summary>
     /// Works out the lines this row draws. <paramref name="continues"/> says, for each level above
     /// this one, whether the node at that level has a sibling after it; <paramref name="hasNext"/>
     /// is the same answer for this row itself.
     /// </summary>
-    internal void Guide(int depth, IReadOnlyList<bool> continues, bool hasNext, bool hasBox)
+    internal void Guide(int depth, IReadOnlyList<bool> continues, bool hasNext, bool hasChildren)
     {
-        _depth = depth;
         var lines = new List<GuideLine>(depth);
         for (var level = 0; level < depth; level++)
         {
@@ -113,16 +109,43 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
                 continue;
             }
 
-            // A line sits under the chevron of the node it belongs to: that box is 12 in from the
-            // node's own left edge, and every level is 16 further out.
-            var left = ((level - depth) * 16) + 12;
-            var reach = hasBox ? 12 : 36;
-            lines.Add(new GuideLine(left, full, mine, mine ? reach - left : 0));
+            // A line hangs under the chevron of the node it belongs to, and that chevron is one
+            // indent step plus twelve pixels left of the content of every row beneath it. Measured
+            // from this row's content, level N sits at (N - depth) * step - centre. The elbow runs
+            // from there rightwards to the left edge of this row's own chevron box, which is where
+            // a child's branch is expected to arrive.
+            var left = ((level - depth) * IndentWidth) - ChevronCenter;
+            lines.Add(new GuideLine(left, full, mine,
+                mine ? IndentWidth + ChevronCenter - ChevronSize - ChevronMargin : 0));
+        }
+
+        // A row that holds steps drops a line from its own chevron down to the bottom of its row,
+        // and the first child picks it up from there. Without it the column that carries a block's
+        // steps starts one row too low, and the block's own chevron ends in mid-air.
+        if (hasChildren)
+        {
+            lines.Add(new GuideLine(-ChevronCenter, true, false, 0, Tail: true));
         }
 
         _guides = lines;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Guides)));
     }
+
+    /// <summary>
+    /// One step of the tree's indentation, in pixels. The tree itself indents by this much — it is
+    /// the `TreeViewItemIndent` resource in App.axaml — and the guides are placed from the same
+    /// number, so a line can never sit a pixel or two off the chevron it belongs under.
+    /// </summary>
+    public const double IndentWidth = 26;
+
+    /// <summary>Gap between a node's left edge and its chevron box.</summary>
+    private const double ChevronMargin = 12;
+
+    /// <summary>Side of the chevron box.</summary>
+    private const double ChevronSize = 14;
+
+    /// <summary>Where the centre of a level's chevron sits, measured from that level's left edge.</summary>
+    private const double ChevronCenter = ChevronMargin + (ChevronSize / 2);
 
     public bool IsBlock => IsStep && Step.StepLists.Any();
 
@@ -287,8 +310,9 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 /// One line of the indent guide: where it sits, how far down it runs, and whether it turns right
 /// at its middle to join the row it leads to.
 /// </summary>
-public sealed record GuideLine(double Left, bool Full, bool Elbow, double ElbowWidth)
-{
-    /// <summary>Where the line sits, measured from the row's own left edge — usually to the left.</summary>
-    public Thickness Margin => new(Left, 0, 0, 0);
-}
+/// <param name="Left">X of the vertical line, measured from the row's content — usually negative.</param>
+/// <param name="Full">True when the node's line carries on below this row, false when it stops here.</param>
+/// <param name="Elbow">True on the row's own connector, the one that turns into it.</param>
+/// <param name="ElbowWidth">How far the connector reaches to the right.</param>
+/// <param name="Tail">True on the line that drops from a row's own chevron to the row's bottom.</param>
+public sealed record GuideLine(double Left, bool Full, bool Elbow, double ElbowWidth, bool Tail = false);

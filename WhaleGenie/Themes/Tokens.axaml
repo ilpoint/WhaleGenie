@@ -31,8 +31,9 @@
 
             <!-- 边框与焦点 -->
             <Color x:Key="BorderSubtleColor">#303030</Color>
-            <!-- 树的连接线：退到背景层，别和图标抢。深色下是 20% 的白。 -->
-            <Color x:Key="TreeGuideColor">#33FFFFFF</Color>
+            <!-- 树的连接线：比正文淡、比背景明显。20% 的白在暗色卡片上几乎看不见，看成"没有线"；
+                 40% 才读得出来是一条线，又不会和图标抢。 -->
+            <Color x:Key="TreeGuideColor">#66FFFFFF</Color>
             <Color x:Key="BorderControlColor">#555555</Color>
             <Color x:Key="BorderControlHoverColor">#6E6E6E</Color>
             <Color x:Key="BorderStrongColor">#767676</Color>
@@ -141,7 +142,7 @@
 
             <!-- 边框与焦点 -->
             <Color x:Key="BorderSubtleColor">#E0DCD4</Color>
-            <Color x:Key="TreeGuideColor">#1F000000</Color>
+            <Color x:Key="TreeGuideColor">#3D000000</Color>
             <Color x:Key="BorderControlColor">#C4BFB5</Color>
             <Color x:Key="BorderControlHoverColor">#A9A296</Color>
             <Color x:Key="BorderStrongColor">#8C857A</Color>

@@ -3074,6 +3074,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             var step = steps[index];
             step.EnsureDeclaredLists();
+            var lists = step.StepLists.ToList();
 
             var hasNext = index < steps.Count - 1;
             var row = new StepRow
@@ -3086,10 +3087,9 @@ public partial class MacroEditorViewModel : ViewModelBase
                 Problem = _problemByStep.GetValueOrDefault(step) ?? string.Empty,
                 Folded = OnRowFolded,
             };
-            row.Guide(depth, continues, hasNext, hasBox: step.StepLists.Any());
+            row.Guide(depth, continues, hasNext, lists.Count > 0 && step.IsExpanded);
             into.Add(row);
 
-            var lists = step.StepLists.ToList();
             if (lists.Count == 0)
             {
                 continue;
@@ -3111,7 +3111,8 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Depth = depth + 1,
                     Folded = OnRowFolded,
                 };
-                section.Guide(depth + 1, deeper, sectionNext, hasBox: true);
+                section.Guide(depth + 1, deeper, sectionNext,
+                    hasChildren: list.Steps.Count > 0 && step.IsExpanded);
                 row.Children.Add(section);
 
                 var bodyContinues = deeper.Append(sectionNext).ToList();

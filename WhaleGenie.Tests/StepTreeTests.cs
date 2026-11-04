@@ -28,6 +28,44 @@ public class StepTreeTests
     private static StepParameter Text(string name, string value)
         => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
 
+    [Fact]
+    public void Every_level_sits_one_indent_step_to_the_right_of_the_one_above_it()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var loop = Loop(Loop(Step("control.log")));
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            // The tree indents by one step per level and the guides are placed from the same number,
+            // so the two cannot drift apart: a level 16 pixels in while the line sits 26 out is a
+            // line that misses the box it is drawn under.
+            var list = window.FindControl<TreeView>("StepList")!;
+            var lefts = window.GetVisualDescendants().OfType<Panel>()
+                .Where(panel => panel.Name == "RowHeader" && panel.DataContext is StepRow)
+                .Select(panel => (Row: (StepRow)panel.DataContext!,
+                    X: panel.TranslatePoint(new Point(0, 0), list)!.Value.X))
+                .GroupBy(pair => pair.Row.Depth)
+                .ToDictionary(group => group.Key, group => group.First().X);
+
+            Assert.Equal(StepRow.IndentWidth, lefts[1] - lefts[0]);
+            Assert.Equal(StepRow.IndentWidth, lefts[2] - lefts[1]);
+
+            // A row that holds steps drops a line from its own chevron, so the column carrying its
+            // children starts at the block rather than at the first child.
+            var block = editor.Rows.First(row => row.IsStep && ReferenceEquals(row.Step, loop));
+            Assert.Contains(block.Guides, line => line.Tail);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
     private static MacroStep Loop(params MacroStep[] steps)
         => Step("control.repeat", Body("body", steps));
 

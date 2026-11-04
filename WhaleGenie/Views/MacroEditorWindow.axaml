@@ -1024,45 +1024,17 @@
                               <!-- 一排三选一：步骤卡片、分节标题、收尾线。放在同一个 `Panel` 里，
                                    是为了让"这一行占多高"只有一个答案——拖动落点按它算。 -->
                               <Panel Name="RowHeader">
-                                  <!-- 引导线：每层一根竖线，走到这一行的中点就向右拐进这一行；
+                                  <!-- 引导线：每层一根虚线，走到这一行的中点就向右拐进这一行；
                                        某个祖先后面没有兄弟时，那根线只画到拐弯处为止——这就是
-                                       经典的"├ / └"树形引导线，块结束的地方线也结束。 -->
-                                  <ItemsControl HorizontalAlignment="Stretch"
-                                                IsHitTestVisible="False"
-                                                ItemsSource="{Binding Guides}">
-                                      <ItemsControl.ItemsPanel>
-                                          <ItemsPanelTemplate>
-                                              <Panel />
-                                          </ItemsPanelTemplate>
-                                      </ItemsControl.ItemsPanel>
-                                      <ItemsControl.ItemTemplate>
-                                          <DataTemplate x:DataType="vm:GuideLine">
-                                              <Panel VerticalAlignment="Stretch">
-                                                  <!-- 整根：这个节点的后面还有兄弟 -->
-                                                  <Rectangle Width="1" HorizontalAlignment="Left"
-                                                             Margin="{Binding Margin}"
-                                                             VerticalAlignment="Stretch"
-                                                             Fill="{DynamicResource TreeGuide}"
-                                                             IsVisible="{Binding Full}" />
-                                                  <!-- 半根：这一支到此为止，只画到拐弯处 -->
-                                                  <Rectangle Width="1" HorizontalAlignment="Left"
-                                                             Margin="{Binding Margin}"
-                                                             VerticalAlignment="Stretch"
-                                                             Fill="{DynamicResource TreeGuide}"
-                                                             IsVisible="{Binding !Full}"
-                                                             RenderTransform="scale(1,0.5)"
-                                                             RenderTransformOrigin="0%,0%" />
-                                                  <!-- 拐进这一行的横枝 -->
-                                                  <Rectangle Height="1" Width="{Binding ElbowWidth}"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="{Binding Margin}"
-                                                             VerticalAlignment="Center"
-                                                             Fill="{DynamicResource TreeGuide}"
-                                                             IsVisible="{Binding Elbow}" />
-                                              </Panel>
-                                          </DataTemplate>
-                                      </ItemsControl.ItemTemplate>
-                                  </ItemsControl>
+                                       经典的"├ / └"树形引导线，块结束的地方线也结束。
+                                       线是画出来的（`GuideLinesView`）：一格一格的矩形拼不出跨行的
+                                       虚线，每段各自从头数节奏，接起来就是一条毛边。 -->
+                                  <views:GuideLinesView Lines="{Binding Guides}"
+                                                        Stroke="{DynamicResource TreeGuide}"
+                                                        Thickness="2"
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Stretch"
+                                                        IsHitTestVisible="False" />
                                   <!-- 一行一步：图标、名称与三枚徽标、一句摘要，最后是问题。
                                        展开箭头归树控件；块里有几步写在块的右边。 -->
                                   <Border Classes="StepLine" Classes.problem="{Binding HasProblem}"

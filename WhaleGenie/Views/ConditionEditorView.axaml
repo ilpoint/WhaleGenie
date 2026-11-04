@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:WhaleGenie.ViewModels"
              xmlns:loc="using:WhaleGenie.Localization"
@@ -27,9 +27,7 @@
             <Setter Property="Padding" Value="8,2,0,0" />
             <Setter Property="Margin" Value="0,2,0,2" />
         </Style>
-        <Style Selector="TreeView.Condition TreeViewItem /template/ Rectangle#SelectionIndicator">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
+
         <Style Selector="TreeView.Condition TreeViewItem:selected /template/ Border#PART_LayoutRoot">
             <Setter Property="Background" Value="Transparent" />
         </Style>

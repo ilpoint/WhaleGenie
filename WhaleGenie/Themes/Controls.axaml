@@ -1,9 +1,88 @@
 ﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Styles.Resources>
+        <!--
+          步骤树的一行。这一族的模板要自己给，因为缩进那件事盖不住：主题把"层级 × 16"写死在
+          模板的 Margin 里，外面改资源改不动（试过 App 级资源与样式，量出来仍然是 16）。既然
+          层级要靠线读，缩进步长、展开钮、选中态就得在同一个模板里，改一处是一处。
+
+          行本身不画底、不画边：选中与悬停由行里的卡片（`Border.StepLine`）表达，树再画一层就是
+          两套高亮叠在一起。`SelectionIndicator` 那条小竖条因此不存在了。
+        -->
+        <ControlTheme x:Key="{x:Type TreeViewItem}" TargetType="TreeViewItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <StackPanel Background="Transparent">
+                        <Border Name="PART_LayoutRoot" Background="Transparent" Focusable="True"
+                                MinHeight="{TemplateBinding MinHeight}"
+                                TemplatedControl.IsTemplateFocusTarget="True">
+                            <Grid Name="PART_Header" ColumnDefinitions="Auto,*">
+                                <Grid.Margin>
+                                    <Binding Path="Level"
+                                             RelativeSource="{RelativeSource TemplatedParent}"
+                                             Converter="{x:Static conv:StepIndentConverter.Instance}" />
+                                </Grid.Margin>
+                                <!-- 展开钮的格子宽度固定：叶子行没有箭头，但那一格还在，所以
+                                     同一层的标题永远对在同一条竖线上。 -->
+                                <Panel Name="PART_ExpandCollapseChevronContainer"
+                                       Width="14" Margin="12,0,12,0">
+                                    <ToggleButton Name="PART_ExpandCollapseChevron"
+                                                  Theme="{StaticResource StepChevron}"
+                                                  Focusable="False"
+                                                  IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
+                                </Panel>
+                                <ContentPresenter Name="PART_HeaderPresenter" Grid.Column="1"
+                                                  Content="{TemplateBinding Header}"
+                                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Grid>
+                        </Border>
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        IsVisible="{TemplateBinding IsExpanded}" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:empty /template/ ToggleButton#PART_ExpandCollapseChevron">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+        </ControlTheme>
+
+        <!-- 展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。 -->
+        <ControlTheme x:Key="StepChevron" TargetType="ToggleButton">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Path Name="Glyph" Data="M 5,4 L 8,7 L 5,10"
+                              Stroke="{DynamicResource TextSecondary}"
+                              StrokeThickness="1.3"
+                              StrokeLineCap="Round" StrokeJoin="Round" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <!-- 展开时整枚钮转 90 度：箭头从"朝右"变成"朝下"，一套图形两种状态。 -->
+            <Style Selector="^:checked">
+                <Setter Property="RenderTransform" Value="rotate(90deg)" />
+            </Style>
+        </ControlTheme>
         <!--
           右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
           ControlThemes 里有 Menu、MenuItem、MenuFlyoutPresenter 与 Separator，唯独没有 ContextMenu
@@ -1394,16 +1473,6 @@
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
     </Style>
 
-    <!-- 树的展开钮：一个小方块，参考软件里就是这个形状，比一个细箭头好点得多。 -->
-    <Style Selector="TreeView.Steps TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
-        <Setter Property="Width" Value="14" />
-        <Setter Property="Height" Value="14" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="3" />
-    </Style>
-
     <!-- 有问题的那一步：左边一条警示色的边，与"选中"的整块底不同通道。
          容器行是一张卡片，整圈变黄会把一块宏都染成警报色，所以它只留右边那枚图标。 -->
     <Style Selector="Border.StepLine.problem">
@@ -1426,12 +1495,6 @@
     <Style Selector="TreeView.Steps TreeViewItem:selected /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="Transparent" />
     </Style>
-    <!-- 选中时树自身还会在行首画一条小竖条。行的选中已经由卡片整块表达，两个一起画就成了
-         "一条橙线 + 一块橙底"，所以这条只在这里关掉。 -->
-    <Style Selector="TreeView.Steps TreeViewItem /template/ Rectangle#SelectionIndicator">
-        <Setter Property="IsVisible" Value="False" />
-    </Style>
-
     <!--
       区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
       组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。

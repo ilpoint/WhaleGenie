@@ -77,7 +77,7 @@ public class TemplatePartTests
         ("ListBoxItem", "", "ContentPresenter"),
         // 树的行：选中态由卡片自己画，模板里那层底与那条小竖条都让开。
         ("TreeViewItem", "", "Border#PART_LayoutRoot"),
-        ("TreeViewItem", "", "Rectangle#SelectionIndicator"),
+        ("TreeViewItem", "", "Grid#PART_Header"),
         ("TreeViewItem", "", "ToggleButton#PART_ExpandCollapseChevron"),
         ("ScrollViewer", "VarWallScroll", "ScrollBar#PART_VerticalScrollBar"),
     ];
@@ -255,11 +255,35 @@ public class TemplatePartTests
 
         foreach (var file in files)
         {
-            foreach (Match match in Regex.Matches(File.ReadAllText(file), @"Selector=""([^""]+)"""))
+            var text = File.ReadAllText(file);
+            foreach (Match match in Regex.Matches(text, @"Selector=""([^""]+)"""))
             {
-                yield return match.Groups[1].Value;
+                var selector = match.Groups[1].Value;
+
+                // A style nested in a ControlTheme starts with `^`, which means "the control this
+                // theme is for". Reading it as a type name would ask for a control called `^`.
+                if (selector.StartsWith('^') && ThemeOwner(text, match.Index) is { } owner)
+                {
+                    selector = owner + selector[1..];
+                }
+
+                yield return selector;
             }
         }
+    }
+
+    /// <summary>The target type of the control theme a selector sits inside, if it sits in one.</summary>
+    private static string? ThemeOwner(string text, int at)
+    {
+        var start = text.LastIndexOf("TargetType=\"", at, StringComparison.Ordinal);
+        if (start < 0)
+        {
+            return null;
+        }
+
+        start += "TargetType=\"".Length;
+        var end = text.IndexOf('"', start);
+        return end < 0 ? null : text[start..end];
     }
 
     /// <summary>
