@@ -102,10 +102,15 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
 
     private bool _hasBox;
 
-    /// <summary>True when this row holds rows: a block's steps, or the steps of one list of a block.</summary>
+    /// <summary>
+    /// True when this row has rows under it. For a block that is every list it runs, even an empty
+    /// one: an empty body still has a row saying it is empty, so the line from the block's box down
+    /// to that row has to be drawn. Counting steps instead leaves the column starting one row late
+    /// on every block whose lists are still empty — which is every block the moment it is added.
+    /// </summary>
     private bool HasChildren => IsSection
         ? List is { Steps.Count: > 0 }
-        : Step.StepLists.Any(list => list.Steps.Count > 0);
+        : Step.StepLists.Any();
 
     /// <summary>
     /// Works out the lines this row draws. <paramref name="continues"/> says, for each level above

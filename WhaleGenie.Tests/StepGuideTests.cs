@@ -48,13 +48,19 @@ public class StepGuideTests
                             {
                                 Name = "then",
                                 Kind = ActionParameterKind.Steps,
-                                Steps = [Step("control.delay")],
+                                Steps = [Step("control.note"), Step("control.note"), Step("control.note")],
                             },
                             new StepParameter
                             {
                                 Name = "else",
                                 Kind = ActionParameterKind.Steps,
-                                Steps = [Step("control.log")],
+                                Steps =
+                                [
+                                    Step("control.try",
+                                        new StepParameter { Name = "body", Kind = ActionParameterKind.Steps },
+                                        new StepParameter { Name = "catch", Kind = ActionParameterKind.Steps },
+                                        new StepParameter { Name = "finally", Kind = ActionParameterKind.Steps }),
+                                ],
                             }),
                         Step("input.mouseMove"),
                     ],

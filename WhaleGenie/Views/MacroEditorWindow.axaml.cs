@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -2562,10 +2563,14 @@ public partial class MacroEditorWindow : AppWindow
     /// Double-clicking a row opens it, which is what a list is expected to do. The tree would
     /// also fold the block the row sits in on a double click, so this is handled on the way down
     /// and stops there: opening a step must not close the block it was found in.
+    ///
+    /// Only the row's own content counts. The strip the guides are drawn in is not the row but the
+    /// space it hangs in, and the fold box is a control with a job of its own: a double click on
+    /// either of them is a double click on the tree, not a request to edit a step.
     /// </summary>
     private void OnStepDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (RowUnder(e.Source) is not { } row)
+        if (!OnRowContent(e.Source) || RowUnder(e.Source) is not { } row)
         {
             return;
         }
@@ -2575,6 +2580,33 @@ public partial class MacroEditorWindow : AppWindow
         {
             OnEditStepRequested(row.Step);
         }
+    }
+
+    /// <summary>
+    /// True when the point came from inside a row's own content — the card, its text, the badges —
+    /// rather than from the indent strip beside it or from a control the row carries.
+    /// </summary>
+    private static bool OnRowContent(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is ToggleButton)
+            {
+                return false;
+            }
+
+            if (visual is Panel { Name: "RowHeader" })
+            {
+                return true;
+            }
+
+            if (visual is TreeViewItem)
+            {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Context-menu commands for the step list, so they are not keyboard-only.</summary>

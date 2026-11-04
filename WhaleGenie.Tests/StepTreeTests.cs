@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -678,6 +679,70 @@ public class StepTreeTests
         => window.GetVisualDescendants().OfType<Button>()
             .Single(button => button.IsEffectivelyVisible && button.Bounds.Width > 0
                 && button.DataContext is StepRow row && match(row));
+
+    [Fact]
+    public void Double_clicking_the_fold_box_folds_the_block_instead_of_opening_it()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var loop = Loop(Step("control.delay"));
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            var box = window.GetVisualDescendants().OfType<ToggleButton>()
+                .Single(button => button.Name == "PART_ExpandCollapseChevron"
+                    && button.IsEffectivelyVisible
+                    && ReferenceEquals((button.DataContext as StepRow)?.Step, loop));
+            DoubleClick(window, box.TranslatePoint(
+                new Point(box.Bounds.Width / 2, box.Bounds.Height / 2), window) ?? default);
+
+            // The box folds; it does not ask to edit the block it belongs to.
+            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    [Fact]
+    public void Double_clicking_the_strip_beside_a_row_does_not_open_it()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var step = Step("control.delay");
+            editor.AddStep(step);
+            Dispatcher.UIThread.RunJobs();
+
+            // The strip the guides are drawn in: inside the row's item, left of its content.
+            var item = window.GetVisualDescendants().OfType<TreeViewItem>()
+                .Single(box => box.DataContext is StepRow row && ReferenceEquals(row.Step, step));
+            DoubleClick(window, item.TranslatePoint(new Point(3, item.Bounds.Height / 2), window) ?? default);
+
+            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>Two clicks with the queue emptied between them, the way a real double click arrives.</summary>
+    private static void DoubleClick(Window window, Point point)
+    {
+        window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+    }
 
     /// <summary>One row's own header, which is where a drop seam is measured.</summary>
     private static Panel Header(Window window, Func<StepRow, bool> match)
