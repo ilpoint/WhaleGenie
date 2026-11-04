@@ -287,7 +287,7 @@ Keyboard Maestro：
 | 文件 `File` | 19 | 15 | 4（`exists`、`delete`、`createFolder`、`deleteFolder`） | 路径 + 编码 + 覆盖策略三块；读写失败的错误码进结构列 |
 | 剪贴板 `Clipboard` | 9 | 1 | 4 | 图片类动作给预览；写入文本/文件的选择读法统一 |
 | 系统 `System` | 9 | 0 | 9 | 危险动作（关机、静音、改亮度）加确认；音量给滑条 |
-| 流程 `Control` | 20 | 0 | 20 | 条件行表 + 条件树（已做，见 [step-list-and-conditions.md](step-list-and-conditions.md)）、`switch` 分支表、`try` 的失败策略与执行页对齐 |
+| 流程 `Control` | 20 | 0 | 20 | 条件行表 + 条件树、`switch` 分支表（均已做，见 [step-list-and-conditions.md](step-list-and-conditions.md)）、`try` 的失败策略与执行页对齐 |
 
 ## 各族的块顺序
 

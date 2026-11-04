@@ -1123,6 +1123,10 @@
                                                   VerticalAlignment="Center">
                                           <TextBlock Classes="Note" FontSize="12"
                                                      Text="{Binding HeadLabel}" />
+                                          <!-- 值后面断开一下：'值 1, 2' 和 '1 个步骤' 挨在一起时会读成
+                                               '值 1, 21 个步骤'。 -->
+                                          <TextBlock Classes="Caption" VerticalAlignment="Center"
+                                                     Text="·" IsVisible="{Binding IsCase}" />
                                           <TextBlock Classes="Caption" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
                                           <TextBlock Classes="Hint" VerticalAlignment="Center"

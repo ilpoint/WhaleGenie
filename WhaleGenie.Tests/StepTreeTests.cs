@@ -30,6 +30,60 @@ public class StepTreeTests
         => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
 
     [Fact]
+    public void A_switch_reads_as_a_table_of_values()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+
+            static MacroStep Branch(string values, params MacroStep[] body)
+                => Step("control.case",
+                    Text("values", values),
+                    new StepParameter
+                    {
+                        Name = "body",
+                        Kind = ActionParameterKind.Steps,
+                        Steps = [.. body],
+                    });
+
+            var choice = Step("control.switch",
+                Text("switchValue", "$mode"),
+                new StepParameter
+                {
+                    Name = "cases",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Branch("1, 2", Step("control.note")), Branch("5", Step("control.delay"))],
+                },
+                new StepParameter
+                {
+                    Name = "otherwise",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.log")],
+                });
+            editor.AddStep(choice);
+
+            // One row per value, its steps straight underneath: no section collecting the branches,
+            // and no node per branch, which is what the tree used to spend four levels on.
+            Assert.Equal(
+            [
+                "0:Step:control.switch",
+                "1:Section:control.case",
+                "2:Step:control.note",
+                "1:Section:control.case",
+                "2:Step:control.delay",
+                "1:Section:control.switch",
+                "2:Step:control.log",
+            ], Shape(editor));
+
+            // The values are the name of the row: they are the only thing that tells one branch
+            // from another, so they are on the line rather than in the branch's summary.
+            Assert.Equal("值 1, 2", editor.Rows[1].HeadLabel);
+            Assert.Equal("值 5", editor.Rows[3].HeadLabel);
+            Assert.DoesNotContain(editor.Rows, row => row.IsSection && row.List?.Name == "cases");
+        });
+    }
+
+    [Fact]
     public void Every_level_sits_one_indent_step_to_the_right_of_the_one_above_it()
     {
         Ui.Run(() =>
@@ -120,22 +174,21 @@ public class StepTreeTests
     {
         Ui.Run(() =>
         {
-            var branch = Step("control.case", Text("values", "a"),
-                Body("body", Step("control.log")));
-            var choice = Step("control.switch",
+            var keep = Step("control.try",
                 new StepParameter
                 {
-                    Name = "cases",
+                    Name = "body",
                     Kind = ActionParameterKind.Steps,
-                    Steps = [branch],
+                    Steps = [Step("control.log")],
                 },
-                new StepParameter { Name = "otherwise", Kind = ActionParameterKind.Steps });
+                new StepParameter { Name = "catch", Kind = ActionParameterKind.Steps },
+                new StepParameter { Name = "finally", Kind = ActionParameterKind.Steps });
 
             var editor = new MacroEditorViewModel();
-            editor.AddStep(choice);
+            editor.AddStep(keep);
 
-            // Two lists would read as one run of steps without a name each, so both get a row.
-            Assert.Equal(["cases", "otherwise"],
+            // Three lists would read as one run of steps without a name each, so each gets a row.
+            Assert.Equal(["body", "catch", "finally"],
                 editor.Rows.Where(row => row.IsSection && row.Depth == 1)
                     .Select(row => row.List!.Name));
         });
@@ -414,6 +467,33 @@ public class StepTreeTests
     }
 
     [Fact]
+    public void Picking_a_switch_and_adding_a_step_adds_a_branch()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var choice = Step("control.switch",
+                Text("switchValue", "$mode"),
+                new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps },
+                new StepParameter { Name = "otherwise", Kind = ActionParameterKind.Steps });
+            editor.AddStep(choice);
+
+            // A switch has two lists, so "inside it" would not say which — but the step a person
+            // means when they pick a switch and add one is the next branch, and the palette there
+            // offers only that.
+            editor.SetSelection([choice]);
+            editor.NewStepCommand.Execute(null);
+            Assert.Equal(["control.case"], editor.InsertChoices!.Select(action => action.Key));
+
+            var branch = Step("control.case", Text("values", "1"));
+            editor.AddStep(branch);
+
+            var cases = choice.StepLists.Single(list => list.Name == "cases");
+            Assert.Same(branch, Assert.Single(cases.Steps));
+        });
+    }
+
+    [Fact]
     public void A_list_that_only_takes_one_kind_of_step_says_so_where_the_step_is_added()
     {
         Ui.Run(() =>
@@ -679,6 +759,47 @@ public class StepTreeTests
         => window.GetVisualDescendants().OfType<Button>()
             .Single(button => button.IsEffectivelyVisible && button.Bounds.Width > 0
                 && button.DataContext is StepRow row && match(row));
+
+    [Fact]
+    public void Double_clicking_a_branch_opens_that_branch_where_its_values_are_written()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var choice = Step("control.switch",
+                Text("switchValue", "$mode"),
+                new StepParameter
+                {
+                    Name = "cases",
+                    Kind = ActionParameterKind.Steps,
+                    Steps =
+                    [
+                        Step("control.case", Text("values", "1"),
+                            Body("body", Step("control.log"))),
+                    ],
+                },
+                new StepParameter { Name = "otherwise", Kind = ActionParameterKind.Steps });
+            editor.AddStep(choice);
+            Dispatcher.UIThread.RunJobs();
+
+            var branch = editor.Rows.First(row => row.IsCase);
+            var header = Header(window, row => ReferenceEquals(row, branch));
+
+
+            DoubleClick(window, header.TranslatePoint(
+                new Point(16, Math.Min(8, header.Bounds.Height / 2)), window) ?? default);
+
+            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
+            Assert.Equal("control.case",
+                ((AddActionViewModel)action.View.DataContext!).SelectedDefinition!.Key);
+            Ui.CloseAndAnswer(window);
+        });
+    }
 
     [Fact]
     public void Double_clicking_the_fold_box_folds_the_block_instead_of_opening_it()

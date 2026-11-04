@@ -80,6 +80,17 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// <summary>True on the title of one of a block's lists.</summary>
     public bool IsSection => Kind is StepRowKind.Section;
 
+    /// <summary>
+    /// True on the row that stands for one branch of a switch. A branch is a step — the thing that
+    /// carries the values — but it is drawn as a section, because what it holds is a run of steps
+    /// and what tells it from the other branches is one line of values.
+    /// </summary>
+    public bool IsCase => IsSection && Step.Type == "control.case";
+
+    /// <summary>The values this branch catches, as written.</summary>
+    public string CaseValues => Step.Parameters
+        .FirstOrDefault(parameter => parameter.Name == "values")?.Value.Trim() ?? string.Empty;
+
     /// <summary>True on a step the check has something to say about.</summary>
     public bool HasProblem => Problem.Length > 0;
 
@@ -278,7 +289,13 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     private bool _picked;
 
     /// <summary>Name of the list a section opens, such as the steps a loop runs.</summary>
-    public string HeadLabel => List is null ? string.Empty : Step.ParameterLabel(List);
+    public string HeadLabel => List is null
+        ? string.Empty
+        : IsCase
+            ? CaseValues.Length == 0
+                ? Strings.Get("Editor.CaseNoValues")
+                : Strings.Format("Editor.CaseValues", CaseValues)
+            : Step.ParameterLabel(List);
 
     /// <summary>How many steps that list holds, so an empty branch looks empty.</summary>
     public string HeadCount => List is null

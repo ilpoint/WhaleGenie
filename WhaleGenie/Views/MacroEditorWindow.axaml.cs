@@ -437,8 +437,6 @@ public partial class MacroEditorWindow : AppWindow
             stepList.AddHandler(PointerMovedEvent, OnStepPointerMoved, RoutingStrategies.Tunnel);
             stepList.AddHandler(PointerReleasedEvent, OnStepPointerReleased, RoutingStrategies.Tunnel);
             stepList.AddHandler(PointerCaptureLostEvent, OnStepPointerCaptureLost, RoutingStrategies.Tunnel);
-            stepList.AddHandler(DoubleTappedEvent, OnStepDoubleTapped,
-                RoutingStrategies.Bubble, handledEventsToo: true);
             DragDrop.SetAllowDrop(stepList, true);
             stepList.AddHandler(DragDrop.DragOverEvent, OnActionDragOver);
             stepList.AddHandler(DragDrop.DragLeaveEvent, OnActionDragLeave);
@@ -2203,7 +2201,19 @@ public partial class MacroEditorWindow : AppWindow
     /// still opens.
     /// </summary>
     private async void OnEditStepRequested(MacroStep step)
-        => await ShowActionEditor(step, ActionCatalog.PlaceableActions, null, null);
+    {
+        // The list the form picks from has to hold the step being edited. A branch of a switch is
+        // hidden from the palette — it is only ever written through its switch — and a form that
+        // cannot find it would quietly edit it as whichever action came first.
+        var actions = ActionCatalog.PlaceableActions;
+        if (ActionCatalog.Find(step.Type) is { } definition
+            && !actions.Any(action => action.Key == definition.Key))
+        {
+            actions = [.. actions, definition];
+        }
+
+        await ShowActionEditor(step, actions, null, null);
+    }
 
     /// <summary>Confirms the palette's "clear all steps", which cannot be undone.</summary>
     private async void OnClearRequested()
@@ -2560,29 +2570,6 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>
-    /// Double-clicking a row opens it, which is what a list is expected to do. The tree would
-    /// also fold the block the row sits in on a double click, so this is handled on the way down
-    /// and stops there: opening a step must not close the block it was found in.
-    ///
-    /// Only the row's own content counts. The strip the guides are drawn in is not the row but the
-    /// space it hangs in, and the fold box is a control with a job of its own: a double click on
-    /// either of them is a double click on the tree, not a request to edit a step.
-    /// </summary>
-    private void OnStepDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (!OnRowContent(e.Source) || RowUnder(e.Source) is not { } row)
-        {
-            return;
-        }
-
-        e.Handled = true;
-        if (row.IsStep)
-        {
-            OnEditStepRequested(row.Step);
-        }
-    }
-
-    /// <summary>
     /// True when the point came from inside a row's own content — the card, its text, the badges —
     /// rather than from the indent strip beside it or from a control the row carries.
     /// </summary>
@@ -2643,6 +2630,19 @@ public partial class MacroEditorWindow : AppWindow
         var point = e.GetCurrentPoint(this);
         var onButton = IsOnButton(e.Source);
         var row = onButton ? null : RowUnder(e.Source);
+
+        // The second press of a double click opens the row it landed on. Doing it here rather than
+        // on the double-tap keeps it independent of what selection did with the first click, and
+        // marking the press handled is also what stops the tree from folding the block that holds
+        // the row: opening a step must not close the block it was found in.
+        if (e.ClickCount == 2 && row is { } twice && (twice.IsStep || twice.IsCase)
+            && OnRowContent(e.Source))
+        {
+            e.Handled = true;
+            _pressedRow = null;
+            Dispatcher.UIThread.Post(() => OnEditStepRequested(twice.Step));
+            return;
+        }
 
         // A right-click on a row that is not part of the selection picks that row first, so the
         // context menu acts on what was clicked rather than on something picked earlier.

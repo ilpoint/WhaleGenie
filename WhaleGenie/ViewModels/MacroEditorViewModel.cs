@@ -2369,7 +2369,10 @@ public partial class MacroEditorViewModel : ViewModelBase
         foreach (var row in Rows)
         {
             row.ShowsDetail = row.IsStep && ReferenceEquals(row.Step, only);
-            row.IsPicked = row.IsStep && row.Step is { } step && _selection.Contains(step);
+
+            // A branch row stands for its branch, so picking one lights it up the same way a step
+            // lights up its own row.
+            row.IsPicked = (row.IsStep || row.IsCase) && row.Step is { } step && _selection.Contains(step);
         }
     }
 
@@ -2790,6 +2793,14 @@ public partial class MacroEditorViewModel : ViewModelBase
             return new StepInsertionTarget(body.Steps, body.Steps.Count, anchor, body);
         }
 
+        // A switch keeps its branches in one list, and picking the switch then adding a step is how
+        // a new branch is made: the palette already narrows that list to the branch step, so what
+        // arrives is a branch and not a stray action inside the table.
+        if (anchor.StepLists.FirstOrDefault(list => list.Name == "cases") is { } branches)
+        {
+            return new StepInsertionTarget(branches.Steps, branches.Steps.Count, anchor, branches);
+        }
+
         if (OwnerOf(anchor) is not { } at)
         {
             return null;
@@ -3103,6 +3114,17 @@ public partial class MacroEditorViewModel : ViewModelBase
             {
                 var list = lists[seat];
                 var sectionNext = seat < lists.Count - 1;
+
+                // A switch is a table of values, so it reads as one: every branch is a row named by
+                // the values it catches, with its steps underneath. A section called "cases" holding
+                // a node per branch spends two levels of indentation on one line of content, and the
+                // values — the only thing that tells one branch from another — end up buried in the
+                // node's summary.
+                if (IsBranches(list))
+                {
+                    AddBranches(list, row, depth, deeper, sectionNext);
+                    continue;
+                }
                 var section = new StepRow
                 {
                     Kind = StepRowKind.Section,
@@ -3116,6 +3138,44 @@ public partial class MacroEditorViewModel : ViewModelBase
 
                 var bodyContinues = deeper.Append(sectionNext).ToList();
                 AddNodes(list.Steps, list, depth + 2, bodyContinues, section.Children);
+            }
+        }
+    }
+
+    /// <summary>True on the list a switch keeps its branches in, when it has branches to show.</summary>
+    private static bool IsBranches(StepParameter list)
+        => list.Name == "cases"
+            && list.Steps.Count > 0
+            && list.Steps.All(step => step.Type == "control.case");
+
+    /// <summary>
+    /// Lays a switch's branches out as one row each: the row is named by the branch's values, and
+    /// the branch's own steps hang under it, so the whole switch reads as a table of values.
+    /// </summary>
+    private void AddBranches(StepParameter list, StepRow block, int depth,
+        IReadOnlyList<bool> continues, bool lastList)
+    {
+        for (var index = 0; index < list.Steps.Count; index++)
+        {
+            var choice = list.Steps[index];
+            choice.EnsureDeclaredLists();
+            var body = choice.StepLists.FirstOrDefault();
+            var hasNext = index < list.Steps.Count - 1 || lastList;
+
+            var section = new StepRow
+            {
+                Kind = StepRowKind.Section,
+                Step = choice,
+                List = body,
+                Depth = depth + 1,
+                Folded = OnRowFolded,
+            };
+            section.Guide(depth + 1, continues, hasNext, hasBox: false);
+            block.Children.Add(section);
+
+            if (body is not null)
+            {
+                AddNodes(body.Steps, body, depth + 2, continues.Append(hasNext).ToList(), section.Children);
             }
         }
     }

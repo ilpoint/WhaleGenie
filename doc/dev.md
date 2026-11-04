@@ -284,7 +284,8 @@ if ($missing) { $missing; exit 1 }
   （单跑、单类跑都过），两条都动 `VariableCatalog.Globals` / `SharedVariables` / `PersistentVariables`
   这类进程级状态。全量跑时 `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`
   也偶发同一种挂法（单跑通过），同样是进程级状态；`GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`
-  全量跑时也遇到过一次（单跑通过）；`StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step`
+  全量跑时也遇到过一次（单跑通过）；`LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
+全量跑时也偶发（单跑通过）；`StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step`
   在全量跑时偶尔不认第二次点击（连续三次单跑都过），属于同一种"机器忙时手势计时被拉长"。
 再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
 

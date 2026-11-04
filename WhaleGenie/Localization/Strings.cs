@@ -823,6 +823,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.DescriptionPlaceholder"] =
             "What this callable macro does; this is shown when it is picked.",
         ["Editor.EmptyStepList"] = "Drag a sub-step into this area.",
+        ["Editor.CaseValues"] = "value {0}",
+        ["Editor.CaseNoValues"] = "no value yet",
         ["Editor.EmptyBranchList"] = "Drag a branch into this area.",
         ["Editor.JsonTree"] = "JSON Tree",
         ["Editor.NoSteps"] = "No steps yet.",
@@ -3070,6 +3072,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.DescriptionPlaceholder"] =
             "说明这个可调用宏做什么；从列表中选用时会显示。",
         ["Editor.EmptyStepList"] = "将子步骤拖入此区域。",
+        ["Editor.CaseValues"] = "值 {0}",
+        ["Editor.CaseNoValues"] = "还没填值",
         ["Editor.EmptyBranchList"] = "将分支拖入此区域。",
         ["Editor.JsonTree"] = "JSON 树",
         ["Editor.NoSteps"] = "还没有步骤。",
