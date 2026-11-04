@@ -39,11 +39,14 @@
                                                   Focusable="False"
                                                   IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
                                 </Panel>
+                                <!-- 内容必须撑满这一行的高度：行有 30 的下限，而一行里的文字可能只有
+                                     20 高，居中放就上下各留 5 像素，树线走到那里正好断一截。撑满
+                                     之后内容与行同高，线才能从上一行接进下一行。 -->
                                 <ContentPresenter Name="PART_HeaderPresenter" Grid.Column="1"
                                                   Content="{TemplateBinding Header}"
                                                   ContentTemplate="{TemplateBinding HeaderTemplate}"
                                                   HorizontalAlignment="Stretch"
-                                                  VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                                                  VerticalAlignment="Stretch"
                                                   Margin="{TemplateBinding Padding}" />
                             </Grid>
                         </Border>

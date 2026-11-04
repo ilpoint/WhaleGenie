@@ -102,8 +102,12 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
         var lines = new List<GuideLine>(depth);
         for (var level = 0; level < depth; level++)
         {
+            // A column belongs to the node one level below it: the line at level N carries the
+            // connectors of that node's children, so it runs on while that node — the ancestor at
+            // depth N + 1 — still has a sibling after this row's own branch. Reading it one level
+            // off is a column that stops a row early, which is the gap this file is here to prevent.
             var mine = level == depth - 1;
-            var full = mine ? hasNext : level < continues.Count && continues[level];
+            var full = mine ? hasNext : level + 1 < continues.Count && continues[level + 1];
             if (!mine && !full)
             {
                 continue;
@@ -145,7 +149,7 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
     private const double ChevronSize = 14;
 
     /// <summary>Where the centre of a level's chevron sits, measured from that level's left edge.</summary>
-    private const double ChevronCenter = ChevronMargin + (ChevronSize / 2);
+    public const double ChevronCenter = ChevronMargin + (ChevronSize / 2);
 
     public bool IsBlock => IsStep && Step.StepLists.Any();
 
