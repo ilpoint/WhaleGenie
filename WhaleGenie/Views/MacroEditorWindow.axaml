@@ -978,7 +978,8 @@
                    <TreeView Grid.Row="3" Name="StepList" Classes="Steps"
                              ItemsSource="{Binding Roots}" SelectionMode="Multiple"
                              AutoScrollToSelectedItem="False"
-                             Background="Transparent">
+                             Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                        <TreeView.ItemContainerTheme>
                            <ControlTheme TargetType="TreeViewItem"
                                          BasedOn="{StaticResource {x:Type TreeViewItem}}">
