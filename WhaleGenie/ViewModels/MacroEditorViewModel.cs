@@ -3087,7 +3087,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 Problem = _problemByStep.GetValueOrDefault(step) ?? string.Empty,
                 Folded = OnRowFolded,
             };
-            row.Guide(depth, continues, hasNext, lists.Count > 0 && step.IsExpanded);
+            row.Guide(depth, continues, hasNext, hasBox: lists.Count > 0);
             into.Add(row);
 
             if (lists.Count == 0)
@@ -3111,8 +3111,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Depth = depth + 1,
                     Folded = OnRowFolded,
                 };
-                section.Guide(depth + 1, deeper, sectionNext,
-                    hasChildren: list.Steps.Count > 0 && step.IsExpanded);
+                section.Guide(depth + 1, deeper, sectionNext, hasBox: false);
                 row.Children.Add(section);
 
                 var bodyContinues = deeper.Append(sectionNext).ToList();

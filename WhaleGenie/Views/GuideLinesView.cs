@@ -89,10 +89,9 @@ public sealed class GuideLinesView : Control
         var phase = PositiveModulo(((origin?.Y ?? 0) - Overlap) / Thickness, Cycle);
         var pen = new Pen(Stroke, Thickness) { DashStyle = new DashStyle(Dashes.Dashes, -phase) };
 
-        // The turn into a row is solid, and short: it is the joint between the column and the row,
-        // and a joint drawn with gaps is the one place a dashed tree reads as a broken tree. A
-        // twenty pixel stub of solid line is not a second visual weight — it is the corner itself.
-        var turn = new Pen(Stroke, Thickness);
+        // The turn into a row starts its own pattern, so the corner always begins with a dash: a
+        // turn that starts in a gap reads as a line that stops short of the row it points at.
+        var turn = new Pen(Stroke, Thickness) { DashStyle = Dashes };
 
         foreach (var line in lines)
         {

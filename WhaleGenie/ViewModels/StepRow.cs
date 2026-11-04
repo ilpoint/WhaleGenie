@@ -6,6 +6,7 @@ using Avalonia.Media;
 using WhaleGenie.Localization;
 
 using WhaleGenie.Models;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.ViewModels;
 
@@ -33,7 +34,7 @@ public enum StepRowKind
 /// row: what ends it is the indent, drawn as a guide line down its children and gone on the row
 /// after them.
 /// </summary>
-public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
+public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -92,41 +93,91 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 
     private IReadOnlyList<GuideLine> _guides = [];
 
+    /// <summary>What the guide was worked out from, so it can be worked out again when a block folds.</summary>
+    private int _depth;
+
+    private IReadOnlyList<bool> _continues = [];
+
+    private bool _hasNext;
+
+    private bool _hasBox;
+
+    /// <summary>True when this row holds rows: a block's steps, or the steps of one list of a block.</summary>
+    private bool HasChildren => IsSection
+        ? List is { Steps.Count: > 0 }
+        : Step.StepLists.Any(list => list.Steps.Count > 0);
+
     /// <summary>
     /// Works out the lines this row draws. <paramref name="continues"/> says, for each level above
     /// this one, whether the node at that level has a sibling after it; <paramref name="hasNext"/>
     /// is the same answer for this row itself.
     /// </summary>
-    internal void Guide(int depth, IReadOnlyList<bool> continues, bool hasNext, bool hasChildren)
+    internal void Guide(int depth, IReadOnlyList<bool> continues, bool hasNext, bool hasBox)
     {
-        var lines = new List<GuideLine>(depth);
-        for (var level = 0; level < depth; level++)
-        {
-            // A column belongs to the node one level below it: the line at level N carries the
-            // connectors of that node's children, so it runs on while that node — the ancestor at
-            // depth N + 1 — still has a sibling after this row's own branch. Reading it one level
-            // off is a column that stops a row early, which is the gap this file is here to prevent.
-            var mine = level == depth - 1;
-            var full = mine ? hasNext : level + 1 < continues.Count && continues[level + 1];
-            if (!mine && !full)
-            {
-                continue;
-            }
+        _depth = depth;
+        _continues = continues;
+        _hasNext = hasNext;
+        _hasBox = hasBox;
 
-            // A line hangs under the chevron of the node it belongs to, and that chevron is one
-            // indent step plus twelve pixels left of the content of every row beneath it. Measured
-            // from this row's content, level N sits at (N - depth) * step - centre. The elbow runs
-            // from there rightwards to the left edge of this row's own chevron box, which is where
-            // a child's branch is expected to arrive.
-            var left = ((level - depth) * IndentWidth) - ChevronCenter;
-            lines.Add(new GuideLine(left, full, mine,
-                mine ? IndentWidth + ChevronCenter - ChevronSize - ChevronMargin : 0));
+        var lines = new List<GuideLine>(depth + 2);
+
+        // The first level hangs from a trunk of its own. Without it the top of the tree has no lines
+        // at all and reads as a plain list; with it, every row arrives from one line down the left,
+        // the same way the rows of a block arrive from the line above them.
+        if (depth == 0)
+        {
+            lines.Add(new GuideLine(-ChevronCenter, hasNext, true, ChevronCenter));
+        }
+        else
+        {
+            for (var level = 0; level < depth; level++)
+            {
+                // A column belongs to the node one level below it: the line at level N carries the
+                // connectors of that node's children, so it runs on while that node — the ancestor
+                // at depth N + 1 — still has a sibling after this row's own branch. Reading it one
+                // level off is a column that stops a row early.
+                var mine = level == depth - 1;
+
+                // A column runs on for either of two reasons, and both are the same sentence from
+                // two sides: something below it still has to be reached. Either the child we are
+                // inside has a sibling after it — the then of an if, with the else still to come —
+                // or the node the column belongs to has one, which is what makes the trunk of the
+                // first level run past a whole block instead of stopping at its body.
+                var childAhead = mine
+                    ? hasNext
+                    : level + 1 < continues.Count && continues[level + 1];
+                // Only the trunk has this second reason. A row's connector is drawn one column left
+                // of its own box, so a sibling at depth N is reached by the column at N - 1, not at
+                // N: for every column but the first, "my node has a sibling" says nothing about
+                // whether this column still has a row to reach — and drawing on regardless leaves a
+                // line hanging past the last row of the branch, which is the overhang this guards.
+                var ownerAhead = level == 0 && continues.Count > 0 && continues[0];
+                var full = childAhead || ownerAhead;
+                if (!mine && !full)
+                {
+                    continue;
+                }
+
+                // A line hangs under the chevron of the node it belongs to, one indent step plus
+                // twelve pixels left of the content of every row beneath it. Measured from this
+                // row's content, level N sits at (N - depth) * step - centre.
+                var left = ((level - depth) * IndentWidth) - ChevronCenter;
+
+                // The branch arrives at the row itself, not at the slot where a fold box would be:
+                // a row that has no box has nothing between the line and its icon, and a stub that
+                // stops in that empty slot reads as a line that did not reach.
+                var reach = !mine ? 0
+                    : hasBox ? IndentWidth + ChevronCenter - ChevronSize - ChevronMargin
+                    : IndentWidth + ChevronCenter;
+
+                lines.Add(new GuideLine(left, full, mine, reach));
+            }
         }
 
         // A row that holds steps drops a line from its own chevron down to the bottom of its row,
         // and the first child picks it up from there. Without it the column that carries a block's
         // steps starts one row too low, and the block's own chevron ends in mid-air.
-        if (hasChildren)
+        if (HasChildren && IsExpanded)
         {
             lines.Add(new GuideLine(-ChevronCenter, true, false, 0, Tail: true));
         }
@@ -152,6 +203,13 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
     public const double ChevronCenter = ChevronMargin + (ChevronSize / 2);
 
     public bool IsBlock => IsStep && Step.StepLists.Any();
+
+    /// <summary>
+    /// True on the row that carries the fold box. Only a step that runs steps has one: the row that
+    /// names a block's body is part of that block, and a second box on it would say the body folds
+    /// on its own, which it does not.
+    /// </summary>
+    public bool CanFold => IsBlock;
 
     /// <summary>
     /// How a block reads against the steps it holds: heavier and a size up, so the two levels are
@@ -182,6 +240,16 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
             }
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+
+            // The line that drops from this row to its first child is drawn only while the children
+            // are on screen. Folding does not rebuild the rows — it only stops drawing the children —
+            // so that line has to be worked out again here or it stays behind, hanging under the box
+            // of a block that is closed.
+            if (HasChildren)
+            {
+                Guide(_depth, _continues, _hasNext, _hasBox);
+            }
+
             Folded?.Invoke(this, value);
         }
     }

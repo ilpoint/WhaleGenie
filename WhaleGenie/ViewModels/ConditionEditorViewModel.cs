@@ -5,6 +5,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Localization;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.ViewModels;
 
@@ -49,7 +50,7 @@ public sealed class ConditionCompareChoice(ConditionCompare compare, string code
 /// The same object is the line the table shows and the node the tree shows, which is what lets
 /// the two views edit one condition rather than two copies of it.
 /// </summary>
-public sealed partial class ConditionNodeViewModel : ObservableObject
+public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
 {
     private readonly Action _changed;
 
@@ -68,6 +69,9 @@ public sealed partial class ConditionNodeViewModel : ObservableObject
         => new(false, changed) { Compare = ConditionCompare.Equal };
 
     public bool IsGroup { get; }
+
+    /// <summary>True on a node that can be folded open: a group, not a single comparison.</summary>
+    public bool CanFold => IsGroup;
 
     public bool IsRow => !IsGroup;
 

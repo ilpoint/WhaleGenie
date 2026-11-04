@@ -56,9 +56,16 @@ public class StepGuideTests
                                 Kind = ActionParameterKind.Steps,
                                 Steps = [Step("control.log")],
                             }),
+                        Step("input.mouseMove"),
                     ],
                 });
+
+            // A block that is followed by another row, with a row after its last child as well:
+            // both columns have a reason to run on, and neither may run on past the row it was
+            // reaching for.
+            editor.AddStep(Step("input.mouseMove"));
             editor.AddStep(loop);
+            editor.AddStep(Step("control.note"));
             Dispatcher.UIThread.RunJobs();
 
             var tree = window.FindControl<TreeView>("StepList")!;
@@ -74,7 +81,7 @@ public class StepGuideTests
             var where = boxes.ToDictionary(entry => entry.Row, entry => entry);
 
             // Every line a row draws, as a column and a span in the tree's own coordinates.
-            var drawn = new Dictionary<int, List<(double Top, double Bottom)>>();
+            var drawn = new Dictionary<int, List<(double Top, double Bottom, int RowIndex)>>();
             foreach (var entry in boxes)
             {
                 var middle = entry.Top + (entry.Height / 2);
@@ -82,22 +89,52 @@ public class StepGuideTests
                 {
                     var column = (int)Math.Round(entry.X + line.Left);
                     var span = line.Tail
-                        ? (middle, entry.Top + entry.Height)
-                        : (entry.Top, line.Full ? entry.Top + entry.Height : middle);
+                        ? (Top: middle, Bottom: entry.Top + entry.Height)
+                        : (Top: entry.Top, Bottom: line.Full ? entry.Top + entry.Height : middle);
 
                     if (!drawn.TryGetValue(column, out var spans))
                     {
                         drawn[column] = spans = [];
                     }
 
-                    spans.Add(span);
+                    spans.Add((Top: span.Top, Bottom: span.Bottom, RowIndex: entry.Row.RowIndex));
+                }
+            }
+
+            // A row may only draw columns above itself: the trunk for the first level, one column
+            // per level it hangs under after that. A line drawn at its own box, or to the right of
+            // it, belongs to a node this row has nothing to do with.
+            var strays = new List<string>();
+            foreach (var entry in boxes)
+            {
+                // The line dropping from a row's own box to its first child is the one line a row
+                // draws at its own column; everything else it draws is above itself.
+                foreach (var line in entry.Row.Guides)
+                {
+                    var column = (int)Math.Round((entry.X + line.Left - StepRow.ChevronCenter) / StepRow.IndentWidth);
+
+                    if (line.Tail)
+                    {
+                        if (column != entry.Row.Depth)
+                        {
+                            strays.Add($"{entry.Row.Step.Type} d{entry.Row.Depth}: drop at column {column}");
+                        }
+
+                        continue;
+                    }
+
+                    var allowed = entry.Row.Depth == 0 ? 0 : entry.Row.Depth - 1;
+                    if (column < 0 || column > allowed)
+                    {
+                        strays.Add($"{entry.Row.Step.Type} d{entry.Row.Depth}: column {column} (allowed 0..{allowed})");
+                    }
                 }
             }
 
             var holes = new List<string>();
             foreach (var row in editor.Rows)
             {
-                if (row.Children.Count == 0)
+                if (row.Children.Count == 0 || row.Depth == 0)
                 {
                     continue;
                 }
@@ -121,8 +158,15 @@ public class StepGuideTests
                     continue;
                 }
 
+                // Only the rows inside this node's own branch: the row of a sibling further down the
+                // list can share the same column, and its lines say nothing about this one.
+                var inside = spans
+                    .Where(span => span.RowIndex >= row.RowIndex && span.RowIndex <= last.RowIndex)
+                    .OrderBy(span => span.Top)
+                    .ToList();
+
                 var covered = from;
-                foreach (var span in spans.OrderBy(span => span.Top))
+                foreach (var span in inside)
                 {
                     if (span.Top >= to)
                     {
@@ -146,10 +190,53 @@ public class StepGuideTests
                 {
                     holes.Add($"{row.Step.Type} d{row.Depth}: column {column} ends at {covered:0}, last child {to:0}");
                 }
+
+                // And it must not run on past that child either: a column that keeps going after the
+                // last row of its branch hangs in the air beside the next branch, which reads as a
+                // line that belongs nowhere.
+                var beyond = inside
+                    .Where(span => span.Top >= to && span.Top - to > 6)
+                    .Select(span => span.Top)
+                    .DefaultIfEmpty(0)
+                    .Min();
+                if (beyond > 0 && beyond - to > 6)
+                {
+                    holes.Add($"{row.Step.Type} d{row.Depth}: column {column} runs on to {beyond:0} past {to:0}");
+                }
             }
 
+            Assert.True(strays.Count == 0, "lines at a column of their own: " + string.Join(" | ", strays));
             Assert.True(holes.Count == 0, "columns with a hole: " + string.Join(" | ", holes));
             Ui.CloseAndAnswer(window);
+        });
+    }
+
+    [Fact]
+    public void A_folded_block_does_not_draw_the_line_down_to_the_steps_it_hides()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var loop = Step("control.repeat",
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "2" },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.delay")],
+                });
+            editor.AddStep(loop);
+
+            var block = editor.Rows.First(row => ReferenceEquals(row.Step, loop));
+            Assert.Contains(block.Guides, line => line.Tail);
+
+            // The fold goes through the row, the way the chevron drives it: the rows are not rebuilt,
+            // the children are simply not drawn, so the line that led to them has to go with them.
+            block.IsExpanded = false;
+            Assert.DoesNotContain(block.Guides, line => line.Tail);
+
+            block.IsExpanded = true;
+            Assert.Contains(block.Guides, line => line.Tail);
         });
     }
 
