@@ -1915,6 +1915,7 @@ public partial class MacroEditorWindow : AppWindow
             PlaceStep = (existing, step) => existing is null
                 ? _viewModel.PlacementRefusalForPending(step)
                 : _viewModel.PlacementRefusalForReplacement(existing, step),
+            NextStepId = taken => _viewModel.NewStepId(taken),
         };
         if (macroName is not null)
         {
@@ -2667,71 +2668,34 @@ public partial class MacroEditorWindow : AppWindow
         _pickingCaseValues = true;
         try
         {
-            if (await VariablePickerWindow.ShowFor(this, _viewModel.CollectVariables(),
-                    offerBuilder: true) is not { } picked)
+            var line = FindCaseValueBox(row);
+            var caret = line?.SelectionStart ?? row.CaseValuesText.Length;
+            if (await ValuePickerWindow.ShowFor(this, row.CaseValuesText,
+                    _viewModel.CollectVariables(), startOnFormula: true,
+                    startCaret: caret) is not { } written)
             {
                 return;
             }
 
-            if (picked.WantsExpression)
-            {
-                if (await ExpressionBuilderWindow.ShowFor(this, row.CaseValues,
-                        _viewModel.CollectVariables()) is { } built)
-                {
-                    row.CaseValuesText = built;
-                    var end = built.Length;
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (FindCaseValueBox(row) is { } box)
-                        {
-                            box.Focus();
-                            box.CaretIndex = end;
-                        }
-                    }, DispatcherPriority.Loaded);
-                }
-
-                return;
-            }
-
-            if (picked.Token.Length > 0)
-            {
-                InsertIntoCaseValues(row, picked.Token);
-            }
+            row.CaseValuesText = written;
         }
         finally
         {
             _pickingCaseValues = false;
-            Dispatcher.UIThread.Post(() => FindCaseValueBox(row)?.Focus(), DispatcherPriority.Loaded);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (FindCaseValueBox(row) is { } box)
+                {
+                    box.Focus();
+                    box.CaretIndex = box.Text?.Length ?? 0;
+                }
+            }, DispatcherPriority.Loaded);
         }
     }
 
     /// <summary>True while one of the pickers is open over the branch being typed.</summary>
     private bool _pickingCaseValues;
 
-    /// <summary>
-    /// Puts a name where the caret is, replacing whatever was selected. The caret is read off the
-    /// live box rather than kept on the row: it is the control that knows where the person was
-    /// typing, and the line may have been edited since the button was pressed.
-    /// </summary>
-    private void InsertIntoCaseValues(StepRow row, string token)
-    {
-        var text = row.CaseValuesText;
-        var box = FindCaseValueBox(row);
-        var start = Math.Clamp(box?.SelectionStart ?? text.Length, 0, text.Length);
-        var end = Math.Clamp(box?.SelectionEnd ?? text.Length, start, text.Length);
-
-        row.CaseValuesText = string.Concat(text.AsSpan(0, start), token, text.AsSpan(end));
-
-        var caret = start + token.Length;
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (FindCaseValueBox(row) is { } again)
-            {
-                again.Focus();
-                again.CaretIndex = caret;
-            }
-        }, DispatcherPriority.Loaded);
-    }
 
     /// <summary>
     /// Enter keeps the values and leaves the line, Escape puts back what was there. Both end the

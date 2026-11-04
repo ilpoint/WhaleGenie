@@ -209,6 +209,10 @@
       LAYER1 ComboBox.Field ComboBox
       LAYER1 ComboBox.Field.Cell ComboBox
       LAYER1 AutoCompleteBox.Field TextControl
+      STATIC AutoCompleteBox.HasChip
+      STATIC ListBox.Panel
+      STATIC ListBox.Chips
+      STATIC TextBox.HasChip
       STATIC Border.Badge
       STATIC Border.Badge.Danger
       STATIC Border.Badge.Info
@@ -243,6 +247,7 @@
       STATIC Button.Secondary.Block
       STATIC Button.Secondary.Chip
       STATIC Button.Secondary.Chip.Dense
+      STATIC Button.Secondary.Chip.Dense.empty
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -569,6 +574,68 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+
+    <!--
+      嵌在输入框里的那枚按钮。格子里的按钮不能靠悬停才认得出，所以它带字、有边，像一枚小片；
+      右端的空白由 `HasChip` 让出来，字才不会跑到它下面去。
+    -->
+    <Style Selector="Button.ValueChip">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="7,0" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
+    <Style Selector="Button.ValueChip:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="TextBox.HasChip">
+        <Setter Property="Padding" Value="8,0,48,0" />
+    </Style>
+    <Style Selector="AutoCompleteBox.HasChip TextBox">
+        <Setter Property="Padding" Value="8,0,48,0" />
+    </Style>
+
+    <!-- 一列材料：行与行之间只为可读留一点缝，行自己不带内边距。 -->
+    <Style Selector="ListBox.Panel > ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- 一条分组芯片：几个词排一行，按下一个列表就换。 -->
+    <Style Selector="ListBox.Chips ListBoxItem">
+        <Setter Property="Padding" Value="2,2" />
+        <Setter Property="Margin" Value="0,0,8,6" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <!-- 分类只是一行字：模板只留内容，不画选中底、不画边框，标签才不会变成一排格子。 -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  VerticalAlignment="Center" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.Chips ListBoxItem TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+    </Style>
+    <Style Selector="ListBox.Chips ListBoxItem:selected TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox.Chips ListBoxItem:pointerover TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
     </Style>
 
     <Style Selector="TextBox.Code">
@@ -932,6 +999,16 @@
     <Style Selector="Button.Secondary.Chip.Dense">
         <Setter Property="Height" Value="24" />
         <Setter Property="FontSize" Value="11.5" />
+    </Style>
+
+    <!--
+      分支还没填值：这一支现在谁都不应答，是一个该被看见的空缺。灰字说的和"值"是同一种语气，
+      读的人会以为填好了；警示色说的是"这里还缺点东西"。
+    -->
+    <Style Selector="Button.Secondary.Chip.Dense.empty">
+        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+        <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
     </Style>
 
 

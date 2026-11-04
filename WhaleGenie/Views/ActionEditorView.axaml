@@ -110,7 +110,8 @@
                      三样东西才在同一个 18 高的行盒里居中对齐——把边距留在标签上时，行盒会多出
                      8 像素，居中的图标就比字低 4 像素，看上去像没对齐。 -->
                 <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="4"
-                      Margin="{DynamicResource GapField}">
+                      Margin="{DynamicResource GapField}"
+                      IsVisible="{Binding ShowsLabel}">
                     <views:IconView Width="16" Height="16" Data="SquareFunction"
                                    Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
                                    VerticalAlignment="Center"
@@ -195,14 +196,22 @@
                      and a whole value may be built with the expression editor. A window is written
                      here like anything else, with the picker beside it that fills in one of the
                      windows that are open right now. -->
-                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto"
                       ColumnSpacing="6">
-                    <AutoCompleteBox Classes="Field"
+                    <!-- 取值按钮贴在框里：「这一格怎么填」和「填哪一格」是同一件事，按钮就不该
+                         站在行末，让人先猜它说的是哪一格。 -->
+                    <AutoCompleteBox Classes="Field HasChip"
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      Text="{Binding Text}"
                                      PlaceholderText="{Binding Placeholder}"
                                      MinimumPrefixLength="1"
-                                     FilterMode="Contains" />
+                                     FilterMode="Contains">
+                        <AutoCompleteBox.InnerRightContent>
+                            <Button Classes="ValueChip" Click="OnPickVariable"
+                                    Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                        </AutoCompleteBox.InnerRightContent>
+                    </AutoCompleteBox>
                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             IsVisible="{Binding IsPath}"
                             Content="{Binding PathButton}"
@@ -213,15 +222,7 @@
                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickWindow" />
-                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
-                            IsVisible="{Binding OffersFormula}"
-                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnOpenExpressionBuilder" />
-                    <Button Grid.Column="4" Classes="Secondary" Height="33" Padding="11,0"
-                            Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnPickVariable" />
+
                 </Grid>
 
                 <!-- A UI Automation selector: written out by hand, or taken off the screen by
@@ -1248,6 +1249,21 @@
 
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
+
+                            <!-- 多分支的分支不是字段而是步骤，排在右侧列表里；这一页因此要在值旁边
+                                 说清有几支、兜底那支多少步，并留一个不必回到列表就能再加一支的入口。
+                                 两块同族却一页看得见条件、一页看不见分支，读的人会以为分支没设。 -->
+                            <Border IsVisible="{Binding ShowsBranches}" Margin="2,0,0,6"
+                                    ToolTip.Tip="{Binding [Add.AddBranchHint], Source={x:Static loc:Strings.Current}}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               Text="{Binding BranchSummary}" />
+                                    <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="10,0"
+                                            Content="{Binding [Add.AddBranch], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding AddBranchCommand}" />
+                                </Grid>
+                            </Border>
 
                             <!-- What a call passes belongs right under the macro it names, because
                                  every row here exists because of that name. -->

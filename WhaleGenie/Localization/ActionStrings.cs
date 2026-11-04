@@ -491,32 +491,33 @@ internal static class ActionStrings
         ["control.if.name"] = "条件分支",
         ["control.if.desc"] = "根据条件在两个子步骤块中选择一个执行。",
         ["control.if.condition.label"] = "条件",
-        ["control.if.condition.hint"] = "执行到这一步时计算一次布尔表达式：成立就走「满足时步骤」，不成立就走"
-            + "「不满足时步骤」。",
-        ["control.if.then.label"] = "满足时步骤",
+        ["control.if.condition.hint"] = "执行到这一步时计算一次布尔表达式：成立就走「满足时」，不成立就走"
+            + "「否则」。",
+        ["control.if.then.label"] = "满足时",
         ["control.if.then.hint"] = "条件成立时执行的子步骤。",
-        ["control.if.else.label"] = "不满足时步骤",
+        ["control.if.else.label"] = "否则",
         ["control.if.else.hint"] = "条件不成立时执行的子步骤。",
 
         ["control.switch.name"] = "多分支",
         ["control.switch.desc"] = "拿一个值从上到下比对各分支，命中第一个就执行它的步骤，都没命中就走“其他情况”。",
-        ["control.switch.switchValue.label"] = "要比对的值（操作数）",
+        ["control.switch.switchValue.label"] = "要比对的值",
         ["control.switch.switchValue.hint"] = "执行到这一步时读取一次，用来和各分支填的值比较。从下拉列表里选一个变量，"
             + "也可以直接手输变量名、数字或文本。",
-        ["control.switch.switchMode.label"] = "比对方式（运算符）",
+        ["control.switch.switchMode.label"] = "比对方式",
         ["control.switch.switchMode.hint"] = "决定分支里填的值怎么和上面的值比较：等于、不等于、包含、"
             + "开头 / 结尾、大于 / 小于、正则，只能从这个下拉框里选。选“正则匹配”时，"
             + "每条分支的分支值就是那条分支的正则表达式。",
         ["control.switch.switchMode.option.equals"] = "等于",
         ["control.switch.switchMode.option.notEquals"] = "不等于",
         ["control.switch.switchMode.option.contains"] = "包含",
-        ["control.switch.switchMode.option.startsWith"] = "以…开头",
-        ["control.switch.switchMode.option.endsWith"] = "以…结尾",
+        ["control.switch.switchMode.option.notContains"] = "不包含",
+        ["control.switch.switchMode.option.startsWith"] = "开头是",
+        ["control.switch.switchMode.option.endsWith"] = "结尾是",
         ["control.switch.switchMode.option.greaterThan"] = "大于",
         ["control.switch.switchMode.option.greaterOrEqual"] = "大于等于",
         ["control.switch.switchMode.option.lessThan"] = "小于",
         ["control.switch.switchMode.option.lessOrEqual"] = "小于等于",
-        ["control.switch.switchMode.option.regex"] = "正则匹配",
+        ["control.switch.switchMode.option.regex"] = "匹配正则",
         ["control.switch.cases.label"] = "分支",
         ["control.switch.cases.hint"] = "一行一个分支，从上到下比对；命中第一个分支后执行该分支，其余分支不再比对。",
         ["control.switch.otherwise.label"] = "其他情况",
@@ -524,7 +525,7 @@ internal static class ActionStrings
 
         ["control.case.name"] = "分支",
         ["control.case.desc"] = "多分支里的一条：它应答哪些值，以及命中后要执行的步骤。",
-        ["control.case.values.label"] = "分支值（操作数）",
+        ["control.case.values.label"] = "分支值",
         ["control.case.values.hint"] = "这条分支应答的值，从下拉列表里选变量或直接手输，用“;”隔开多个；"
             + "每个值都按上面的比对方式和要比对的值比较。比对方式选了“正则匹配”时，"
             + "这里填的就是正则表达式。",

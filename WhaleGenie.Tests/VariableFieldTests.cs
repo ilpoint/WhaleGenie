@@ -288,22 +288,26 @@ public class VariableFieldTests
     }
 
     /// <summary>
-    /// The picker opens the expression editor for the fields whose whole value is read at once, and
-    /// only for those. A box that writes a variable's name is left out — a formula there would become
+    /// The expression editor has one door per field: the field's own button where it has one, and
+    /// the picker only where it has none. Two buttons that open the same window are one button too
+    /// many. A box that writes a variable's name is left out of both — a formula there would become
     /// the name itself, and nothing would ever read it back — and so is the box that recognises a
     /// window by text, which is filled in with names rather than worked out.
     /// </summary>
     [Fact]
-    public void The_picker_offers_the_expression_editor_where_a_whole_value_is_read()
+    public void The_expression_editor_has_one_door_per_field()
     {
         Ui.Run(() =>
         {
-            // Read as a whole, so a value worked out from variables and functions belongs here.
-            Assert.True(Parameter(Open("file.writeText"), "path").OffersBuilder);
-            Assert.True(Parameter(Open("system.notify"), "notificationText").OffersBuilder);
+            // 整值读的字段自己就有一颗「表达式」，选择窗口里再给一颗就是同一个按钮出现两次。
+            Assert.True(Parameter(Open("system.notify"), "notificationText").OffersFormula);
+            Assert.False(Parameter(Open("system.notify"), "notificationText").OffersBuilder);
 
-            // A name being written, and a window recognised by text: both take the picker, neither
-            // takes a formula.
+            // 按文本读、自己没有表达式按钮的字段：选择窗口是唯一进得去的地方，所以留着。
+            Assert.False(Parameter(Open("file.writeText"), "path").OffersFormula);
+            Assert.True(Parameter(Open("file.writeText"), "path").OffersBuilder);
+
+            // 写一个名字、按文本认窗口：都不接公式，两处都不给。
             Assert.False(Parameter(Open("control.setVariable"), "name").OffersBuilder);
             Assert.False(Parameter(Open("control.for"), "name").OffersBuilder);
             Assert.False(Parameter(Open("window.exists"), "window").OffersBuilder);
@@ -379,8 +383,14 @@ public class VariableFieldTests
         var block = markup[start..markup.IndexOf("</Grid>", start, StringComparison.Ordinal)];
         Assert.Contains("AutoCompleteBox", block, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ExpressionSuggestions}\"", block, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding OffersFormula}\"", block, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnOpenExpressionBuilder\"", block, StringComparison.Ordinal);
+
+        // One door inside the box rather than two buttons beside it: a name and a formula are the
+        // same window now, and the button sits in the field it fills.
+        Assert.Contains("Classes=\"Field HasChip\"", block, StringComparison.Ordinal);
+        Assert.Contains("AutoCompleteBox.InnerRightContent", block, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"ValueChip\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickVariable\"", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("Click=\"OnOpenExpressionBuilder\"", block, StringComparison.Ordinal);
 
         // And a field that holds a variable by name offers the names: the box holds text, so the
         // rows of the wall listed there would be written into the macro as the name of their type.

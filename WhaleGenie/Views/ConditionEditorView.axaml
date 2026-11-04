@@ -10,10 +10,20 @@
       一条条件，两种看法。行表适合"甲且乙且丙"这种平铺的、一条条填；条件树适合"(甲且乙)或丙"这种
       嵌套。两个视图看的是同一份模型，切换只是换模板，所以切过去再切回来不会丢东西，也不会出现
       "行表存下的格式引擎读不懂"这种事——它们写出来的都是原来那格表达式。
+
+      视图开关只在右上那一处：下面再摆一颗「条件树」，同一件事就有了两个入口，而两个入口
+      摆在同一屏上，读的人要先弄明白它们是不是一回事。
+
+      一格的值怎么填：行末两枚带字的片，「变量」开选择窗口，「表达式」开表达式窗口。整站能写值的
+      字段旁都是这两样，条件只是把它们缩成一行高的小片；不带字的图标看着像装饰，鼠标不移上去
+      没人知道它是按钮。
     -->
     <UserControl.Styles>
         <!-- 一行比较：左边、比较词、右边。比较词列宽固定，行与行的框才对得齐。 -->
         <Style Selector="Grid.ConditionRow TextBox">
+            <Setter Property="Height" Value="30" />
+        </Style>
+        <Style Selector="Grid.ConditionRow Button.Chip">
             <Setter Property="Height" Value="30" />
         </Style>
         <Style Selector="Button.ConditionRemove">
@@ -34,9 +44,10 @@
     </UserControl.Styles>
 
     <StackPanel Spacing="6">
-        <!-- 顶上一行：左边说这是什么，右边是视图开关。 -->
+        <!-- 顶上一行：右边是视图开关；左边只在条件嵌套时说话，而这一句话只说一次。 -->
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding !IsRaw}">
             <TextBlock Grid.Column="0" Classes="Hint" VerticalAlignment="Center"
+                       TextWrapping="Wrap"
                        Text="{Binding [Condition.Nested], Source={x:Static loc:Strings.Current}}"
                        IsVisible="{Binding Nests}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
@@ -57,40 +68,51 @@
                        Text="{Binding [Condition.Raw], Source={x:Static loc:Strings.Current}}" />
         </StackPanel>
 
-        <!-- 行表：一层，顶上"全部成立 / 任一成立"。 -->
+        <!-- 行表：一层，顶上"全部成立 / 任一成立 / 全都不成立"。一行比较就是一句话，三格按读的
+             顺序摆，行末两枚小片负责把这一格填上。 -->
         <StackPanel Spacing="6" IsVisible="{Binding ShowTable}">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                <ComboBox Grid.Column="0" Height="30" MinWidth="120"
-                          SelectedIndex="{Binding OperatorIndex, Mode=TwoWay}">
-                    <ComboBoxItem Content="{Binding [Condition.All], Source={x:Static loc:Strings.Current}}" />
-                    <ComboBoxItem Content="{Binding [Condition.Any], Source={x:Static loc:Strings.Current}}" />
-                </ComboBox>
-                <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
-                           TextWrapping="Wrap" IsVisible="{Binding Nests}"
-                           Text="{Binding [Condition.Nested], Source={x:Static loc:Strings.Current}}" />
-            </Grid>
+            <ComboBox Height="30" MinWidth="120" HorizontalAlignment="Left"
+                      SelectedIndex="{Binding OperatorIndex, Mode=TwoWay}">
+                <ComboBoxItem Content="{Binding [Condition.All], Source={x:Static loc:Strings.Current}}" />
+                <ComboBoxItem Content="{Binding [Condition.Any], Source={x:Static loc:Strings.Current}}" />
+                <ComboBoxItem Content="{Binding [Condition.None], Source={x:Static loc:Strings.Current}}" />
+            </ComboBox>
 
             <ItemsControl ItemsSource="{Binding Rows}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ConditionNodeViewModel">
-                        <Grid Classes="ConditionRow" Margin="0,0,0,4" ColumnDefinitions="*,104,*,Auto" ColumnSpacing="4">
-                            <AutoCompleteBox Grid.Column="0" Classes="Field"
+                        <Grid Classes="ConditionRow" Margin="0,0,0,4"
+                              ColumnDefinitions="*,104,*,Auto" ColumnSpacing="4">
+                            <AutoCompleteBox Grid.Column="0" Classes="Field HasChip"
                                              ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
                                              Text="{Binding Left}"
+                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).LeftPlaceholder}"
                                              MinimumPrefixLength="1"
-                                             FilterMode="Contains" />
+                                             FilterMode="Contains"
+                                             Tag="left" GotFocus="OnCellFocused">
+                                <!-- 一枚按钮贴在框里：这一格填什么，由这一格自己回答。 -->
+                                <AutoCompleteBox.InnerRightContent>
+                                    <Button Classes="ValueChip" Tag="left" Click="OnPickVariable"
+                                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                </AutoCompleteBox.InnerRightContent>
+                            </AutoCompleteBox>
                             <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding Choices}"
                                       SelectedItem="{Binding Choice, Mode=TwoWay}" />
-                            <AutoCompleteBox Grid.Column="2" Classes="Field" IsVisible="{Binding NeedsValue}"
+                            <AutoCompleteBox Grid.Column="2" Classes="Field HasChip" IsVisible="{Binding NeedsValue}"
                                              ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
                                              Text="{Binding Right}"
+                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RightPlaceholder}"
                                              MinimumPrefixLength="1"
-                                             FilterMode="Contains" />
-                            <!-- 比较词自己说不清是哪一边时（成立 / 不成立），右边那格收起而不是留空。 -->
-                            <TextBlock Grid.Column="2" Classes="Hint" VerticalAlignment="Center"
-                                       IsVisible="{Binding !NeedsValue}"
-                                       Text="{Binding Choice.Label}" />
+                                             FilterMode="Contains"
+                                             Tag="right" GotFocus="OnCellFocused">
+                                <AutoCompleteBox.InnerRightContent>
+                                    <Button Classes="ValueChip" Tag="right" Click="OnPickVariable"
+                                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                </AutoCompleteBox.InnerRightContent>
+                            </AutoCompleteBox>
                             <Button Grid.Column="3" Classes="Ghost ConditionRemove"
                                     ToolTip.Tip="{Binding [Condition.Remove], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RemoveCommand}"
@@ -105,18 +127,13 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Classes="Hint"
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
                        Text="{Binding [Condition.NoRows], Source={x:Static loc:Strings.Current}}"
                        IsVisible="{Binding IsEmpty}" />
 
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Classes="Secondary" Height="30" Padding="10,0"
-                        Content="{Binding [Condition.Add], Source={x:Static loc:Strings.Current}}"
-                        Command="{Binding AddRowCommand}" />
-                <Button Classes="Secondary" Height="30" Padding="10,0"
-                        Content="{Binding [Condition.Tree], Source={x:Static loc:Strings.Current}}"
-                        Command="{Binding ShowTreeViewCommand}" />
-            </StackPanel>
+            <Button Classes="Secondary" Height="30" Padding="10,0" HorizontalAlignment="Left"
+                    Content="{Binding [Condition.Add], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding AddRowCommand}" />
         </StackPanel>
 
         <!-- 条件树：同样的行，只是能嵌套。 -->
@@ -133,16 +150,17 @@
             <TreeView.ItemTemplate>
                 <TreeDataTemplate x:DataType="vm:ConditionNodeViewModel" ItemsSource="{Binding Children}">
                     <Panel Margin="0,0,0,4">
-                        <!-- 分组这一行：这个组是"全部"还是"任一"，以及往里加一条。 -->
+                        <!-- 分组这一行：这个组是"全部 / 任一 / 全都不"，以及往里加一条。 -->
                         <Border Classes="ConditionGroup" IsVisible="{Binding IsGroup}">
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
                                 <ComboBox Grid.Column="0" Height="28" MinWidth="110"
                                           SelectedIndex="{Binding OperatorIndex, Mode=TwoWay}">
                                     <ComboBoxItem Content="{Binding [Condition.All], Source={x:Static loc:Strings.Current}}" />
                                     <ComboBoxItem Content="{Binding [Condition.Any], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBoxItem Content="{Binding [Condition.None], Source={x:Static loc:Strings.Current}}" />
                                 </ComboBox>
                                 <Button Grid.Column="2" Classes="Ghost" Width="26" Height="28" Padding="0"
-                                        ToolTip.Tip="{Binding [Condition.Add], Source={x:Static loc:Strings.Current}}"
+                                        ToolTip.Tip="{Binding [Condition.AddInside], Source={x:Static loc:Strings.Current}}"
                                         Command="{Binding $parent[TreeView].((vm:ConditionEditorViewModel)DataContext).AddRowCommand}"
                                         CommandParameter="{Binding}">
                                     <views:IconView Width="12" Height="12"
@@ -164,23 +182,38 @@
                         </Border>
 
                         <!-- 比较这一行：和行表里的一模一样。 -->
-                        <Grid Classes="ConditionRow" IsVisible="{Binding IsRow}" ColumnDefinitions="*,104,*,Auto" ColumnSpacing="4">
-                            <AutoCompleteBox Grid.Column="0" Classes="Field"
+                        <Grid Classes="ConditionRow" IsVisible="{Binding IsRow}"
+                              ColumnDefinitions="*,104,*,Auto" ColumnSpacing="4">
+                            <AutoCompleteBox Grid.Column="0" Classes="Field HasChip"
                                              ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
                                              Text="{Binding Left}"
+                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).LeftPlaceholder}"
                                              MinimumPrefixLength="1"
-                                             FilterMode="Contains" />
+                                             FilterMode="Contains"
+                                             Tag="left" GotFocus="OnCellFocused">
+                                <!-- 一枚按钮贴在框里：这一格填什么，由这一格自己回答。 -->
+                                <AutoCompleteBox.InnerRightContent>
+                                    <Button Classes="ValueChip" Tag="left" Click="OnPickVariable"
+                                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                </AutoCompleteBox.InnerRightContent>
+                            </AutoCompleteBox>
                             <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding Choices}"
                                       SelectedItem="{Binding Choice, Mode=TwoWay}" />
-                            <AutoCompleteBox Grid.Column="2" Classes="Field" IsVisible="{Binding NeedsValue}"
+                            <AutoCompleteBox Grid.Column="2" Classes="Field HasChip" IsVisible="{Binding NeedsValue}"
                                              ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
                                              Text="{Binding Right}"
+                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RightPlaceholder}"
                                              MinimumPrefixLength="1"
-                                             FilterMode="Contains" />
-                            <TextBlock Grid.Column="2" Classes="Hint" VerticalAlignment="Center"
-                                       IsVisible="{Binding !NeedsValue}"
-                                       Text="{Binding Choice.Label}" />
+                                             FilterMode="Contains"
+                                             Tag="right" GotFocus="OnCellFocused">
+                                <AutoCompleteBox.InnerRightContent>
+                                    <Button Classes="ValueChip" Tag="right" Click="OnPickVariable"
+                                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                </AutoCompleteBox.InnerRightContent>
+                            </AutoCompleteBox>
                             <Button Grid.Column="3" Classes="Ghost ConditionRemove"
                                     ToolTip.Tip="{Binding [Condition.Remove], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding $parent[TreeView].((vm:ConditionEditorViewModel)DataContext).RemoveCommand}"

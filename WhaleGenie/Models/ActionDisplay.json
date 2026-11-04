@@ -768,7 +768,7 @@
       },
       {
         "Name": "then",
-        "Label": "Then steps",
+        "Label": "When it holds",
         "Hint": "Steps to run when the condition is true.",
         "Placeholder": "",
         "Kind": "Steps",
@@ -788,7 +788,7 @@
       },
       {
         "Name": "else",
-        "Label": "Else steps",
+        "Label": "Otherwise",
         "Hint": "Steps to run when the condition is false.",
         "Placeholder": "",
         "Kind": "Steps",
@@ -816,7 +816,7 @@
     "Parameters": [
       {
         "Name": "switchValue",
-        "Label": "Value (operand)",
+        "Label": "Value to match",
         "Hint": "What the cases are compared against, read once when the step runs. Pick a variable from the list or type a name, a number or text of your own.",
         "Placeholder": "count",
         "Kind": "Variable",
@@ -836,7 +836,7 @@
       },
       {
         "Name": "switchMode",
-        "Label": "Match mode (operator)",
+        "Label": "Match mode",
         "Hint": "How a case's values are compared with the value.",
         "Placeholder": "",
         "Kind": "Choice",
@@ -844,6 +844,7 @@
           "Equals",
           "Not equals",
           "Contains",
+          "Does not contain",
           "Starts with",
           "Ends with",
           "Greater than",

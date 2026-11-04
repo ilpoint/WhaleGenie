@@ -156,6 +156,23 @@ public partial class ActionEditorView : UserControl
     internal Func<MacroStep?, MacroStep, string?>? PlaceStep { get; set; }
 
     /// <summary>
+    /// Where a step written in this form asks for a name nothing in the macro is using yet. The
+    /// editor is the one that keeps those names, so it answers; a form opened with nothing behind
+    /// it leaves this null and the step it builds goes unnamed until the editor names it.
+    /// </summary>
+    internal Func<ISet<string>, string>? NextStepId
+    {
+        get => Form?.NextStepId;
+        set
+        {
+            if (Form is { } form)
+            {
+                form.NextStepId = value;
+            }
+        }
+    }
+
+    /// <summary>
     /// What to do with a step somebody asked to be shown while filling a field in — the reverse
     /// lookup of a variable: which steps read it, and where each of them is. The editor is the only
     /// one that has a step list, so it answers this; null where there is nothing to show it in.
@@ -740,10 +757,8 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Opens the expression builder on the field that asked for it and keeps what it returns.
-    /// Writing a formula is the same wherever the value goes, so every field that holds one reaches
-    /// it through here: the box shows the value as it stands, and what comes back is put in the way
-    /// the field reads it — a number stays a number, anything else becomes an expression.
+    /// Opens the value window on the field that asked for it and keeps what it returns. A field laid
+    /// out with buttons of its own still reaches the same window as the one with the button inside.
     /// </summary>
     private async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
     {
@@ -752,20 +767,11 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        await BuildExpression(parameter);
-    }
-
-    private static int? CaretAt(object? source)
-    {
-        for (var at = source as Visual; at is not null; at = at.GetVisualParent())
+        if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
+                parameter.Variables, startOnFormula: true, target: parameter.Label) is { } built)
         {
-            if (at is TextBox box)
-            {
-                return box.CaretIndex;
-            }
+            parameter.WriteValue(built);
         }
-
-        return null;
     }
 
     /// <summary>
@@ -780,7 +786,8 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, cell.Text, cell.Variables) is { } built)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Text, cell.Variables,
+                startOnFormula: true) is { } built)
         {
             cell.Write(built);
         }
@@ -802,16 +809,15 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables(), LookAtStep)
-                is not { } picked
-            || picked.Token.Length == 0)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true, lookAtStep: LookAtStep) is not { Length: > 0 } picked)
         {
             return;
         }
 
         var caret = button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
             .OfType<TextBox>().FirstOrDefault()?.CaretIndex;
-        row.InsertVariable(picked.Token, caret ?? row.OrVariable.Length);
+        row.InsertVariable(picked, caret ?? row.OrVariable.Length);
     }
 
     /// <summary>
@@ -827,42 +833,33 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables(),
-                offerBuilder: parameter.OffersBuilder) is not { } picked)
-        {
-            return;
-        }
-
-        if (picked.WantsExpression)
-        {
-            await BuildExpression(parameter);
-            return;
-        }
-
-        if (picked.Token.Length == 0)
-        {
-            return;
-        }
-
         // The caret belongs to the box beside the button, which is the row's own field: the box
         // holds one value per row, so the one on this row is the one that was being filled in.
         var caret = button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
-            .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex;
-        parameter.InsertVariable(picked.Token, caret ?? (parameter.Text ?? string.Empty).Length);
-    }
+            .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex
+            ?? (parameter.Text ?? string.Empty).Length;
 
-    /// <summary>
-    /// Opens the expression editor on a field and keeps what it hands back. Two ways in lead here —
-    /// the button beside a whole-value field and the one inside the variable picker — and both mean
-    /// the same thing, so the field reads back the same way.
-    /// </summary>
-    private async Task BuildExpression(StepParameterViewModel parameter)
-    {
-        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, parameter.CurrentText,
-                parameter.Variables) is { } built)
+        // A field whose whole value is read opens the one window anywhere in the cell, with the
+        // caret where it was; a field that only fills names in opens it on the list of names.
+        if (parameter.OffersFormula)
         {
-            parameter.WriteValue(built);
+            if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
+                    parameter.Variables, startOnFormula: true, target: parameter.Label,
+                    startCaret: caret) is { } written)
+            {
+                parameter.WriteValue(written);
+            }
+
+            return;
         }
+
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true, target: parameter.Label) is not { Length: > 0 } picked)
+        {
+            return;
+        }
+
+        parameter.InsertVariable(picked, caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)
@@ -875,8 +872,8 @@ public partial class ActionEditorView : UserControl
         var variables = ((AddActionViewModel)DataContext).CollectVariables()
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
-        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, draft.DefaultValue,
-                variables) is { } built)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultValue,
+                variables, startOnFormula: true) is { } built)
         {
             draft.DefaultValue = built;
         }
@@ -1829,13 +1826,13 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables()) is not { } picked
-            || picked.Token.Length == 0)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true) is not { Length: > 0 } picked)
         {
             return;
         }
 
-        parameter.UseWindowVariable(picked.Token);
+        parameter.UseWindowVariable(picked);
     }
 
     /// <summary>One line of the window menu: what it says, what it does, and whether it is the one in force.</summary>
@@ -2179,13 +2176,13 @@ public partial class ActionEditorView : UserControl
 
         // The expression editor is not offered: a selector field is read as text with the names in
         // it filled in, so a formula built here would be written down as part of the selector.
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables()) is not { } picked
-            || picked.Token.Length == 0)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true) is not { Length: > 0 } picked)
         {
             return;
         }
 
-        parameter.AddLine(picked.Token);
+        parameter.AddLine(picked);
     }
 
     /// <summary>

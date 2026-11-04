@@ -1,4 +1,4 @@
-<views:AppWindow xmlns="https://github.com/avaloniaui"
+﻿<views:AppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:views="using:WhaleGenie.Views"
@@ -6,32 +6,143 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="330"
+        mc:Ignorable="d" d:DesignWidth="660" d:DesignHeight="470"
         x:Class="WhaleGenie.Views.VariablePickerWindow"
         x:DataType="vm:VariablePickerViewModel"
         Title="WhaleGenie"
-        Width="560" Height="330"
-        MinWidth="460" MinHeight="260"
+        Width="660" Height="470"
+        MinWidth="560" MinHeight="360"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceWindow}">
 
+    <!--
+      选择变量。一栏名字、一栏说明：名字要能一行一个地扫（一行放好几个时，长得像的两个名字挨在一起
+      就分不出来），说明要能一直在旁边，不能靠悬停才出现——扫到第三行就忘了第一行。
+
+      说明收进右上那枚 ⓘ：这三行话每次打开都占掉两行变量，而读它一次就够了。
+    -->
     <Window.Styles>
+        <Style Selector="ListBox.VariableFilters ListBoxItem">
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+        </Style>
+        <!-- 一行一个变量：名字在左，类型在右，整行可点。 -->
+        <Style Selector="Button.VarRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.VarRow:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="*,Auto">
-        <StackPanel Grid.Row="0" Margin="16,12">
-            <TextBlock Text="{Binding Help}" TextWrapping="Wrap" FontSize="11.5"
-                       Foreground="{DynamicResource TextTertiary}" Margin="0,0,0,10" />
-            <views:VariableWall DataContext="{Binding Wall}" />
-        </StackPanel>
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16,12,16,12" RowSpacing="8">
+        <!-- 搜索：打开就可以打字，名字记不全时先打两个字母。 -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox Name="VariableSearch" Text="{Binding Wall.SearchText}"
+                     KeyDown="OnSearchKeyDown"
+                     PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
+            <views:HintInfo Grid.Column="1" Text="{Binding Help}" />
+        </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="16,0,16,14">
-            <!-- A name is not the only thing a field may hold: one whose whole value is read at
-                 once may hold anything the expression language works out, and that is what this
-                 opens. Its own window rather than a list here, because working a value out is a
-                 matter of operators and functions as much as of names. -->
-            <Button Grid.Column="1" Classes="Secondary" Height="34" MinWidth="132"
-                    Margin="0,0,8,0"
+        <!-- 哪一组：一条线上的几枚芯片，按下去列表当场就换。 -->
+        <ListBox Grid.Row="1" Classes="VariableFilters" ItemsSource="{Binding Wall.Filters}"
+                 SelectedItem="{Binding Wall.SelectedFilter}" SelectionMode="Single"
+                 Background="Transparent" BorderThickness="0" Padding="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:VariableFilter">
+                    <TextBlock Text="{Binding Label}" FontSize="12"
+                               Foreground="{DynamicResource TextPrimary}"
+                               ToolTip.Tip="{Binding Hint}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- 名字与说明并排：左边一列名字，右边固定一栏说这个变量是什么、装什么、谁在读。 -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,236" ColumnSpacing="10">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Wall.Shown}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:VariableChoice">
+                            <Button Classes="VarRow"
+                                    Click="OnChoose"
+                                    PointerEntered="OnLooking" PointerExited="OnUnlooked">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding Display}" VerticalAlignment="Center"
+                                               FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextPrimary}" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Type}" FontSize="11" Width="54"
+                                                   TextAlignment="Right" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextTertiary}" />
+                                        <Border IsVisible="{Binding IsPersistent}"
+                                                Background="{DynamicResource SurfacePanel}" CornerRadius="3"
+                                                Padding="4,0">
+                                            <TextBlock Text="{Binding PersistenceBadge}" FontSize="10.5"
+                                                       Foreground="{DynamicResource TextSecondary}" />
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Border Grid.Column="1" Width="236" Background="{DynamicResource SurfacePanel}" CornerRadius="6"
+                    Padding="10,8" ClipToBounds="True">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                              MaxWidth="216">
+                    <StackPanel Spacing="6" MaxWidth="208">
+                        <TextBlock Text="{Binding Wall.Details}" TextWrapping="Wrap" FontSize="12" Width="200"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <!-- 用到它的步骤：点一枚就跳到那一步，不关这个窗口。 -->
+                        <StackPanel Spacing="4" IsVisible="{Binding Wall.HasUses}">
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiary}"
+                                       Text="{Binding [VarWall.UsedBy], Source={x:Static loc:Strings.Current}}" />
+                            <ItemsControl ItemsSource="{Binding Wall.Uses}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:VariableUse">
+                                        <Button Classes="Secondary Block Chip Dense"
+                                                Content="{Binding Label}"
+                                                ToolTip.Tip="{Binding [VarWall.JumpHint], Source={x:Static loc:Strings.Current}}"
+                                                Command="{Binding $parent[ItemsControl].((vm:VariableWallViewModel)DataContext).JumpCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- 底下说清将要插进去的是什么：一个名字在插进去之前就该看得见。 -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBlock VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextTertiary}"
+                       Text="{Binding WillInsert}" />
+            <!-- 只有自己没有「表达式」按钮的字段才在这里给一次：两处都能到同一个窗口，
+                 就是同一个按钮出现了两次。 -->
+            <Button Grid.Column="1" Classes="Secondary" Height="34" MinWidth="110"
                     IsVisible="{Binding OfferBuilder}"
                     Content="{Binding BuilderLabel}"
                     ToolTip.Tip="{Binding BuilderHint}"

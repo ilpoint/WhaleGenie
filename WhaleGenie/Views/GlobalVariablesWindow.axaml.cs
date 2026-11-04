@@ -109,8 +109,8 @@ public partial class GlobalVariablesWindow : AppWindow
 
     private async void OnDefaultExpression(VariableDefinitionDraft row)
     {
-        if (await ExpressionBuilderWindow.ShowFor(this, row.DefaultValue,
-                ExpressionVariablesBefore(row)) is { } built)
+        if (await ValuePickerWindow.ShowFor(this, row.DefaultValue,
+                ExpressionVariablesBefore(row), startOnFormula: true) is { } built)
         {
             row.DefaultValue = built;
         }
@@ -118,8 +118,8 @@ public partial class GlobalVariablesWindow : AppWindow
 
     private async void OnCurrentExpression(VariableDefinitionDraft row)
     {
-        if (await ExpressionBuilderWindow.ShowFor(this, row.CurrentValue,
-                ExpressionVariablesBefore(row)) is { } built)
+        if (await ValuePickerWindow.ShowFor(this, row.CurrentValue,
+                ExpressionVariablesBefore(row), startOnFormula: true) is { } built)
         {
             row.CurrentValue = VariableValues.TryRead(row.Type, built, row.Resolver,
                 out var value, out _)

@@ -121,6 +121,10 @@ public static class AppIcons
         "program" => LucideIconKind.Boxes,
         "options" => LucideIconKind.Settings2,
         "place" => LucideIconKind.Move,
+
+        // 流程：要问的那一句话、拿什么去比
+        "condition" => LucideIconKind.GitBranch,
+        "compare" => LucideIconKind.GitCompareArrows,
         _ => null,
     };
     public static LucideIconKind Info => LucideIconKind.Info;

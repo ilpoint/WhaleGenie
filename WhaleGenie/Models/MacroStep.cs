@@ -461,6 +461,15 @@ public class MacroStep : INotifyPropertyChanged
                 return SwitchDetail;
             }
 
+            // A condition reads as the sentence it is. The type key and the field name in front of
+            // it say which action and which box, and neither is anything the person reading the
+            // list needs to be told again: the row already carries the action's name and icon.
+            if (Type == "control.if")
+            {
+                var condition = Text("condition").Trim();
+                return condition.Length == 0 ? Strings.Get("Editor.IfNoCondition") : condition;
+            }
+
             var parts = new List<string>();
             foreach (var parameter in Parameters)
             {

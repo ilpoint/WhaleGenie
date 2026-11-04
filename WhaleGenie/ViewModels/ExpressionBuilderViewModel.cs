@@ -1074,7 +1074,11 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// then the words that join conditions. The text inserted is spaced out so two clicks make a
     /// formula that still reads after it is written.
     /// </summary>
-    private static IReadOnlyList<ExpressionOperator> BuildOperators() =>
+    /// <summary>
+    /// The operator row, shared with the value window: one place decides what a sign says and what
+    /// it writes, so the two windows cannot drift into offering different sets.
+    /// </summary>
+    internal static IReadOnlyList<ExpressionOperator> BuildOperators() =>
     [
         new("+", " + ", "Expr.Op.Add"),
         new("−", " - ", "Expr.Op.Subtract"),
@@ -1298,6 +1302,9 @@ public sealed class ExpressionFunctionChoice
         Signature = function.Signature;
         Insert = function.Name + "(";
         Heading = ExpressionText.Heading(function);
+        Tag = ExpressionText.InChinese
+            ? ExpressionText.ChineseName(function) + " (" + Name + ")"
+            : Name;
         ChineseSignature = ExpressionText.ChineseSignature(function);
         // How the call is written, in whichever language the reader is reading: the Chinese form is
         // a reading of the call rather than a copy of it, so an English interface keeps the one the
@@ -1329,6 +1336,9 @@ public sealed class ExpressionFunctionChoice
 
     /// <summary>What the button says: the name in the reader's own language, the code name beside it.</summary>
     public string Heading { get; }
+
+    /// <summary>One pill's worth of the same: short enough to stand beside its neighbours.</summary>
+    public string Tag { get; }
 
     /// <summary>The same call, with every argument named in the reader's own language.</summary>
     public string ChineseSignature { get; }
@@ -1382,6 +1392,19 @@ public sealed class ExpressionOperator
 
     /// <summary>The text dropped into the expression, spaced so it reads after insertion.</summary>
     public string Insert { get; }
+
+    /// <summary>
+    /// The hue the sign is drawn in, borrowed from the function palette: numbers, comparisons,
+    /// words that join, and brackets are four kinds of thing and should not look alike.
+    /// </summary>
+    public string Tone => Token switch
+    {
+        "+" or "−" or "×" or "÷" or "%" => "maths",
+        "=" or "≠" or ">" or "≥" or "<" or "≤" => "dates",
+        "and" or "or" or "not" => "records",
+        "\"{ }\"" => "text",
+        _ => "other",
+    };
 
     /// <summary>One plain line saying what the operator does.</summary>
     public string Hint { get; }

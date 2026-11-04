@@ -2211,6 +2211,12 @@ public sealed partial class MacroRunner
             case "endswith":
                 // The ways of comparing text are the ones the whole program shares.
                 return TextCompare.Matches(value.AsText(), wanted, mode, OptionsOf(step, mode));
+            case "notcontains":
+                // Said as the denial of "contains" rather than as a comparison of its own: the
+                // spacing and case switches then mean here exactly what they mean there, and there
+                // is one place where "what counts as holding this text" is decided.
+                return !TextCompare.Matches(value.AsText(), wanted, TextCompare.Contains,
+                    OptionsOf(step, TextCompare.Contains));
             case "greaterthan":
                 return Order(step, value.AsText(), wanted) > 0;
             case "greaterorequal":

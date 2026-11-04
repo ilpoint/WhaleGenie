@@ -2557,6 +2557,18 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     public string NewStepId() => StepIds.Next(AllIds());
 
+    /// <summary>
+    /// An id no step of this macro is using, counting names another form has already handed out but
+    /// not yet put in the list. A form that adds two branches in one visit needs that: neither is
+    /// in the macro until it is saved, so the first would be drawn again for the second.
+    /// </summary>
+    public string NewStepId(ISet<string> reserved)
+    {
+        var taken = AllIds();
+        taken.UnionWith(reserved);
+        return StepIds.Next(taken);
+    }
+
     /// <summary>Every name in use anywhere in this macro, nested steps and conditions included.</summary>
     private HashSet<string> AllIds()
     {

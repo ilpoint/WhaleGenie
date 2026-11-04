@@ -1129,6 +1129,7 @@
                                                所以它是一枚能点的片——点开就在原地改，不必为一个字段
                                                打开整张表单，也不必先猜双击能改。 -->
                                           <Button Classes="Secondary Chip Dense"
+                                                  Classes.empty="{Binding !HasCaseValues}"
                                                   IsVisible="{Binding ShowsCaseValues}"
                                                   Content="{Binding HeadLabel}"
                                                   Click="OnEditCaseValues"
@@ -1152,9 +1153,9 @@
                                                   ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                                                   Click="OnPickCaseValuesVariable" />
                                           <!-- 值后面断开一下：'值 1, 2' 和 '1 个步骤' 挨在一起时会读成
-                                               '值 1, 21 个步骤'。 -->
-                                          <TextBlock Classes="Caption" VerticalAlignment="Center"
-                                                     Text="·" IsVisible="{Binding IsCase}" />
+                                               '值 1, 21 个步骤'。普通分节也用同一个断点：'其他情况 · 0 个步骤'
+                                               与分支行读起来才是同一张表的两行。 -->
+                                          <TextBlock Classes="Caption" VerticalAlignment="Center" Text="·" />
                                           <TextBlock Classes="Caption" VerticalAlignment="Center"
                                                      Text="{Binding HeadCount}" />
                                           <TextBlock Classes="Hint" VerticalAlignment="Center"

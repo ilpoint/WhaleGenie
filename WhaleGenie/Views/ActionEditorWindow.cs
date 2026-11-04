@@ -227,6 +227,13 @@ public class ActionEditorWindow : AppWindow
         set => _view.PlaceStep = value;
     }
 
+    /// <summary>Where the form asks for a step name nothing in the macro is using yet.</summary>
+    internal Func<ISet<string>, string>? NextStepId
+    {
+        get => _view.NextStepId;
+        set => _view.NextStepId = value;
+    }
+
     internal Action<MacroStep>? LookAtStep
     {
         get => _view.LookAtStep;

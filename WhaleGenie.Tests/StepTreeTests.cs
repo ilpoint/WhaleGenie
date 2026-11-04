@@ -159,18 +159,20 @@ public class StepTreeTests
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();
 
-            var picker = Assert.Single(window.OwnedWindows.OfType<VariablePickerWindow>());
+            var picker = Assert.Single(window.OwnedWindows.OfType<ValuePickerWindow>());
+            var form = (ValuePickerViewModel)picker.DataContext!;
 
             // Picking a name puts it in the line where the caret is — a branch value is text, and a
-            // name in it is the same thing the step's own form writes.
-            var chip = picker.GetVisualDescendants().OfType<Button>()
-                .First(button => button.DataContext is VariableChoice);
-            var token = ((VariableChoice)chip.DataContext!).Name;
-            chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            // name in it is the same thing the step's own form writes. The row is chosen the way a
+            // keyboard chooses it; the click that leads to the same thing is a pointer test of its own.
+            var picked = form.Wall.Shown.First();
+            form.Wall.Looking = picked;
+            form.Insert(picked.Token, 0);
+            form.Confirm();
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Contains("$" + token, row.CaseValuesText);
+            Assert.Contains(picked.Token, row.CaseValuesText);
 
             // Closing the picker leaves the line open: the person was picking a name for it, not
             // leaving it.
@@ -316,6 +318,27 @@ public class StepTreeTests
             Assert.Equal(["body", "catch", "finally"],
                 editor.Rows.Where(row => row.IsSection && row.Depth == 1)
                     .Select(row => row.List!.Name));
+        });
+    }
+
+    [Fact]
+    public void A_conditional_block_says_its_condition_and_names_both_lists()
+    {
+        Ui.Run(() =>
+        {
+            var choice = Step("control.if", Text("condition", "$a == 1"));
+            var editor = new MacroEditorViewModel();
+            editor.AddStep(choice);
+
+            // The row stands for the sentence the step is. "control.if · 条件 = …" is the
+            // catalogue's way of naming things, not the reader's, and the row already says which
+            // action it is by its name and icon.
+            Assert.Equal("$a == 1", choice.Detail);
+
+            // "满足时 / 否则" rather than "满足时步骤 / 不满足时步骤": where a list sits already says
+            // it is a list, and the short word is the one a person says out loud.
+            Assert.Equal(["满足时", "否则"],
+                editor.Rows.Where(row => row.IsSection).Select(row => row.HeadLabel));
         });
     }
 

@@ -100,7 +100,8 @@ public partial class StepParameterViewModel : ViewModelBase
 
         if (IsCondition)
         {
-            ConditionEditor = new ConditionEditorViewModel(Text, WriteCondition, ExpressionSuggestions);
+            ConditionEditor = new ConditionEditorViewModel(Text, WriteCondition, ExpressionSuggestions,
+                Variables);
         }
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);
 
@@ -634,6 +635,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// become the name of the variable itself.
     /// </summary>
     public bool OffersBuilder => (OffersVariables || IsVariable)
+        && !OffersFormula
         && !IsWindow && !IsBrowserTarget && !Definition.NamesVariable;
 
     /// <summary>
@@ -1380,6 +1382,12 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             _writingCondition = false;
         }
+
+        // A half-filled row writes nothing, so the text is the same as it was a keystroke ago and
+        // setting it says nothing to whoever is listening. What did change is that somebody has
+        // started answering the question, and that is what the dialog's own line is about: a
+        // condition nobody has touched is not a mistake, one an answer has begun is unfinished.
+        OnPropertyChanged(nameof(Text));
     }
 
     /// <summary>True when this parameter names a variable and offers suggestions.</summary>
@@ -1565,6 +1573,16 @@ public partial class StepParameterViewModel : ViewModelBase
     }
 
     public string Placeholder => Definition.Placeholder;
+
+    /// <summary>
+    /// True when the block this field stands in already says what the field is called, so the label
+    /// above the editor would say it a second time. Set by the form, which is the only thing that
+    /// knows what the block above the line is called.
+    /// </summary>
+    public bool HidesLabel { get; set; }
+
+    /// <summary>True when the line above this editor is worth drawing.</summary>
+    public bool ShowsLabel => !HidesLabel;
 
     /// <summary>An optional field says so, whichever of its names is the one showing.</summary>
     private string Name(string label)

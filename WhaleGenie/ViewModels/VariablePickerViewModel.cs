@@ -19,6 +19,13 @@ public partial class VariablePickerViewModel : ViewModelBase
         OfferBuilder = offerBuilder;
         Wall = new VariableWallViewModel(variables);
         Wall.Chosen += token => CloseRequested?.Invoke(new VariablePick(token, false));
+        Wall.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(VariableWallViewModel.Looking))
+            {
+                OnPropertyChanged(nameof(WillInsert));
+            }
+        };
         Wall.Jumped += step => Jumped?.Invoke(step);
     }
 
@@ -43,6 +50,14 @@ public partial class VariablePickerViewModel : ViewModelBase
     /// down and from the ones that match a window by text, where a formula would mean something else.
     /// </summary>
     public bool OfferBuilder { get; }
+
+    /// <summary>
+    /// What will go into the field, said before it goes: a name picked is one thing, and the field
+    /// it lands in is another, so the window says which one it is about to hand over.
+    /// </summary>
+    public string WillInsert => Wall.Looking is { } choice
+        ? Strings.Format("VarPicker.WillInsert", choice.Token)
+        : Strings.Get("VarPicker.PickOne");
 
     public string BuilderLabel => Strings.Get("Add.UseExpression");
 

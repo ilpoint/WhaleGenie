@@ -456,6 +456,65 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>True when the macro being called declares something this step can fill in.</summary>
     public bool HasCallArguments => CallArgumentRows.Count > 0;
 
+    /// <summary>
+    /// The branches of a switch. They are steps rather than fields, so they sit in the editor's
+    /// list and are dragged into place there; this page only counts them and offers the one thing
+    /// the list cannot: a way to add one without leaving the form. The block is the only place a
+    /// branch order is read, so the count belongs here beside the value they are compared with.
+    /// </summary>
+    public bool ShowsBranches => SelectedDefinition?.Key is "control.switch";
+
+    /// <summary>How many branches there are, and how much the fallback runs.</summary>
+    public string BranchSummary
+    {
+        get
+        {
+            var cases = Parameter("cases")?.List?.Steps.Count ?? 0;
+            var otherwise = Parameter("otherwise")?.List?.Steps.Count ?? 0;
+            return Strings.Format("Add.BranchSummary", cases, otherwise);
+        }
+    }
+
+    /// <summary>Adds the next branch, which starts empty and is filled in on the editor's list.</summary>
+    [RelayCommand]
+    private void AddBranch()
+    {
+        if (Parameter("cases") is not { List: { } list })
+        {
+            return;
+        }
+
+        // The list the step goes back into is the editor's, so the branch has to be named the way
+        // the editor names steps. The generator is handed in by the editor; a form opened with
+        // nothing behind it still names its branches, out of the names it has handed out itself,
+        // because a branch with no name is one a condition could never point at.
+        var id = NextStepId?.Invoke(_branchIds) ?? StepIds.Next(_branchIds);
+        _branchIds.Add(id);
+
+        list.Steps.Add(new MacroStep
+        {
+            Type = "control.case",
+            Id = id,
+            Meta = StepMeta.New,
+            Parameters =
+            [
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps },
+            ],
+        });
+        OnPropertyChanged(nameof(BranchSummary));
+        OnPropertyChanged(nameof(JsonPreview));
+    }
+
+    /// <summary>
+    /// The ids this form has handed out, so two branches added in one visit are not given the same
+    /// name: the macro's own list of names does not hold them until the form is saved.
+    /// </summary>
+    private readonly HashSet<string> _branchIds = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Where a step written here asks for a name no step in the macro is using.</summary>
+    public Func<ISet<string>, string>? NextStepId { get; set; }
+
     /// <summary>True when this action has settings that belong on the advanced page.</summary>
     public bool HasAdvanced => AdvancedRows.Any(row => row.IsApplicable);
 
@@ -671,6 +730,11 @@ public partial class AddActionViewModel : ViewModelBase
                 return globalProblem;
             }
 
+            if (AwaitsAnUntouchedCondition)
+            {
+                return Strings.Get("Add.NeedCondition");
+            }
+
             return MissingParameters() is { Count: > 0 } missing
                 ? Strings.Format("Add.StillNeeded", string.Join(", ", missing))
                 : string.Empty;
@@ -680,9 +744,23 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>
     /// True when <see cref="ValidationMessage"/> is a problem to fix rather than the empty dialog's
     /// "pick an action first". Only a problem is worth shouting about: a line written in red as
-    /// soon as the dialog opens would report a mistake nobody has had the chance to make.
+    /// soon as the dialog opens would report a mistake nobody has had the chance to make. A
+    /// condition with nothing written in it is the same case: the page already shows the row with a
+    /// word in each box, so the line says what is still to do in the quiet colour.
     /// </summary>
-    public bool ValidationIsProblem => SelectedDefinition is not null && ValidationMessage.Length > 0;
+    public bool ValidationIsProblem => SelectedDefinition is not null
+        && ValidationMessage.Length > 0
+        && !AwaitsAnUntouchedCondition;
+
+    /// <summary>
+    /// True when the one thing missing is a condition nobody has begun. Filled in half is a
+    /// different matter and stays red: there the row itself claims to say something.
+    /// </summary>
+    private bool AwaitsAnUntouchedCondition
+        => MissingParameters().Count == 1
+            && Parameters.Any(parameter => parameter.IsMissing
+                && parameter.Definition.Kind is ActionParameterKind.Condition
+                && parameter.ConditionEditor is { HasInput: false });
 
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
@@ -1464,6 +1542,15 @@ public partial class AddActionViewModel : ViewModelBase
                 GroupIndex = block,
                 IsGroupStart = starts && current.Group.Length > 0,
             });
+
+            // 条件这一格自带一整块编辑器（"全部成立"、行、树），块头已经把"条件"说过了，
+            // 再挂一行同名的标签就是同一句话说两遍。
+            if (starts && current.Group.Length > 0
+                && current.Definition.Kind is ActionParameterKind.Condition)
+            {
+                current.HidesLabel = true;
+            }
+
             index++;
         }
     }

@@ -5,45 +5,16 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.ViewModels;
 
-/// <summary>How one line of a condition compares what is on its left with what is on its right.</summary>
-public enum ConditionCompare
-{
-    Equal,
-    NotEqual,
-    Greater,
-    Less,
-    AtLeast,
-    AtMost,
-
-    /// <summary>The value on the left is true on its own, with nothing to compare it to.</summary>
-    Holds,
-
-    /// <summary>The value on the left is false on its own.</summary>
-    Fails,
-}
-
 /// <summary>One comparison offered in a row's dropdown, and the operator it writes.</summary>
-public sealed class ConditionCompareChoice(ConditionCompare compare, string code, string labelKey)
-{
-    public ConditionCompare Compare { get; } = compare;
-
-    /// <summary>The operator as the engine reads it, or empty for "the value is true".</summary>
-    public string Code { get; } = code;
-
-    /// <summary>The message-table key of the words on screen, so a language change is picked up.</summary>
-    public string LabelKey { get; } = labelKey;
-
-    public string Label => Strings.Get(LabelKey);
-
-    /// <summary>True when this comparison needs something on the right of it.</summary>
-    public bool NeedsValue => Compare is not (ConditionCompare.Holds or ConditionCompare.Fails);
-
-    public override string ToString() => Label;
-}
+/// <remarks>
+/// The words themselves live in <see cref="Comparisons"/>, so a condition row and a switch branch
+/// are named the same thing. This type only answers the questions a row asks of the one it picked.
+/// </remarks>
 
 /// <summary>
 /// One node of a condition: either one comparison, or a group of them joined by "and" or "or".
@@ -60,9 +31,9 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         _changed = changed;
     }
 
-    /// <summary>A group of conditions joined by one operator.</summary>
-    public static ConditionNodeViewModel Group(bool any, Action changed)
-        => new(true, changed) { Any = any };
+    /// <summary>A group of conditions joined by one way of joining.</summary>
+    public static ConditionNodeViewModel Group(Join join, Action changed)
+        => new(true, changed) { Join = join };
 
     /// <summary>One comparison.</summary>
     public static ConditionNodeViewModel Row(Action changed)
@@ -78,13 +49,16 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
     /// <summary>What hangs under a group. Empty on a comparison.</summary>
     public ObservableCollection<ConditionNodeViewModel> Children { get; } = [];
 
-    /// <summary>True when the group holds if any of its conditions does rather than all of them.</summary>
-    public bool Any
+    /// <summary>
+    /// How the group holds: every line of it, any line of it, or none of them. A group of one line
+    /// reads the same all three ways, and the words on its line say which one was picked.
+    /// </summary>
+    public Join Join
     {
-        get => _any;
+        get => _join;
         set
         {
-            if (SetProperty(ref _any, value))
+            if (SetProperty(ref _join, value))
             {
                 OnPropertyChanged(nameof(OperatorIndex));
                 OnPropertyChanged(nameof(OperatorLabel));
@@ -93,23 +67,28 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         }
     }
 
-    private bool _any;
+    private Join _join;
 
-    /// <summary>0 for "all of these", 1 for "any of these", which is what a dropdown binds to.</summary>
+    /// <summary>0, 1 or 2 in the order the dropdown offers them, which is what it binds to.</summary>
     public int OperatorIndex
     {
-        get => Any ? 1 : 0;
+        get => (int)Join;
         set
         {
-            if (value >= 0)
+            if (value is >= 0 and <= 2)
             {
-                Any = value == 1;
+                Join = (Join)value;
             }
         }
     }
 
-    /// <summary>The words on a group's own line: "all of these" or "any of these".</summary>
-    public string OperatorLabel => Strings.Get(Any ? "Condition.Any" : "Condition.All");
+    /// <summary>The words on a group's own line: all of these, any of these, none of these.</summary>
+    public string OperatorLabel => Strings.Get(Join switch
+    {
+        Join.Any => "Condition.Any",
+        Join.None => "Condition.None",
+        _ => "Condition.All",
+    });
 
     /// <summary>What the left of a comparison is: a variable, an expression or a literal.</summary>
     public string Left
@@ -160,6 +139,16 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
 
     /// <summary>True when this comparison needs a right-hand side, so the box for it is drawn.</summary>
     public bool NeedsValue => Compare is not (ConditionCompare.Holds or ConditionCompare.Fails);
+
+    /// <summary>
+    /// Which side of the row was last typed in. The two buttons at the end of a row fill one cell
+    /// and the row has two, so the one they fill is the one the caret was just in; a row nobody has
+    /// typed in yet fills its left, which is the side a comparison starts from.
+    /// </summary>
+    public bool ActiveRight { get; set; }
+
+    /// <summary>The side the row buttons fill, which is the left one when there is no right to fill.</summary>
+    public bool FillsRight => ActiveRight && NeedsValue;
 
     /// <summary>The comparison as the dropdown shows it.</summary>
     public ConditionCompareChoice Choice
@@ -216,29 +205,75 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     private readonly Action _changed;
     private bool _writing;
 
-    public ConditionEditorViewModel(string? text, Action changed, IReadOnlyList<string>? suggestions = null)
+    public ConditionEditorViewModel(string? text, Action changed, IReadOnlyList<string>? suggestions = null,
+        IReadOnlyList<VariableChoice>? variables = null)
     {
         _changed = changed;
         Suggestions = suggestions ?? [];
-        Root = ConditionNodeViewModel.Group(any: false, Changed);
+        Variables = variables ?? [];
+        Root = ConditionNodeViewModel.Group(Join.All, Changed);
         Read(text ?? string.Empty);
+
+        // A condition with nothing in it opens as one empty comparison rather than as no rows at
+        // all: three boxes with a word in each say what a condition is made of, while an empty
+        // space under a heading leaves a person to guess. The row is empty, so what the step holds
+        // is still the empty text it started with.
+        if (!IsRaw && Rows.Count == 0)
+        {
+            _writing = true;
+            try
+            {
+                AddRow();
+            }
+            finally
+            {
+                _writing = false;
+            }
+        }
     }
 
     /// <summary>Names and functions offered while a side of a comparison is typed in.</summary>
     public IReadOnlyList<string> Suggestions { get; }
 
+    /// <summary>
+    /// The variables the cell beside a comparison may name. A condition is written as an expression,
+    /// so the picker a value field opens is the one that belongs here too: a name should never have
+    /// to be typed out of memory in a place that is already about reading names.
+    /// </summary>
+    public IReadOnlyList<VariableChoice> Variables { get; }
+
+    /// <summary>What the left of an empty comparison says it wants, by example.</summary>
+    public string LeftPlaceholder => Strings.Get("Condition.LeftPlaceholder");
+
+    /// <summary>What the right of an empty comparison says it wants, by example.</summary>
+    public string RightPlaceholder => Strings.Get("Condition.RightPlaceholder");
+
+    /// <summary>
+    /// True once anything has been written into the condition. A brand new block has a row waiting
+    /// and nothing in it, which is a step somebody has not got to yet rather than a mistake; a row
+    /// half filled in is.
+    /// </summary>
+    public bool HasInput => IsRaw
+        ? RawText.Trim().Length > 0
+        : Root.Children.Any(AnyInput);
+
+    private static bool AnyInput(ConditionNodeViewModel node)
+        => node.IsGroup
+            ? node.Children.Any(AnyInput)
+            : node.Left.Trim().Length > 0 || node.Right.Trim().Length > 0;
+
     /// <summary>The whole condition as one tree, so the group's own line is the tree's first row.</summary>
     public IReadOnlyList<ConditionNodeViewModel> TreeRoots => [Root];
 
-    /// <summary>0 for "all of these", 1 for "any of these", which is what the dropdown binds to.</summary>
+    /// <summary>The whole condition's way of joining, which is what the dropdown binds to.</summary>
     public int OperatorIndex
     {
-        get => Root.Any ? 1 : 0;
+        get => Root.OperatorIndex;
         set
         {
-            if (Root.Any != (value == 1))
+            if (Root.OperatorIndex != value)
             {
-                Root.Any = value == 1;
+                Root.OperatorIndex = value;
                 OnPropertyChanged();
             }
         }
@@ -313,7 +348,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     /// <summary>The model read back as the neutral shape the writer takes.</summary>
     private static ConditionShape ShapeOf(ConditionNodeViewModel node)
         => node.IsGroup
-            ? new ConditionShape.Group(node.Any, [.. node.Children.Select(ShapeOf)])
+            ? new ConditionShape.Group(node.Join, [.. node.Children.Select(ShapeOf)])
             : new ConditionShape.Row(node.Left, node.Compare, node.Right);
 
     /// <summary>True when the condition has nothing in it yet.</summary>
@@ -330,7 +365,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
             if (text.Trim().Length == 0)
             {
                 IsRaw = false;
-                Root.Any = false;
+                Root.Join = Join.All;
                 return;
             }
 
@@ -341,7 +376,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
             }
 
             IsRaw = false;
-            Root.Any = shape is ConditionShape.Group { Any: true };
+            Root.Join = shape is ConditionShape.Group group ? group.Join : Join.All;
             foreach (var child in Condition.Children(shape))
             {
                 Adopt(Root, From(child));
@@ -363,7 +398,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
 
     private ConditionNodeViewModel GroupNode(ConditionShape.Group shape)
     {
-        var group = ConditionNodeViewModel.Group(shape.Any, Changed);
+        var group = ConditionNodeViewModel.Group(shape.Join, Changed);
         foreach (var child in shape.Children)
         {
             Adopt(group, From(child));
@@ -395,7 +430,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     public void AddGroup(ConditionNodeViewModel? group = null)
     {
         var target = group is { IsGroup: true } ? group : Root;
-        Adopt(target, ConditionNodeViewModel.Group(any: true, Changed));
+        Adopt(target, ConditionNodeViewModel.Group(Join.Any, Changed));
         Changed();
     }
 
@@ -424,6 +459,45 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     /// <summary>Switches the view. The condition itself does not move.</summary>
     public void Show(bool tree) => ShowTree = tree;
 
+    /// <summary>
+    /// Puts a name into one side of a row, at the caret when the box in front of it knows where that
+    /// is. The cell holds one value, so a name is inserted where the person was typing rather than
+    /// replacing what is already there: half a name followed by a variable is a common way to write one.
+    /// </summary>
+    public void InsertVariable(ConditionNodeViewModel node, bool right, string token, int? caret)
+    {
+        if (token.Length == 0)
+        {
+            return;
+        }
+
+        var text = right ? node.Right : node.Left;
+        var at = Math.Clamp(caret ?? text.Length, 0, text.Length);
+        var written = text[..at] + token + text[at..];
+
+        if (right)
+        {
+            node.Right = written;
+        }
+        else
+        {
+            node.Left = written;
+        }
+    }
+
+    /// <summary>Puts an expression the builder worked out into one side of a row.</summary>
+    public void WriteExpression(ConditionNodeViewModel node, bool right, string expression)
+    {
+        if (right)
+        {
+            node.Right = expression;
+        }
+        else
+        {
+            node.Left = expression;
+        }
+    }
+
     private void Adopt(ConditionNodeViewModel parent, ConditionNodeViewModel child)
     {
         child.Parent = parent;
@@ -440,6 +514,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(Nests));
+        OnPropertyChanged(nameof(HasInput));
         OnPropertyChanged(nameof(OperatorIndex));
         _changed();
     }
@@ -450,6 +525,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(Nests));
+        OnPropertyChanged(nameof(HasInput));
         OnPropertyChanged(nameof(ShowTable));
         _changed();
     }
