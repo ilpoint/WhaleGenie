@@ -77,41 +77,6 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 
     public bool IsStep => Kind is StepRowKind.Step;
 
-    /// <summary>
-    /// The indent guides this row draws to its left: one cell per level it is nested in. Cells are
-    /// laid side by side, each 16 wide with a 1px line on its left, so stacked rows line up into a
-    /// continuous guide down a block's body and stop where the block does.
-    /// </summary>
-    public IReadOnlyList<GuideCell> Guides => _guides;
-
-    private IReadOnlyList<GuideCell> _guides = [];
-
-    /// <summary>Width of the guide strip, which is also how far left of the row it starts.</summary>
-    public double GuideWidth => Guides.Count * 16;
-
-    /// <summary>Moves the strip left so its cells land on the indents of the rows it belongs to.</summary>
-    public Thickness GuideMargin => new(-GuideWidth, 0, 0, 0);
-
-    /// <summary>True when this row sits inside a block, which is what the faint band marks.</summary>
-    public bool IsNested => Depth > 0;
-
-    /// <summary>True when this row hangs under something, so a stub joins it to the line above.</summary>
-    public bool HasElbow => Guides.Count > 0;
-
-    /// <summary>The stub that joins this row to its parent's line, one indent wide.</summary>
-    public Thickness ElbowMargin => new(-16, 0, 0, 0);
-
-    /// <summary>Sets the guides this row draws; called when the row is laid into the tree.</summary>
-    internal void Guide(int depth)
-    {
-        _guides = [.. Enumerable.Range(0, depth).Select(index => new GuideCell(index))];
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Guides)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GuideWidth)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GuideMargin)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasElbow)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ElbowMargin)));
-    }
-
     /// <summary>True on the title of one of a block's lists.</summary>
     public bool IsSection => Kind is StepRowKind.Section;
 
@@ -119,18 +84,46 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
     public bool HasProblem => Problem.Length > 0;
 
     /// <summary>
-    /// The short name this step goes by, shown on its row: it is what a result variable and a
-    /// condition call the step, so it has to be readable off the list rather than hunted for.
+    /// The guide lines this row draws to its left: one per level it is nested in. A line runs the
+    /// whole height of the row when the node it belongs to has a sibling after it, and only down to
+    /// the row's middle when that node is the last of its list — which is how a tree says "this
+    /// branch ends here" with a corner instead of a line that keeps going.
     /// </summary>
-    public string Id => Step.Id;
+    public IReadOnlyList<GuideLine> Guides => _guides;
 
-    /// <summary>True when the step has a name to show yet — steps gain one when they are added.</summary>
-    public bool HasId => IsStep && Step.Id.Length > 0;
+    private IReadOnlyList<GuideLine> _guides = [];
 
-    /// <summary>What hovering the name says: what it is for, and how to use it.</summary>
-    public string IdHint => HasId && IsStep ? Strings.Format("Editor.StepIdHint", Step.Id) : string.Empty;
+    private int _depth;
 
-    /// <summary>True on a step that runs steps of its own.</summary>
+    /// <summary>
+    /// Works out the lines this row draws. <paramref name="continues"/> says, for each level above
+    /// this one, whether the node at that level has a sibling after it; <paramref name="hasNext"/>
+    /// is the same answer for this row itself.
+    /// </summary>
+    internal void Guide(int depth, IReadOnlyList<bool> continues, bool hasNext, bool hasBox)
+    {
+        _depth = depth;
+        var lines = new List<GuideLine>(depth);
+        for (var level = 0; level < depth; level++)
+        {
+            var mine = level == depth - 1;
+            var full = mine ? hasNext : level < continues.Count && continues[level];
+            if (!mine && !full)
+            {
+                continue;
+            }
+
+            // A line sits under the chevron of the node it belongs to: that box is 12 in from the
+            // node's own left edge, and every level is 16 further out.
+            var left = ((level - depth) * 16) + 12;
+            var reach = hasBox ? 12 : 36;
+            lines.Add(new GuideLine(left, full, mine, mine ? reach - left : 0));
+        }
+
+        _guides = lines;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Guides)));
+    }
+
     public bool IsBlock => IsStep && Step.StepLists.Any();
 
     /// <summary>
@@ -224,6 +217,21 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 
     public string DisplayName => Step.DisplayName;
 
+    /// <summary>True when this row sits inside a block, which is what the faint band marks.</summary>
+    public bool IsNested => Depth > 0;
+
+    /// <summary>
+    /// The short name this step goes by, shown on its row: it is what a result variable and a
+    /// condition call the step, so it has to be readable off the list rather than hunted for.
+    /// </summary>
+    public string Id => Step.Id;
+
+    /// <summary>True when the step has a name to show yet — steps gain one when they are added.</summary>
+    public bool HasId => IsStep && Step.Id.Length > 0;
+
+    /// <summary>What hovering the name says: what it is for, and how to use it.</summary>
+    public string IdHint => HasId && IsStep ? Strings.Format("Editor.StepIdHint", Step.Id) : string.Empty;
+
     public string Detail => Step.Detail;
 
     /// <summary>True when this step has a line to say about itself at all.</summary>
@@ -275,9 +283,12 @@ public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
     public double RowOpacity => Step.RowOpacity;
 }
 
-/// <summary>One level of the indent guide: a 16-wide cell drawing a 1px line on its left edge.</summary>
-public sealed record GuideCell(int Level)
+/// <summary>
+/// One line of the indent guide: where it sits, how far down it runs, and whether it turns right
+/// at its middle to join the row it leads to.
+/// </summary>
+public sealed record GuideLine(double Left, bool Full, bool Elbow, double ElbowWidth)
 {
-    /// <summary>How wide one level is, which is also the indent step the tree uses.</summary>
-    public double Width => 16;
+    /// <summary>Where the line sits, measured from the row's own left edge — usually to the left.</summary>
+    public Thickness Margin => new(Left, 0, 0, 0);
 }

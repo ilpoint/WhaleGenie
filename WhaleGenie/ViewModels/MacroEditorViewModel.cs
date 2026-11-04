@@ -2990,7 +2990,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             Rows.Clear();
             Roots.Clear();
-            AddNodes(Steps, null, 0, Roots);
+            AddNodes(Steps, null, 0, [], Roots);
             Flatten(Roots);
             RefreshRowDetails();
         }
@@ -3067,13 +3067,15 @@ public partial class MacroEditorViewModel : ViewModelBase
         MarkDirty();
         RefreshProblems();
     }
-    private void AddNodes(IList<MacroStep> steps, StepParameter? owner, int depth, IList<StepRow> into)
+    private void AddNodes(IList<MacroStep> steps, StepParameter? owner, int depth,
+        IReadOnlyList<bool> continues, IList<StepRow> into)
     {
         for (var index = 0; index < steps.Count; index++)
         {
             var step = steps[index];
             step.EnsureDeclaredLists();
 
+            var hasNext = index < steps.Count - 1;
             var row = new StepRow
             {
                 Kind = StepRowKind.Step,
@@ -3084,7 +3086,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 Problem = _problemByStep.GetValueOrDefault(step) ?? string.Empty,
                 Folded = OnRowFolded,
             };
-            row.Guide(depth);
+            row.Guide(depth, continues, hasNext, hasBox: step.StepLists.Any());
             into.Add(row);
 
             var lists = step.StepLists.ToList();
@@ -3096,8 +3098,11 @@ public partial class MacroEditorViewModel : ViewModelBase
             // Every list a block runs gets a row of its own, one list or several: it is the body a
             // person drags into, and without it there is nothing on screen that says where the
             // block's steps begin and end.
-            foreach (var list in lists)
+            var deeper = continues.Append(hasNext).ToList();
+            for (var seat = 0; seat < lists.Count; seat++)
             {
+                var list = lists[seat];
+                var sectionNext = seat < lists.Count - 1;
                 var section = new StepRow
                 {
                     Kind = StepRowKind.Section,
@@ -3106,11 +3111,12 @@ public partial class MacroEditorViewModel : ViewModelBase
                     Depth = depth + 1,
                     Folded = OnRowFolded,
                 };
-                section.Guide(depth + 1);
+                section.Guide(depth + 1, deeper, sectionNext, hasBox: true);
                 row.Children.Add(section);
-                AddNodes(list.Steps, list, depth + 2, section.Children);
-            }
 
+                var bodyContinues = deeper.Append(sectionNext).ToList();
+                AddNodes(list.Steps, list, depth + 2, bodyContinues, section.Children);
+            }
         }
     }
 
