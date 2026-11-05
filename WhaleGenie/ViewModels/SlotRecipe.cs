@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
@@ -60,6 +61,22 @@ public abstract partial class SlotNode : ViewModelBase
     /// </summary>
     public bool ShowsRemove => CanRemove && (IsHovered || IsChosen);
 
+    /// <summary>True on the piece a check is complaining about, which draws a red edge around it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HoverHint))]
+    public partial bool HasProblem { get; set; }
+
+    /// <summary>One line saying what is wrong here, shown while the pointer rests on the piece.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HoverHint))]
+    public partial string ProblemHint { get; set; } = string.Empty;
+
+    /// <summary>What the pointer bubble says: a complaint first, then what the place is for.</summary>
+    public string HoverHint => HasProblem ? ProblemHint : PlaceHint;
+
+    /// <summary>What the place is for when nothing is wrong with it.</summary>
+    protected virtual string PlaceHint => string.Empty;
+
     /// <summary>Every piece of this shape, itself first, so one choice can clear all the others.</summary>
     public IEnumerable<SlotNode> Walk()
     {
@@ -85,6 +102,23 @@ public abstract partial class SlotNode : ViewModelBase
 public sealed class SlotSequence : SlotNode
 {
     public IReadOnlyList<SlotNode> Items { get; init; } = [];
+
+    /// <summary>What the argument written in this run is called. Empty on a run that is not an argument.</summary>
+    public string ArgumentLabel { get; set; } = string.Empty;
+
+    /// <summary>One word saying whether the argument is required or optional.</summary>
+    public string ArgumentFlag { get; set; } = string.Empty;
+
+    /// <summary>Where this argument stands in its call, counted from one.</summary>
+    public int ArgumentIndex { get; set; }
+
+    public bool ArgumentOptional { get; set; }
+
+    public bool ArgumentRequired { get; set; }
+
+    public bool HasArgumentLabel => ArgumentLabel.Length > 0;
+
+    public bool HasArgumentFlag => ArgumentFlag.Length > 0;
 
     protected override IEnumerable<SlotNode> Children => Items;
 }
@@ -170,6 +204,8 @@ public sealed class SlotEmpty : SlotNode
     /// call that already has everything it asks for, which is simply room for one more.
     /// </summary>
     public bool Required { get; init; }
+
+    protected override string PlaceHint => Hint;
 }
 
 /// <summary>
@@ -247,6 +283,7 @@ internal sealed class SlotReader
             items.Add(new SlotEmpty
             {
                 Text = argument,
+                Hint = argument,
                 Start = from,
                 Length = 0,
                 Required = true,
@@ -463,6 +500,24 @@ internal sealed class SlotReader
 
         _functions.TryGetValue(name, out var entry);
 
+        // The band says what each written argument is for, not only what the empty ones want. The
+        // function table is the same one the engine checks the call with, so the two cannot disagree.
+        for (var index = 0; index < arguments.Count; index++)
+        {
+            var argument = arguments[index];
+            argument.ArgumentIndex = index + 1;
+            argument.ArgumentLabel = entry is not null && index < entry.Parameters.Count
+                ? ArgumentName(name, index)
+                : Strings.Format("ValuePicker.Arg.Ordinal", index + 1);
+            argument.ArgumentRequired = entry is not null && index < entry.MinArguments;
+            argument.ArgumentOptional = entry is not null && index >= entry.MinArguments;
+            argument.ArgumentFlag = entry is null
+                ? string.Empty
+                : argument.ArgumentRequired
+                    ? Strings.Get("ValuePicker.Arg.Required")
+                    : Strings.Get("ValuePicker.Arg.Optional");
+        }
+
         var ghost = entry is not null && arguments.Count >= entry.MaxArguments
             ? null
             : new SlotEmpty
@@ -551,4 +606,74 @@ internal sealed class SlotReader
 
     private string ToneOf(string name)
         => _functions.TryGetValue(name, out var entry) ? entry.Group : "other";
+}
+
+/// <summary>
+/// Points a complaint at the piece that caused it. The engine says what went wrong but not where a
+/// character stands, so the band matches the offending name against its own pieces and checks the
+/// arguments against the same function table the language uses. Nothing here writes the formula.
+/// </summary>
+internal static class SlotDiagnostics
+{
+    public static void Mark(SlotNode? recipe, ExpressionException? error,
+        IReadOnlyDictionary<string, ExpressionFunction> table)
+    {
+        if (recipe is null)
+        {
+            return;
+        }
+
+        foreach (var piece in recipe.Walk())
+        {
+            piece.HasProblem = false;
+            piece.ProblemHint = string.Empty;
+        }
+
+        if (error is not null)
+        {
+            var described = ExpressionText.Describe(error);
+            if (error.Code is ExpressionErrorCode.UnknownFunction or ExpressionErrorCode.ArgumentCount)
+            {
+                var calls = recipe.Walk().OfType<SlotCall>().ToList();
+                var named = calls.FirstOrDefault(call =>
+                    error.Detail.Equals(call.Name, StringComparison.OrdinalIgnoreCase)
+                    || error.Detail.StartsWith(call.Name + "(", StringComparison.OrdinalIgnoreCase));
+                Problem(named ?? calls.LastOrDefault() ?? (SlotNode)recipe, described);
+            }
+            else
+            {
+                Problem(recipe, described);
+            }
+        }
+
+        foreach (var call in recipe.Walk().OfType<SlotCall>())
+        {
+            if (!table.TryGetValue(call.Name, out var entry))
+            {
+                continue;
+            }
+
+            if (call.Arguments.Count < entry.MinArguments)
+            {
+                var place = call.Ghost
+                    ?? call.Arguments.LastOrDefault()?.Items.OfType<SlotEmpty>().FirstOrDefault();
+                if (place is not null)
+                {
+                    Problem(place, Strings.Get("ValuePicker.Problem.MissingArgument"));
+                }
+            }
+
+            if (entry.MaxArguments < call.Arguments.Count)
+            {
+                Problem(call.Arguments[entry.MaxArguments],
+                    Strings.Get("ValuePicker.Problem.ExtraArgument"));
+            }
+        }
+    }
+
+    private static void Problem(SlotNode piece, string hint)
+    {
+        piece.HasProblem = true;
+        piece.ProblemHint = hint;
+    }
 }

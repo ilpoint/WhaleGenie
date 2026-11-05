@@ -60,10 +60,12 @@
         -->
         <DataTemplate DataType="vm:SlotCall" x:DataType="vm:SlotCall">
             <Border Classes="SlotToken SlotCall" Tapped="OnSlotTapped"
+                    ToolTip.Tip="{Binding HoverHint}"
                     Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
                     BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
                 <Panel>
                     <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
+                    <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
                     <Border Classes="HoverWash" />
                     <WrapPanel Orientation="Horizontal">
                         <TextBlock Classes="SlotName" Text="{Binding Name}" VerticalAlignment="Center"
@@ -92,25 +94,35 @@
 
         <!-- 符号：一枚小片，点得中、换得掉、删得掉。 -->
         <DataTemplate DataType="vm:SlotOperator" x:DataType="vm:SlotOperator">
-            <Border Classes="SlotToken SlotOperator" Classes.chosen="{Binding IsChosen}" Tapped="OnSlotTapped">
-                <TextBlock Text="{Binding Text}" FontSize="14" />
+            <Border Classes="SlotToken SlotOperator" Classes.chosen="{Binding IsChosen}"
+                    Tapped="OnSlotTapped" ToolTip.Tip="{Binding HoverHint}">
+                <Panel>
+                    <TextBlock Text="{Binding Text}" FontSize="14" />
+                    <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
+                </Panel>
             </Border>
         </DataTemplate>
 
         <!-- 括号：本身就是一块，单独可删可拖。 -->
         <DataTemplate DataType="vm:SlotBracket" x:DataType="vm:SlotBracket">
-            <Border Classes="SlotToken SlotBracket" Classes.chosen="{Binding IsChosen}" Tapped="OnSlotTapped">
-                <TextBlock Classes="SlotSign" Text="{Binding Text}" />
+            <Border Classes="SlotToken SlotBracket" Classes.chosen="{Binding IsChosen}"
+                    Tapped="OnSlotTapped" ToolTip.Tip="{Binding HoverHint}">
+                <Panel>
+                    <TextBlock Classes="SlotSign" Text="{Binding Text}" />
+                    <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
+                </Panel>
             </Border>
         </DataTemplate>
 
         <!-- 值：名字、数字、一段文字，各按各的族上色。 -->
         <DataTemplate DataType="vm:SlotValue" x:DataType="vm:SlotValue">
             <Border Classes="SlotToken SlotValue" Tapped="OnSlotTapped"
+                    ToolTip.Tip="{Binding HoverHint}"
                     Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
                     BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
                 <Panel>
                     <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
+                    <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
                     <Border Classes="HoverWash" />
                     <TextBlock Text="{Binding Text}" FontSize="14" FontFamily="{DynamicResource UiCodeFont}"
                                VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
@@ -122,7 +134,7 @@
         <DataTemplate DataType="vm:SlotEmpty" x:DataType="vm:SlotEmpty">
             <Panel Classes="SlotEmpty" Classes.chosen="{Binding IsChosen}"
                    Classes.ghost="{Binding IsGhost}"
-                   Tapped="OnSlotTapped" Background="Transparent" ToolTip.Tip="{Binding Hint}">
+                   Tapped="OnSlotTapped" Background="Transparent" ToolTip.Tip="{Binding HoverHint}">
                 <Rectangle Classes="SlotHole" Classes.ghost="{Binding IsGhost}"
                            Classes.required="{Binding Required}"
                            Margin="1" StrokeThickness="1"
@@ -130,6 +142,7 @@
                 <TextBlock Text="{Binding Text}" Margin="8,3" VerticalAlignment="Center"
                            FontSize="11" FontStyle="Italic"
                            Foreground="{DynamicResource TextTertiary}" />
+                <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
             </Panel>
         </DataTemplate>
     </Window.DataTemplates>
@@ -430,6 +443,17 @@
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Margin" Value="-7,-3,-7,-3" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
+        <!-- 有问题的那一块：红边是覆盖层，不占布局，也不会把块撑大或挤动旁边的块。 -->
+        <Style Selector="Border.SlotProblemEdge">
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="-6,-2,-6,-2" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
             <Setter Property="IsHitTestVisible" Value="False" />
         </Style>
         <Style Selector="Border.SlotOperator">
@@ -798,15 +822,20 @@
         </Border>
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-            <TextBlock VerticalAlignment="Center" FontSize="11.5" TextWrapping="Wrap" MaxLines="2"
-                       TextTrimming="CharacterEllipsis"
-                       Foreground="{DynamicResource TextTertiary}"
-                       Text="{Binding [ValuePicker.Hint], Source={x:Static loc:Strings.Current}}" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock FontSize="11.5" TextWrapping="Wrap" MaxLines="2"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextTertiary}"
+                           Text="{Binding [ValuePicker.Hint], Source={x:Static loc:Strings.Current}}" />
+                <!-- 确认是灰的时候，就地说明原因，不必到底部那一行去找。 -->
+                <TextBlock Classes="Note problem" FontSize="11" TextWrapping="Wrap"
+                           Text="{Binding BlockReason}" IsVisible="{Binding HasBlockReason}" />
+            </StackPanel>
             <Button Grid.Column="1" Classes="Secondary" Height="34" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Click="OnCancel" />
             <Button Grid.Column="2" Classes="Primary" Height="34" MinWidth="96"
-                    IsEnabled="{Binding CanConfirm}"
+                    IsEnabled="{Binding CanConfirm}" ToolTip.Tip="{Binding BlockReason}"
                     Content="{Binding [ValuePicker.InsertButton], Source={x:Static loc:Strings.Current}}"
                     Click="OnInsert" />
         </Grid>

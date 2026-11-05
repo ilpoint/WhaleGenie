@@ -202,6 +202,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public bool CanConfirm => NamesOnly ? Wall.Looking is not null : _reads;
 
+    /// <summary>One short line next to the confirm button saying why it is grey.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBlockReason))]
+    public partial string BlockReason { get; set; } = string.Empty;
+
+    public bool HasBlockReason => BlockReason.Length > 0;
+
     private readonly Stack<string> _before = new();
     private readonly Stack<string> _after = new();
     private string? _last;
@@ -1027,6 +1034,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         var written = Text.Trim();
+        ExpressionException? problem = null;
         if (written.Length == 0)
         {
             _reads = false;
@@ -1047,6 +1055,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         {
             _reads = false;
             NoteIsProblem = true;
+            problem = error;
             Note = error is null
                 ? Strings.Get("ExprBuilder.CannotRead")
                 : ExpressionText.Describe(error);
@@ -1054,6 +1063,10 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         RebuildRecipe();
+        SlotDiagnostics.Mark(Recipe, problem, _table);
+        BlockReason = written.Length == 0
+            ? Strings.Get("ValuePicker.Confirm.Empty")
+            : _reads ? string.Empty : Strings.Get("ValuePicker.Confirm.Unreadable");
 
         OnPropertyChanged(nameof(Reads));
         OnPropertyChanged(nameof(CanConfirm));
