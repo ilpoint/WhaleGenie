@@ -448,8 +448,59 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         public int Length => End - Start;
     }
 
-    /// <summary>What a drop would do, which is everything the band needs to draw the cursor.</summary>
-    public readonly record struct DropPreview(SlotNode Anchor, bool After, bool Allowed, bool NoOp);
+    /// <summary>What a drop is for: moving a piece into a seam, or putting a bracket around one.</summary>
+    public enum DropKind
+    {
+        /// <summary>Nothing would happen: the target cannot take this piece, or nothing was hit.</summary>
+        None,
+
+        /// <summary>The piece would be written into a seam before or after the anchor.</summary>
+        Insert,
+
+        /// <summary>A pair of brackets would be put around the anchor.</summary>
+        Wrap,
+    }
+
+    /// <summary>
+    /// What a drop would do, which is everything the band needs to draw the cursor. The window draws
+    /// from this and applies the same one on release, so the picture and the result cannot disagree.
+    /// </summary>
+    public readonly record struct DropPreview(
+        SlotNode Anchor, bool After, bool Allowed, bool NoOp, DropKind Kind = DropKind.Insert);
+
+    /// <summary>
+    /// Which side of a piece a pointer is on. A run of pieces reads top to bottom when it folds, so
+    /// there the vertical half says before or after; a single piece still reads left to right.
+    /// </summary>
+    public static bool AfterFor(SlotNode? target, bool rightHalf, bool lowerHalf)
+        => target is SlotSequence ? lowerHalf : rightHalf;
+
+    /// <summary>
+    /// The one place that decides what a drop means. Brackets wrap rather than move, and a wrap is
+    /// only offered where <see cref="Wrap"/> would actually take, so a ring is never drawn over a
+    /// place that would ignore the drop.
+    /// </summary>
+    public DropPreview PreviewDrop(SlotNode? piece, SlotNode? target, bool after)
+    {
+        var anchor = target ?? piece ?? Recipe!;
+
+        if (piece is SlotBracket)
+        {
+            var wraps = target is { CanRemove: true, Length: > 0 }
+                && !ReferenceEquals(target, piece);
+            return new DropPreview(anchor, false, wraps, false,
+                wraps ? DropKind.Wrap : DropKind.None);
+        }
+
+        if (!Resolve(piece, target, after, out var resolved, out var dropAfter, out _))
+        {
+            return new DropPreview(anchor, after, false, false, DropKind.None);
+        }
+
+        var seam = SeamOf(resolved, dropAfter);
+        var noOp = piece is { } moved && Inside(seam, moved);
+        return new DropPreview(resolved, dropAfter, !noOp, noOp, DropKind.Insert);
+    }
 
     /// <summary>A move worked out before anything is cut: where, what, and what goes around it.</summary>
     private readonly record struct MovePlan(SlotNode Piece, int Seam, string Raw, string Lead, string Trail);

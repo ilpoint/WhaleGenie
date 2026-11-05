@@ -118,6 +118,15 @@ public partial class ValuePickerWindow : AppWindow
     /// </summary>
     private void OnSlotTapped(object? sender, TappedEventArgs e)
     {
+        // The press on the cross already removed the piece. Letting the tap that follows also choose
+        // it would leave a stale piece as the place for the next material.
+        if (_pressedCross)
+        {
+            _pressedCross = false;
+            e.Handled = true;
+            return;
+        }
+
         // A button inside the band does its own job on the way down; the tap that lifted it must not
         // also choose the whole box it sits in — clicking the cross would otherwise leave the call
         // chosen, and the next material would replace the lot.
@@ -174,6 +183,16 @@ public partial class ValuePickerWindow : AppWindow
     private SlotNode? _hovered;
     private Point _pointer;
 
+    /// <summary>Where the one cross is drawn, in the band's own coordinates, or null when it is away.</summary>
+    private Rect? _removeRect;
+
+    /// <summary>True when this press was on the cross, so the tap that follows must not choose a piece.</summary>
+    private bool _pressedCross;
+
+    /// <summary>The piece last hovered during a drag, and the preview drawn for it.</summary>
+    private SlotNode? _dropTarget;
+    private ValuePickerViewModel.DropPreview _preview;
+
     /// <summary>
     /// Shows the cross on the one piece the pointer is on. Done here rather than with a
     /// <c>:pointerover</c> style because Avalonia raises that pseudo-class on every ancestor of what
@@ -197,7 +216,51 @@ public partial class ValuePickerWindow : AppWindow
         {
             node.IsHovered = true;
         }
+
+        PlaceRemove();
     }
+
+    /// <summary>
+    /// Puts the one cross over the piece it belongs to. The cross lives in its own layer: a cross
+    /// drawn inside a token is covered by the token's own content and by the next token along, and
+    /// <c>Panel.ZIndex</c> only orders siblings inside one panel.
+    /// </summary>
+    private void PlaceRemove()
+    {
+        var node = _hovered;
+        if (node is null || !node.ShowsRemove || ControlFor(node) is not { } control
+            || control.TranslatePoint(default, RemoveLayer) is not { } a
+            || control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height),
+                RemoveLayer) is not { } b
+            || control.TranslatePoint(default, Band) is not { } bandA
+            || control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height),
+                Band) is not { } bandB)
+        {
+            HoverRemove.IsVisible = false;
+            _removeRect = null;
+            return;
+        }
+
+        // The cross sits inside the top-right corner of its piece. Keeping it inside the band is
+        // what lets the band's own pointer handlers notice a press on it; the overlay is what keeps
+        // it above the piece's content and above every later sibling.
+        Canvas.SetLeft(HoverRemove, b.X - 18);
+        Canvas.SetTop(HoverRemove, a.Y + 1);
+        HoverRemove.DataContext = node;
+        HoverRemove.IsVisible = true;
+        _removeRect = new Rect(bandB.X - 18, bandA.Y + 1, 16, 16);
+    }
+
+    /// <summary>
+    /// The outermost visible control standing for one piece. Pre-order matters: the same
+    /// DataContext is inherited by everything inside the token, and the outer control is the box a
+    /// ring or a cross belongs around, not the text inside it.
+    /// </summary>
+    private Control? ControlFor(SlotNode node)
+        => Band.GetVisualDescendants()
+            .OfType<Control>()
+            .FirstOrDefault(one => one.IsEffectivelyVisible
+                && ReferenceEquals(one.DataContext, node));
 
     /// <summary>
     /// Works out what is under the pointer again from where it last was. The band is rebuilt from
@@ -209,6 +272,13 @@ public partial class ValuePickerWindow : AppWindow
         if (_dragging || this.TranslatePoint(_pointer, Band) is not { } at || !Band.Bounds.Contains(at))
         {
             SetHover(null);
+            return;
+        }
+
+        // The cross sits just outside its piece. Reaching for it must not hand it to the neighbour.
+        if (_removeRect is { } cross && cross.Contains(at))
+        {
+            PlaceRemove();
             return;
         }
 
@@ -234,8 +304,20 @@ public partial class ValuePickerWindow : AppWindow
             return;
         }
 
-        // A press that lands on a cross belongs to the cross: capturing the band here would take the
-        // click away from the button and start a drag of the piece it was about to delete.
+        _pressedCross = false;
+
+        // The cross is drawn in a layer that takes no input, so its press arrives here. It belongs
+        // to the piece the cross was drawn for, not to whatever token happens to sit underneath.
+        if (_removeRect is { } cross && cross.Contains(point.Position)
+            && HoverRemove.DataContext is SlotNode piece && _viewModel.RemoveArgument(piece))
+        {
+            _pressedCross = true;
+            e.Handled = true;
+            return;
+        }
+
+        // A press on a real button belongs to that button: capturing the band here would start a
+        // drag of the piece it was about to work on.
         for (var walker = e.Source as Visual;
              walker is not null && !ReferenceEquals(walker, Band);
              walker = walker.GetVisualParent())
@@ -255,10 +337,15 @@ public partial class ValuePickerWindow : AppWindow
     private void OnBandMoved(object? sender, PointerEventArgs e)
     {
         _pointer = e.GetPosition(this);
+        var point = e.GetPosition(Band);
 
         if (!_dragging)
         {
-            SetHover(TokenAt(e.GetPosition(Band)));
+            // While the pointer is on the cross, keep the piece it was drawn for.
+            if (_removeRect is not { } cross || !cross.Contains(point))
+            {
+                SetHover(TokenAt(point));
+            }
 
             if (_dragPiece is null)
             {
@@ -271,7 +358,6 @@ public partial class ValuePickerWindow : AppWindow
             return;
         }
 
-        var point = e.GetPosition(Band);
         if (!_dragging
             && Math.Abs(point.X - _dragFrom.X) < 6
             && Math.Abs(point.Y - _dragFrom.Y) < 6)
@@ -286,8 +372,8 @@ public partial class ValuePickerWindow : AppWindow
             e.Pointer.Capture(Band);
         }
 
-        ShowGhost(e);
         ShowDropCursor(e);
+        ShowGhost(e);
     }
 
     /// <summary>The small copy of what is being dragged, following the pointer.</summary>
@@ -298,57 +384,84 @@ public partial class ValuePickerWindow : AppWindow
         DragGhost.IsVisible = true;
 
         var at = e.GetPosition(DragLayer);
-        Canvas.SetLeft(DragGhost, at.X + 12);
+        var width = Math.Max(DragGhost.Bounds.Width, 60);
+        var left = at.X + 12;
+
+        // A ghost lying over the drop bar hides the very place the bar is pointing at.
+        if (DropLine.IsVisible && left < Canvas.GetLeft(DropLine) + 8
+            && left + width > Canvas.GetLeft(DropLine) - 8)
+        {
+            left = at.X - width - 12;
+        }
+
+        Canvas.SetLeft(DragGhost, Math.Max(0, left));
         Canvas.SetTop(DragGhost, at.Y + 8);
     }
 
     /// <summary>
-    /// Draws where the piece would land: a bar in the seam it would go into, and a ring around the
-    /// piece that seam belongs to. Both come from the same preview the drop itself is planned from,
-    /// so the picture and the result cannot disagree.
+    /// Draws where the piece would land, from the one preview the release will also use. The anchor
+    /// of that preview is the piece the seam belongs to; drawn on the control under the pointer it
+    /// would show a whole run or a whole call when the drop actually happens beside one token.
     /// </summary>
     private void ShowDropCursor(PointerEventArgs e)
     {
         var piece = _dragPiece;
-        var point = e.GetPosition(Band);
-        var control = ControlAt(point);
-        var node = control?.DataContext as SlotNode;
+        var control = ControlAt(e.GetPosition(Band));
+        _dropTarget = control?.DataContext as SlotNode;
+        var node = _dropTarget;
 
         if (piece is null || control is null || node is null || ReferenceEquals(node, piece))
         {
+            _preview = new ValuePickerViewModel.DropPreview(
+                node ?? piece ?? _viewModel.Recipe!, false, false, false,
+                ValuePickerViewModel.DropKind.None);
             DropLine.IsVisible = false;
             DropRing.IsVisible = false;
             return;
         }
 
-        if (piece is SlotBracket)
-        {
-            // A bracket is not moved into the line: it is put around something, so there is no seam.
-            DropLine.IsVisible = false;
-            ShowRing(control, show: true);
-            return;
-        }
+        var rightHalf = e.GetPosition(control).X > control.Bounds.Width / 2;
+        var lowerHalf = e.GetPosition(control).Y > control.Bounds.Height / 2;
+        var after = ValuePickerViewModel.AfterFor(node, rightHalf, lowerHalf);
+        _preview = _viewModel.PreviewDrop(piece, node, after);
 
-        var after = e.GetPosition(control).X > control.Bounds.Width / 2;
-        var preview = _viewModel.PreviewMove(piece, node, after);
+        var anchor = ControlFor(_preview.Anchor) ?? control;
+        ShowRing(anchor, _preview.Allowed && _preview.Kind != ValuePickerViewModel.DropKind.None);
+        ShowLine(anchor, _preview.After,
+            _preview.Allowed && !_preview.NoOp
+            && _preview.Kind == ValuePickerViewModel.DropKind.Insert);
+    }
 
-        ShowRing(control, preview.Allowed);
-        ShowLine(control, preview.After, preview.Allowed && !preview.NoOp);
+    /// <summary>The part of the band that is actually on screen, in the layer the cursor is painted in.</summary>
+    private Rect VisibleBand()
+    {
+        var origin = BandScroll.TranslatePoint(default, DragLayer) ?? default;
+        return new Rect(origin.X, origin.Y,
+            Math.Max(0, BandScroll.Viewport.Width), Math.Max(0, BandScroll.Viewport.Height));
     }
 
     private void ShowRing(Control control, bool show)
     {
-        if (!TryBounds(control, out var top, out var bottom))
+        if (!show || !TryBounds(control, out var top, out var bottom))
+        {
+            DropRing.IsVisible = false;
+            return;
+        }
+
+        var visible = VisibleBand();
+        var from = Math.Max(top.Y, visible.Top);
+        var to = Math.Min(bottom.Y, visible.Bottom);
+        if (to - from < 6)
         {
             DropRing.IsVisible = false;
             return;
         }
 
         DropRing.Width = Math.Max(0, bottom.X - top.X) + 6;
-        DropRing.Height = Math.Max(0, bottom.Y - top.Y) + 6;
+        DropRing.Height = to - from + 6;
         Canvas.SetLeft(DropRing, top.X - 3);
-        Canvas.SetTop(DropRing, top.Y - 3);
-        DropRing.IsVisible = show;
+        Canvas.SetTop(DropRing, from - 3);
+        DropRing.IsVisible = true;
     }
 
     private void ShowLine(Control control, bool after, bool show)
@@ -360,19 +473,21 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         var x = after ? bottom.X : top.X;
-        var from = Math.Max(0, top.Y);
-        var to = Math.Min(DragLayer.Bounds.Height, bottom.Y);
+        var visible = VisibleBand();
+        var from = Math.Max(top.Y, visible.Top);
+        var to = Math.Min(bottom.Y, visible.Bottom);
 
         // A seam that is nearly out of sight would be a bar pinned to the edge, saying there is a
         // place to drop where the band shows none.
-        if (to - from < 6 || x < 0 || x > DragLayer.Bounds.Width)
+        if (to - from < 6 || x < visible.Left || x > visible.Right)
         {
             DropLine.IsVisible = false;
             return;
         }
 
         DropLine.Height = to - from;
-        Canvas.SetLeft(DropLine, Math.Clamp(x - 1, 0, Math.Max(0, DragLayer.Bounds.Width - 2)));
+        Canvas.SetLeft(DropLine, Math.Clamp(x - 1, visible.Left,
+            Math.Max(visible.Left, visible.Right - 2)));
         Canvas.SetTop(DropLine, from);
         DropLine.IsVisible = true;
     }
@@ -399,29 +514,28 @@ public partial class ValuePickerWindow : AppWindow
     {
         var piece = _dragPiece;
         var dragging = _dragging;
+        var preview = _preview;
+        var target = _dropTarget;
         ResetDrag();
         e.Pointer.Capture(null);
 
-        if (!dragging || piece is null)
+        // The picture and the result come from the same preview. Looking under the pointer a second
+        // time here would let the two disagree about which piece the drop belongs to.
+        if (!dragging || piece is null || target is null || !preview.Allowed)
         {
             return;
         }
 
-        var point = e.GetPosition(Band);
-        var control = ControlAt(point);
-        if (control?.DataContext is not SlotNode target || ReferenceEquals(target, piece))
+        if (preview.Kind == ValuePickerViewModel.DropKind.Wrap)
         {
+            _viewModel.Wrap(target, piece is SlotBracket { Text: "[" } ? '[' : '(');
             return;
         }
 
-        if (piece is SlotBracket bracket)
+        if (preview.Kind == ValuePickerViewModel.DropKind.Insert)
         {
-            _viewModel.Wrap(target, bracket.Text is "[" ? '[' : '(');
-            return;
+            _viewModel.MoveOnto(piece, target, preview.After);
         }
-
-        var after = e.GetPosition(control).X > control.Bounds.Width / 2;
-        _viewModel.MoveOnto(piece, target, after);
     }
 
     /// <summary>Puts the band back the way it looks when nothing is being dragged.</summary>
@@ -429,6 +543,8 @@ public partial class ValuePickerWindow : AppWindow
     {
         _dragPiece = null;
         _dragging = false;
+        _dropTarget = null;
+        _preview = default;
         DragGhost.IsVisible = false;
         DropLine.IsVisible = false;
         DropRing.IsVisible = false;
@@ -550,18 +666,6 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         e.Handled = true;
-    }
-
-    /// <summary>
-    /// The cross on a piece takes that piece away. The empty place at the end is not restored by
-    /// anything: it was never written, so it is there again as soon as the text is read back.
-    /// </summary>
-    private void OnRemoveSlot(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: SlotNode piece } && _viewModel.RemoveArgument(piece))
-        {
-            e.Handled = true;
-        }
     }
 
     /// <summary>The plus beside the ghost writes one more empty place into the call.</summary>

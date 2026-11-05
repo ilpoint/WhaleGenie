@@ -490,4 +490,78 @@ public class ValuePickerTests
         Assert.True(same.NoOp);
         Assert.False(same.Allowed);
     }
+
+    /// <summary>
+    /// A drop into the space of a run belongs after its last piece. The cursor has to be drawn on
+    /// that piece, not on the whole run the pointer happened to land in.
+    /// </summary>
+    [Fact]
+    public void A_drop_in_a_run_points_at_its_last_piece()
+    {
+        var form = new ValuePickerViewModel("$a + $b", Variables(), namesOnly: false);
+        var root = Root(form);
+        var last = root.Items.Last(one => one.Length > 0);
+
+        var preview = form.PreviewDrop(root.Items[0], root, after: false);
+
+        Assert.Equal(ValuePickerViewModel.DropKind.Insert, preview.Kind);
+        Assert.Same(last, preview.Anchor);
+        Assert.True(preview.After);
+    }
+
+    /// <summary>
+    /// A bracket wraps rather than moves. A ring is only promised where the wrap would actually
+    /// take: an empty place has nothing to put brackets around.
+    /// </summary>
+    [Fact]
+    public void A_bracket_offers_a_wrap_only_where_one_would_take()
+    {
+        var form = new ValuePickerViewModel("concat($a) (", Variables(), namesOnly: false);
+        var root = Root(form);
+        var call = Assert.IsType<SlotCall>(root.Items.First(one => one is SlotCall));
+        var bracket = Assert.IsType<SlotBracket>(root.Items.Last(one => one is SlotBracket));
+        var value = call.Arguments[0].Items[0];
+
+        var ontoValue = form.PreviewDrop(bracket, value, after: false);
+        Assert.Equal(ValuePickerViewModel.DropKind.Wrap, ontoValue.Kind);
+        Assert.True(ontoValue.Allowed);
+        Assert.Same(value, ontoValue.Anchor);
+
+        var ontoGhost = form.PreviewDrop(bracket, call.Ghost!, after: false);
+        Assert.Equal(ValuePickerViewModel.DropKind.None, ontoGhost.Kind);
+        Assert.False(ontoGhost.Allowed);
+    }
+
+    /// <summary>A run that folds reads top to bottom; a single piece still reads left to right.</summary>
+    [Fact]
+    public void A_folded_run_reads_top_to_bottom()
+    {
+        var form = new ValuePickerViewModel("$a + $b", Variables(), namesOnly: false);
+        var root = Root(form);
+        var value = root.Items[0];
+
+        Assert.True(ValuePickerViewModel.AfterFor(root, rightHalf: false, lowerHalf: true));
+        Assert.False(ValuePickerViewModel.AfterFor(root, rightHalf: true, lowerHalf: false));
+        Assert.True(ValuePickerViewModel.AfterFor(value, rightHalf: true, lowerHalf: false));
+        Assert.False(ValuePickerViewModel.AfterFor(value, rightHalf: false, lowerHalf: true));
+    }
+
+    /// <summary>The older preview entry point still says the same thing about an ordinary move.</summary>
+    [Fact]
+    public void PreviewMove_and_PreviewDrop_agree_on_insert()
+    {
+        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), namesOnly: false);
+        var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
+        var piece = call.Arguments[1].Items[0];
+        var target = call.Arguments[0].Items[0];
+
+        var older = form.PreviewMove(piece, target, after: false);
+        var newer = form.PreviewDrop(piece, target, after: false);
+
+        Assert.Same(older.Anchor, newer.Anchor);
+        Assert.Equal(older.After, newer.After);
+        Assert.Equal(older.Allowed, newer.Allowed);
+        Assert.Equal(older.NoOp, newer.NoOp);
+        Assert.Equal(ValuePickerViewModel.DropKind.Insert, newer.Kind);
+    }
 }

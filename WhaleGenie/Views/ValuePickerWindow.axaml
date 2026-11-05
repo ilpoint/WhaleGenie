@@ -47,7 +47,8 @@
             <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource TokenEntry}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
+                        <!-- 空白也接得住指针：拖到两块之间才找得到这一段，落点光标才画得出来。 -->
+                        <WrapPanel Orientation="Horizontal" Background="Transparent" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
@@ -64,11 +65,6 @@
                 <Panel>
                     <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
                     <Border Classes="HoverWash" />
-                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot"
-                            ToolTip.Tip="{Binding [ValuePicker.Slot.Remove], Source={x:Static loc:Strings.Current}}">
-                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
-                                        Data="{x:Static vm:AppIcons.Remove}" />
-                    </Button>
                     <WrapPanel Orientation="Horizontal">
                         <TextBlock Classes="SlotName" Text="{Binding Name}" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextPrimary}" />
@@ -97,26 +93,14 @@
         <!-- 符号：一枚小片，点得中、换得掉、删得掉。 -->
         <DataTemplate DataType="vm:SlotOperator" x:DataType="vm:SlotOperator">
             <Border Classes="SlotToken SlotOperator" Classes.chosen="{Binding IsChosen}" Tapped="OnSlotTapped">
-                <Panel>
-                    <TextBlock Text="{Binding Text}" FontSize="14" />
-                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot">
-                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
-                                        Data="{x:Static vm:AppIcons.Remove}" />
-                    </Button>
-                </Panel>
+                <TextBlock Text="{Binding Text}" FontSize="14" />
             </Border>
         </DataTemplate>
 
         <!-- 括号：本身就是一块，单独可删可拖。 -->
         <DataTemplate DataType="vm:SlotBracket" x:DataType="vm:SlotBracket">
             <Border Classes="SlotToken SlotBracket" Classes.chosen="{Binding IsChosen}" Tapped="OnSlotTapped">
-                <Panel>
-                    <TextBlock Classes="SlotSign" Text="{Binding Text}" />
-                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot">
-                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
-                                        Data="{x:Static vm:AppIcons.Remove}" />
-                    </Button>
-                </Panel>
+                <TextBlock Classes="SlotSign" Text="{Binding Text}" />
             </Border>
         </DataTemplate>
 
@@ -130,10 +114,6 @@
                     <Border Classes="HoverWash" />
                     <TextBlock Text="{Binding Text}" FontSize="14" FontFamily="{DynamicResource UiCodeFont}"
                                VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
-                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot">
-                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
-                                        Data="{x:Static vm:AppIcons.Remove}" />
-                    </Button>
                 </Panel>
             </Border>
         </DataTemplate>
@@ -512,7 +492,7 @@
                     </Grid>
 
                     <!-- 插槽结构：整条公式的真身。嵌套由递归模板画，纵向放不下就滚。 -->
-                    <ScrollViewer Grid.Row="1" MinHeight="58" MaxHeight="176" Padding="0,10"
+                    <ScrollViewer Grid.Row="1" Name="BandScroll" MinHeight="58" MaxHeight="176" Padding="0,10"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   PointerExited="OnBandExited"
@@ -524,12 +504,8 @@
                                         PointerCaptureLost="OnBandCaptureLost" />
                     </ScrollViewer>
 
-                    <!-- 拖动时的示踪层：落点竖线、目标描边、跟着指针的那一小片。都不接鼠标。 -->
+                    <!-- 拖动时的示踪层：跟着指针的那一小片先画，落点竖线与目标描边压在它上面。都不接鼠标。 -->
                     <Canvas Grid.Row="1" Name="DragLayer" IsHitTestVisible="False">
-                        <Border Name="DropRing" IsVisible="False" CornerRadius="7" Opacity="0.45"
-                                BorderThickness="1" BorderBrush="{DynamicResource AccentText}" />
-                        <Border Name="DropLine" IsVisible="False" Width="2" CornerRadius="1"
-                                Background="{DynamicResource AccentText}" />
                         <Border Name="DragGhost" IsVisible="False"
                                 Background="{DynamicResource SurfaceCard}"
                                 BorderBrush="{DynamicResource AccentText}" BorderThickness="1"
@@ -537,6 +513,23 @@
                             <TextBlock Name="DragLabel" FontFamily="{DynamicResource UiCodeFont}"
                                        FontSize="11.5" Foreground="{DynamicResource TextPrimary}" />
                         </Border>
+                        <Border Name="DropRing" IsVisible="False" CornerRadius="7" Opacity="0.45"
+                                BorderThickness="1" BorderBrush="{DynamicResource AccentText}" />
+                        <Border Name="DropLine" IsVisible="False" Width="2" CornerRadius="1"
+                                Background="{DynamicResource AccentText}" />
+                    </Canvas>
+
+                    <!--
+                      删除叉单独画在最上层：放在 Token 里会被自己的内容或后画的兄弟盖住。这一层不接鼠标，
+                      点击由窗口按叉所在的矩形判定，所以带子的命中与拖拽一点没变。
+                    -->
+                    <Canvas Grid.Row="1" Name="RemoveLayer" IsHitTestVisible="False">
+                        <Button Name="HoverRemove" Classes="SlotRemove" IsVisible="False"
+                                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0"
+                                ToolTip.Tip="{Binding [ValuePicker.Slot.Remove], Source={x:Static loc:Strings.Current}}">
+                            <views:IconView Width="12" Height="12" StrokeThickness="1.7"
+                                            Data="{x:Static vm:AppIcons.Remove}" />
+                        </Button>
                     </Canvas>
 
                     <WrapPanel Grid.Row="2">
