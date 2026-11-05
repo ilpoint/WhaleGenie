@@ -40,11 +40,6 @@ public abstract partial class SlotNode : ViewModelBase
     /// </summary>
     public bool CanRemove { get; set; }
 
-    /// <summary>True on the piece the pointer last chose, which the band paints as the one being filled.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsRemove))]
-    public partial bool IsChosen { get; set; }
-
     /// <summary>
     /// True on the piece the pointer is over right now. The window keeps this rather than the band
     /// relying on <c>:pointerover</c>: that pseudo-class is raised on every ancestor of what the
@@ -56,10 +51,10 @@ public abstract partial class SlotNode : ViewModelBase
     public partial bool IsHovered { get; set; }
 
     /// <summary>
-    /// True when this piece wears a cross. A cross is only worth showing on what the pointer is on
-    /// (or what was chosen): with a cross on every piece at once the line is a thicket of them.
+    /// True when this piece wears a cross. The cross belongs to the piece under the pointer and to
+    /// nothing else: with one on every piece at once the line is a thicket of them.
     /// </summary>
-    public bool ShowsRemove => CanRemove && (IsHovered || IsChosen);
+    public bool ShowsRemove => CanRemove && IsHovered;
 
     /// <summary>True on the piece a check is complaining about, which draws a red edge around it.</summary>
     [ObservableProperty]

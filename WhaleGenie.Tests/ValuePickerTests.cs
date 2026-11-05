@@ -173,55 +173,29 @@ public class ValuePickerTests
         Assert.Equal("$a $b", form.Text);
     }
 
-    /// <summary>Filling the ghost writes the comma it stands behind and grows another one.</summary>
+    /// <summary>
+    /// A function card adds an empty call of its own. It never puts itself around a piece already
+    /// written: taking over what the person had built was the reason for removing wrapping.
+    /// </summary>
     [Fact]
-    public void Filling_the_ghost_grows_another_one()
+    public void A_function_card_does_not_take_over_a_piece()
     {
-        var form = new ValuePickerViewModel("concat($a)", Variables(), namesOnly: false);
-        var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
+        var form = new ValuePickerViewModel("$title", Variables(), namesOnly: false);
 
-        form.ChooseSlot(call.Ghost);
-        form.Place("$b");
+        form.PlaceCall("upper");
 
-        Assert.Equal("concat($a, $b)", form.Text);
-        var after = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
-        Assert.Equal(2, after.Arguments.Count);
-        Assert.NotNull(after.Ghost);
+        Assert.Equal("$title upper()", form.Text);
     }
 
-    /// <summary>With nothing chosen a piece goes on the end of the line.</summary>
+    /// <summary>A piece added to the line goes on its end, leaving what is written alone.</summary>
     [Fact]
-    public void With_nothing_chosen_a_piece_goes_on_the_end()
+    public void A_piece_goes_on_the_end_of_the_line()
     {
         var form = new ValuePickerViewModel("$a +", Variables(), namesOnly: false);
 
         form.Place("1");
 
         Assert.Equal("$a + 1", form.Text);
-    }
-
-    /// <summary>A piece chosen is taken over by what is put there — a slot is a place, not a neighbour.</summary>
-    [Fact]
-    public void A_chosen_piece_is_taken_over()
-    {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), namesOnly: false);
-
-        form.ChooseSlot(Root(form).Items[2]);
-        form.Place("$c");
-
-        Assert.Equal("$a + $c", form.Text);
-    }
-
-    /// <summary>A function dropped on a piece wraps it.</summary>
-    [Fact]
-    public void A_function_put_on_a_piece_wraps_it()
-    {
-        var form = new ValuePickerViewModel("$title", Variables(), namesOnly: false);
-
-        form.ChooseSlot(Root(form).Items[0]);
-        form.PlaceCall("upper");
-
-        Assert.Equal("upper($title)", form.Text);
     }
 
     /// <summary>Dragging one argument onto another puts it there, with the commas put right.</summary>
@@ -246,17 +220,6 @@ public class ValuePickerTests
         Assert.True(form.MoveOnto(calls[1].Arguments[0].Items[0], calls[0].Arguments[1].Items[0], false));
 
         Assert.Equal("concat($a, $c, $b) and join()", form.Text);
-    }
-
-    /// <summary>A bracket put on a piece wraps it.</summary>
-    [Fact]
-    public void A_bracket_put_on_a_piece_wraps_it()
-    {
-        var form = new ValuePickerViewModel("$a + 1", Variables(), namesOnly: false);
-
-        Assert.True(form.Wrap(Root(form).Items[0]));
-
-        Assert.Equal("($a) + 1", form.Text);
     }
 
     /// <summary>The plus writes another empty place into the call.</summary>
@@ -467,8 +430,7 @@ public class ValuePickerTests
         Assert.True(value.ShowsRemove);
 
         value.IsHovered = false;
-        value.IsChosen = true;
-        Assert.True(value.ShowsRemove);
+        Assert.False(value.ShowsRemove);
     }
 
     /// <summary>
@@ -502,34 +464,10 @@ public class ValuePickerTests
         var root = Root(form);
         var last = root.Items.Last(one => one.Length > 0);
 
-        var preview = form.PreviewDrop(root.Items[0], root, after: false);
+        var preview = form.PreviewMove(root.Items[0], root, after: false);
 
-        Assert.Equal(ValuePickerViewModel.DropKind.Insert, preview.Kind);
         Assert.Same(last, preview.Anchor);
         Assert.True(preview.After);
-    }
-
-    /// <summary>
-    /// A bracket wraps rather than moves. A ring is only promised where the wrap would actually
-    /// take: an empty place has nothing to put brackets around.
-    /// </summary>
-    [Fact]
-    public void A_bracket_offers_a_wrap_only_where_one_would_take()
-    {
-        var form = new ValuePickerViewModel("concat($a) (", Variables(), namesOnly: false);
-        var root = Root(form);
-        var call = Assert.IsType<SlotCall>(root.Items.First(one => one is SlotCall));
-        var bracket = Assert.IsType<SlotBracket>(root.Items.Last(one => one is SlotBracket));
-        var value = call.Arguments[0].Items[0];
-
-        var ontoValue = form.PreviewDrop(bracket, value, after: false);
-        Assert.Equal(ValuePickerViewModel.DropKind.Wrap, ontoValue.Kind);
-        Assert.True(ontoValue.Allowed);
-        Assert.Same(value, ontoValue.Anchor);
-
-        var ontoGhost = form.PreviewDrop(bracket, call.Ghost!, after: false);
-        Assert.Equal(ValuePickerViewModel.DropKind.None, ontoGhost.Kind);
-        Assert.False(ontoGhost.Allowed);
     }
 
     /// <summary>A run that folds reads top to bottom; a single piece still reads left to right.</summary>
@@ -544,25 +482,6 @@ public class ValuePickerTests
         Assert.False(ValuePickerViewModel.AfterFor(root, rightHalf: true, lowerHalf: false));
         Assert.True(ValuePickerViewModel.AfterFor(value, rightHalf: true, lowerHalf: false));
         Assert.False(ValuePickerViewModel.AfterFor(value, rightHalf: false, lowerHalf: true));
-    }
-
-    /// <summary>The older preview entry point still says the same thing about an ordinary move.</summary>
-    [Fact]
-    public void PreviewMove_and_PreviewDrop_agree_on_insert()
-    {
-        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), namesOnly: false);
-        var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
-        var piece = call.Arguments[1].Items[0];
-        var target = call.Arguments[0].Items[0];
-
-        var older = form.PreviewMove(piece, target, after: false);
-        var newer = form.PreviewDrop(piece, target, after: false);
-
-        Assert.Same(older.Anchor, newer.Anchor);
-        Assert.Equal(older.After, newer.After);
-        Assert.Equal(older.Allowed, newer.Allowed);
-        Assert.Equal(older.NoOp, newer.NoOp);
-        Assert.Equal(ValuePickerViewModel.DropKind.Insert, newer.Kind);
     }
 
     /// <summary>Written arguments say what they are for, not just the empty ones.</summary>

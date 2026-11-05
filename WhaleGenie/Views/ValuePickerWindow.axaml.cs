@@ -115,44 +115,6 @@ public partial class ValuePickerWindow : AppWindow
     private void Put(string token) => _viewModel.Place(token);
 
     /// <summary>
-    /// A click on the structure band points at one piece: the caret goes where that piece is written,
-    /// so whatever is chosen next from a palette lands there. An empty place is pointed at its own
-    /// start, which is where the missing thing would go; a piece already written is pointed after it.
-    /// </summary>
-    private void OnSlotTapped(object? sender, TappedEventArgs e)
-    {
-        // The press on the cross already removed the piece. Letting the tap that follows also choose
-        // it would leave a stale piece as the place for the next material.
-        if (_pressedCross)
-        {
-            _pressedCross = false;
-            e.Handled = true;
-            return;
-        }
-
-        // A button inside the band does its own job on the way down; the tap that lifted it must not
-        // also choose the whole box it sits in — clicking the cross would otherwise leave the call
-        // chosen, and the next material would replace the lot.
-        for (var walker = e.Source as Visual; walker is not null && !ReferenceEquals(walker, sender);
-             walker = walker.GetVisualParent())
-        {
-            if (walker is Button)
-            {
-                e.Handled = true;
-                return;
-            }
-        }
-
-        if (sender is not Control { DataContext: SlotNode node })
-        {
-            return;
-        }
-
-        _viewModel.ChooseSlot(node);
-        e.Handled = true;
-    }
-
-    /// <summary>
     /// Undo and redo, from anywhere in the window. Nothing else is keyed here: with no formula box
     /// there is no typing to key around.
     /// </summary>
@@ -314,9 +276,9 @@ public partial class ValuePickerWindow : AppWindow
     private void OnBandCaptureLost(object? sender, PointerCaptureLostEventArgs e) => ResetDrag();
 
     /// <summary>
-    /// Dragging a piece onto another moves it there; dragging a bracket onto a piece puts a pair of
-    /// brackets around it. Pointer input rather than a platform drag session, because this is one
-    /// window pointing at itself and a session would leave it while the ghost is still here.
+    /// Dragging a piece onto another moves it there, brackets included. Pointer input rather than a
+    /// platform drag session, because this is one window pointing at itself and a session would
+    /// leave it while the ghost is still here.
     /// </summary>
     private void OnBandPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -435,8 +397,7 @@ public partial class ValuePickerWindow : AppWindow
         if (piece is null || control is null || node is null || ReferenceEquals(node, piece))
         {
             _preview = new ValuePickerViewModel.DropPreview(
-                node ?? piece ?? _viewModel.Recipe!, false, false, false,
-                ValuePickerViewModel.DropKind.None);
+                node ?? piece ?? _viewModel.Recipe!, false, false, false);
             DropLine.IsVisible = false;
             DropRing.IsVisible = false;
             return;
@@ -445,13 +406,11 @@ public partial class ValuePickerWindow : AppWindow
         var rightHalf = e.GetPosition(control).X > control.Bounds.Width / 2;
         var lowerHalf = e.GetPosition(control).Y > control.Bounds.Height / 2;
         var after = ValuePickerViewModel.AfterFor(node, rightHalf, lowerHalf);
-        _preview = _viewModel.PreviewDrop(piece, node, after);
+        _preview = _viewModel.PreviewMove(piece, node, after);
 
         var anchor = AnchorControl(_preview.Anchor, control);
-        ShowRing(anchor, _preview.Allowed && _preview.Kind != ValuePickerViewModel.DropKind.None);
-        ShowLine(anchor, _preview.After,
-            _preview.Allowed && !_preview.NoOp
-            && _preview.Kind == ValuePickerViewModel.DropKind.Insert);
+        ShowRing(anchor, _preview.Allowed);
+        ShowLine(anchor, _preview.After, _preview.Allowed && !_preview.NoOp);
     }
 
     /// <summary>
@@ -541,26 +500,20 @@ public partial class ValuePickerWindow : AppWindow
         var dragging = _dragging;
         var preview = _preview;
         var target = _dropTarget;
+        var pressedCross = _pressedCross;
+        _pressedCross = false;
         ResetDrag();
         e.Pointer.Capture(null);
 
         // The picture and the result come from the same preview. Looking under the pointer a second
-        // time here would let the two disagree about which piece the drop belongs to.
-        if (!dragging || piece is null || target is null || !preview.Allowed)
+        // time here would let the two disagree about which piece the drop belongs to. A release that
+        // lifted a cross has already done its work on the way down.
+        if (pressedCross || !dragging || piece is null || target is null || !preview.Allowed)
         {
             return;
         }
 
-        if (preview.Kind == ValuePickerViewModel.DropKind.Wrap)
-        {
-            _viewModel.Wrap(target, piece is SlotBracket { Text: "[" } ? '[' : '(');
-            return;
-        }
-
-        if (preview.Kind == ValuePickerViewModel.DropKind.Insert)
-        {
-            _viewModel.MoveOnto(piece, target, preview.After);
-        }
+        _viewModel.MoveOnto(piece, target, preview.After);
     }
 
     /// <summary>Puts the band back the way it looks when nothing is being dragged.</summary>
@@ -613,15 +566,6 @@ public partial class ValuePickerWindow : AppWindow
     private void OnOperator(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: ExpressionOperator sign })
-        {
-            return;
-        }
-
-        // A bracket picked while a piece is chosen wraps that piece: that is the click version of
-        // dragging a bracket onto it, and it is the only way to put a pair around a whole call.
-        if (sign.Token is "(" or "["
-            && _viewModel.ChosenSlot is { IsEmpty: false } chosen
-            && _viewModel.Wrap(chosen, sign.Token[0]))
         {
             return;
         }

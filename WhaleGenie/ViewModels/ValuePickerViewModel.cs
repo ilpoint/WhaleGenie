@@ -178,28 +178,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public bool HasRecipe => Recipe is not null;
 
-    /// <summary>The piece the pointer last chose, so the band can show where the next thing goes.</summary>
-    [ObservableProperty]
-    public partial SlotNode? ChosenSlot { get; set; }
-
-    /// <summary>
-    /// Chooses one piece of the shape and lets go of the one chosen before. A click on the band is
-    /// about one place, and two places marked at once would leave the next click guessing.
-    /// </summary>
-    public void ChooseSlot(SlotNode? node)
-    {
-        if (ChosenSlot is { } previous && !ReferenceEquals(previous, node))
-        {
-            previous.IsChosen = false;
-        }
-
-        ChosenSlot = node;
-        if (node is not null)
-        {
-            node.IsChosen = true;
-        }
-    }
-
     public bool CanConfirm => NamesOnly ? Wall.Looking is not null : _reads;
 
     /// <summary>One short line next to the confirm button saying why it is grey.</summary>
@@ -459,25 +437,12 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         public int Length => End - Start;
     }
 
-    /// <summary>What a drop is for: moving a piece into a seam, or putting a bracket around one.</summary>
-    public enum DropKind
-    {
-        /// <summary>Nothing would happen: the target cannot take this piece, or nothing was hit.</summary>
-        None,
-
-        /// <summary>The piece would be written into a seam before or after the anchor.</summary>
-        Insert,
-
-        /// <summary>A pair of brackets would be put around the anchor.</summary>
-        Wrap,
-    }
-
     /// <summary>
     /// What a drop would do, which is everything the band needs to draw the cursor. The window draws
     /// from this and applies the same one on release, so the picture and the result cannot disagree.
     /// </summary>
     public readonly record struct DropPreview(
-        SlotNode Anchor, bool After, bool Allowed, bool NoOp, DropKind Kind = DropKind.Insert);
+        SlotNode Anchor, bool After, bool Allowed, bool NoOp);
 
     /// <summary>
     /// Which side of a piece a pointer is on. A run of pieces reads top to bottom when it folds, so
@@ -486,91 +451,18 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     public static bool AfterFor(SlotNode? target, bool rightHalf, bool lowerHalf)
         => target is SlotSequence or SlotCall { Stacked: true } ? lowerHalf : rightHalf;
 
-    /// <summary>
-    /// The one place that decides what a drop means. Brackets wrap rather than move, and a wrap is
-    /// only offered where <see cref="Wrap"/> would actually take, so a ring is never drawn over a
-    /// place that would ignore the drop.
-    /// </summary>
-    public DropPreview PreviewDrop(SlotNode? piece, SlotNode? target, bool after)
-    {
-        var anchor = target ?? piece ?? Recipe!;
-
-        if (piece is SlotBracket)
-        {
-            var wraps = target is { CanRemove: true, Length: > 0 }
-                && !ReferenceEquals(target, piece);
-            return new DropPreview(anchor, false, wraps, false,
-                wraps ? DropKind.Wrap : DropKind.None);
-        }
-
-        if (!Resolve(piece, target, after, out var resolved, out var dropAfter, out _))
-        {
-            return new DropPreview(anchor, after, false, false, DropKind.None);
-        }
-
-        var seam = SeamOf(resolved, dropAfter);
-        var noOp = piece is { } moved && Inside(seam, moved);
-        return new DropPreview(resolved, dropAfter, !noOp, noOp, DropKind.Insert);
-    }
-
     /// <summary>A move worked out before anything is cut: where, what, and what goes around it.</summary>
     private readonly record struct MovePlan(SlotNode Piece, int Seam, string Raw, string Lead, string Trail);
 
     /// <summary>
-    /// Puts one material where the person pointed at it. With a piece chosen, the material takes
-    /// that piece's place — a slot is a place a thing goes in, not a place a thing stands next to.
-    /// With nothing chosen it is added at the end of the line, which is where a formula being built
-    /// one piece at a time has got to.
+    /// Adds one material to the line. Where it lands is decided by the insertion caret; until that
+    /// is wired up the end of the line is the only place, which is where a formula built one piece
+    /// at a time has got to. Nothing already written is ever taken over.
     /// </summary>
-    public void Place(string token)
-    {
-        switch (ChosenSlot)
-        {
-            case { IsEmpty: false } chosen:
-                ReplaceSpan(chosen.Start, chosen.Length, token);
-                break;
-            case { } place:
-                InsertInto(place, token);
-                break;
-            default:
-                Append(token);
-                break;
-        }
-    }
+    public void Place(string token) => Append(token);
 
-    /// <summary>
-    /// Puts a function where the person pointed. Over a piece already written it wraps that piece,
-    /// which is what "转大写" on a name should mean; with nothing chosen it adds an empty call at the
-    /// end of the line.
-    /// </summary>
-    public void PlaceCall(string name)
-    {
-        switch (ChosenSlot)
-        {
-            case { IsEmpty: false } chosen:
-                var covered = Text.Substring(chosen.Start, chosen.Length);
-                ReplaceSpan(chosen.Start, chosen.Length, name + "(" + covered + ")");
-                break;
-            case { } place:
-                InsertInto(place, name + "()");
-                break;
-            default:
-                Append(name + "()");
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Puts one piece in the place another was taken out of. Two spaces that meet at the seam are
-    /// closed, and a space is added where the new piece would otherwise fuse with what stands next
-    /// to it — replacing a sign with a number is exactly that case.
-    /// </summary>
-    private void ReplaceSpan(int start, int length, string written)
-    {
-        Text = Text.Remove(start, length).Insert(start, written);
-        TrimSeam(start, written.Length);
-        JoinSeam(start, written);
-    }
+    /// <summary>Adds an empty call without putting it around anything already written.</summary>
+    public void PlaceCall(string name) => Append(name + "()");
 
     /// <summary>
     /// Puts one space where the characters now touching would be read as a single piece: two numbers
@@ -625,20 +517,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         var at = Text.TrimEnd().Length;
         var lead = at == 0 ? string.Empty : " ";
         Text = Text.Insert(at, lead + token);
-    }
-
-    /// <summary>
-    /// Puts text into an empty place. The ghost at the end of a call is not written anywhere, so the
-    /// comma it stands behind has to be written with the piece; a place that is already between two
-    /// commas has its separator and takes only the piece.
-    /// </summary>
-    private void InsertInto(SlotNode place, string token)
-    {
-        var at = Math.Clamp(place.Start, 0, Text.Length);
-        var lead = place is SlotEmpty { IsGhost: true } ghost ? ghost.Before : string.Empty;
-
-        Text = Text.Insert(at, lead + token);
-        JoinSeam(at, lead + token);
     }
 
     /// <summary>
@@ -859,50 +737,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             : seam;
 
     /// <summary>
-    /// Puts a pair of brackets around one piece, which is what dragging a bracket onto it means, or
-    /// what picking a bracket while a piece is chosen means.
-    /// </summary>
-    public bool Wrap(SlotNode? target, char open = '(')
-    {
-        if (target is not { CanRemove: true, Length: > 0 })
-        {
-            return false;
-        }
-
-        var close = open == '[' ? ']' : ')';
-        var at = target.Start;
-        Text = Text.Insert(at + target.Length, close.ToString()).Insert(at, open.ToString());
-        return true;
-    }
-
-    /// <summary>
-    /// Takes one of two spaces that now stand where a piece used to be, so swapping a sign for
-    /// another sign does not leave a gap twice as wide as the one around it.
-    /// </summary>
-    private void TrimSeam(int at, int inserted)
-    {
-        var text = Text;
-        var length = inserted;
-
-        if (length > 0 && at > 0 && at < text.Length && text[at - 1] == ' ' && text[at] == ' ')
-        {
-            text = text.Remove(at, 1);
-            length--;
-        }
-
-        if (length > 0 && at + length < text.Length
-            && text[at + length - 1] == ' ' && text[at + length] == ' ')
-        {
-            text = text.Remove(at + length, 1);
-        }
-
-        if (!ReferenceEquals(text, Text))
-        {
-            Text = text;
-        }
-    }
-
-    /// <summary>
     /// Takes a span out and tidies the seam: the comma that kept the piece apart from its neighbours
     /// goes with it, and two spaces never end up next to each other. One rule covers everything that
     /// can be removed — an argument, a sign, a bracket — because all of them are just spans.
@@ -1083,7 +917,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private void RebuildRecipe()
     {
-        ChooseSlot(null);
         Recipe = NamesOnly ? null : SlotReader.Read(Text, _table);
         RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));

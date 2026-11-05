@@ -73,12 +73,11 @@
           幽灵槽不是参数，是"还能再放一个"的位置：填了它就再长一个，空着也不算进公式。
         -->
         <DataTemplate DataType="vm:SlotCall" x:DataType="vm:SlotCall">
-            <Border Classes="SlotToken SlotCall SlotPiece" Tapped="OnSlotTapped"
+            <Border Classes="SlotToken SlotCall SlotPiece"
                     ToolTip.Tip="{Binding HoverHint}"
                     Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
                     BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
                 <Panel>
-                    <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
                     <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
                     <Border Classes="HoverWash" />
 
@@ -136,8 +135,8 @@
 
         <!-- 符号：一枚小片，点得中、换得掉、删得掉。 -->
         <DataTemplate DataType="vm:SlotOperator" x:DataType="vm:SlotOperator">
-            <Border Classes="SlotToken SlotOperator SlotPiece" Classes.chosen="{Binding IsChosen}"
-                    Tapped="OnSlotTapped" ToolTip.Tip="{Binding HoverHint}">
+            <Border Classes="SlotToken SlotOperator SlotPiece"
+                    ToolTip.Tip="{Binding HoverHint}">
                 <Panel>
                     <TextBlock Text="{Binding Text}" FontSize="14" />
                     <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
@@ -147,8 +146,8 @@
 
         <!-- 括号：本身就是一块，单独可删可拖。 -->
         <DataTemplate DataType="vm:SlotBracket" x:DataType="vm:SlotBracket">
-            <Border Classes="SlotToken SlotBracket SlotPiece" Classes.chosen="{Binding IsChosen}"
-                    Tapped="OnSlotTapped" ToolTip.Tip="{Binding HoverHint}">
+            <Border Classes="SlotToken SlotBracket SlotPiece"
+                    ToolTip.Tip="{Binding HoverHint}">
                 <Panel>
                     <TextBlock Classes="SlotSign" Text="{Binding Text}" />
                     <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
@@ -158,12 +157,11 @@
 
         <!-- 值：名字、数字、一段文字，各按各的族上色。 -->
         <DataTemplate DataType="vm:SlotValue" x:DataType="vm:SlotValue">
-            <Border Classes="SlotToken SlotValue SlotPiece" Tapped="OnSlotTapped"
+            <Border Classes="SlotToken SlotValue SlotPiece"
                     ToolTip.Tip="{Binding HoverHint}"
                     Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
                     BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
                 <Panel>
-                    <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
                     <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
                     <Border Classes="HoverWash" />
                     <TextBlock Text="{Binding Text}" FontSize="14" FontFamily="{DynamicResource UiCodeFont}"
@@ -174,9 +172,8 @@
 
         <!-- 空位：虚框。必填而空着是红虚线，末尾的幽灵槽是灰虚线、只写一个加号。 -->
         <DataTemplate DataType="vm:SlotEmpty" x:DataType="vm:SlotEmpty">
-            <Panel Classes="SlotEmpty SlotPiece" Classes.chosen="{Binding IsChosen}"
-                   Classes.ghost="{Binding IsGhost}"
-                   Tapped="OnSlotTapped" Background="Transparent" ToolTip.Tip="{Binding HoverHint}">
+            <Panel Classes="SlotEmpty SlotPiece" Classes.ghost="{Binding IsGhost}"
+                   Background="Transparent" ToolTip.Tip="{Binding HoverHint}">
                 <Rectangle Classes="SlotHole" Classes.ghost="{Binding IsGhost}"
                            Classes.required="{Binding Required}"
                            Margin="1" StrokeThickness="1"
@@ -346,10 +343,6 @@
         <Style Selector="Panel.SlotEmpty:pointerover Rectangle">
             <Setter Property="Stroke" Value="{DynamicResource AccentText}" />
         </Style>
-        <Style Selector="Panel.SlotEmpty.chosen Rectangle">
-            <Setter Property="Stroke" Value="{DynamicResource AccentText}" />
-            <Setter Property="StrokeThickness" Value="2" />
-        </Style>
         <!-- 必填而空着放在最后：它既有幽灵也有"必填"，颜色该由必填说了算。 -->
         <Style Selector="Rectangle.SlotHole.required">
             <Setter Property="Stroke" Value="{DynamicResource Danger}" />
@@ -410,9 +403,6 @@
         <Style Selector="Border.SlotBracket:pointerover">
             <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
-        <Style Selector="Border.SlotBracket.chosen">
-            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-        </Style>
 
         <!-- 撤销/恢复那样的小方按钮：没有底，指上去才有一层。 -->
         <Style Selector="Button.SlotStep">
@@ -467,10 +457,6 @@
         </Style>
 
 
-        <Style Selector="Border.chosen">
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-        </Style>
 
         <!-- 悬停只叠一层很薄的透明色：底色归函数族，悬停不该把它换成另一块面。 -->
         <Style Selector="Border.HoverWash">
@@ -506,13 +492,6 @@
             <Setter Property="Margin" Value="-1,0,2,0" />
         </Style>
         <!-- 选中的那一块：描一圈强调色。套在框上而不是改它的底色，底色仍归函数族。 -->
-        <Style Selector="Border.ChosenRing">
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-            <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Margin" Value="-7,-3,-7,-3" />
-            <Setter Property="IsHitTestVisible" Value="False" />
-        </Style>
 
         <!-- 有问题的那一块：红边是覆盖层，不占布局，也不会把块撑大或挤动旁边的块。 -->
         <Style Selector="Border.SlotProblemEdge">
@@ -539,13 +518,6 @@
         <Style Selector="Border.SlotOperator:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
             <Setter Property="Cursor" Value="Hand" />
-        </Style>
-        <Style Selector="Border.SlotOperator.chosen">
-            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-        </Style>
-        <Style Selector="Border.SlotOperator.chosen TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
         </Style>
     </Window.Styles>
 
