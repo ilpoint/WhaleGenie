@@ -1,48 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Input;
 
 namespace WhaleGenie.Views;
-
-/// <summary>
-/// Handing a piece of a formula over to whoever can take it. What travels is a short line of text —
-/// which variable, which function, or where in the tree a piece sits — because a drag goes through
-/// the platform, and the tree that reads it back is the only thing that knows what it means.
-/// </summary>
-internal static class ExpressionDrag
-{
-    /// <summary>
-    /// What a piece of a formula travels marked with, which is not the same as plain text. The
-    /// platform only takes letters, digits, dots and hyphens in a name of its own, so the mark is
-    /// written with a dot rather than the slash it is said with.
-    /// </summary>
-    internal const string MarkName = "whalegenie.expression";
-
-    private static readonly DataFormat<string> Mark = DataFormat.CreateStringApplicationFormat(MarkName);
-
-    /// <summary>
-    /// What a drag hands over: the short line saying which variable, which function or where in the
-    /// tree, and the same words as plain text as well, so a drag that ends where only text is read
-    /// still says something rather than nothing.
-    /// </summary>
-    public static DataTransfer Transfer(string payload)
-    {
-        var transfer = new DataTransfer();
-        transfer.Add(DataTransferItem.Create(Mark, payload));
-        transfer.Add(DataTransferItem.CreateText(payload));
-        return transfer;
-    }
-
-    /// <summary>Starts dragging a payload, and answers with what the drop did with it.</summary>
-    public static async Task<DragDropEffects> Start(PointerPressedEventArgs press, string payload)
-        => await DragDrop.DoDragDropAsync(press, Transfer(payload), DragDropEffects.Copy);
-
-    /// <summary>What is being dragged, as far as the thing it is over can tell.</summary>
-    public static string? Payload(IDataTransfer transfer)
-        => transfer.TryGetValue(Mark) ?? transfer.TryGetText();
-}
 
 /// <summary>
 /// One press that might turn into a drag. A press and a click are the same gesture until the
@@ -75,9 +36,9 @@ internal sealed class DragStart
     /// Carries on with a pointer that is moving: past a few pixels the press becomes a drag, which
     /// is what the platform hands to whatever is underneath.
     /// </summary>
-    public async Task Moved(PointerEventArgs e, DataTransfer? transfer = null)
+    public async Task Moved(PointerEventArgs e, DataTransfer transfer)
     {
-        if (_owner is null || _press is not { } press || _payload is not { } payload)
+        if (_owner is null || _press is not { } press)
         {
             return;
         }
@@ -101,8 +62,7 @@ internal sealed class DragStart
         // and it is a better answer to a gesture than a dialog that stops working.
         try
         {
-            await DragDrop.DoDragDropAsync(press, transfer ?? ExpressionDrag.Transfer(payload),
-                DragDropEffects.Copy);
+            await DragDrop.DoDragDropAsync(press, transfer, DragDropEffects.Copy);
         }
         catch (Exception)
         {
