@@ -74,7 +74,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             }
         };
 
-        Operators = SplitBrackets(ExpressionBuilderViewModel.BuildOperators());
+        Operators = SplitBrackets(OperatorPalette.Build());
         // A number is typed, and text has its own sign in the operator panel; what is left is the
         // three words a formula cannot be typed from memory as easily as it can be clicked.
         Values =
@@ -84,8 +84,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             new ValueToken(Strings.Get("ExprBuilder.Value.Null"), "null"),
         ];
 
-        _functions = [.. Language.Functions.Select(function => new ExpressionFunctionChoice(function))];
-        _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
         FunctionGroups = BuildGroups();
         SelectedFunctionGroup = FunctionGroups[0];
         RefreshFunctions();
