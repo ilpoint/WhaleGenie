@@ -205,9 +205,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>One short line next to the confirm button saying why it is grey.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasBlockReason))]
+    [NotifyPropertyChangedFor(nameof(BlockReasonTip))]
     public partial string BlockReason { get; set; } = string.Empty;
 
     public bool HasBlockReason => BlockReason.Length > 0;
+
+    /// <summary>Null when there is no reason, so the confirm button opens no wordless tooltip.</summary>
+    public string? BlockReasonTip => HasBlockReason ? BlockReason : null;
 
     private readonly Stack<string> _before = new();
     private readonly Stack<string> _after = new();

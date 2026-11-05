@@ -73,7 +73,7 @@
           幽灵槽不是参数，是"还能再放一个"的位置：填了它就再长一个，空着也不算进公式。
         -->
         <DataTemplate DataType="vm:SlotCall" x:DataType="vm:SlotCall">
-            <Border Classes="SlotToken SlotCall" Tapped="OnSlotTapped"
+            <Border Classes="SlotToken SlotCall SlotPiece" Tapped="OnSlotTapped"
                     ToolTip.Tip="{Binding HoverHint}"
                     Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
                     BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
@@ -136,7 +136,7 @@
 
         <!-- 符号：一枚小片，点得中、换得掉、删得掉。 -->
         <DataTemplate DataType="vm:SlotOperator" x:DataType="vm:SlotOperator">
-            <Border Classes="SlotToken SlotOperator" Classes.chosen="{Binding IsChosen}"
+            <Border Classes="SlotToken SlotOperator SlotPiece" Classes.chosen="{Binding IsChosen}"
                     Tapped="OnSlotTapped" ToolTip.Tip="{Binding HoverHint}">
                 <Panel>
                     <TextBlock Text="{Binding Text}" FontSize="14" />
@@ -147,7 +147,7 @@
 
         <!-- 括号：本身就是一块，单独可删可拖。 -->
         <DataTemplate DataType="vm:SlotBracket" x:DataType="vm:SlotBracket">
-            <Border Classes="SlotToken SlotBracket" Classes.chosen="{Binding IsChosen}"
+            <Border Classes="SlotToken SlotBracket SlotPiece" Classes.chosen="{Binding IsChosen}"
                     Tapped="OnSlotTapped" ToolTip.Tip="{Binding HoverHint}">
                 <Panel>
                     <TextBlock Classes="SlotSign" Text="{Binding Text}" />
@@ -158,7 +158,7 @@
 
         <!-- 值：名字、数字、一段文字，各按各的族上色。 -->
         <DataTemplate DataType="vm:SlotValue" x:DataType="vm:SlotValue">
-            <Border Classes="SlotToken SlotValue" Tapped="OnSlotTapped"
+            <Border Classes="SlotToken SlotValue SlotPiece" Tapped="OnSlotTapped"
                     ToolTip.Tip="{Binding HoverHint}"
                     Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
                     BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
@@ -174,7 +174,7 @@
 
         <!-- 空位：虚框。必填而空着是红虚线，末尾的幽灵槽是灰虚线、只写一个加号。 -->
         <DataTemplate DataType="vm:SlotEmpty" x:DataType="vm:SlotEmpty">
-            <Panel Classes="SlotEmpty" Classes.chosen="{Binding IsChosen}"
+            <Panel Classes="SlotEmpty SlotPiece" Classes.chosen="{Binding IsChosen}"
                    Classes.ghost="{Binding IsGhost}"
                    Tapped="OnSlotTapped" Background="Transparent" ToolTip.Tip="{Binding HoverHint}">
                 <Rectangle Classes="SlotHole" Classes.ghost="{Binding IsGhost}"
@@ -597,7 +597,7 @@
                     </ScrollViewer>
 
                     <!-- 拖动时的示踪层：跟着指针的那一小片先画，落点竖线与目标描边压在它上面。都不接鼠标。 -->
-                    <Canvas Grid.Row="1" Name="DragLayer" IsHitTestVisible="False">
+                    <Canvas Grid.Row="1" Name="DragLayer" IsHitTestVisible="False" ClipToBounds="True">
                         <Border Name="DragGhost" IsVisible="False"
                                 Background="{DynamicResource SurfaceCard}"
                                 BorderBrush="{DynamicResource AccentText}" BorderThickness="1"
@@ -615,7 +615,7 @@
                       删除叉单独画在最上层：放在 Token 里会被自己的内容或后画的兄弟盖住。这一层不接鼠标，
                       点击由窗口按叉所在的矩形判定，所以带子的命中与拖拽一点没变。
                     -->
-                    <Canvas Grid.Row="1" Name="RemoveLayer" IsHitTestVisible="False">
+                    <Canvas Grid.Row="1" Name="RemoveLayer" IsHitTestVisible="False" ClipToBounds="True">
                         <Button Name="HoverRemove" Classes="SlotRemove" IsVisible="False"
                                 HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0"
                                 ToolTip.Tip="{Binding [ValuePicker.Slot.Remove], Source={x:Static loc:Strings.Current}}">
@@ -903,7 +903,7 @@
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Click="OnCancel" />
             <Button Grid.Column="2" Classes="Primary" Height="34" MinWidth="96"
-                    IsEnabled="{Binding CanConfirm}" ToolTip.Tip="{Binding BlockReason}"
+                    IsEnabled="{Binding CanConfirm}" ToolTip.Tip="{Binding BlockReasonTip}"
                     Content="{Binding [ValuePicker.InsertButton], Source={x:Static loc:Strings.Current}}"
                     Click="OnInsert" />
         </Grid>

@@ -186,7 +186,7 @@ public partial class ValuePickerWindow : AppWindow
     private SlotNode? _hovered;
     private Point _pointer;
 
-    /// <summary>Where the one cross is drawn, in the band's own coordinates, or null when it is away.</summary>
+    /// <summary>Where the one cross is drawn, in the overlay's coordinates, or null when it is away.</summary>
     private Rect? _removeRect;
 
     /// <summary>True when this press was on the cross, so the tap that follows must not choose a piece.</summary>
@@ -234,36 +234,52 @@ public partial class ValuePickerWindow : AppWindow
         if (node is null || !node.ShowsRemove || ControlFor(node) is not { } control
             || control.TranslatePoint(default, RemoveLayer) is not { } a
             || control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height),
-                RemoveLayer) is not { } b
-            || control.TranslatePoint(default, Band) is not { } bandA
-            || control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height),
-                Band) is not { } bandB)
+                RemoveLayer) is not { } b)
         {
             HoverRemove.IsVisible = false;
             _removeRect = null;
             return;
         }
 
-        // The cross sits inside the top-right corner of its piece. Keeping it inside the band is
-        // what lets the band's own pointer handlers notice a press on it; the overlay is what keeps
-        // it above the piece's content and above every later sibling.
-        Canvas.SetLeft(HoverRemove, b.X - 18);
-        Canvas.SetTop(HoverRemove, a.Y + 1);
+        // The cross, the rectangle that notices a press on it, and the visible part of the band all
+        // live in the overlay's coordinates. Mixing these with the band's own coordinates made the
+        // cross drift away from its piece after the strip scrolled.
+        var visible = VisibleOverlay();
+        var left = Math.Clamp(b.X - 18, visible.Left, Math.Max(visible.Left, visible.Right - 16));
+        var top = Math.Clamp(a.Y + 1, visible.Top, Math.Max(visible.Top, visible.Bottom - 16));
+        Canvas.SetLeft(HoverRemove, left);
+        Canvas.SetTop(HoverRemove, top);
         HoverRemove.DataContext = node;
         HoverRemove.IsVisible = true;
-        _removeRect = new Rect(bandB.X - 18, bandA.Y + 1, 16, 16);
+        _removeRect = new Rect(left, top, 16, 16);
     }
 
     /// <summary>
-    /// The outermost visible control standing for one piece. Pre-order matters: the same
-    /// DataContext is inherited by everything inside the token, and the outer control is the box a
-    /// ring or a cross belongs around, not the text inside it.
+    /// The token control standing for one piece. DataContext alone is not enough: a ContentControl,
+    /// an ItemsControl, a WrapPanel and every ancestor of a call all inherit the same SlotNode, and
+    /// picking the first of them puts the cross on a whole container instead of the piece.
     /// </summary>
     private Control? ControlFor(SlotNode node)
         => Band.GetVisualDescendants()
             .OfType<Control>()
             .FirstOrDefault(one => one.IsEffectivelyVisible
+                && one.Classes.Contains("SlotPiece")
                 && ReferenceEquals(one.DataContext, node));
+
+    /// <summary>
+    /// The control a drop cursor belongs around. A run has no token of its own, so its last written
+    /// piece is the one the ring describes, which is what <c>Resolve</c> decided for the seam.
+    /// </summary>
+    private Control AnchorControl(SlotNode? anchor, Control fallback)
+    {
+        if (anchor is SlotSequence run)
+        {
+            var last = run.Items.LastOrDefault(one => one.Length > 0);
+            return last is not null ? ControlFor(last) ?? fallback : fallback;
+        }
+
+        return anchor is not null ? ControlFor(anchor) ?? fallback : fallback;
+    }
 
     /// <summary>
     /// Works out what is under the pointer again from where it last was. The band is rebuilt from
@@ -272,20 +288,23 @@ public partial class ValuePickerWindow : AppWindow
     /// </summary>
     private void RefreshHover()
     {
-        if (_dragging || this.TranslatePoint(_pointer, Band) is not { } at || !Band.Bounds.Contains(at))
+        if (_dragging || this.TranslatePoint(_pointer, RemoveLayer) is not { } at
+            || !VisibleOverlay().Contains(at))
         {
             SetHover(null);
             return;
         }
 
-        // The cross sits just outside its piece. Reaching for it must not hand it to the neighbour.
+        // Reaching for the cross must not hand it to the neighbour underneath.
         if (_removeRect is { } cross && cross.Contains(at))
         {
             PlaceRemove();
             return;
         }
 
-        SetHover(TokenAt(at));
+        SetHover(RemoveLayer.TranslatePoint(at, Band) is { } onBand
+            ? TokenAt(onBand)
+            : null);
     }
 
     private void OnBandExited(object? sender, PointerEventArgs e) => SetHover(null);
@@ -311,7 +330,7 @@ public partial class ValuePickerWindow : AppWindow
 
         // The cross is drawn in a layer that takes no input, so its press arrives here. It belongs
         // to the piece the cross was drawn for, not to whatever token happens to sit underneath.
-        if (_removeRect is { } cross && cross.Contains(point.Position)
+        if (_removeRect is { } cross && cross.Contains(e.GetCurrentPoint(RemoveLayer).Position)
             && HoverRemove.DataContext is SlotNode piece && _viewModel.RemoveArgument(piece))
         {
             _pressedCross = true;
@@ -345,7 +364,7 @@ public partial class ValuePickerWindow : AppWindow
         if (!_dragging)
         {
             // While the pointer is on the cross, keep the piece it was drawn for.
-            if (_removeRect is not { } cross || !cross.Contains(point))
+            if (_removeRect is not { } cross || !cross.Contains(e.GetPosition(RemoveLayer)))
             {
                 SetHover(TokenAt(point));
             }
@@ -428,17 +447,20 @@ public partial class ValuePickerWindow : AppWindow
         var after = ValuePickerViewModel.AfterFor(node, rightHalf, lowerHalf);
         _preview = _viewModel.PreviewDrop(piece, node, after);
 
-        var anchor = ControlFor(_preview.Anchor) ?? control;
+        var anchor = AnchorControl(_preview.Anchor, control);
         ShowRing(anchor, _preview.Allowed && _preview.Kind != ValuePickerViewModel.DropKind.None);
         ShowLine(anchor, _preview.After,
             _preview.Allowed && !_preview.NoOp
             && _preview.Kind == ValuePickerViewModel.DropKind.Insert);
     }
 
-    /// <summary>The part of the band that is actually on screen, in the layer the cursor is painted in.</summary>
-    private Rect VisibleBand()
+    /// <summary>
+    /// The part of the band that is actually on screen, in the coordinates shared by both overlay
+    /// layers. DragLayer and RemoveLayer sit in the same grid cell, so one rectangle serves both.
+    /// </summary>
+    private Rect VisibleOverlay()
     {
-        var origin = BandScroll.TranslatePoint(default, DragLayer) ?? default;
+        var origin = BandScroll.TranslatePoint(default, RemoveLayer) ?? default;
         return new Rect(origin.X, origin.Y,
             Math.Max(0, BandScroll.Viewport.Width), Math.Max(0, BandScroll.Viewport.Height));
     }
@@ -451,7 +473,7 @@ public partial class ValuePickerWindow : AppWindow
             return;
         }
 
-        var visible = VisibleBand();
+        var visible = VisibleOverlay();
         var from = Math.Max(top.Y, visible.Top);
         var to = Math.Min(bottom.Y, visible.Bottom);
         if (to - from < 6)
@@ -476,7 +498,7 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         var x = after ? bottom.X : top.X;
-        var visible = VisibleBand();
+        var visible = VisibleOverlay();
         var from = Math.Max(top.Y, visible.Top);
         var to = Math.Min(bottom.Y, visible.Bottom);
 

@@ -71,11 +71,17 @@ public abstract partial class SlotNode : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HoverHint))]
     public partial string ProblemHint { get; set; } = string.Empty;
 
-    /// <summary>What the pointer bubble says: a complaint first, then what the place is for.</summary>
-    public string HoverHint => HasProblem ? ProblemHint : PlaceHint;
+    /// <summary>
+    /// What the pointer bubble says: a complaint first, then what the place is for. Null when there
+    /// is nothing to say: a tooltip bound to an empty string still opens a bordered but wordless
+    /// bubble, which is worse than no bubble at all.
+    /// </summary>
+    public string? HoverHint => HasProblem
+        ? (ProblemHint.Length > 0 ? ProblemHint : null)
+        : PlaceHint;
 
     /// <summary>What the place is for when nothing is wrong with it.</summary>
-    protected virtual string PlaceHint => string.Empty;
+    protected virtual string? PlaceHint => null;
 
     /// <summary>Every piece of this shape, itself first, so one choice can clear all the others.</summary>
     public IEnumerable<SlotNode> Walk()
@@ -213,7 +219,7 @@ public sealed class SlotEmpty : SlotNode
     /// </summary>
     public bool Required { get; init; }
 
-    protected override string PlaceHint => Hint;
+    protected override string? PlaceHint => Hint.Length > 0 ? Hint : null;
 }
 
 /// <summary>
