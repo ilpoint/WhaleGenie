@@ -222,18 +222,6 @@ public class ValuePickerTests
         Assert.Equal("concat($a, $c, $b) and join()", form.Text);
     }
 
-    /// <summary>The plus writes another empty place into the call.</summary>
-    [Fact]
-    public void Adding_a_place_writes_one_more()
-    {
-        var form = new ValuePickerViewModel("concat($a)", Variables(), namesOnly: false);
-        var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
-
-        Assert.True(form.AppendArgument(call));
-
-        Assert.Equal("concat($a, )", form.Text);
-    }
-
     /// <summary>Undo goes back a step at a time, and redo returns to where it was.</summary>
     [Fact]
     public void Undo_and_redo_walk_the_line()

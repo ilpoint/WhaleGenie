@@ -98,9 +98,6 @@
                         </ItemsControl>
                         <ContentControl Content="{Binding Ghost}" VerticalAlignment="Center"
                                         ContentTemplate="{StaticResource SlotEntry}" />
-                        <Button Classes="SlotAdd" Content="＋" IsVisible="{Binding CanAddPlace}"
-                                Click="OnAddSlot"
-                                ToolTip.Tip="{Binding [ValuePicker.Slot.Append], Source={x:Static loc:Strings.Current}}" />
                         <TextBlock Classes="SlotSign" Text=")" />
                     </WrapPanel>
 
@@ -119,12 +116,7 @@
                             <StackPanel Grid.Column="1" Orientation="Vertical">
                                 <ItemsControl ItemsSource="{Binding Arguments}"
                                               ItemTemplate="{StaticResource SlotRowEntry}" />
-                                <StackPanel Orientation="Horizontal">
-                                    <ContentControl Content="{Binding Ghost}" VerticalAlignment="Center" />
-                                    <Button Classes="SlotAdd" Content="＋" IsVisible="{Binding CanAddPlace}"
-                                            Click="OnAddSlot"
-                                            ToolTip.Tip="{Binding [ValuePicker.Slot.Append], Source={x:Static loc:Strings.Current}}" />
-                                </StackPanel>
+                                <ContentControl Content="{Binding Ghost}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Grid>
                         <TextBlock Classes="SlotSign" Text=")" />
@@ -371,29 +363,7 @@
             <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
         </Style>
 
-        <!-- 手动追加：幽灵槽之外再写一个空位，想一次排好几个参数时用。 -->
-        <Style Selector="Button.SlotAdd">
-            <Setter Property="Width" Value="20" />
-            <Setter Property="Height" Value="20" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="MinWidth" Value="0" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="2,0,2,0" />
-        </Style>
-        <Style Selector="Button.SlotAdd:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
-        </Style>
-        <Style Selector="Button.SlotAdd:pointerover">
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        </Style>
-
-        <!-- 括号这块本身：一点就选中，悬停出边。 -->
+        <!-- 括号这块本身：悬停出边。 -->
         <Style Selector="Border.SlotBracket">
             <Setter Property="MinWidth" Value="26" />
             <Setter Property="Background" Value="{DynamicResource SurfaceField}" />

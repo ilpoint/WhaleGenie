@@ -823,22 +823,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         return new CutSpan(head, before.Length - tail);
     }
 
-    /// <summary>
-    /// Writes another empty place into the call. The ghost cannot become several — it is the place
-    /// that is not written — so the only way to have two places to fill at once is to write one.
-    /// </summary>
-    public bool AppendArgument(SlotCall? call)
-    {
-        if (call is not { CanAddPlace: true, Ghost: { } ghost })
-        {
-            return false;
-        }
-
-        var at = Math.Clamp(ghost.Start, 0, Text.Length);
-        Text = Text.Insert(at, ghost.Before);
-        return true;
-    }
-
     /// <summary>Hands back what the cell should hold: the line, or the one name it wanted.</summary>
     public void Confirm()
     {

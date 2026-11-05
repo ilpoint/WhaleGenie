@@ -156,12 +156,6 @@ public sealed partial class SlotCall : SlotNode
     /// <summary>True for a call written with nothing in it, which the box says in words.</summary>
     public bool HasNoArguments => Arguments.Count == 0;
 
-    /// <summary>
-    /// True when another empty place can be written in front of the ghost. With nothing written
-    /// there is nothing to put a comma after, and the ghost is already the one place to fill.
-    /// </summary>
-    public bool CanAddPlace => Ghost is not null && Arguments.Count > 0;
-
     protected override IEnumerable<SlotNode> Children => Arguments;
 }
 

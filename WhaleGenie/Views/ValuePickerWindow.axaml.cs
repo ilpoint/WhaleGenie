@@ -637,15 +637,6 @@ public partial class ValuePickerWindow : AppWindow
         e.Handled = true;
     }
 
-    /// <summary>The plus beside the ghost writes one more empty place into the call.</summary>
-    private void OnAddSlot(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: SlotCall call } && _viewModel.AppendArgument(call))
-        {
-            e.Handled = true;
-        }
-    }
-
     private void OnUndo(object? sender, RoutedEventArgs e) => _viewModel.Undo();
 
     private void OnRedo(object? sender, RoutedEventArgs e) => _viewModel.Redo();
