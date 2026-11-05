@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -77,6 +77,10 @@ public class TemplatePartTests
         ("Button", "Op", "ContentPresenter"),
         ("Button", "ExprChip", "ContentPresenter"),
         ("Button", "ChipWord", "ContentPresenter"),
+        // 插槽上的两枚小按钮：参数的叉与手动追加的加号，各自画自己的悬停。
+        ("Button", "SlotRemove", "ContentPresenter"),
+        ("Button", "SlotAdd", "ContentPresenter"),
+        ("Button", "SlotStep", "ContentPresenter"),
         ("Button", "Thumb", "ContentPresenter"),
         ("ToggleButton", "Chip", "ContentPresenter"),
         ("ToggleButton", "Chip Key", "ContentPresenter"),

@@ -272,11 +272,15 @@ public static class VariableText
     /// and the field itself in a name-only cell. A numeric literal has no dollar sign, so the two
     /// forms cannot be confused.
     /// </summary>
-    internal static bool IsNameStart(char character)
+    public static bool IsNameStart(char character)
         => char.IsLetterOrDigit(character) || character == '_';
 
-    /// <summary>Characters after the first that a variable name may hold.</summary>
-    internal static bool IsNameCharacter(char character)
+    /// <summary>
+    /// Characters after the first that a variable name may hold. Public because the same rule has to
+    /// be read wherever a name is picked out of text: the expression reader, and an editor drawing
+    /// that text as pieces.
+    /// </summary>
+    public static bool IsNameCharacter(char character)
         => char.IsLetterOrDigit(character) || character is '_' or '.';
 
     /// <summary>

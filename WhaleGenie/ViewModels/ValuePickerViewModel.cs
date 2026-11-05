@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
@@ -20,17 +22,6 @@ namespace WhaleGenie.ViewModels;
 public sealed record ValueToken(string Text, string Insert, int Back = 0);
 
 /// <summary>
-/// One line of the structure: a piece of the formula as it is nested, with the depth it sits at.
-/// The window draws them down the page with a guide per level, so the shape of a call is read by
-/// the indentation rather than by counting brackets.
-/// </summary>
-public sealed record BlockRow(string Text, string Tone, int Depth, string Note = "", bool IsHole = false)
-{
-    /// <summary>One entry for every level above this row, which is one guide line on the page.</summary>
-    public IReadOnlyList<int> Guides => Depth <= 0 ? [] : Enumerable.Range(0, Depth).ToArray();
-}
-
-/// <summary>
 /// Backs the window that fills a cell. Composing a formula needs its materials in sight at once —
 /// the signs, the names and the functions — so they stand in three panels on one page rather than
 /// behind tabs: switching pages to reach the next piece of a formula is the cost this window is
@@ -40,6 +31,14 @@ public sealed record BlockRow(string Text, string Tone, int Depth, string Note =
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
     private readonly List<ExpressionFunctionChoice> _functions;
+
+    /// <summary>
+    /// The function table keyed by the name a formula is written with, which is what the structure
+    /// band asks while it reads: whether a name is a function, which family it belongs to, and how
+    /// many places it needs.
+    /// </summary>
+    private readonly Dictionary<string, ExpressionFunction> _table;
+
     private bool _reads;
 
     public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables, bool namesOnly,
@@ -47,6 +46,12 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     {
         NamesOnly = namesOnly;
         Target = target ?? string.Empty;
+
+        // The function table is what the structure band reads a line with, so it is in hand before
+        // the line is set: setting the text is what asks the band to read it.
+        _functions = [.. Language.Functions.Select(function => new ExpressionFunctionChoice(function))];
+        _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
+
         Text = seed ?? string.Empty;
 
         // The wall keeps what a flat list cannot: the steps that read a name, and the way to one.
@@ -69,7 +74,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             }
         };
 
-        Operators = ExpressionBuilderViewModel.BuildOperators();
+        Operators = SplitBrackets(ExpressionBuilderViewModel.BuildOperators());
         // A number is typed, and text has its own sign in the operator panel; what is left is the
         // three words a formula cannot be typed from memory as easily as it can be clicked.
         Values =
@@ -80,6 +85,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         ];
 
         _functions = [.. Language.Functions.Select(function => new ExpressionFunctionChoice(function))];
+        _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
         FunctionGroups = BuildGroups();
         SelectedFunctionGroup = FunctionGroups[0];
         RefreshFunctions();
@@ -164,18 +170,204 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public bool IsFunctionsEmpty => Functions.Count == 0;
 
-    /// <summary>The formula as a tree of pieces, one row per piece, deepest last.</summary>
-    public ObservableCollection<BlockRow> Blocks { get; } = [];
-
-    public bool HasBlocks => Blocks.Count > 0;
-
-    /// <summary>The piece the next click from a palette replaces, when one is chosen.</summary>
+    /// <summary>
+    /// The formula as it is nested: a call holds the pieces written inside its brackets, and a piece
+    /// that is itself a call holds its own. The band draws this shape, so the brackets on the page and
+    /// the brackets in the formula are the same brackets.
+    /// </summary>
     [ObservableProperty]
-    public partial BlockRow? SelectedBlock { get; set; }
+    public partial SlotNode? Recipe { get; set; }
+
+    public bool HasRecipe => Recipe is not null;
+
+    /// <summary>The piece the pointer last chose, so the band can show where the next thing goes.</summary>
+    [ObservableProperty]
+    public partial SlotNode? ChosenSlot { get; set; }
+
+    /// <summary>
+    /// Chooses one piece of the shape and lets go of the one chosen before. A click on the band is
+    /// about one place, and two places marked at once would leave the next click guessing.
+    /// </summary>
+    public void ChooseSlot(SlotNode? node)
+    {
+        if (ChosenSlot is { } previous && !ReferenceEquals(previous, node))
+        {
+            previous.IsChosen = false;
+        }
+
+        ChosenSlot = node;
+        if (node is not null)
+        {
+            node.IsChosen = true;
+        }
+    }
 
     public bool CanConfirm => NamesOnly ? Wall.Looking is not null : _reads;
 
-    partial void OnTextChanged(string value) => CheckText();
+    private readonly Stack<string> _before = new();
+    private readonly Stack<string> _after = new();
+    private string? _last;
+    private bool _replaying;
+
+    public bool CanUndo => _before.Count > 0;
+
+    public bool CanRedo => _after.Count > 0;
+
+    /// <summary>
+    /// Goes back one step. Every way of changing the line — typing, a piece from the strip, a cross,
+    /// a drag — writes the text, so one place is enough to remember all of them.
+    /// </summary>
+    public void Undo()
+    {
+        if (_before.Count == 0)
+        {
+            return;
+        }
+
+        _after.Push(Text);
+        Replay(_before.Pop());
+    }
+
+    /// <summary>Goes forward again to the line undo left behind.</summary>
+    public void Redo()
+    {
+        if (_after.Count == 0)
+        {
+            return;
+        }
+
+        _before.Push(Text);
+        Replay(_after.Pop());
+    }
+
+    private void Replay(string text)
+    {
+        _replaying = true;
+        Text = text;
+        _replaying = false;
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+    }
+
+    private void Remember(string previous)
+    {
+        if (_replaying || previous == Text)
+        {
+            return;
+        }
+
+        _before.Push(previous);
+        _after.Clear();
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+    }
+
+    /// <summary>
+    /// True while the strip is asking for a number or a piece of text. Those two are the only things
+    /// a formula holds that no card can offer — a number is whatever the person needs, and a piece
+    /// of text is whatever they mean — so they are typed once, here, and never in the formula box.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsTypingValue { get; set; }
+
+    /// <summary>True when what is being typed is a number, false when it is a piece of text.</summary>
+    [ObservableProperty]
+    public partial bool IsTypingNumber { get; set; }
+
+    /// <summary>What the strip is asking for, in the reader's language.</summary>
+    [ObservableProperty]
+    public partial string TypingLabel { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string TypingText { get; set; } = string.Empty;
+
+    /// <summary>Why what is typed cannot be put in, or empty while it can.</summary>
+    [ObservableProperty]
+    public partial string TypingNote { get; set; } = string.Empty;
+
+    public bool HasTypingNote => TypingNote.Length > 0;
+
+    public bool CanInsertTyped => TypedToken() is not null;
+
+    partial void OnTypingTextChanged(string value) => RefreshTyped();
+
+    /// <summary>Opens the one-line asking row for a number or for a piece of text.</summary>
+    public void BeginTyping(bool number)
+    {
+        IsTypingNumber = number;
+        TypingLabel = Strings.Get(number ? "ValuePicker.Value.Number" : "ValuePicker.Value.Text");
+        TypingText = string.Empty;
+        IsTypingValue = true;
+        RefreshTyped();
+    }
+
+    /// <summary>Closes the asking row and forgets what was typed into it.</summary>
+    public void EndTyping()
+    {
+        IsTypingValue = false;
+        TypingText = string.Empty;
+        TypingNote = string.Empty;
+    }
+
+    /// <summary>
+    /// What the strip would put into the formula, or null while what is typed is not something the
+    /// language holds. Text goes in quoted, with the quotes and backslashes it contains escaped the
+    /// way the language reads them back.
+    /// </summary>
+    public string? TypedToken()
+    {
+        if (!IsTypingNumber)
+        {
+            return Quoted(TypingText);
+        }
+
+        var written = TypingText.Trim();
+        return written.Length > 0
+               && double.TryParse(written, NumberStyles.Any, CultureInfo.InvariantCulture, out _)
+            ? written
+            : null;
+    }
+
+    private void RefreshTyped()
+    {
+        TypingNote = IsTypingNumber && TypingText.Trim().Length > 0 && TypedToken() is null
+            ? Strings.Get("ValuePicker.Value.BadNumber")
+            : string.Empty;
+
+        OnPropertyChanged(nameof(CanInsertTyped));
+        OnPropertyChanged(nameof(HasTypingNote));
+    }
+
+    /// <summary>The text as the language reads it back: quoted, with what is inside it escaped.</summary>
+    private static string Quoted(string text)
+    {
+        var builder = new StringBuilder("\"");
+        foreach (var character in text)
+        {
+            builder.Append(character switch
+            {
+                '\\' => "\\\\",
+                '"' => "\\\"",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
+                _ => character.ToString(),
+            });
+        }
+
+        return builder.Append('"').ToString();
+    }
+
+    partial void OnTextChanged(string value)
+    {
+        if (_last is { } previous)
+        {
+            Remember(previous);
+        }
+
+        _last = value;
+        CheckText();
+    }
 
     partial void OnFunctionQueryChanged(string value) => RefreshFunctions();
 
@@ -187,6 +379,37 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         {
             Wall.Looking = null;
         }
+    }
+
+    /// <summary>
+    /// Brackets come into the band one character at a time: a pair is two pieces that can each be
+    /// chosen, swapped, dragged or taken away. The old window still offers them as a pair.
+    /// </summary>
+    private static IReadOnlyList<ExpressionOperator> SplitBrackets(IReadOnlyList<ExpressionOperator> all)
+    {
+        var split = new List<ExpressionOperator>();
+        foreach (var one in all)
+        {
+            switch (one.Insert)
+            {
+                case "()":
+                    split.Add(new ExpressionOperator("(", "(", "Expr.Op.Group"));
+                    split.Add(new ExpressionOperator(")", ")", "Expr.Op.Group"));
+                    break;
+                case "[]":
+                    split.Add(new ExpressionOperator("[", "[", "Expr.Op.List"));
+                    split.Add(new ExpressionOperator("]", "]", "Expr.Op.List"));
+                    break;
+                // 引号不再摆在符号条上：它是"一段文字"的边界，不是可以随手插一个的符号。
+                case "\"\"":
+                    break;
+                default:
+                    split.Add(one);
+                    break;
+            }
+        }
+
+        return split;
     }
 
     /// <summary>Narrows the function panel to the group and the word typed into it.</summary>
@@ -221,23 +444,506 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Puts a piece into the formula at the caret. One value is inserted where the person was
-    /// typing rather than replacing the line: a formula is built a piece at a time.
-    /// </summary>
-    public int Insert(string token, int caret, int back = 0)
+    /// <summary>One stretch of the formula, measured in the coordinates of the text it came from.</summary>
+    public readonly record struct CutSpan(int Start, int End)
     {
-        var at = Math.Clamp(caret, 0, Text.Length);
-        Text = Text[..at] + token + Text[at..];
-        return at + token.Length - back;
+        public int Length => End - Start;
     }
 
-    /// <summary>How far back the caret goes so a bracketed pair opens between its two halves.</summary>
-    public static int BackIntoTokens(string token) => token switch
+    /// <summary>What a drop would do, which is everything the band needs to draw the cursor.</summary>
+    public readonly record struct DropPreview(SlotNode Anchor, bool After, bool Allowed, bool NoOp);
+
+    /// <summary>A move worked out before anything is cut: where, what, and what goes around it.</summary>
+    private readonly record struct MovePlan(SlotNode Piece, int Seam, string Raw, string Lead, string Trail);
+
+    /// <summary>
+    /// Puts one material where the person pointed at it. With a piece chosen, the material takes
+    /// that piece's place — a slot is a place a thing goes in, not a place a thing stands next to.
+    /// With nothing chosen it is added at the end of the line, which is where a formula being built
+    /// one piece at a time has got to.
+    /// </summary>
+    public void Place(string token)
     {
-        "()" or "[]" or "\"\"" => 1,
-        _ => 0,
-    };
+        switch (ChosenSlot)
+        {
+            case { IsEmpty: false } chosen:
+                ReplaceSpan(chosen.Start, chosen.Length, token);
+                break;
+            case { } place:
+                InsertInto(place, token);
+                break;
+            default:
+                Append(token);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Puts a function where the person pointed. Over a piece already written it wraps that piece,
+    /// which is what "转大写" on a name should mean; with nothing chosen it adds an empty call at the
+    /// end of the line.
+    /// </summary>
+    public void PlaceCall(string name)
+    {
+        switch (ChosenSlot)
+        {
+            case { IsEmpty: false } chosen:
+                var covered = Text.Substring(chosen.Start, chosen.Length);
+                ReplaceSpan(chosen.Start, chosen.Length, name + "(" + covered + ")");
+                break;
+            case { } place:
+                InsertInto(place, name + "()");
+                break;
+            default:
+                Append(name + "()");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Puts one piece in the place another was taken out of. Two spaces that meet at the seam are
+    /// closed, and a space is added where the new piece would otherwise fuse with what stands next
+    /// to it — replacing a sign with a number is exactly that case.
+    /// </summary>
+    private void ReplaceSpan(int start, int length, string written)
+    {
+        Text = Text.Remove(start, length).Insert(start, written);
+        TrimSeam(start, written.Length);
+        JoinSeam(start, written);
+    }
+
+    /// <summary>
+    /// Puts one space where the characters now touching would be read as a single piece: two numbers
+    /// becoming one number, a name growing a letter, two strings running together. Everything else
+    /// — <c>-</c> in front of a number, a bracket beside a word — is left alone.
+    /// </summary>
+    private void JoinSeam(int at, string written)
+    {
+        if (written.Length == 0 || at < 0)
+        {
+            return;
+        }
+
+        var lead = at > 0 && at <= Text.Length && Glues(Text[at - 1], written[0]);
+
+        var tailAt = at + written.Length;
+        var tail = tailAt < Text.Length && Glues(written[^1], Text[tailAt]);
+
+        if (!lead && !tail)
+        {
+            return;
+        }
+
+        var text = lead ? Text.Insert(at, " ") : Text;
+        if (tail)
+        {
+            text = text.Insert(tailAt + (lead ? 1 : 0), " ");
+        }
+
+        Text = text;
+    }
+
+    /// <summary>True for the characters a name, a number or a word is made of.</summary>
+    private static bool IsWord(char character)
+        => char.IsLetterOrDigit(character) || character is '_' or '.' or '$';
+
+    /// <summary>
+    /// True when these two characters would be read as one piece if they ended up side by side.
+    /// </summary>
+    private static bool Glues(char left, char right)
+        => (IsWord(left) && IsWord(right))
+            || left is '"' or '\''
+            || right is '"' or '\''
+            || (left, right) is ('!', '=') or ('<', '=') or ('>', '=') or ('=', '=') or ('&', '&') or ('|', '|');
+
+    /// <summary>
+    /// Writes a piece at the end of the line, with one space in front of it so two pieces never run
+    /// into each other.
+    /// </summary>
+    private void Append(string token)
+    {
+        var at = Text.TrimEnd().Length;
+        var lead = at == 0 ? string.Empty : " ";
+        Text = Text.Insert(at, lead + token);
+    }
+
+    /// <summary>
+    /// Puts text into an empty place. The ghost at the end of a call is not written anywhere, so the
+    /// comma it stands behind has to be written with the piece; a place that is already between two
+    /// commas has its separator and takes only the piece.
+    /// </summary>
+    private void InsertInto(SlotNode place, string token)
+    {
+        var at = Math.Clamp(place.Start, 0, Text.Length);
+        var lead = place is SlotEmpty { IsGhost: true } ghost ? ghost.Before : string.Empty;
+
+        Text = Text.Insert(at, lead + token);
+        JoinSeam(at, lead + token);
+    }
+
+    /// <summary>
+    /// Takes one piece away, and the comma that kept it apart from its neighbour. The ghost at the
+    /// end needs no restoring: it is not stored anywhere, it is what a call always has, so it is
+    /// there again the moment the text is read back.
+    /// </summary>
+    public bool RemoveArgument(SlotNode? piece)
+    {
+        if (piece is not { CanRemove: true, Length: > 0 } target)
+        {
+            return false;
+        }
+
+        Cut(target.Start, target.Length);
+        return true;
+    }
+
+    /// <summary>
+    /// Where a piece would land if it were dropped here. The band draws one cursor from this and
+    /// applies the same thing on release, so what the person sees cannot disagree with what happens.
+    /// </summary>
+    public DropPreview PreviewMove(SlotNode? piece, SlotNode? target, bool after)
+    {
+        if (!Resolve(piece, target, after, out var anchor, out var dropAfter, out _))
+        {
+            return new DropPreview((target ?? piece ?? Recipe)!, after, Allowed: false, NoOp: false);
+        }
+
+        var seam = SeamOf(anchor, dropAfter);
+        var noOp = piece is { } moved && Inside(seam, moved);
+        return new DropPreview(anchor, dropAfter, Allowed: !noOp, noOp);
+    }
+
+    /// <summary>
+    /// Moves one piece to just before (or after) another. The piece is taken out the same way its
+    /// cross takes it out — commas and all — and written back where it was dropped, carrying the
+    /// comma that keeps it apart from its neighbour inside a call, and a space where it would
+    /// otherwise fuse with what stands next to it.
+    /// </summary>
+    public bool MoveOnto(SlotNode? piece, SlotNode? target, bool after)
+    {
+        if (!TryPlanMove(piece, target, after, out var plan))
+        {
+            return false;
+        }
+
+        var span = Cut(plan.Piece.Start, plan.Piece.Length);
+        var at = Math.Clamp(SeamAfterCut(plan.Seam, span), 0, Text.Length);
+
+        var lead = plan.Lead;
+        var trail = plan.Trail;
+        if (lead.Length == 0 && at > 0 && Glues(Text[at - 1], plan.Raw[0]))
+        {
+            lead = " ";
+        }
+
+        if (trail.Length == 0 && at < Text.Length && Glues(plan.Raw[^1], Text[at]))
+        {
+            trail = " ";
+        }
+
+        // A move never means to leave spaces hanging off either end of the line.
+        Text = Text.Insert(at, lead + plan.Raw + trail).Trim();
+        return true;
+    }
+
+    /// <summary>
+    /// Works out what a move would do without doing it: the seam, counted in the text as it stands
+    /// now, and the separators that seam asks for. Everything is measured before the cut, because
+    /// cutting can take away the very comma the seam was measured against.
+    /// </summary>
+    private bool TryPlanMove(SlotNode? piece, SlotNode? target, bool after, out MovePlan plan)
+    {
+        plan = default;
+        if (piece is not { CanRemove: true, Length: > 0 } moved
+            || !Resolve(piece, target, after, out var anchor, out var dropAfter, out var gap))
+        {
+            return false;
+        }
+
+        var raw = Text.Substring(moved.Start, moved.Length).Trim();
+        var seam = SeamOf(anchor, dropAfter);
+
+        // Dropping a piece where it already stands is not a move: it would only cut and paste the
+        // same characters back, sometimes leaving an empty argument behind.
+        if (raw.Length == 0 || Inside(seam, moved))
+        {
+            return false;
+        }
+
+        var (lead, trail) = SeparatorsFor(anchor, seam, gap);
+        plan = new MovePlan(moved, seam, raw, lead, trail);
+        return true;
+    }
+
+    /// <summary>
+    /// Decides where a drop actually goes. A run of pieces is not a thing to drop beside — the gap
+    /// between two of them belongs to the run, so dropping in that gap means the end of the run.
+    /// </summary>
+    private bool Resolve(
+        SlotNode? piece,
+        SlotNode? target,
+        bool after,
+        out SlotNode anchor,
+        out bool dropAfter,
+        out bool gap)
+    {
+        anchor = target ?? piece ?? Recipe!;
+        dropAfter = after;
+        gap = false;
+
+        if (piece is not { CanRemove: true, Length: > 0 } moved
+            || target is null
+            || ReferenceEquals(moved, target))
+        {
+            return false;
+        }
+
+        // A run is not a thing to drop beside: the gap between its pieces is the run's own space,
+        // so a drop there belongs at the end of it. Checked before the "inside the piece" test,
+        // because a run starts where its first piece does.
+        if (target is SlotSequence run)
+        {
+            if (run.Items.LastOrDefault(one => one.Length > 0) is not { } last
+                || ReferenceEquals(last, moved))
+            {
+                return false;
+            }
+
+            anchor = last;
+            dropAfter = true;
+            gap = true;
+            return true;
+        }
+
+        return target.Start < moved.Start || target.Start >= moved.Start + moved.Length;
+    }
+
+    /// <summary>
+    /// True when a seam is where this piece already stands — its own characters, or the space and
+    /// comma that keep it from its neighbour. Dropping it there would take it out and put it back a
+    /// little to the left, which is how "f(a, b, c)" used to become "f(ab, , c)".
+    /// </summary>
+    private bool Inside(int seam, SlotNode piece)
+    {
+        var start = piece.Start;
+        while (start > 0 && Text[start - 1] == ' ')
+        {
+            start--;
+        }
+
+        if (start > 0 && Text[start - 1] == ',')
+        {
+            start--;
+        }
+
+        var end = piece.Start + piece.Length;
+        while (end < Text.Length && Text[end] == ' ')
+        {
+            end++;
+        }
+
+        return seam >= start && seam <= end;
+    }
+
+    /// <summary>Where a drop lands, counted in the text as it stands before anything is cut.</summary>
+    private static int SeamOf(SlotNode anchor, bool after) => after ? anchor.Start + anchor.Length : anchor.Start;
+
+    /// <summary>
+    /// The text that has to be written around a piece at this seam: inside a call's arguments it is
+    /// the comma that keeps it apart from its neighbour — in front at the end of the list, behind it
+    /// anywhere else. In front of a ghost it is the comma the ghost was standing behind. Everywhere
+    /// else nothing, and the seam itself decides whether a space is needed.
+    /// </summary>
+    private (string Lead, string Trail) SeparatorsFor(SlotNode anchor, int seam, bool gap)
+    {
+        // Dropped into the space between pieces: it joins the end of that run, one space along.
+        if (gap)
+        {
+            return (seam > 0 ? " " : string.Empty, string.Empty);
+        }
+
+        if (anchor is SlotEmpty { IsGhost: true } ghost)
+        {
+            return (ghost.Before, string.Empty);
+        }
+
+        if (anchor is SlotEmpty)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var call = Recipe?.Walk()
+            .OfType<SlotCall>()
+            .Where(one => one.Arguments.Count > 0)
+            .OrderBy(one => one.Length)
+            .FirstOrDefault(one =>
+            {
+                var first = one.Arguments[0].Start;
+                var last = one.Ghost?.Start ?? one.Start + one.Length;
+                return seam >= first && seam <= last;
+            });
+
+        if (call is null)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var end = call.Ghost?.Start ?? call.Start + call.Length;
+        return seam >= end ? (", ", string.Empty) : (string.Empty, ", ");
+    }
+
+    /// <summary>Maps a seam measured before a cut onto the text that is left after it.</summary>
+    public static int SeamAfterCut(int seam, CutSpan span)
+        => seam >= span.End ? seam - span.Length
+            : seam > span.Start ? span.Start
+            : seam;
+
+    /// <summary>
+    /// Puts a pair of brackets around one piece, which is what dragging a bracket onto it means, or
+    /// what picking a bracket while a piece is chosen means.
+    /// </summary>
+    public bool Wrap(SlotNode? target, char open = '(')
+    {
+        if (target is not { CanRemove: true, Length: > 0 })
+        {
+            return false;
+        }
+
+        var close = open == '[' ? ']' : ')';
+        var at = target.Start;
+        Text = Text.Insert(at + target.Length, close.ToString()).Insert(at, open.ToString());
+        return true;
+    }
+
+    /// <summary>
+    /// Takes one of two spaces that now stand where a piece used to be, so swapping a sign for
+    /// another sign does not leave a gap twice as wide as the one around it.
+    /// </summary>
+    private void TrimSeam(int at, int inserted)
+    {
+        var text = Text;
+        var length = inserted;
+
+        if (length > 0 && at > 0 && at < text.Length && text[at - 1] == ' ' && text[at] == ' ')
+        {
+            text = text.Remove(at, 1);
+            length--;
+        }
+
+        if (length > 0 && at + length < text.Length
+            && text[at + length - 1] == ' ' && text[at + length] == ' ')
+        {
+            text = text.Remove(at + length, 1);
+        }
+
+        if (!ReferenceEquals(text, Text))
+        {
+            Text = text;
+        }
+    }
+
+    /// <summary>
+    /// Takes a span out and tidies the seam: the comma that kept the piece apart from its neighbours
+    /// goes with it, and two spaces never end up next to each other. One rule covers everything that
+    /// can be removed — an argument, a sign, a bracket — because all of them are just spans.
+    /// </summary>
+    private CutSpan Cut(int start, int length)
+    {
+        var original = Text;
+        var at = Math.Clamp(start, 0, Text.Length);
+        var end = Math.Clamp(at + length, at, Text.Length);
+        var text = Text.Remove(at, end - at);
+
+        var before = at - 1;
+        while (before >= 0 && text[before] == ' ')
+        {
+            before--;
+        }
+
+        var after = at;
+        while (after < text.Length && text[after] == ' ')
+        {
+            after++;
+        }
+
+        var left = before >= 0 && text[before] == ',';
+        var right = after < text.Length && (text[after] == ',' || text[after] is ')' or ']');
+
+        if (left && right)
+        {
+            // The comma in front kept it from its neighbour; that neighbour now keeps the next one.
+            var from = before;
+            while (from > 0 && text[from - 1] == ' ')
+            {
+                from--;
+            }
+
+            text = text.Remove(from, at - from);
+        }
+        else if (right && text[after] == ',')
+        {
+            var to = after + 1;
+            while (to < text.Length && text[to] == ' ')
+            {
+                to++;
+            }
+
+            text = text.Remove(at, to - at);
+        }
+        if (at > 0 && at < text.Length && text[at - 1] == ' ' && text[at] == ' ')
+        {
+            text = text.Remove(at, 1);
+        }
+
+        // Taking a sign out from between two numbers would leave one number where there were two.
+        if (at > 0 && at < text.Length && Glues(text[at - 1], text[at]))
+        {
+            text = text.Insert(at, " ");
+        }
+
+        Text = text;
+        return Difference(original, Text);
+    }
+
+    /// <summary>
+    /// The stretch of text that actually left, found by comparing what was written with what is
+    /// written now. Tidying up around a cut takes commas and spaces away on its own, so counting the
+    /// characters beforehand would put the seam in the wrong place.
+    /// </summary>
+    private static CutSpan Difference(string before, string after)
+    {
+        var head = 0;
+        var shortest = Math.Min(before.Length, after.Length);
+        while (head < shortest && before[head] == after[head])
+        {
+            head++;
+        }
+
+        var tail = 0;
+        while (tail < shortest - head
+               && before[before.Length - 1 - tail] == after[after.Length - 1 - tail])
+        {
+            tail++;
+        }
+
+        return new CutSpan(head, before.Length - tail);
+    }
+
+    /// <summary>
+    /// Writes another empty place into the call. The ghost cannot become several — it is the place
+    /// that is not written — so the only way to have two places to fill at once is to write one.
+    /// </summary>
+    public bool AppendArgument(SlotCall? call)
+    {
+        if (call is not { CanAddPlace: true, Ghost: { } ghost })
+        {
+            return false;
+        }
+
+        var at = Math.Clamp(ghost.Start, 0, Text.Length);
+        Text = Text.Insert(at, ghost.Before);
+        return true;
+    }
 
     /// <summary>Hands back what the cell should hold: the line, or the one name it wanted.</summary>
     public void Confirm()
@@ -298,7 +1004,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             Saying = string.Empty;
         }
 
-        RebuildBlocks();
+        RebuildRecipe();
 
         OnPropertyChanged(nameof(Reads));
         OnPropertyChanged(nameof(CanConfirm));
@@ -306,76 +1012,21 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Lays the formula out as rows. An unreadable formula has no shape to show, and an empty one
-    /// gets a single hole: the page says "this is where a value goes" rather than showing nothing.
+    /// Reads the line into the shape the band draws. An empty formula is one empty place rather than
+    /// nothing at all: the page says "a value goes here" instead of looking broken.
     /// </summary>
-    private void RebuildBlocks()
+    private void RebuildRecipe()
     {
-        Blocks.Clear();
-
-        if (NamesOnly)
-        {
-            return;
-        }
-
-        var written = Text.Trim();
-        if (written.Length == 0)
-        {
-            Blocks.Add(new BlockRow(Strings.Get("ValuePicker.Hole"), "other", 0, IsHole: true));
-        }
-        else if (Language.TryParse(written, out var parsed, out _))
-        {
-            AddBlock(parsed!, 0);
-        }
-
-        OnPropertyChanged(nameof(HasBlocks));
+        ChooseSlot(null);
+        Recipe = NamesOnly ? null : SlotReader.Read(Text, _table);
+        OnPropertyChanged(nameof(HasRecipe));
     }
 
-    private void AddBlock(ExpressionNode node, int depth)
+    /// <summary>A label written from the text table, read again when the language changes.</summary>
+    public override void RefreshLanguage()
     {
-        switch (node)
-        {
-            case BinaryNode binary:
-                Blocks.Add(new BlockRow(binary.Operator, "dates", depth));
-                AddBlock(binary.Left, depth + 1);
-                AddBlock(binary.Right, depth + 1);
-                break;
-            case UnaryNode unary:
-                Blocks.Add(new BlockRow(unary.Operator, "records", depth));
-                AddBlock(unary.Operand, depth + 1);
-                break;
-            case CallNode call:
-                Blocks.Add(new BlockRow(call.Name, "text", depth, Strings.Get("ValuePicker.Block.Call")));
-                foreach (var argument in call.Arguments)
-                {
-                    AddBlock(argument, depth + 1);
-                }
-
-                break;
-            case ListNode list:
-                Blocks.Add(new BlockRow("[ ]", "lists", depth, Strings.Get("ValuePicker.Block.List")));
-                foreach (var item in list.Items)
-                {
-                    AddBlock(item, depth + 1);
-                }
-
-                break;
-            case TextNode text:
-                Blocks.Add(new BlockRow("\"" + text.Text + "\"", "text", depth));
-                break;
-            case VariableNode variable:
-                Blocks.Add(new BlockRow("$" + variable.Name, "lists", depth));
-                break;
-            case NumberNode number:
-                Blocks.Add(new BlockRow(number.Text, "maths", depth));
-                break;
-            case ConstantNode constant:
-                Blocks.Add(new BlockRow(constant.Word, "other", depth));
-                break;
-            default:
-                Blocks.Add(new BlockRow(node.ToString() ?? string.Empty, "other", depth));
-                break;
-        }
+        base.RefreshLanguage();
+        RebuildRecipe();
     }
 
     /// <summary>True when what is typed names this function, its call, or what it does.</summary>

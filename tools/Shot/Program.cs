@@ -181,6 +181,8 @@ var window = what switch
     "editor" => new ActionEditorWindow(null, ActionCatalog.Definitions, [], []),
     "variables" => new GlobalVariablesWindow(),
     "steps" => StepTreeShot(args.Contains("--add")),
+    "picker" => ValuePickerShot(args.FirstOrDefault(argument =>
+        argument.StartsWith("--formula=", StringComparison.Ordinal))?["--formula=".Length..]),
     _ => throw new ArgumentException($"unknown window '{what}'"),
 };
 
@@ -263,6 +265,27 @@ static Window StepTreeShot(bool addBranch)
     }
 
     return board;
+}
+
+/// <summary>
+/// The window that fills a cell, with a formula that exercises the shape: a call inside a call, a
+/// sign between two, and a name of its own. What the band has to prove is that nesting is drawn as
+/// nesting rather than as a list with numbers in front of it.
+/// </summary>
+static Window ValuePickerShot(string? formula)
+{
+    var form = new ValuePickerViewModel(
+        formula ?? "contains(upper($title), \"保存\") and $count > 3",
+        [
+            new VariableChoice { Name = "title", Scope = VariableScope.Local, Type = "text" },
+            new VariableChoice { Name = "count", Scope = VariableScope.Local, Type = "number" },
+            new VariableChoice { Name = "found", Scope = VariableScope.System, Type = "bool" },
+            new VariableChoice { Name = "names", Scope = VariableScope.Global, Type = "list" },
+        ],
+        namesOnly: false,
+        target: "条件");
+
+    return new ValuePickerWindow(form) { StartOnFormula = true };
 }
 
 /// <summary>The one rectangle the program does not already have a way to ask for.</summary>

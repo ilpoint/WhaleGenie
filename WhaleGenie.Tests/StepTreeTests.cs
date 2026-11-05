@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
@@ -167,7 +167,7 @@ public class StepTreeTests
             // keyboard chooses it; the click that leads to the same thing is a pointer test of its own.
             var picked = form.Wall.Shown.First();
             form.Wall.Looking = picked;
-            form.Insert(picked.Token, 0);
+            form.Place(picked.Token);
             form.Confirm();
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();
@@ -615,7 +615,8 @@ public class StepTreeTests
     }
 
     [Fact]
-    public void Picking_a_switch_and_adding_a_step_adds_a_branch()    {
+    public void Picking_a_switch_and_adding_a_step_adds_a_branch()
+    {
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();

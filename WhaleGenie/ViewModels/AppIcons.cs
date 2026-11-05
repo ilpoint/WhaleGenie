@@ -22,6 +22,7 @@ public static class AppIcons
     public static LucideIconKind Browser => LucideIconKind.Globe;
     public static LucideIconKind Code => LucideIconKind.Code;
     public static LucideIconKind Split => LucideIconKind.Split;
+    public static LucideIconKind Remove => LucideIconKind.CircleX;
     public static LucideIconKind Undo => LucideIconKind.Undo2;
     public static LucideIconKind Redo => LucideIconKind.Redo2;
     public static LucideIconKind Pencil => LucideIconKind.Pencil;

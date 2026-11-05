@@ -5,7 +5,6 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:conv="using:WhaleGenie.Converters"
-        xmlns:system="using:System"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1140" d:DesignHeight="720"
@@ -19,12 +18,141 @@
         Background="{DynamicResource SurfaceWindow}">
 
     <!--
-      取值。左列是公式的结构，右上是一条横着的符号与值，右下才是名字和函数。结构竖着放，因为它
-      越深越长；符号横着放，因为它们是短词。三样都在一页上，不切页签。
+      取值。结构独占上面一条：公式的括号长在哪儿，页面上就画在哪儿，点一块就把光标放到那里。
+      三盘（符号、变量、函数）在下面同屏摆着，写一条式子不必在页之间来回切。
     -->
     <Window.Resources>
         <conv:FunctionGroupBrushConverter x:Key="Tone" />
+
+        <!-- 序列里的一块：模板自己决定长什么样；带叉的模板各自管自己的叉。 -->
+        <DataTemplate x:Key="TokenEntry" x:DataType="vm:SlotNode">
+            <ContentControl Content="{Binding}" Margin="2,1" VerticalAlignment="Center" />
+        </DataTemplate>
+
+        <!-- 函数的一条参数：前面的逗号跟着它自己走，函数体于是只要把参数排成一行。 -->
+        <DataTemplate x:Key="SlotEntry" x:DataType="vm:SlotNode">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Classes="SlotComma" Text="{Binding Before}" />
+                <ContentControl Content="{Binding}" VerticalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
+
+    <Window.DataTemplates>
+        <!--
+          一段自由子序列：整条式子是一段，函数的每条参数也是一段。里面能放值、符号、括号、还能再放
+          一个函数——顺序就是拼上去的顺序，没有别的结构。
+        -->
+        <DataTemplate DataType="vm:SlotSequence" x:DataType="vm:SlotSequence">
+            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource TokenEntry}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </DataTemplate>
+
+        <!--
+          调用：名字、左括号、一条一条参数、末尾的幽灵槽、右括号。底色取函数族的淡色，套得越深叠得越浓。
+          幽灵槽不是参数，是"还能再放一个"的位置：填了它就再长一个，空着也不算进公式。
+        -->
+        <DataTemplate DataType="vm:SlotCall" x:DataType="vm:SlotCall">
+            <Border Classes="SlotToken SlotCall" Tapped="OnSlotTapped"
+                    Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
+                    BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
+                <Panel>
+                    <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
+                    <Border Classes="HoverWash" />
+                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot"
+                            ToolTip.Tip="{Binding [ValuePicker.Slot.Remove], Source={x:Static loc:Strings.Current}}">
+                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
+                                        Data="{x:Static vm:AppIcons.Remove}" />
+                    </Button>
+                    <WrapPanel Orientation="Horizontal">
+                        <TextBlock Classes="SlotName" Text="{Binding Name}" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Classes="SlotSign" Text="(" />
+                        <TextBlock Classes="SlotHint" IsVisible="{Binding HasNoArguments}"
+                                   Text="{Binding [ValuePicker.Slot.Empty], Source={x:Static loc:Strings.Current}}" />
+                        <ItemsControl ItemsSource="{Binding Arguments}"
+                                      ItemTemplate="{StaticResource SlotEntry}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <ContentControl Content="{Binding Ghost}" VerticalAlignment="Center"
+                                        ContentTemplate="{StaticResource SlotEntry}" />
+                        <Button Classes="SlotAdd" Content="＋" IsVisible="{Binding CanAddPlace}"
+                                Click="OnAddSlot"
+                                ToolTip.Tip="{Binding [ValuePicker.Slot.Append], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="SlotSign" Text=")" />
+                    </WrapPanel>
+                </Panel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 符号：一枚小片，点得中、换得掉、删得掉。 -->
+        <DataTemplate DataType="vm:SlotOperator" x:DataType="vm:SlotOperator">
+            <Border Classes="SlotToken SlotOperator" Classes.chosen="{Binding IsChosen}" Tapped="OnSlotTapped">
+                <Panel>
+                    <TextBlock Text="{Binding Text}" FontSize="14" />
+                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot">
+                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
+                                        Data="{x:Static vm:AppIcons.Remove}" />
+                    </Button>
+                </Panel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 括号：本身就是一块，单独可删可拖。 -->
+        <DataTemplate DataType="vm:SlotBracket" x:DataType="vm:SlotBracket">
+            <Border Classes="SlotToken SlotBracket" Classes.chosen="{Binding IsChosen}" Tapped="OnSlotTapped">
+                <Panel>
+                    <TextBlock Classes="SlotSign" Text="{Binding Text}" />
+                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot">
+                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
+                                        Data="{x:Static vm:AppIcons.Remove}" />
+                    </Button>
+                </Panel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 值：名字、数字、一段文字，各按各的族上色。 -->
+        <DataTemplate DataType="vm:SlotValue" x:DataType="vm:SlotValue">
+            <Border Classes="SlotToken SlotValue" Tapped="OnSlotTapped"
+                    Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
+                    BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}">
+                <Panel>
+                    <Border Classes="ChosenRing" IsVisible="{Binding IsChosen}" />
+                    <Border Classes="HoverWash" />
+                    <TextBlock Text="{Binding Text}" FontSize="14" FontFamily="{DynamicResource UiCodeFont}"
+                               VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
+                    <Button Classes="SlotRemove" IsVisible="{Binding ShowsRemove}" Click="OnRemoveSlot">
+                        <views:IconView Width="12" Height="12" StrokeThickness="1.7"
+                                        Data="{x:Static vm:AppIcons.Remove}" />
+                    </Button>
+                </Panel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 空位：虚框。必填而空着是红虚线，末尾的幽灵槽是灰虚线、只写一个加号。 -->
+        <DataTemplate DataType="vm:SlotEmpty" x:DataType="vm:SlotEmpty">
+            <Panel Classes="SlotEmpty" Classes.chosen="{Binding IsChosen}"
+                   Classes.ghost="{Binding IsGhost}"
+                   Tapped="OnSlotTapped" Background="Transparent" ToolTip.Tip="{Binding Hint}">
+                <Rectangle Classes="SlotHole" Classes.ghost="{Binding IsGhost}"
+                           Classes.required="{Binding Required}"
+                           Margin="1" StrokeThickness="1"
+                           StrokeDashArray="3,2" RadiusX="5" RadiusY="5" />
+                <TextBlock Text="{Binding Text}" Margin="8,3" VerticalAlignment="Center"
+                           FontSize="11" FontStyle="Italic"
+                           Foreground="{DynamicResource TextTertiary}" />
+            </Panel>
+        </DataTemplate>
+    </Window.DataTemplates>
 
     <Window.Styles>
         <!-- 旧表达式页面的胶囊：28 高、12.5 号字、10/0 内边距、圆角 6、缝 6。 -->
@@ -74,15 +202,6 @@
             <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
 
-        <Style Selector="Border.TreeBlock">
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Padding" Value="7,2" />
-            <Setter Property="Margin" Value="0,1,0,1" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-        </Style>
-
         <Style Selector="GridSplitter.Split">
             <Setter Property="Background" Value="Transparent" />
         </Style>
@@ -93,6 +212,269 @@
         <Style Selector="TextBlock.Note.problem">
             <Setter Property="Foreground" Value="{DynamicResource Danger}" />
         </Style>
+
+        <!--
+          结构带里每一块的共同度量：34 高、14 号等宽字、10/5 内边距。块要大到容得下右上角那枚叉，
+          小到挤在一起的框只会让人误点。各类在它之后定义，只覆写自己的底色与描边。
+        -->
+        <Style Selector="Border.SlotToken">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="3,3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <!-- 结构带：一块一块都是可以点的，点中的那一块描上强调色，虚框就是还没填的地方。 -->
+        <Style Selector="Border.SlotCall">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="CornerRadius" Value="7" />
+        </Style>
+        <Style Selector="Border.SlotCall:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+
+        <Style Selector="Border.SlotRow">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="1,0" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Border.SlotRow:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+
+        <Style Selector="Border.SlotGroup">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="3,0" />
+            <Setter Property="Margin" Value="2,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Border.SlotGroup:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+
+        <Style Selector="Border.SlotList">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="3,0" />
+            <Setter Property="Margin" Value="2,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Border.SlotList:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+
+        <Style Selector="Border.SlotValue">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        </Style>
+        <Style Selector="Border.SlotValue:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+
+        <Style Selector="Panel.SlotEmpty">
+            <Setter Property="Margin" Value="3,3" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="MinWidth" Value="52" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Panel.SlotEmpty.ghost">
+            <Setter Property="MinWidth" Value="32" />
+        </Style>
+        <Style Selector="Rectangle.SlotHole">
+            <Setter Property="Stroke" Value="{DynamicResource BorderControl}" />
+        </Style>
+        <Style Selector="Rectangle.SlotHole.ghost">
+            <Setter Property="StrokeDashArray" Value="2,2" />
+            <Setter Property="Stroke" Value="{DynamicResource BorderControl}" />
+        </Style>
+        <Style Selector="Panel.SlotEmpty:pointerover Rectangle">
+            <Setter Property="Stroke" Value="{DynamicResource AccentText}" />
+        </Style>
+        <Style Selector="Panel.SlotEmpty.chosen Rectangle">
+            <Setter Property="Stroke" Value="{DynamicResource AccentText}" />
+            <Setter Property="StrokeThickness" Value="2" />
+        </Style>
+        <!-- 必填而空着放在最后：它既有幽灵也有"必填"，颜色该由必填说了算。 -->
+        <Style Selector="Rectangle.SlotHole.required">
+            <Setter Property="Stroke" Value="{DynamicResource Danger}" />
+            <Setter Property="StrokeDashArray" Value="3,2" />
+        </Style>
+
+        <!-- 每一块的删除：右上角一枚叉，指针落到这一块上才出现，转红。 -->
+        <Style Selector="Button.SlotRemove">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,-9,-18,0" />
+        </Style>
+        <Style Selector="Button.SlotRemove views|IconView">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Stroke" Value="{DynamicResource Danger}" />
+        </Style>
+        <Style Selector="Button.SlotRemove:pointerover">
+            <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+        </Style>
+
+        <!-- 手动追加：幽灵槽之外再写一个空位，想一次排好几个参数时用。 -->
+        <Style Selector="Button.SlotAdd">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="2,0,2,0" />
+        </Style>
+        <Style Selector="Button.SlotAdd:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <Style Selector="Button.SlotAdd:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+
+        <!-- 括号这块本身：一点就选中，悬停出边。 -->
+        <Style Selector="Border.SlotBracket">
+            <Setter Property="MinWidth" Value="26" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        </Style>
+        <Style Selector="Border.SlotBracket:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <Style Selector="Border.SlotBracket.chosen">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+
+        <!-- 撤销/恢复那样的小方按钮：没有底，指上去才有一层。 -->
+        <Style Selector="Button.SlotStep">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.SlotStep:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <Style Selector="Button.SlotStep:disabled">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+
+        <!-- 「参数为空」：一句话，不是框，别让人以为那里能点。 -->
+        <Style Selector="TextBlock.SlotHint">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontStyle" Value="Italic" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,2,0" />
+        </Style>
+
+
+        <Style Selector="Border.chosen">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+
+        <!-- 悬停只叠一层很薄的透明色：底色归函数族，悬停不该把它换成另一块面。 -->
+        <Style Selector="Border.HoverWash">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="-6,-2" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <Style Selector="Border.SlotCall:pointerover Border.HoverWash">
+            <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        </Style>
+        <Style Selector="Border.SlotValue:pointerover Border.HoverWash">
+            <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        </Style>
+
+        <!-- 字：括号与逗号是同一号窄字，名字与值用等宽字，读得出这是代码。 -->
+        <Style Selector="TextBlock.SlotName">
+            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.SlotSign">
+            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.SlotComma">
+            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="-1,0,2,0" />
+        </Style>
+        <!-- 选中的那一块：描一圈强调色。套在框上而不是改它的底色，底色仍归函数族。 -->
+        <Style Selector="Border.ChosenRing">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="-7,-3,-7,-3" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <Style Selector="Border.SlotOperator">
+            <Setter Property="MinWidth" Value="30" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.SlotOperator TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource Info}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.SlotOperator:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.SlotOperator.chosen">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+        </Style>
+        <Style Selector="Border.SlotOperator.chosen TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="16,12,16,12" RowSpacing="8">
@@ -101,161 +483,228 @@
                    IsVisible="{Binding HasTarget}" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource TextSecondary}" />
 
-        <Grid Grid.Row="1" IsVisible="{Binding CanCompute}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="320" MinWidth="240" />
-                <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="*" MinWidth="520" />
-            </Grid.ColumnDefinitions>
+        <!-- 写公式的格子：结构上一条，符号一条，名字与函数并排。 -->
+        <Grid Grid.Row="1" IsVisible="{Binding CanCompute}" RowDefinitions="Auto,Auto,*" RowSpacing="8">
+            <Border Grid.Row="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,8">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <TextBlock FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Text="{Binding [ValuePicker.Structure], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="1" FontSize="11"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{Binding [ValuePicker.Structure.Hint], Source={x:Static loc:Strings.Current}}" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+                            <Button Classes="SlotStep" IsEnabled="{Binding CanUndo}" Click="OnUndo"
+                                    ToolTip.Tip="{Binding [ValuePicker.Undo], Source={x:Static loc:Strings.Current}}">
+                                <views:IconView Width="13" Height="13" StrokeThickness="1.6"
+                                                Stroke="{DynamicResource TextSecondary}"
+                                                Data="{x:Static vm:AppIcons.Undo}" />
+                            </Button>
+                            <Button Classes="SlotStep" IsEnabled="{Binding CanRedo}" Click="OnRedo"
+                                    ToolTip.Tip="{Binding [ValuePicker.Redo], Source={x:Static loc:Strings.Current}}">
+                                <views:IconView Width="13" Height="13" StrokeThickness="1.6"
+                                                Stroke="{DynamicResource TextSecondary}"
+                                                Data="{x:Static vm:AppIcons.Redo}" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
 
-            <!-- 左列：结构占满，公式在它下面。 -->
-            <Border Grid.Column="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8">
-                <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="6">
-                    <TextBlock FontSize="11" Foreground="{DynamicResource TextTertiary}"
-                               Text="{Binding [ValuePicker.Structure], Source={x:Static loc:Strings.Current}}" />
+                    <!-- 插槽结构：整条公式的真身。嵌套由递归模板画，纵向放不下就滚。 -->
+                    <ScrollViewer Grid.Row="1" MinHeight="58" MaxHeight="176" Padding="0,10"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  PointerExited="OnBandExited"
+                                  ScrollChanged="OnBandScrolled">
+                        <ContentControl Name="Band" Content="{Binding Recipe}"
+                                        PointerPressed="OnBandPressed"
+                                        PointerMoved="OnBandMoved"
+                                        PointerReleased="OnBandReleased"
+                                        PointerCaptureLost="OnBandCaptureLost" />
+                    </ScrollViewer>
 
-                    <Border Grid.Row="1" Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="4"
-                            ClipToBounds="True">
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                            <ListBox ItemsSource="{Binding Blocks}"
-                                     SelectedItem="{Binding SelectedBlock, Mode=TwoWay}"
-                                     Background="Transparent" BorderThickness="0" Padding="0"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:BlockRow">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ItemsControl ItemsSource="{Binding Guides}">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <StackPanel Orientation="Horizontal" />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="system:Int32">
-                                                        <Border Width="14"
-                                                                BorderBrush="{DynamicResource BorderControl}"
-                                                                BorderThickness="1,0,0,0" />
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                            <Border Classes="TreeBlock"
-                                                    BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}"
-                                                    Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}">
-                                                <TextBlock Text="{Binding Text}" FontSize="11.5"
-                                                           Foreground="{DynamicResource TextPrimary}" />
-                                            </Border>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </ScrollViewer>
-                    </Border>
+                    <!-- 拖动时的示踪层：落点竖线、目标描边、跟着指针的那一小片。都不接鼠标。 -->
+                    <Canvas Grid.Row="1" Name="DragLayer" IsHitTestVisible="False">
+                        <Border Name="DropRing" IsVisible="False" CornerRadius="7" Opacity="0.45"
+                                BorderThickness="1" BorderBrush="{DynamicResource AccentText}" />
+                        <Border Name="DropLine" IsVisible="False" Width="2" CornerRadius="1"
+                                Background="{DynamicResource AccentText}" />
+                        <Border Name="DragGhost" IsVisible="False"
+                                Background="{DynamicResource SurfaceCard}"
+                                BorderBrush="{DynamicResource AccentText}" BorderThickness="1"
+                                CornerRadius="5" Padding="6,2" Opacity="0.9">
+                            <TextBlock Name="DragLabel" FontFamily="{DynamicResource UiCodeFont}"
+                                       FontSize="11.5" Foreground="{DynamicResource TextPrimary}" />
+                        </Border>
+                    </Canvas>
 
-                    <TextBlock Grid.Row="2" FontSize="11" Foreground="{DynamicResource TextTertiary}"
-                               Text="{Binding [ValuePicker.Formula], Source={x:Static loc:Strings.Current}}" />
-                    <TextBox Grid.Row="3" Name="FormulaBox" Classes="Formula"
-                             Text="{Binding Text, Mode=TwoWay}"
-                             Height="66"
-                             AcceptsReturn="False" TextWrapping="Wrap"
-                             FontFamily="{DynamicResource UiCodeFont}" FontSize="12.5"
-                             PlaceholderText="{Binding [ValuePicker.FormulaPlaceholder], Source={x:Static loc:Strings.Current}}" />
-                    <StackPanel Grid.Row="4" Spacing="2">
-                        <TextBlock Text="{Binding Saying}" IsVisible="{Binding HasSaying}"
-                                   FontSize="11.5" TextWrapping="Wrap" MaxLines="2"
-                                   Foreground="{DynamicResource TextSecondary}" />
+                    <WrapPanel Grid.Row="2">
                         <TextBlock Classes="Note" Classes.problem="{Binding NoteIsProblem}"
                                    Text="{Binding Note}" TextWrapping="Wrap" FontSize="11" />
-                    </StackPanel>
+                        <TextBlock Text="{Binding Saying}" IsVisible="{Binding HasSaying}"
+                                   Margin="14,0,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondary}" />
+                    </WrapPanel>
                 </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="1" Classes="Split" />
+            <!-- 符号与值一条横带；要数字或文字时，同一条里就地多出一行来问。 -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,6">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" RowSpacing="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <WrapPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding [ValuePicker.Panel.Operators], Source={x:Static loc:Strings.Current}}"
+                                   FontSize="11" Foreground="{DynamicResource TextTertiary}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ItemsControl ItemsSource="{Binding Operators}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ExpressionOperator">
+                                    <Button Classes="Op" Margin="0,0,4,4" Content="{Binding Token}"
+                                            BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}"
+                                            Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
+                                            ToolTip.Tip="{Binding Hint}" Click="OnOperator" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </WrapPanel>
 
-            <!-- 右列：符号与值一条横带，名字与函数并排。 -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="120" MinHeight="64" />
-                    <RowDefinition Height="6" />
-                    <RowDefinition Height="*" MinHeight="160" />
-                </Grid.RowDefinitions>
-                <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8,6">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <WrapPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding [ValuePicker.Panel.Operators], Source={x:Static loc:Strings.Current}}"
-                                       FontSize="11" Foreground="{DynamicResource TextTertiary}"
-                                       VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ItemsControl ItemsSource="{Binding Operators}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ExpressionOperator">
-                                        <Button Classes="Op" Margin="0,0,4,4" Content="{Binding Token}"
-                                                BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}"
-                                                Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
-                                                ToolTip.Tip="{Binding Hint}" Click="OnOperator" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </WrapPanel>
+                    <!-- 值靠右自成一条，运算符怎么换行都不会把它挤到下一行去。 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                        <Border Width="1" Background="{DynamicResource BorderSubtle}" Margin="0,1,10,5" />
+                        <TextBlock Text="{Binding [ValuePicker.Panel.Values], Source={x:Static loc:Strings.Current}}"
+                                   FontSize="11" Foreground="{DynamicResource TextTertiary}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ItemsControl ItemsSource="{Binding Values}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ValueToken">
+                                    <Button Classes="Op" Margin="0,0,6,0" Content="{Binding Text}"
+                                            Click="OnValue" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                        <!-- 值靠右自成一条，运算符怎么换行都不会把它挤到下一行去。 -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                            <Border Width="1" Background="{DynamicResource BorderSubtle}" Margin="0,1,10,5" />
-                            <TextBlock Text="{Binding [ValuePicker.Panel.Values], Source={x:Static loc:Strings.Current}}"
-                                       FontSize="11" Foreground="{DynamicResource TextTertiary}"
-                                       VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ItemsControl ItemsSource="{Binding Values}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ValueToken">
-                                        <Button Classes="Op" Margin="0,0,6,0" Content="{Binding Text}"
-                                                Click="OnValue" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                        <!-- 卡片给不出的两样：一个随人定的数，一段随人定的字。 -->
+                        <Button Classes="Op" Margin="6,0,6,0" Click="OnNumber"
+                                Content="{Binding [ValuePicker.Value.Number], Source={x:Static loc:Strings.Current}}" />
+                        <Button Classes="Op" Margin="0,0,6,0" Click="OnText"
+                                Content="{Binding [ValuePicker.Value.Text], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+
+                    <!-- 就地输入：一行问、一行答，插进去就收起，不必去公式框里打字。 -->
+                    <Border Grid.Row="1" Grid.ColumnSpan="2" IsVisible="{Binding IsTypingValue}"
+                            Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="8,6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding TypingLabel}" FontSize="11.5"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondary}" />
+                            <TextBox Name="ValueInput" Width="220"
+                                     Text="{Binding TypingText, Mode=TwoWay}"
+                                     FontFamily="{DynamicResource UiCodeFont}" FontSize="12.5" />
+                            <Button Classes="Op" MinWidth="52" IsEnabled="{Binding CanInsertTyped}"
+                                    Click="OnInsertTyped"
+                                    Content="{Binding [ValuePicker.Value.Insert], Source={x:Static loc:Strings.Current}}" />
+                            <Button Classes="Op" MinWidth="52" Click="OnCancelTyped"
+                                    Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Text="{Binding TypingNote}" IsVisible="{Binding HasTypingNote}"
+                                       FontSize="11" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Danger}" />
                         </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="260" />
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition Width="*" MinWidth="260" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8">
+                    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="6">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondary}"
+                                   Text="{Binding [ValuePicker.Panel.Variables], Source={x:Static loc:Strings.Current}}" />
+                        <TextBox Grid.Row="1" Name="VariableSearch"
+                                 Text="{Binding Wall.SearchText, Mode=TwoWay}"
+                                 PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
+                        <ItemsControl Grid.Row="2" ItemsSource="{Binding Wall.Filters}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:VariableFilter">
+                                    <Button Classes="ChipWord" Content="{Binding Label}"
+                                            ToolTip.Tip="{Binding Hint}" Click="OnVariableFilter" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ListBox Grid.Row="3" Classes="Panel" ItemsSource="{Binding Wall.Shown}"
+                                 SelectedItem="{Binding Wall.Looking, Mode=TwoWay}"
+                                 Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:VariableChoice">
+                                    <Button Classes="ExprChip" Click="OnVariablePill"
+                                            BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}"
+                                            Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
+                                            ToolTip.Tip="{Binding Details}">
+                                        <TextBlock Text="{Binding Display}" FontSize="11.5"
+                                                   Foreground="{DynamicResource TextPrimary}" />
+                                    </Button>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Grid>
                 </Border>
 
-                <GridSplitter Grid.Row="1" Classes="Split" ResizeDirection="Rows" />
+                <GridSplitter Grid.Column="1" Classes="Split" />
 
-                <Grid Grid.Row="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="220" />
-                        <ColumnDefinition Width="6" />
-                        <ColumnDefinition Width="*" MinWidth="240" />
-                    </Grid.ColumnDefinitions>
+                <Border Grid.Column="2" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8">
+                    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="6">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondary}"
+                                   Text="{Binding [ValuePicker.Panel.Functions], Source={x:Static loc:Strings.Current}}" />
+                        <TextBox Grid.Row="1" Name="FunctionSearch"
+                                 Text="{Binding FunctionQuery, Mode=TwoWay}"
+                                 PlaceholderText="{Binding [ExprBuilder.FunctionsFilter], Source={x:Static loc:Strings.Current}}" />
+                        <ItemsControl Grid.Row="2" ItemsSource="{Binding FunctionGroups}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ExpressionFunctionFilter">
+                                    <Button Classes="ChipWord" Content="{Binding Label}"
+                                            Click="OnFunctionFilter" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                    <Border Grid.Column="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8">
-                        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="6">
-                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondary}"
-                                       Text="{Binding [ValuePicker.Panel.Variables], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Grid.Row="1" Name="VariableSearch"
-                                     Text="{Binding Wall.SearchText, Mode=TwoWay}"
-                                     PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
-                            <ItemsControl Grid.Row="2" ItemsSource="{Binding Wall.Filters}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:VariableFilter">
-                                        <Button Classes="ChipWord" Content="{Binding Label}"
-                                                ToolTip.Tip="{Binding Hint}" Click="OnVariableFilter" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <ListBox Grid.Row="3" Classes="Panel" ItemsSource="{Binding Wall.Shown}"
-                                     SelectedItem="{Binding Wall.Looking, Mode=TwoWay}"
+                        <Grid Grid.Row="3">
+                            <ListBox Classes="Panel" ItemsSource="{Binding Functions}"
+                                     SelectedItem="{Binding SelectedFunction, Mode=TwoWay}"
                                      Background="Transparent" BorderThickness="0"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemsPanel>
@@ -264,100 +713,51 @@
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="models:VariableChoice">
-                                        <Button Classes="ExprChip" Click="OnVariablePill"
-                                                BorderBrush="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=line}"
-                                                Background="{Binding Tone, Converter={StaticResource Tone}, ConverterParameter=fill}"
-                                                ToolTip.Tip="{Binding Details}">
-                                            <TextBlock Text="{Binding Display}" FontSize="11.5"
+                                    <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
+                                        <Button Classes="ExprChip" Click="OnFunctionPill"
+                                                BorderBrush="{Binding Group, Converter={StaticResource Tone}, ConverterParameter=line}"
+                                                Background="{Binding Group, Converter={StaticResource Tone}, ConverterParameter=fill}">
+                                            <TextBlock Text="{Binding Tag}" FontSize="11.5"
                                                        Foreground="{DynamicResource TextPrimary}" />
+                                            <ToolTip.Tip>
+                                                <StackPanel MaxWidth="360" Spacing="4">
+                                                    <TextBlock Text="{Binding Heading}" FontSize="12.5"
+                                                               Foreground="{DynamicResource TextPrimary}" />
+                                                    <TextBlock Text="{Binding WrittenAs}" FontSize="12"
+                                                               Foreground="{DynamicResource Info}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding ArityNote}" FontSize="11.5"
+                                                               Foreground="{DynamicResource Info}" />
+                                                    <TextBlock Text="{Binding Hint}" FontSize="12"
+                                                               Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap" />
+                                                    <ItemsControl ItemsSource="{Binding Arguments}" Margin="0,2,0,0">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:FunctionArgument">
+                                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6"
+                                                                      Margin="0,3,0,0">
+                                                                    <TextBlock Text="{Binding Label}" FontSize="11.5"
+                                                                               Foreground="{DynamicResource Warning}" />
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Hint}"
+                                                                               FontSize="11.5"
+                                                                               Foreground="{DynamicResource TextTertiary}"
+                                                                               TextWrapping="Wrap" />
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </ToolTip.Tip>
                                         </Button>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
+
+                            <TextBlock IsVisible="{Binding IsFunctionsEmpty}" FontSize="11.5"
+                                       Margin="4,2" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextTertiary}"
+                                       Text="{Binding [ValuePicker.Nothing], Source={x:Static loc:Strings.Current}}" />
                         </Grid>
-                    </Border>
-
-                    <GridSplitter Grid.Column="1" Classes="Split" />
-
-                    <Border Grid.Column="2" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8">
-                        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="6">
-                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondary}"
-                                       Text="{Binding [ValuePicker.Panel.Functions], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Grid.Row="1" Name="FunctionSearch"
-                                     Text="{Binding FunctionQuery, Mode=TwoWay}"
-                                     PlaceholderText="{Binding [ExprBuilder.FunctionsFilter], Source={x:Static loc:Strings.Current}}" />
-                            <ItemsControl Grid.Row="2" ItemsSource="{Binding FunctionGroups}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ExpressionFunctionFilter">
-                                        <Button Classes="ChipWord" Content="{Binding Label}"
-                                                Click="OnFunctionFilter" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <Grid Grid.Row="3">
-                                <ListBox Classes="Panel" ItemsSource="{Binding Functions}"
-                                         SelectedItem="{Binding SelectedFunction, Mode=TwoWay}"
-                                         Background="Transparent" BorderThickness="0"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                    <ListBox.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ListBox.ItemsPanel>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
-                                            <Button Classes="ExprChip" Click="OnFunctionPill"
-                                                    BorderBrush="{Binding Group, Converter={StaticResource Tone}, ConverterParameter=line}"
-                                                    Background="{Binding Group, Converter={StaticResource Tone}, ConverterParameter=fill}">
-                                                <TextBlock Text="{Binding Tag}" FontSize="11.5"
-                                                           Foreground="{DynamicResource TextPrimary}" />
-                                                <ToolTip.Tip>
-                                                    <StackPanel MaxWidth="360" Spacing="4">
-                                                        <TextBlock Text="{Binding Heading}" FontSize="12.5"
-                                                                   Foreground="{DynamicResource TextPrimary}" />
-                                                        <TextBlock Text="{Binding WrittenAs}" FontSize="12"
-                                                                   Foreground="{DynamicResource Info}" TextWrapping="Wrap" />
-                                                        <TextBlock Text="{Binding ArityNote}" FontSize="11.5"
-                                                                   Foreground="{DynamicResource Info}" />
-                                                        <TextBlock Text="{Binding Hint}" FontSize="12"
-                                                                   Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap" />
-                                                        <ItemsControl ItemsSource="{Binding Arguments}" Margin="0,2,0,0">
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate x:DataType="vm:FunctionArgument">
-                                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6"
-                                                                          Margin="0,3,0,0">
-                                                                        <TextBlock Text="{Binding Label}" FontSize="11.5"
-                                                                                   Foreground="{DynamicResource Warning}" />
-                                                                        <TextBlock Grid.Column="1" Text="{Binding Hint}"
-                                                                                   FontSize="11.5"
-                                                                                   Foreground="{DynamicResource TextTertiary}"
-                                                                                   TextWrapping="Wrap" />
-                                                                    </Grid>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </StackPanel>
-                                                </ToolTip.Tip>
-                                            </Button>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-
-                                <TextBlock IsVisible="{Binding IsFunctionsEmpty}" FontSize="11.5"
-                                           Margin="4,2" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource TextTertiary}"
-                                           Text="{Binding [ValuePicker.Nothing], Source={x:Static loc:Strings.Current}}" />
-                            </Grid>
-                        </Grid>
-                    </Border>
-                </Grid>
+                    </Grid>
+                </Border>
             </Grid>
         </Grid>
 
