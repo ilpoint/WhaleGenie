@@ -480,7 +480,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// there the vertical half says before or after; a single piece still reads left to right.
     /// </summary>
     public static bool AfterFor(SlotNode? target, bool rightHalf, bool lowerHalf)
-        => target is SlotSequence ? lowerHalf : rightHalf;
+        => target is SlotSequence or SlotCall { Stacked: true } ? lowerHalf : rightHalf;
 
     /// <summary>
     /// The one place that decides what a drop means. Brackets wrap rather than move, and a wrap is
@@ -1081,7 +1081,53 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     {
         ChooseSlot(null);
         Recipe = NamesOnly ? null : SlotReader.Read(Text, _table);
+        RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));
+    }
+
+    /// <summary>
+    /// Says which calls need one row per argument. The band gives it the width it actually has, so
+    /// narrowing the window can fold a call that fitted on a wide one.
+    /// </summary>
+    public void RefreshStacking(double availableWidth)
+    {
+        if (Recipe is null)
+        {
+            return;
+        }
+
+        // Before the first layout pass the viewport has no width; the compact estimate is the stand
+        // in until the band can say how much room it really has.
+        var width = availableWidth > 0 ? availableWidth : SlotStacking.CompactWidthPx;
+        Fold(Recipe, width, insideStacked: false);
+    }
+
+    /// <summary>
+    /// One level folds at a time. A call already drawn one row per argument gives its nested calls
+    /// a whole row each to lie on; folding those too would multiply the height and push the rest of
+    /// the formula out of the scrollable strip.
+    /// </summary>
+    private static void Fold(SlotNode node, double width, bool insideStacked)
+    {
+        if (node is SlotCall call)
+        {
+            var stacked = !insideStacked && SlotStacking.Decide(call, width);
+            call.Stacked = stacked;
+            foreach (var argument in call.Arguments)
+            {
+                Fold(argument, width, insideStacked || stacked);
+            }
+
+            return;
+        }
+
+        if (node is SlotSequence sequence)
+        {
+            foreach (var piece in sequence.Items)
+            {
+                Fold(piece, width, insideStacked);
+            }
+        }
     }
 
     /// <summary>A label written from the text table, read again when the language changes.</summary>

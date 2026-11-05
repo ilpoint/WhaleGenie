@@ -620,4 +620,75 @@ public class ValuePickerTests
         Assert.True(form.CanConfirm);
         Assert.False(form.HasBlockReason);
     }
+
+    private static SlotCall OnlyCall(ValuePickerViewModel form)
+        => Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
+
+    /// <summary>More than three arguments get one row each; a short call stays on one line.</summary>
+    [Fact]
+    public void SlotStackingExpandsForManyArguments()
+    {
+        var many = OnlyCall(new ValuePickerViewModel("concat($a, $b, $c, $d)", Variables(), false));
+        var few = OnlyCall(new ValuePickerViewModel("concat($a, $b)", Variables(), false));
+
+        Assert.True(many.Stacked);
+        Assert.False(few.Stacked);
+        Assert.True(few.Compact);
+    }
+
+    /// <summary>A call inside an argument is enough to fold, even with only two arguments.</summary>
+    [Fact]
+    public void SlotStackingExpandsForNestedCall()
+    {
+        var call = OnlyCall(new ValuePickerViewModel("concat(upper($a), $b)", Variables(), false));
+        Assert.True(call.Stacked);
+    }
+
+    /// <summary>A short formula, and a formula with no call at all, keep the compact row.</summary>
+    [Fact]
+    public void SlotStackingKeepsShortFormulaOnOneLine()
+    {
+        Assert.False(OnlyCall(new ValuePickerViewModel("upper($a)", Variables(), false)).Stacked);
+        var plain = new ValuePickerViewModel("1 + 2", Variables(), false);
+        Assert.Empty(Root(plain).Items.OfType<SlotCall>());
+    }
+
+    /// <summary>The same call folds when the band is narrow and opens out when it is wide.</summary>
+    [Fact]
+    public void SlotStackingUsesAvailableWidth()
+    {
+        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), false);
+        var call = OnlyCall(form);
+
+        form.RefreshStacking(200);
+        Assert.True(call.Stacked);
+
+        form.RefreshStacking(1080);
+        Assert.False(call.Stacked);
+    }
+
+    /// <summary>Only one level folds: a nested call already has a row of its own to lie on.</summary>
+    [Fact]
+    public void OnlyOneLevelOfCallsFoldsAtATime()
+    {
+        var form = new ValuePickerViewModel("concat(upper($a), lower($b))", Variables(), false);
+        form.RefreshStacking(1080);
+
+        var outer = OnlyCall(form);
+        var nested = outer.Arguments.SelectMany(argument => argument.Items.OfType<SlotCall>()).ToList();
+        Assert.True(outer.Stacked);
+        Assert.Equal(2, nested.Count);
+        Assert.All(nested, call => Assert.False(call.Stacked));
+    }
+
+    /// <summary>A folded call reads top to bottom when deciding which side of it to drop on.</summary>
+    [Fact]
+    public void A_stacked_call_reads_top_to_bottom()
+    {
+        var call = OnlyCall(new ValuePickerViewModel("concat($a, $b, $c, $d)", Variables(), false));
+        Assert.True(call.Stacked);
+
+        Assert.True(ValuePickerViewModel.AfterFor(call, rightHalf: false, lowerHalf: true));
+        Assert.False(ValuePickerViewModel.AfterFor(call, rightHalf: true, lowerHalf: false));
+    }
 }

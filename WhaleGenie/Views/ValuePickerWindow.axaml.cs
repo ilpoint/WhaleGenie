@@ -62,8 +62,11 @@ public partial class ValuePickerWindow : AppWindow
             }
         };
 
+        BandScroll.SizeChanged += (_, _) => _viewModel.RefreshStacking(BandScroll.Viewport.Width);
+
         Opened += (_, _) =>
         {
+            _viewModel.RefreshStacking(BandScroll.Viewport.Width);
             if (!viewModel.CanCompute)
             {
                 NameSearch.Focus();
