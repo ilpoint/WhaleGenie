@@ -119,6 +119,43 @@ internal static class SampleFiles
                 })],
         };
 
+    /// <summary>
+    /// The colours a pattern has to have around its base colour, written the way the form writes
+    /// it: one row per colour, giving the offset from the base colour by column name and the colour
+    /// that has to be there. A cell may be a number, a variable or a sum.
+    /// </summary>
+    public static ExecutableParameter PointsWithTolerance(
+        params (string Dx, string Dy, string Colour, string Tolerance)[] offsets)
+        => new()
+        {
+            Name = "points",
+            Rows = [.. offsets.Select(offset =>
+                (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["dx"] = offset.Dx,
+                    ["dy"] = offset.Dy,
+                    ["colour"] = offset.Colour,
+                    ["tolerance"] = offset.Tolerance,
+                })],
+        };
+
+    /// <summary>The same, for the colours that use the tolerance filled in for the base colour.</summary>
+    public static ExecutableParameter Points(
+        params (string Dx, string Dy, string Colour)[] offsets)
+        => new()
+        {
+            Name = "points",
+            Rows = [.. offsets.Select(offset =>
+                (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["dx"] = offset.Dx,
+                    ["dy"] = offset.Dy,
+                    ["colour"] = offset.Colour,
+                })],
+        };
+
     /// <summary>A place to look that names a variable instead of giving four numbers.</summary>
     public static ExecutableParameter RegionFrom(string named)
         => new()
@@ -152,10 +189,10 @@ internal static class SampleFiles
         params ExecutableParameter[] rest)
         => Step("vision.capture", [.. Coords(x, y, width, height), .. rest]);
 
-    /// <summary>Reads one part of the screen: the four numbers it covers, then the rest of its settings.</summary>
+    /// <summary>Reads one part of the screen: a row of the search region, then the rest of its settings.</summary>
     public static ExecutableStep Recognize(int x, int y, int width, int height,
         params ExecutableParameter[] rest)
-        => Step("ocr.recognize", [.. Coords(x, y, width, height), .. rest]);
+        => Step("ocr.recognize", [Region((x, y, width, height)), .. rest]);
 
     /// <summary>
     /// Copies the whole screen: a step that names no rectangle at all, which is how one is written

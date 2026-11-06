@@ -32,8 +32,8 @@ public partial class MacroInterfaceView : UserControl
             return;
         }
 
-        if (await ExpressionBuilderWindow.ShowFor(owner, row.Default,
-                Model?.ValueVariables ?? []) is { } built)
+        if (await ValuePickerWindow.ShowFor(owner, row.Default,
+                Model?.ValueVariables ?? [], startOnFormula: true) is { } built)
         {
             row.Default = built;
         }
@@ -52,8 +52,8 @@ public partial class MacroInterfaceView : UserControl
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(owner, Model?.ValueVariables ?? [])
-                is not { Token.Length: > 0 } picked)
+        if (await ValuePickerWindow.ShowFor(owner, null, Model?.ValueVariables ?? [],
+                namesOnly: true) is not { Length: > 0 } picked)
         {
             return;
         }
@@ -62,6 +62,6 @@ public partial class MacroInterfaceView : UserControl
         var caret = button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
             .OfType<TextBox>().FirstOrDefault()?.CaretIndex;
         var at = Math.Clamp(caret ?? text.Length, 0, text.Length);
-        row.Default = text[..at] + picked.Token + text[at..];
+        row.Default = text[..at] + picked + text[at..];
     }
 }

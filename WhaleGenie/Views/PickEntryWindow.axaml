@@ -20,40 +20,29 @@
             <TextBlock Grid.Row="0" Classes="Hint" TextWrapping="Wrap" Margin="0,0,0,2"
                        Text="{Binding [LookPick.EntryHint], Source={x:Static loc:Strings.Current}}" />
 
-            <!-- 一行一个值：偏移 X、偏移 Y、颜色各占一行，右边的按钮才放得下而且对得准。 -->
-            <Grid Grid.Row="1" ColumnDefinitions="60,*,Auto" ColumnSpacing="8">
+            <!-- 一行一个值：偏移 X、偏移 Y、颜色各占一行。这里是手填一个点，三格写的就是数字和颜色，
+                 不再各带一个表达式按钮——要用算式的人直接打进去就行（引擎照读），写出来的字也不会更长。 -->
+            <Grid Grid.Row="1" ColumnDefinitions="60,*" ColumnSpacing="8">
                 <TextBlock VerticalAlignment="Center" FontSize="12"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{Binding [LookPick.EntryX], Source={x:Static loc:Strings.Current}}" />
                 <TextBox Grid.Column="1" Name="OffsetX" Classes="Field" />
-                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="10,0"
-                        Tag="OffsetX" Click="OnInsertExpression"
-                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                        ToolTip.Tip="{Binding [LookPick.ExpressionHint], Source={x:Static loc:Strings.Current}}" />
             </Grid>
 
-            <Grid Grid.Row="2" ColumnDefinitions="60,*,Auto" ColumnSpacing="8">
+            <Grid Grid.Row="2" ColumnDefinitions="60,*" ColumnSpacing="8">
                 <TextBlock VerticalAlignment="Center" FontSize="12"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{Binding [LookPick.EntryY], Source={x:Static loc:Strings.Current}}" />
                 <TextBox Grid.Column="1" Name="OffsetY" Classes="Field" />
-                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="10,0"
-                        Tag="OffsetY" Click="OnInsertExpression"
-                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                        ToolTip.Tip="{Binding [LookPick.ExpressionHint], Source={x:Static loc:Strings.Current}}" />
             </Grid>
 
-            <Grid Grid.Row="3" ColumnDefinitions="60,*,Auto,Auto" ColumnSpacing="8">
+            <Grid Grid.Row="3" ColumnDefinitions="60,*,Auto" ColumnSpacing="8">
                 <TextBlock VerticalAlignment="Center" FontSize="12"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{Binding [LookPick.EntryColour], Source={x:Static loc:Strings.Current}}" />
                 <TextBox Grid.Column="1" Name="Colour" Classes="Field" />
                 <Border Grid.Column="2" Name="Swatch" Width="33" Height="33" CornerRadius="5"
                         BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
-                <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="10,0"
-                        Tag="Colour" Click="OnInsertExpression"
-                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                        ToolTip.Tip="{Binding [LookPick.ExpressionHint], Source={x:Static loc:Strings.Current}}" />
             </Grid>
 
             <TextBlock Grid.Row="4" Name="Problem" FontSize="11.5"

@@ -566,10 +566,16 @@ public partial class MacroEditorViewModel : ViewModelBase
     public ObservableCollection<MacroStep> Steps { get; } = [];
 
     /// <summary>
-    /// The same steps as the editor shows them: a block that is open shows the steps inside it
-    /// indented underneath, with a line where it starts and a line where it ends. The list is
-    /// flat because that is what the control and every command work on, and a row carries the
-    /// depth and the list it belongs to, so the shape of the macro can be read off one list.
+    /// The steps as the editor shows them: one node per step, and the steps a block runs hanging
+    /// under it. This is the shape the tree control draws, so folding is the control's own
+    /// business rather than something the editor has to rebuild for.
+    /// </summary>
+    public ObservableCollection<StepRow> Roots { get; } = [];
+
+    /// <summary>
+    /// The same tree read in document order, each node once. Commands work on steps rather than
+    /// rows, so most of what the editor does needs the depth and the list a row belongs to, and a
+    /// flat walk of the tree is the shortest way to ask for it.
     /// </summary>
     public ObservableCollection<StepRow> Rows { get; } = [];
 
@@ -1620,23 +1626,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Asks the window to open the dialog for a step to go at the end of one of a block's lists,
-    /// which is what the "add" button on a head row does.
-    /// </summary>
-    [RelayCommand]
-    private void AddInside(StepRow? row)
-    {
-        if (row?.List is not { } parameter)
-        {
-            return;
-        }
-
-        _insertAt = new StepInsertionTarget(parameter.Steps, parameter.Steps.Count,
-            row.Step, parameter);
-        AddStepRequested?.Invoke();
-    }
-
-    /// <summary>
     /// What the "Add Action" dialog may offer for the step being built: a switch's branch list
     /// only takes branches, everything else takes anything. Read by the window when it opens the
     /// dialog.
@@ -1667,15 +1656,15 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// Checks a proposed insertion without moving the editor's pending target. Drag feedback uses
     /// this before the pointer is released, so an illegal seam never promises a drop it will refuse.
     /// </summary>
-    public string? PlacementRefusalAt(int slot, MacroStep? into, IEnumerable<MacroStep> steps)
-        => PlacementRefusal(TargetAt(slot, into), steps);
+    public string? PlacementRefusalAt(IList<MacroStep> list, int index, IEnumerable<MacroStep> steps)
+        => PlacementRefusal(TargetForList(list, index), steps);
 
     /// <summary>Checks the current selection at a proposed drop seam.</summary>
-    public string? MoveSelectionRefusalAt(int slot, MacroStep? into)
+    public string? MoveSelectionRefusalAt(IList<MacroStep> list, int index)
     {
-        var target = TargetAt(slot, into);
+        var target = TargetForList(list, index);
         var moving = Ordered(_selection);
-        return target is not null && moving.Any(step => IsInside(target.List, step))
+        return moving.Any(step => IsInside(target.List, step))
             ? Strings.Get("Editor.PlaceIntoItself")
             : PlacementRefusal(target, moving);
     }
@@ -1707,39 +1696,31 @@ public partial class MacroEditorViewModel : ViewModelBase
         IsDirty = true;
     }
 
-    /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
-    [RelayCommand]
-    private void ToggleFold(StepRow? row)
+    /// <summary>
+    /// Shows or hides the steps inside a block. The tree keeps the steps either way — folding is
+    /// a row that is not drawn, not a row that is gone — so this only has to deal with a selection
+    /// that went out of sight with them.
+    /// </summary>
+    public void SetExpanded(MacroStep step, bool expanded)
     {
-        if (row is null)
+        if (step.IsExpanded == expanded)
         {
             return;
         }
 
-        SetExpanded(row.Step, !row.Step.IsExpanded);
-    }
-
-    /// <summary>
-    /// Shows or hides the steps inside a block. Folding a block the selection was inside takes
-    /// the selection with it — onto the block itself — because steps that are not on screen
-    /// must not be the ones a delete or a cut acts on.
-    /// </summary>
-    public void SetExpanded(MacroStep step, bool expanded)
-    {
         step.IsExpanded = expanded;
-        RebuildRows();
 
-        var visible = Rows.Where(row => row.IsStep).Select(row => row.Step).ToHashSet();
-        if (_selection.Any(selected => !visible.Contains(selected)))
+        if (!expanded)
         {
-            var kept = _selection.Where(visible.Contains).ToList();
-            _selection.Clear();
-            _selection.AddRange(kept.Count > 0 ? kept : [step]);
-            OnPropertyChanged(nameof(HasSelection));
-            OnPropertyChanged(nameof(SelectedSteps));
-            RefreshPaletteState();
+            var visible = VisibleSteps().ToHashSet();
+            if (_selection.Any(selected => !visible.Contains(selected)))
+            {
+                var kept = _selection.Where(visible.Contains).ToList();
+                RestoreSelection(kept.Count > 0 ? kept : [step]);
+            }
         }
 
+        Reshape();
         SelectionRefreshRequested?.Invoke();
     }
 
@@ -2374,6 +2355,25 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(SelectedSteps));
         RefreshPaletteState();
+        RefreshRowDetails();
+    }
+
+    /// <summary>
+    /// 点中哪一步，哪一步就在原处展开，把一行装不下的说明、备注与执行节奏露出来。只展开选中
+    /// 的那一步：选了好几行时一个都不展开，那会让人以为只选中了一条。展开在行里而不是列表
+    /// 下面另起一条，是为了点一下看细节时视线不离开那一行，列表也不跳。
+    /// </summary>
+    private void RefreshRowDetails()
+    {
+        var only = _selection.Count == 1 ? _selection[0] : null;
+        foreach (var row in Rows)
+        {
+            row.ShowsDetail = row.IsStep && ReferenceEquals(row.Step, only);
+
+            // A branch row stands for its branch, so picking one lights it up the same way a step
+            // lights up its own row.
+            row.IsPicked = (row.IsStep || row.IsCase) && row.Step is { } step && _selection.Contains(step);
+        }
     }
 
     /// <summary>
@@ -2557,6 +2557,18 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     public string NewStepId() => StepIds.Next(AllIds());
 
+    /// <summary>
+    /// An id no step of this macro is using, counting names another form has already handed out but
+    /// not yet put in the list. A form that adds two branches in one visit needs that: neither is
+    /// in the macro until it is saved, so the first would be drawn again for the second.
+    /// </summary>
+    public string NewStepId(ISet<string> reserved)
+    {
+        var taken = AllIds();
+        taken.UnionWith(reserved);
+        return StepIds.Next(taken);
+    }
+
     /// <summary>Every name in use anywhere in this macro, nested steps and conditions included.</summary>
     private HashSet<string> AllIds()
     {
@@ -2736,65 +2748,15 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// The list a drop in front of this row lands in, and where in that list. The rows are what
-    /// is read rather than the steps, because a head row means "the top of this block's steps"
-    /// and a foot row means "the end of them", and neither of those is a step.
+    /// Locks the place a dropped action will occupy. The form opens after this, so the tree cannot
+    /// move the target under the person while they fill the fields.
     /// </summary>
-    private (IList<MacroStep> List, int Index) DropTarget(int slot)
+    public void PrepareInsertionAt(IList<MacroStep> list, int index)
     {
-        if (slot < 0 || slot >= Rows.Count)
-        {
-            return (Steps, Steps.Count);
-        }
+        _insertAt = TargetForList(list, index);
 
-        var row = Rows[slot];
-
-        // A head row is the top of the steps it names, a foot row is the end of the block it
-        // closes, and any other row is the step itself, dropped in front of.
-        if (row.Kind is StepRowKind.Head && row.List is { } head)
-        {
-            return (head.Steps, 0);
-        }
-
-        if (row.Kind is StepRowKind.Foot && row.Step.StepLists.LastOrDefault() is { } last)
-        {
-            return (last.Steps, last.Steps.Count);
-        }
-
-        return (row.List?.Steps ?? (IList<MacroStep>)Steps, Math.Max(0, row.Index));
-    }
-
-    /// <summary>
-    /// Locks the place a dropped action will occupy. The form opens after this, so the list cannot
-    /// move the target under it while the person fills the fields.
-    /// </summary>
-    public void PrepareInsertionAt(int slot, MacroStep? into)
-    {
-        if (TargetAt(slot, into) is not { } target)
-        {
-            return;
-        }
-
-        if (into is not null)
-        {
-            into.IsExpanded = true;
-        }
-
-        _insertAt = target;
-    }
-
-    /// <summary>The exact insertion target at a visible seam, or at the end of a single-list block.</summary>
-    private StepInsertionTarget? TargetAt(int slot, MacroStep? into)
-    {
-        if (into is not null)
-        {
-            return into.StepLists.FirstOrDefault() is { } parameter
-                ? new StepInsertionTarget(parameter.Steps, parameter.Steps.Count, into, parameter)
-                : null;
-        }
-
-        var (list, index) = DropTarget(slot);
-        return TargetForList(list, index);
+        // Opening the way to the list is what makes the step visible once it is added.
+        ShowInside(list);
     }
 
     /// <summary>The target for a known list, including the owner's declaration that restricts it.</summary>
@@ -2831,7 +2793,27 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Where a step asked for now should go: below the picked one, in its own block.</summary>
     private StepInsertionTarget? InsertionPoint()
     {
-        if (Ordered(_selection).LastOrDefault() is not { } anchor || OwnerOf(anchor) is not { } at)
+        if (Ordered(_selection).LastOrDefault() is not { } anchor)
+        {
+            return null;
+        }
+
+        // Picking a block means "add inside it": it runs one list, so there is only one place that
+        // could mean, and it is where a person who just picked the loop wants the step to land.
+        if (anchor.StepLists.Count() == 1 && anchor.StepLists.First() is { } body)
+        {
+            return new StepInsertionTarget(body.Steps, body.Steps.Count, anchor, body);
+        }
+
+        // A switch keeps its branches in one list, and picking the switch then adding a step is how
+        // a new branch is made: the palette already narrows that list to the branch step, so what
+        // arrives is a branch and not a stray action inside the table.
+        if (anchor.StepLists.FirstOrDefault(list => list.Name == "cases") is { } branches)
+        {
+            return new StepInsertionTarget(branches.Steps, branches.Steps.Count, anchor, branches);
+        }
+
+        if (OwnerOf(anchor) is not { } at)
         {
             return null;
         }
@@ -2860,27 +2842,14 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Puts the picked steps inside a block, at the end of the steps it runs. This is what a drop
-    /// onto the block itself asks for, as opposed to a drop between two rows.
+    /// Puts the picked steps inside a block, at the end of the first list it runs. A block that
+    /// runs several lists leaves the choice to the row of the list meant — a drop there names the
+    /// list itself rather than the block.
     /// </summary>
     public void MoveSelectionInto(MacroStep block)
     {
         if (block.StepLists.FirstOrDefault() is not { } parameter || _selection.Count == 0)
         {
-            return;
-        }
-
-        if (Ordered(_selection).Any(step => IsInside(parameter.Steps, step)))
-        {
-            ReportPlacementRefusal(Strings.Get("Editor.PlaceIntoItself"));
-            return;
-        }
-
-        if (PlacementRefusal(
-                new StepInsertionTarget(parameter.Steps, parameter.Steps.Count, block, parameter),
-                Ordered(_selection)) is { } refusal)
-        {
-            ReportPlacementRefusal(refusal);
             return;
         }
 
@@ -2927,16 +2896,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Puts the selected steps where a drag dropped them. <paramref name="slot"/> is the row the
-    /// block would land in front of, counted against the list as it stands now. The row is what
-    /// says which block the steps land in, so one drag can carry a step out of a loop, into one,
-    /// or past the line that closes a block.
+    /// Puts the selected steps where a drag dropped them: into <paramref name="list"/> in front of
+    /// <paramref name="index"/>. The list is what says which block the steps land in, so one drag
+    /// can carry a step out of a loop, into one, or past the line that closes a block.
     /// </summary>
-    public void MoveSelectionTo(int slot)
-    {
-        var (target, index) = DropTarget(slot);
-        MoveSelectionToTarget(target, index);
-    }
+    public void MoveSelectionTo(IList<MacroStep> list, int index)
+        => MoveSelectionToTarget(list, index);
 
     /// <summary>
     /// Moves the picked steps into a list of steps at a position. A step is never moved into
@@ -3016,6 +2981,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(SelectedSteps));
         RefreshPaletteState();
+        RefreshRowDetails();
     }
 
     /// <summary>
@@ -3029,12 +2995,14 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();
         RefreshVariableCenter();
+        RefreshRowDetails();
         SelectionRefreshRequested?.Invoke();
     }
 
     /// <summary>
-    /// Lays the steps out as rows, opening the blocks that are not folded away. Every row is
-    /// rebuilt rather than patched, so what the list shows can never drift from the steps.
+    /// Lays the steps out as a tree. Every node is rebuilt rather than patched, so what the tree
+    /// shows can never drift from the steps; folding is left alone, because a folded block is a
+    /// hidden child rather than a missing one.
     /// </summary>
     private void RebuildRows()
     {
@@ -3044,7 +3012,42 @@ public partial class MacroEditorViewModel : ViewModelBase
         try
         {
             Rows.Clear();
-            AddRows(Steps, null, 0);
+            Roots.Clear();
+            AddNodes(Steps, null, 0, [], Roots);
+            Flatten(Roots);
+            RefreshRowDetails();
+        }
+        finally
+        {
+            _valuesToEdit = null;
+            IsRebuildingRows = false;
+        }
+    }
+
+    /// <summary>Numbers the nodes that are on screen, in document order.</summary>
+    private void Flatten(IEnumerable<StepRow> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            node.RowIndex = Rows.Count;
+            Rows.Add(node);
+
+            if (node.IsExpanded)
+            {
+                Flatten(node.Children);
+            }
+        }
+    }
+
+    /// <summary>Reads the rows on screen off the tree again, after something opened or closed.</summary>
+    private void Reshape()
+    {
+        IsRebuildingRows = true;
+        try
+        {
+            Rows.Clear();
+            Flatten(Roots);
+            RefreshRowDetails();
         }
         finally
         {
@@ -3088,50 +3091,231 @@ public partial class MacroEditorViewModel : ViewModelBase
         MarkDirty();
         RefreshProblems();
     }
-    private void AddRows(IList<MacroStep> steps, StepParameter? owner, int depth)
+    private void AddNodes(IList<MacroStep> steps, StepParameter? owner, int depth,
+        IReadOnlyList<bool> continues, IList<StepRow> into)
     {
         for (var index = 0; index < steps.Count; index++)
         {
             var step = steps[index];
             step.EnsureDeclaredLists();
-            Rows.Add(new StepRow
+            var lists = step.StepLists.ToList();
+
+            var hasNext = index < steps.Count - 1;
+            var row = new StepRow
             {
                 Kind = StepRowKind.Step,
                 Step = step,
                 List = owner,
                 Index = index,
-                RowIndex = Rows.Count,
                 Depth = depth,
                 Problem = _problemByStep.GetValueOrDefault(step) ?? string.Empty,
-            });
+                Folded = OnRowFolded,
+            };
+            row.Guide(depth, continues, hasNext, hasBox: lists.Count > 0);
+            into.Add(row);
 
-            var lists = step.StepLists.ToList();
-            if (lists.Count == 0 || !step.IsExpanded)
+            if (lists.Count == 0)
             {
                 continue;
             }
 
-            foreach (var list in lists)
+            // Every list a block runs gets a row of its own, one list or several: it is the body a
+            // person drags into, and without it there is nothing on screen that says where the
+            // block's steps begin and end.
+            var deeper = continues.Append(hasNext).ToList();
+            for (var seat = 0; seat < lists.Count; seat++)
             {
-                Rows.Add(new StepRow
+                var list = lists[seat];
+                var sectionNext = seat < lists.Count - 1;
+
+                // A switch is a table of values, so it reads as one: every branch is a row named by
+                // the values it catches, with its steps underneath. A section called "cases" holding
+                // a node per branch spends two levels of indentation on one line of content, and the
+                // values — the only thing that tells one branch from another — end up buried in the
+                // node's summary.
+                if (IsBranches(step, list))
                 {
-                    Kind = StepRowKind.Head,
+                    AddBranches(list, row, depth, deeper, sectionNext);
+                    continue;
+                }
+                var section = new StepRow
+                {
+                    Kind = StepRowKind.Section,
                     Step = step,
                     List = list,
-                    RowIndex = Rows.Count,
                     Depth = depth + 1,
-                });
+                    Folded = OnRowFolded,
+                };
+                section.Guide(depth + 1, deeper, sectionNext, hasBox: false);
+                row.Children.Add(section);
 
-                AddRows(list.Steps, list, depth + 2);
+                var bodyContinues = deeper.Append(sectionNext).ToList();
+                AddNodes(list.Steps, list, depth + 2, bodyContinues, section.Children);
+            }
+        }
+    }
+
+    /// <summary>
+    /// True on the list a switch keeps its branches in. It is read as a table whether or not it
+    /// holds a branch yet: an empty switch still needs the line that adds the first one, and a
+    /// section titled "branches" with nothing under it says neither what a branch is nor how to
+    /// make one.
+    /// </summary>
+    private static bool IsBranches(MacroStep step, StepParameter list)
+        => step.Type == "control.switch"
+            && list.Name == "cases"
+            && list.Steps.All(branch => branch.Type == "control.case");
+
+    /// <summary>
+    /// Lays a switch's branches out as one row each: the row is named by the branch's values, and
+    /// the branch's own steps hang under it, so the whole switch reads as a table of values. The
+    /// table ends with the line that adds the next branch.
+    /// </summary>
+    private void AddBranches(StepParameter list, StepRow block, int depth,
+        IReadOnlyList<bool> continues, bool lastList)
+    {
+        for (var index = 0; index < list.Steps.Count; index++)
+        {
+            var choice = list.Steps[index];
+            choice.EnsureDeclaredLists();
+            var body = choice.StepLists.FirstOrDefault();
+            var hasNext = index < list.Steps.Count - 1 || lastList;
+
+            var section = new StepRow
+            {
+                Kind = StepRowKind.Section,
+                Step = choice,
+                List = body,
+                Depth = depth + 1,
+                Folded = OnRowFolded,
+                ValuesEdited = OnRowValuesEdited,
+            };
+
+            // A branch that was just added opens its values for typing: a branch is one line of
+            // values and the steps that run for them, and until the values are written it matches
+            // nothing. This is the one moment the form knows what the person came here to type.
+            if (ReferenceEquals(choice, _valuesToEdit))
+            {
+                section.BeginEditingValues();
             }
 
-            Rows.Add(new StepRow
+            section.Guide(depth + 1, continues, hasNext, hasBox: false);
+            block.Children.Add(section);
+
+            if (body is not null)
             {
-                Kind = StepRowKind.Foot,
-                Step = step,
-                RowIndex = Rows.Count,
-                Depth = depth,
-            });
+                AddNodes(body.Steps, body, depth + 2, continues.Append(hasNext).ToList(), section.Children);
+            }
+        }
+
+        _valuesToEdit = null;
+
+        // The foot of the table. A branch cannot be dragged in from the library the way every other
+        // step can — there is no branch card — so the block offers it here, where the next branch
+        // would be written, rather than relying on "pick the switch, then ask for a step".
+        var foot = new StepRow
+        {
+            Kind = StepRowKind.Add,
+            Step = block.Step,
+            List = list,
+            Depth = depth + 1,
+            Folded = OnRowFolded,
+        };
+        foot.Guide(depth + 1, continues, lastList, hasBox: false);
+        block.Children.Add(foot);
+    }
+
+    /// <summary>The branch a freshly added row is about to open for its values, if any.</summary>
+    private MacroStep? _valuesToEdit;
+
+    /// <summary>
+    /// Adds a branch under a switch and opens its values for typing. The branch starts with no
+    /// values, which is what "no branch matches this yet" honestly is: guessing one would put a
+    /// value the user never wrote into the macro.
+    /// </summary>
+    public MacroStep? AddBranch(MacroStep block)
+    {
+        if (block.StepLists.FirstOrDefault(list => list.Name == "cases") is not { } cases)
+        {
+            return null;
+        }
+
+        PushUndo();
+        block.IsExpanded = true;
+
+        var branch = new MacroStep
+        {
+            Type = "control.case",
+            Id = NewStepId(),
+            Meta = StepMeta.New,
+            Parameters =
+            [
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps },
+            ],
+        };
+
+        cases.Steps.Add(branch);
+        _valuesToEdit = branch;
+        SettleStepIds();
+        RestoreSelection([branch]);
+        NotifyStepsChanged();
+        return branch;
+    }
+
+    /// <summary>
+    /// A branch's values were typed in and kept. They are written into the step as they are typed,
+    /// so there is nothing to copy here — only a macro that has been changed, and a check that may
+    /// have something new to say about the switch.
+    /// </summary>
+    private void OnRowValuesEdited(StepRow row)
+    {
+        MarkDirty();
+        RefreshProblems();
+    }
+
+    /// <summary>
+    /// A run of steps went out of sight, so the selection follows: a step nobody can see must not
+    /// be the one a delete or a cut acts on.
+    /// </summary>
+    private void OnRowFolded(StepRow row, bool expanded)
+    {
+        if (!expanded && _selection.Count > 0)
+        {
+            var visible = VisibleSteps().ToHashSet();
+            if (_selection.Any(selected => !visible.Contains(selected)))
+            {
+                var kept = _selection.Where(visible.Contains).ToList();
+                RestoreSelection(kept.Count > 0 ? kept : [row.Step]);
+            }
+        }
+
+        Reshape();
+        SelectionRefreshRequested?.Invoke();
+    }
+
+    /// <summary>The steps on screen: those whose block, and whose section, are open.</summary>
+    private IEnumerable<MacroStep> VisibleSteps()
+        => Visible(Roots);
+
+    private static IEnumerable<MacroStep> Visible(IEnumerable<StepRow> rows)
+    {
+        foreach (var row in rows)
+        {
+            if (row.IsStep)
+            {
+                yield return row.Step;
+            }
+
+            if (!row.IsExpanded)
+            {
+                continue;
+            }
+
+            foreach (var step in Visible(row.Children))
+            {
+                yield return step;
+            }
         }
     }
 

@@ -172,7 +172,8 @@ public class ActionEditorWindowTests
             var form = (AddActionViewModel)window.DataContext!;
             var condition = form.Parameters.Single(parameter =>
                 parameter.Definition.Name == "condition");
-            Assert.True(condition.IsExpression);
+            Assert.True(condition.IsCondition);
+            Assert.NotNull(condition.ConditionEditor);
             Assert.False(condition.IsNested);
             window.Close();
         });

@@ -1095,7 +1095,8 @@ internal static class McpPatches
     private static bool HoldsRows(ActionParameterKind kind)
         => kind is ActionParameterKind.Region or ActionParameterKind.KeySequence
             or ActionParameterKind.Images or ActionParameterKind.Returns
-            or ActionParameterKind.Arguments or ActionParameterKind.Narrow;
+            or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+            or ActionParameterKind.ColourPoints;
 
     /// <summary>Inserts one step into a named list, held to the child-list rules of that list.</summary>
     private static Refusal? Insert(MacroItem macro, JsonObject operation, List<Touch> touches)

@@ -44,6 +44,12 @@ public class ActionPageTests
         {
             yield return third.Definition.Name;
         }
+
+        // 一个矩形的四个数一行说完，第四个也在这条线上。
+        if (row.Fourth is { } fourth)
+        {
+            yield return fourth.Definition.Name;
+        }
     }
 
     /// <summary>
@@ -301,10 +307,11 @@ public class ActionPageTests
     /// the field it belongs to rather than taking a line of its own.
     /// </summary>
     [Theory]
-    [InlineData("input.mouseClick", "button")]
-    [InlineData("input.mouseDoubleClick", "button")]
-    [InlineData("input.mouseDown", "button")]
-    [InlineData("input.mouseUp", "button")]
+    // 它坐在「点哪儿」那一行的末尾：点不点在指针当前位置，问的是位置，不是按哪个键。
+    [InlineData("input.mouseClick", "x")]
+    [InlineData("input.mouseDoubleClick", "x")]
+    [InlineData("input.mouseDown", "x")]
+    [InlineData("input.mouseUp", "x")]
     [InlineData("input.mouseScroll", "x")]
     public void The_switch_for_working_at_the_pointer_rides_the_line_it_belongs_to(
         string action, string line)
@@ -373,6 +380,15 @@ public class ActionPageTests
             var basic = viewModel.Rows.SelectMany(Names).ToList();
             var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
+            if (action == "ocr.recognize")
+            {
+                // 识别文字与"搜索区域"那几行同一个结构：一处一行，四个数、或者一个变量。
+                Assert.Contains("region", basic);
+                Assert.DoesNotContain("x", basic);
+                Assert.DoesNotContain("region", advanced);
+                return;
+            }
+
             Assert.Contains("x", basic);
             Assert.Contains("y", basic);
             Assert.Contains("width", basic);
@@ -390,8 +406,8 @@ public class ActionPageTests
     /// </summary>
     [Theory]
     [InlineData("vision.waitColor")]
-    [InlineData("vision.findColor")]
-    public void The_colour_of_a_pixel_is_asked_for_above_the_pixel(string action)
+    [InlineData("vision.matchColor")]
+    public void The_colour_of_a_pixel_is_asked_for_after_the_pixel(string action)
     {
         Ui.Run(() =>
         {
@@ -403,7 +419,8 @@ public class ActionPageTests
 
             Assert.True(colour >= 0, "the colour is not on a line of its own");
             Assert.True(where >= 0, "the pixel is not on a line of its own");
-            Assert.True(colour < where, "the colour is asked for below the pixel it belongs to");
+            // 分块之后先问“看哪一个点”，再问“什么颜色”：一块只问一件事，位置是它的第一件事。
+            Assert.True(where < colour, "the colour is asked for before the pixel it belongs to");
         });
     }
 
@@ -480,7 +497,9 @@ public class ActionPageTests
             {
                 var viewModel = Open(action.Key);
                 var drawn = viewModel.ReturnsRows.Select(row => row.Key).ToList();
-                var declared = action.Returns.Select(result => result.Key).ToList();
+                // 引擎照旧算、老宏照旧取，只是「怎么取到画面的」这类结果不再列出来。
+                var declared = action.Returns.Where(result => !result.Hidden)
+                    .Select(result => result.Key).ToList();
 
                 if (!drawn.SequenceEqual(declared, StringComparer.Ordinal))
                 {
@@ -564,12 +583,12 @@ public class ActionPageTests
     /// pages stop being readable in.
     /// </summary>
     [Theory]
-    // A 1080p screen: the size it was designed at, with room to spare.
-    [InlineData(1920, 1040, 1024, 800)]
-    // The 1366 by 768 laptop: narrower than the four pages want, so it takes what there is.
-    [InlineData(1366, 768, 1024, 688)]
-    // A desktop too small even for the least it will open at, so it goes below what is left.
-    [InlineData(800, 600, 900, 560)]
+    // 1080p：桌面有的是地方，它也只取最窄那一档——这是一张表，不是一块画布。
+    [InlineData(1920, 1040, 800, 800)]
+    // 1366×768 的笔记本：宽度还是那一档，高度按桌面剩下的来。
+    [InlineData(1366, 768, 800, 688)]
+    // 连最窄都摆不下的桌面，宽度仍守在最窄一档。
+    [InlineData(800, 600, 800, 560)]
     public void The_dialog_opens_at_a_size_the_desktop_has_room_for(
         double roomWidth, double roomHeight, double width, double height)
     {
@@ -582,18 +601,18 @@ public class ActionPageTests
     /// window, and no wider than that room.
     /// </summary>
     [Theory]
-    // A wide desktop with the editor in the middle: the whole form fits on its right.
-    [InlineData(0, 0, 2560, 1040, 490, 100, 940, 780, 1430, 100, 1024)]
+    // A wide desktop with the editor in the middle: the form stands on its right, at the narrow size.
+    [InlineData(0, 0, 2560, 1040, 490, 100, 940, 780, 1430, 100, 800)]
     // The editor pushed to the right: the room is now on its left.
-    [InlineData(0, 0, 2560, 1040, 1500, 100, 940, 780, 476, 100, 1024)]
+    [InlineData(0, 0, 2560, 1040, 1500, 100, 940, 780, 700, 100, 800)]
     // The same room on both sides: it takes the right.
-    [InlineData(0, 0, 2600, 1040, 830, 100, 940, 780, 1770, 100, 830)]
+    [InlineData(0, 0, 2600, 1040, 830, 100, 940, 780, 1770, 100, 800)]
     // Room on one side, but not the width the form would like: it takes what there is.
-    [InlineData(0, 0, 1920, 1040, 0, 0, 940, 780, 940, 0, 980)]
+    [InlineData(0, 0, 1920, 1040, 0, 0, 940, 780, 940, 0, 800)]
     // The editor sits low: the form is pulled up to stay on the desktop.
-    [InlineData(0, 0, 2560, 1040, 400, 700, 940, 780, 1340, 240, 1024)]
+    [InlineData(0, 0, 2560, 1040, 400, 700, 940, 780, 1340, 240, 800)]
     // A second monitor beside the first: the room is measured from that desktop's own edge.
-    [InlineData(1920, 0, 1920, 1040, 2000, 100, 940, 780, 2940, 100, 900)]
+    [InlineData(1920, 0, 1920, 1040, 2000, 100, 940, 780, 2940, 100, 800)]
     public void The_dialog_stands_beside_the_window_it_was_opened_from_where_there_is_room(
         double desktopX, double desktopY, double desktopWidth, double desktopHeight,
         double windowX, double windowY, double windowWidth, double windowHeight,
@@ -700,40 +719,6 @@ public class ActionPageTests
             finally
             {
                 window.Close();
-            }
-        });
-    }
-
-    /// <summary>
-    /// 一步里“四个数从哪儿量”只说一次。那句话管的是同一个基准，说两遍像是有两条互不相干的规定；
-    /// 搜索区域那块曾经自己说一次、字段末尾又说一次。
-    /// </summary>
-    [Fact]
-    public void The_basis_of_the_numbers_is_said_once_per_step()
-    {
-        Ui.Run(() =>
-        {
-            foreach (var key in new[] { "vision.findColors", "vision.findImage", "input.mouseClick" })
-            {
-                var viewModel = Open(key);
-                var view = new ActionEditorView { DataContext = viewModel };
-                var window = new Window { Width = 1024, Height = 900, Content = view };
-                window.Show();
-                Dispatcher.UIThread.RunJobs();
-
-                var said = 0;
-                foreach (var page in viewModel.Pages.Where(page => page.IsPresent).ToList())
-                {
-                    viewModel.Select(page);
-                    Dispatcher.UIThread.RunJobs();
-                    said += view.GetVisualDescendants().OfType<TextBlock>()
-                        .Count(block => block.IsEffectivelyVisible
-                            && block.Text?.Contains("识别基准", StringComparison.Ordinal) == true);
-                }
-
-                window.Close();
-
-                Assert.True(said == 1, $"{key}: the basis is said {said} times");
             }
         });
     }

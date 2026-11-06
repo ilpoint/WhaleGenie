@@ -113,6 +113,7 @@ public sealed partial class MacroRunner
         // the message and the flag on the steps after this one.
         Give(step, "output", Value.FromText(output));
         Give(step, "error", Value.FromText(error));
+        Give(step, "exitCode", Value.FromNumber(exitCode));
         Give(step, "success", Value.FromBool(exitCode == 0));
 
         if (exitCode != 0)
@@ -339,6 +340,7 @@ public sealed partial class MacroRunner
     {
         Give(step, "packages", outcome.Result);
         Give(step, "error", Value.FromText(outcome.Error.Trim()));
+        Give(step, "exitCode", Value.FromNumber(outcome.ExitCode));
         Give(step, "success", Value.FromBool(
             outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
 
@@ -371,6 +373,10 @@ public sealed partial class MacroRunner
     {
         Give(step, resultKey, outcome.Result);
         Give(step, "error", Value.FromText(outcome.Error.Trim()));
+
+        // 退出码单独交回一份，而不是只留一个「成功与否」：脚本常用不同的代码说不同的意思，
+        // 失败规则放行之后，后面的步骤要按它分支就得看得见这个数。
+        Give(step, "exitCode", Value.FromNumber(outcome.ExitCode));
         Give(step, "success", Value.FromBool(
             outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
 
@@ -708,8 +714,49 @@ public sealed partial class MacroRunner
     private UiQuery Query(ExecutableStep step)
     {
         var rule = WindowRuleOf(step);
-        return UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
+        var query = UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
             Index(step, "matchIndex", 1), rule.Reading.Match, rule.Reading.Compare, rule.Options);
+        return query with { Narrow = NarrowConditions(step) };
+    }
+
+    /// <summary>
+    /// 元素除了选择器说的那几项，还得像什么样：一行一条，全部同时成立。两件事分得很清楚——
+    /// 选择器说它叫什么，这里说它在不在屏幕上、能不能用、名字里有没有一段字。
+    /// </summary>
+    /// <remarks>
+    /// 没填「哪一种」的行当它不存在：那是一个还没写完的表单，不是一条谁都没要的条件。写了
+    /// 一个引擎不认识的方式则报错，不放过：少了一个条件，这一步会落到另一个元素上，而且不说。
+    /// 要一段字的两条，字没写也当不存在；「看得见」「能用」本来就不需要字，空着才是它们的样子。
+    /// </remarks>
+    private IReadOnlyList<UiCondition> NarrowConditions(ExecutableStep step)
+    {
+        var conditions = new List<UiCondition>();
+        foreach (var row in step.Rows("narrow"))
+        {
+            var how = (row.GetValueOrDefault(FieldNames.How) ?? string.Empty).Trim();
+            if (how.Length == 0)
+            {
+                continue;
+            }
+
+            if (!Enum.TryParse<UiConditionHow>(how, ignoreCase: true, out var kind))
+            {
+                throw new StepFailure(RunKeys.ElementBadCondition, how);
+            }
+
+            var value = kind is UiConditionHow.NameHas or UiConditionHow.NameHasNot
+                ? Interpolate(row.GetValueOrDefault(FieldNames.Value) ?? string.Empty).Trim()
+                : string.Empty;
+
+            if (kind is (UiConditionHow.NameHas or UiConditionHow.NameHasNot) && value.Length == 0)
+            {
+                continue;
+            }
+
+            conditions.Add(new UiCondition(kind, value));
+        }
+
+        return conditions;
     }
 
     /// <summary>

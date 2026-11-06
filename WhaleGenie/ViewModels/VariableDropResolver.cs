@@ -52,7 +52,8 @@ public static class VariableDropResolver
         }
 
         if (target.Kind is ActionParameterKind.Text or ActionParameterKind.MultilineText
-            or ActionParameterKind.Expression or ActionParameterKind.Variable
+            or ActionParameterKind.Expression or ActionParameterKind.Condition
+            or ActionParameterKind.Variable
             or ActionParameterKind.Macro or ActionParameterKind.Step
             or ActionParameterKind.Color)
         {

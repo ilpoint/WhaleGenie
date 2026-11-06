@@ -22,6 +22,26 @@ public partial class ActionPaletteView : UserControl
         AddHandler(PointerPressedEvent, OnCardPressed, RoutingStrategies.Tunnel, true);
         AddHandler(PointerMovedEvent, OnCardMoved, RoutingStrategies.Tunnel, true);
         AddHandler(PointerReleasedEvent, OnCardReleased, RoutingStrategies.Tunnel, true);
+
+        // 双击卡片等于「把这张动作放到当前落点」：拖放要真的按住拖过去，键盘和自动化都做不来，
+        // 而双击是最自然、也最容易用键盘触发的等价动作。
+        AddHandler(DoubleTappedEvent, OnCardDoubleTapped, RoutingStrategies.Bubble, true);
+    }
+
+    /// <summary>Raised when a card is double-clicked, with the card that was.</summary>
+    internal event Action<ActionPaletteCardViewModel>? CardActivated;
+
+    private void OnCardDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Source is not Visual source
+            || source.FindAncestorOfType<Button>(true) is not
+            { DataContext: ActionPaletteCardViewModel card })
+        {
+            return;
+        }
+
+        e.Handled = true;
+        CardActivated?.Invoke(card);
     }
 
     internal event Action<MacroItemReference>? SubMacroChosen;

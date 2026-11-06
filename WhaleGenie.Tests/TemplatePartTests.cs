@@ -31,6 +31,10 @@ public class TemplatePartTests
     /// </summary>
     private static readonly (string Type, string Classes, string Part)[] Reaching =
     [
+        // 单选卡：整份模板重写过，卡边框与圆点都是自己命名的部件。
+        ("RadioButton", "ChoiceCard", "Border#Card"),
+        ("RadioButton", "ChoiceCard", "Border#Dot"),
+        ("RadioButton", "ChoiceCard", "Border#Pip"),
         ("Button", "", "ContentPresenter"),
         ("Button", "BottomButton", "ContentPresenter"),
         ("Button", "Breakpoint on", "ContentPresenter"),
@@ -43,11 +47,7 @@ public class TemplatePartTests
         ("Button", "Chrome Icon pinned", "ContentPresenter"),
         ("Button", "Chrome Labeled", "ContentPresenter"),
         ("Button", "CopyButton", "ContentPresenter"),
-        ("Button", "ExprOption", "ContentPresenter"),
-        ("Button", "ExprTab", "ContentPresenter"),
-        ("Button", "ExprTab on", "ContentPresenter"),
         ("Button", "Field", "ContentPresenter"),
-        ("Button", "FnCard", "ContentPresenter"),
         ("Button", "Ghost", "ContentPresenter"),
         ("Button", "Ghost RemoveButton", "ContentPresenter"),
         ("Button", "Ghost Tiny", "ContentPresenter"),
@@ -67,10 +67,25 @@ public class TemplatePartTests
         ("Button", "Tab Inline Solid", "ContentPresenter"),
         ("Button", "Tab Root", "ContentPresenter"),
         ("Button", "Tab Side", "ContentPresenter"),
+        ("Button", "VarRow", "ContentPresenter"),
+        ("Button", "Section", "ContentPresenter"),
+        ("Button", "ValueChip", "ContentPresenter"),
+        ("Button", "Op", "ContentPresenter"),
+        ("Button", "ExprChip", "ContentPresenter"),
+        ("Button", "ChipWord", "ContentPresenter"),
+        // 当前那一类：选中的分类按钮自己画底色，悬停那一条也压住，模板里的这层亮面是唯一落点。
+        ("Button", "ChipWord on", "ContentPresenter"),
+        // 插槽上的两枚小按钮：参数的叉与表头的撤销恢复，各自画自己的悬停。
+        ("Button", "SlotRemove", "ContentPresenter"),
+        ("Button", "SlotStep", "ContentPresenter"),
         ("Button", "Thumb", "ContentPresenter"),
         ("ToggleButton", "Chip", "ContentPresenter"),
         ("ToggleButton", "Chip Key", "ContentPresenter"),
         ("ListBoxItem", "", "ContentPresenter"),
+        // 树的行：选中态由卡片自己画，模板里那层底与那条小竖条都让开。
+        ("TreeViewItem", "", "Border#PART_LayoutRoot"),
+        ("TreeViewItem", "", "Grid#PART_Header"),
+        ("TreeViewItem", "", "ToggleButton#PART_ExpandCollapseChevron"),
         ("ScrollViewer", "VarWallScroll", "ScrollBar#PART_VerticalScrollBar"),
     ];
 
@@ -83,6 +98,7 @@ public class TemplatePartTests
     [
         "GridSplitter.RunSplit /template/ Border#SplitLine",
         "GridSplitter.SplitVertical /template/ Border#SplitLine",
+        "GridSplitter.BandGrip /template/ Border#Grip",
     ];
 
     [Fact]
@@ -247,11 +263,35 @@ public class TemplatePartTests
 
         foreach (var file in files)
         {
-            foreach (Match match in Regex.Matches(File.ReadAllText(file), @"Selector=""([^""]+)"""))
+            var text = File.ReadAllText(file);
+            foreach (Match match in Regex.Matches(text, @"Selector=""([^""]+)"""))
             {
-                yield return match.Groups[1].Value;
+                var selector = match.Groups[1].Value;
+
+                // A style nested in a ControlTheme starts with `^`, which means "the control this
+                // theme is for". Reading it as a type name would ask for a control called `^`.
+                if (selector.StartsWith('^') && ThemeOwner(text, match.Index) is { } owner)
+                {
+                    selector = owner + selector[1..];
+                }
+
+                yield return selector;
             }
         }
+    }
+
+    /// <summary>The target type of the control theme a selector sits inside, if it sits in one.</summary>
+    private static string? ThemeOwner(string text, int at)
+    {
+        var start = text.LastIndexOf("TargetType=\"", at, StringComparison.Ordinal);
+        if (start < 0)
+        {
+            return null;
+        }
+
+        start += "TargetType=\"".Length;
+        var end = text.IndexOf('"', start);
+        return end < 0 ? null : text[start..end];
     }
 
     /// <summary>
@@ -277,8 +317,11 @@ public class TemplatePartTests
         "Button" => new Button { Content = "x" },
         "ToggleButton" => new ToggleButton { Content = "x" },
         "ListBoxItem" => new ListBoxItem { Content = "x" },
+        "TreeViewItem" => new TreeViewItem { Header = "x" },
         "ScrollViewer" => new ScrollViewer { Content = new TextBlock { Text = "x" } },
         "GridSplitter" => new GridSplitter(),
+        // 单选卡：模板整份重写过，卡、圆点、圆心里的小点都是它自己的部件。
+        "RadioButton" => new RadioButton { Content = "x" },
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "no probe for this host"),
     };
 

@@ -236,6 +236,18 @@ public enum MatchOrder
     /// <summary>Down the screen first and then across, the order a person counts them in.</summary>
     Reading,
 
+    /// <summary>
+    /// The same reading, from the bottom of the area upwards. A list of things stacked against the
+    /// bottom of a window is counted upwards, and the last one drawn is the one nearest the edge.
+    /// </summary>
+    ReadingUp,
+
+    /// <summary>The same reading, from the right of the area to the left.</summary>
+    ReadingBack,
+
+    /// <summary>From the bottom right corner of the area to the top left, the way round that is left.</summary>
+    ReadingBackUp,
+
     /// <summary>The surest first, wherever on the screen it is.</summary>
     Score,
 
@@ -305,6 +317,31 @@ public sealed record TextSpan(string Text, ScreenPoint Location, ScreenSize Size
 }
 
 /// <summary>
+/// One thing an element has to be like besides the way the selector names it. Only what UI
+/// Automation answers without hedging: that it is on screen, that it can be used right now, and
+/// that its name holds a run of letters. The last one is not the selector's wildcard written
+/// again — a wildcard anchors at one end or the whole string, and cannot say "somewhere in the
+/// middle".
+/// </summary>
+public enum UiConditionHow
+{
+    /// <summary>The one a person can see, rather than the hidden copy beside it.</summary>
+    Visible,
+
+    /// <summary>The one that can be used, rather than the greyed-out copy.</summary>
+    Enabled,
+
+    /// <summary>Its name holds this run of letters.</summary>
+    NameHas,
+
+    /// <summary>Its name holds no such run.</summary>
+    NameHasNot,
+}
+
+/// <summary>One such condition: which of them, and the letters a name has to hold.</summary>
+public sealed record UiCondition(UiConditionHow How, string Value = "");
+
+/// <summary>
 /// What to look for through UI Automation. Every part is optional. A window or a page often shows
 /// the same control many times over — five rows of one list, four identical buttons — so
 /// <paramref name="Index"/> says which of the matches a step means, counted the way a person counts
@@ -322,8 +359,37 @@ public sealed record UiQuery(
     int Index = 1,
     WindowMatch WindowMatch = WindowMatch.Title,
     string WindowCompare = TextCompare.Contains,
-    TextCompareOptions WindowOptions = default)
+    TextCompareOptions WindowOptions = default,
+    IReadOnlyList<UiCondition>? Narrow = null)
 {
+    /// <summary>
+    /// What else the element has to be like, all of it holding at once. A window often shows the
+    /// same control more than once — five rows of one list, two identical buttons, one of them
+    /// hidden — and the selector alone cannot say "the one I can see".
+    /// </summary>
+    public IReadOnlyList<UiCondition> Conditions => Narrow ?? [];
+
+    /// <summary>
+    /// True when a part of the query is written with wildcards, which cannot go into the search
+    /// condition: the provider only knows exact matches. Such a query is answered by walking what
+    /// the rest of it narrows down to and comparing by hand.
+    /// </summary>
+    public bool HasWildcard
+        => TextCompare.HasWildcard(Name)
+            || TextCompare.HasWildcard(AutomationId)
+            || TextCompare.HasWildcard(ClassName);
+
+    /// <summary>
+    /// Whether one property of an element answers to what the query wrote for it: with `*` and `?`
+    /// when the writing has them (`Button[name='保存*']` is "a button whose name starts with 保存"),
+    /// and exactly, letter case aside, when it does not. Exact is the older behaviour and stays the
+    /// one for a selector without wildcards, so nothing written before this changes meaning.
+    /// </summary>
+    public static bool Answers(string? text, string written)
+        => TextCompare.HasWildcard(written)
+            ? TextCompare.Wildcard(text, written)
+            : string.Equals(text, written, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when the query would match anything, which is never what was meant.</summary>
     public bool IsEmpty
         => string.IsNullOrWhiteSpace(Name)

@@ -58,8 +58,7 @@ public class ExpressionFieldTests
         ["input.mouseDrag"] = ["startPlace", "endPlace"],
         ["vision.waitColor"] = ["place"],
         ["vision.getPixel"] = ["place"],
-        ["vision.findColor"] = ["place"],
-        ["vision.findColors"] = ["place"],
+        ["vision.matchColor"] = ["place"],
         ["vision.capture"] = ["rect"],
         ["ocr.recognize"] = ["rect"],
         ["window.move"] = ["rect"],
@@ -90,7 +89,8 @@ public class ExpressionFieldTests
                 // write the whole value as a formula; asking the catalogue to offer the builder
                 // again would draw the same question twice.
                 if (parameter.Kind is ActionParameterKind.Number
-                    or ActionParameterKind.Expression or ActionParameterKind.Color)
+                    or ActionParameterKind.Expression or ActionParameterKind.Condition
+                    or ActionParameterKind.Color)
                 {
                     Assert.Equal(WhaleGenie.Core.Execution.ActionReadMode.WholeValue,
                         parameter.ReadMode);

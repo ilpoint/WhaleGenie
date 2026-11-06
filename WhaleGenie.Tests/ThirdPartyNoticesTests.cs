@@ -42,9 +42,22 @@ public class ThirdPartyNoticesTests
         {
             var project_file = Path.Combine(Repository(), project, project + ".csproj");
             foreach (Match match in Regex.Matches(File.ReadAllText(project_file),
-                         "PackageReference Include=\"([^\"]+)\""))
+                         "<PackageReference\\b[^>]*?/?>", RegexOptions.Singleline))
             {
-                var package = match.Groups[1].Value;
+                // 只在某种配置下还原的包不进这张单子：这几行带着 $(Configuration) 条件，带来的是
+                // 开发时用的东西（自省、诊断），发布物里既没有它们的程序集，也没有它们引用的框架。
+                if (match.Value.Contains("$(Configuration)", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var included = Regex.Match(match.Value, "Include=\"([^\"]+)\"");
+                if (!included.Success)
+                {
+                    continue;
+                }
+
+                var package = included.Groups[1].Value;
                 if (!notices.Contains(package, StringComparison.OrdinalIgnoreCase))
                 {
                     missing.Add(package);

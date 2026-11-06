@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace WhaleGenie.Core.Devices.Platform;
@@ -196,12 +197,37 @@ internal static class WindowsAudio
     }
 
     /// <summary>
+    /// 放一个 wav 文件，不等它放完：宏不该为了三秒钟的提示音停在那里。同一时间只有这样一个声音，
+    /// 再放一个会把前一个打断——和系统自己播放时一样。文件不在就失败并说出是哪一个，而不是
+    /// 安静地什么都不放；文件读不出来时也不替它响一声默认提示音，那会让人以为放的就是自己的文件。
+    /// </summary>
+    public static void PlayFile(string path)
+    {
+        if (!File.Exists(path))
+        {
+            throw new DeviceActionException(RunKeys.FileNotFound, path);
+        }
+
+        if (!PlaySound(path, IntPtr.Zero, Async | NoDefault | FileName))
+        {
+            throw new DeviceActionException(RunKeys.SoundRefused);
+        }
+    }
+
+    /// <summary>
     /// Plays the sound Windows keeps for one kind of event. The four kinds are the ones the sound
     /// settings window lists by name; 0xFFFFFFFF asks for whatever the machine plays when nothing
     /// more particular is wanted.
     /// </summary>
     [DllImport("user32.dll")]
     private static extern bool MessageBeep(uint kind);
+
+    [DllImport("winmm.dll", EntryPoint = "PlaySoundW", CharSet = CharSet.Unicode)]
+    private static extern bool PlaySound(string sound, IntPtr module, uint flags);
+
+    private const uint Async = 0x0001;
+    private const uint NoDefault = 0x0002;
+    private const uint FileName = 0x00020000;
 
     private const uint Any = 0xFFFFFFFF;
     private const uint Stop = 0x00000010;

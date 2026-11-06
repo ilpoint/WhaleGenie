@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
@@ -29,6 +30,14 @@ public enum ActionParameterKind
     Images,
 
     /// <summary>
+    /// The colours a pattern wants around its base colour, edited as one row per colour: how far
+    /// right and how far down from the base colour, and the colour that has to be there. A cell may
+    /// be a number, a variable or a sum, so a pattern can be moved by a value another step worked
+    /// out rather than being retyped on every screen.
+    /// </summary>
+    ColourPoints,
+
+    /// <summary>
     /// The places on the screen to look at, edited as a list of rectangles that can be dragged out
     /// one by one: two halves of a screen are two rows rather than one line of punctuation. Each
     /// row says its own rectangle as four numbers, or names a variable holding one — or holding a
@@ -43,6 +52,13 @@ public enum ActionParameterKind
 
     /// <summary>A list of child steps, rendered as a nested step editor.</summary>
     Steps,
+
+    /// <summary>
+    /// A condition on a block, edited as comparisons: a table for "a and b and c", a tree for
+    /// "a and (b or c)". Both write the same expression the engine reads, so which view was used
+    /// is not something the saved macro remembers.
+    /// </summary>
+    Condition,
 
     /// <summary>
     /// A value written as an expression, edited with suggestions for the variables in
@@ -121,6 +137,19 @@ public enum ActionParameterKind
     Narrow,
 }
 
+/// <summary>
+/// 「还要像什么样」问的是哪一族元素。网页与桌面元素能问的事本来就不一样，所以不是一张更长
+/// 的表，而是两套各自的说法。
+/// </summary>
+public enum NarrowFamily
+{
+    /// <summary>网页：元素里的文字、里面有没有某个元素、在哪个容器里、看不看得见。</summary>
+    Page,
+
+    /// <summary>桌面元素：看不看得见、能不能用、名字里有没有一段字。</summary>
+    Element,
+}
+
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:
 /// the value written to JSON together with the text shown for it.</summary>
 public sealed record ActionParameterOption(string Value, string Display);
@@ -153,6 +182,12 @@ public sealed class ActionReturn
     /// is written and the one the rest are read next to.
     /// </summary>
     public bool Primary { get; init; }
+
+    /// <summary>
+    /// True for a result the engine works out but does not offer: how the picture was taken, which
+    /// window it came from. Nothing a macro does with it, so it is not put on the list.
+    /// </summary>
+    public bool Hidden { get; init; }
 
     /// <summary>Fully qualified key of the action this result belongs to.</summary>
     internal string OwnerKey { get; set; } = string.Empty;
@@ -223,6 +258,11 @@ public class ActionParameter
     /// </summary>
     public required ActionParameterSemantics Semantics { get; init; }
 
+    /// <summary>
+    /// The block of the form this field answers, or empty for a field that stands on its own.
+    /// </summary>
+    public string Group => Semantics.Group;
+
     /// <summary>How the whole cell is read by the engine.</summary>
     public ActionReadMode ReadMode => Semantics.ReadMode;
 
@@ -231,6 +271,16 @@ public class ActionParameter
 
     /// <summary>Which picker, if any, can fill this field from the machine.</summary>
     public ActionPickerKind Picker => Semantics.Picker;
+
+    /// <summary>
+    /// 一个「还要像什么样」的列表问的是哪一族元素。目录测试要求每个这样的字段都写清楚，
+    /// 漏了会当场报出来；写了一个不认识的族同样报出来，不猜。
+    /// </summary>
+    public NarrowFamily NarrowFamily => Enum.TryParse<NarrowFamily>(Semantics.NarrowOn,
+        ignoreCase: true, out var family)
+        ? family
+        : throw new InvalidOperationException(
+            $"{OwnerKey}.{Name}: unknown narrow family {Semantics.NarrowOn}.");
 
     /// <summary>
     /// Which file dialog the field beside this one offers, or <see cref="PathIntent.None"/> when
@@ -446,6 +496,12 @@ public class ActionParameter
     /// are asked for, which is what stops an action with a dozen parameters from being a wall.
     /// </summary>
     public bool Advanced { get; init; }
+
+    /// <summary>
+    /// True for a percentage measured against a colour channel, where the editor can say what it
+    /// comes to out of 255 instead of leaving a number nobody can feel.
+    /// </summary>
+    public bool PerChannelPercent { get; init; }
 
     /// <summary>
     /// True for a value that a tool fills in rather than one that is typed: the colours around a

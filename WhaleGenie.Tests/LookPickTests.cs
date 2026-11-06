@@ -175,11 +175,11 @@ public class LookPickTests
     }
 
     /// <summary>
-    /// 表单上列出已加入的对比色：序号、相对基准色的偏移、颜色，标题带上条数。列表读的是这一步
-    /// 自己的值，值一变它就跟着变——它是那一个值的显示，不是另一份副本。
+    /// 图案是这一步自己的一个字段：一处一行，三格分别是往右、往下和颜色。表单里的行就是这个字段的
+    /// 值，改一格就是改这一步，没有另一份副本要跟着改。
     /// </summary>
     [Fact]
-    public void The_form_lists_the_compared_colours_the_step_holds()
+    public void The_pattern_is_a_list_of_rows_the_step_keeps()
     {
         Ui.Run(() =>
         {
@@ -191,31 +191,107 @@ public class LookPickTests
             viewModel.SelectAction("vision.findColors");
             Dispatcher.UIThread.RunJobs();
 
-            // 还没有一处：标题只写名字，列表让位给一句说明。
-            Assert.Empty(viewModel.PatternPoints);
-            Assert.True(viewModel.PatternIsEmpty);
-            Assert.Equal(Strings.Get("Add.Pattern"), viewModel.PatternTitle);
+            var points = viewModel.Parameters.First(parameter => parameter.Definition.Name == "points");
+            Assert.True(points.IsColourPoints);
+            Assert.Empty(points.ColourPointRows);
+
+            // 一处都没写的时候这一步是缺项：图案至少要有一处和基准色一起出现，否则它找的就只是
+            // 基准色本身，和「找色」没有区别。
+            Assert.True(points.IsMissing);
 
             viewModel.SetColourPoints(["1,0,#00FF00", "0, 1, #0000FF"]);
 
-            Assert.Equal(Strings.Format("Add.PatternCount", 2), viewModel.PatternTitle);
-            Assert.True(viewModel.HasPatternPoints);
-            Assert.Equal(["1.", "2."], viewModel.PatternPoints.Select(row => row.Label));
-            Assert.Equal(["(1, 0)", "(0, 1)"], viewModel.PatternPoints.Select(row => row.Offset));
-            Assert.Equal(["#00FF00", "#0000FF"], viewModel.PatternPoints.Select(row => row.Colour));
+            Assert.Equal(2, points.ColourPointRows.Count);
+            Assert.Equal(["1", "0"], points.ColourPointRows.Select(row => row.Dx));
+            Assert.Equal(["0", "1"], points.ColourPointRows.Select(row => row.Dy));
+            Assert.Equal(["#00FF00", "#0000FF"], points.ColourPointRows.Select(row => row.Colour));
+            Assert.False(points.IsMissing);
 
-            // 直接改这一格的值，列表同样跟上：它没有自己的存储。
-            var points = viewModel.Parameters.First(parameter => parameter.Definition.Name == "points");
-            points.Text = "2,2,#FF0000";
-            Assert.Equal(["(2, 2)"], viewModel.PatternPoints.Select(row => row.Offset));
+            // 拾取窗口读到的就是这些行：它读的和它写的是同一份。
+            Assert.Equal(["1,0,#00FF00", "0,1,#0000FF"], viewModel.ColourPoints());
+
+            points.RemoveColourPoint(points.ColourPointRows[0]);
+            Assert.Equal(["0"], points.ColourPointRows.Select(row => row.Dx));
 
             window.Close();
         });
     }
 
-    /// <summary>那一列真的在界面上：标题与每一行的偏移、颜色都画得出来。</summary>
+    /// <summary>
+    /// 图案存进宏文件时是一处一行，不是空字符串。这一条堵的是「界面能填、存下去就没了」：
+    /// 行型字段要在写文件那一侧有一份，读回来才还是那几行，而不是跑起来才发现一处都没有。
+    /// </summary>
     [Fact]
-    public void The_compared_colours_are_drawn_on_the_form()
+    public void The_pattern_survives_a_trip_through_the_macro_file()
+    {
+        var step = Ui.Run(() =>
+        {
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions, [], []);
+            viewModel.SelectAction("vision.findColors");
+            viewModel.SetColourPoints(["1,0,#00FF00", "0,1,#0000FF"]);
+
+            // 第一处勾「必须不是」并写两个备选色，第二处自己带容差：留空的格子应当不带，
+            // 写了/勾了的都要跟着走。
+            var rows = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "points").ColourPointRows;
+            rows[0].Colour = "#00FF00|#00FF01";
+            rows[0].MustNot = true;
+            rows[1].Tolerance = "20";
+            return viewModel.BuildStep();
+        });
+
+        var written = step.ToJson().ToJsonString();
+        var back = MacroStep.FromJson((System.Text.Json.Nodes.JsonObject)
+            System.Text.Json.Nodes.JsonNode.Parse(written)!);
+
+        var points = back.Parameters.Single(parameter => parameter.Name == "points");
+        Assert.Equal(
+            ["1,0,#00FF00|#00FF01,true,", "0,1,#0000FF,,20"],
+            points.Rows.Select(row =>
+                $"{row.Text("dx").Trim()},{row.Text("dy").Trim()},{row.Text("colour").Trim()}," +
+                $"{row.Text("mustNot").Trim()},{row.Text("tolerance").Trim()}"));
+    }
+
+    /// <summary>
+    /// 一处都还没有的时候，拾取窗口仍然要能开：它先要量出基准色在哪，而那件事不需要图案。
+    /// 这一眼按「找色」看，图案带着的话就还是这一步自己。
+    /// </summary>
+    [Fact]
+    public void The_picker_looks_for_the_base_colour_when_the_pattern_is_empty()
+    {
+        ExecutableStep Step(string type, bool withPoints) => new()
+        {
+            Type = type,
+            Parameters = withPoints
+                ? [new() { Name = "color", Text = "#FF0000" },
+                   new()
+                   {
+                       Name = "points",
+                       Rows =
+                       [
+                           new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                           {
+                               ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
+                           },
+                       ],
+                   }]
+                : [new() { Name = "color", Text = "#FF0000" }],
+        };
+
+        var empty = ActionEditorView.WhatThePickerLooksFor(Step("vision.findColors", false));
+        Assert.Equal("vision.findColor", empty.Type);
+        Assert.DoesNotContain(empty.Parameters, parameter => parameter.Name == "points");
+        Assert.Equal("#FF0000", empty.Text("color"));
+
+        // 已经有了几处，就按这一步本来的样子看：图案是它的一部分，不该被掉包。
+        var filled = ActionEditorView.WhatThePickerLooksFor(Step("vision.findColors", true));
+        Assert.Equal("vision.findColors", filled.Type);
+        Assert.Single(filled.Rows("points"));
+    }
+
+    /// <summary>三格真的在界面上：两列数字和一格颜色各有自己的框，还有把一处拿掉的按钮。</summary>
+    [Fact]
+    public void The_pattern_rows_are_drawn_as_three_cells()
     {
         Ui.Run(() =>
         {
@@ -225,8 +301,7 @@ public class LookPickTests
 
             var viewModel = (AddActionViewModel)window.DataContext!;
             viewModel.SelectAction("vision.findColors");
-            Dispatcher.UIThread.RunJobs();
-            viewModel.SetColourPoints(["1,0,#00FF00", "0,1,#0000FF"]);
+            viewModel.SetColourPoints(["1,0,#00FF00"]);
             Dispatcher.UIThread.RunJobs();
 
             var texts = window.GetVisualDescendants().OfType<TextBlock>()
@@ -234,20 +309,27 @@ public class LookPickTests
                 .Select(text => text.Text ?? string.Empty)
                 .ToList();
 
-            Assert.Contains(Strings.Format("Add.PatternCount", 2), texts);
-            Assert.Contains("(1, 0)", texts);
-            Assert.Contains("(0, 1)", texts);
-            Assert.Contains("#00FF00", texts);
-            Assert.Contains("#0000FF", texts);
+            Assert.Contains(Strings.Get("Add.ColourPointDx"), texts);
+            Assert.Contains(Strings.Get("Add.ColourPointDy"), texts);
+            Assert.Contains(Strings.Get("Add.ColourPointColour"), texts);
+            Assert.Contains(Strings.Get("Add.ColourPointAdd"), texts);
+
+            var written = window.GetVisualDescendants().OfType<TextBox>()
+                .Where(box => box.IsEffectivelyVisible)
+                .Select(box => box.Text ?? string.Empty)
+                .ToList();
+
+            Assert.Contains("#00FF00", written);
             window.Close();
         });
     }
 
     /// <summary>
-    /// 「周围要对的颜色」不再是表单上的一格：它由拾取写入。按钮改挂在基准色那一行，只有多点找色才有。
+    /// 「周围要对的颜色」是表单上的一格，不再是靠拾取窗口旁敲侧击写进去的：窗口改的就是这一格，
+    /// 两边读写同一份。它排在颜色与容差之后，因为那两处偏移是从基准色数起的。
     /// </summary>
     [Fact]
-    public void The_pattern_is_written_by_the_picker_and_has_no_field_of_its_own()
+    public void The_pattern_has_a_field_of_its_own_and_the_picker_writes_into_it()
     {
         Ui.Run(() =>
         {
@@ -260,35 +342,35 @@ public class LookPickTests
             viewModel.SelectAction("vision.findColors");
             Dispatcher.UIThread.RunJobs();
 
-            // 表单里没有这一格，也不算缺项之外的东西：它仍是被校验的那个参数。
-            var shown = viewModel.Rows.Concat(viewModel.AdvancedRows)
-                .SelectMany(row => new[] { row.First, row.Second, row.Third })
+            var rows = viewModel.Rows.Concat(viewModel.AdvancedRows).ToList();
+            var shown = rows.SelectMany(row => new[] { row.First, row.Second, row.Third })
                 .OfType<StepParameterViewModel>()
                 .Select(parameter => parameter.Definition.Name)
                 .ToList();
 
-            Assert.DoesNotContain("points", shown);
-            Assert.Contains(viewModel.Parameters,
-                parameter => parameter.Definition.Name == "points");
+            Assert.Contains("points", shown);
 
-            // 这一节落在容差那一行：X、Y、位置、容差说的都是基准色，对比色排在它们之后。
-            var rows = viewModel.Rows.Concat(viewModel.AdvancedRows).ToList();
-            var pattern = rows.FindIndex(row => row.ShowsColourPointsPick);
-            Assert.True(pattern >= 0, "对比色没有落在任何一行上");
-            Assert.Equal("tolerance", rows[pattern].First.Definition.Name);
+            var pattern = rows.FindIndex(row => row.First.Definition.Name == "points"
+                || row.Second?.Definition.Name == "points");
+            Assert.True(pattern >= 0, "图案没有落在任何一行上");
 
-            foreach (var before in new[] { "color", "x", "y", "place" })
+            foreach (var before in new[] { "color", "tolerance" })
             {
                 var at = rows.FindIndex(row => row.First.Definition.Name == before
                     || row.Second?.Definition.Name == before);
                 Assert.True(at >= 0, $"{before} 不在表单上");
-                Assert.True(at < pattern, $"对比色排到了 {before} 前面");
+                Assert.True(pattern > at, $"图案排到了 {before} 前面");
             }
+
+            // 拾取窗口写回来的是行，不是一行标点。
+            viewModel.SetColourPoints(["2,2,#FF0000"]);
+            var points = viewModel.Parameters.First(parameter => parameter.Definition.Name == "points");
+            Assert.Equal("#FF0000", Assert.Single(points.ColourPointRows).Colour);
 
             viewModel.SelectAction("vision.findColor");
             Dispatcher.UIThread.RunJobs();
             Assert.DoesNotContain(viewModel.Rows.Concat(viewModel.AdvancedRows),
-                row => row.ShowsColourPointsPick);
+                row => row.First.IsColourPoints || row.Second?.IsColourPoints == true);
             window.Close();
         });
     }
@@ -359,6 +441,21 @@ public class LookPickTests
     }
 
     /// <summary>框里写的三种值：算式、负数、大小写不同的颜色，读出来的都是同一种写法。</summary>
+    /// <summary>
+    /// 一处可以写几种颜色（竖线分开），后面还可以跟着表里的那两列：不能是、单点容差。
+    /// 拾取窗口原样把这两列带回来，所以在它里面改一条不会悄悄把表格里写的东西抹掉。
+    /// </summary>
+    [Theory]
+    [InlineData("1,2,#ff0000|#00ff00", "1,2,#FF0000|#00FF00")]
+    [InlineData("1,2,#ff0000|#00ff00,1,10", "1,2,#FF0000|#00FF00,1,10")]
+    [InlineData("1,2,#FF0000,,12", "1,2,#FF0000,,12")]
+    public void A_line_may_hold_several_colours_and_the_two_columns_behind_them(
+        string written, string expected)
+    {
+        Assert.True(ColourPointLine.TryParse(written, out var entry));
+        Assert.Equal(expected, entry);
+    }
+
     [Theory]
     [InlineData("12+3,-4,#ff0000", "15,-4,#FF0000")]
     [InlineData(" 1 , 2 , #AABBCC ", "1,2,#AABBCC")]
@@ -529,7 +626,8 @@ public class LookPickTests
 
             var menu = window.MenuFor(new Point(5 * zoom, 6 * zoom));
             Assert.NotNull(menu);
-            Assert.Equal(2, menu!.Items.Count);
+            // 改、加备选色、删：一处能做的三件事都在这一份菜单里。
+            Assert.Equal(3, menu!.Items.Count);
 
             window.MouseDown(onEmpty, MouseButton.Right, RawInputModifiers.RightMouseButton);
             window.MouseUp(onEmpty, MouseButton.Right, RawInputModifiers.RightMouseButton);
@@ -548,9 +646,12 @@ public class LookPickTests
         });
     }
 
-    /// <summary>滚轮键按一下就是新增一处：手不必离开画面。</summary>
+    /// <summary>
+    /// 滚轮键不再新增一处：中键常被当成拖动画面的手势，手一滑就多出一条，而多出来的那条
+    /// 不点开列表是看不出来的。只有左键是「点一处」。
+    /// </summary>
     [Fact]
-    public void The_middle_button_adds_a_point()
+    public void The_middle_button_no_longer_adds_a_point()
     {
         Ui.Run(() =>
         {
@@ -572,6 +673,10 @@ public class LookPickTests
             window.MouseUp(at, MouseButton.Middle, RawInputModifiers.MiddleMouseButton);
             Dispatcher.UIThread.RunJobs();
 
+            Assert.Empty(window.Added);
+
+            // 左键照旧：点在同一个像素上就是一整条。
+            window.Pick(new ScreenPoint(7, 8));
             Assert.Equal(["-3,-2,#112233"], window.Added);
             window.Close();
         });
@@ -604,6 +709,67 @@ public class LookPickTests
         });
     }
 
+    /// <summary>
+    /// 一处可以有几种颜色：同一枚按钮换一套配色画出来，位置没变、颜色变了，那是「一处可以是这样
+    /// 也可以是那样」，不是两处。加的时候位置不动，颜色写在竖线后面；同一个颜色不会写第二遍。
+    /// </summary>
+    [Fact]
+    public void A_place_may_be_satisfied_by_more_than_one_colour()
+    {
+        Ui.Run(() =>
+        {
+            var frame = Picture(20, 20, new PixelColor(0x10, 0x20, 0x30),
+                (5, 6, new PixelColor(0xAA, 0xBB, 0xCC)));
+            var look = Look(frame, new ScreenPoint(0, 0),
+                new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(20, 20)));
+            var window = new LookPickWindow(look, frame, new ScreenPoint(0, 0),
+                LookPickMode.Colours, new ScreenPoint(10, 10));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            window.Pick(new ScreenPoint(5, 6));
+            window.AddAlternative(0, "#112233");
+            Assert.Equal(["-5,-4,#AABBCC|#112233"], window.Added);
+
+            // 同一个颜色加第二遍：一处只留一份。
+            window.AddAlternative(0, "#aabbcc");
+            Assert.Equal(["-5,-4,#AABBCC|#112233"], window.Added);
+
+            // 位置没动，圆点也没动：加的是颜色，不是另一处。
+            Assert.Equal([new ScreenPoint(5, 6)], window.MarkerPlaces);
+
+            // 再点画面是另一处，不是把颜色加到刚加的那一处上。
+            window.Pick(new ScreenPoint(7, 8));
+            Assert.Equal(2, window.Added.Count);
+            window.Close();
+        });
+    }
+
+    /// <summary>一处最多几种颜色：多到没有意义时就说清楚，而不是一直往里加。</summary>
+    [Fact]
+    public void A_place_says_when_it_can_hold_no_more_colours()
+    {
+        Ui.Run(() =>
+        {
+            var frame = Picture(20, 20, new PixelColor(0x10, 0x20, 0x30));
+            var look = Look(frame, new ScreenPoint(0, 0),
+                new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(20, 20)));
+            var window = new LookPickWindow(look, frame, new ScreenPoint(0, 0),
+                LookPickMode.Colours, new ScreenPoint(10, 10));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            window.Pick(new ScreenPoint(5, 6));
+            for (var number = 0; number < 12; number++)
+            {
+                window.AddAlternative(0, $"#{number:X6}");
+            }
+
+            Assert.Equal(ColourPointLine.MostColours, window.Added[0].Split('|').Length);
+            window.Close();
+        });
+    }
+
     /// <summary>一条里的一处可以是函数算出来的：括号里的逗号不是分隔符。</summary>
     [Theory]
     [InlineData("max(1,3),0,#FFFFFF", "max(1,3),0,#FFFFFF")]
@@ -615,10 +781,11 @@ public class LookPickTests
     }
 
     /// <summary>
-    /// 编辑框一行一个值，右边各带一个表达式按钮：偏移 X、偏移 Y、颜色各占一行，按钮才放得下、也对得准。
+    /// 编辑框一行一个值：偏移 X、偏移 Y、颜色各占一行。这里是手填一个点，三格写的就是数字和颜色，
+    /// 所以一格都不带表达式按钮——算式仍然可以直接打进去，引擎照读。
     /// </summary>
     [Fact]
-    public void The_entry_window_gives_every_value_a_line_and_a_builder()
+    public void The_entry_window_gives_every_value_a_line_of_its_own()
     {
         Ui.Run(() =>
         {
@@ -630,18 +797,15 @@ public class LookPickTests
             Assert.Equal("-4", window.FindControl<TextBox>("OffsetY")!.Text);
             Assert.Equal("#FF0000", window.FindControl<TextBox>("Colour")!.Text);
 
-            var builders = window.GetVisualDescendants().OfType<Button>()
-                .Select(button => button.Tag)
-                .OfType<string>()
-                .ToList();
-
-            Assert.Equal(["OffsetX", "OffsetY", "Colour"], builders);
+            // 三格旁边没有表达式按钮：这一窗只填一个点，写算式的能力留在框里，不占一排空间。
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(),
+                button => button.Tag is "OffsetX" or "OffsetY" or "Colour");
             window.Close();
         });
     }
 
     /// <summary>
-    /// 三行各占一行、互不重叠：挤在一起时表达式按钮就没有落脚的地方。
+    /// 三行各占一行、互不重叠：挤在一起时数值就分不清是哪一行的。
     /// </summary>
     [Fact]
     public void The_entry_window_rows_stand_one_above_the_next()

@@ -337,7 +337,24 @@ public interface IFileDevice
     /// is how many folders deep to go, where zero is the folder itself and below zero is no end
     /// to it.
     /// </summary>
-    IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse, int depth);
+    IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse, int depth,
+        ListKind kind = ListKind.Files);
+}
+
+/// <summary>
+/// 列文件夹时收哪一类东西。默认只收文件，跟这个参数出现之前一样；收文件夹是为了"每个子文件夹
+/// 各做一遍"这种宏——按名字找得到一个路径，却拿不到它下面有哪几个文件夹。
+/// </summary>
+public enum ListKind
+{
+    /// <summary>Files only, which is what every caller meant before folders could be asked for.</summary>
+    Files,
+
+    /// <summary>Folders only: their names, under the folder that was named.</summary>
+    Folders,
+
+    /// <summary>Both, in one list, ordered by whatever the step asks to order by.</summary>
+    Both,
 }
 
 /// <summary>One file a folder listing turned up, with what it says about itself.</summary>
@@ -473,6 +490,12 @@ public interface ISystemDevice
     /// plays nothing and is left alone; one with no sound device refuses, and the step says so.
     /// </summary>
     void PlaySound(SoundKind kind);
+
+    /// <summary>
+    /// 放一个 wav 文件。宏自己带的声音比系统那五声能说的话多得多：一句「做完了」、一段提示音、
+    /// 一声只有自己认得的响。文件不在就失败并说明是哪一个，而不是安静地什么都不放。
+    /// </summary>
+    void PlaySoundFile(string path);
 
     /// <summary>
     /// Shows a notification beside the notification area, so a macro can say something happened
@@ -1044,6 +1067,18 @@ public interface IWindowDevice
     WindowInfo? Foreground() => List().FirstOrDefault();
 
     /// <summary>
+    /// The window under a place on the screen, or null when there is nothing there. The default
+    /// walks the list a device gives, first to last, which is front to back for a real desktop;
+    /// the Windows device asks the machine, so that a window with no title in the title bar — the
+    /// one thing <see cref="List"/> leaves out — can still be picked.
+    /// </summary>
+    WindowInfo? At(int x, int y) => List().FirstOrDefault(window =>
+        !window.Minimized
+        && window.Size.Width > 0 && window.Size.Height > 0
+        && x >= window.Location.X && x < window.Location.X + window.Size.Width
+        && y >= window.Location.Y && y < window.Location.Y + window.Size.Height);
+
+    /// <summary>
     /// Every window that matches <paramref name="value"/> the way <paramref name="match"/> and
     /// <paramref name="compare"/> say, ignoring case, in the order <see cref="List"/> gives them,
     /// or nothing when none does. An empty value matches the frontmost window alone — the one window
@@ -1506,7 +1541,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Zip(string folder, string to) => throw Missing("files");
 
         public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse,
-            int depth) => throw Missing("files");
+            int depth, ListKind kind = ListKind.Files) => throw Missing("files");
 
         public int ChangeCount => throw Missing("the clipboard");
 
@@ -1580,6 +1615,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void SetMuted(bool muted) => throw Missing("the sound card");
 
         public void PlaySound(SoundKind kind) => throw Missing("the sound card");
+
+        public void PlaySoundFile(string path) => throw Missing("the sound card");
 
         public void Notify(string title, string text, NotificationKind kind)
             => throw Missing("somewhere to show notifications");

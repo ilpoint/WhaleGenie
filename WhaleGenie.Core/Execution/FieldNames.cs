@@ -54,6 +54,12 @@ public static class FieldNames
 
     public const string Multiline = "multiline";
 
+    /// <summary>
+    /// True on a window rule that says "the same window the steps before this one used" instead of
+    /// naming a window of its own.
+    /// </summary>
+    public const string Follow = "follow";
+
     /// <summary>Which coordinate space a point's x and y are counted in.</summary>
     public const string Basis = "basis";
 

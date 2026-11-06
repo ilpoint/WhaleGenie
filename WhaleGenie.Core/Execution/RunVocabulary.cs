@@ -82,6 +82,7 @@ public static class RunKeys
     public const string DetectNotFound = "Run.DetectNotFound";
     public const string DeviceFailed = "Run.DeviceFailed";
     public const string DuplicateArgument = "Run.DuplicateArgument";
+    public const string ElementBadCondition = "Run.ElementBadCondition";
     public const string ElementNotATable = "Run.ElementNotATable";
     public const string ElementNotCheckable = "Run.ElementNotCheckable";
     public const string ElementNotClickable = "Run.ElementNotClickable";
@@ -105,6 +106,20 @@ public static class RunKeys
     /// <summary>An argument was both given a value and marked as supplied empty.</summary>
     public const string GivenWithValue = "Run.GivenWithValue";
     public const string ImageNotFound = "Run.ImageNotFound";
+
+    /// <summary>
+    /// A colour search that was told a miss is its failure did not find the colour. A step that
+    /// only reads where the colour is hands back <c>found = false</c> instead; this key exists for
+    /// the steps that asked for the same answer as a failure.
+    /// </summary>
+    public const string ColourNotFound = "Run.ColourNotFound";
+
+    /// <summary>
+    /// A multi-point colour search with no colours beside its base colour. That is not a pattern:
+    /// it is the plain colour search, which is a step of its own, so the step is refused instead of
+    /// quietly matching the base colour wherever it is.
+    /// </summary>
+    public const string NoColourPoints = "Run.NoColourPoints";
     public const string IndexOutOfRange = "Run.IndexOutOfRange";
     public const string ItemNotFound = "Run.ItemNotFound";
 
@@ -187,6 +202,7 @@ public static class RunKeys
     public const string UndeclaredArgument = "Run.UndeclaredArgument";
     public const string UndeclaredResult = "Run.UndeclaredResult";
     public const string UnknownBrightnessAction = "Run.UnknownBrightnessAction";
+    public const string UnknownDesktopAction = "Run.UnknownDesktopAction";
     public const string UnknownGamepadButton = "Run.UnknownGamepadButton";
     public const string UnknownGamepadStick = "Run.UnknownGamepadStick";
     public const string UnknownGamepadTrigger = "Run.UnknownGamepadTrigger";
@@ -268,6 +284,8 @@ public static class LogKeys
     public const string CancelledRun = "Log.CancelledRun";
     public const string CleanupFailed = "Log.CleanupFailed";
     public const string ClearedClipboard = "Log.ClearedClipboard";
+    public const string ClickedColour = "Log.ClickedColour";
+
     public const string ClickedElement = "Log.ClickedElement";
     public const string ClickedImage = "Log.ClickedImage";
     public const string ClickedObject = "Log.ClickedObject";
@@ -286,6 +304,8 @@ public static class LogKeys
     public const string CopiedImageToClipboard = "Log.CopiedImageToClipboard";
     public const string CopiedToClipboard = "Log.CopiedToClipboard";
     public const string DeletedFile = "Log.DeletedFile";
+    public const string DesktopCleared = "Log.DesktopCleared";
+    public const string DesktopRestored = "Log.DesktopRestored";
     public const string Detected = "Log.Detected";
     public const string DetectedNothing = "Log.DetectedNothing";
     public const string ElementChecked = "Log.ElementChecked";

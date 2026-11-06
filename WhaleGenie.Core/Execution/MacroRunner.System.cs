@@ -163,11 +163,27 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Plays one of the machine's own event sounds, so a macro that has finished, or gone wrong,
-    /// can say so where nobody is looking at the screen.
+    /// Plays a sound where nobody is looking at the screen: one of the machine's own event sounds,
+    /// or a wav file the macro brings with it, so a macro that has finished, or gone wrong, can say
+    /// so out loud.
     /// </summary>
     private void PlaySound(ExecutableStep step, int depth)
     {
+        // 放一个宏自己带的文件时，「哪一种提示音」那一格就不作数了：两者是同一个问题的两种答案，
+        // 界面上也只有一个看得见。
+        if (string.Equals(ReadText(step, "soundSource").Trim(), "file", StringComparison.OrdinalIgnoreCase))
+        {
+            var named = ReadValue(step, "soundFile").AsText().Trim();
+            if (named.Length == 0)
+            {
+                throw new StepFailure(RunKeys.MissingPath);
+            }
+
+            _devices.System.PlaySoundFile(_devices.Files.Resolve(named));
+            Log(LogLevel.Info, depth, step.Type, LogKeys.PlayedSound, named);
+            return;
+        }
+
         var what = ReadText(step, "sound").Trim().ToLowerInvariant();
         var kind = what switch
         {
@@ -182,6 +198,44 @@ public sealed partial class MacroRunner
         _devices.System.PlaySound(kind);
         Log(LogLevel.Info, depth, step.Type, LogKeys.PlayedSound,
             what.Length == 0 ? "default" : what);
+    }
+
+    /// <summary>
+    /// 把所有窗口收起来，或者把收起来的放回去。认的是「有标题、看得见的顶层窗口」，也就是
+    /// 任务栏上排着的那些；桌面本身与工具栏不算窗口，不会被收起来，所以清出来的桌面是真的空的。
+    /// 窗口一个一个地叫，而不是请系统一次做完：这样每一步的成败都看得见，也不会因为某个窗口
+    /// 不理会请求，整件事就无声无息。
+    /// </summary>
+    private void ShowDesktop(ExecutableStep step, int depth)
+    {
+        var what = ReadText(step, "desktopAction").Trim().ToLowerInvariant();
+        var restore = what switch
+        {
+            "" or "minimizeall" => false,
+            "restoreall" => true,
+            _ => throw new StepFailure(RunKeys.UnknownDesktopAction, what),
+        };
+
+        var moved = 0;
+        foreach (var window in _devices.Windows.List())
+        {
+            // 已经在那一边的窗口不用碰：放回去的请求发给一个没收起来的窗口，它只会闪一下。
+            if (window.Minimized != restore)
+            {
+                continue;
+            }
+
+            var done = restore
+                ? _devices.Windows.Restore(window.Handle)
+                : _devices.Windows.Minimize(window.Handle);
+            if (done)
+            {
+                moved++;
+            }
+        }
+
+        Log(LogLevel.Info, depth, step.Type,
+            restore ? LogKeys.DesktopRestored : LogKeys.DesktopCleared, moved);
     }
 
     /// <summary>
@@ -323,6 +377,9 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             case "system.power":
                 Power(step, depth);
+                return Signal.Normal;
+            case "system.showDesktop":
+                ShowDesktop(step, depth);
                 return Signal.Normal;
             case "system.volume":
                 Volume(step, depth);

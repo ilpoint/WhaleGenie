@@ -129,22 +129,26 @@ public class NumberBoxTests
             var window = Open("vision.capture");
             Dispatcher.UIThread.RunJobs();
 
-            // Nothing has been said about where to look, so nothing is what the field shows: a box
-            // that displayed its lower bound would look like an answer the step had written down.
-            foreach (var name in new[] { "x", "y", "width", "height" })
+            // Nothing has been said about where to look, so nothing is what the four boxes show:
+            // a box that displayed its lower bound would look like an answer the step had written
+            // down. The four stand on one line now, so they are found as the boxes on the screen.
+            var boxes = Boxes(window);
+            Assert.Equal(4, boxes.Count);
+            for (var at = 0; at < boxes.Count; at++)
             {
-                var box = window.GetVisualDescendants().OfType<FANumberBox>()
-                    .First(one => one.IsEffectivelyVisible
-                        && ReferenceEquals(one.DataContext, Parameter(window, name)));
-
-                Assert.True(double.IsNaN(box.Value));
-                Assert.True(string.IsNullOrWhiteSpace(box.Text), $"{name} shows \"{box.Text}\"");
+                Assert.True(double.IsNaN(boxes[at].Value));
+                Assert.True(string.IsNullOrWhiteSpace(boxes[at].Text),
+                    $"box {at} shows \"{boxes[at].Text}\"");
             }
         });
     }
 
+    /// <summary>
+    /// 一个地方就是一句话：左上角在哪、有多宽多高，四个数字并排一行。排成两行两列时，
+    /// 「宽」掉到「X」下面，读起来像两件事，而它只是同一个矩形接着说的话。
+    /// </summary>
     [Fact]
-    public void A_search_region_says_its_rectangle_as_two_lines_of_two()
+    public void A_search_region_says_its_rectangle_on_one_line()
     {
         Ui.Run(() =>
         {
@@ -166,19 +170,18 @@ public class NumberBoxTests
             var width = Place(row.Width);
             var height = Place(row.Height);
 
-            // Where the corner is and how far the rectangle reaches are two things, each said by a
-            // pair of numbers side by side.
-            Assert.True(y.X > x.X, "Y is not beside X");
+            // One line, read left to right: where the corner is, then how far it reaches.
             Assert.Equal(x.Y, y.Y, 1);
-            Assert.True(height.X > width.X, "height is not beside width");
+            Assert.Equal(y.Y, width.Y, 1);
             Assert.Equal(width.Y, height.Y, 1);
-            Assert.True(width.Y > x.Y, "width is not on the line below X");
+            Assert.True(y.X > x.X, "Y is not beside X");
+            Assert.True(width.X > y.X, "width is not beside Y");
+            Assert.True(height.X > width.X, "height is not beside width");
         });
     }
 
     [Theory]
     [InlineData("vision.capture")]
-    [InlineData("ocr.recognize")]
     public void The_button_that_drags_a_whole_rectangle_stands_above_its_numbers(string key)
     {
         Ui.Run(() =>
@@ -191,9 +194,10 @@ public class NumberBoxTests
             var button = window.GetVisualDescendants().OfType<Button>()
                 .First(pressed => pressed.IsEffectivelyVisible
                     && pressed.Content as string == Strings.Get("Add.PickRegion"));
-            var x = window.GetVisualDescendants().OfType<FANumberBox>()
-                .First(box => box.IsEffectivelyVisible
-                    && ReferenceEquals(box.DataContext, Parameter(window, "x")));
+
+            // 四个数压成一行之后，格子里的数字是这一行的第一格：按"屏幕上看得到的第一个数字框"
+            // 找它，而不是按参数对象——那一格里装的是这一格的数，不是整个参数。
+            var x = Boxes(window)[0];
 
             var above = button.TranslatePoint(default, window)!.Value;
             var below = x.TranslatePoint(default, window)!.Value;

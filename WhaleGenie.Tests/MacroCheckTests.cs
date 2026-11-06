@@ -1303,10 +1303,10 @@ public class MacroCheckTests
     [Fact]
     public void A_colour_search_place_and_its_numbers_are_marked()
     {
-        var step = Step("vision.findColor", Text("color", "#FF0000"),
+        var step = Step("vision.getPixel",
             Text("place", "$spot"), Text("x", "10"), Text("y", "20"));
 
-        var label = ActionCatalog.Find("vision.findColor")!.Parameters
+        var label = ActionCatalog.Find("vision.getPixel")!.Parameters
             .First(parameter => parameter.Name == "place").LocalLabel;
         Assert.Contains(Inspect(step), problem =>
             problem.Message == Strings.Format("Editor.Problem.PlaceAndNumbers", label));

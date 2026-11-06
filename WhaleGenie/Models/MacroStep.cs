@@ -35,12 +35,21 @@ public class StepParameter
     public List<MacroStep> Steps { get; init; } = [];
 
     /// <summary>
+    /// Whether this list is open in the editor. A block that runs several lists gives each of them
+    /// a row of its own, and those rows fold like a block does. It is the editor's memory rather
+    /// than part of the macro, so it is never written to the file.
+    /// </summary>
+    public bool IsExpanded { get; set; } = true;
+
+    /// <summary>
     /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
     /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
     /// <see cref="ActionParameterKind.Images"/>; a <see cref="ActionParameterKind.Returns"/> holds
-    /// one row per result the step hands over, and a <see cref="ActionParameterKind.Narrow"/> one
-    /// row per thing the element has to be like. What the columns of a row mean belongs to the
-    /// action, so this holds the names and what they say rather than a shape of its own.
+    /// one row per result the step hands over, a <see cref="ActionParameterKind.Narrow"/> one row
+    /// per thing the element has to be like, and a <see cref="ActionParameterKind.ColourPoints"/>
+    /// one row per colour the pattern wants beside its base colour. What the columns of a row mean
+    /// belongs to the action, so this holds the names and what they say rather than a shape of its
+    /// own.
     /// </summary>
     public List<StepParameterRow> Rows { get; init; } = [];
 
@@ -52,7 +61,8 @@ public class StepParameter
     /// </summary>
     public bool IsRowList => Kind is ActionParameterKind.Region
         or ActionParameterKind.KeySequence or ActionParameterKind.Images or ActionParameterKind.Returns
-        or ActionParameterKind.Arguments or ActionParameterKind.Narrow;
+        or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+        or ActionParameterKind.ColourPoints;
 
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
@@ -73,7 +83,7 @@ public class StepParameter
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
             or ActionParameterKind.Returns or ActionParameterKind.Arguments
-            or ActionParameterKind.Narrow => RowsJson(),
+            or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => RowsJson(),
         ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
             => JsonNode.Parse(Value),
         _ => JsonValue.Create(Value),
@@ -139,7 +149,7 @@ public class StepParameter
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
                 or ActionParameterKind.KeySequence or ActionParameterKind.Images
                 or ActionParameterKind.Returns or ActionParameterKind.Arguments
-                or ActionParameterKind.Narrow => new StepParameter
+                or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => new StepParameter
                 {
                     Name = name,
                     Kind = definition!.Kind,
@@ -446,6 +456,20 @@ public class MacroStep : INotifyPropertyChanged
     {
         get
         {
+            if (Type == "control.switch")
+            {
+                return SwitchDetail;
+            }
+
+            // A condition reads as the sentence it is. The type key and the field name in front of
+            // it say which action and which box, and neither is anything the person reading the
+            // list needs to be told again: the row already carries the action's name and icon.
+            if (Type == "control.if")
+            {
+                var condition = Text("condition").Trim();
+                return condition.Length == 0 ? Strings.Get("Editor.IfNoCondition") : condition;
+            }
+
             var parts = new List<string>();
             foreach (var parameter in Parameters)
             {
@@ -470,10 +494,15 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Narrow when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.NarrowCount", parameter.Rows.Count)}");
                         break;
+                    case ActionParameterKind.ColourPoints when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ColourPointCount",
+                            parameter.Rows.Count)}");
+                        break;
                     case ActionParameterKind.Steps or ActionParameterKind.Region
                         or ActionParameterKind.KeySequence
                         or ActionParameterKind.Images or ActionParameterKind.Returns
-                        or ActionParameterKind.Arguments or ActionParameterKind.Narrow:
+                        or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+                        or ActionParameterKind.ColourPoints:
                         break;
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))
@@ -495,6 +524,31 @@ public class MacroStep : INotifyPropertyChanged
             ? " " + Strings.Format("Editor.JitterDetail",
                 (parameter.Jitter * 100m).ToString("0.##", CultureInfo.InvariantCulture))
             : string.Empty;
+
+    /// <summary>
+    /// What a switch says on its own row: the value it compares and how it compares them. The two
+    /// field names ("value (operand)", "match mode (operator)") are how the form asks for them, not
+    /// how the block reads — with the branches laid out underneath, the one sentence the block
+    /// stands for is "this value, compared this way", and spelling out which field is which twice
+    /// per switch costs the row its whole line without saying anything more.
+    /// </summary>
+    private string SwitchDetail
+    {
+        get
+        {
+            var value = Text("switchValue").Trim();
+            var mode = Text("switchMode").Trim();
+            var how = mode.Length == 0
+                ? string.Empty
+                : Strings.Get($"control.switch.switchMode.option.{mode}", mode);
+            if (value.Length == 0)
+            {
+                return Strings.Get("Editor.SwitchNoValue");
+            }
+
+            return how.Length == 0 ? value : $"{value} {how}";
+        }
+    }
 
     /// <summary>Localized label of a parameter, falling back to its raw name.</summary>
     public string ParameterLabel(StepParameter parameter)

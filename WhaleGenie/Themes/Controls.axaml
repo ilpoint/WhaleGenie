@@ -1,9 +1,93 @@
-<Styles xmlns="https://github.com/avaloniaui"
+﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:views="using:WhaleGenie.Views"
+        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Styles.Resources>
+        <!--
+          步骤树的一行。这一族的模板要自己给，因为缩进那件事盖不住：主题把"层级 × 16"写死在
+          模板的 Margin 里，外面改资源改不动（试过 App 级资源与样式，量出来仍然是 16）。既然
+          层级要靠线读，缩进步长、展开钮、选中态就得在同一个模板里，改一处是一处。
+
+          行本身不画底、不画边：选中与悬停由行里的卡片（`Border.StepLine`）表达，树再画一层就是
+          两套高亮叠在一起。`SelectionIndicator` 那条小竖条因此不存在了。
+        -->
+        <ControlTheme x:Key="{x:Type TreeViewItem}" TargetType="TreeViewItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <StackPanel Background="Transparent">
+                        <Border Name="PART_LayoutRoot" Background="Transparent" Focusable="True"
+                                MinHeight="{TemplateBinding MinHeight}"
+                                TemplatedControl.IsTemplateFocusTarget="True">
+                            <Grid Name="PART_Header" ColumnDefinitions="Auto,*">
+                                <Grid.Margin>
+                                    <Binding Path="Level"
+                                             RelativeSource="{RelativeSource TemplatedParent}"
+                                             Converter="{x:Static conv:StepIndentConverter.Instance}" />
+                                </Grid.Margin>
+                                <!-- 展开钮的格子宽度固定：叶子行没有箭头，但那一格还在，所以
+                                     同一层的标题永远对在同一条竖线上。 -->
+                                <Panel Name="PART_ExpandCollapseChevronContainer"
+                                       Width="14" Margin="12,0,12,0">
+                                    <!-- 折叠方块只长在"自己跑步骤"的那一行上：块的体（循环体步骤）是块的一部分，
+                                         在它上面再放一枚方块，等于说体自己会折叠，而它不会。 -->
+                                    <ToggleButton Name="PART_ExpandCollapseChevron"
+                                                  Theme="{StaticResource StepChevron}"
+                                                  Focusable="False"
+                                                  IsVisible="{Binding Header,
+                                                      RelativeSource={RelativeSource TemplatedParent},
+                                                      Converter={x:Static views:FoldBoxConverter.Instance}}"
+                                                  IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
+                                </Panel>
+                                <!-- 内容必须撑满这一行的高度：行有 30 的下限，而一行里的文字可能只有
+                                     20 高，居中放就上下各留 5 像素，树线走到那里正好断一截。撑满
+                                     之后内容与行同高，线才能从上一行接进下一行。 -->
+                                <ContentPresenter Name="PART_HeaderPresenter" Grid.Column="1"
+                                                  Content="{TemplateBinding Header}"
+                                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Stretch"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Grid>
+                        </Border>
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        IsVisible="{TemplateBinding IsExpanded}" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+
+        <!-- 展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。 -->
+        <ControlTheme x:Key="StepChevron" TargetType="ToggleButton">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Path Name="Glyph" Data="M 5,4 L 8,7 L 5,10"
+                              Stroke="{DynamicResource TextSecondary}"
+                              StrokeThickness="1.3"
+                              StrokeLineCap="Round" StrokeJoin="Round" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <!-- 展开时整枚钮转 90 度：箭头从"朝右"变成"朝下"，一套图形两种状态。 -->
+            <Style Selector="^:checked">
+                <Setter Property="RenderTransform" Value="rotate(90deg)" />
+            </Style>
+        </ControlTheme>
         <!--
           右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
           ControlThemes 里有 Menu、MenuItem、MenuFlyoutPresenter 与 Separator，唯独没有 ContextMenu
@@ -125,6 +209,10 @@
       LAYER1 ComboBox.Field ComboBox
       LAYER1 ComboBox.Field.Cell ComboBox
       LAYER1 AutoCompleteBox.Field TextControl
+      STATIC AutoCompleteBox.HasChip
+      STATIC ListBox.Panel
+      STATIC ListBox.Chips
+      STATIC TextBox.HasChip
       STATIC Border.Badge
       STATIC Border.Badge.Danger
       STATIC Border.Badge.Info
@@ -133,8 +221,10 @@
       STATIC Border.Card
       STATIC Border.Card.Target
       STATIC Border.Card.Thin
+      STATIC Border.BlockNumber
       STATIC Border.Divider
       STATIC Border.Panel
+      STATIC Border.StepBody
       STATIC Border.PickerScrim
       STATIC Border.PickerTarget
       STATIC Border.Readout
@@ -146,6 +236,10 @@
       STATIC ListBox.List.Boxed
       STATIC ListBox.List.Pill
       STATIC CheckBox.Field
+      STATIC RadioButton.ChoiceCard
+      STATIC TextBlock.BlockTitle
+      STATIC TextBlock.CardTitle
+      STATIC TextBlock.CardNote
       STATIC Border.Row
       STATIC GridSplitter.Split
       STATIC Button.Thumb
@@ -153,6 +247,7 @@
       STATIC Button.Secondary.Block
       STATIC Button.Secondary.Chip
       STATIC Button.Secondary.Chip.Dense
+      STATIC Button.Secondary.Chip.Dense.empty
       STATIC Button.Pill
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
@@ -479,6 +574,68 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+
+    <!--
+      嵌在输入框里的那枚按钮。格子里的按钮不能靠悬停才认得出，所以它带字、有边，像一枚小片；
+      右端的空白由 `HasChip` 让出来，字才不会跑到它下面去。
+    -->
+    <Style Selector="Button.ValueChip">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="7,0" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
+    <Style Selector="Button.ValueChip:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="TextBox.HasChip">
+        <Setter Property="Padding" Value="8,0,48,0" />
+    </Style>
+    <Style Selector="AutoCompleteBox.HasChip TextBox">
+        <Setter Property="Padding" Value="8,0,48,0" />
+    </Style>
+
+    <!-- 一列材料：行与行之间只为可读留一点缝，行自己不带内边距。 -->
+    <Style Selector="ListBox.Panel > ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- 一条分组芯片：几个词排一行，按下一个列表就换。 -->
+    <Style Selector="ListBox.Chips ListBoxItem">
+        <Setter Property="Padding" Value="2,2" />
+        <Setter Property="Margin" Value="0,0,8,6" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <!-- 分类只是一行字：模板只留内容，不画选中底、不画边框，标签才不会变成一排格子。 -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  VerticalAlignment="Center" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.Chips ListBoxItem TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+    </Style>
+    <Style Selector="ListBox.Chips ListBoxItem:selected TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox.Chips ListBoxItem:pointerover TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
     </Style>
 
     <Style Selector="TextBox.Code">
@@ -842,6 +999,16 @@
     <Style Selector="Button.Secondary.Chip.Dense">
         <Setter Property="Height" Value="24" />
         <Setter Property="FontSize" Value="11.5" />
+    </Style>
+
+    <!--
+      分支还没填值：这一支现在谁都不应答，是一个该被看见的空缺。灰字说的和"值"是同一种语气，
+      读的人会以为填好了；警示色说的是"这里还缺点东西"。
+    -->
+    <Style Selector="Button.Secondary.Chip.Dense.empty">
+        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+        <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
     </Style>
 
 
@@ -1347,12 +1514,69 @@
         <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
 
-    <!-- 步骤行：两行字（名称 + 说明）加上下留白是 42 起步。它比别的行高，因为一行装不下这一步
-         是什么；换行时行还会继续长高，定高会把第二行压到边框上。 -->
-    <Style Selector="ListBox.List.Steps ListBoxItem">
-        <Setter Property="MinHeight" Value="42" />
+    <!-- 步骤树：一行就是一步，30 够装图标、名称、徽标与一句截断的摘要。展开箭头由树控件画，
+         所以行里不再留折叠钮；行的高亮由这一行自己画，树控件自己那层底与描边全部让开，
+         免得两套高亮叠在一起。
+
+         行是**平**的，不是卡片：一列卡片摞起来会先读出"一堆方块"，读不出"谁在谁里面"。
+         层级交给缩进线与分节行，方块只在选中与悬停时出现。 -->
+    <Style Selector="Border.StepLine">
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <!-- 容器：块自己那一行是一张很淡的卡片，和它下面的动作分开。 -->
+    <Style Selector="Border.StepLine.container">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="8,5" />
+    </Style>
+    <!-- 块里的行铺一层几乎看不见的底，上下相接，连成一条"这一块"的带子。 -->
+    <Style Selector="Border.StepLine.nested">
+        <Setter Property="Background" Value="#0DFFFFFF" />
+    </Style>
+    <Style Selector="Border.StepLine:pointerover:not(.selected)">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+    </Style>
+    <Style Selector="Border.StepLine.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+    </Style>
+    <!-- 块的"体"：一块列表的头，参考软件里它叫「循环体」。给它一层浅底，让人一眼看出
+         "从这里往下都属于这个块"，也给它一个可以把步骤拖进去的地方。 -->
+    <Style Selector="Border.StepBody">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="8,2" />
+    </Style>
+    <Style Selector="Border.StepBody TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
     </Style>
 
+    <!-- 有问题的那一步：左边一条警示色的边，与"选中"的整块底不同通道。
+         容器行是一张卡片，整圈变黄会把一块宏都染成警报色，所以它只留右边那枚图标。 -->
+    <Style Selector="Border.StepLine.problem">
+        <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+    </Style>
+    <Style Selector="Border.StepLine.container.problem">
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+    <Style Selector="TreeView.Steps">
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+    </Style>
+    <Style Selector="TreeView.Steps TreeViewItem">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TreeView.Steps TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TreeView.Steps TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
     <!--
       区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
       组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。
@@ -1397,5 +1621,112 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
         <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
         <Setter Property="Margin" Value="{DynamicResource GapSection}" />
+    </Style>
+
+    <!--
+      一张“几个里选一个”的卡：圆点在左，标题一行，说明一行。
+      四个失败规则用下拉时只看得见四行字的开头，而它们之间的差别是“宏停不停下来”，
+      这个差别必须写在脸上，不能等人展开下拉才看见。
+      模板整份重写而不是改 Fluent 的：单选按钮在这个界面里只用来做这种卡，没有别的用法要兼顾。
+    -->
+    <Style Selector="RadioButton.ChoiceCard">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Card"
+                        Background="{DynamicResource SurfaceField}"
+                        BorderBrush="{DynamicResource BorderControl}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusContainer}"
+                        Padding="11,9">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Border Name="Dot" Width="14" Height="14" CornerRadius="7"
+                                BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1.5"
+                                VerticalAlignment="Top" Margin="0,2,0,0">
+                            <Border Name="Pip" Width="6" Height="6" CornerRadius="3"
+                                    Background="Transparent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ContentPresenter Grid.Column="1"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:pointerover /template/ Border#Card">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+    </Style>
+
+    <!-- 选中的卡：边用强调色，底用强调色压暗的那一层。圆点填实，一眼看出是哪个。 -->
+    <Style Selector="RadioButton.ChoiceCard:checked /template/ Border#Card">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:checked /template/ Border#Dot">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:checked /template/ Border#Pip">
+        <Setter Property="Background" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!-- 卡里的两行字：标题与它会发生什么。 -->
+    <Style Selector="TextBlock.CardTitle">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.CardNote">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="RadioButton.ChoiceCard:checked TextBlock.CardTitle">
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!--
+      表单里一块的编号与标题。编号只是一个次序：读者要的是“这一步先问这个、再问那个”，
+      所以它比正文弱一档，靠形状（圆）而不是靠颜色被认出来。
+    -->
+    <!--
+      块头的标记：**一圈边都没有**。里面装的是一枚线形图标（这一块问的是什么），图标本身已经有
+      轮廓，再套一圈就是两道边；序号时代的圆圈只是为了"这是一个标记"，图标自己就说明了这点。
+      没有图标的块仍旧摆序号，那时数字就是标记本身。
+    -->
+    <Style Selector="Border.BlockNumber">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.BlockNumber > TextBlock">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBlock.BlockTitle">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="LineHeight" Value="{DynamicResource UiBodyLine}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 </Styles>

@@ -231,7 +231,6 @@ internal static class BenchFixtures
         [("vision.capture", "path")] = "bench-capture.png",
         [("vision.findColors", "color")] = "#000000",
         [("input.mouseMoveRelative", "inputMode")] = "foreground",
-        [("vision.findColors", "points")] = "0,0,#000000",
         [("vision.captureWindow", "path")] = "bench-capture.png",
     };
 
@@ -475,6 +474,16 @@ internal static class BenchFixtures
                     ["height"] = "40",
                 };
 
+            // The colours a pattern wants around its base colour: one offset and the colour at it,
+            // so the step has a pattern to look for rather than an empty list it would refuse.
+            case "points":
+                return new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["dx"] = "0",
+                    ["dy"] = "0",
+                    ["colour"] = "#000000",
+                };
+
             // A chord per row.
             case "keySequence":
                 return new Dictionary<string, string>(StringComparer.Ordinal)
@@ -484,12 +493,16 @@ internal static class BenchFixtures
                     ["gapMs"] = "120",
                 };
 
-            // The page narrowing: a way to find the page and the value of that way. The way has to
-            // be one the engine parses, or the step is refused before it reaches the page.
+            // The narrowing: a way to tell the element apart and the value of that way. The way has
+            // to be one the engine parses for this family, or the step is refused before it reaches
+            // the element: a page says what the element writes, a desktop control what it is called.
             case "narrow":
                 return new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["how"] = "hasText",
+                    ["how"] = string.Equals(parameter.NarrowOn, "Element",
+                        StringComparison.OrdinalIgnoreCase)
+                        ? "NameHas"
+                        : "hasText",
                     ["value"] = "bench",
                 };
 

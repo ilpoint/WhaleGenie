@@ -15,27 +15,38 @@
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">
         <Grid RowDefinitions="Auto,*,Auto">
 
-            <!-- What this picker is for, and where the last point landed. -->
-            <StackPanel Grid.Row="0" Margin="16,0,16,8" Spacing="3">
+            <!-- What this picker is for, and where the last point landed: the line under the hint
+                 is a strip of its own, so the sentence that changes as you click reads as an answer
+                 rather than as a second hint. -->
+            <StackPanel Grid.Row="0" Margin="16,12,16,10" Spacing="6">
                 <TextBlock Name="HintText" Classes="Hint" TextWrapping="Wrap" />
-                <TextBlock Name="Readout" FontSize="12" Classes="Mono"
-                           Foreground="{DynamicResource TextPrimary}" />
+                <Border Background="{DynamicResource SurfaceSunken}"
+                        CornerRadius="{DynamicResource RadiusControl}"
+                        Padding="10,6" HorizontalAlignment="Left">
+                    <TextBlock Name="Readout" FontSize="12" Classes="Mono"
+                               Foreground="{DynamicResource TextPrimary}" />
+                </Border>
             </StackPanel>
 
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="16,0,16,10">
-                <Border Classes="Panel" Padding="8">
+                <Border Classes="Sunken" Padding="8">
                     <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
                         <Canvas Name="Board" HorizontalAlignment="Left" VerticalAlignment="Top"
                                 PointerPressed="OnPickPoint" />
                     </ScrollViewer>
                 </Border>
+
+                <!-- 放大镜画在图上面、跟着指针走：它不应该跟着画面一起滚动，也不该被图裁掉。 -->
+                <Canvas Grid.Column="0" Name="LoupeLayer" IsHitTestVisible="False"
+                        ClipToBounds="True" />
+
                 <!-- The colours added so far, one to a line: what is being built is a list of
                      offsets and colours, and it is worth seeing while it is being built. -->
-                <Border Grid.Column="1" Name="EntriesPanel" Classes="Panel" Width="240"
+                <Border Grid.Column="1" Name="EntriesPanel" Classes="Sunken" Width="240"
                         Margin="10,0,0,0" IsVisible="False">
                     <Grid RowDefinitions="Auto,*" RowSpacing="7">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
                             <!-- 加号在标题左边：不点画面也能添一条得靠算出来的点位。 -->
                             <Button Name="AddEntry" Classes="Secondary" Height="24" Width="26"
                                     Padding="0" FontSize="14" Content="+"
@@ -43,6 +54,12 @@
                                     ToolTip.Tip="{Binding [LookPick.AddHint], Source={x:Static loc:Strings.Current}}" />
                             <TextBlock Grid.Column="1" Classes="SectionHeader" VerticalAlignment="Center"
                                        Text="{Binding [LookPick.Added], Source={x:Static loc:Strings.Current}}" />
+                            <!-- 加了几处写在旁边：右侧这一列本身就是这一步要写入的内容，个数一眼要有。 -->
+                            <Border Grid.Column="2" Classes="Badge" VerticalAlignment="Center"
+                                    Background="{DynamicResource SurfaceSunken}">
+                                <TextBlock Name="CountText" FontSize="10.5" Text="0"
+                                           Foreground="{DynamicResource TextSecondary}" />
+                            </Border>
                         </Grid>
                         <Border Grid.Row="1" Classes="Sunken" Padding="5">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">

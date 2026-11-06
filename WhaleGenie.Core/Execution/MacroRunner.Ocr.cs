@@ -121,10 +121,9 @@ public sealed partial class MacroRunner
     private (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) ReadBox(
         ExecutableStep step)
     {
-        var anchor = AnchorOf(step);
-        var (corner, width, height) = Box(step, anchor.Corner, anchor.Window);
-        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
-        return (shot.Origin, shot.Frame, ReadFrame(step, shot.Frame));
+        // 搜索范围可能有好几处，试看只摆得出其中一张：摆第一处，与运行时从头读起的那一处一致。
+        var (frame, origin) = SearchAreas(step)[0];
+        return (origin, frame, ReadFrame(step, frame));
     }
 
     /// <summary>
@@ -226,10 +225,15 @@ public sealed partial class MacroRunner
 
     private void Recognize(ExecutableStep step, int depth)
     {
-        var (corner, area, spans) = ReadBox(step);
-        GivePoints(step, Middle(corner, new ScreenSize(area.Width, area.Height)), null);
+        // 搜索范围可能写下好几处，也可能一处都没写（那就是整块屏幕或窗口）。每一处都读，
+        // 读到的按区域顺序接起来：同一段话分在两个框里，读出来的仍是一句话。
+        var spans = ReadSpans(step);
+        var areas = _read;
+        var (frame, corner) = areas[0];
+
+        GivePoints(step, Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
         var text = string.Join(' ', spans.Select(span => span.Text));
-        Saw(step, LookKind.Text, area, corner, Marks([(area, corner)], TextMarks(spans, corner), 0), 0,
+        Saw(step, LookKind.Text, frame, corner, Marks(areas, TextMarks(spans, default), 0), 0,
             note: text, minimum: Number(step, "minScore"));
 
         // Read as a table, the result holds rows, each one a record keyed by where its cells sit —

@@ -28,7 +28,7 @@ public class ThemeTokenTests
         "SurfaceCard", "SurfaceFlyout", "SurfaceHover", "SurfacePressed", "SurfaceControl",
         "SurfaceControlHover", "SurfaceControlPressed",
         "TextPrimary", "TextSecondary", "TextTertiary", "TextDisabled", "TextOnAccent",
-        "BorderSubtle", "BorderControl", "BorderControlHover", "BorderStrong",
+        "BorderSubtle", "BorderControl", "BorderControlHover", "BorderStrong", "TreeGuide",
         "FocusRing", "FocusRingInner",
         "AccentFill", "AccentFillHover", "AccentFillPressed", "AccentText", "AccentSurface",
         "Success", "SuccessSurface", "Warning", "WarningSurface",

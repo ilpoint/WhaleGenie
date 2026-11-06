@@ -30,6 +30,12 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private const int PickReadMs = 3000;
 
+    /// <summary>
+    /// 菜单里直接列出多少个打开的窗口。再多的就不再一条条排，改成一个「更多」打开列表：一张
+    /// 长得要滚的菜单，比列表窗口更难找。
+    /// </summary>
+    private const int OpenWindowLimit = 12;
+
 
     /// <summary>The window this view is standing in, which owns its pickers and dialogs.</summary>
     private Window? HostWindow => TopLevel.GetTopLevel(this) as Window;
@@ -150,6 +156,23 @@ public partial class ActionEditorView : UserControl
     internal Func<MacroStep?, MacroStep, string?>? PlaceStep { get; set; }
 
     /// <summary>
+    /// Where a step written in this form asks for a name nothing in the macro is using yet. The
+    /// editor is the one that keeps those names, so it answers; a form opened with nothing behind
+    /// it leaves this null and the step it builds goes unnamed until the editor names it.
+    /// </summary>
+    internal Func<ISet<string>, string>? NextStepId
+    {
+        get => Form?.NextStepId;
+        set
+        {
+            if (Form is { } form)
+            {
+                form.NextStepId = value;
+            }
+        }
+    }
+
+    /// <summary>
     /// What to do with a step somebody asked to be shown while filling a field in — the reverse
     /// lookup of a variable: which steps read it, and where each of them is. The editor is the only
     /// one that has a step list, so it answers this; null where there is nothing to show it in.
@@ -166,11 +189,14 @@ public partial class ActionEditorView : UserControl
     public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
-        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
+        IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
+        string? windowAbove = null)
     {
         InitializeComponent();
 
-        var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId);
+        var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId,
+            windowRules, followsWindowAbove, windowAbove);
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
         // Picking a position has to know where the window a step is anchored to sits right now,
@@ -197,15 +223,24 @@ public partial class ActionEditorView : UserControl
         // Tunnelling so Escape cancels before any focused editor consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
 
-        // A variable picker shows nothing until a key is pressed, so open its candidate
-        // list as soon as the field is clicked or receives focus.
-        AddHandler(GotFocusEvent, OnVariablePickerFocused, RoutingStrategies.Bubble);
-        AddHandler(PointerPressedEvent, OnVariablePickerPressed, RoutingStrategies.Tunnel);
+        // A macro's name is picked rather than typed: there is nothing to remember it by, and no
+        // button beside that box to ask for the list. Every other name box is a value box — the
+        // names are offered while typing, and the button beside it opens the whole list — so
+        // clicking into one of those must not cover the form with every name the macro knows.
+        AddHandler(PointerPressedEvent, OnMacroFieldPressed, RoutingStrategies.Tunnel);
     }
 
-    private void OnVariablePickerFocused(object? sender, RoutedEventArgs e) => OpenCandidates(e.Source);
-
-    private void OnVariablePickerPressed(object? sender, PointerPressedEventArgs e) => OpenCandidates(e.Source);
+    private void OnMacroFieldPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.Source is Visual visual
+            && visual.FindAncestorOfType<AutoCompleteBox>(true) is
+            { DataContext: StepParameterViewModel { IsMacro: true, Text.Length: 0 } } picker
+            && picker.ItemsSource is { } items
+            && items.Cast<object>().Any())
+        {
+            picker.IsDropDownOpen = true;
+        }
+    }
 
     /// <summary>
     /// Listens for the keys of a capture on the window the form stands in rather than on the form:
@@ -346,20 +381,6 @@ public partial class ActionEditorView : UserControl
         return (owner.Position.X / scale, owner.Position.Y / scale, owner.Bounds.Width, owner.Bounds.Height);
     }
 
-    /// <summary>Opens the dropdown of a variable picker that has something to offer.</summary>
-    private static void OpenCandidates(object? source)
-    {
-        if (source is not Visual visual
-            || visual.FindAncestorOfType<AutoCompleteBox>(true) is not { } picker
-            || picker.ItemsSource is not { } items
-            || !items.Cast<object>().Any())
-        {
-            return;
-        }
-
-        picker.IsDropDownOpen = true;
-    }
-
     /// <summary>
     /// The form was finished with: it either holds a step to put somewhere, or nothing when the
     /// user cancelled. The window answers with it rather than staying up for the next one: the
@@ -456,7 +477,8 @@ public partial class ActionEditorView : UserControl
 
         if (viewModel.SelectedKey == "input.mouseDrag")
         {
-            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices.Screen, Devices.Windows, bounds) is { } drag)
+            if (await RegionPickerWindow.PickDragAsync(HostWindow!, Devices.Screen, Devices.Windows,
+                    bounds, Devices.Hook) is { } drag)
             {
                 viewModel.ApplyDrag(drag.StartX, drag.StartY, drag.EndX, drag.EndY);
             }
@@ -464,7 +486,8 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds);
+        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows,
+            null, bounds, hook: Devices.Hook);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -490,7 +513,8 @@ public partial class ActionEditorView : UserControl
 
         var initial = new RegionPickerWindow.Region(target.Location.X, target.Location.Y,
             target.Size.Width, target.Size.Height);
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial, null, target.Handle)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial,
+                null, target.Handle, Devices.Hook)
             is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -528,6 +552,15 @@ public partial class ActionEditorView : UserControl
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
             parameter.AddRegion();
+        }
+    }
+
+    /// <summary>Adds another colour to the pattern the step is matching.</summary>
+    private void OnAddColourPoint(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.AddColourPoint();
         }
     }
 
@@ -590,8 +623,8 @@ public partial class ActionEditorView : UserControl
                     target.Width, target.Height);
             }
 
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows, viewModel.AssetFolder,
-                    bounds)
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows,
+                    viewModel.AssetFolder, bounds, Devices.Hook)
                 is { Length: > 0 } picture)
             {
                 row.Text = picture;
@@ -716,17 +749,16 @@ public partial class ActionEditorView : UserControl
             bounds = new RegionPickerWindow.Region(target.X, target.Y, target.Width, target.Height);
         }
 
-        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds) is { } picked)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows,
+                null, bounds, hook: Devices.Hook) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }
     }
 
     /// <summary>
-    /// Opens the expression builder on the field that asked for it and keeps what it returns.
-    /// Writing a formula is the same wherever the value goes, so every field that holds one reaches
-    /// it through here: the box shows the value as it stands, and what comes back is put in the way
-    /// the field reads it — a number stays a number, anything else becomes an expression.
+    /// Opens the value window on the field that asked for it and keeps what it returns. A field laid
+    /// out with buttons of its own still reaches the same window as the one with the button inside.
     /// </summary>
     private async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
     {
@@ -735,20 +767,11 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        await BuildExpression(parameter);
-    }
-
-    private static int? CaretAt(object? source)
-    {
-        for (var at = source as Visual; at is not null; at = at.GetVisualParent())
+        if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
+                parameter.Variables, startOnFormula: true, target: parameter.Label) is { } built)
         {
-            if (at is TextBox box)
-            {
-                return box.CaretIndex;
-            }
+            parameter.WriteValue(built);
         }
-
-        return null;
     }
 
     /// <summary>
@@ -763,7 +786,8 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, cell.Text, cell.Variables) is { } built)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Text, cell.Variables,
+                startOnFormula: true) is { } built)
         {
             cell.Write(built);
         }
@@ -785,16 +809,15 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables(), LookAtStep)
-                is not { } picked
-            || picked.Token.Length == 0)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true, lookAtStep: LookAtStep) is not { Length: > 0 } picked)
         {
             return;
         }
 
         var caret = button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
             .OfType<TextBox>().FirstOrDefault()?.CaretIndex;
-        row.InsertVariable(picked.Token, caret ?? row.OrVariable.Length);
+        row.InsertVariable(picked, caret ?? row.OrVariable.Length);
     }
 
     /// <summary>
@@ -810,42 +833,33 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables(),
-                offerBuilder: parameter.OffersBuilder) is not { } picked)
-        {
-            return;
-        }
-
-        if (picked.WantsExpression)
-        {
-            await BuildExpression(parameter);
-            return;
-        }
-
-        if (picked.Token.Length == 0)
-        {
-            return;
-        }
-
         // The caret belongs to the box beside the button, which is the row's own field: the box
         // holds one value per row, so the one on this row is the one that was being filled in.
         var caret = button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
-            .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex;
-        parameter.InsertVariable(picked.Token, caret ?? (parameter.Text ?? string.Empty).Length);
-    }
+            .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex
+            ?? (parameter.Text ?? string.Empty).Length;
 
-    /// <summary>
-    /// Opens the expression editor on a field and keeps what it hands back. Two ways in lead here —
-    /// the button beside a whole-value field and the one inside the variable picker — and both mean
-    /// the same thing, so the field reads back the same way.
-    /// </summary>
-    private async Task BuildExpression(StepParameterViewModel parameter)
-    {
-        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, parameter.CurrentText,
-                parameter.Variables) is { } built)
+        // A field whose whole value is read opens the one window anywhere in the cell, with the
+        // caret where it was; a field that only fills names in opens it on the list of names.
+        if (parameter.OffersFormula)
         {
-            parameter.WriteValue(built);
+            if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
+                    parameter.Variables, startOnFormula: true, target: parameter.Label,
+                    startCaret: caret) is { } written)
+            {
+                parameter.WriteValue(written);
+            }
+
+            return;
         }
+
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true, target: parameter.Label) is not { Length: > 0 } picked)
+        {
+            return;
+        }
+
+        parameter.InsertVariable(picked, caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)
@@ -858,8 +872,8 @@ public partial class ActionEditorView : UserControl
         var variables = ((AddActionViewModel)DataContext).CollectVariables()
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
-        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, draft.DefaultValue,
-                variables) is { } built)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultValue,
+                variables, startOnFormula: true) is { } built)
         {
             draft.DefaultValue = built;
         }
@@ -1083,37 +1097,25 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Tries the step for real, once, which is the same question the element picker's test asks:
-    /// is this the thing I meant? A key name can be spelled another way and a controller control
-    /// can be the wrong one of a pair, so the answer is to send it and let the user watch — in the
-    /// window they meant it for, which is why the dialog steps aside first, the way picking does.
+    /// 试运行要跑的那一步：存的是它写下来的样子，但"沿用上一次"在单步里没有上一步可跟，换成它
+    /// 会跟到的那条规则——试的才是运行时真正会碰的那个窗口。存的仍旧是原来的写法。
     /// </summary>
-    private async void OnTestStep(object? sender, RoutedEventArgs e)
+    private static MacroStep BuildStepForTrial(AddActionViewModel viewModel)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter }
-            || DataContext is not AddActionViewModel viewModel)
+        var built = viewModel.BuildStep();
+        if (viewModel.WindowAbove.Length == 0)
         {
-            return;
+            return built;
         }
 
-        if (parameter.CurrentText.Trim().Length == 0)
+        foreach (var field in built.Parameters.Where(field =>
+                     string.Equals(field.Name, "window", StringComparison.Ordinal)
+                     && WindowRule.TryParse(field.Value, out var rule) && rule.Follow))
         {
-            await ReportTestAsync(Strings.Get("Add.TestFieldEmpty"));
-            return;
+            field.Value = viewModel.WindowAbove;
         }
 
-        // The step as it would be saved: what is tried is what was written, settings and all.
-        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
-
-        // Out of the way while it is tried, so the key or the control lands on the window that was
-        // meant, which is whatever the user had in mind behind this dialog — and so does everything
-        // else of this program, because minimizing this window alone leaves the editor behind it in
-        // front of the very window the trial is aimed at.
-        var outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices));
-        if (outcome.Status is not RunStatus.Completed && !_closed)
-        {
-            await ReportTestAsync(TrialFailure(outcome));
-        }
+        return built;
     }
 
     /// <summary>Why a step could not be tried, in the interface's own words.</summary>
@@ -1136,7 +1138,7 @@ public partial class ActionEditorView : UserControl
         }
 
         // The step as it would be saved, so what is run is what was written.
-        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
+        var step = new[] { BuildStepForTrial(viewModel) }.ToExecutable()[0];
 
         // Some steps put the machine out of use. A debug button is one click, and one click should
         // not sign the user out or shut their machine down without being asked.
@@ -1369,12 +1371,13 @@ public partial class ActionEditorView : UserControl
         // Read before the windows go away: a window-anchored step measures from a window of another
         // program, and finding it is not something to do with this one hidden.
         var area = PickArea(viewModel);
+        var looking = WhatThePickerLooksFor(step);
 
         // Off the thread that draws the window, and with this program's windows out of the picture,
         // for the same reasons the trial run does it. The picture is taken in the same breath as the
         // look, so the marks sit on the screen they were found on.
         var (outcome, picture) = await AwayAsync(() =>
-            (MacroRunner.LookOnce(step, Devices, new TrialFrames(this)),
+            (MacroRunner.LookOnce(looking, Devices, new TrialFrames(this)),
                 ScreenReady.Capture(Devices.Screen, area.X, area.Y, area.Width, area.Height)));
         _trialFrames.Clear();
 
@@ -1397,6 +1400,24 @@ public partial class ActionEditorView : UserControl
         return new LookForPick(look, picture, new ScreenPoint(area.X, area.Y),
             look.Boxes[look.ChosenIndex - 1].Match.Center);
     }
+
+    /// <summary>
+    /// The step as the picker should look at the screen. A multi-point colour search with nothing
+    /// beside its base colour yet cannot run: it would be looking for the base colour alone, which
+    /// is the plain colour search. That is exactly the state the picker is opened from, because
+    /// picking the surroundings is how the pattern gets written, so for this one look it asks the
+    /// question the picker needs answered: where is the base colour.
+    /// </summary>
+    internal static ExecutableStep WhatThePickerLooksFor(ExecutableStep step)
+        => step.Type == "vision.findColors" && step.Rows("points").Count == 0
+            ? new ExecutableStep
+            {
+                Type = "vision.findColor",
+                Id = step.Id,
+                Meta = step.Meta,
+                Parameters = [.. step.Parameters.Where(parameter => parameter.Name != "points")],
+            }
+            : step;
 
     /// <summary>
     /// What the step reads as a whole: the client area of the window it is anchored to, or the whole
@@ -1617,8 +1638,8 @@ public partial class ActionEditorView : UserControl
                     target.Width, target.Height);
             }
 
-            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows, viewModel.AssetFolder,
-                    bounds)
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices.Screen, Devices.Windows,
+                    viewModel.AssetFolder, bounds, Devices.Hook)
                 is { Length: > 0 } picture)
             {
                 parameter.Text = picture;
@@ -1658,16 +1679,128 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>
-    /// Captures the window in front and edits its matching rule. The whole rule is one value, so
-    /// the action stores what the picker saw rather than losing the parts it did not use today.
+    /// 窗口那一格的唯一入口：把"用哪个窗口"的几种走法收在一处。以前是三颗按钮，其中捕获那一颗
+    /// 还要先按 F1 再对准窗口点一下；同一个窗口在一页宏里要用二十次时，这一格是最费手的地方。
     /// </summary>
-    private async void OnPickWindowRule(object? sender, RoutedEventArgs e)
+    private void OnChooseWindow(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        if (sender is Button { DataContext: StepParameterViewModel parameter } button)
         {
-            return;
+            BuildWindowMenu(parameter).ShowAt(button);
+        }
+    }
+
+    /// <summary>
+    /// 窗口那一格的菜单：前台、沿用、本宏用过的、已打开的、捕获、变量。建菜单与显示分开，是因为
+    /// 菜单里列出什么、勾在哪一项，是可以单独核对的东西。
+    /// </summary>
+    internal MenuFlyout BuildWindowMenu(StepParameterViewModel parameter)
+    {
+        if (DataContext is not AddActionViewModel form)
+        {
+            return new MenuFlyout();
         }
 
+        var menu = new MenuFlyout();
+
+        // 不指定就是前台窗口，与从前空着那一格的意思一样。
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.Foreground"),
+            parameter.ClearWindowRule, !parameter.HasWindowRule));
+
+        // 沿用：不写死窗口，跟前面那个走。新步骤默认就是它，所以这一项平时常常是勾上的。
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Following"),
+            parameter.FollowWindowRule, parameter.IsFollowingWindow));
+
+        if (form.WindowRules.Count > 0)
+        {
+            menu.Items.Add(new Separator());
+
+            var used = new MenuItem { Header = Strings.Get("WindowRule.Menu.Used") };
+            foreach (var choice in form.WindowRules)
+            {
+                if (!WindowRule.TryParse(choice.Rule, out var rule))
+                {
+                    continue;
+                }
+
+                var label = choice.Count > 1
+                    ? $"{choice.Summary} {Strings.Get("WindowRule.UsedTimes", choice.Count.ToString(CultureInfo.CurrentCulture))}"
+                    : choice.Summary;
+                used.Items.Add(Choice(label, () => parameter.ApplyWindowRule(rule),
+                    string.Equals(parameter.Text.Trim(), choice.Rule, StringComparison.Ordinal)));
+            }
+
+            menu.Items.Add(used);
+        }
+
+        menu.Items.Add(new Separator());
+        menu.Items.Add(OpenWindows(parameter));
+
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.Capture"),
+            () => _ = CaptureWindowRule(parameter)));
+        menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.Variable"),
+            () => _ = UseWindowVariable(parameter)));
+
+        return menu;
+    }
+
+    /// <summary>The windows that are open right now, ready to be named in one click.</summary>
+    private MenuItem OpenWindows(StepParameterViewModel parameter)
+    {
+        var menu = new MenuItem { Header = Strings.Get("WindowRule.Menu.Open") };
+        IReadOnlyList<WindowInfo> windows;
+        try
+        {
+            windows = Devices.Windows.List();
+        }
+        catch (Exception)
+        {
+            // 列不出来就没有这一项：读窗口的设备不在时，别的走法仍旧可用。
+            menu.IsEnabled = false;
+            return menu;
+        }
+
+        foreach (var window in windows.Take(OpenWindowLimit))
+        {
+            var named = window;
+            menu.Items.Add(Choice(Label(named), () =>
+            {
+                // 记下的是整条规则，程序名与窗口类也一起：改天标题变了，还能按它们找回同一个窗口。
+                parameter.ApplyWindowRule(WindowRule.From(named,
+                    Devices.Windows.ProcessOf(named.Handle), Devices.Windows.ClassOf(named.Handle)));
+            }));
+        }
+
+        if (windows.Count > OpenWindowLimit)
+        {
+            menu.Items.Add(Choice(Strings.Get("WindowRule.Menu.More"),
+                () => _ = PickWindowByTitle(parameter)));
+        }
+
+        if (menu.Items.Count == 0)
+        {
+            menu.IsEnabled = false;
+        }
+
+        return menu;
+    }
+
+    /// <summary>A row for one window: its title, then the program it belongs to.</summary>
+    private string Label(WindowInfo window)
+    {
+        if (window.Title.Length == 0)
+        {
+            return window.Handle.ToString(CultureInfo.CurrentCulture);
+        }
+
+        var program = Devices.Windows.ProcessOf(window.Handle);
+        return program.Length == 0 ? window.Title : $"{window.Title} · {program}";
+    }
+
+    /// <summary>捕获窗口：按 F1 对准窗口点一下，再改匹配方式。仍然是最精确的那条路。</summary>
+    private async Task CaptureWindowRule(StepParameterViewModel parameter)
+    {
         WindowRule.TryParse(parameter.Text, out var current);
         if (await WindowRuleWindow.PickAsync(HostWindow!, Devices.Windows, Devices.Hook, current) is { } picked)
         {
@@ -1675,22 +1808,60 @@ public partial class ActionEditorView : UserControl
         }
     }
 
+    /// <summary>从窗口列表里选一个，只留下标题那一条规则。</summary>
+    private async Task PickWindowByTitle(StepParameterViewModel parameter)
+    {
+        if (await WindowPickerWindow.PickAsync(HostWindow!, WindowMatch.Title, Devices.Windows)
+            is { Length: > 0 } picked)
+        {
+            parameter.ApplyWindowRule(new WindowRule(Title: picked));
+        }
+    }
+
     /// <summary>Uses a window record a previous step handed over.</summary>
+    private async Task UseWindowVariable(StepParameterViewModel parameter)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true) is not { Length: > 0 } picked)
+        {
+            return;
+        }
+
+        parameter.UseWindowVariable(picked);
+    }
+
+    /// <summary>One line of the window menu: what it says, what it does, and whether it is the one in force.</summary>
+    private static MenuItem Choice(string text, Action chosen, bool inForce = false)
+    {
+        var item = new MenuItem
+        {
+            Header = text,
+            ToggleType = MenuItemToggleType.Radio,
+            IsChecked = inForce
+        };
+        item.Click += (_, _) => chosen();
+        return item;
+    }
+
+    private async void OnPickWindowRule(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            await CaptureWindowRule(parameter);
+        }
+    }
+
     private async void OnPickWindowVariable(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter }
-            || DataContext is not AddActionViewModel viewModel)
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
-            return;
+            await UseWindowVariable(parameter);
         }
-
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables()) is not { } picked
-            || picked.Token.Length == 0)
-        {
-            return;
-        }
-
-        parameter.UseWindowVariable(picked.Token);
     }
 
     private void OnClearWindowRule(object? sender, RoutedEventArgs e)
@@ -1870,7 +2041,10 @@ public partial class ActionEditorView : UserControl
     /// <summary>Puts another thing the element has to be like at the end of the list.</summary>
     private void OnAddNarrowRow(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        // The button is only drawn for a field that narrows an element down, but a hidden control
+        // is still reachable from automation, and asking a condition field for a narrow family is
+        // a question it has no answer to.
+        if (sender is Control { DataContext: StepParameterViewModel { IsNarrow: true } parameter })
         {
             parameter.AddNarrowRow();
         }
@@ -1983,8 +2157,13 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private static PageTarget Target(AddActionViewModel viewModel, NarrowRowViewModel? upto = null)
         => PageTarget.Of(ParameterText(viewModel, "pageSelector"), MatchIndex(viewModel),
-            viewModel.Parameters.FirstOrDefault(parameter => parameter.IsNarrow)?.Conditions(upto)
-                ?? []);
+            [.. (viewModel.Parameters.FirstOrDefault(parameter => parameter.IsNarrow)?.Conditions(upto)
+                    ?? [])
+                .Select(condition => new PageCondition(
+                    Enum.TryParse<PageFilter>(condition.How, ignoreCase: true, out var how)
+                        ? how
+                        : PageFilter.HasText,
+                    condition.Value))]);
 
     /// <summary>
     /// Writes the name of a variable into a selector field, on a line of its own: a macro that works
@@ -2001,13 +2180,13 @@ public partial class ActionEditorView : UserControl
 
         // The expression editor is not offered: a selector field is read as text with the names in
         // it filled in, so a formula built here would be written down as part of the selector.
-        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables()) is not { } picked
-            || picked.Token.Length == 0)
+        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
+                namesOnly: true) is not { Length: > 0 } picked)
         {
             return;
         }
 
-        parameter.AddLine(picked.Token);
+        parameter.AddLine(picked);
     }
 
     /// <summary>

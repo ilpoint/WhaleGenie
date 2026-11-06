@@ -87,6 +87,55 @@ public class ActionPaletteCategoryTests
         Assert.Same(input, palette.SelectedCategory);
     }
 
+    /// <summary>
+    /// 搜索不分「基础动作」与「流程控制」两个页签：人问「延迟」，不该先知道它归哪一栏。页签
+    /// 仍然管浏览，清空搜索就回到原来那一页。
+    /// </summary>
+    [Fact]
+    public void Searching_finds_actions_from_both_docks()
+    {
+        Ui.Run(() =>
+        {
+            var palette = new ActionPaletteViewModel();
+            palette.SelectDock(ActionPaletteDock.Basic);
+
+            palette.Search = "延迟";
+            Assert.Contains(palette.Cards, card => card.Key == "control.delay");
+
+            palette.Search = "点击";
+            Assert.Contains(palette.Cards, card => card.Key == "uia.click");
+            Assert.Contains(palette.Cards, card => card.Key == "browser.click");
+
+            // 清空搜索仍是原来那一页：流程动作不在基础动作里。
+            palette.Search = string.Empty;
+            Assert.DoesNotContain(palette.Cards, card => card.Key == "control.delay");
+        });
+    }
+
+    /// <summary>
+    /// 按老说法问「点击元素」，两张卡片都要找得到：动作名现在分开叫「点击界面元素」与「点击网页
+    /// 元素」，整句已经不在名字里，按两个字一段拆开仍在。分开叫是为了让人一眼看出哪张点的是网页，
+    /// 哪张点的是桌面上的控件。
+    /// </summary>
+    [Fact]
+    public void Searching_an_old_name_finds_both_actions_that_now_say_which_family_they_are()
+    {
+        Ui.Run(() =>
+        {
+            var palette = new ActionPaletteViewModel();
+            palette.Search = "点击元素";
+
+            Assert.Contains(palette.Cards, card => card.Key == "uia.click");
+            Assert.Contains(palette.Cards, card => card.Key == "browser.click");
+
+            var names = palette.Cards
+                .Where(card => card.Key is "uia.click" or "browser.click")
+                .Select(card => card.Title)
+                .ToList();
+            Assert.Equal(2, names.Distinct().Count());
+        });
+    }
+
     [Fact]
     public void Search_stays_inside_the_selected_category()
     {

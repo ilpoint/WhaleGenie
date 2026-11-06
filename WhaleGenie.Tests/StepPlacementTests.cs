@@ -118,7 +118,7 @@ public class StepPlacementTests
 
             editor.SetSelection([ordinary]);
             editor.MoveSelectionTo(
-                editor.Rows.Single(row => row.IsHead && row.List?.Name == "cases").RowIndex);
+                choice.StepLists.Single(parameter => parameter.Name == "cases").Steps, 0);
 
             Assert.Equal(["control.switch", "control.log"],
                 editor.Steps.Select(step => step.Type));
@@ -138,7 +138,7 @@ public class StepPlacementTests
             var editor = Editor(choice);
 
             editor.SetSelection([first]);
-            editor.MoveSelectionTo(editor.Rows.Count);
+            editor.MoveSelectionTo(editor.Steps, editor.Steps.Count);
 
             Assert.Same(choice, Assert.Single(editor.Steps));
             Assert.Same(first, Assert.Single(
@@ -247,8 +247,8 @@ public class StepPlacementTests
 
         static void AddInside(MacroEditorViewModel editor, MacroStep owner, string list, MacroStep child)
         {
-            editor.AddInsideCommand.Execute(editor.Rows.Single(row =>
-                row.IsHead && ReferenceEquals(row.Step, owner) && row.List?.Name == list));
+            editor.PrepareInsertionAt(
+                owner.StepLists.Single(parameter => parameter.Name == list).Steps, 0);
             Assert.Null(editor.AddStepHere(child));
         }
     }

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -117,8 +118,8 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>Clears the "what the last pick caught" line a moment after it is shown.</summary>
     private DispatcherTimer? _pickTimer;
 
-    /// <summary>The step list, kept because the drag handlers need it after construction.</summary>
-    private ListBox? _stepList;
+    /// <summary>The step tree, kept because the drag handlers need it after construction.</summary>
+    private TreeView? _stepList;
 
     /// <summary>The form field waiting for a key, so its button can go back to "set key".</summary>
     private StepParameterViewModel? _keyCaptureParameter;
@@ -142,11 +143,15 @@ public partial class MacroEditorWindow : AppWindow
 
     private bool _draggingSteps;
 
-    /// <summary>Row the dragged block would land at, or -1 while there is no drop target.</summary>
-    private int _dropSlot = -1;
+    /// <summary>The list the dragged steps would land in, and where in it.</summary>
+    private IList<MacroStep>? _dropList;
+    private int _dropIndex = -1;
 
-    /// <summary>Block a dragged step would be put inside, or null while it lands between rows.</summary>
-    private MacroStep? _dropInto;
+    /// <summary>
+    /// True while the add-action window is open, so a double-click that lands twice does not stack
+    /// two forms on top of each other. The window is modal; a second one would sit on the first.
+    /// </summary>
+    private bool _actionEditorOpen;
 
     private double _dropMarkerY;
 
@@ -268,6 +273,7 @@ public partial class MacroEditorWindow : AppWindow
         ActionPalette.AddBlankSubMacroRequested += AddBlankSubMacro;
         ActionPalette.CopyProjectMacroRequested += CopyProjectMacroAsSub;
         ActionPalette.ManagePublicMacrosRequested += ManagePublicMacros;
+        ActionPalette.CardActivated += OnCardActivated;
         RefreshPalette();
         EnsureInterface();
         // Save keeps the editor open and hands the same snapshot to the project list immediately.
@@ -368,31 +374,30 @@ public partial class MacroEditorWindow : AppWindow
         Strings.Current.LanguageChanged += UpdateTitleBarButtons;
         Closed += (_, _) => Strings.Current.LanguageChanged -= UpdateTitleBarButtons;
 
-        var stepList = this.FindControl<ListBox>("StepList");
+        var stepList = this.FindControl<TreeView>("StepList");
         if (stepList is not null)
         {
             _stepList = stepList;
 
             stepList.SelectionChanged += (_, _) =>
             {
-                // Rebuilding the rows makes the list let go of its selection for a moment; that
+                // Rebuilding the nodes makes the tree let go of its selection for a moment; that
                 // is the editor's own doing, not the user unpicking the steps.
                 if (_syncingSelection || _viewModel.IsRebuildingRows)
                 {
                     return;
                 }
 
-                // A block's title and its closing line stand for the block itself, so picking
-                // one picks the block. The highlight is then put back on the block's own row,
-                // because that is the row everything acts on.
+                // A section title and a block's closing line stand for the block itself, so
+                // picking one picks the block. The highlight is then put back on the block's own
+                // row, because that is the row everything acts on.
                 var rows = stepList.SelectedItems?.OfType<StepRow>().ToList() ?? [];
                 _viewModel.SetSelection(rows.Select(row => row.Step).Distinct());
                 RefreshPalette();
 
-                // Ctrl+A selects every row at once, including each block's title and closing
-                // line. Clearing that selection and adding every row back one by one makes the
-                // list follow each addition to the bottom. The block's own row is already picked
-                // in that case, so only a title or closing line picked on its own needs the move.
+                // Ctrl+A selects every node at once, including each block's section titles and
+                // closing line. Clearing that selection and putting it back on the step rows keeps
+                // the editor's own idea of what is picked and the tree's in one place.
                 var pickedSteps = rows
                     .Where(row => row.IsStep)
                     .Select(row => row.Step)
@@ -403,32 +408,20 @@ public partial class MacroEditorWindow : AppWindow
                 }
             };
 
-            // The list drops its selection when rows move, so the view model asks for it back.
+            // The tree drops its selection when nodes move, so the view model asks for it back.
             _viewModel.SelectionRefreshRequested += () =>
             {
                 _syncingSelection = true;
                 try
                 {
-                    // The rows are rebuilt on every change, so the highlights have to be put on
-                    // the rows as they are now rather than on the ones that were picked.
+                    // The nodes are rebuilt on every change, so the highlights have to be put on
+                    // the nodes as they are now rather than on the ones that were picked.
                     var wanted = _viewModel.SelectedSteps.ToHashSet();
-                    var selection = stepList.Selection;
-                    selection.BeginBatchUpdate();
-                    try
-                    {
-                        selection.Clear();
-                        for (var index = 0; index < _viewModel.Rows.Count; index++)
-                        {
-                            if (_viewModel.Rows[index] is { IsStep: true } row && wanted.Contains(row.Step))
-                            {
-                                selection.Select(index);
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        selection.EndBatchUpdate();
-                    }
+                    var picked = _viewModel.Rows
+                        .Where(row => row.IsStep && wanted.Contains(row.Step))
+                        .Cast<object>()
+                        .ToList();
+                    SyncSelection(stepList, picked);
                 }
                 finally
                 {
@@ -437,7 +430,9 @@ public partial class MacroEditorWindow : AppWindow
             };
 
             // Tunnelled: a row handles the press itself, so a drag has to be seen on the way
-            // down to the row rather than after it.
+            // down to the row rather than after it. A double click is heard on the way back up,
+            // and even after the tree has had its say, so opening a step cannot be swallowed by
+            // the row's own handling.
             stepList.AddHandler(PointerPressedEvent, OnStepPointerPressed, RoutingStrategies.Tunnel);
             stepList.AddHandler(PointerMovedEvent, OnStepPointerMoved, RoutingStrategies.Tunnel);
             stepList.AddHandler(PointerReleasedEvent, OnStepPointerReleased, RoutingStrategies.Tunnel);
@@ -469,6 +464,26 @@ public partial class MacroEditorWindow : AppWindow
 
     private async void OnManageGlobals(object? sender, RoutedEventArgs e)
         => await ManageGlobalsAsync();
+
+    /// <summary>
+    /// 管理这个宏自己的变量：改名是唯一能在这里做的改动，因为局部变量是步骤写出来的，
+    /// 这里既不能凭空新建一个，也不能删掉一条还在写的步骤。
+    /// </summary>
+    private async void OnManageLocals(object? sender, RoutedEventArgs e)
+    {
+        await LocalVariablesWindow.ShowAsync(this,
+            () => _viewModel.CollectVariables(),
+            (old, next) =>
+            {
+                if (!_viewModel.RenameLocalVariable(old, next, out var problem))
+                {
+                    return (false, problem);
+                }
+
+                _viewModel.RefreshVariableCenter();
+                return (true, string.Empty);
+            });
+    }
 
     private async Task ManageGlobalsAsync(string? initialName = null)
     {
@@ -1556,7 +1571,10 @@ public partial class MacroEditorWindow : AppWindow
         _syncingSelection = true;
         try
         {
-            _stepList.SelectAll();
+            SyncSelection(_stepList, _viewModel.Rows
+                .Where(row => row.IsStep)
+                .Cast<object>()
+                .ToList());
         }
         finally
         {
@@ -1765,6 +1783,35 @@ public partial class MacroEditorWindow : AppWindow
         ActionPalette.FocusSearch();
     }
 
+    /// <summary>
+    /// 双击动作卡：把这张动作交给和拖放同一个表单，保存后由编辑器放到当前落点（有选中就放在它
+    /// 后面，空列表就是末尾）。拖放要真的按住拖过去，键盘与自动化都做不来，双击是它的等价物。
+    /// </summary>
+    private async void OnCardActivated(ActionPaletteCardViewModel card)
+    {
+        if (_actionEditorOpen || card.Kind != ActionPaletteCardKind.Action)
+        {
+            return;
+        }
+
+        var actions = _viewModel.AddableActions;
+        if (!actions.Any(action => string.Equals(action.Key, card.Key, StringComparison.Ordinal)))
+        {
+            // 当前落点不收这种步骤，拖放也会被拒绝：不必开一个注定存不下的表单。
+            return;
+        }
+
+        _actionEditorOpen = true;
+        try
+        {
+            await ShowActionEditor(null, actions, card.Key, null);
+        }
+        finally
+        {
+            _actionEditorOpen = false;
+        }
+    }
+
     /// <summary>The same, preset on the "run another macro" step.</summary>
     private async void OnRunMacroRequested()
         => await ShowActionEditor(null, ActionCatalog.ForKeys(["control.runMacro"]), "control.runMacro", null);
@@ -1851,15 +1898,24 @@ public partial class MacroEditorWindow : AppWindow
         IReadOnlyList<ActionDefinition> actions, string? presetKey, string? macroName)
     {
         var editingPage = _viewModel;
+
+        // 窗口那几格现在可以"沿用上一次"：这里把本宏用过的窗口收成一张表交给表单，并告诉它落点
+        // 之上有没有人指定过窗口——有的话，新写的这一步默认就跟着上面那个走，不必再绑一次。
+        var windowRules = WindowRuleChoices.Of(_viewModel.Steps);
+        var windowAbove = WindowRuleChoices
+            .NearestAbove(_viewModel.Steps, _viewModel.SelectedSteps.LastOrDefault()?.Id);
+        var follows = editing is null && windowAbove.Length > 0;
+
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
             MacroCalls(), presetKey, _session.AssetFolder, _viewModel.StepChoices(),
-            editing?.Id ?? _viewModel.NewStepId())
+            editing?.Id ?? _viewModel.NewStepId(), windowRules, follows, windowAbove)
         {
             Devices = Layer,
             Macros = BuildLibrary(),
             PlaceStep = (existing, step) => existing is null
                 ? _viewModel.PlacementRefusalForPending(step)
                 : _viewModel.PlacementRefusalForReplacement(existing, step),
+            NextStepId = taken => _viewModel.NewStepId(taken),
         };
         if (macroName is not null)
         {
@@ -1996,7 +2052,15 @@ public partial class MacroEditorWindow : AppWindow
         if (_viewModel.Rows.FirstOrDefault(row => row.IsStep && ReferenceEquals(row.Step, step))
             is { } row)
         {
-            _stepList?.ScrollIntoView(row);
+            // The tree does not follow the selection (see the comment on `StepList`), so the row
+            // a step was revealed on is brought into view once the containers exist.
+            Dispatcher.UIThread.Post(() =>
+            {
+                var container = _stepList?.GetVisualDescendants()
+                    .OfType<TreeViewItem>()
+                    .FirstOrDefault(item => ReferenceEquals(item.DataContext, row));
+                container?.BringIntoView();
+            });
         }
     }
 
@@ -2138,7 +2202,19 @@ public partial class MacroEditorWindow : AppWindow
     /// still opens.
     /// </summary>
     private async void OnEditStepRequested(MacroStep step)
-        => await ShowActionEditor(step, ActionCatalog.PlaceableActions, null, null);
+    {
+        // The list the form picks from has to hold the step being edited. A branch of a switch is
+        // hidden from the palette — it is only ever written through its switch — and a form that
+        // cannot find it would quietly edit it as whichever action came first.
+        var actions = ActionCatalog.PlaceableActions;
+        if (ActionCatalog.Find(step.Type) is { } definition
+            && !actions.Any(action => action.Key == definition.Key))
+        {
+            actions = [.. actions, definition];
+        }
+
+        await ShowActionEditor(step, actions, null, null);
+    }
 
     /// <summary>Confirms the palette's "clear all steps", which cannot be undone.</summary>
     private async void OnClearRequested()
@@ -2494,16 +2570,172 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    /// <summary>Double-clicking a row opens it, which is what a list is expected to do.</summary>
-    private void OnStepDoubleTapped(object? sender, TappedEventArgs e)
+    /// <summary>True when the point came from inside a row's own content — the card, its text, the badges —
+    /// rather than from the indent strip beside it or from a control the row carries.</summary>
+    private static bool OnRowContent(object? source)
     {
-        if (RowUnder(e.Source) is not { IsStep: true } row)
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is ToggleButton or TextBox)
+            {
+                return false;
+            }
+
+            if (visual is Panel { Name: "RowHeader" })
+            {
+                return true;
+            }
+
+            if (visual is TreeViewItem)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Adds the next branch of a switch; the new row opens its values for typing.</summary>
+    private void OnAddBranch(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepRow { IsAddRow: true } row })
+        {
+            _viewModel.AddBranch(row.Step);
+        }
+    }
+
+    /// <summary>
+    /// Turns a branch's values into the line that is typed in their place. A branch is one line of
+    /// values — several of them separated by ";" — so this is all the form that field needs.
+    /// </summary>
+    private void OnEditCaseValues(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepRow { IsCase: true } row })
+        {
+            row.BeginEditingValues();
+            FocusCaseValues(row);
+        }
+    }
+
+    /// <summary>
+    /// A branch that was just added opens for typing the moment its row exists: the box is built
+    /// with the row, so this is where the caret can go without the list being touched again.
+    /// </summary>
+    private void OnCaseValueBoxAttached(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (sender is TextBox { DataContext: StepRow { IsEditingValues: true } row } box)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                box.Focus();
+                box.SelectAll();
+            }, DispatcherPriority.Loaded);
+        }
+    }
+
+    /// <summary>Puts the caret in a branch's value box, selecting what is there so it can be replaced.</summary>
+    private void FocusCaseValues(StepRow row)
+        => Dispatcher.UIThread.Post(() =>
+        {
+            if (FindCaseValueBox(row) is { } box)
+            {
+                box.Focus();
+                box.SelectAll();
+            }
+        }, DispatcherPriority.Loaded);
+
+    /// <summary>The box a branch row is being typed into, if that row is on screen and open.</summary>
+    private TextBox? FindCaseValueBox(StepRow row)
+        => _stepList?.GetVisualDescendants().OfType<TextBox>()
+            .FirstOrDefault(box => box.Name == "CaseValueBox" && ReferenceEquals(box.DataContext, row));
+
+    /// <summary>
+    /// A branch's values are read as text with the names in them replaced, so "1; 2" and "$key" are
+    /// the same kind of thing. The button therefore does what the same button does on the step's own
+    /// form: put a name where the caret is, or hand the whole line to the expression editor through
+    /// the picker's own "write it as an expression" entry.
+    /// </summary>
+    private async void OnPickCaseValuesVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepRow { IsCase: true } row })
+        {
+            return;
+        }
+
+        // The pickers are windows of their own, and taking the focus is how a dialog opens: without
+        // this the row would read the loss as "the user moved on" and close the line under the
+        // dialog, leaving what comes back nowhere to go.
+        _pickingCaseValues = true;
+        try
+        {
+            var line = FindCaseValueBox(row);
+            var caret = line?.SelectionStart ?? row.CaseValuesText.Length;
+            if (await ValuePickerWindow.ShowFor(this, row.CaseValuesText,
+                    _viewModel.CollectVariables(), startOnFormula: true,
+                    startCaret: caret) is not { } written)
+            {
+                return;
+            }
+
+            row.CaseValuesText = written;
+        }
+        finally
+        {
+            _pickingCaseValues = false;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (FindCaseValueBox(row) is { } box)
+                {
+                    box.Focus();
+                    box.CaretIndex = box.Text?.Length ?? 0;
+                }
+            }, DispatcherPriority.Loaded);
+        }
+    }
+
+    /// <summary>True while one of the pickers is open over the branch being typed.</summary>
+    private bool _pickingCaseValues;
+
+
+    /// <summary>
+    /// Enter keeps the values and leaves the line, Escape puts back what was there. Both end the
+    /// edit, because a branch is read as a table: the row is its values, not a form left open.
+    /// </summary>
+    private void OnCaseValuesKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: StepRow row } || e.Key is not (Key.Enter or Key.Escape))
         {
             return;
         }
 
         e.Handled = true;
-        OnEditStepRequested(row.Step);
+        row.EndEditingValues(keep: e.Key == Key.Enter);
+        _stepList?.Focus();
+    }
+
+    /// <summary>Leaving the line is keeping what was typed: there is no "cancel" to be had by leaving.</summary>
+    private void OnCaseValuesLostFocus(object? sender, RoutedEventArgs e)
+    {
+        // A picker opening over the row takes the focus with it; that is not the user leaving.
+        if (_pickingCaseValues || sender is not TextBox { DataContext: StepRow row } box
+            || !row.IsEditingValues)
+        {
+            return;
+        }
+
+        // So is the row being rebuilt under the box: the list is laid out again whenever a branch
+        // is added, and the focus lands on the row's own container on the way. Focus that never
+        // left this row — or that has nowhere to go yet — is not the person moving on.
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
+        if (_viewModel.IsRebuildingRows
+            || (focused is not null
+                && box.FindAncestorOfType<TreeViewItem>(true) is { } owner
+                && owner.IsVisualAncestorOf(focused)))
+        {
+            return;
+        }
+
+        row.EndEditingValues(keep: true);
     }
 
     /// <summary>Context-menu commands for the step list, so they are not keyboard-only.</summary>
@@ -2539,7 +2771,24 @@ public partial class MacroEditorWindow : AppWindow
     {
         var point = e.GetCurrentPoint(this);
         var onButton = IsOnButton(e.Source);
-        var row = onButton ? null : RowUnder(e.Source);
+
+        // A text box a row carries owns its own presses: clicking into it is putting the caret
+        // somewhere, not picking the row up as a drag or clearing the selection around it.
+        var onText = IsOnText(e.Source);
+        var row = onButton || onText ? null : RowUnder(e.Source);
+
+        // The second press of a double click opens the row it landed on. Doing it here rather than
+        // on the double-tap keeps it independent of what selection did with the first click, and
+        // marking the press handled is also what stops the tree from folding the block that holds
+        // the row: opening a step must not close the block it was found in.
+        if (e.ClickCount == 2 && row is { } twice && (twice.IsStep || twice.IsCase)
+            && OnRowContent(e.Source))
+        {
+            e.Handled = true;
+            _pressedRow = null;
+            Dispatcher.UIThread.Post(() => OnEditStepRequested(twice.Step));
+            return;
+        }
 
         // A right-click on a row that is not part of the selection picks that row first, so the
         // context menu acts on what was clicked rather than on something picked earlier.
@@ -2564,7 +2813,7 @@ public partial class MacroEditorWindow : AppWindow
         // A press on the empty part of the list — the space after the last row — is the user
         // saying "none of these", so the selection goes, the way it does in any other list. The
         // scrollbar is not empty space.
-        if (pressed && row is null && !onButton && !IsOnScrollbar(e.Source))
+        if (pressed && row is null && !onButton && !onText && !IsOnScrollbar(e.Source))
         {
             _viewModel.SetSelection([]);
 
@@ -2575,7 +2824,8 @@ public partial class MacroEditorWindow : AppWindow
 
         _dragOrigin = e.GetPosition(this);
         _draggingSteps = false;
-        _dropSlot = -1;
+        _dropList = null;
+        _dropIndex = -1;
     }
 
     /// <summary>Starts the drag once the pointer has moved far enough, then tracks the drop row.</summary>
@@ -2629,9 +2879,9 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         // The state is read and cleared before the capture goes back, because losing the
-        // capture asks for the drag to end and would wipe the drop row out from under us.
-        var slot = _dropSlot;
-        var into = _dropInto;
+        // capture asks for the drag to end and would wipe the drop seam out from under us.
+        var list = _dropList;
+        var index = _dropIndex;
         var allowed = _dropAllowed;
         var refusal = _dropRefusal;
         EndStepDrag();
@@ -2643,13 +2893,9 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
-        if (into is not null)
+        if (list is not null && index >= 0)
         {
-            _viewModel.MoveSelectionInto(into);
-        }
-        else if (slot >= 0)
-        {
-            _viewModel.MoveSelectionTo(slot);
+            _viewModel.MoveSelectionTo(list, index);
         }
     }
 
@@ -2660,8 +2906,8 @@ public partial class MacroEditorWindow : AppWindow
     {
         _pressedRow = null;
         _draggingSteps = false;
-        _dropSlot = -1;
-        _dropInto = null;
+        _dropList = null;
+        _dropIndex = -1;
         _dropAllowed = true;
         _dropRefusal = string.Empty;
 
@@ -2671,22 +2917,27 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    /// <summary>Works out which row the block would land at, and moves the marker onto that seam.</summary>
+    /// <summary>Works out where the dragged block would land, and moves the marker onto that seam.</summary>
     private void UpdateDropSlot(PointerEventArgs e)
-        => UpdateDropSlot(e.GetPosition(_stepList), actionKey: null);
+        => UpdateDropAt(e.GetPosition(_stepList), actionKey: null);
 
     /// <summary>
     /// The same question asked without a pointer, answered with what the marker would say: which
-    /// seam the action lands on, whether it lands inside a block, and whether the drop is allowed.
-    /// A drag cannot be driven from a check, and the seams a list offers are worth one.
+    /// list the steps land in, at what position, and whether the drop is allowed. A drag cannot be
+    /// driven from a check, and the seams a tree offers are worth one.
     /// </summary>
-    internal (int Slot, MacroStep? Into, bool Allowed) DropSlotAt(Point point, string? actionKey)
+    internal (IList<MacroStep>? Into, int Index, bool Allowed) DropTargetAt(Point point, string? actionKey)
     {
-        UpdateDropSlot(point, actionKey);
-        return (_dropSlot, _dropInto, _dropAllowed);
+        UpdateDropAt(point, actionKey);
+        return (_dropList, _dropIndex, _dropAllowed);
     }
 
-    private void UpdateDropSlot(Point point, string? actionKey = null)
+    /// <summary>
+    /// A tree answers "where does this go" with a list and a position rather than with a row
+    /// number: the same place in the document can be reached by dropping above the step below it
+    /// or below the step above it, and the list is what both answers have in common.
+    /// </summary>
+    private void UpdateDropAt(Point point, string? actionKey = null)
     {
         if (_stepList is null)
         {
@@ -2695,182 +2946,172 @@ public partial class MacroEditorWindow : AppWindow
 
         _dropAllowed = true;
         _dropRefusal = string.Empty;
-        var slot = _viewModel.Rows.Count;
-        var markerY = _stepList.Bounds.Height;
-        var indent = 0d;
-        var hintKey = _viewModel.Rows.Count == 0
-            ? "Editor.DropIntoEmptyList"
-            : "Editor.DropAtPosition";
-        _dropInto = null;
+        _dropList = null;
+        _dropIndex = -1;
+        _dropMarkerY = 0;
+        _dropMarkerIndent = 0;
+        _dropHintKey = "Editor.DropAtPosition";
 
-        var boxes = _stepList.GetVisualDescendants()
-            .OfType<ListBoxItem>()
-            .Select(item => (Item: item, Row: item.DataContext as StepRow))
-            .Where(candidate => candidate.Row is { RowIndex: >= 0 })
-            .Select(candidate => (
-                Row: candidate.Row!,
-                Top: candidate.Item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? 0,
-                Height: candidate.Item.Bounds.Height))
-            .OrderBy(candidate => candidate.Row.RowIndex)
-            .ToList();
+        var boxes = HeaderBoxes();
 
-        // Rows sit a few pixels apart, and those pixels used to belong to no row at all: the
-        // pointer fell through them to whichever row the next comparison happened to name, which
-        // is what made the marker jump while it moved down a body. Each row now owns everything up
-        // to the middle of the gap on either side, so every height on the list belongs to exactly
-        // one row.
-        var visible = boxes
-            .Select((box, index) => new DropBox(
-                box.Row,
-                box.Top,
-                box.Height,
-                index == 0 ? double.NegativeInfinity : (boxes[index - 1].Top + boxes[index - 1].Height + box.Top) / 2,
-                index == boxes.Count - 1 ? double.PositiveInfinity : (box.Top + box.Height + boxes[index + 1].Top) / 2))
-            .ToList();
-
-        // A block whose one list is empty is one target from its title row's body onward, the gaps
-        // between those rows included: the rows are separate items, and a pointer in a gap used to
-        // fall through to "before the block" for the row below it.
-        //
-        // The band is the block's *body*, not everything the rows answer for. Reading it off the
-        // rows' own zones made it reach past the block on both sides, so a list holding one such
-        // block had nowhere left that meant "before it" or "after it" — the whole list was the
-        // inside of that one block. And a collapsed block has no body rows at all, which is the
-        // other half of the same bug: the band named a title row that did not exist, threw while
-        // the pointer was being dragged over, and left the drop refused for the whole list.
+        // Nothing on screen: the macro is empty, so the only seam is the one at its top.
+        if (boxes.Count == 0)
         {
-            var emptyBand = visible
-                .Where(candidate => EmptySingleList(candidate.Row.Step))
-                .GroupBy(candidate => candidate.Row.Step)
-                .Select(band => (Rows: band.ToList(), Step: band.Key))
-                .Where(band => band.Rows.Any(candidate => candidate.Row.IsHead))
-                .Where(band => point.Y >= band.Rows.Where(candidate => candidate.Row.IsHead)
-                        .Min(candidate => candidate.Top)
-                    && point.Y < band.Rows.Where(candidate => candidate.Row.IsFoot)
-                        .Select(candidate => candidate.Top + candidate.Height)
-                        .DefaultIfEmpty(double.PositiveInfinity)
-                        .Max())
-                .OrderBy(band => band.Rows.Min(candidate => candidate.Top))
-                .FirstOrDefault();
-            if (emptyBand.Rows is { } rows)
+            Place(_viewModel.Steps, 0, 0, 0, "Editor.DropIntoEmptyList", actionKey);
+            return;
+        }
+
+        // The top edge of the first row is the start of the macro: a block that is first still has
+        // a place in front of it, and a few pixels there are what says so.
+        if (point.Y < boxes[0].Top + 6)
+        {
+            Place(_viewModel.Steps, 0, boxes[0].Top, 0, "Editor.DropBeforeStep", actionKey);
+            return;
+        }
+
+        // The space below the last row is the end of the macro: a pointer down there is past
+        // everything, so that is what it means rather than "after whichever block happened to be
+        // last".
+        var last = boxes[^1];
+        if (point.Y >= last.Top + last.Height)
+        {
+            Place(_viewModel.Steps, _viewModel.Steps.Count, last.Top + last.Height, 0,
+                "Editor.DropAfterStep", actionKey);
+            return;
+        }
+
+        // The gaps between rows belong to the row above them, so a pointer never falls into a
+        // height no row answers for.
+        var at = 0;
+        for (var candidate = 0; candidate < boxes.Count; candidate++)
+        {
+            if (point.Y >= boxes[candidate].Top)
             {
-                // The band stands for "inside this block", the same thing the middle of a filled
-                // block means: slot -1 with the block named. Landing it on the block's own row
-                // instead put the action before the block, which looked like a drop that did not
-                // take. The marker is drawn where the body begins, so the band sits inside.
-                var body = rows.OrderBy(candidate => candidate.Row.RowIndex)
-                    .First(candidate => candidate.Row.IsHead);
-                _dropInto = emptyBand.Step;
-                _dropSlot = -1;
-                _dropMarkerY = body.Top;
-                _dropMarkerIndent = (body.Row.Depth + 1) * 18;
-                _dropHintKey = "Editor.DropIntoEmptyList";
-                EvaluateDrop(_dropSlot, _dropInto, actionKey);
-                ShowDropMarker();
-                return;
+                at = candidate;
             }
         }
 
-        if (visible.Count > 0)
+        var box = boxes[at];
+        var row = box.Row;
+        var top = box.Top;
+        var bottom = top + box.Height;
+
+        // The foot of a switch's branch table is the end of the branch list: a branch dragged onto
+        // it is saying "put it last", which is the same thing the row itself offers to do.
+        if (row.IsAddRow && row.List is { } table)
         {
-            var last = visible[^1];
-            if (point.Y >= last.Top + last.Height)
-            {
-                _dropSlot = _viewModel.Rows.Count;
-                _dropMarkerY = last.Top + last.Height;
-                _dropMarkerIndent = 0;
-                _dropHintKey = "Editor.DropAfterStep";
-                EvaluateDrop(_dropSlot, _dropInto, actionKey);
-                ShowDropMarker();
-                return;
-            }
+            Place(table.Steps, table.Steps.Count, bottom, row.Depth * 16,
+                table.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
+                actionKey);
+            return;
         }
 
-        foreach (var box in visible)
+        // A body row is one list, and the whole of it means the end of that list: a pointer over
+        // "body steps" is saying "put it in there", and the end is where a person's next step
+        // goes. Landing it at the top is what made an empty body feel like it swallowed the drop.
+        if (row.IsSection && row.List is { } section)
         {
-            var row = box.Row;
-            var top = box.Top;
-            var height = box.Height;
-            var bottom = top + height;
-            var inside = point.Y >= box.ZoneTop && point.Y < box.ZoneBottom;
-
-            // The middle of a block that runs one list of steps means "put it inside this block".
-            // A block with several lists — an if, a try, a switch — leaves it to the row of the
-            // list it is meant for, because "inside" would not say which one.
-            if (row.CanFold && row.Step.StepLists.Count() == 1
-                && point.Y >= top + (height / 3) && point.Y < bottom - (height / 3))
-            {
-                _dropInto = row.Step;
-                slot = -1;
-                hintKey = "Editor.DropAtBlockEnd";
-                (markerY, indent) = EndOfBlock(row, bottom);
-                break;
-            }
-
-            // A section title and its closing line stand for one whole list. Dropping anywhere
-            // on either one means the top or end of that list, not the section before or after it.
-            if (inside && !_draggingSteps && row.IsHead)
-            {
-                slot = row.RowIndex;
-                markerY = top;
-                indent = (row.Depth + 1) * 18;
-                hintKey = "Editor.DropAtBlockStart";
-                break;
-            }
-
-            if (inside && !_draggingSteps && row.IsFoot
-                && point.Y < top + (height / 2))
-            {
-                slot = row.RowIndex;
-                markerY = top;
-                indent = (row.Depth + 1) * 18;
-                hintKey = "Editor.DropAtBlockStart";
-                break;
-            }
-
-            // Past the middle of a row means the block goes after it, not before. The hint names
-            // what stands at the seam, because "before the loop" and "before the step inside the
-            // loop" are different places and the marker sits at the same place for one of them.
-            var holds = row.CanFold || row.Step.StepLists.Any();
-            if (point.Y < top + ((bottom - top) / 2))
-            {
-                slot = row.RowIndex;
-                markerY = top;
-                hintKey = holds ? "Editor.DropBeforeBlock" : "Editor.DropBeforeStep";
-                break;
-            }
-
-            slot = row.RowIndex + 1;
-            markerY = bottom;
-            hintKey = holds ? "Editor.DropAfterBlock" : "Editor.DropAfterStep";
+            Place(section.Steps, section.Steps.Count, BottomOf(row, boxes), (row.Depth + 1) * 16,
+                section.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
+                actionKey);
+            return;
         }
 
-        _dropSlot = slot;
-        _dropMarkerY = markerY;
+        // A block that runs one list is the same promise one level up: the whole row means "into
+        // it, at the end", whether it is open or folded. A block that runs several lists leaves
+        // "inside" to its body rows, because "inside" there would not say which.
+        if (row.IsBlock && row.Step.StepLists.Count() == 1 && row.Body is { } body)
+        {
+            var tail = row.Children.FirstOrDefault(child => child.IsSection);
+            Place(body.Steps, body.Steps.Count,
+                tail is null ? bottom : BottomOf(tail, boxes), (row.Depth + 1) * 16,
+                body.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
+                actionKey);
+            return;
+        }
+
+        var before = point.Y < top + (box.Height / 2);
+        var (list, index) = before ? Before(row) : After(row);
+        Place(list, index, before ? top : bottom, row.Depth * 16,
+            row.IsBlock ? (before ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock")
+                        : (before ? "Editor.DropBeforeStep" : "Editor.DropAfterStep"),
+            actionKey);
+    }
+
+    /// <summary>Records the seam under the pointer and draws the marker on it.</summary>
+    private void Place(IList<MacroStep> list, int index, double y, double indent,
+        string hintKey, string? actionKey)
+    {
+        _dropList = list;
+        _dropIndex = Math.Clamp(index, 0, list.Count);
+        _dropMarkerY = y;
         _dropMarkerIndent = indent;
         _dropHintKey = hintKey;
-        EvaluateDrop(_dropSlot, _dropInto, actionKey);
+        EvaluateDrop(list, _dropIndex, actionKey);
         ShowDropMarker();
     }
 
-    /// <summary>One row of the list: where it is drawn, and the band of heights it answers for.</summary>
-    private readonly record struct DropBox(
-        StepRow Row, double Top, double Height, double ZoneTop, double ZoneBottom);
+    /// <summary>The list a row sits in, which is the macro's own list for a step at the top.</summary>
+    private IList<MacroStep> StepsOf(StepRow row)
+        => (IList<MacroStep>?)row.List?.Steps ?? _viewModel.Steps;
 
-    /// <summary>A block with one child list that does not hold a step yet.</summary>
-    private static bool EmptySingleList(MacroStep step)
+    /// <summary>The seam in front of a row: its own list, at its own place.</summary>
+    private (IList<MacroStep> List, int Index) Before(StepRow row)
+        => (StepsOf(row), Math.Max(0, row.Index));
+
+    /// <summary>
+    /// The seam behind a row. Behind a block that is the next step of the list it sits in rather
+    /// than the end of its body: the body's end is the lower half of the block's own row.
+    /// </summary>
+    private (IList<MacroStep> List, int Index) After(StepRow row)
     {
-        var lists = step.StepLists.ToList();
-        return lists.Count == 1 && lists[0].Steps.Count == 0;
+        var list = StepsOf(row);
+        return (list, Math.Clamp(row.Index + 1, 0, list.Count));
+    }
+
+    /// <summary>Where the last row inside a section is drawn, so "at the end of it" can be shown.</summary>
+    private static double BottomOf(StepRow section, IReadOnlyList<RowBox> boxes)
+    {
+        var lastIndex = LastRowIndex(section);
+        var last = boxes.LastOrDefault(box => box.Row.RowIndex <= lastIndex);
+        return last.Row is null ? 0 : last.Top + last.Height;
+    }
+
+    private static int LastRowIndex(StepRow row)
+        => row.Children.Count == 0 ? row.RowIndex : Math.Max(row.RowIndex, LastRowIndex(row.Children[^1]));
+
+    /// <summary>The row headers on screen, top to bottom, as the tree actually laid them out.</summary>
+    private List<RowBox> HeaderBoxes()
+        => _stepList is null
+            ? []
+            : [.. _stepList.GetVisualDescendants()
+                .OfType<Panel>()
+                .Where(panel => panel.Name == "RowHeader")
+                .Select(panel => (
+                    Panel: panel,
+                    Row: panel.DataContext as StepRow,
+                    Top: panel.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? 0))
+                .Where(candidate => candidate.Row is { } && candidate.Panel.Bounds.Height > 0)
+                .Select(candidate => new RowBox(
+                    candidate.Row!, candidate.Top, candidate.Panel.Bounds.Height))
+                .OrderBy(box => box.Top)];
+
+    /// <summary>One row header: what it stands for, where it is drawn, and how tall it is.</summary>
+    private readonly record struct RowBox(StepRow Row, double Top, double Height)
+    {
+        /// <summary>
+        /// The first entry of the default value answers "no row here". A struct cannot be null, so
+        /// the one thing a caller checks is that it is looking at a real row.
+        /// </summary>
+        public bool Exists => Row is not null;
     }
 
     /// <summary>Asks the editor whether the seam under the pointer accepts the proposed step(s).</summary>
-    private void EvaluateDrop(int slot, MacroStep? into, string? actionKey)
+    private void EvaluateDrop(IList<MacroStep> list, int index, string? actionKey)
     {
         var refusal = actionKey is null
-            ? _viewModel.MoveSelectionRefusalAt(slot, into)
-            : _viewModel.PlacementRefusalAt(slot, into,
-                [new MacroStep { Type = actionKey }]);
+            ? _viewModel.MoveSelectionRefusalAt(list, index)
+            : _viewModel.PlacementRefusalAt(list, index, [new MacroStep { Type = actionKey }]);
         _dropAllowed = refusal is null;
         _dropRefusal = refusal ?? string.Empty;
     }
@@ -2892,14 +3133,14 @@ public partial class MacroEditorWindow : AppWindow
         var actionKey = payload.Kind == ActionPaletteCardKind.Action
             ? payload.Key
             : "control.runMacro";
-        UpdateDropSlot(e.GetPosition(_stepList), actionKey);
+        UpdateDropAt(e.GetPosition(_stepList), actionKey);
         e.DragEffects = _dropAllowed ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
     private void OnActionDragLeave(object? sender, DragEventArgs e)
     {
-        _dropSlot = -1;
-        _dropInto = null;
+        _dropList = null;
+        _dropIndex = -1;
         if (_dropMarker is not null)
         {
             _dropMarker.IsVisible = false;
@@ -2916,9 +3157,9 @@ public partial class MacroEditorWindow : AppWindow
         var actionKey = payload.Kind == ActionPaletteCardKind.Action
             ? payload.Key
             : "control.runMacro";
-        UpdateDropSlot(e.GetPosition(_stepList!), actionKey);
-        var slot = _dropSlot;
-        var into = _dropInto;
+        UpdateDropAt(e.GetPosition(_stepList!), actionKey);
+        var list = _dropList;
+        var index = _dropIndex;
         var allowed = _dropAllowed;
         var refusal = _dropRefusal;
         var editingPage = _viewModel;
@@ -2930,7 +3171,12 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
-        _viewModel.PrepareInsertionAt(slot, into);
+        if (list is null || index < 0)
+        {
+            return;
+        }
+
+        _viewModel.PrepareInsertionAt(list, index);
         if (!_viewModel.CanPlace(actionKey))
         {
             _viewModel.ClearPendingInsertion();
@@ -3006,31 +3252,6 @@ public partial class MacroEditorWindow : AppWindow
         return editor.Name;
     }
 
-    /// <summary>
-    /// Where the drop line goes for a step about to land inside a block: under the line that
-    /// closes the block, indented one level in, which is the place the step will end up in.
-    /// </summary>
-    private (double Y, double Indent) EndOfBlock(StepRow block, double fallback)
-    {
-        var indent = (block.Depth + 1) * 18;
-        if (_stepList is null)
-        {
-            return (fallback, indent);
-        }
-
-        foreach (var item in _stepList.GetVisualDescendants().OfType<ListBoxItem>())
-        {
-            if (item.DataContext is StepRow { IsFoot: true } foot
-                && ReferenceEquals(foot.Step, block.Step))
-            {
-                var top = item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? fallback;
-                return (top + item.Bounds.Height, indent);
-            }
-        }
-
-        return (fallback, indent);
-    }
-
     private void ShowDropMarker()
     {
         if (_dropLayer is null || _dropMarker is null)
@@ -3038,7 +3259,7 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
-        var empty = _viewModel.Rows.Count == 0;
+        var empty = _viewModel.Roots.Count == 0;
         var height = empty
             ? Math.Max(64, _dropLayer.Bounds.Height)
             : Math.Max(30, _dropMarker.MinHeight);
@@ -3060,15 +3281,48 @@ public partial class MacroEditorWindow : AppWindow
         _dropMarker.IsVisible = true;
     }
 
+    /// <summary>
+    /// Puts the tree's own highlight on exactly the nodes the editor has picked. The tree keeps
+    /// a highlight per node and the editor keeps one per step, and this is the one place the two
+    /// are made to agree; without it, a rebuild would leave a row looking picked that is not.
+    /// </summary>
+    private static void SyncSelection(TreeView tree, IReadOnlyList<object> wanted)
+    {
+        if (tree.SelectedItems is not { } selection)
+        {
+            return;
+        }
+
+        for (var index = selection.Count - 1; index >= 0; index--)
+        {
+            if (selection[index] is not { } item || !wanted.Contains(item))
+            {
+                selection.RemoveAt(index);
+            }
+        }
+
+        foreach (var item in wanted)
+        {
+            if (!selection.Contains(item))
+            {
+                selection.Add(item);
+            }
+        }
+    }
+
     /// <summary>The row a pointer event happened on, or <c>null</c> when it missed them all.</summary>
     private static StepRow? RowUnder(object? source)
         => source is Visual visual
-            ? visual.FindAncestorOfType<ListBoxItem>(true)?.DataContext as StepRow
+            ? visual.FindAncestorOfType<TreeViewItem>(true)?.DataContext as StepRow
             : null;
 
     /// <summary>True when the event landed on a button, which handles its own presses.</summary>
     private static bool IsOnButton(object? source)
         => source is Visual visual && visual.FindAncestorOfType<Button>(true) is not null;
+
+    /// <summary>True when the event landed in a text box, which owns its own presses and keys.</summary>
+    private static bool IsOnText(object? source)
+        => source is Visual visual && visual.FindAncestorOfType<TextBox>(true) is not null;
 
     /// <summary>True when the event landed on the list's scrollbar rather than on its rows.</summary>
     private static bool IsOnScrollbar(object? source)

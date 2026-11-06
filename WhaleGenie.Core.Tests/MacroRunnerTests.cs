@@ -769,6 +769,8 @@ public class MacroRunnerTests
                     Case("fast", Set("hit", "fast")))),
             Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "notEquals"),
                 Body("cases", Case("Stopped", Set("other", "yes")))),
+            Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "notContains"),
+                Body("cases", Case("slow", Set("plain", "yes")))),
             Step("control.switch", Param("switchValue", "$n"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("1", Set("big", "yes")))),
             Step("control.switch", Param("switchValue", "$n"), Param("switchMode", "lessOrEqual"),
@@ -778,6 +780,7 @@ public class MacroRunnerTests
         Assert.True(result.Succeeded);
         Assert.Equal("fast", store.Local.Values["hit"].AsText());
         Assert.Equal("yes", store.Local.Values["other"].AsText());
+        Assert.Equal("yes", store.Local.Values["plain"].AsText());
         Assert.Equal("yes", store.Local.Values["big"].AsText());
         Assert.Equal("yes", store.Local.Values["small"].AsText());
     }

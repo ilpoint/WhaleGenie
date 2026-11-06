@@ -81,6 +81,9 @@ public class DeviceActionTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>窗口格写成「沿用上一次用的窗口」时，文件里那一小段标记。</summary>
+    private static string Following => WindowRule.FollowPrevious.ToJson().ToJsonString();
+
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
         => SampleFiles.Returns(results);
@@ -125,6 +128,15 @@ public class DeviceActionTests
     /// <summary>See <see cref="SampleFiles.Region"/>: the places a step looks at, one row per place.</summary>
     private static ExecutableParameter Region(params (int X, int Y, int Width, int Height)[] rectangles)
         => SampleFiles.Region(rectangles);
+
+    /// <summary>See <see cref="SampleFiles.Points"/>: the colours a pattern wants around its base.</summary>
+    private static ExecutableParameter Points(params (string Dx, string Dy, string Colour)[] offsets)
+        => SampleFiles.Points(offsets);
+
+    /// <summary>The same, for a colour that says how far off it may be on its own.</summary>
+    private static ExecutableParameter PointsWithTolerance(
+        params (string Dx, string Dy, string Colour, string Tolerance)[] offsets)
+        => SampleFiles.PointsWithTolerance(offsets);
 
     /// <summary>See <see cref="SampleFiles.RegionFrom"/>: a place that names a variable.</summary>
     private static ExecutableParameter RegionFrom(string named) => SampleFiles.RegionFrom(named);
@@ -1625,7 +1637,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("ocr.recognize", Param("rect", "$spot"),
+            Step("ocr.recognize", RegionFrom("$spot"),
                 Returns("text=words")),
         ], devices);
 
@@ -1634,6 +1646,27 @@ public class DeviceActionTests
         var asked = devices.Screen.Captures[^1];
         Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal("42", store.Local.Values["words"].AsText());
+    }
+
+    /// <summary>
+    /// 搜索范围写下几处时，每一处都读：同一段话分在两个框里，读出来的仍是一句话。
+    /// </summary>
+    [Fact]
+    public async Task Reading_looks_at_every_place_the_search_region_names()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FFFFFF,#FFFFFF");
+        devices.Ocr.Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)];
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("ocr.recognize", Region((0, 0, 10, 10), (20, 20, 10, 10)),
+                Returns("text=words")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, devices.Screen.Captures.Count);
+        Assert.Equal("42 42", store.Local.Values["words"].AsText());
     }
 
     /// <summary>
@@ -1683,7 +1716,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
-            Step("ocr.recognize", Param("rect", "get($table, 0)"),
+            Step("ocr.recognize", RegionFrom("get($table, 0)"),
                 Returns("text=words")),
         ], devices);
 
@@ -2082,6 +2115,74 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A search that was told a miss is its failure fails with the colour's own key, so a branch can
+    /// be written on "the colour was not there" without a condition step to say so. The same search
+    /// left alone succeeds and hands back found = false: one action, two readings, said where the
+    /// step is written rather than guessed from what is missing.
+    /// </summary>
+    [Fact]
+    public async Task A_miss_can_be_the_failure_the_step_asked_for()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#000000,#000000", "#000000,#000000");
+
+        var (missed, _, _) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Param("missingIsFailure", "true"), Region((0, 0, 2, 2))),
+        ], devices);
+
+        Assert.False(missed.Succeeded);
+        Assert.Equal(RunKeys.ColourNotFound, missed.Key);
+
+        var (tolerated, _, quiet) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Region((0, 0, 2, 2)), Returns("found=seen")),
+        ], devices);
+
+        Assert.True(tolerated.Succeeded, tolerated.Key);
+        Assert.False(quiet.Local.Values["seen"].AsBool());
+    }
+
+    /// <summary>
+    /// Clicking a colour is the colour family's step that has to work: it waits for the colour the
+    /// way clicking a picture waits, aims at the middle of what it found moved by the offset, and a
+    /// colour that never turns up fails with the colour's own key rather than with "too slow" —
+    /// the step knew what it was waiting for.
+    /// </summary>
+    [Fact]
+    public async Task Clicking_a_colour_aims_at_it_and_names_the_colour_when_it_is_not_there()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#00FF00,#000000", "#000000,#000000");
+
+        var (hit, _, _) = await RunAsync(
+        [
+            Step("vision.clickColor", Param("color", "#00FF00"), Param("tolerance", "5"),
+                Param("offsetX", "3"), Param("offsetY", "4"), Region((0, 0, 2, 2))),
+        ], devices);
+
+        Assert.True(hit.Succeeded, hit.Key);
+        Assert.Equal("click left 3 4 1 0", Assert.Single(devices.Calls,
+            call => call.StartsWith("click ", StringComparison.Ordinal)));
+
+        var empty = new FakeDeviceLayer();
+        empty.Screen.Display = Picture("#000000,#000000", "#000000,#000000");
+
+        var (missed, _, _) = await RunAsync(
+        [
+            Within(40, Step("vision.clickColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Region((0, 0, 2, 2)))),
+        ], empty);
+
+        Assert.False(missed.Succeeded);
+        Assert.Equal(RunKeys.ColourNotFound, missed.Key);
+        Assert.DoesNotContain(empty.Calls,
+            call => call.StartsWith("click ", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// A share the step will not act below is waited for and, when the region never shows that much
     /// of the colour, there is nothing to hand over — the same answer as the colour not being there
     /// at all, because half a bar is not a full one.
@@ -2119,7 +2220,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findColors", Param("color", "#FF0000"),
-                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+                Points(("1", "0", "#00FF00"), ("0", "1", "#0000FF")), Param("tolerance", "1"),
                 Region((0, 0, 3, 3)), Hit("match", "spot")),
         ], devices);
 
@@ -2142,7 +2243,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findColors", Param("color", "#FF0000"),
-                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+                Points(("1", "0", "#00FF00"), ("0", "1", "#0000FF")), Param("tolerance", "1"),
                 Region((0, 0, 3, 3)), Hit("match", "spot")),
         ], devices);
 
@@ -2167,9 +2268,10 @@ public class DeviceActionTests
             Step("control.setVariable", Param("name", "dx"), Param("value", "0")),
             Step("control.setVariable", Param("name", "dy"), Param("value", "0")),
             Step("control.setVariable", Param("name", "side"), Param("value", "#00FF00")),
-            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
+            Step("vision.findColors", Param("color", "#FF0000"),
                 // $dx + 1 是零加一，落在右边那一格：变量与算式都算数。
-                Param("points", "$dx + 1,$dy,$side; 0,1,#0000FF"), Param("tolerance", "1"),
+                Points(("$dx + 1", "$dy", "$side"), ("0", "1", "#0000FF")), Param("tolerance", "1"),
+                Region((0, 0, 3, 3)),
                 Hit("match", "spot"), Returns("found=yes")),
         ], devices);
 
@@ -2191,9 +2293,10 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
+            Step("vision.findColors", Param("color", "#FF0000"),
                 // 右一格与下一格：两个函数各带一个逗号，段的划分不能把它们算成四段。
-                Param("points", "max(0,1),0,#00FF00; 0,min(1,2),#0000FF"), Param("tolerance", "1"),
+                Points(("max(0,1)", "0", "#00FF00"), ("0", "min(1,2)", "#0000FF")), Param("tolerance", "1"),
+                Region((0, 0, 3, 3)),
                 Hit("match", "spot"), Returns("found=yes")),
         ], devices);
 
@@ -2203,43 +2306,10 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 定位格填了点位时，图案只在这一处比对：基准色与周围那些颜色都从这一点读，区域不再走一遍。
-    /// 这也是"这一点是不是那一个"的问法，比扫一遍区域便宜得多。
+    /// 基准色对了、旁边一处不对，就不是这个图案：这正是多点找色要分的那件事。
     /// </summary>
     [Fact]
-    public async Task A_pattern_can_be_checked_at_one_point_without_searching_the_region()
-    {
-        var devices = new FakeDeviceLayer();
-        devices.Screen.Display = Picture("#000000,#000000,#000000",
-                "#000000,#FF0000,#00FF00",
-                "#000000,#0000FF,#000000");
-
-        var (result, _, store) = await RunAsync(
-        [
-            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
-                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
-                Region((0, 0, 1, 1)), Hit("match", "spot"), Returns("found=yes")),
-        ], devices);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.True(store.Local.Values["yes"].AsBool());
-        Assert.Equal("1,1", Centre(store, "spot"));
-
-        // 基准色与两个邻色都读了，读的正是写下的那三处。
-        Assert.Contains("pixel 1 1", devices.Calls);
-        Assert.Contains("pixel 2 1", devices.Calls);
-        Assert.Contains("pixel 1 2", devices.Calls);
-
-        // 区域里那一格是黑的：走的是点位，不是把区域扫一遍。
-        Assert.Empty(devices.Screen.Captures);
-        Assert.Equal(1, Field(store, "spot", "width").AsNumber());
-    }
-
-    /// <summary>
-    /// 点位那一处的基准色对了，旁边一处不对，就不是这个图案：这正是多点找色要分的那件事。
-    /// </summary>
-    [Fact]
-    public async Task A_pattern_at_a_point_is_false_when_a_colour_beside_it_is_off()
+    public async Task A_pattern_is_false_when_a_colour_beside_the_base_is_off()
     {
         var devices = new FakeDeviceLayer();
         devices.Screen.Display = Picture("#000000,#000000,#000000",
@@ -2248,8 +2318,9 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.findColors", Param("color", "#FF0000"), Param("x", "1"), Param("y", "1"),
-                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+            Step("vision.findColors", Param("color", "#FF0000"),
+                Points(("1", "0", "#00FF00"), ("0", "1", "#0000FF")), Param("tolerance", "1"),
+                Region((0, 0, 3, 3)),
                 Hit("match", "spot"), Returns("found=no")),
         ], devices);
 
@@ -2259,29 +2330,210 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 记录优先于两个数字，两个数字优先于区域：与找单色、取像素是同一条顺序，同一个理由——
-    /// 一步不能对"它看了哪儿"有两个答案。这里数字与区域都是黑的，只有记录那一点是图案。
+    /// A row of the pattern that leaves a cell out is a mistake in the step rather than an answer
+    /// about the screen: it is refused with the key that says the pattern cannot be read, and the
+    /// message carries what that row did say so the reader can see which one it was.
     /// </summary>
     [Fact]
-    public async Task A_place_wins_over_the_numbers_and_the_region_for_a_pattern()
+    public async Task A_pattern_row_that_leaves_a_cell_out_fails_as_bad_points()
     {
         var devices = new FakeDeviceLayer();
-        devices.Screen.Display = Picture("#000000,#000000,#000000",
-                "#000000,#FF0000,#00FF00",
-                "#000000,#0000FF,#000000");
-        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)));
+        devices.Screen.Display = Picture("#FF0000,#000000");
 
-        var (result, _, store) = await RunAsync(
+        var (result, _, _) = await RunAsync(
         [
-            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.findColors", Param("x", "0"), Param("y", "0"), Param("place", "$spot"),
-                Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
-                Param("tolerance", "5"), Region((0, 0, 1, 1)), Returns("found=yes")),
+            Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Points(("1", "", "#00FF00")), Region((0, 0, 2, 1))),
         ], devices);
 
-        Assert.True(result.Succeeded, result.Key);
-        Assert.True(store.Local.Values["yes"].AsBool());
-        Assert.Contains("pixel 1 1", devices.Calls);
+        Assert.False(result.Succeeded);
+        Assert.Equal(RunKeys.BadPoints, result.Key);
+    }
+
+    /// <summary>
+    /// 每一处可以有自己的容差。同一个邻居、同一个全局 0，只改这一处写的容差，它就从「不算命中」
+    /// 变成「算命中」：锚点要严、周围那些颜色随光影偏，这是多点找色最常见的调法。
+    /// </summary>
+    [Fact]
+    public async Task A_colour_beside_the_base_can_carry_a_tolerance_of_its_own()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#E60000");
+
+        var (strict, _, tight) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "0"),
+                Points(("1", "0", "#FF0000")), Region((0, 0, 2, 1)), Returns("found=tight")),
+        ], devices);
+
+        Assert.True(strict.Succeeded, strict.Key);
+        Assert.False(tight.Local.Values["tight"].AsBool());
+
+        var (loose, _, wide) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "0"),
+                PointsWithTolerance(("1", "0", "#FF0000", "20")), Region((0, 0, 2, 1)),
+                Returns("found=wide")),
+        ], devices);
+
+        Assert.True(loose.Succeeded, loose.Key);
+        Assert.True(wide.Local.Values["wide"].AsBool());
+    }
+
+    /// <summary>
+    /// 同一个位置可以给几个备选色：按钮按下前后是同一个点、同一个按钮，只是颜色换了。
+    /// 命中其中任意一个就算这一处成立。
+    /// </summary>
+    [Fact]
+    public async Task A_place_beside_the_base_may_accept_any_of_several_colours()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#0000FF");
+
+        static ExecutableParameter Palette(string dx, string dy, string colours)
+            => new()
+            {
+                Name = "points",
+                Rows =
+                [
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["dx"] = dx,
+                        ["dy"] = dy,
+                        ["colour"] = colours,
+                    },
+                ],
+            };
+
+        var (either, _, first) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "0"),
+                Palette("1", "0", "#00FF00|#0000FF"), Region((0, 0, 2, 1)),
+                Returns("found=either")),
+        ], devices);
+
+        Assert.True(either.Succeeded, either.Key);
+        Assert.True(first.Local.Values["either"].AsBool());
+
+        // 一个都没写进去，就还是找不到：备选色不是「随便什么都行」。
+        var (neither, _, none) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "0"),
+                Palette("1", "0", "#00FF00|#00FFFF"), Region((0, 0, 2, 1)),
+                Returns("found=none")),
+        ], devices);
+
+        Assert.True(neither.Succeeded, neither.Key);
+        Assert.False(none.Local.Values["none"].AsBool());
+    }
+
+    /// <summary>
+    /// 勾上「必须不是」的那一处，要的是「不是这些颜色」：屏幕上是红的就不成立，换成绿的才成立。
+    /// </summary>
+    [Fact]
+    public async Task A_place_can_ask_to_be_none_of_its_colours()
+    {
+        static ExecutableParameter MustNot(string dx, string dy, string colour)
+            => new()
+            {
+                Name = "points",
+                Rows =
+                [
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["dx"] = dx,
+                        ["dy"] = dy,
+                        ["colour"] = colour,
+                        ["mustNot"] = "true",
+                    },
+                ],
+            };
+
+        var red = new FakeDeviceLayer();
+        red.Screen.Display = Picture("#00FF00,#FF0000");
+        var (wrong, _, wrongStore) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#00FF00"), Param("tolerance", "0"),
+                MustNot("1", "0", "#FF0000"), Region((0, 0, 2, 1)), Returns("found=wrong")),
+        ], red);
+
+        Assert.True(wrong.Succeeded, wrong.Key);
+        Assert.False(wrongStore.Local.Values["wrong"].AsBool());
+
+        var green = new FakeDeviceLayer();
+        green.Screen.Display = Picture("#00FF00,#0000FF");
+        var (right, _, rightStore) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#00FF00"), Param("tolerance", "0"),
+                MustNot("1", "0", "#FF0000"), Region((0, 0, 2, 1)), Returns("found=right")),
+        ], green);
+
+        Assert.True(right.Succeeded, right.Key);
+        Assert.True(rightStore.Local.Values["right"].AsBool());
+    }
+
+    /// <summary>
+    /// 四个方向决定「第一个」是哪一个：同一个图案，横着排就分左右，竖着排就分上下。
+    /// 「第几个命中」数是按这个起点数的，所以换方向必须真的换到另一头去数。
+    /// </summary>
+    [Fact]
+    public async Task The_order_of_the_hits_can_start_from_another_corner()
+    {
+        static ExecutableParameter OnePoint()
+            => new()
+            {
+                Name = "points",
+                Rows =
+                [
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
+                    },
+                ],
+            };
+
+        static async Task<string> Chosen(FakeDeviceLayer devices, string order)
+        {
+            var (result, _, store) = await RunAsync(
+            [
+                Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "0"),
+                    Param("orderBy", order), OnePoint(), Hit("match", "spot")),
+            ], devices);
+            Assert.True(result.Succeeded, result.Key);
+            return Centre(store, "spot");
+        }
+
+        var across = new FakeDeviceLayer();
+        across.Screen.Display = Picture("#FF0000,#00FF00,#FF0000,#00FF00");
+        Assert.Equal("0,0", await Chosen(across, "reading"));
+        Assert.Equal("2,0", await Chosen(across, "readingBack"));
+
+        var down = new FakeDeviceLayer();
+        down.Screen.Display = Picture("#FF0000,#00FF00", "#FF0000,#00FF00");
+        Assert.Equal("0,0", await Chosen(down, "reading"));
+        Assert.Equal("0,1", await Chosen(down, "readingUp"));
+        Assert.Equal("0,1", await Chosen(down, "readingBackUp"));
+    }
+
+    /// <summary>
+    /// A pattern with no colours in it would match anywhere, so it is not a search at all: an empty
+    /// list is refused with a key of its own, the one that says to use the plain colour search
+    /// rather than read the emptiness as "never mind the surroundings".
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_with_no_rows_in_it_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Screen.Display = Picture("#FF0000,#000000");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Points(), Region((0, 0, 2, 1))),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(RunKeys.NoColourPoints, result.Key);
     }
 
     [Fact]
@@ -2316,7 +2568,7 @@ public class DeviceActionTests
             Step("vision.findImage", Pictures("a.png"), Returns("found=imageFound")),
             Step("vision.findColor", Param("color", "#FF0000"), Returns("found=colorFound")),
             Step("vision.findColors", Param("color", "#FF0000"),
-                Param("points", "1,0,#00FF00"), Returns("found=colorsFound")),
+                Points(("1", "0", "#00FF00")), Returns("found=colorsFound")),
             Step("vision.detect", Param("model", "model.onnx"), Returns("found=detectFound")),
             Step("ocr.findText", Param("queryText", "Ready"), Returns("found=textFound")),
             Step("uia.find", Param("uiSelector", "Button[name='Save']"), Returns("found=elementFound")),
@@ -2333,22 +2585,27 @@ public class DeviceActionTests
         }
     }
 
+    /// <summary>
+    /// A colour is checked at one named pixel without searching a region, and the answer says what
+    /// the pixel actually shows as well as whether it matches: a "no" that comes without the colour
+    /// it saw leaves the reader guessing what to change the tolerance to.
+    /// </summary>
     [Fact]
-    public async Task A_colour_can_be_checked_at_one_point_without_searching_the_region()
+    public async Task A_colour_can_be_checked_at_one_pixel_without_searching_a_region()
     {
         var devices = new FakeDeviceLayer();
         devices.Screen.Pixel = new PixelColor(0x10, 0x20, 0x30);
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.findColor", Param("x", "10"), Param("y", "20"),
+            Step("vision.matchColor", Param("x", "10"), Param("y", "20"),
                 Param("color", "#102030"), Param("tolerance", "5"),
-                Region((0, 0, 2, 2)), Hit("match", "spot"),
-                Returns("found=yes")),
+                Returns("matches=hit", "color=seen", "delta=gap")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.True(store.Local.Values["yes"].AsBool());
-        Assert.Equal(1, Field(store, "spot", "width").AsNumber());
+        Assert.True(store.Local.Values["hit"].AsBool());
+        Assert.Equal("#102030", store.Local.Values["seen"].AsText());
+        Assert.Equal(0, store.Local.Values["gap"].AsNumber());
         Assert.Contains("pixel 10 20", devices.Calls);
         Assert.Empty(devices.Screen.Captures);
     }
@@ -2367,26 +2624,6 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.False(store.Local.Values["no"].AsBool());
-    }
-
-    [Fact]
-    public async Task A_place_wins_over_the_numbers_and_the_region()
-    {
-        var devices = new FakeDeviceLayer();
-        devices.Screen.Pixel = new PixelColor(0x10, 0x20, 0x30);
-        devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
-
-        var (result, _, store) = await RunAsync(
-        [
-            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.findColor", Param("x", "0"), Param("y", "0"),
-                Param("place", "$spot"), Param("color", "#102030"), Param("tolerance", "5"),
-                Region((0, 0, 2, 2)), Returns("found=yes")),
-        ], devices);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.True(store.Local.Values["yes"].AsBool());
-        Assert.Contains("pixel 35 50", devices.Calls);
     }
 
     [Fact]
@@ -4383,6 +4620,68 @@ public class DeviceActionTests
         Assert.Contains("ui Button/Save/", found.Calls[0]);
     }
 
+    /// <summary>
+    /// 「还要像什么样」从步骤里的一行行读成设备要的条件：哪一种、要不要一段字。选择器说它叫
+    /// 什么，这里说它在不在屏幕上、能不能用、名字里有没有一段字。没写完的行与要字却没写的行
+    /// 都不算数，与网页那边同一套读法。
+    /// </summary>
+    [Fact]
+    public async Task The_conditions_an_element_has_to_meet_reach_the_device()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.exists", Param("window", "Notepad"),
+                Param("uiSelector", "Button[name='保存']"),
+                Rows("narrow", Narrow("Visible"), Narrow("Enabled"), Narrow("NameHas", "存"),
+                    Narrow("NameHas"), Narrow("")),
+                Returns("exists=there")),
+        ], devices);
+
+        Assert.True(result.Succeeded, $"{result.Key}: {result.Detail}");
+        var asked = devices.Ui.LastQuery!;
+        Assert.Equal(
+            [UiConditionHow.Visible, UiConditionHow.Enabled, UiConditionHow.NameHas],
+            asked.Conditions.Select(condition => condition.How));
+        Assert.Equal("存", asked.Conditions[2].Value);
+    }
+
+    /// <summary>
+    /// 一个引擎不认识的限定方式要当场报出来：少了一个条件，这一步会落到另一个元素上，而且不说。
+    /// </summary>
+    [Fact]
+    public async Task A_condition_the_engine_does_not_know_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.exists", Param("window", "Notepad"),
+                Param("uiSelector", "Button[name='保存']"),
+                Rows("narrow", Narrow("Colour", "red")),
+                Returns("exists=there")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ElementBadCondition", result.Key);
+    }
+
+    /// <summary>
+    /// 一行限定都不写时，设备收到的查询与没有这一格时完全一样：这一格是加出来的，不是换掉的。
+    /// </summary>
+    [Fact]
+    public async Task A_step_with_no_conditions_asks_for_none()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("uia.exists", Param("window", "Notepad"),
+                Param("uiSelector", "Button[name='保存']"),
+                Returns("exists=there")),
+        ], devices);
+
+        Assert.Empty(devices.Ui.LastQuery!.Conditions);
+    }
+
     [Fact]
     public async Task Waiting_for_an_element_carries_on_when_it_is_there()
     {
@@ -5313,6 +5612,39 @@ public class DeviceActionTests
         Assert.Equal(2, files.Items.Count);
         Assert.Equal(@"C:\fake\b.txt", files.Items[1].AsText());
         Assert.Contains(@"listFiles . *.txt True -1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 列文件夹：要"给每个子文件夹各做一遍"，先得拿得到它们的名字。默认仍是只列文件，老宏照旧；
+    /// 说一声 folders 就只回来文件夹，both 是两样一起。
+    /// </summary>
+    [Fact]
+    public async Task A_listing_can_be_asked_for_the_folders_rather_than_the_files()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files.FolderEntries.Add(@"C:/fake/a.txt");
+        devices.Files.Folders.Add(@"C:/fake/2024");
+        devices.Files.Folders.Add(@"C:/fake/2025");
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("kind", "folders"),
+                Returns("files=files")),
+        ], devices);
+
+        var listed = store.Local.Values["files"];
+        Assert.True(listed.IsList);
+        Assert.Equal([@"C:/fake/2024", @"C:/fake/2025"],
+            listed.Items.Select(item => item.AsText()).ToArray());
+
+        // 说 both 时两样都在，文件不会因为要了文件夹而消失。
+        var (_, _, both) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("kind", "both"),
+                Returns("files=files")),
+        ], devices);
+
+        Assert.Equal(3, both.Local.Values["files"].Items.Count);
     }
 
     [Fact]
@@ -6685,6 +7017,28 @@ public class DeviceActionTests
         Assert.False(store.Local.Values["ok"].Flag);
     }
 
+    /// <summary>
+    /// 退出码单独交回一份。脚本用不同的代码说不同的意思很常见——3 可能是「今天没有要做的事」——
+    /// 只留一个「成功与否」时，这个意思就没了；失败规则放行之后，后面的步骤要按它分支。
+    /// </summary>
+    [Fact]
+    public async Task A_script_hands_over_the_code_it_ended_with()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Command = new CommandResult(3, "nothing to do", string.Empty);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.run", Param("kind", "ps1"), Param("script", "exit 3"),
+                Returns("exitCode=code", "success=ok")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScriptFailed", result.Key);
+        Assert.Equal(3d, store.Local.Values["code"].Number);
+        Assert.False(store.Local.Values["ok"].Flag);
+    }
+
     [Fact]
     public async Task A_script_step_with_nothing_in_it_fails()
     {
@@ -7440,6 +7794,82 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownSound", result.Key);
+        Assert.Empty(Asked(devices));
+    }
+
+    /// <summary>
+    /// 宏自己带的 wav 文件也放得了。相对路径按与别处相同的规则解析——这一步收到的应该是解析之后的
+    /// 全路径，而不是把相对路径原样交给 Windows，那会按程序自己的工作目录去找，找不到。
+    /// </summary>
+    [Fact]
+    public async Task A_sound_can_be_the_file_the_macro_brings()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("system.sound", Param("soundSource", "file"), Param("soundFile", @".\done.wav")),
+        ], devices);
+
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("soundFile ", StringComparison.Ordinal)
+            && call.EndsWith("done.wav", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_sound_file_named_nowhere_fails_the_step_instead_of_playing_nothing()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.sound", Param("soundSource", "file"), Param("soundFile", "  "))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingPath", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("soundFile", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 显示桌面：把没收起来的都收起来，已经收起来的不必再叫一次；反过来做就是把收起来的放回去。
+    /// 任务是按窗口一个一个做的，所以每一下都要有回答，而没有标题的窗口不在名单里。
+    /// </summary>
+    [Fact]
+    public async Task The_desktop_can_be_cleared_and_the_windows_brought_back()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Window.Open.Add(new WindowInfo(1, "Editor",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), false, false));
+        devices.Window.Open.Add(new WindowInfo(2, "Browser",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), false, false));
+        devices.Window.Open.Add(new WindowInfo(3, "Already small",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), true, false));
+
+        await RunAsync([Step("system.showDesktop")], devices);
+
+        Assert.Equal(["listWindows", "minimizeWindow 1", "minimizeWindow 2"], devices.Calls);
+
+        devices.Window.Open.Clear();
+        devices.Calls.Clear();
+        devices.Window.Open.Add(new WindowInfo(4, "Editor",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), true, false));
+        devices.Window.Open.Add(new WindowInfo(5, "Browser",
+            new ScreenPoint(0, 0), new ScreenSize(800, 600), false, false));
+
+        await RunAsync([Step("system.showDesktop", Param("desktopAction", "restoreAll"))], devices);
+
+        Assert.Equal(["listWindows", "restoreWindow 4"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task Clearing_the_desktop_refuses_a_word_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.showDesktop", Param("desktopAction", "tidy"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownDesktopAction", result.Key);
+
+        // 认不出这个词时什么都没有碰：窗口一个也没动。
         Assert.Empty(Asked(devices));
     }
 
@@ -8344,6 +8774,83 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 「沿用上一次用的窗口」：这一步不再自己认窗口，用前面某一步已经说过的那句话。宏在同一窗口里
+    /// 做十件事是很平常的，没有道理十次都把窗口重新说一遍。
+    /// </summary>
+    [Fact]
+    public async Task A_step_can_carry_on_with_the_window_a_step_before_it_named()
+    {
+        var devices = WithAWindow();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.activate", Param("window", "Notepad")),
+            Step("window.activate", Param("window", Following)),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, devices.Calls.Count(call => call == "activateWindow 1"));
+    }
+
+    /// <summary>
+    /// 一条什么都没提的步骤（空着就是"前台窗口"）不会把已认下来的窗口冲掉：链子从最近一个真的
+    /// 指定了窗口的步骤接着走，而不是被中间那一步打断。
+    /// </summary>
+    [Fact]
+    public async Task A_step_that_names_no_window_leaves_the_chain_where_it_was()
+    {
+        var devices = WithAWindow();
+        devices.Window.Open.Add(new WindowInfo(2, "Calculator",
+            new ScreenPoint(), new ScreenSize(), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.activate", Param("window", "Notepad")),
+            Step("window.activate"),
+            Step("window.activate", Param("window", Following)),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 中间那一步用的是前台窗口（替身里是列表第一个），第三步仍旧回到前面说过的记事本。
+        Assert.Equal(3, devices.Calls.Count(call => call == "activateWindow 1"));
+    }
+
+    /// <summary>
+    /// 一次都还没有人指定过窗口时，「沿用上一次」和空着一样用前台窗口，而不是报一个找不到的窗口：
+    /// 这是它排在第一个、或者上面全是"看整个屏幕"的步骤时会遇到的情形。
+    /// </summary>
+    [Fact]
+    public async Task Following_before_any_window_is_named_uses_the_one_in_front()
+    {
+        var devices = WithAWindow();
+
+        var (result, _, _) = await RunAsync(
+            [Step("window.activate", Param("window", Following))], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 沿用的规则在文件里是一小段标记，不是一条认识的窗口：读回来还是"沿用"，而且不写这一格时
+    /// 规则与从前一字不差。
+    /// </summary>
+    [Fact]
+    public void A_rule_that_follows_is_written_as_one_flag_and_nothing_else_changes()
+    {
+        var following = WindowRule.FollowPrevious.ToJson();
+        Assert.True(following[FieldNames.Follow]!.GetValue<bool>());
+        Assert.True(WindowRule.TryParse(following.ToJsonString(), out var read));
+        Assert.True(read.Follow);
+        Assert.False(read.HasTarget);
+
+        var named = new WindowRule(Title: "Notepad").ToJson();
+        Assert.Null(named[FieldNames.Follow]);
+        Assert.DoesNotContain(FieldNames.Follow, named.Select(pair => pair.Key));
     }
 
     /// <summary>

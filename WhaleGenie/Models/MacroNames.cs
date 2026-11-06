@@ -42,6 +42,22 @@ public static class MacroNames
     }
 
     /// <summary>
+    /// True while a name is still the one a new macro was given, like "Macro 3": the author has not
+    /// named it yet. A macro with nothing in it and a name like that is not worth keeping.
+    /// </summary>
+    public static bool IsDefault(string? name)
+    {
+        var format = Strings.Get("Editor.DefaultMacroName");
+        var marker = format.IndexOf("{0}", StringComparison.Ordinal);
+        var stem = (marker >= 0 ? format[..marker] : format).TrimEnd();
+        var text = (name ?? string.Empty).Trim();
+        return stem.Length > 0
+            && text.StartsWith(stem, StringComparison.OrdinalIgnoreCase)
+            && long.TryParse(text[stem.Length..].Trim(), NumberStyles.None,
+                CultureInfo.InvariantCulture, out _);
+    }
+
+    /// <summary>
     /// A name nobody in the project has: the one asked for when it is free, otherwise the same with
     /// the day it was taken on, otherwise that with a count after it.
     /// </summary>

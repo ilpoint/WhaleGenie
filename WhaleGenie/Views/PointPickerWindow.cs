@@ -31,6 +31,7 @@ public sealed class PointPickerWindow : Window
     private readonly IUiDevice _ui;
     private readonly WindowRule? _target;
     private readonly IInputHook? _hookSource;
+    // 60 帧：放大镜与读数要贴着指针走，慢了就像拖着一块湿布。跨进程那一步已经不在每帧里。
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
 
     private readonly Canvas _overlay = new() { Name = "Overlay", IsHitTestVisible = false };
@@ -54,7 +55,14 @@ public sealed class PointPickerWindow : Window
         TextWrapping = TextWrapping.Wrap,
     };
     private readonly Image _desk = new() { Stretch = Stretch.Fill, IsHitTestVisible = false };
+
+    /// <summary>放大镜：整个屏幕上的一像素，靠它才瞄得准。</summary>
+    private readonly Magnifier _magnifier = new();
+
     private WriteableBitmap? _picture;
+
+    /// <summary>The same desk as pixels, which is what the loupe reads.</summary>
+    private ImageFrame? _deskFrame;
     private IInputHook? _hook;
     private WindowInfo? _window;
     private PixelPoint _origin;
@@ -67,6 +75,23 @@ public sealed class PointPickerWindow : Window
     private bool _swallowF1Up;
     private bool _swallowEscapeUp;
     private ScreenPoint? _pendingPoint;
+
+    /// <summary>
+    /// The element the pointer was last over, and where it was asked. UI Automation answers across
+    /// process lines and can take longer than a frame; asking on every tick is what made the
+    /// pointer feel heavy. A pointer that has not moved to another element keeps the answer it has.
+    /// </summary>
+    private UiElementInfo? _element;
+    private ScreenPoint _elementAt;
+    private long _elementReadAt;
+    private bool _haveElement;
+
+    /// <summary>The readout as it stands, so the same words are not laid out again every tick.</summary>
+    private string _readoutShown = string.Empty;
+
+    /// <summary>Where the pointer was drawn last, so a pointer that has not moved costs nothing.</summary>
+    private ScreenPoint _drawnAt;
+    private bool _haveDrawn;
 
     /// <summary>
     /// The crosshair over just what it reads: the screen it draws from, the windows it measures
@@ -115,13 +140,14 @@ public sealed class PointPickerWindow : Window
         _overlay.Children.Add(_outline);
         _overlay.Children.Add(_crosshair);
         _overlay.Children.Add(_readout);
+        _overlay.Children.Add(_magnifier);
 
         var root = new Grid();
         root.Children.Add(_desk);
         root.Children.Add(_overlay);
         Content = root;
 
-        _timer.Tick += (_, _) => Follow();
+        _timer.Tick += (_, _) => FollowIfMoved();
     }
 
     internal ScreenPoint? Chosen { get; private set; }
@@ -160,6 +186,7 @@ public sealed class PointPickerWindow : Window
         _timer.Stop();
         DetachHook();
         _picture?.Dispose();
+        _magnifier.Release();
         MacroTriggerGate.Exit();
     }
 
@@ -199,6 +226,7 @@ public sealed class PointPickerWindow : Window
 
         _picture?.Dispose();
         _picture = picture;
+        _deskFrame = frame;
         _desk.Source = picture;
     }
 
@@ -262,6 +290,28 @@ public sealed class PointPickerWindow : Window
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
 
+    /// <summary>
+    /// 每帧只做指针真的挪了的那一次：指针停着时重画一遍十字线、重排一遍读数，看不到任何变化，
+    /// 却正是先前"发滞"的来源之一。`Follow` 本身仍旧强制跑一次，检查要靠它。
+    /// </summary>
+    private void FollowIfMoved()
+    {
+        if (_done)
+        {
+            return;
+        }
+
+        var at = _screen.Cursor;
+        if (_haveDrawn && at.X == _drawnAt.X && at.Y == _drawnAt.Y)
+        {
+            return;
+        }
+
+        _drawnAt = at;
+        _haveDrawn = true;
+        Follow();
+    }
+
     private void Follow()
     {
         if (_done)
@@ -315,6 +365,24 @@ public sealed class PointPickerWindow : Window
         var element = DrawOutline(at, client, showCrosshair);
         UpdateReadout(at, client, _insideClient, element);
         PlaceReadout(at);
+        ShowLoupe(at);
+    }
+
+    /// <summary>
+    /// 放大镜放在指针上方、读数下方的那一角：读数已经占了右下，两样都跟着指针时只有各占一边
+    /// 才都不挡住落点。
+    /// </summary>
+    private void ShowLoupe(ScreenPoint at)
+    {
+        if (_deskFrame is not { } frame || _done)
+        {
+            _magnifier.Hide();
+            return;
+        }
+
+        var local = ToLocal(at);
+        _magnifier.Follow(frame, at.X - _origin.X, at.Y - _origin.Y);
+        _magnifier.PlaceNear(local.X, local.Y, Width, Height, 24, above: true);
     }
 
     private void DrawCrosshair(ScreenPoint at, ClientArea? client, bool show)
@@ -336,12 +404,23 @@ public sealed class PointPickerWindow : Window
         _crosshair.IsVisible = true;
     }
 
-    private string? DrawOutline(ScreenPoint at, ClientArea? client, bool show)
+    /// <summary>
+    /// 指针底下的元素：同一个元素不重复问，问得再密也不快过 80ms 一次。这一段是拾取器里唯一
+    /// 跨进程的一步，原来每个 16ms 的 tick 都做一遍，指针因此发滞。
+    /// </summary>
+    private UiElementInfo? LookAt(ScreenPoint at)
     {
-        if (!show)
+        if (_haveElement
+            && Math.Abs(at.X - _elementAt.X) <= 2
+            && Math.Abs(at.Y - _elementAt.Y) <= 2)
         {
-            _outline.IsVisible = false;
-            return null;
+            return _element;
+        }
+
+        var now = Environment.TickCount64;
+        if (_haveElement && now - _elementReadAt < 80)
+        {
+            return _element;
         }
 
         UiElementInfo? info;
@@ -353,6 +432,23 @@ public sealed class PointPickerWindow : Window
         {
             info = null;
         }
+
+        _element = info;
+        _elementAt = at;
+        _elementReadAt = now;
+        _haveElement = true;
+        return info;
+    }
+
+    private string? DrawOutline(ScreenPoint at, ClientArea? client, bool show)
+    {
+        if (!show)
+        {
+            _outline.IsVisible = false;
+            return null;
+        }
+
+        var info = LookAt(at);
 
         if (info is null || info.Size.Width <= 0 || info.Size.Height <= 0)
         {
@@ -385,38 +481,45 @@ public sealed class PointPickerWindow : Window
 
     private void UpdateReadout(ScreenPoint at, ClientArea? client, bool inside, string? element)
     {
+        string text;
         if (_target is null)
         {
-            _readoutText.Text = Strings.Format("PointPicker.ReadoutScreen", at.X, at.Y);
-            _readoutText.Text += Environment.NewLine + Strings.Get("PointPicker.ShortcutScreen");
+            text = Strings.Format("PointPicker.ReadoutScreen", at.X, at.Y)
+                   + Environment.NewLine + Strings.Get("PointPicker.ShortcutScreen");
+        }
+        else if (_targetLost)
+        {
+            text = Strings.Get("PointPicker.TargetLost");
+        }
+        else if (!inside || client is not { } area)
+        {
+            text = Strings.Format("PointPicker.OutsideWindow", at.X, at.Y)
+                   + Environment.NewLine + Strings.Get("PointPicker.ShortcutWindow");
+        }
+        else
+        {
+            var point = new ScreenPoint(at.X - area.Origin.X, at.Y - area.Origin.Y);
+            var lines = new List<string>
+            {
+                Strings.Format("PointPicker.ReadoutWindow", point.X, point.Y, at.X, at.Y),
+            };
+            if (element is { Length: > 0 })
+            {
+                lines.Add(element);
+            }
+
+            lines.Add(Strings.Get("PointPicker.ShortcutWindow"));
+            text = string.Join(Environment.NewLine, lines);
+        }
+
+        // 同样的字不再排一遍：指针停在原地时，这一块每 33ms 都在被重新布局，白费力气。
+        if (text == _readoutShown)
+        {
             return;
         }
 
-        if (_targetLost)
-        {
-            _readoutText.Text = Strings.Get("PointPicker.TargetLost");
-            return;
-        }
-
-        if (!inside || client is not { } area)
-        {
-            _readoutText.Text = Strings.Format("PointPicker.OutsideWindow", at.X, at.Y);
-            _readoutText.Text += Environment.NewLine + Strings.Get("PointPicker.ShortcutWindow");
-            return;
-        }
-
-        var point = new ScreenPoint(at.X - area.Origin.X, at.Y - area.Origin.Y);
-        var lines = new List<string>
-        {
-            Strings.Format("PointPicker.ReadoutWindow", point.X, point.Y, at.X, at.Y),
-        };
-        if (element is { Length: > 0 })
-        {
-            lines.Add(element);
-        }
-
-        lines.Add(Strings.Get("PointPicker.ShortcutWindow"));
-        _readoutText.Text = string.Join(Environment.NewLine, lines);
+        _readoutShown = text;
+        _readoutText.Text = text;
     }
 
     private void PlaceReadout(ScreenPoint at)

@@ -74,6 +74,13 @@ public sealed partial class MacroRunner
     private CaptureWay? _takenMethod;
 
     /// <summary>
+    /// 这一轮里最近一次由步骤自己指定的窗口规则。后面的步骤说"沿用上一次"时取的就是它：宏做十
+    /// 件事都在同一个窗口里，没有道理十次都把窗口重新说一遍。记的是**规则**而不是找到的句柄，
+    /// 所以窗口关掉再开、标题变了，后面照样按同一句话重新找。
+    /// </summary>
+    private WindowRule _lastWindowRule = WindowRule.Empty;
+
+    /// <summary>
     /// The last picture taken of each source, for the steps that say a picture a little older will
     /// do. A macro that looks at the same window several times in a row then reads it once, which is
     /// what a per-second budget of looks is really about. It lives for one run: what a macro sees is
@@ -1472,6 +1479,7 @@ public sealed partial class MacroRunner
             or RunKeys.WaitColorTimeout or RunKeys.WaitTimeout
             or RunKeys.ImageNotFound or RunKeys.DetectNotFound or RunKeys.ScreenNotStable
             or RunKeys.TextNotFound or RunKeys.ElementNotFound or RunKeys.ClipboardTimeout
+            or RunKeys.ColourNotFound
             or RunKeys.ProcessTimeout or RunKeys.ProgramNotFound or RunKeys.WindowTimeout
             or RunKeys.CommandTimeout or RunKeys.BrowserNotFound or RunKeys.BrowserNoNewTab;
 
@@ -1489,6 +1497,8 @@ public sealed partial class MacroRunner
             return step.Type switch
             {
                 "vision.waitColor" => new StepFailure(RunKeys.WaitColorTimeout,
+                    PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
+                "vision.clickColor" => new StepFailure(RunKeys.ColourNotFound,
                     PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
                 "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
                     Written(step.Rows("images"))),
@@ -2201,6 +2211,12 @@ public sealed partial class MacroRunner
             case "endswith":
                 // The ways of comparing text are the ones the whole program shares.
                 return TextCompare.Matches(value.AsText(), wanted, mode, OptionsOf(step, mode));
+            case "notcontains":
+                // Said as the denial of "contains" rather than as a comparison of its own: the
+                // spacing and case switches then mean here exactly what they mean there, and there
+                // is one place where "what counts as holding this text" is decided.
+                return !TextCompare.Matches(value.AsText(), wanted, TextCompare.Contains,
+                    OptionsOf(step, TextCompare.Contains));
             case "greaterthan":
                 return Order(step, value.AsText(), wanted) > 0;
             case "greaterorequal":

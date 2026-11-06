@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
@@ -14,6 +15,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 
 namespace WhaleGenie.Views;
@@ -62,6 +64,10 @@ public partial class LookPickWindow : AppWindow
     private TextBlock? _readout;
     private StackPanel? _entries;
     private Button? _confirm;
+    private Canvas? _loupeLayer;
+
+    /// <summary>放大镜：整块画面缩到窗口里之后，一个像素的偏移靠眼睛是分不出来的。</summary>
+    private readonly Magnifier _magnifier = new();
 
     /// <summary>The row of the list that is being worked on, or -1 when none is.</summary>
     private int _selected = -1;
@@ -135,6 +141,8 @@ public partial class LookPickWindow : AppWindow
         _readout = this.FindControl<TextBlock>("Readout");
         _entries = this.FindControl<StackPanel>("Entries");
         _confirm = this.FindControl<Button>("Confirm");
+        _loupeLayer = this.FindControl<Canvas>("LoupeLayer");
+        _loupeLayer?.Children.Add(_magnifier);
 
         if (this.FindControl<TextBlock>("HintText") is { } hint)
         {
@@ -169,6 +177,7 @@ public partial class LookPickWindow : AppWindow
             _board.Cursor = new Cursor(StandardCursorType.Hand);
             _board.PointerMoved += OnPanMoved;
             _board.PointerReleased += OnPanReleased;
+            _board.PointerExited += (_, _) => _magnifier.Hide();
         }
 
         // Tunnelled: the scroll viewer answers the wheel itself and marks it handled, so a handler
@@ -179,6 +188,19 @@ public partial class LookPickWindow : AppWindow
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         Draw();
         RebuildRows();
+        UpdateConfirm();
+    }
+
+    /// <summary>
+    /// 确定只在有东西可交的时候可点：一处也没有时没有内容可写回；有内容时必须可点——
+    /// 包括「只给已有的一处加了个备选色」，那不是新加一条，但确实改了这一步的内容。
+    /// </summary>
+    private void UpdateConfirm()
+    {
+        if (_confirm is not null)
+        {
+            _confirm.IsEnabled = _added.Count > 0;
+        }
     }
 
     /// <summary>
@@ -207,6 +229,7 @@ public partial class LookPickWindow : AppWindow
     {
         base.OnClosed(e);
         _bitmap?.Dispose();
+        _magnifier.Release();
     }
 
     // ------------------------------------------------------------------- picture
@@ -227,9 +250,6 @@ public partial class LookPickWindow : AppWindow
 
     /// <summary>Where the dot of each line sits, in the same order as <see cref="Added"/>.</summary>
     internal IReadOnlyList<ScreenPoint> MarkerPlaces => _addedAt;
-
-    /// <summary>The writing of each row, kept so a drag can update it without redrawing the list.</summary>
-    private readonly List<TextBlock> _rowTexts = [];
 
     private void Draw()
     {
@@ -275,38 +295,42 @@ public partial class LookPickWindow : AppWindow
             _board.Children.Add(mark);
         }
 
-        // What offsets count from: the middle of the thing the step went with.
-        var centre = ToBoard(_centre);
+        // What offsets count from: the pixel the step went with, marked in orange. The ring grows
+        // with the zoom so that at 800% it still hugs that one pixel instead of spilling into the
+        // ones beside it — a ring bigger than the cell it names is read as naming the next cell.
+        var centre = ToBoardCentre(_centre);
+        var ringSize = Math.Clamp((ZoomLevel * 1.2) + 4, 11, 22);
         var ring = new Border
         {
-            Width = 13,
-            Height = 13,
+            Width = ringSize,
+            Height = ringSize,
             // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
             BorderBrush = new SolidColorBrush(Color.Parse("#E0A030")),
             BorderThickness = new Thickness(2),
-            CornerRadius = new CornerRadius(7),
+            CornerRadius = new CornerRadius(ringSize / 2),
             IsHitTestVisible = false,
         };
 
-        Canvas.SetLeft(ring, centre.X - 6);
-        Canvas.SetTop(ring, centre.Y - 6);
+        Canvas.SetLeft(ring, centre.X - (ringSize / 2));
+        Canvas.SetTop(ring, centre.Y - (ringSize / 2));
         _board.Children.Add(ring);
 
         for (var index = 0; index < _addedAt.Count; index++)
         {
-            var at = ToBoard(_addedAt[index]);
+            var at = ToBoardCentre(_addedAt[index]);
+            var dotSize = Math.Clamp((ZoomLevel * 0.8) + 4, 8, 15);
             var dot = new Border
             {
-                Width = 9,
-                Height = 9,
+                Width = dotSize,
+                Height = dotSize,
                 // 拾取器可见性色：要在任意截图底色上可见，故不随主题（判定为字面，不进令牌）。
                 Background = new SolidColorBrush(Color.Parse(index == _selected ? "#FF3B30" : "#3FBF5F")),
-                CornerRadius = new CornerRadius(5),
+                CornerRadius = new CornerRadius(dotSize / 2),
                 IsHitTestVisible = false,
             };
 
-            Canvas.SetLeft(dot, at.X - 4);
-            Canvas.SetTop(dot, at.Y - 4);
+            Canvas.SetLeft(dot, at.X - (dotSize / 2));
+            Canvas.SetTop(dot, at.Y - (dotSize / 2));
             _board.Children.Add(dot);
 
             // 行号写在圆点旁边：右侧那一列靠编号与图上的点对应，靠数一串同色的圆点是数不清的。
@@ -330,7 +354,7 @@ public partial class LookPickWindow : AppWindow
 
         if (_picked is { } picked)
         {
-            var at = ToBoard(picked);
+            var at = ToBoardCentre(picked);
             var cross = new Border
             {
                 Width = 15,
@@ -373,9 +397,34 @@ public partial class LookPickWindow : AppWindow
         IsHitTestVisible = false,
     };
 
-    /// <summary>A place on the screen, in the units the canvas is drawn in.</summary>
-    private Point ToBoard(ScreenPoint point)
-        => new((point.X - _origin.X) * ZoomLevel, (point.Y - _origin.Y) * ZoomLevel);
+    /// <summary>
+    /// 一个像素在画布上的中心。指针停在哪个像素、偏移算到哪个像素，说的都是这一格，而不是它的左上角：
+    /// 画标记时补上半格，否则放大到 800% 时整枚标记会偏半格，看着就是「位置不对」。
+    /// </summary>
+    private Point ToBoardCentre(ScreenPoint point)
+        => new((point.X - _origin.X + 0.5) * ZoomLevel,
+               (point.Y - _origin.Y + 0.5) * ZoomLevel);
+
+    /// <summary>
+    /// 把放大镜摆到指针旁边，读的是这张图自己的像素：图上的一像素落进宏里就是一个偏移，
+    /// 所以在图上瞄的时候要看得见它落在哪一格。
+    /// </summary>
+    private void Aim(PointerEventArgs e)
+    {
+        if (_board is null || _loupeLayer is null || _frame.IsEmpty)
+        {
+            return;
+        }
+
+        var place = e.GetPosition(_board);
+        var local = LookGeometry.Inside(_frame.Width, _frame.Height, ZoomLevel, place.X, place.Y);
+        var at = e.GetPosition(_loupeLayer);
+        var room = _loupeLayer.Bounds;
+        _magnifier.Follow(_frame, local.X, local.Y);
+        _magnifier.PlaceNear(at.X, at.Y,
+            room.Width > 0 ? room.Width : Width,
+            room.Height > 0 ? room.Height : Height);
+    }
 
     // ------------------------------------------------------------------ picking
 
@@ -405,23 +454,24 @@ public partial class LookPickWindow : AppWindow
 
                 return;
 
-            // 滚轮键按一下就是加一处，手不必离开画面。
-            case PointerUpdateKind.MiddleButtonPressed:
-                e.Handled = true;
-                var local = LookGeometry.Inside(_frame.Width, _frame.Height, ZoomLevel, place.X, place.Y);
-                if (_mode == LookPickMode.Offset)
-                {
-                    Pick(local);
-                }
-                else
-                {
-                    AddColour(PointAt(local), local);
-                }
-
-                return;
-
             default:
                 break;
+        }
+
+        // 只有左键是「点一处」。滚轮键以前也新增一条，撤掉了：中键常被当成拖动画面的手势，
+        // 手一滑就多出一处，而多出来的那一处不点开列表是看不出来的。
+        if (!e.GetCurrentPoint(_board).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        // 按住 Shift 点一下，是给一处再加一种颜色，不是新加一处：同一个按钮换一套配色长什么样，
+        // 只能靠另一个像素上的颜色说得清。
+        if (_mode == LookPickMode.Colours && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            e.Handled = true;
+            AddAlternativeAt(place);
+            return;
         }
 
         // A press on one of the dots takes hold of that line: dragging the marker is how a point that
@@ -464,11 +514,7 @@ public partial class LookPickWindow : AppWindow
             return null;
         }
 
-        var edit = new MenuItem { Header = Strings.Get("LookPick.Edit"), Tag = index };
-        edit.Click += OnEditEntry;
-        var remove = new MenuItem { Header = Strings.Get("LookPick.Remove"), Tag = index };
-        remove.Click += OnRemoveEntry;
-        return new ContextMenu { Items = { edit, remove } };
+        return Menu(index);
     }
 
     /// <summary>The line whose dot — or whose number, which belongs to the same dot — is under the pointer.</summary>
@@ -476,7 +522,7 @@ public partial class LookPickWindow : AppWindow
     {
         for (var index = 0; index < _addedAt.Count; index++)
         {
-            var at = ToBoard(_addedAt[index]);
+            var at = ToBoardCentre(_addedAt[index]);
             if (Math.Abs(at.X - place.X) <= 8 && Math.Abs(at.Y - place.Y) <= 8)
             {
                 return index;
@@ -507,17 +553,16 @@ public partial class LookPickWindow : AppWindow
         var local = LookGeometry.Inside(_frame.Width, _frame.Height, ZoomLevel, place.X, place.Y);
         var point = PointAt(local);
         var offset = OffsetAt(point);
-        var entry = string.Create(CultureInfo.InvariantCulture,
-            $"{offset.X},{offset.Y},{_frame[local.X, local.Y].ToHex()}");
+        var hex = _frame[local.X, local.Y].ToHex();
 
-        _added[_dragging] = entry;
+        // 拖的是「这一处」，不是「这一行的颜色」：备选色和按行写下的容差跟着一起走。
+        _added[_dragging] = ColourPointLine.WithCore(_added[_dragging],
+            offset.X.ToString(CultureInfo.InvariantCulture),
+            offset.Y.ToString(CultureInfo.InvariantCulture), hex);
         _addedAt[_dragging] = point;
         _picked = point;
-        if (_dragging < _rowTexts.Count)
-        {
-            _rowTexts[_dragging].Text = entry;
-        }
 
+        RebuildRows();
         Draw();
         Say(Strings.Format("LookPick.Moved", offset.X, offset.Y));
     }
@@ -571,6 +616,8 @@ public partial class LookPickWindow : AppWindow
 
     private void OnPanMoved(object? sender, PointerEventArgs e)
     {
+        Aim(e);
+
         if (_dragging >= 0 && _board is not null)
         {
             DragTo(e.GetPosition(_board));
@@ -722,9 +769,76 @@ public partial class LookPickWindow : AppWindow
         RebuildRows();
 
         Say(Strings.Format("LookPick.ColoursAdded", entry, _added.Count));
-        if (_confirm is not null)
+        UpdateConfirm();
+    }
+
+    /// <summary>
+    /// Adds the colour under the pointer to the place the pointer names — the dot it is on, or the
+    /// line picked out in the list — rather than starting another place.
+    /// </summary>
+    private void AddAlternativeAt(Point place)
+    {
+        var index = MarkerAt(place) ?? _selected;
+        if (index < 0)
         {
-            _confirm.IsEnabled = true;
+            Say(Strings.Get("LookPick.AlternativeNeedPoint"));
+            return;
+        }
+
+        var local = LookGeometry.Inside(_frame.Width, _frame.Height, ZoomLevel, place.X, place.Y);
+        AddAlternative(index, _frame[local.X, local.Y].ToHex());
+    }
+
+    /// <summary>
+    /// Adds one more colour this place may show. The place stays where it is: what is being said is
+    /// "this spot may look like either of these", which is a different thing from another spot. The
+    /// engine reads the colours one after another with a bar between them, and is satisfied by any
+    /// one of them.
+    /// </summary>
+    internal void AddAlternative(int index, string colour)
+    {
+        if (index < 0 || index >= _added.Count)
+        {
+            return;
+        }
+
+        var colours = ColourPointLine.Colours(_added[index]);
+        if (colours.Any(one => string.Equals(one, colour, StringComparison.OrdinalIgnoreCase)))
+        {
+            Say(Strings.Get("LookPick.AlternativeRepeat"));
+            return;
+        }
+
+        if (colours.Count >= ColourPointLine.MostColours)
+        {
+            Say(Strings.Format("LookPick.AlternativeFull", ColourPointLine.MostColours));
+            return;
+        }
+
+        // 选中状态不动：加完颜色紧接着点画面，那一下仍然是「再加一处」，而不是把这一处挪走。
+        _added[index] = ColourPointLine.WithColours(_added[index], [.. colours, colour]);
+        RebuildRows();
+        Draw();
+        UpdateConfirm();
+        Say(Strings.Format("LookPick.AlternativeAdded", colour, colours.Count + 1));
+    }
+
+    /// <summary>
+    /// 从屏幕上另取一种颜色加给这一处：同一个按钮在另一套配色下的样子，这张图上没有，
+    /// 只能在别处取。打开时这一窗会让开，和别的取色一样。
+    /// </summary>
+    private async void OnAddAlternative(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: int index } || index < 0 || index >= _added.Count)
+        {
+            return;
+        }
+
+        var picked = await ColorPickerWindow.PickAsync(this,
+            SharedDevices.Current.Screen, SharedDevices.Current.Input, SharedDevices.Current.Hook);
+        if (picked is { } pick)
+        {
+            AddAlternative(index, pick.Colour.ToHex());
         }
     }
 
@@ -739,8 +853,12 @@ public partial class LookPickWindow : AppWindow
             return;
         }
 
+        if (this.FindControl<TextBlock>("CountText") is { } count)
+        {
+            count.Text = _added.Count.ToString(CultureInfo.CurrentCulture);
+        }
+
         _entries.Children.Clear();
-        _rowTexts.Clear();
 
         // 空列表也说出它是什么：一块空白的薄板看起来只是一个空框，写一行字才像"还没有加入"。
         if (_added.Count == 0)
@@ -763,42 +881,75 @@ public partial class LookPickWindow : AppWindow
     }
 
     /// <summary>
-    /// One line of the list. Right-clicking it edits or removes it, and left-clicking it picks it
-    /// out: a picked line is the one the next click on the picture moves, which is how a marker that
+    /// One line of the list: where the place is, which colours it may be, and whether it is strict
+    /// about them. Right-clicking it edits it, gives it another colour or removes it; left-clicking
+    /// picks it out, which is how the next click on the picture moves it — that is how a marker that
     /// landed a pixel off is put right without retyping its numbers.
     /// </summary>
     private Border Row(int index)
     {
-        // A number in front, so a line can be talked about ("the third one") and matched to the dot
-        // on the picture without counting rows of numbers that all look alike.
-        var text = new TextBlock
+        var line = _added[index];
+        var fields = ColourPointText.Split(line);
+        var offsets = fields.Count >= 2 ? $"{fields[0]}, {fields[1]}" : line;
+
+        // 一行就是一处：序号、颜色（几种并排）、偏移，右边再写它是不是「不能是」、容差多少。
+        var colours = new StackPanel
         {
-            Text = _added[index],
-            FontSize = 12,
-            Classes = { "Mono" },
-            Foreground = ThemeBrush.Of("TextPrimary"),
-            TextWrapping = TextWrapping.Wrap,
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            VerticalAlignment = VerticalAlignment.Center,
         };
 
-        _rowTexts.Add(text);
+        foreach (var colour in ColourPointLine.Colours(line))
+        {
+            colours.Children.Add(Swatch(colour));
+        }
 
         var number = new TextBlock
         {
             Text = (index + 1).ToString(CultureInfo.CurrentCulture) + ".",
             FontSize = 12,
-            MinWidth = 20,
+            MinWidth = 16,
+            VerticalAlignment = VerticalAlignment.Center,
             Foreground = ThemeBrush.Of("TextTertiary"),
         };
 
-        var line = new Grid
+        var places = new TextBlock
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-            ColumnSpacing = 6,
+            Text = offsets,
+            FontSize = 11.5,
+            Classes = { "Mono" },
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = ThemeBrush.Of("TextSecondary"),
         };
 
-        line.Children.Add(number);
-        Grid.SetColumn(text, 1);
-        line.Children.Add(text);
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"),
+            ColumnSpacing = 7,
+        };
+
+        grid.Children.Add(number);
+        Grid.SetColumn(colours, 1);
+        grid.Children.Add(colours);
+        Grid.SetColumn(places, 2);
+        grid.Children.Add(places);
+
+        var marks = Marks(line);
+        if (marks.Length > 0)
+        {
+            var badge = new TextBlock
+            {
+                Text = marks,
+                FontSize = 10.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = ThemeBrush.Of("TextTertiary"),
+            };
+
+            Grid.SetColumn(badge, 3);
+            grid.Children.Add(badge);
+        }
 
         var row = new Border
         {
@@ -806,18 +957,18 @@ public partial class LookPickWindow : AppWindow
             Background = ThemeBrush.Of(index == _selected ? "AccentSurface" : "SurfaceCard"),
             BorderBrush = ThemeBrush.Of(index == _selected ? "AccentText" : "BorderControl"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(6, 4),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(7, 5),
             Margin = new Thickness(0, 0, 0, 4),
             Cursor = new Cursor(StandardCursorType.Hand),
-            Child = line,
+            Child = grid,
+
+            // 整条写在提示里：色块省掉了字的长度，但把这一行到底存了什么写全仍然有用。
+            Tag = index,
         };
 
-        var edit = new MenuItem { Header = Strings.Get("LookPick.Edit"), Tag = index };
-        edit.Click += OnEditEntry;
-        var remove = new MenuItem { Header = Strings.Get("LookPick.Remove"), Tag = index };
-        remove.Click += OnRemoveEntry;
-        row.ContextMenu = new ContextMenu { Items = { edit, remove } };
+        ToolTip.SetTip(row, line);
+        row.ContextMenu = Menu(index);
 
         row.PointerPressed += (_, e) =>
         {
@@ -828,6 +979,69 @@ public partial class LookPickWindow : AppWindow
         };
 
         return row;
+    }
+
+    /// <summary>One colour of a place, or what was written there when it is not a colour.</summary>
+    private static Control Swatch(string colour)
+    {
+        if (ColourPointLine.TryColourText(colour, out var hex))
+        {
+            var swatch = new Border
+            {
+                Width = 15,
+                Height = 15,
+                CornerRadius = new CornerRadius(3),
+                Background = new SolidColorBrush(Color.Parse(hex)),
+                BorderBrush = ThemeBrush.Of("BorderControl"),
+                BorderThickness = new Thickness(1),
+            };
+
+            ToolTip.SetTip(swatch, hex);
+            return swatch;
+        }
+
+        // 写的是算式或变量：画不出颜色，就把写的东西摆出来，免得看起来像一格空的。
+        return new TextBlock
+        {
+            Text = colour,
+            FontSize = 11,
+            Classes = { "Mono" },
+            Foreground = ThemeBrush.Of("TextSecondary"),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+    }
+
+    /// <summary>
+    /// The two things the table says about a place that the picture cannot show: that it must be
+    /// none of those colours, and that it allows a tolerance of its own.
+    /// </summary>
+    private static string Marks(string line)
+    {
+        var marks = new List<string>();
+        if (ColourPointLine.MustNot(line))
+        {
+            marks.Add("≠");
+        }
+
+        var tolerance = ColourPointLine.Tolerance(line);
+        if (tolerance.Length > 0)
+        {
+            marks.Add($"±{tolerance}");
+        }
+
+        return string.Join(" ", marks);
+    }
+
+    /// <summary>The menu a place has, whether it was right-clicked on the picture or on the list.</summary>
+    private ContextMenu Menu(int index)
+    {
+        var edit = new MenuItem { Header = Strings.Get("LookPick.Edit"), Tag = index };
+        edit.Click += OnEditEntry;
+        var alternative = new MenuItem { Header = Strings.Get("LookPick.AddAlternative"), Tag = index };
+        alternative.Click += OnAddAlternative;
+        var remove = new MenuItem { Header = Strings.Get("LookPick.Remove"), Tag = index };
+        remove.Click += OnRemoveEntry;
+        return new ContextMenu { Items = { edit, alternative, remove } };
     }
 
     /// <summary>Picks a line out, or puts it back if it was already picked out.</summary>
@@ -903,7 +1117,7 @@ public partial class LookPickWindow : AppWindow
             return;
         }
 
-        if (_added.Contains(line, StringComparer.OrdinalIgnoreCase))
+        if (Contains(line))
         {
             Say(Strings.Get("LookPick.ColoursRepeat"));
             return;
@@ -918,19 +1132,21 @@ public partial class LookPickWindow : AppWindow
         RebuildRows();
         Draw();
         Say(Strings.Format("LookPick.ColoursAdded", line, _added.Count));
-
-        if (_confirm is not null)
-        {
-            _confirm.IsEnabled = true;
-        }
+        UpdateConfirm();
     }
 
-    /// <summary>Whether the list already holds this line, spaces and letter case aside.</summary>
+    /// <summary>
+    /// Whether the list already holds this place, spaces and letter case aside. Only the offset and
+    /// the colours are compared: whether a place is strict, or allows a tolerance of its own, does
+    /// not make it another place.
+    /// </summary>
     private bool Contains(string entry)
         => _added.Any(kept => string.Equals(
-            kept.Replace(" ", string.Empty, StringComparison.Ordinal),
-            entry.Replace(" ", string.Empty, StringComparison.Ordinal),
+            Squeeze(ColourPointLine.Core(kept)),
+            Squeeze(ColourPointLine.Core(entry)),
             StringComparison.OrdinalIgnoreCase));
+
+    private static string Squeeze(string line) => line.Replace(" ", string.Empty, StringComparison.Ordinal);
 
     /// <summary>
     /// The two numbers at the front of a line, when they are numbers: a line that names its offset by
@@ -941,7 +1157,7 @@ public partial class LookPickWindow : AppWindow
         dx = 0;
         dy = 0;
         var parts = ColourPointText.Split(line);
-        return parts.Count == 3
+        return parts.Count >= 2
             && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out dx)
             && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out dy);
     }
@@ -996,6 +1212,7 @@ public partial class LookPickWindow : AppWindow
 
         RebuildRows();
         Draw();
+        UpdateConfirm();
         Say(Strings.Format("LookPick.ColoursLeft", _added.Count));
     }
 
@@ -1007,9 +1224,10 @@ public partial class LookPickWindow : AppWindow
     {
         var offset = OffsetAt(point);
         var colour = _frame[local.X, local.Y].ToHex();
-        var entry = string.Create(CultureInfo.InvariantCulture, $"{offset.X},{offset.Y},{colour}");
 
-        _added[index] = entry;
+        _added[index] = ColourPointLine.WithCore(_added[index],
+            offset.X.ToString(CultureInfo.InvariantCulture),
+            offset.Y.ToString(CultureInfo.InvariantCulture), colour);
         _addedAt[index] = point;
         _picked = point;
         RebuildRows();

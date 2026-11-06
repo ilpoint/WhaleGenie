@@ -99,7 +99,7 @@ public class WindowChromeTests
                  {
                      "GlobalVariablesWindow.axaml.cs",
                      "LookWindow.axaml.cs",
-                     "ExpressionBuilderWindow.axaml.cs",
+                     "ValuePickerWindow.axaml.cs",
                      "BreakpointWindow.axaml.cs",
                      "SettingsWindow.axaml.cs",
                  })

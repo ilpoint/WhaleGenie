@@ -181,7 +181,7 @@
         "Label": "Condition",
         "Hint": "Boolean expression such as $found or $count > 3; written names are replaced and functions are evaluated.",
         "Placeholder": "$found",
-        "Kind": "Expression",
+        "Kind": "Condition",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -349,7 +349,7 @@
         "Label": "Condition",
         "Hint": "Boolean expression such as $found or $count > 3; written names are replaced and functions are evaluated.",
         "Placeholder": "$found",
-        "Kind": "Expression",
+        "Kind": "Condition",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -751,7 +751,7 @@
         "Label": "Condition",
         "Hint": "Boolean expression such as $found or $count > 3; written names are replaced and functions are evaluated.",
         "Placeholder": "$found",
-        "Kind": "Expression",
+        "Kind": "Condition",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -768,7 +768,7 @@
       },
       {
         "Name": "then",
-        "Label": "Then steps",
+        "Label": "When it holds",
         "Hint": "Steps to run when the condition is true.",
         "Placeholder": "",
         "Kind": "Steps",
@@ -788,7 +788,7 @@
       },
       {
         "Name": "else",
-        "Label": "Else steps",
+        "Label": "Otherwise",
         "Hint": "Steps to run when the condition is false.",
         "Placeholder": "",
         "Kind": "Steps",
@@ -816,7 +816,7 @@
     "Parameters": [
       {
         "Name": "switchValue",
-        "Label": "Value (operand)",
+        "Label": "Value to match",
         "Hint": "What the cases are compared against, read once when the step runs. Pick a variable from the list or type a name, a number or text of your own.",
         "Placeholder": "count",
         "Kind": "Variable",
@@ -836,7 +836,7 @@
       },
       {
         "Name": "switchMode",
-        "Label": "Match mode (operator)",
+        "Label": "Match mode",
         "Hint": "How a case's values are compared with the value.",
         "Placeholder": "",
         "Kind": "Choice",
@@ -844,6 +844,7 @@
           "Equals",
           "Not equals",
           "Contains",
+          "Does not contain",
           "Starts with",
           "Ends with",
           "Greater than",
@@ -887,7 +888,7 @@
       },
       {
         "Name": "otherwise",
-        "Label": "Otherwise steps",
+        "Label": "Otherwise",
         "Hint": "Steps to run when no case matched.",
         "Placeholder": "",
         "Kind": "Steps",
@@ -1878,7 +1879,7 @@
   },
   {
     "Key": "file.readText",
-    "DisplayName": "Read Text",
+    "DisplayName": "Read Text File",
     "Description": "Read a text file into a variable.",
     "Parameters": [
       {
@@ -2194,6 +2195,31 @@
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "encoding",
+        "Label": "Encoding",
+        "Hint": "How the file's text is turned into bytes. UTF-8 is what everything new uses and is the default; UTF-8 with a mark is what Notepad writes; GBK is what a Chinese Windows writes its own text files in; UTF-16 is what some older Windows programs expect. Reading follows the mark at the front of the file when it has one, and reads bytes that are not UTF-8 at all in this machine's own code page, which is how a CSV another machine exported still reads.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "UTF-8",
+          "UTF-8 with BOM",
+          "GBK (Chinese)",
+          "UTF-16"
+        ],
+        "ForeignText": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -2842,6 +2868,30 @@
         "Placeholder": "*.txt",
         "Kind": "Text",
         "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "kind",
+        "Label": "What to list",
+        "Hint": "Files, folders, or both. Files is what this step always collected; folders are how a macro that does the same thing to every subfolder learns their names. A pattern is matched against the name either way.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Files",
+          "Folders",
+          "Both"
+        ],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
@@ -4718,7 +4768,7 @@
       {
         "Key": "exitCode",
         "Label": "Exit code",
-        "Hint": "The code the program ended with; 0 usually means it was happy."
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -5122,7 +5172,7 @@
       {
         "Key": "exitCode",
         "Label": "Exit code",
-        "Hint": "The code the command ended with; 0 usually means it succeeded."
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -5159,7 +5209,12 @@
           "On mains power",
           "DPI",
           "DPI percent",
-          "Seconds since start"
+          "Seconds since start",
+          "Seconds idle",
+          "Running as administrator",
+          "Free memory (MB)",
+          "Memory in total (MB)",
+          "Free space on C: (MB)"
         ],
         "ForeignText": false,
         "Advanced": false,
@@ -5352,6 +5407,37 @@
     "Returns": []
   },
   {
+    "Key": "system.showDesktop",
+    "DisplayName": "Show the desktop",
+    "Description": "Take every open window out of the way, or bring back the ones that were shrunk.",
+    "Parameters": [
+      {
+        "Name": "desktopAction",
+        "Label": "Do what",
+        "Hint": "Shrink every window that has a title, or bring back the ones that were shrunk; these are the two halves of what the button at the far end of the taskbar does. A macro that is about to work through the desktop, or open something over it, clears the way first.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Shrink every window",
+          "Bring them back"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": []
+  },
+  {
     "Key": "system.volume",
     "DisplayName": "Volume",
     "Description": "Read or change the volume of the speakers Windows is using.",
@@ -5461,8 +5547,31 @@
   {
     "Key": "system.sound",
     "DisplayName": "Sound",
-    "Description": "Play one of the sounds this machine plays for an event.",
+    "Description": "Play one of the sounds this machine plays for an event, or a .wav file the macro brings with it.",
     "Parameters": [
+      {
+        "Name": "soundSource",
+        "Label": "Where it comes from",
+        "Hint": "One of the machine's own sounds, or a .wav file the macro brings with it. The machine's own sounds follow the sound scheme the user chose, so they are what they expect to hear; a file is played as the file is, which is how a macro says something no beep says.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "The machine's own sounds",
+          "A .wav file"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
       {
         "Name": "sound",
         "Label": "Play which sound",
@@ -5479,12 +5588,36 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
+        "AppliesWhen": "soundSource",
+        "AppliesWhenValues": [
+          "system"
+        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "soundFile",
+        "Label": "Sound file",
+        "Hint": "The .wav file to play, named where it stands; a path relative to the macros folder is read the way every other path is. Windows plays these itself, so anything else, such as an mp3 or a recording, has to be turned into one first. Reaches into variables and expressions like any other box.",
+        "Placeholder": "C://Windows//Media//notify.wav",
+        "Kind": "Variable",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "soundSource",
+        "AppliesWhenValues": [
+          "file"
+        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 1,
+        "PathFilter": "*.wav",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -9707,7 +9840,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -10060,7 +10193,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -10408,7 +10541,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -11125,7 +11258,8 @@
         "PathFilter": "",
         "Increment": 1,
         "Tall": false,
-        "AddLabelKey": ""
+        "AddLabelKey": "",
+        "PerChannelPercent": true
       },
       {
         "Name": "frameMaxAgeMs",
@@ -11202,9 +11336,239 @@
     ]
   },
   {
+    "Key": "vision.matchColor",
+    "DisplayName": "Compare Colour",
+    "Description": "Ask whether one pixel shows a colour right now, and hand back what it actually saw.",
+    "Parameters": [
+      {
+        "Name": "anchorMode",
+        "Label": "Recognition source",
+        "Hint": "Choose where this step recognizes: the screen, or the client area of the captured window. Window mode reads the window rule below and measures the region and its coordinates from the client-area corner.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Screen",
+          "Window"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "window",
+        "Label": "Window",
+        "Hint": "The captured window and the rule that finds it again. Get Window reads the current window after you click it and press F1; the title, process, class and handle are kept together, and only the chosen part is compared on every run.",
+        "Placeholder": "Click the target window, then press F1",
+        "Kind": "WindowRule",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "anchorMode",
+        "AppliesWhenValues": [
+          "window"
+        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "x",
+        "Label": "X",
+        "Hint": "The column of the pixel to compare, counted from the coordinate origin above, in pixels; 0 by default.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "y",
+        "Label": "Y",
+        "Hint": "The row of the same pixel, counted from the same origin; 0 by default.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to read the pixel where an earlier step found something, instead of writing the two numbers.",
+        "Placeholder": "",
+        "Kind": "Point",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "color",
+        "Label": "Colour",
+        "Hint": "The colour the pixel has to show, written as #RRGGBB. The eyedropper fills both this and the point it was taken from.",
+        "Placeholder": "",
+        "Kind": "Color",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "tolerance",
+        "Label": "Tolerance",
+        "Hint": "How far a channel may sit from the colour and still count as it, 0 to 100 per cent; 5 by default. At 5 per cent each channel may be off by about 13 out of 255.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": "",
+        "PerChannelPercent": true
+      },
+      {
+        "Name": "frameMaxAgeMs",
+        "Label": "Accept a picture up to",
+        "Hint": "How old a picture this step will accept, in milliseconds, from 0 to 60000; the default is 0, which reads the screen every time. A step that allows a picture taken within the last few milliseconds is handed one an earlier step took of the same window, or of the screen, so looking at the same place again and again does not read it again and again. The first reading with this allowed takes the whole window or the whole screen, which is what the readings after it save.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "intervalMs",
+        "Label": "Interval",
+        "Hint": "The least time this step leaves between two looks at the screen, in milliseconds, from 0 to 60000; the default is 0, which looks again as soon as the step is asked to. Writing a gap is worth it when the step sits inside a loop, where a step that reads the same place on every pass spends most of its time reading a picture that has not changed. Seven milliseconds is about 144 looks a second.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "matches",
+        "Label": "Matches",
+        "Hint": "True when the pixel shows the colour within the tolerance; false otherwise. A miss is an answer, not a failure."
+      },
+      {
+        "Key": "color",
+        "Label": "The colour it saw",
+        "Hint": "What the pixel actually shows, as #RRGGBB. This is the line to read when the answer is no."
+      },
+      {
+        "Key": "delta",
+        "Label": "How far off",
+        "Hint": "The distance between what was seen and what was asked for, as a percentage of the widest a colour can be from another; 0 means the same colour."
+      }
+    ]
+  },
+  {
     "Key": "vision.findColor",
     "DisplayName": "Find Color",
-    "Description": "Look for a colour at one point or inside a screen region.",
+    "Description": "Look for a colour inside a screen region and hand back where it is.",
     "Parameters": [
       {
         "Name": "anchorMode",
@@ -11272,66 +11636,6 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "x",
-        "Label": "X",
-        "Hint": "Optional column of one pixel to compare, counted from the recognition source, in pixels. Leave X and Y empty to search the region instead.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "y",
-        "Label": "Y",
-        "Hint": "Optional row of one pixel to compare, counted from the recognition source, in pixels. Leave X and Y empty to search the region instead.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "place",
-        "Label": "Place",
-        "Hint": "Optional record whose x and y name one pixel, such as a hit, a window or a picture taken earlier. When filled, it takes priority over X and Y and the search region.",
-        "Placeholder": "",
-        "Kind": "Point",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
         "Name": "tolerance",
         "Label": "Tolerance %",
         "Hint": "Allowed colour difference, 0 to 100 per cent; the default is 5.",
@@ -11349,7 +11653,8 @@
         "PathFilter": "",
         "Increment": 1,
         "Tall": false,
-        "AddLabelKey": ""
+        "AddLabelKey": "",
+        "PerChannelPercent": true
       },
       {
         "Name": "minCoverage",
@@ -11359,7 +11664,27 @@
         "Kind": "Number",
         "OptionLabels": [],
         "ForeignText": false,
-        "Advanced": true,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "missingIsFailure",
+        "Label": "Count a miss as a failure",
+        "Hint": "Off by default: a colour that is not there is an answer : found is false and the step carries on, which is what the next step reads. Turned on, a miss fails the step with Run.ColourNotFound, and the step's failure rule decides what happens next. Turn it on only for a step that has to hit; a search that may miss is clearer when it branches.",
+        "Placeholder": "",
+        "Kind": "Bool",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -11374,7 +11699,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -11414,13 +11739,14 @@
       {
         "Name": "orderBy",
         "Label": "Count them in",
-        "Hint": "What order the hits are numbered in, which is what the match number counts. Reading, the default, is down the screen first and then across. Score takes the pixel closest to the colour, wherever it is. Random shuffles them, for a step that must not always take the same one of several.",
+        "Hint": "Which way the search area is walked, which is what the match number counts: the four readings of a picture, the way a person reads it. Left to right, top to bottom is the default, the order things are laid out in. The other three come from the other corner, which is how a row of buttons pinned to the bottom or to the right of a window is counted: the first one from there is the first one the eye lands on.",
         "Placeholder": "",
         "Kind": "Choice",
         "OptionLabels": [
-          "Reading order",
-          "Surest first",
-          "Shuffled"
+          "Left to right, top to bottom",
+          "Right to left, top to bottom",
+          "Left to right, bottom to top",
+          "Right to left, bottom to top"
         ],
         "ForeignText": false,
         "Advanced": true,
@@ -11592,7 +11918,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -11667,7 +11993,8 @@
         "PathFilter": "",
         "Increment": 1,
         "Tall": false,
-        "AddLabelKey": ""
+        "AddLabelKey": "",
+        "PerChannelPercent": true
       },
       {
         "Name": "changedPercent",
@@ -11814,75 +12141,35 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "x",
-        "Label": "X",
-        "Hint": "Optional column of one pixel to check, counted from the recognition source, in pixels. The colour in the middle and the colours around it are all read at this one place. Leave X and Y empty to search the region instead.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "y",
-        "Label": "Y",
-        "Hint": "Optional row of one pixel to check, counted from the recognition source, in pixels. The colour in the middle and the colours around it are all read at this one place. Leave X and Y empty to search the region instead.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "place",
-        "Label": "Place",
-        "Hint": "Optional record whose x and y name one pixel, such as a hit, a window or a picture taken earlier. When filled, it takes priority over X and Y and the search region.",
-        "Placeholder": "",
-        "Kind": "Point",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
         "Name": "points",
         "Label": "Colours around it",
-        "Hint": "The colours that have to be there, one per line, written as the offset from the base colour and the colour itself: 12,-4,#FF0000. Every one of them has to be where it says, and the whole pattern has to fit inside the search region; a pattern that runs off the edge of the region is not found.",
+        "Hint": "The colours that have to be there around the base colour, one row each: how far right (dx) and how far down (dy) from the base colour, the colour that has to be at that offset, and, if this one colour needs its own, a tolerance. Two colours may be written in the one cell with a bar between them (one shape, drawn light in one state and dark in another); turning on must-not means the place has to be none of them, which is how an empty corner is written. A row with no tolerance uses the one filled in above. Every row has to be there, and the whole pattern has to fit inside the search region.",
         "Placeholder": "12,-4,#FF0000; -8,3,#00FF00",
-        "Kind": "MultilineText",
+        "Kind": "ColourPoints",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
-        "WrittenByTool": true,
+        "WrittenByTool": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "missingIsFailure",
+        "Label": "Count a miss as a failure",
+        "Hint": "Off by default: a colour that is not there is an answer : found is false and the step carries on, which is what the next step reads. Turned on, a miss fails the step with Run.ColourNotFound, and the step's failure rule decides what happens next. Turn it on only for a step that has to hit; a search that may miss is clearer when it branches.",
+        "Placeholder": "",
+        "Kind": "Bool",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -11897,7 +12184,7 @@
       {
         "Name": "tolerance",
         "Label": "Tolerance %",
-        "Hint": "Allowed colour difference, 0 to 100 per cent; the default is 5.",
+        "Hint": "Allowed colour difference for the base colour, 0 to 100 per cent; the default is 5. A colour beside it that has no tolerance of its own uses this one too. At 5 per cent each channel may be off by about 13 out of 255.",
         "Placeholder": "",
         "Kind": "Number",
         "OptionLabels": [],
@@ -11912,12 +12199,13 @@
         "PathFilter": "",
         "Increment": 1,
         "Tall": false,
-        "AddLabelKey": ""
+        "AddLabelKey": "",
+        "PerChannelPercent": true
       },
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -11977,13 +12265,14 @@
       {
         "Name": "orderBy",
         "Label": "Count them in",
-        "Hint": "What order the hits are numbered in, which is what the match number counts. Reading, the default, is down the screen first and then across. Score takes the pixel closest to the colour, wherever it is. Random shuffles them, for a step that must not always take the same one of several.",
+        "Hint": "Which way the search area is walked, which is what the match number counts: the four readings of a picture, the way a person reads it. Left to right, top to bottom is the default, the order things are laid out in. The other three come from the other corner, which is how a row of buttons pinned to the bottom or to the right of a window is counted: the first one from there is the first one the eye lands on.",
         "Placeholder": "",
         "Kind": "Choice",
         "OptionLabels": [
-          "Reading order",
-          "Surest first",
-          "Shuffled"
+          "Left to right, top to bottom",
+          "Right to left, top to bottom",
+          "Left to right, bottom to top",
+          "Right to left, bottom to top"
         ],
         "ForeignText": false,
         "Advanced": true,
@@ -12045,6 +12334,356 @@
         "Label": "Found",
         "Hint": "True when the thing was found; false when the look completed without finding it."
       },
+      {
+        "Key": "match",
+        "Label": "Hit",
+        "Hint": "Where it was found and everything else about it, as one record; empty when it was not there. x and y are the middle (the point this action clicks or moves to), left and top are the corner a search region counts from, width and height are its size, score is how sure the reading was, box is the whole hit written as left,top,width,height, and text is what was read where the action reads writing. Read one part of it with field($name, \"x\")."
+      },
+      {
+        "Key": "every",
+        "Label": "Every match",
+        "Hint": "Every hit that was found, each shaped like the record above, in the order they are counted in. Walk them with forEach or count them with count(); name one of them in a search region to look at that place next. Only written when this box is ticked."
+      },
+      {
+        "Key": "window",
+        "Label": "Source window",
+        "Hint": "The window the picture was taken from, or empty when it was read straight off the screen. It answers whether a step that found nothing was looking at the right window at all."
+      },
+      {
+        "Key": "method",
+        "Label": "How the picture was taken",
+        "Hint": "The way this step took the picture, such as graphicsCapture, gdi or printWindow; empty when it read no picture."
+      },
+      {
+        "Key": "screenPoint",
+        "Label": "Screen point",
+        "Hint": "The place the step actually used, in screen pixels. Its basis field says screen."
+      },
+      {
+        "Key": "windowPoint",
+        "Label": "Window point",
+        "Hint": "The same place counted from the target window's client-area corner. Its basis field says window."
+      }
+    ]
+  },
+  {
+    "Key": "vision.clickColor",
+    "DisplayName": "Click Color",
+    "Description": "Find a colour in the search region and click it, waiting until it shows up.",
+    "Parameters": [
+      {
+        "Name": "anchorMode",
+        "Label": "Recognition source",
+        "Hint": "Choose where this step recognizes: the screen, or the client area of the captured window. Window mode reads the window rule below and measures the region and its coordinates from the client-area corner.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Screen",
+          "Window"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "window",
+        "Label": "Window",
+        "Hint": "The captured window and the rule that finds it again. Get Window reads the current window after you click it and press F1; the title, process, class and handle are kept together, and only the chosen part is compared on every run.",
+        "Placeholder": "Click the target window, then press F1",
+        "Kind": "WindowRule",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "anchorMode",
+        "AppliesWhenValues": [
+          "window"
+        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "region",
+        "Label": "Search region",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Placeholder": "",
+        "Kind": "Region",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "color",
+        "Label": "Colour",
+        "Hint": "Colour to look for.",
+        "Placeholder": "",
+        "Kind": "Color",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "tolerance",
+        "Label": "Tolerance %",
+        "Hint": "Allowed colour difference, 0 to 100 per cent; the default is 5. At 5 per cent each channel may be off by about 13 out of 255.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": "",
+        "PerChannelPercent": true
+      },
+      {
+        "Name": "minCoverage",
+        "Label": "At least this much",
+        "Hint": "The least share of the search region that has to show the colour before this step clicks, from 0 to 100 per cent; the default is 0, which clicks the first place the colour is. Raising it clicks a region that is mostly that colour, such as a button that is lit only when it can be pressed.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "button",
+        "Label": "Button",
+        "Hint": "Which mouse button; the left one by default.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "offsetX",
+        "Label": "Offset X",
+        "Hint": "Pixels added to the middle of the colour it found before clicking. 0, the default, clicks that middle.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "offsetY",
+        "Label": "Offset Y",
+        "Hint": "Pixels added to the middle of the colour it found before clicking, downwards for a positive number; 0, the default, clicks that middle.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "variance",
+        "Label": "Aim within",
+        "Hint": "How far the click may land from the place it aimed at, in pixels; the default is 0, which lands on exactly that place. Given a number, every click is placed at random within that many pixels either way, so a run of clicks is spread over the button instead of landing on one pixel, which is what a button that only counts a press somewhere inside it, and a game that notices the same pixel every time, are both about. Keep it small enough that the whole spread stays inside the thing being clicked.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "frameMaxAgeMs",
+        "Label": "Accept a picture up to",
+        "Hint": "How old a picture this step will accept, in milliseconds, from 0 to 60000; the default is 0, which reads the screen every time. A step that allows a picture taken within the last few milliseconds is handed one an earlier step took of the same window, or of the screen, so looking at the same place again and again does not read it again and again. The first reading with this allowed takes the whole window or the whole screen, which is what the readings after it save.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "orderBy",
+        "Label": "Count them in",
+        "Hint": "Which way the search area is walked, which is what the match number counts: the four readings of a picture, the way a person reads it. Left to right, top to bottom is the default, the order things are laid out in. The other three come from the other corner, which is how a row of buttons pinned to the bottom or to the right of a window is counted: the first one from there is the first one the eye lands on.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Left to right, top to bottom",
+          "Right to left, top to bottom",
+          "Left to right, bottom to top",
+          "Right to left, bottom to top"
+        ],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "matchIndex",
+        "Label": "Match number",
+        "Hint": "Which of the hits to use, numbered the way “count them in” says, from 1. The default is 1. More hits than were found is treated as finding nothing.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "intervalMs",
+        "Label": "Interval",
+        "Hint": "The least time this step leaves between two looks at the screen, in milliseconds, from 0 to 60000; the default is 0, which looks again as soon as the step is asked to. Writing a gap is worth it when the step sits inside a loop, where a step that reads the same place on every pass spends most of its time reading a picture that has not changed. Seven milliseconds is about 144 looks a second.",
+        "Placeholder": "",
+        "Kind": "Number",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
       {
         "Key": "match",
         "Label": "Hit",
@@ -12190,7 +12829,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -12524,7 +13163,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -12853,7 +13492,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -13220,91 +13859,11 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "x",
-        "Label": "Top-left X",
-        "Hint": "How far the left edge of the region is from the left of the screen, in pixels. Under a window anchor it is counted from that window's own left edge. Left out, counting starts at that edge, and with the other three left out too the whole screen is read. “Pick region” fills all four in at once.",
+        "Name": "region",
+        "Label": "Search region",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "y",
-        "Label": "Top-left Y",
-        "Hint": "How far the top edge of the region is from the top of the screen, in pixels. Under a window anchor it is counted from that window's own top edge. Left out, counting starts at that edge.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "width",
-        "Label": "Width to the right",
-        "Hint": "How wide the region is, in pixels: the distance from the left edge to the right one. Left out, it reaches the right edge of the screen. At least 1.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "height",
-        "Label": "Height downward",
-        "Hint": "How tall the region is, in pixels: the distance from the top edge to the bottom one. Left out, it reaches the bottom edge of the screen. At least 1.",
-        "Placeholder": "",
-        "Kind": "Number",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "rect",
-        "Label": "Rectangle",
-        "Hint": "A record whose left, top, width and height say which part of the screen, such as a hit, a window or a picture taken earlier. Fill this in to read what an earlier step found, instead of writing the four numbers.",
-        "Placeholder": "",
-        "Kind": "Rect",
+        "Kind": "Region",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -13625,7 +14184,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -14098,7 +14657,7 @@
       {
         "Name": "region",
         "Label": "Search region",
-        "Hint": "Where to look: one row per place, and there may be several. A row is x, y, width and height, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
+        "Hint": "Where to look: one row per place, and there may be several. A row is the left and top of a place with how wide and tall it is, dragged out with “pick region” or typed in; a row may also name a variable, either one holding a picture an earlier Capture took, which is searched inside, or one holding a rectangle written as left,top,width,height, the same four a result hands over, or a record carrying one (a hit, a window, an element). A record's numbers are where it is on the screen, so the coordinate origin moves the four numbers written out and not a record. Empty searches the whole screen, which is the default.",
         "Placeholder": "",
         "Kind": "Region",
         "OptionLabels": [],
@@ -14595,7 +15154,7 @@
   },
   {
     "Key": "uia.exists",
-    "DisplayName": "Exists",
+    "DisplayName": "UI Element Exists",
     "Description": "Check whether a UI Automation element exists.",
     "Parameters": [
       {
@@ -14621,9 +15180,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -14689,7 +15268,7 @@
   },
   {
     "Key": "uia.find",
-    "DisplayName": "Find Element",
+    "DisplayName": "Find UI Element",
     "Description": "Find a UI Automation element and remember where it is.",
     "Parameters": [
       {
@@ -14715,9 +15294,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -14798,7 +15397,7 @@
   },
   {
     "Key": "uia.waitElement",
-    "DisplayName": "Wait Element",
+    "DisplayName": "Wait for UI Element",
     "Description": "Wait until a UI Automation element exists.",
     "Parameters": [
       {
@@ -14824,9 +15423,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -14912,7 +15531,7 @@
   },
   {
     "Key": "uia.click",
-    "DisplayName": "Click Element",
+    "DisplayName": "Click UI Element",
     "Description": "Click a UI Automation element.",
     "Parameters": [
       {
@@ -14938,9 +15557,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15000,7 +15639,7 @@
   },
   {
     "Key": "uia.invoke",
-    "DisplayName": "Press Element",
+    "DisplayName": "Invoke UI Element",
     "Description": "Work a UI Automation element's own action, without moving the mouse.",
     "Parameters": [
       {
@@ -15026,9 +15665,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15068,7 +15727,7 @@
   },
   {
     "Key": "uia.setText",
-    "DisplayName": "Set Text",
+    "DisplayName": "Set UI Element Text",
     "Description": "Type text into a UI Automation element.",
     "Parameters": [
       {
@@ -15094,9 +15753,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15176,7 +15855,7 @@
   },
   {
     "Key": "uia.read",
-    "DisplayName": "Read Element",
+    "DisplayName": "Read UI Element",
     "Description": "Read everything one UI Automation element says about itself.",
     "Parameters": [
       {
@@ -15202,9 +15881,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15270,7 +15969,7 @@
   },
   {
     "Key": "uia.select",
-    "DisplayName": "Select Item",
+    "DisplayName": "Select UI List Item",
     "Description": "Pick an entry of a drop-down, a list or a set of tabs.",
     "Parameters": [
       {
@@ -15296,9 +15995,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15383,7 +16102,7 @@
   },
   {
     "Key": "uia.check",
-    "DisplayName": "Check Box",
+    "DisplayName": "Tick UI Check Box",
     "Description": "Turn a check box, a switch or a radio button on or off.",
     "Parameters": [
       {
@@ -15409,9 +16128,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15475,7 +16214,7 @@
   },
   {
     "Key": "uia.expand",
-    "DisplayName": "Expand or Collapse",
+    "DisplayName": "Expand or Collapse UI Node",
     "Description": "Open or close a tree branch, a menu or a collapsed panel.",
     "Parameters": [
       {
@@ -15501,9 +16240,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15567,7 +16326,7 @@
   },
   {
     "Key": "uia.scrollIntoView",
-    "DisplayName": "Scroll Into View",
+    "DisplayName": "Scroll UI Element into View",
     "Description": "Scroll an element into view inside the list or panel holding it.",
     "Parameters": [
       {
@@ -15593,9 +16352,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15635,7 +16414,7 @@
   },
   {
     "Key": "uia.readTable",
-    "DisplayName": "Read Table",
+    "DisplayName": "Read UI Table",
     "Description": "Read a table or a grid into a list of rows.",
     "Parameters": [
       {
@@ -15661,9 +16440,29 @@
       {
         "Name": "uiSelector",
         "Label": "Selector",
-        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input'].",
+        "Hint": "Element selector, for example Button[name='Save'] or Edit[automationId='input']. A value may be written with wildcards: Button[name='Save*'] is a button whose name starts with Save, and ? stands for exactly one character.",
         "Placeholder": "Button[name='Save']",
         "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "narrow",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names; every row holds at once. It can be limited to a visible or enabled element, or to a name that contains or does not contain given text. A value may use a variable.",
+        "Placeholder": "",
+        "Kind": "Narrow",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -15899,7 +16698,7 @@
   },
   {
     "Key": "browser.click",
-    "DisplayName": "Click Element",
+    "DisplayName": "Click Web Element",
     "Description": "Clicks the element a selector names.",
     "Parameters": [
       {
@@ -15924,8 +16723,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16011,7 +16810,7 @@
   },
   {
     "Key": "browser.fill",
-    "DisplayName": "Fill In",
+    "DisplayName": "Fill Web Input",
     "Description": "Types text into the element a selector names.",
     "Parameters": [
       {
@@ -16036,8 +16835,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16144,7 +16943,7 @@
   },
   {
     "Key": "browser.readText",
-    "DisplayName": "Read Text",
+    "DisplayName": "Read Web Text",
     "Description": "Reads one part of an element, or of the whole page.",
     "Parameters": [
       {
@@ -16169,8 +16968,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16288,7 +17087,7 @@
   },
   {
     "Key": "browser.readAll",
-    "DisplayName": "Read Every Match",
+    "DisplayName": "Read All Web Text",
     "Description": "Reads every element a selector names, one entry each.",
     "Parameters": [
       {
@@ -16313,8 +17112,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16448,7 +17247,7 @@
   },
   {
     "Key": "browser.readTable",
-    "DisplayName": "Read Table",
+    "DisplayName": "Read Web Table",
     "Description": "Reads a table of a page into rows.",
     "Parameters": [
       {
@@ -16473,8 +17272,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16601,7 +17400,7 @@
   },
   {
     "Key": "browser.select",
-    "DisplayName": "Select Option",
+    "DisplayName": "Choose Web Option",
     "Description": "Picks an option of a dropdown.",
     "Parameters": [
       {
@@ -16626,8 +17425,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16712,7 +17511,7 @@
   },
   {
     "Key": "browser.check",
-    "DisplayName": "Tick or Untick",
+    "DisplayName": "Tick Web Check Box",
     "Description": "Leaves a checkbox or a radio button ticked, or unticked.",
     "Parameters": [
       {
@@ -16737,8 +17536,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16800,7 +17599,7 @@
   },
   {
     "Key": "browser.hover",
-    "DisplayName": "Move Over Element",
+    "DisplayName": "Hover Web Element",
     "Description": "Moves the pointer over an element and leaves it there.",
     "Parameters": [
       {
@@ -16825,8 +17624,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16893,8 +17692,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -16960,7 +17759,7 @@
   },
   {
     "Key": "browser.waitFor",
-    "DisplayName": "Wait For Element",
+    "DisplayName": "Wait for Web Element",
     "Description": "Waits for an element of the page to appear or to go away.",
     "Parameters": [
       {
@@ -16985,8 +17784,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -17107,7 +17906,7 @@
   },
   {
     "Key": "browser.waitForLoad",
-    "DisplayName": "Wait For Load",
+    "DisplayName": "Wait for Page Load",
     "Description": "Waits for the page to finish loading.",
     "Parameters": [
       {
@@ -17164,8 +17963,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -17238,7 +18037,7 @@
   },
   {
     "Key": "browser.download",
-    "DisplayName": "Download A File",
+    "DisplayName": "Download Web File",
     "Description": "Saves the next file the page hands over.",
     "Parameters": [
       {
@@ -17263,8 +18062,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -17361,7 +18160,7 @@
   },
   {
     "Key": "browser.dialog",
-    "DisplayName": "Answer A Dialog",
+    "DisplayName": "Answer Web Dialog",
     "Description": "Answers the next dialog the page puts up, around the steps that raise it.",
     "Parameters": [
       {
@@ -17458,7 +18257,7 @@
   },
   {
     "Key": "browser.evaluate",
-    "DisplayName": "Run a JS Script",
+    "DisplayName": "Run Web Script",
     "Description": "Run a piece of JavaScript in the page and take back what it returns. A string comes back as it is; a number, flag, list or record comes back as JSON and can be handed straight to the next step, such as Go to.",
     "Parameters": [
       {
@@ -17512,7 +18311,7 @@
   },
   {
     "Key": "browser.upload",
-    "DisplayName": "Upload Files",
+    "DisplayName": "Upload Web File",
     "Description": "Hands files to a file input on the page.",
     "Parameters": [
       {
@@ -17537,8 +18336,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],
@@ -17696,26 +18495,6 @@
     "Description": "Run a command, a batch file, a PowerShell or an AutoHotkey script, or a program of your own choosing.",
     "Parameters": [
       {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
         "Name": "kind",
         "Label": "Kind of script",
         "Hint": "What this step hands the script to. The three command kinds write the text out as a batch file and run it with cmd.exe: the first one leaves its window open afterwards so what it printed can be read, the second closes the window when the command is done, and the third shows no window at all. The two file kinds and the PowerShell and AutoHotkey kinds run without a window; a program of your own choosing is for anything else the machine has. PowerShell by default.",
@@ -17736,34 +18515,6 @@
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "encoding",
-        "Label": "Script file encoding",
-        "Hint": "How the copy of the script handed to the program is written. Left to decide for itself, a batch file or a command gets this machine's own code page, PowerShell and AutoHotkey get a byte-order mark, and a program of your own choosing gets plain UTF-8, which is what each of them reads correctly. A program that reads the system code page instead, cscript for one, needs GBK to read Chinese text. Reading it as the kind of script expects is the default.",
-        "Placeholder": "",
-        "Kind": "Choice",
-        "OptionLabels": [
-          "As this kind of script expects",
-          "UTF-8",
-          "UTF-8 with BOM",
-          "GBK (Chinese)",
-          "UTF-16"
-        ],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "scriptSource",
-        "AppliesWhenValues": [
-          "text"
-        ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17840,13 +18591,41 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "scriptArguments",
-        "Label": "Arguments",
-        "Hint": "Extra arguments for the script's command line. {{name}} is filled in here as well. Empty, which is the default, passes nothing.",
-        "Placeholder": "first second",
-        "Kind": "Text",
+        "Name": "encoding",
+        "Label": "Script file encoding",
+        "Hint": "How the copy of the script handed to the program is written. Left to decide for itself, a batch file or a command gets this machine's own code page, PowerShell and AutoHotkey get a byte-order mark, and a program of your own choosing gets plain UTF-8, which is what each of them reads correctly. A program that reads the system code page instead, cscript for one, needs GBK to read Chinese text. Reading it as the kind of script expects is the default.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "As this kind of script expects",
+          "UTF-8",
+          "UTF-8 with BOM",
+          "GBK (Chinese)",
+          "UTF-16"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "scriptSource",
+        "AppliesWhenValues": [
+          "text"
+        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
         "OptionLabels": [],
-        "ForeignText": true,
+        "ForeignText": false,
         "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
@@ -17899,6 +18678,26 @@
         "AppliesWhenAlsoValues": [
           "text"
         ],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scriptArguments",
+        "Label": "Arguments",
+        "Hint": "Extra arguments for the script's command line. {{name}} is filled in here as well. Empty, which is the default, passes nothing.",
+        "Placeholder": "first second",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": true,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -17961,6 +18760,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script ended with exit code 0, false when it did not. A script that ended with anything else fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -17969,26 +18773,6 @@
     "DisplayName": "Run Python Script",
     "Description": "Run a Python script, with the macro's values and steps in reach of it while it runs.",
     "Parameters": [
-      {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
       {
         "Name": "script",
         "Label": "Script",
@@ -18010,14 +18794,14 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "scriptArguments",
-        "Label": "Arguments",
-        "Hint": "Extra arguments for the script's command line, which the script finds in sys.argv the way a program started from a command line does. Empty, which is the default, passes nothing.",
-        "Placeholder": "first second",
-        "Kind": "Text",
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
         "OptionLabels": [],
-        "ForeignText": true,
-        "Advanced": false,
+        "ForeignText": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -18045,6 +18829,26 @@
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
         "PathFilter": "*.exe",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scriptArguments",
+        "Label": "Arguments",
+        "Hint": "Extra arguments for the script's command line, which the script finds in sys.argv the way a program started from a command line does. Empty, which is the default, passes nothing.",
+        "Placeholder": "first second",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": true,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18105,6 +18909,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script ran to the end without a mistake, false when it did not. A script that ended badly fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18189,6 +18998,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when pip ended well, false when it did not. A run that ended badly fails the step as well."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18197,26 +19011,6 @@
     "DisplayName": "Run C# Script",
     "Description": "Compile a C# script and run it, with the macro's values and steps in reach of it while it runs.",
     "Parameters": [
-      {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
       {
         "Name": "script",
         "Label": "Script",
@@ -18235,6 +19029,26 @@
         "PathFilter": "",
         "Increment": 1,
         "Tall": true,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": true,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
         "AddLabelKey": ""
       },
       {
@@ -18313,6 +19127,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script compiled and ran to the end without a mistake, false when it did not. A script that ended badly fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18321,26 +19140,6 @@
     "DisplayName": "Run AutoHotkey Script",
     "Description": "Run an AutoHotkey script, with the macro's values and steps in reach of it while it runs.",
     "Parameters": [
-      {
-        "Name": "sendsInput",
-        "Label": "The script sends keyboard or mouse input",
-        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": true,
-        "EnabledBySibling": "",
-        "AppliesWhen": "",
-        "AppliesWhenValues": [],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
       {
         "Name": "script",
         "Label": "Script",
@@ -18362,14 +19161,14 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "scriptArguments",
-        "Label": "Arguments",
-        "Hint": "Extra arguments for the script's command line, which the script finds in A_Args the way a program started from a command line does. Empty, which is the default, passes nothing.",
-        "Placeholder": "first second",
-        "Kind": "Text",
+        "Name": "sendsInput",
+        "Label": "The script sends keyboard or mouse input",
+        "Hint": "Turn this on when the script types or clicks by itself. It is a declaration for the design-time warning: WhaleGenie cannot see input a script sends directly, so the input door cannot hold it back. Off by default.",
+        "Placeholder": "",
+        "Kind": "Bool",
         "OptionLabels": [],
-        "ForeignText": true,
-        "Advanced": false,
+        "ForeignText": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -18397,6 +19196,26 @@
         "AppliesWhenAlsoValues": [],
         "PathIntent": 1,
         "PathFilter": "*.exe",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scriptArguments",
+        "Label": "Arguments",
+        "Hint": "Extra arguments for the script's command line, which the script finds in A_Args the way a program started from a command line does. Empty, which is the default, passes nothing.",
+        "Placeholder": "first second",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": true,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
         "Increment": 1,
         "Tall": false,
         "AddLabelKey": ""
@@ -18457,6 +19276,11 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when the script ran to the end without a mistake, false when it did not. A script that ended badly fails the step as well, so this is read after the failure rule let the macro carry on."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
@@ -18521,12 +19345,17 @@
         "Key": "success",
         "Label": "Ran without error",
         "Hint": "True when everything asked for is there and ready, false when it is not. A run that ended badly fails the step as well."
+      },
+      {
+        "Key": "exitCode",
+        "Label": "Exit code",
+        "Hint": "The code the script ended with; 0 usually means it went well. Kept apart from the message because a script often means something by the code it chose: a 3 can say \"nothing to do today\" without being a failure, and a macro can branch on it once the failure rule has let it carry on."
       }
     ]
   },
   {
     "Key": "browser.exists",
-    "DisplayName": "Element Exists",
+    "DisplayName": "Web Element Exists",
     "Description": "Looks once for a page element and reports whether it is in the chosen state.",
     "Parameters": [
       {
@@ -18551,8 +19380,8 @@
       },
       {
         "Name": "narrow",
-        "Label": "Narrow down",
-        "Hint": "What else the right element has to be like, one row each, all of them holding at once. This is what tells one of several elements that a selector names from the others: the text it writes, the words it contains, an element it holds, where it sits, or being one a person could see. A value may name a variable, which is filled in when the step runs. A row that says nothing is left out; with no rows at all the selector alone is what finds the element, which is what every step did before this field existed.",
+        "Label": "Condition",
+        "Hint": "Conditions the element must also meet besides what the selector names, one per row, all holding at once: the text it shows, an element it holds, the container it sits in, or being visible. A value may use a variable; an empty row is not counted.",
         "Placeholder": "",
         "Kind": "Narrow",
         "OptionLabels": [],

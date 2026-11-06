@@ -43,10 +43,16 @@ internal static class LookGeometry
     /// Where a point on the drawn picture falls in the picture's own pixels, kept inside the
     /// picture: a click past the edge is a click at the edge, not a position that is not there.
     /// </summary>
+    /// <remarks>
+    /// Which pixel the pointer is *in*, so it rounds down: a click anywhere in the right half of a
+    /// cell would otherwise fall on the next pixel, and the dot would be drawn one cell away from
+    /// where the hand is — the marker has to follow the cell under the pointer, not the nearest
+    /// boundary.
+    /// </remarks>
     public static ScreenPoint Inside(int width, int height, double zoom, double x, double y)
         => new(
-            Math.Clamp((int)Math.Round(x / zoom), 0, Math.Max(0, width - 1)),
-            Math.Clamp((int)Math.Round(y / zoom), 0, Math.Max(0, height - 1)));
+            Math.Clamp((int)Math.Floor(x / zoom), 0, Math.Max(0, width - 1)),
+            Math.Clamp((int)Math.Floor(y / zoom), 0, Math.Max(0, height - 1)));
 
     /// <summary>
     /// The offset a point picked on a picture stands for: how far it is from the middle, which is

@@ -570,7 +570,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
 
             viewModel.SetSelection([first]);
-            viewModel.MoveSelectionTo(2);
+            viewModel.MoveSelectionTo(viewModel.Steps, 2);
 
             Assert.Equal(2, viewModel.Steps.Count);
             Assert.Same(second, viewModel.Steps[0]);
@@ -593,7 +593,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
 
             viewModel.SetSelection([second]);
-            viewModel.MoveSelectionTo(1);
+            viewModel.MoveSelectionTo(viewModel.Steps, 1);
 
             Assert.Equal(["control.delay", "control.log"],
                 viewModel.Steps.Select(step => step.Type));
@@ -619,7 +619,7 @@ public class MacroEditorTests
             viewModel.AddStep(second);
             Dispatcher.UIThread.RunJobs();
 
-            var rows = window.FindControl<ListBox>("StepList")!.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+            var rows = window.FindControl<TreeView>("StepList")!.GetVisualDescendants().OfType<TreeViewItem>().ToList();
             Assert.Equal(2, rows.Count);
 
             // Grab the first row by its middle and let go past the middle of the second,
@@ -1166,7 +1166,15 @@ public class MacroEditorTests
             model.SelectDock(ActionPaletteDock.Basic);
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(model.Cards, card => card.Key == "input.keyPress");
-            Assert.DoesNotContain(model.Cards, card => card.Key.StartsWith("control."));
+
+            // 日常那一栏里没有“流程”那一类的动作。判的是分类，不是名字前缀：变量与列表那几个
+            // 动作虽然还叫 control.*，分类早已归到「数据与变量」，它们本来就该在这一栏里。
+            var flow = ActionCatalog.Definitions
+                .Where(action => action.Category == ActionCategory.Control)
+                .Select(action => action.Key)
+                .ToHashSet(StringComparer.Ordinal);
+            Assert.NotEmpty(flow);
+            Assert.DoesNotContain(model.Cards, card => flow.Contains(card.Key));
 
             model.SelectDock(ActionPaletteDock.Flow);
             Dispatcher.UIThread.RunJobs();
@@ -1176,26 +1184,53 @@ public class MacroEditorTests
     }
 
     /// <summary>
-    /// 步骤行是两行字，行高下限 42；但**不能是定高**：名称与徽标换行时行还要继续长高。
-    /// 定高的地方多出来的那一行会压到卡片边线下面，看起来就是"字被边框挡住"。
+    /// 步骤行平时是**一行**（下限 30）：说明截断、备注与执行节奏不占地方。点中的那一行才在
+    /// 原处展开，把完整说明、备注与节奏露出来；别的行仍旧一行，列表不因为看一步而整体变高。
     /// </summary>
     [Fact]
-    public void A_step_row_starts_at_forty_two_and_grows_with_its_writing()
+    public void A_step_row_is_one_line_until_it_is_the_one_that_was_clicked()
     {
         Ui.Run(() =>
         {
             var (window, viewModel) = Open();
-            viewModel.AddStep(new MacroStep { Type = "control.delay" });
+            var first = new MacroStep { Type = "control.delay" };
+            var second = new MacroStep
+            {
+                Type = "input.keyPress",
+                Meta = new StepMeta { Comment = new string('长', 160) },
+            };
+            viewModel.AddStep(first);
+            viewModel.AddStep(second);
+            viewModel.SetSelection([]);
             Dispatcher.UIThread.RunJobs();
 
-            var item = window.FindControl<ListBox>("StepList")!
-                .GetVisualDescendants().OfType<ListBoxItem>().First();
-            var card = item.GetVisualDescendants().OfType<Border>()
-                .First(border => border.Classes.Contains("Card"));
+            var rows = window.FindControl<TreeView>("StepList")!
+                .GetVisualDescendants().OfType<TreeViewItem>().ToList();
+            Assert.Equal(2, rows.Count);
 
-            Assert.True(item.Bounds.Height >= 42, $"步骤行只有 {item.Bounds.Height:0} 高");
-            Assert.True(item.Bounds.Height + 0.5 >= card.Bounds.Height,
-                $"行高 {item.Bounds.Height:0} 装不下卡片 {card.Bounds.Height:0}，下面那条字会被裁掉");
+            Border RowLine(TreeViewItem item) => item.GetVisualDescendants().OfType<Border>()
+                .First(border => border.Classes.Contains("StepLine"));
+
+            foreach (var item in rows)
+            {
+                Assert.True(item.Bounds.Height >= 30, $"步骤行只有 {item.Bounds.Height:0} 高");
+                Assert.True(item.Bounds.Height + 0.5 >= RowLine(item).Bounds.Height,
+                    $"行高 {item.Bounds.Height:0} 装不下卡片 {RowLine(item).Bounds.Height:0}");
+                Assert.True(RowLine(item).Bounds.Height <= 40,
+                    $"没点中的卡片长到了 {RowLine(item).Bounds.Height:0}，说明被折成了多行");
+            }
+
+            // 点中带长备注的那一步：这一行在原处长高，另一行不动。选的是行上那一步本身，
+            // 因为加进列表的步骤未必是同一个对象。
+            viewModel.SetSelection([((StepRow)rows[1].DataContext!).Step]);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(((StepRow)rows[1].DataContext!).ShowsDetail, "行没有标记为展开");
+            Assert.True(RowLine(rows[1]).Bounds.Height > 40,
+                $"点中的那一行没有展开：{RowLine(rows[1]).Bounds.Height:0}");
+            Assert.True(RowLine(rows[0]).Bounds.Height <= 40,
+                $"没点中的那一行跟着长到了 {RowLine(rows[0]).Bounds.Height:0}");
+
             window.Close();
         });
     }
@@ -1213,10 +1248,10 @@ public class MacroEditorTests
             viewModel.AddStep(new MacroStep { Type = "control.delay" });
             Dispatcher.UIThread.RunJobs();
 
-            var item = window.FindControl<ListBox>("StepList")!
-                .GetVisualDescendants().OfType<ListBoxItem>().First();
+            var item = window.FindControl<TreeView>("StepList")!
+                .GetVisualDescendants().OfType<TreeViewItem>().First();
             var card = item.GetVisualDescendants().OfType<Border>()
-                .First(border => border.Classes.Contains("Card"));
+                .First(border => border.Classes.Contains("StepLine"));
             var badge = card.GetVisualDescendants().OfType<Border>()
                 .First(border => border.Classes.Contains("Accent"));
 

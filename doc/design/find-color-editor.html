@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>鲸灵 · 找色动作族 · 编辑页样板</title>
+<style>
+:root{
+  --win:#1C1C1C; --chrome:#232323; --sunken:#1E1E1E; --panel:#262626;
+  --field:#2A2A2A; --card:#2E2E2E; --flyout:#363636; --hover:#383838;
+  --text:#F2F2F2; --text2:#B8B8B8; --text3:#A8A8A8; --disabled:#6E6E6E;
+  --line:#303030; --line2:#555555;
+  --accent:#C8401C; --accentH:#CE4822; --accentT:#FF7A50; --accentS:#3A2118;
+  --ok:#7FC97F; --okS:#1D3324; --warn:#E0A060; --warnS:#3A2C15;
+  --bad:#F07A84; --badS:#3A2024; --info:#8FB3D9; --infoS:#1F2C3A;
+  --mono:"Cascadia Mono","Consolas",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:#141414; color:var(--text);
+  font:13px/1.55 "Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+input{font:inherit;color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#3A3A3A;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#4A4A4A;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 顶部 ---------- */
+.topbar{
+  height:46px;display:flex;align-items:center;gap:14px;padding:0 18px;
+  background:var(--chrome);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40;
+}
+.brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;letter-spacing:.2px}
+.brand .drop{width:15px;height:19px;background:linear-gradient(180deg,#6FB4E8,#2C6FA8);
+  border-radius:60% 60% 60% 60%/70% 70% 40% 40%;flex:none}
+.topbar .sub{font-size:12px;color:var(--text3)}
+.topbar .spacer{flex:1}
+.seg{display:flex;background:var(--sunken);border:1px solid var(--line);border-radius:7px;padding:2px}
+.seg button{padding:4px 12px;font-size:12px;color:var(--text2);border-radius:5px}
+.seg button[aria-selected="true"]{background:var(--accentS);color:var(--accentT);
+  box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* ---------- 布局 ---------- */
+.shell{display:flex;align-items:flex-start;gap:0;height:calc(100% - 46px)}
+
+/* 左：动作列表 */
+.rail{
+  width:200px;flex:none;height:100%;overflow:auto;padding:14px 10px 24px;
+  border-right:1px solid var(--line);background:#171717;
+}
+.rail h4{margin:0 0 8px;padding:0 6px;font-size:11px;font-weight:600;
+  letter-spacing:.6px;color:var(--text3);text-transform:uppercase}
+.rail .item{
+  display:block;width:100%;text-align:left;padding:7px 9px;border-radius:6px;
+  margin-bottom:2px;border:1px solid transparent;
+}
+.rail .item:hover{background:var(--hover)}
+.rail .item[aria-current="true"]{background:var(--accentS);border-color:var(--accent)}
+.rail .item .n{font-size:13px;color:var(--text)}
+.rail .item[aria-current="true"] .n{color:var(--accentT);font-weight:600}
+.rail .item .k{display:block;font-size:11px;color:var(--disabled);font-family:var(--mono);margin-top:1px}
+.rail .new{display:inline-block;margin-left:5px;padding:0 5px;border-radius:9px;
+  font-size:10px;line-height:15px;background:var(--okS);color:var(--ok);vertical-align:1px}
+.rail .gone .n{color:var(--disabled);text-decoration:line-through}
+.rail .split{height:1px;background:var(--line);margin:10px 4px}
+
+/* 中：弹窗 */
+.stage{flex:1;min-width:0;height:100%;overflow:auto;padding:22px 20px 40px;
+  display:flex;justify-content:center;align-items:flex-start;background:
+   radial-gradient(700px 400px at 50% 0%,#1B1B1B 0%,#141414 70%)}
+
+.dlg{
+  width:min(1000px,100%);background:var(--win);border:1px solid #2C2C2C;
+  border-radius:8px;box-shadow:0 22px 60px rgba(0,0,0,.55);overflow:hidden;
+  display:flex;flex-direction:column;min-height:560px;
+}
+.titlebar{
+  height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px 0 12px;
+  background:var(--chrome);font-size:12px;color:var(--text2);
+}
+.titlebar .drop{width:11px;height:14px;background:linear-gradient(180deg,#6FB4E8,#2C6FA8);
+  border-radius:60% 60% 60% 60%/70% 70% 40% 40%}
+.titlebar .spacer{flex:1}
+.wbtn{width:44px;height:34px;display:grid;place-items:center;color:var(--text2);font-size:10px}
+.wbtn:hover{background:var(--hover)}
+.wbtn.close:hover{background:#C42B1C;color:#fff}
+
+.dlgbody{padding:20px 26px 10px;display:flex;flex-direction:column;flex:1;min-height:0}
+h1{margin:0 0 6px;font-size:20px;font-weight:600;letter-spacing:.2px;display:flex;
+  align-items:center;gap:10px}
+h1 .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;letter-spacing:.2px}
+.tag.coord{background:var(--infoS);color:var(--info)}
+.tag.bool{background:var(--okS);color:var(--ok)}
+.tag.read{background:#2C2C2C;color:var(--text2)}
+.tag.wait{background:var(--warnS);color:var(--warn)}
+.desc{margin:0 0 14px;font-size:12.5px;color:var(--text3);max-width:74ch}
+
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{padding:5px 14px;border-radius:6px;font-size:12.5px;color:var(--text2);
+  border:1px solid transparent}
+.tab:hover{background:var(--hover)}
+.tab[aria-selected="true"]{background:var(--accentS);border-color:var(--accent);color:var(--accentT)}
+.tab .cnt{display:none;margin-left:6px;padding:0 5px;border-radius:8px;font-size:10px;
+  background:var(--infoS);color:var(--info);vertical-align:1px}
+.tab .cnt.on{display:inline-block}
+
+/* 分组小标题 */
+.subhead{display:flex;align-items:center;gap:9px;margin:20px 0 10px}
+.subhead:first-child{margin-top:6px}
+.subhead h4{margin:0;font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.3px}
+.subhead .line{flex:1;height:1px;background:#2B2B2B}
+.subhead .scope{font-size:10.5px;color:var(--disabled);padding:1px 7px;border-radius:8px;
+  border:1px solid #333}
+
+/* 失败策略单选卡 */
+.choices{display:grid;gap:6px}
+.choice{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:9px 11px;
+  border-radius:6px;border:1px solid #3A3A3A;background:#232323}
+.choice:hover{border-color:#4A4A4A;background:#262626}
+.choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accentS)}
+.choice .rad{width:14px;height:14px;border-radius:50%;border:1.5px solid #666;flex:none;margin-top:2px}
+.choice[aria-pressed="true"] .rad{border-color:var(--accentT);box-shadow:inset 0 0 0 3px var(--accentT)}
+.choice .cbody{min-width:0}
+.choice .cbody b{display:block;font-size:12.5px;font-weight:600;color:var(--text)}
+.choice[aria-pressed="true"] .cbody b{color:var(--accentT)}
+.choice .cbody i{display:block;font-style:normal;font-size:11.5px;color:var(--text3);
+  line-height:1.55;margin-top:2px}
+.choice.danger[aria-pressed="true"]{border-color:var(--bad);background:var(--badS)}
+.choice.danger[aria-pressed="true"] .cbody b{color:var(--bad)}
+.choice.danger[aria-pressed="true"] .rad{border-color:var(--bad);box-shadow:inset 0 0 0 3px var(--bad)}
+
+.plan{margin-top:8px;padding:7px 10px;border-radius:5px;background:#1F1F1F;
+  border:1px solid #2E2E2E;font-size:11.5px;color:var(--text2);font-family:var(--mono)}
+.plan.idle{font-family:inherit;color:var(--text3)}
+.warnline{margin-top:8px;padding:7px 10px;border-radius:5px;background:var(--warnS);
+  border:1px solid #4A3A1C;font-size:11.5px;color:#E8C79E;line-height:1.6}
+
+.panel{background:#222;border:1px solid var(--line);border-radius:8px;
+  padding:4px 18px 18px;flex:1;min-height:0;overflow:auto}
+
+/* 字段块 */
+.blk{padding:15px 0 3px;border-bottom:1px solid #2B2B2B}
+.blk:last-child{border-bottom:none}
+.blk-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.blk-num{width:19px;height:19px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:11px;font-family:var(--mono);background:#2E2E2E;color:var(--text2);
+  border:1px solid #3A3A3A}
+.blk-head h3{margin:0;font-size:12.5px;font-weight:600;color:var(--text)}
+.blk-head .aside{margin-left:auto;font-size:11.5px;color:var(--text3)}
+.lbl{font-size:12.5px;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.lbl .fx{font-family:var(--mono);font-size:11px;color:var(--accentT);font-style:italic}
+.lbl .opt{font-size:11px;color:var(--disabled)}
+.hint{margin:6px 0 0;font-size:11.5px;line-height:1.6;color:var(--text3)}
+.hint code{font-family:var(--mono);font-size:11px;color:var(--text2);
+  background:#2A2A2A;padding:0 4px;border-radius:3px}
+.row{display:flex;gap:8px;align-items:center}
+.grow{flex:1;min-width:0}
+
+.inp{background:var(--field);border:1px solid var(--line2);border-radius:4px;
+  height:32px;padding:0 9px;width:100%;outline:none;color:var(--text)}
+.inp:focus{border-color:var(--accent)}
+.inp.num{font-family:var(--mono);font-size:12.5px;text-align:center;padding:0 4px}
+.inp.mono{font-family:var(--mono);font-size:12.5px;letter-spacing:.4px}
+select.inp{appearance:none;padding-right:24px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),linear-gradient(135deg,var(--text2) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 14px,calc(100% - 8px) 14px;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+
+.btn{background:var(--field);border:1px solid var(--line2);border-radius:4px;
+  height:32px;padding:0 11px;font-size:12.5px;color:var(--text);white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.sm{height:26px;padding:0 9px;font-size:11.5px}
+.btn.ghost{background:transparent;border-color:#3C3C3C;color:var(--text2)}
+.btn.ghost:hover{background:var(--hover);color:var(--text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover{background:var(--accentH)}
+.btn.icon{width:33px;padding:0;display:grid;place-items:center;flex:none}
+.btn.chip{height:28px;padding:0 10px;font-size:11.5px;border-radius:14px}
+
+/* 基准分段 */
+.modes{display:flex;gap:6px}
+.modes button{height:30px;padding:0 13px;border-radius:5px;font-size:12.5px;
+  border:1px solid #3C3C3C;background:var(--field);color:var(--text2)}
+.modes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accentS);color:var(--accentT)}
+
+/* 颜色输入 */
+.colorline{display:flex;gap:8px;align-items:center}
+.swatch{width:32px;height:32px;border-radius:5px;flex:none;border:1px solid var(--line2);
+  background:#E04A3F}
+.hex{width:112px;flex:none}
+
+/* 容差 */
+.tol{display:flex;align-items:center;gap:12px;margin-top:9px}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+  background:#3A3A3A;flex:1;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--accentT);border:2px solid var(--win);cursor:pointer}
+.tolv{font-family:var(--mono);font-size:12.5px;color:var(--text);width:44px;text-align:right}
+.tolx{font-size:11.5px;color:var(--text3);white-space:nowrap}
+
+/* 区域数字行 */
+.region{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:520px}
+.rfield{position:relative}
+.rfield span{position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  font-size:11px;color:var(--disabled);pointer-events:none;font-family:var(--mono)}
+.rfield input{padding-left:26px;text-align:left;font-family:var(--mono);font-size:12.5px}
+
+/* 结果行 */
+.res{display:grid;grid-template-columns:22px 96px 1fr auto;gap:9px;align-items:center;
+  padding:6px 0;border-bottom:1px solid #2B2B2B}
+.res:last-child{border-bottom:none}
+.res input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);margin:0}
+.res .rn{font-family:var(--mono);font-size:12px;color:var(--text)}
+.res .rv{font-size:11.5px;color:var(--text3)}
+.res .rv b{font-family:var(--mono);color:var(--text2);font-weight:400}
+.res .kind{font-size:10.5px;padding:1px 6px;border-radius:8px;background:#2C2C2C;color:var(--text3)}
+
+/* 偏移点表 */
+.pttable{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#202020}
+.ptrow{display:grid;grid-template-columns:26px 66px 66px 1fr 72px 86px 26px;
+  gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid #2B2B2B}
+.ptrow:last-child{border-bottom:none}
+.pthead{background:#252525;font-size:10.5px;color:var(--text3);letter-spacing:.4px;
+  padding:5px 8px}
+.pthead div{text-align:center}
+.ptrow .idx{font-family:var(--mono);font-size:11px;color:var(--disabled);text-align:center}
+.ptrow .num{width:100%;height:28px;background:var(--field);border:1px solid #3C3C3C;
+  border-radius:4px;text-align:center;font-family:var(--mono);font-size:12px;outline:none}
+.ptrow .num:focus{border-color:var(--accent)}
+.ptcell{display:flex;align-items:center;gap:7px;min-width:0}
+.ptcell .sw{width:18px;height:18px;border-radius:3px;border:1px solid var(--line2);flex:none}
+.ptcell .hx{font-family:var(--mono);font-size:11.5px;color:var(--text2);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptrow .tolsel{height:28px;background:var(--field);border:1px solid #3C3C3C;border-radius:4px;
+  font-size:11.5px;color:var(--text);padding:0 4px;outline:none;width:100%;text-align:center}
+.req{height:28px;border-radius:4px;font-size:11px;width:100%;border:1px solid transparent}
+.req.must{background:var(--infoS);color:var(--info);border-color:#2C4054}
+.req.neg{background:var(--badS);color:var(--bad);border-color:#54303A}
+.del{color:var(--disabled);font-size:14px;width:26px;height:26px;border-radius:4px}
+.del:hover{background:var(--badS);color:var(--bad)}
+.ptfoot{display:flex;gap:8px;align-items:center;padding:8px;background:#252525}
+.ptfoot .note{font-size:11px;color:var(--text3);margin-left:auto}
+
+/* 页脚 */
+.dlgfoot{display:flex;align-items:center;gap:8px;padding:14px 26px;flex:none}
+.dlgfoot .st{font-size:11.5px;color:var(--text3);margin-right:auto;
+  display:flex;align-items:center;gap:8px;min-width:0}
+.dlgfoot .st .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:none}
+.dlgfoot .st b{font-weight:400;font-family:var(--mono);color:var(--text2)}
+.dlgfoot .st.idle .dot{background:#555}
+
+/* 运行结果条 */
+.runbar{margin:0 26px 12px;padding:8px 12px;border-radius:6px;background:var(--okS);
+  border:1px solid #2F5238;display:none;gap:10px;align-items:center;font-size:11.5px;
+  color:#CFE9CF}
+.runbar.show{display:flex}
+.runbar.bad{background:var(--badS);border-color:#5A3138;color:#F3CDD2}
+.runbar .k{font-family:var(--mono);color:#fff;font-size:11.5px}
+.runbar .x{margin-left:auto;color:#9BBE9B;font-family:var(--mono)}
+
+/* 右侧说明 */
+.notes{
+  width:310px;flex:none;height:100%;overflow:auto;padding:18px 18px 40px;
+  border-left:1px solid var(--line);background:#171717;
+}
+.notes h4{margin:0 0 3px;font-size:12px;font-weight:600;color:var(--text)}
+.notes .lead{font-size:11.5px;color:var(--text3);margin:0 0 14px;line-height:1.65}
+.nt{margin-bottom:15px;padding-left:26px;position:relative}
+.nt .pin{position:absolute;left:0;top:1px;width:18px;height:18px;border-radius:50%;
+  background:var(--badS);color:var(--bad);font-size:10.5px;display:grid;place-items:center;
+  font-family:var(--mono);border:1px solid #54303A}
+.nt.good .pin{background:var(--okS);color:var(--ok);border-color:#2F5238}
+.nt h5{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--text)}
+.nt p{margin:0;font-size:11.5px;line-height:1.65;color:var(--text3)}
+.nt code{font-family:var(--mono);font-size:10.5px;color:var(--text2);background:#242424;
+  padding:0 3px;border-radius:3px}
+.nt .src{display:block;margin-top:5px;font-family:var(--mono);font-size:10px;color:#6E6E6E}
+.divider{height:1px;background:var(--line);margin:18px 0}
+
+/* 改前视图 */
+.before-note{background:var(--badS);border:1px solid #54303A;border-radius:6px;
+  padding:10px 12px;font-size:11.5px;line-height:1.6;color:#F3CDD2;margin-bottom:14px}
+.flat{display:grid;gap:0}
+.ff{padding:11px 0;border-bottom:1px solid #2B2B2B;position:relative}
+.ff:last-child{border-bottom:none}
+.ff .lbl{margin-bottom:5px}
+.ff .hint{margin-top:4px}
+.ff.flagged{padding-left:24px;border-left:2px solid var(--bad)}
+.ff .flag{position:absolute;left:2px;top:12px;width:16px;height:16px;border-radius:50%;
+  background:var(--bad);color:#24080C;font-size:9.5px;font-weight:700;display:grid;
+  place-items:center;font-family:var(--mono)}
+.empty-state{padding:64px 0 30px;text-align:center;color:var(--text3);font-size:12px}
+.empty-state .big{font-size:13px;color:var(--text2);margin-bottom:6px}
+.recipe{margin-top:14px;text-align:left;background:#202020;border:1px solid var(--line);
+  border-radius:6px;padding:10px 12px;font-size:11.5px;color:var(--text3);line-height:1.8}
+.recipe b{color:var(--text2);font-weight:600}
+.recipe ol{margin:6px 0 0;padding-left:18px}
+
+@media (max-width:1360px){ .notes{display:none} }
+@media (max-width:1080px){ .rail{width:60px} .rail .item .k,.rail h4{display:none} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="drop"></span>鲸灵 · 找色动作族</div>
+  <div class="sub">编辑页样板 · 基于真实弹窗结构与 ActionSemantics.json</div>
+  <div class="spacer"></div>
+  <div class="seg" id="modeSeg">
+    <button data-mode="after" aria-selected="true">改后</button>
+    <button data-mode="before" aria-selected="false">改前</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="rail">
+    <h4>视觉动作</h4>
+    <div id="railList"></div>
+  </nav>
+
+  <main class="stage">
+    <div class="dlg">
+      <div class="titlebar">
+        <span class="drop"></span><span>编辑动作</span>
+        <span class="spacer"></span>
+        <button class="wbtn">─</button>
+        <button class="wbtn">▢</button>
+        <button class="wbtn close">✕</button>
+      </div>
+      <div class="dlgbody">
+        <h1 id="dlgTitle"></h1>
+        <p class="desc" id="dlgDesc"></p>
+        <div class="tabs" id="dlgTabs">
+          <button class="tab" data-tab="basic" aria-selected="true">基础设置</button>
+          <button class="tab" data-tab="exec" aria-selected="false">执行与容错<span class="cnt" id="execCnt"></span></button>
+          <button class="tab" data-tab="other" aria-selected="false">高级</button>
+        </div>
+        <div class="panel" id="panel"></div>
+      </div>
+      <div class="runbar" id="runbar"></div>
+      <div class="dlgfoot">
+        <div class="st idle" id="status"><span class="dot"></span><span id="statusText">尚未运行</span></div>
+        <button class="btn" id="runBtn">运行</button>
+        <button class="btn">取消</button>
+        <button class="btn primary">保存步骤</button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes" id="notes"></aside>
+</div>
+
+<script>
+// ---------------------------------------------------------------- 动作定义
+const A = {
+  getPixel: {
+    name: '取色', tag: '读取', tagClass: 'read', key: 'vision.getPixel',
+    desc: '读取一个点的颜色，只把颜色交回来，不判断它是什么。',
+    where: 'point', color: false,
+    returns: [['color', '#RRGGBB 文本', '主结果', true], ['number', '整数颜色值', '', true]]
+  },
+  matchColor: {
+    name: '比色', tag: '是 / 否', tagClass: 'bool', key: 'vision.matchColor', isNew: true,
+    desc: '判断一个点现在的颜色是不是这个颜色，立即给出是或否。',
+    where: 'point', color: true, neg: true,
+    returns: [['matches', '是 / 否', '主结果', true], ['color', '实测颜色', '', true],
+              ['delta', '偏差 %', '', false]]
+  },
+  waitColor: {
+    name: '等到颜色', tag: '等待', tagClass: 'wait', key: 'vision.waitColor',
+    desc: '等一个点变成这个颜色，等到或超时；监视的点不会被挪动。',
+    where: 'point', color: true, waits: true,
+    returns: [['matches', '是 / 否', '主结果', true], ['color', '实测颜色', '', true],
+              ['waitedMs', '等了多少毫秒', '', false]]
+  },
+  findColor: {
+    name: '找色', tag: '给出坐标', tagClass: 'coord', key: 'vision.findColor',
+    desc: '在搜索区域里找一个颜色，找到就交出它的坐标。',
+    where: 'region', color: true, neg: true,
+    returns: [['found', '是 / 否', '主结果', true], ['match', '命中（含坐标）', '', true],
+              ['every', '全部命中', '', false]]
+  },
+  findColors: {
+    name: '多点找色', tag: '给出坐标', tagClass: 'coord', key: 'vision.findColors',
+    desc: '先找锚点色，再核对它周围几个固定偏移位置上的颜色。',
+    where: 'region', color: true, points: true, neg: true,
+    returns: [['found', '是 / 否', '主结果', true], ['match', '命中（含坐标）', '', true],
+              ['every', '全部命中', '', false]]
+  }
+};
+const ORDER = ['getPixel', 'matchColor', 'waitColor', 'findColor', 'findColors'];
+
+// ---------------------------------------------------------------- 状态
+const S = {
+  act: 'findColor', mode: 'after', tab: 'basic', ran: false,
+  v: {
+    getPixel:  { basis: 'screen', x: 960, y: 540, color: '#E04A3F', tol: 5, frame: 0, poll: 0 },
+    matchColor:{ basis: 'screen', x: 960, y: 540, color: '#E04A3F', tol: 5, frame: 0, poll: 0 },
+    waitColor: { basis: 'screen', x: 960, y: 540, color: '#E04A3F', tol: 5, timeout: 10000, poll: 0, frame: 0 },
+    findColor: { basis: 'screen', region: [700, 300, 420, 480], color: '#E04A3F', tol: 5,
+                 order: 'reading', index: 1, frame: 0, poll: 0 },
+    findColors:{ basis: 'screen', region: [700, 300, 420, 480], color: '#E04A3F', tol: 5,
+                 order: 'reading', index: 1, frame: 0, poll: 0,
+                 points: [
+                   { dx: 12, dy: 0,  color: '#2B2B2B', tol: 5, neg: false },
+                   { dx: 0,  dy: 16, color: '#F2F2F2', tol: 5, neg: false },
+                   { dx: 24, dy: 16, color: '#8A8A8A', tol: 8, neg: true  }
+                 ] }
+  }
+};
+const D = () => S.v[S.act];
+
+// 每一步都带的执行设置，与动作无关（对应 StepMeta）。默认值即「没改过」。
+const execDefault = (over) => Object.assign({
+  timeout: 0, retry: 0, retryDelay: 500, backoff: 'fixed',
+  before: 0, after: 0, onError: 'stop', askTimeout: 0
+}, over || {});
+S.v.getPixel.exec  = execDefault();
+S.v.matchColor.exec = execDefault();
+S.v.waitColor.exec = execDefault({ timeout: 10000 });
+S.v.findColor.miss = 'result';
+S.v.findColors.miss = 'result';
+S.v.matchColor.miss = 'result';
+S.v.findColor.exec = execDefault({ before: 150, retry: 2, retryDelay: 500, backoff: 'doubling',
+                                   onError: 'ask', askTimeout: 30 });
+S.v.findColors.exec = execDefault({ retry: 1 });
+
+const E = () => D().exec;
+// 与引擎一致：只有非默认值才算「改过」
+const execCount = e => [e.timeout > 0, e.retry > 0, e.before > 0, e.after > 0,
+  e.onError !== 'stop', e.askTimeout > 0].filter(Boolean).length;
+
+// ---------------------------------------------------------------- 小组件
+const perChannel = p => Math.round(255 * p / 100);
+
+function blk(num, title, body, aside) {
+  return `<div class="blk"><div class="blk-head"><span class="blk-num">${num}</span>
+    <h3>${title}</h3>${aside ? `<span class="aside">${aside}</span>` : ''}</div>${body}</div>`;
+}
+function hint(t) { return `<p class="hint">${t}</p>`; }
+
+function basisRow() {
+  const d = D();
+  return `<div class="modes">
+      <button data-basis="screen" aria-pressed="${d.basis === 'screen'}">屏幕</button>
+      <button data-basis="window" aria-pressed="${d.basis === 'window'}">窗口</button>
+      ${d.basis === 'window' ? `<div class="grow" style="margin-left:4px">
+        <input class="inp" value="标题包含「聊天」· 正则关 · 忽略大小写" readonly></div>
+        <button class="btn">选择窗口</button>` : ''}
+    </div>`;
+}
+
+function pointBlock(num) {
+  const d = D();
+  return blk(num, '看哪一个点', `
+    <div class="lbl">坐标从哪里量 <span class="opt">窗随窗口走，屏随桌面走</span></div>
+    ${basisRow()}
+    <div class="lbl" style="margin-top:13px">这个点</div>
+    <div class="row">
+      <div class="rfield" style="width:118px"><span>X</span>
+        <input class="inp num" data-f="x" value="${d.x}"></div>
+      <div class="rfield" style="width:118px"><span>Y</span>
+        <input class="inp num" data-f="y" value="${d.y}"></div>
+      <button class="btn">在屏幕上取</button>
+      <span class="hint" style="margin:0">也可以填一条位置记录，如 <code>hit</code></span>
+    </div>
+    ${hint('只看这一个像素，所以这里没有搜索范围，也没有快慢可调。')}
+  `, '固定坐标');
+}
+
+function regionBlock(num) {
+  const d = D();
+  const [x, y, w, h] = d.region;
+  return blk(num, '在哪个范围里找', `
+    <div class="lbl">坐标从哪里量 <span class="opt">窗随窗口走，屏随桌面走</span></div>
+    ${basisRow()}
+    <div class="lbl" style="margin-top:13px">范围</div>
+    <div class="region">
+      <div class="rfield"><span>X</span><input class="inp num" data-r="0" value="${x}"></div>
+      <div class="rfield"><span>Y</span><input class="inp num" data-r="1" value="${y}"></div>
+      <div class="rfield"><span>宽</span><input class="inp num" data-r="2" value="${w}"></div>
+      <div class="rfield"><span>高</span><input class="inp num" data-r="3" value="${h}"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn chip" data-region="pick">框选一块</button>
+      <button class="btn chip" data-region="full">整个屏幕</button>
+      <span class="hint" style="margin:0" data-area>${w}×${h} · ${(w * h / 1e6).toFixed(2)} 百万像素</span>
+    </div>
+    ${hint('填的是它可能出现的位置，不是它此刻在的位置。范围越小搜得越快——每一轮都要把范围内每个像素看一遍。')}
+    ${w * h > 400000 ? `<p class="hint" style="color:var(--warn)">这块范围有 ${(w*h/1e6).toFixed(2)} 百万像素，一轮大约 ${Math.round(w*h/2e6*8)} ms。只框住会变的那一小块，通常能快十倍。</p>` : ''}
+  `, '每次都要走一遍');
+}
+
+function colorBlock(num, title, label) {
+  const d = D();
+  return blk(num, title, `
+    <div class="colorline">
+      <div class="swatch" style="background:${d.color}"></div>
+      <input class="inp mono hex" data-f="color" value="${d.color}">
+      <button class="btn">吸管取色</button>
+      <span class="hint" style="margin:0">${label || ''}</span>
+    </div>
+    <div class="tol">
+      <input type="range" min="0" max="40" step="0.5" value="${d.tol}" data-f="tol">
+      <span class="tolv" data-tolv>${d.tol}%</span>
+      <span class="tolx" data-tolx>≈ 每通道 ±${perChannel(d.tol)} / 255</span>
+    </div>
+    ${hint(`容差 0 时颜色必须一模一样。${d.tol <= 0
+      ? '现在任何一点压缩噪点都会让它判为不匹配。'
+      : `现在允许三个通道各自偏离 ±${perChannel(d.tol)}，也就是 <code>#${d.color.slice(1)}</code> 与实测色相差不超过 ${perChannel(d.tol)} 级仍算同一个颜色。`}`)}
+  `);
+}
+
+function pointsBlock(num, title) {
+  const d = D();
+  const must = d.points.filter(p => !p.neg).length;
+  return blk(num, title, `
+    <div class="pttable">
+      <div class="ptrow pthead">
+        <div>#</div><div>ΔX</div><div>ΔY</div><div>颜色</div><div>容差</div><div>要求</div><div></div>
+      </div>
+      <div id="ptBody"></div>
+      <div class="ptfoot">
+        <button class="btn sm" data-pt-add>+ 在画面上拾取</button>
+        <button class="btn sm ghost" data-pt-clear>清空</button>
+        <span class="note">偏移相对锚点，不是屏幕坐标</span>
+      </div>
+    </div>
+    ${hint(`整个图案必须完整落在搜索范围里：贴着边缘、有一半在外面的图案不算找到。${d.points.some(p => p.neg)
+      ? '标了「必须不是」的点用于排除长得像的其他东西。' : ''}`)}
+  `, `${d.points.length} 处 · ${must} 处必须符合`);
+}
+
+function pointsBody() {
+  const d = D();
+  return d.points.map((p, i) => `
+    <div class="ptrow">
+      <div class="idx">${i + 1}</div>
+      <input class="num" data-pt="${i}" data-k="dx" value="${p.dx}">
+      <input class="num" data-pt="${i}" data-k="dy" value="${p.dy}">
+      <div class="ptcell"><span class="sw" style="background:${p.color}"></span>
+        <span class="hx">${p.color.toUpperCase()}</span></div>
+      <select class="tolsel" data-pt="${i}" data-k="tol">
+        ${[0, 3, 5, 8, 12, 20].map(v => `<option value="${v}" ${+p.tol === v ? 'selected' : ''}>${v}%</option>`).join('')}
+      </select>
+      <button class="req ${p.neg ? 'neg' : 'must'}" data-pt-neg="${i}">${p.neg ? '必须不是' : '必须是'}</button>
+      <button class="del" data-pt-del="${i}">✕</button>
+    </div>`).join('');
+}
+
+const ONERROR_NAME = { stop: '停止整个宏', continue: '继续下一步',
+  nextIteration: '跳到下一轮', ask: '停下来问我' };
+
+function missBlock(num) {
+  const d = D(), isMatch = S.act === 'matchColor';
+  const word = isMatch ? '不匹配' : '没找到';
+  const key = isMatch ? 'Run.ColourMismatch' : 'Run.ColourNotFound';
+  const flag = isMatch ? 'matches = false' : 'found = false';
+  return blk(num, word + '的时候', `
+    <div class="choices">
+      <button class="choice" data-miss="result" aria-pressed="${d.miss !== 'failure'}">
+        <span class="rad"></span>
+        <span class="cbody"><b>交一个结果</b>
+          <i>${word}也是答案：这一步照常成功，交出 <code>${flag}</code>，由下一步的条件去判断。默认。</i></span>
+      </button>
+      <button class="choice danger" data-miss="failure" aria-pressed="${d.miss === 'failure'}">
+        <span class="rad"></span>
+        <span class="cbody"><b>算这一步失败</b>
+          <i>抛 <code>${key}</code>，再交给「执行与容错 › 失败时」。省掉一个判断步骤。</i></span>
+      </button>
+    </div>
+    ${d.miss === 'failure' ? `<div class="plan">失败时当前是「${ONERROR_NAME[d.exec.onError]}」，所以${word}会真的让宏${
+      d.exec.onError === 'stop' ? '停在这里' : d.exec.onError === 'ask' ? '停下来等你回答' : '照常往下走' }。</div>` : ''}
+  `, '判定层');
+}
+
+function returnsBlock(num) {
+  const a = A[S.act], d = D();
+  const names = { found: 'found', match: 'hit', every: 'hits', matches: 'ok', color: 'got',
+                  delta: 'gap', waitedMs: 'waited', number: 'value' };
+  return blk(num, '留下哪些结果', a.returns.map(([k, type, kind, on]) => `
+    <div class="res">
+      <input type="checkbox" ${on ? 'checked' : ''}>
+      <span class="rn">${k}</span>
+      <span class="rv">${type}<b style="margin-left:10px">→ ${names[k]}</b></span>
+      <span class="kind">${kind || '可选'}</span>
+    </div>`).join('') +
+    hint('打勾的写进变量，其余不占位置。主结果默认已选，取消勾选后这一步的成功与否仍然由它决定。')
+  , '变量名可改');
+}
+
+function waitBlock(num) {
+  return blk(num, '等多久', `
+    <div class="row">
+      <div style="width:150px"><div class="lbl">超时</div>
+        <div class="row" style="gap:6px">
+          <input class="inp num" data-e="timeout" value="${E().timeout}">
+          <span class="hint" style="margin:0;flex:none">ms</span>
+        </div></div>
+      <div style="width:180px"><div class="lbl">多久看一次</div>
+        <select class="inp"><option>跟着屏幕刷新</option><option>每 50 ms</option></select></div>
+    </div>
+    ${hint('到点没等到就抛 <code>Run.WaitColorTimeout</code>，再按「执行与容错 › 失败时」处理。这个数就是这一步的超时，全宏只有一处。')}
+  `, '等待类动作');
+}
+
+// ---------------------------------------------------------------- 渲染：改后
+function renderAfter() {
+  const a = A[S.act];
+  let n = 1, body = '';
+  if (S.tab === 'other') return renderOther();
+
+  body += a.where === 'point' ? pointBlock(n++) : regionBlock(n++);
+  if (a.color) body += colorBlock(n++, a.points ? '锚点是什么颜色' : '要找什么颜色');
+  if (a.points) {
+    body += pointsBlock(n++, '周围要对哪几处');
+    body += blk(n++, '命中几个才算找到', `
+      <div class="row">
+        <div style="width:118px"><input class="inp num" value="3"></div>
+        <span class="hint" style="margin:0">个，共 ${D().points.length} 个必须符合的点</span>
+      </div>
+      ${hint('留空表示全部都要对上。抗锯齿或半透明的界面上，允许偶尔少一处，比放宽整组容差更准。')}
+    `, '可留空');
+  }
+  if (a.waits) body += waitBlock(n++);
+  if (a.neg) body += missBlock(n++);
+  body += returnsBlock(n++);
+  return body;
+}
+
+const ONERROR = [
+  ['stop', '停止整个宏', '整个宏停在这一步，后面的步骤都不再执行。这是默认值。', false],
+  ['continue', '继续下一步', '记一条失败，然后照常往下走。适合「找不到就算了」的可选步骤。', false],
+  ['nextIteration', '跳到下一轮', '只在内层循环里有意义：放弃这一轮，从下一轮接着来。循环外等同「继续下一步」。', false],
+  ['ask', '停下来问我', '弹出问题，给「重试 / 跳过 / 停止」三个选择。宏会停在这里等回答。', true]
+];
+
+const sec = (title, scope) =>
+  `<div class="subhead"><h4>${title}</h4>${scope ? `<span class="scope">${scope}</span>` : ''}<span class="line"></span></div>`;
+
+function fmt(ms) {
+  if (ms === 0) return '0';
+  return ms % 1000 === 0 ? (ms / 1000) + ' 秒' : (ms / 1000).toFixed(2).replace(/0$/, '') + ' 秒';
+}
+
+function numField(key, label, unit, width, max, value) {
+  const shown = value === undefined ? E()[key] : value;
+  return `<div style="width:${width || 150}px">
+    <div class="lbl">${label}</div>
+    <div class="row" style="gap:6px">
+      <input class="inp num" data-e="${key}" value="${shown}"${max ? ` max="${max}"` : ''}>
+      ${unit ? `<span class="hint" style="margin:0;flex:none">${unit}</span>` : ''}
+    </div></div>`;
+}
+
+function planText() {
+  const e = E();
+  if (e.retry <= 0) {
+    return `<div class="plan idle">不重试：一次失败就按下面的「失败时」处理。</div>`;
+  }
+  const steps = [];
+  if (e.backoff === 'jitter') {
+    const lo = Math.round(e.retryDelay * 0.5), hi = Math.round(e.retryDelay * 1.5);
+    steps.push(`每次约 ${fmt(lo)}–${fmt(hi)}`);
+    return `<div class="plan">最多再试 ${e.retry} 次：${steps[0]}，合计 ${fmt(lo * e.retry)}–${fmt(hi * e.retry)}后放弃。</div>`;
+  }
+  let total = 0;
+  for (let i = 1; i <= e.retry; i++) {
+    const g = e.backoff === 'doubling' ? e.retryDelay * Math.pow(2, i - 1) : e.retryDelay;
+    total += g;
+    steps.push(fmt(g));
+  }
+  return `<div class="plan">最多再试 ${e.retry} 次：间隔 ${steps.join(' → ')}，合计 ${fmt(total)}后放弃。</div>`;
+}
+
+function renderExec() {
+  const a = A[S.act], e = E();
+  const waits = a.waits === true;
+  return sec('执行节奏', '每个动作都有') + `
+    <div class="row">
+      ${numField('before', '执行前延迟', 'ms', 150)}
+      ${numField('after', '执行后延迟', 'ms', 150)}
+    </div>
+    ${hint('前延迟给界面时间：窗口刚打开、动画还没停时，先等再找。后延迟给下一步让路。'
+      + (waits ? '' : '对只读的找色、比色来说，后延迟通常只是让自己变慢。'))}
+  ` + sec('超时', '每个动作都有') + (waits ? `
+    <div class="lbl">最多跑多久 <span class="opt">这类动作的超时就是它能等多久</span></div>
+    <div class="plan">${fmt(e.timeout)} · 在「基础设置 › 等多久」里改。这里是同一个数，不是第二个。</div>
+    ${hint('等待类动作没有单独的短路超时：等到、或者到点放弃，取决于这一个数。')}
+  ` : `
+    <div class="row">${numField('timeout', '最多跑多久', 'ms', 170)}</div>
+    ${hint('整步最多用多久，含重试和动作自己的等待。0 表示不限。')}
+  `) + sec('重试', '每个动作都有') + `
+    <div class="row">
+      ${numField('retry', '失败后重试', '次', 110, 20)}
+      ${numField('retryDelay', '两次之间等', 'ms', 150)}
+      <div style="width:170px"><div class="lbl">间隔怎么变</div>
+        <select class="inp" data-e="backoff">
+          <option value="fixed"    ${e.backoff === 'fixed' ? 'selected' : ''}>固定</option>
+          <option value="doubling" ${e.backoff === 'doubling' ? 'selected' : ''}>每次翻倍</option>
+          <option value="jitter"   ${e.backoff === 'jitter' ? 'selected' : ''}>随机浮动</option>
+        </select></div>
+    </div>
+    ${planText()}
+    ${hint('重试会重新执行这一步，包括它的副作用。点击、发送这类动作重试等于再点一次、再发一次；'
+      + '找色、比色、取色只读，重试很安全。')}
+  ` + sec('失败时', '每个动作都有') + `
+    <div class="choices">
+      ${ONERROR.map(([v, name, why, danger]) => `
+        <button class="choice ${danger ? 'danger' : ''}" data-onerror="${v}"
+                aria-pressed="${e.onError === v}">
+          <span class="rad"></span>
+          <span class="cbody"><b>${name}</b><i>${why}</i></span>
+        </button>`).join('')}
+    </div>
+    ${e.onError === 'ask' ? `
+      <div class="row" style="margin-top:10px">
+        ${numField('askTimeout', '没人回答时等', '秒后按「停止」', 150)}
+        <span class="hint" style="margin:22px 0 0">填 0 表示一直等</span>
+      </div>
+      <div class="warnline">触发器启动的宏旁边没有人：问题问出去，宏就停在那里，直到有人来点。无人值守的宏，这一格必须给个数。</div>
+    ` : ''}
+  `;
+}
+
+function renderOther() {
+  const a = A[S.act], d = D();
+  return sec('识别调参', '只属于这个动作') + `
+    <div class="row">
+      ${numField('frame', '帧缓存上限', 'ms', 170, null, d.frame)}
+      ${a.where === 'region' && !a.waits ? `
+      <div style="width:170px"><div class="lbl">多久看一次</div>
+        <select class="inp"><option>跟着屏幕刷新</option><option>每 50 ms</option></select></div>` : ''}
+    </div>
+    ${hint('同一毫秒里取过的画面会被复用。连续做几步识别时，<code>50</code> 上下能省掉重复截屏，又不会看到过时的画面。0 表示每次都重新取。')}
+  ` + (a.where === 'region' ? sec('命中不止一处时', '只属于这个动作') + `
+    <div class="row">
+      <div style="width:266px"><div class="lbl">先按什么排</div>
+        <select class="inp" data-f="order">
+          <option value="reading" ${d.order === 'reading' ? 'selected' : ''}>阅读顺序（上到下、左到右）</option>
+          <option value="score" ${d.order === 'score' ? 'selected' : ''}>最像的那个在前</option>
+          <option value="random" ${d.order === 'random' ? 'selected' : ''}>随机</option>
+        </select></div>
+      <div style="width:118px"><div class="lbl">取第几个</div>
+        <input class="inp num" value="${d.index}"></div>
+    </div>
+    ${hint('排完序再取第几个。<code>1</code> 是最前那个；这一格可以写表达式，随次数变化。')}
+  ` : '') + sec('这一步', '所有动作共用') + `
+    <div class="row" style="align-items:flex-end">
+      <div style="width:180px"><div class="lbl">步骤编号</div>
+        <div class="inp" style="display:flex;align-items:center;font-family:var(--mono);color:var(--text2)">K7fa</div></div>
+      <button class="btn">复制</button>
+      <div style="margin-left:auto;display:flex;gap:9px;align-items:center;height:32px">
+        <span class="hint" style="margin:0">启用这一步</span>
+        <span style="width:38px;height:20px;border-radius:10px;background:var(--accent);
+          position:relative;display:inline-block"><span style="position:absolute;right:2px;top:2px;
+          width:16px;height:16px;border-radius:50%;background:#fff"></span></span>
+      </div>
+    </div>
+    ${hint('条件、结果变量和断点都按这个编号指向这一步。关掉开关等于跳过它，但仍然留在宏里。')}
+  `;
+}
+
+// ---------------------------------------------------------------- 渲染：改前
+const BEFORE = {
+  getPixel: {
+    title: '取色', desc: '读取某个像素的颜色。', fields: [
+      ['识别方式', '下拉 · 屏幕 / 窗口', ''],
+      ['窗口', '窗口规则', ''],
+      ['X', '数字 0', '取样点的横坐标，按识别方式选定的基准量起，单位是像素，默认 0。'],
+      ['Y', '数字 0', '取样点的纵坐标，按识别方式选定的基准量起，单位是像素，默认 0。'],
+      ['位置', '记录', '说明位置的记录：命中、窗口、元素都带有 x、y，取自该矩形的中心；填写记录后，旁边两格数字不再参与，也不再写入宏文件。', 1],
+      ['帧缓存 ms', '数字 0', '同一毫秒里取过的画面会被复用。', 2],
+      ['轮询间隔 ms', '数字 0', '空表示跟着屏幕刷新。', 2],
+      ['要留下的结果', '结果表', 'color · number · screenPoint · windowPoint', 3]
+    ]
+  },
+  matchColor: { missing: true, desc: '这个动作目前还不存在。下面是要回答同一个问题时，现在被迫写的三步。' },
+  waitColor: {
+    title: '等待颜色', desc: '等到某个像素变成这个颜色。', fields: [
+      ['识别方式', '下拉 · 屏幕 / 窗口', ''],
+      ['窗口', '窗口规则', ''],
+      ['颜色', '颜色 #000000', '像素需要显示的颜色，按 #RRGGBB 写。用放大镜取色时，取到的那一点同时写进 X、Y。', 3],
+      ['X', '数字 0', '监视点的横坐标'],
+      ['Y', '数字 0', '监视点的纵坐标'],
+      ['位置', '记录', '填写记录后，旁边两格数字不再参与，也不再写入宏文件。', 1],
+      ['容差 %', '数字 5', '允许的颜色偏差，0–100（百分比），默认 5。', 2],
+      ['帧缓存 ms', '数字 0', '同一毫秒里取过的画面会被复用。'],
+      ['轮询间隔 ms', '数字 0', '空表示跟着屏幕刷新。'],
+      ['要留下的结果', '结果表', 'screenPoint · windowPoint', 1]
+    ]
+  },
+  findColor: {
+    title: '查找颜色', desc: '在指定点位或屏幕的一块区域里找某个颜色。',
+    fields: [
+      ['识别方式', '下拉 · 屏幕 / 窗口', ''],
+      ['窗口', '窗口规则', ''],
+      ['颜色', '颜色 #000000', '要找的颜色，默认 #000000。'],
+      ['X', '数字 · 空', '可选：只看这一个像素的横坐标。X、Y 都留空时按搜索区域找。', 1],
+      ['Y', '数字 · 空', '可选：只看这一个像素的纵坐标。X、Y 都留空时按搜索区域找。', 1],
+      ['位置', '记录', '可选：填写后只看这个像素，并优先于 X、Y 和搜索区域。', 2],
+      ['容差 %', '数字 5', '允许的颜色偏差，0–100（百分比），默认 5。'],
+      ['至少占比 %', '数字 0', '搜索区域里至少有多少比例是那个颜色才算找到。血条涨到一半、按钮亮起来、仪表过了刻度这类判断用它，而不是看颜色在哪一点上。', 3],
+      ['搜索区域', '区域表（多行）', '要找的东西可能出现的位置，可加多块。', 4],
+      ['帧缓存 ms', '数字 0', '同一毫秒里取过的画面会被复用。', 5],
+      ['命中排序', '下拉', '阅读顺序 / 分数最高 / 随机', 5],
+      ['第几个命中', '数字 1', '排完序后取哪一个。', 5],
+      ['轮询间隔 ms', '数字 0', '空表示跟着屏幕刷新。', 5],
+      ['要留下的结果', '结果表', 'found · match · every · coverage · window · method · screenPoint · windowPoint', 3]
+    ]
+  },
+  findColors: {
+    title: '多点找色', desc: '找一个颜色，并要求它周围指定的位置上也各有指定的颜色。',
+    fields: [
+      ['识别方式', '下拉 · 屏幕 / 窗口', ''],
+      ['窗口', '窗口规则', ''],
+      ['基准色', '颜色 #000000', '图案中间的那个颜色。交回的位置就是它，其他颜色也都从它这里数。'],
+      ['X', '数字 · 空', '可选：只看这一个像素的横坐标。基准色与周围那些颜色都在这一处比对。', 1],
+      ['Y', '数字 · 空', '可选：只看这一个像素的纵坐标。', 1],
+      ['位置', '记录', '可选：填写后只看这个像素，并优先于 X、Y 和搜索区域。', 1],
+      ['周围要对的颜色', '文本', '一行一个，写成相对基准色的偏移与颜色，例如 12,-4,#FF0000，偏移可以是负数。', 2],
+      ['容差 %', '数字 5', '允许的颜色偏差，0–100（百分比），默认 5。', 3],
+      ['搜索区域', '区域表（多行）', '整个图案还必须落在搜索区域里面。'],
+      ['帧缓存 ms', '数字 0', '同一毫秒里取过的画面会被复用。'],
+      ['命中排序', '下拉', '阅读顺序 / 分数最高 / 随机'],
+      ['第几个命中', '数字 1', '排完序后取哪一个。'],
+      ['轮询间隔 ms', '数字 0', '空表示跟着屏幕刷新。'],
+      ['要留下的结果', '结果表', 'found · match · every · window · method · screenPoint · windowPoint']
+    ]
+  }
+};
+
+function renderBefore() {
+  const b = BEFORE[S.act];
+  if (b.missing) {
+    return `<div class="empty-state">
+      <div class="big">这个动作不存在</div>
+      <div>现在要回答「这个点是不是红色」，只能借别的动作凑。</div>
+      <div class="recipe"><b>目前的写法</b>
+        <ol>
+          <li>放一个「等待颜色」，X / Y 填要看的点，超时改成 <b>1 ms</b></li>
+          <li>整步包进「尝试」块</li>
+          <li>超时走「错误」分支 → 当作「不是」</li>
+        </ol>
+        <div style="margin-top:8px;color:var(--bad)">一个正常的答案，要写成一条异常路径；而且拿不到实测颜色，也不知道差了多少。</div>
+      </div>
+    </div>`;
+  }
+  return `<div class="before-note">
+      <b>现状：${b.fields.length} 个字段平铺</b> · ${b.desc}
+      <div style="margin-top:5px;color:#D8A7AE">红框标出的是与右侧说明对应的问题字段。</div>
+    </div>
+    <div class="flat">` +
+    b.fields.map(f => {
+      const [label, sample, h, flag] = f;
+      return `<div class="ff ${flag !== undefined ? 'flagged' : ''}">
+        ${flag !== undefined ? `<span class="flag">${flag}</span>` : ''}
+        <div class="lbl">${label}</div>
+        <div class="inp" style="display:flex;align-items:center;color:var(--text3);font-size:12px">${sample}</div>
+        ${h ? hint(h) : ''}
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+// ---------------------------------------------------------------- 说明面板
+const NOTES = {
+  getPixel: [
+    ['bad', '一个「点」被拆成三格，还分主次', 'X、Y、位置 都说这一件事：看哪个像素。而位置的优先级更高——填了记录，旁边两格数字不但不参与，还会被从宏文件里删掉。用户填过的东西不该悄悄消失。', 'ActionStrings.cs:2216 place.hint'],
+    ['bad', '帧缓存和轮询不该在这一层', '一个只读一个像素的动作，摊上了整幅画面才需要的两个必填参数。它们该在「其它设置」里。', 'ActionSemantics.json vision.getPixel'],
+    ['good', '返回两种写法是对的', 'color 给人读，number 给宏比较，互不替代。保留。', '']
+  ],
+  matchColor: [
+    ['good', '补上缺的这一格', '取色（读）· 比色（判）· 等到颜色（等）· 找色（搜）。四种问题，四个动作，名字本身就是答案的形状。', ''],
+    ['bad', '现在只能用异常表达「不是」', '等待颜色 + 1 ms 超时 + 尝试块，三步换一个是非题；拿到的还不是非，是一条错误。', 'MacroRunner.Vision.cs:443 WaitColor'],
+    ['good', '返回实测色与偏差', '「为什么没匹配上」是这类动作最常被问的问题。delta 直接回答它，比让人对着截图反复试容差有用。', '']
+  ],
+  waitColor: [
+    ['bad', '交回的两个坐标是空转', '监视点本来就是调用者自己填的，screenPoint / windowPoint 把它原样送回来，一点信息都没有。', 'ActionSemantics.json vision.waitColor.Returns'],
+    ['bad', '「容差 5%」到底是多少', '容差是三个通道差值的均方根，除以 255。5% 就是每通道 ±13。这个数字不写出来，只能靠试。', 'ColourReach.cs:37 · DeviceTypes.cs:38'],
+    ['bad', '吸管会偷偷改坐标', '文案写着「取到的那一点同时写进 X、Y」。吸管明明只是要把颜色取回来，却顺手挪了监视点。', 'ActionStrings.cs:2228'],
+    ['good', '换成实测色与等了多久', '超时之后最想知道的是「它现在到底是什么颜色」，而不是「我刚才看的是哪个点」。', '']
+  ],
+  findColor: [
+    ['bad', '同一个动作回答了三个问题', '有 X/Y 时它是固定点比色；没有时它是区域找色；minCoverage > 0 时它又变成「这块区域有多少是红的」。三种语义共用同一个名字、同一组返回值。', 'MacroRunner.Vision.cs:465 HasPoint 分支'],
+    ['bad', '空值在当开关用', 'X、Y 留空 = 换一种行为。项目自己的约定是空值不等于 0，更不该等于「换个模式」。', 'AGENTS.md · 字段形状、空值与单位'],
+    ['bad', '说明文案自己承认了', '「…这类判断用它，而不是看颜色在哪一点上」——文案在劝人别把它当找色用。一个动作要靠文案分流，就说明它该拆。', 'ActionStrings.cs:1899 minCoverage.hint'],
+    ['bad', '同一个概念有两种形状', '找色、找图用 region 表（可多行），截图用 x/y/宽/高 加 rect。都是「一块矩形」，两套写法。', 'vision.capture vs vision.findColor'],
+    ['bad', '调参的和核心的同权重', '帧缓存、命中排序、第几个命中、轮询间隔，四个字段和颜色、范围平铺在一起。第十四个字段和第一个字段看起来一样重要。', ''],
+    ['good', '删掉 X / Y / 位置 / 至少占比', '剩八个字段，一个意思：在范围里找这个颜色，交出坐标。占比挪去条件——ColourShare 已经写好，却没有任何调用点。', 'MacroRunner.Vision.cs:593'],
+    ['good', '范围必填、有默认、有代价提示', '不填就是整个屏幕，并且写出来给人看。范围变大时当场提示这一轮要多走多少像素。', '']
+  ],
+  findColors: [
+    ['bad', '同样是三种语义', '锚点也能被 X/Y/位置 钉死在一点上，那时「多点找色」就是一个固定点比色。和找色是同一个毛病。', 'MacroRunner.Vision.cs:625 注释'],
+    ['bad', '偏移点是一个文本小语言', 'points 是文本字段，格式 <code>12,-4,#FF0000</code>，用分号或换行分隔。手写要同时记住顺序、正负号、十六进制写法，错一个分隔符整步抛 BadPoints。', 'MacroRunner.Vision.cs:751 Pattern'],
+    ['bad', '整组只有一个容差', '抗锯齿的边缘和纯色底需要不同的宽容度，现在只能一起放大或一起收紧，两头都不对。', ''],
+    ['bad', '列表只读，改一处要重开窗口', '编辑器里那几行是显示用的：「改与删都在拾取窗口里做」。想给某一个点单独调容差，做不到。', 'ActionEditorView.axaml:960 · ColourPointRow.cs'],
+    ['bad', '没法排除「长得像」的东西', '两个按钮同色不同位置时，只能靠多加点硬凑，不能声明「这一点必须不是这个颜色」。', ''],
+    ['good', '改成表格：行内改，点画面自动算偏移', 'ΔX / ΔY / 颜色 / 容差 / 必须是·必须不是。字段仍然是 points，但由编辑器生成，不再要求人拼字符串。', '']
+  ]
+};
+
+const NOTES_COMMON = [
+  ['bad', '「失败时」是一个藏起来的四选一', '界面上只有一个下拉，写着「停止」「继续」「下一轮」「询问」。其中「停止」其实是停止整个宏，字面看不出来；四个选项各自会发生什么，也没有地方说。', 'ActionEditorView.axaml:1247'],
+  ['bad', '重试被拆成三处', '次数在超时旁边，间隔在失败策略旁边，退避又单独起一行。调一次重试要看三个地方，而且「固定 / 翻倍 / 浮动」各自意味着多少毫秒，全靠心算。', 'StepMeta.cs RetryDelayFor'],
+  ['bad', '询问没有兜底', '「停下来问我」会一直等到有人回答——只有取消运行才会当作停止。触发器启动的宏旁边没有人，于是它停在提问框前，没人知道。', 'RunViewModel.cs:1389 Ask'],
+  ['good', '把执行与容错独立成一页', '它和动作无关，每一步都有。独立一页 + 非默认值计数徽标：改了没改，一眼看得出，也不必在十四个业务字段里翻。', ''],
+  ['bad', '颜色族没有「未命中」的失败键', '项目里这条规则本来是统一的：waitImage、clickImage 抛 Run.ImageNotFound，clickDetect 抛 Run.DetectNotFound，uia.click 抛 Run.ElementNotFound，ocr.clickText 抛 Run.TextNotFound，waitColor 抛 Run.WaitColorTimeout。但 findColor 与 findColors 永远只交 found = false，没有自己的键——想让它「没找到就停」，只能另接一个判断步骤。', 'MacroRunner.cs:1468 SaysTimedOut'],
+  ['good', '判定层与处置层分开', '「没找到算不算失败」是判定，写在基础设置；「失败之后怎么办」是处置，写在执行与容错。一个下拉同时问这两件事，四个选项就永远说不清。', ''],
+  ['good', '重试给结果，不给参数', '次数、间隔、退避合成一句「最多再试 2 次：0.5 秒 → 1 秒，合计 1.5 秒后放弃」。引擎本来就算得出这句话。', 'AddActionViewModel.RetryPlan']
+];
+
+function renderNotes() {
+  const list = NOTES[S.act] || [];
+  return `<h4>为什么这样改</h4>
+    <p class="lead">每一条都对着一处实现或一句文案。改前/改后可以来回切。</p>` +
+    list.map(([kind, h, p, src], i) => `
+      <div class="nt ${kind}">
+        <span class="pin">${i + 1}</span>
+        <h5>${h}</h5>
+        <p>${p}</p>
+        ${src ? `<span class="src">${src}</span>` : ''}
+      </div>`).join('') +
+    `<div class="divider"></div>
+     <h4>执行与容错</h4>
+     <p class="lead">这一页和动作无关，五个动作都一样。</p>` +
+    NOTES_COMMON.map(([kind, h, p, src], i) => `
+      <div class="nt ${kind}">
+        <span class="pin">${String.fromCharCode(97 + i)}</span>
+        <h5>${h}</h5>
+        <p>${p}</p>
+        ${src ? `<span class="src">${src}</span>` : ''}
+      </div>`).join('');
+}
+
+// ---------------------------------------------------------------- 绘制
+function paint() {
+  const a = A[S.act], d = D();
+  // 左栏
+  document.getElementById('railList').innerHTML = ORDER.map(k => {
+    const it = A[k];
+    return `<button class="item" data-act="${k}" aria-current="${k === S.act}">
+      <span class="n">${it.name}${it.isNew ? '<span class="new">新</span>' : ''}</span>
+      <span class="k">${it.key}</span></button>`;
+  }).join('') + `<div class="split"></div>
+    <div class="item gone" style="cursor:default"><span class="n">颜色占比</span>
+      <span class="k">建议移入条件</span></div>`;
+
+  // 标题
+  document.getElementById('dlgTitle').innerHTML =
+    `${S.mode === 'before' ? (BEFORE[S.act].title || a.name) : a.name}
+     <span class="tag ${a.tagClass}">${S.mode === 'before' ? '现状' : a.tag}</span>`;
+  document.getElementById('dlgDesc').textContent =
+    S.mode === 'before' ? (BEFORE[S.act].desc || '—') : a.desc;
+
+  // 面板
+  const panel = document.getElementById('panel');
+  panel.innerHTML = S.mode === 'before' ? renderBefore()
+    : S.tab === 'basic' ? renderAfter()
+    : S.tab === 'exec' ? renderExec()
+    : renderOther();
+
+  const cnt = execCount(D().exec);
+  const badge = document.getElementById('execCnt');
+  badge.textContent = cnt;
+  badge.className = 'cnt' + (cnt > 0 && S.mode !== 'before' ? ' on' : '');
+  if (S.act === 'findColors' && S.mode === 'after' && S.tab === 'basic') {
+    const b = document.getElementById('ptBody'); if (b) b.innerHTML = pointsBody();
+  }
+  document.getElementById('dlgTabs').style.display = S.mode === 'before' ? 'none' : 'flex';
+
+  document.getElementById('notes').innerHTML = renderNotes();
+  document.getElementById('runbar').classList.remove('show');
+  setStatus('尚未运行', 'idle');
+}
+
+function setStatus(t, cls) {
+  const s = document.getElementById('status');
+  s.className = 'st ' + (cls || '');
+  document.getElementById('statusText').innerHTML = t;
+}
+
+// ---------------------------------------------------------------- 交互
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, [data-act]');
+  if (!t) return;
+
+  if (t.dataset.act) { S.act = t.dataset.act; S.tab = 'basic'; S.ran = false; paint(); return; }
+
+  if (t.dataset.mode) {
+    S.mode = t.dataset.mode;
+    document.querySelectorAll('#modeSeg button').forEach(b =>
+      b.setAttribute('aria-selected', b.dataset.mode === S.mode));
+    paint(); return;
+  }
+
+  if (t.classList.contains('tab')) {
+    S.tab = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(b =>
+      b.setAttribute('aria-selected', b.dataset.tab === S.tab));
+    paint(); return;
+  }
+
+  if (t.dataset.basis) { D().basis = t.dataset.basis; paint(); return; }
+
+  if (t.dataset.onerror) { E().onError = t.dataset.onerror; paint(); return; }
+
+  if (t.dataset.miss) { D().miss = t.dataset.miss; paint(); return; }
+
+  if (t.dataset.region === 'full') {
+    D().region = [0, 0, 1920, 1080]; paint(); return;
+  }
+  if (t.dataset.region === 'pick') {
+    D().region = [880, 480, 240, 160]; paint(); return;
+  }
+
+  if (t.dataset.ptAdd !== undefined) {
+    D().points.push({ dx: 0, dy: 0, color: '#FFFFFF', tol: 5, neg: false });
+    paint(); return;
+  }
+  if (t.dataset.ptClear !== undefined) { D().points = []; paint(); return; }
+  if (t.dataset.ptDel !== undefined) {
+    D().points.splice(+t.dataset.ptDel, 1); paint(); return;
+  }
+  if (t.dataset.ptNeg !== undefined) {
+    const p = D().points[+t.dataset.ptNeg]; p.neg = !p.neg; paint(); return;
+  }
+
+  if (t.id === 'runBtn') { run(); return; }
+});
+
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.e) {
+    const k = el.dataset.e;
+    const v = (k === 'backoff') ? el.value : (parseInt(el.value, 10) || 0);
+    if (k === 'frame') D().frame = v; else E()[k] = v;
+    paint();
+  }
+});
+
+document.addEventListener('input', e => {
+  const el = e.target, d = D();
+  if (el.dataset.f === 'tol') {
+    d.tol = +el.value;
+    const v = el.closest('.blk').querySelector('[data-tolv]');
+    const x = el.closest('.blk').querySelector('[data-tolx]');
+    if (v) v.textContent = d.tol + '%';
+    if (x) x.textContent = '≈ 每通道 ±' + perChannel(d.tol) + ' / 255';
+  }
+  if (el.dataset.f === 'color') {
+    d.color = el.value;
+    const sw = el.closest('.blk').querySelector('.swatch');
+    if (sw) sw.style.background = el.value;
+  }
+  if (el.dataset.f === 'order') d.order = el.value;
+  if (el.dataset.f === 'x') d.x = +el.value || 0;
+  if (el.dataset.f === 'y') d.y = +el.value || 0;
+  if (el.dataset.r !== undefined) {
+    d.region[+el.dataset.r] = +el.value || 0;
+    const note = el.closest('.blk').querySelector('[data-area]');
+    if (note) {
+      const [w, h] = [d.region[2], d.region[3]];
+      note.textContent = `${w}×${h} · ${(w * h / 1e6).toFixed(2)} 百万像素`;
+    }
+  }
+  if (el.dataset.pt !== undefined) {
+    const p = d.points[+el.dataset.pt];
+    const k = el.dataset.k;
+    if (k === 'dx' || k === 'dy') p[k] = parseInt(el.value, 10) || 0;
+    if (k === 'tol') p.tol = +el.value;
+  }
+});
+
+// ---------------------------------------------------------------- 运行
+const RESULTS = {
+  getPixel:  { ok: true,  text: () => `<b>#E24C41</b> · 颜色数值 <b>4289601</b> · 用时 <b>2 ms</b>` },
+  matchColor:{ ok: true,  text: () => `匹配 · 实测 <b>#E24C41</b> · 偏差 <b>2.1%</b> · 容差 5% · 用时 <b>3 ms</b>` },
+  waitColor: { ok: true,  text: () => `已等到 · 实测 <b>#E24C41</b> · 等了 <b>340 ms</b>` },
+  findColor: { ok: true,  text: d => `找到 1 处 · <b>(${d.region[0] + 300}, ${d.region[1] + 200})</b> · 偏差 <b>2.1%</b> · 用时 <b>11 ms</b>` },
+  findColors:{ ok: true,  text: d => `找到 1 处 · <b>(${d.region[0] + 300}, ${d.region[1] + 200})</b> · ${d.points.filter(p => !p.neg).length}/${d.points.filter(p => !p.neg).length} 点全中 · 用时 <b>9 ms</b>` }
+};
+
+function run() {
+  const d = D(), r = RESULTS[S.act];
+  setStatus('运行中…');
+  const bar = document.getElementById('runbar');
+  setTimeout(() => {
+    bar.className = 'runbar show' + (r.ok ? '' : ' bad');
+    bar.innerHTML = `<span>${r.ok ? '✓' : '✕'}</span><span>${r.text(d)}</span>
+      <span class="x">${A[S.act].key}</span>`;
+    setStatus('上一次运行成功', 'ok');
+  }, 420);
+}
+
+paint();
+
+// 支持 #act=findColors&mode=before&tab=other 直开某个状态，方便评审时发链接
+(function () {
+  const q = new URLSearchParams(location.hash.slice(1));
+  const act = q.get('act'), mode = q.get('mode'), tab = q.get('tab');
+  if (act && A[act]) S.act = act;
+  if (mode === 'before' || mode === 'after') S.mode = mode;
+  if (tab === 'basic' || tab === 'exec' || tab === 'other') S.tab = tab;
+  document.querySelectorAll('#modeSeg button').forEach(b =>
+    b.setAttribute('aria-selected', b.dataset.mode === S.mode));
+  document.querySelectorAll('.tab').forEach(b =>
+    b.setAttribute('aria-selected', b.dataset.tab === S.tab));
+  paint();
+})();
+</script>
+</body>
+</html>

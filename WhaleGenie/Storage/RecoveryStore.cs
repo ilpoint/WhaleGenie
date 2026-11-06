@@ -21,6 +21,17 @@ public sealed class RecoveryEditor
 
     /// <summary>Name of the macro the draft was editing, or empty when it was a new macro.</summary>
     public required string Replaces { get; init; }
+
+    /// <summary>
+    /// True while the draft holds something a person would miss. A macro that is still called what
+    /// a new one is called, with no step in it and nothing written about it, is the state the editor
+    /// opened in: offering it back asks a question whose answer is the same blank form, on every
+    /// run, for as long as the file is left behind.
+    /// </summary>
+    public bool IsWorthKeeping => Macro.Steps.Count > 0
+        || Macro.Description.Trim().Length > 0
+        || Macro.BindKey.Trim().Length > 0
+        || !MacroNames.IsDefault(Macro.Name);
 }
 
 /// <summary>Everything the program was holding that had not been written to a package.</summary>
@@ -42,7 +53,8 @@ public sealed class RecoveryContents
     public DateTime? SavedUtc { get; init; }
 
     /// <summary>True when there is nothing in it worth offering back.</summary>
-    public bool IsEmpty => Macros.Count == 0 && PackagePath is null && Editor is null;
+    public bool IsEmpty => Macros.Count == 0 && PackagePath is null
+        && (Editor is null || !Editor.IsWorthKeeping);
 }
 
 /// <summary>
@@ -163,6 +175,14 @@ public static class RecoveryStore
     /// <summary>Records the macro the editor is holding, and what it stands for.</summary>
     public static void SaveEditor(MacroItem macro, string replaces)
     {
+        // 什么都没写的草稿不写：它下次打开就是同一张空表单，留着只会让下次启动问一句
+        // "发现上次未保存的内容"，答了也没有东西回来。
+        if (!new RecoveryEditor { Macro = macro, Replaces = replaces }.IsWorthKeeping)
+        {
+            Update("editor", null);
+            return;
+        }
+
         var editor = new JsonObject { ["macro"] = macro.ToJson(includeTriggers: true) };
         if (!string.IsNullOrEmpty(replaces))
         {
@@ -192,7 +212,17 @@ public static class RecoveryStore
         {
             try
             {
-                return Parse(ReadRoot());
+                var contents = Parse(ReadRoot());
+
+                // 空快照（早先留下的空草稿）读到时顺手丢掉：留着它，每次启动都会再读一遍同一个
+                // "没有东西可恢复"，而它永远不会自己消失。
+                if (contents is null)
+                {
+                    _written = string.Empty;
+                    Remove();
+                }
+
+                return contents;
             }
             catch
             {

@@ -1,4 +1,4 @@
-# WhaleGenie 开发说明
+﻿# WhaleGenie 开发说明
 
 本文件说明如何构建、修改、验证和发布 WhaleGenie。长期规范见仓库根目录的
 [AGENTS.md](../AGENTS.md)，当前实现结构见 [architecture.md](architecture.md)，未完成工作见
@@ -157,8 +157,7 @@ if ($missing) { $missing; exit 1 }
 | 界面与应用 | `WhaleGenie.Tests` | 参数成型、绑定、触发器、包往返、MCP、文案和无头交互 |
 | 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
-| 界面观感 | `tools/Shot` | 把真实窗口离屏渲染成 PNG，或用程序自己的抓屏读运行中的窗口 |
-
+| 界面观感 | agent 自省通道（Debug）连运行中的程序读树、点、截图
 契约测试应遍历目录或扫描源码，避免手写第二份动作清单。新增目录事实时先增加可失败的断言，
 再修改实现。主要对账关系如下：
 
@@ -181,6 +180,7 @@ if ($missing) { $missing; exit 1 }
 | `body` | 都是子步骤列表；标签按容器叫“试运行 / 接住 / 收尾 / 分支”，名字不必跟着容器换 |
 | `button` | 手柄按键与鼠标按键共用“哪个键”这个词，但选项表由动作给出 |
 | `color` | 都是颜色；标签统一为“颜色” |
+| `tolerance` | 都是容差；标签统一为“容差 %”，说明文字按动作写清它容的是颜色还是画面 |
 | `confidence` | 都是匹配可信度；标签统一为“置信度（%）” |
 | `dataText` | 都是要编码、解码或摘要的文本；标签说明这一次拿它做什么 |
 | `encoding` | 都是文本编码；读取脚本时另多一档自动 |
@@ -193,6 +193,7 @@ if ($missing) { $missing; exit 1 }
 | `inputMode` | 都是键鼠输入方式；相对移动只提供前台与驱动级，不提供后台 |
 | `intervalMs` | 都是间隔；标签统一为“间隔”，提示说明隔开的是什么；原来的 `pollMs` 已并到这里 |
 | `items` | 都是初始项或要遍历的项 |
+| `kind` | 都问“哪一种”：脚本的 `kind` 是交给谁跑，列文件的 `kind` 是收文件还是收文件夹，选项各随动作 |
 | `macro` | 都是“调用哪一个宏”；「执行子宏」这一格叫「子宏」，已退役的「启动其他宏」仍写「宏」 |
 | `matchMode` | 都是文字比较的五档词，改名后只剩这一个用途 |
 | `maxRows` | 都是最多读多少行 |
@@ -247,6 +248,46 @@ if ($missing) { $missing; exit 1 }
   外观与落点仍需真机检查。
 - 读屏幕的图必须经过 `ScreenReady`，不要直接 `screen.Capture`：桌面复制器会把隐藏前的画面继续交出来，
   `DwmFlush` 并不能保证新帧已经到了。拾取器、框选后的成图和单步试看都走这一条。
+- 一个矩形的四个数（`vision.capture`、`ocr.recognize` 的 x/y/width/height）现在压在一行里，
+  每格是 `NumberCellViewModel`（短名 + 框 + ƒ），不再各自是一个参数对象：测试里按参数
+  `DataContext` 找数字框会落空，要看 `ParameterRowViewModel.IsQuad` 与 `QuadCells`，或者按可见的
+  数字框找。格与参数之间的同步在 `ParameterRowViewModel.Cell` 里，数字字段要连 `NumberValue`
+  一起写，只写 `Text` 会让框里有字、步骤却是空的。
+- 拾取窗口的检查用 `WindowRuleWindow.Picking` 换掉桌面那一步，不真的让位与指窗口；拾取器本身
+  （`WindowPickWindow`）用 `ProbeAt`/`Confirm` 驱动，和元素拾取器一样。
+- 拾取器的确认键要从 `IInputHook` 读，不能只靠窗口自己的 `KeyDown`：拾取器开在最上面，但 Windows
+  不保证把前台交给它，交不出去时 F1/Esc 就落到别的窗口上了。`RegionPickerWindow` 与 `WindowPickWindow`
+  都同时挂了钩子与窗口按键，`Finish` 只做一次。
+- `WindowPickWindow` 的鼠标事件不设 `Suppress`：拾取时还要点别的窗口、点任务栏启动应用。取走只由 F1
+  决定，左键最多把框挪过去。窗口让位期间，`WindowRuleWindow.OnLocalKeyDown` 要跳过 Esc——焦点可能还在
+  那个藏起来的窗口里，否则一下 Esc 会把对话框本身关掉。
+- `ocr.recognize` 的矩形是一张 `region` 列表（与找色、找字同一个参数），不再有 `x`/`y`/`width`/`height`/`rect`。
+  核心测试用 `Region((x, y, w, h))` 或 `RegionFrom("$record")`，界面测试看 `StepParameterViewModel.Regions`
+  与 `ApplyRegion`（它往列表里加一行）。`vision.capture` 仍是四个数，两边的界面结构不同是有意的。
+
+- 「还要像什么样」(`narrow`) 现在两族共用一张行表，但问的事不同，由目录声明：
+  `ActionSemantics.NarrowOn` 取 `Page` 或 `Element`，`ActionParameter.NarrowFamily` 读它，
+  `NarrowWay.For(family)` 给出该族的选项（网页六种：里面 / 含有文字 / 不含 / 有元素 / 没有元素 /
+  看得见；桌面元素四种：看得见 / 能用 / 名字含 / 名字不含）。空着或写了不认识的族会抛异常，
+  `Every_narrow_list_says_which_family_it_asks_about` 守着这一条。网页行上的「从页面选取」
+  「看看效果」两颗按钮由 `NarrowRowViewModel.OnPage` 决定画不画。
+- 桌面的窄条件读成 `UiCondition`（`UiConditionHow` + 值），从步骤的 `narrow` 行读；
+  `FlaUiDevice.Matches` 逐条比，`Search` 在有窄条件时走「先按选择器缩，再逐项比」那条路。
+  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在 `doc/manual.md` 的失败键表里。
+- 动作名：`uia.*` 说「界面」、`browser.*` 说「网页」；`No_two_actions_are_called_the_same_thing`
+  直接读 `Strings.Chinese` / `Strings.English` 两张表来查重，不要改全局语言——测试并行跑，
+  换语言会改到别人正在读的表。
+
+- 已知抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`
+  与 `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing` 在**全量**跑时偶发失败
+  （单跑、单类跑都过），两条都动 `VariableCatalog.Globals` / `SharedVariables` / `PersistentVariables`
+  这类进程级状态。全量跑时 `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`
+  也偶发同一种挂法（单跑通过），同样是进程级状态；`GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`
+  全量跑时也遇到过一次（单跑通过）；`LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
+全量跑时也偶发（单跑通过）；`StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step`
+  在全量跑时偶尔不认第二次点击（连续三次单跑都过），属于同一种"机器忙时手势计时被拉长"。
+再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
+
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或
   `Ui.AnswerUnsavedWork`，避免遗留调度器循环。
@@ -255,32 +296,40 @@ if ($missing) { $missing; exit 1 }
 
 ### 看图与看运行中的程序
 
-界面改动不必每次都靠人眼：`tools/Shot` 用程序自己的窗口类与样式，把一扇窗画成 PNG，
-也能读运行中的程序所占的那块屏幕。它不是程序的一部分，不进解决方案，只在需要看的时候跑。
+调试版里开着一条给 agent 的界面自省通道（`Declarative.Avalonia.AgentTools`，只在 Debug 编译，
+Release 既不还原这个包也不注册它）：进程起来后在 `127.0.0.1:5599` 上跑一个 loopback 的 MCP，
+可以读视觉树、读布局、点、输入、按键、截图，**看的是真的那一扇窗，不是无头重绘**。这是首选的
+查看方式——离屏渲染看不出真实的字体、主题、滚动条和 POPUP。
 
 ```bash
-# 设置窗口（可指定子页与深色）
-dotnet run --project tools/Shot -- settings --page=CaptureInput --dark
+# 1. 按 x64 编调试版（见下面那一段，路径别弄错），把它跑起来
+WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
 
-# 动作编辑器
-dotnet run --project tools/Shot -- editor
-
-# 运行中的程序：按进程找它最大的窗口，抓下来的就是那一扇
-tools/Shot/bin/Release/net10.0-windows10.0.19041/Shot.exe window --app=WhaleGenie
-
-# 整个桌面，或其中一块
-tools/Shot/bin/Release/net10.0-windows10.0.19041/Shot.exe desktop --at=0,0,1280,800
+# 2. 在 agent 里连它：先 get_app_info 认路，再按需取图与操作
+#    get_app_info            → 有哪几扇窗、主题、焦点、开着几个 popup
+#    screenshot_window       → 整扇窗（maxWidth 压到 1100 以内够看版式）
+#    screenshot_region       → 放大看一块（scale=3，最近邻，字不会糊）
+#    hit_test / find_text    → 坐标反查控件、按文字找控件
+#    tap / click_at / invoke / type / key → 真的合成输入，流程能一路点下去
+#    get_errors              → 绑定错误、转换器错误、事件里的异常
 ```
 
-图片落在 `tools/Shot/bin/<配置>/<框架>/shots/`。离屏渲染看的是版式、文案与状态，看不到真实的
-输入、别的程序的窗口，也看不到只在真机上才走的分支；这些仍按手动清单验收。
+MCP 的连接方式（`~/.workbuddy/mcp.json` 里的 `avalonia-agent-inspector`，`streamableHttp`，
+`http://127.0.0.1:5599`）由使用者配置；程序这边只负责在 Debug 下把服务开起来。
+`EnableInteraction` 打开后才有 `tap`/`invoke`/`type` 这一类真驱动界面的工具，只读那一层默认就有。
 
-抓一个运行中的程序时，进程要先起来：在同一条命令里先启动、再抓、再结束，避免它被上一次会话的
-残留实例挡住文件（构建会因此报“文件被锁”）。
+**踩过的坑，按发生频率排**：
 
-Release 的输出在 `WhaleGenie/bin/x64/Release/<框架>/`，而 `Shell` 里那个 `bin/Release/<框架>/`
-往往是上一次的产物。改完代码要跑真机验证时，启动 x64 那一份，否则看到的是旧行为——
-这一条踩过两次，每次都以“改动没生效”的形式出现。
+- **发的是旧二进制**。调试版的输出在 `bin/x64/Debug/<框架>/`，而 `dotnet build WhaleGenie/WhaleGenie.csproj`
+  默认写到 `bin/Debug/<框架>/`——两者不是同一份文件。改完代码要么 `-p:Platform=x64`，要么整解编译；
+  启动前先 `taskkill /IM WhaleGenie.exe /F`，否则文件被锁、跑的还是上一次的进程。
+- **窗口截图里没有 popup**。下拉、`Flyout`、菜单都是独立的 top-level，`screenshot_window` 只画这一扇窗，
+  所以"截图里没看到"不等于"没弹出来"。用 `get_app_info` 的 `Open popups` 计数判断，确实要看图时
+  用程序自己的抓屏读那块屏幕。
+- **交互是异步的**。点完先 `wait_idle` 或再取一次 `get_app_info`，再截图；窗口列表里窗口消失往往
+  就是"按钮按下去、对话框关掉"的证据。
+- **`screenshot_window` 的 `windowId`** 写窗口标题（"宏编辑器"、"动作编辑器"）比写序号稳，序号会随
+  窗口开合变。
 
 ## 手动验收清单
 
@@ -299,7 +348,7 @@ Release 的输出在 `WhaleGenie/bin/x64/Release/<框架>/`，而 `Shell` 里那
   空白右键不多条、滚轮键单击新增；左上的「+」与每行「编辑…」都开得出一行三框、框末带表达式的窗口。
 - **定格与框选**：取色后移动背景窗口或播放视频，确认读数仍来自打开时的画面；框选图不得包含鲸灵窗口。
 - **FluentAvalonia 窗口**：在深色和浅色主题下检查标题栏、窗口控制按钮、扩展标题栏拖动、文本对比度和
-  关键控件布局。无头截图不包含真实标题栏，不能替代此项。
+  关键控件布局。
 - **驱动级输入**：安装 usbip-win2，分别验证启动时加载与否、键鼠动作和手柄；退出后确认虚拟设备已移除。
 - **识别与录制**：验证 YOLO 检测、等待与点击落点；验证录制热键、动作翻译和停止流程。
 - **脚本与依赖**：验证批处理、PowerShell、Python、C#、AutoHotkey、包安装及断网失败路径。
@@ -310,55 +359,8 @@ Release 的输出在 `WhaleGenie/bin/x64/Release/<框架>/`，而 `Shell` 里那
 
 ## 界面出图
 
-界面截图用于视觉评审，不作为行为正确性的测试证据。所有截图、局部放大图和评审用图片统一保存到
-**`%temp%\WhaleGenie`**，不要写入 `%temp%` 根目录或仓库。测试仍应验证可读取的资源、模板和布局状态。
-
-在仓库外创建 `.NET 10` 文件式程序 `shot.cs`，修改 `#:project` 为本机项目路径后运行
-`dotnet run shot.cs`：
-
-```csharp
-#:property TargetFramework=net10.0-windows10.0.19041
-#:property JsonSerializerIsReflectionEnabledByDefault=true
-#:package Avalonia.Headless@12.1.2
-#:project C:/path/to/Viktor/WhaleGenie/WhaleGenie.csproj
-
-using Avalonia;
-using Avalonia.Headless;
-using Avalonia.Media.Imaging;
-using Avalonia.Styling;
-using Avalonia.Threading;
-using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
-
-AppBuilder.Configure<WhaleGenie.App>()
-    .UseSkia()
-    .WithInterFont()
-    .UseHeadless(new AvaloniaHeadlessPlatformOptions
-    {
-        UseHeadlessDrawing = false,
-        ShouldRenderOnUIThread = true,
-    })
-    .SetupWithoutStarting();
-
-Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
-var window = new MainWindow
-{
-    DataContext = new MainViewModel(_ => new McpServerViewModel()),
-};
-window.Show();
-Dispatcher.UIThread.RunJobs();
-
-var frame = window.CaptureRenderedFrame()
-    ?? throw new InvalidOperationException("没有渲染出画面。");
-var outputDirectory = Path.Combine(Path.GetTempPath(), "WhaleGenie");
-Directory.CreateDirectory(outputDirectory);
-using var stream = File.Create(Path.Combine(outputDirectory, "main-window-dark.png"));
-frame.Save(stream, PngBitmapEncoderOptions.Default);
-```
-
-`UseSkia`、`WithInterFont` 和反射式 JSON 设置须与应用运行条件保持一致。窗口还需具有正常运行时
-应由容器提供的 `DataContext`，否则截图只反映空绑定状态。对于构造函数不公开或必须经异步流程创建的
-窗口，使用既有测试覆盖，不得为了出图扩大其公开 API。
+界面截图用于视觉评审，不作为行为正确性的测试证据。评审时优先用上一节的 agent 自省通道截**运行中
+的窗口**：它画的是真的那一扇窗，主题、字体、DPI 缩放都是真的。
 
 ## 介绍页与短片
 

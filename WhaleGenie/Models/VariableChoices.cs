@@ -112,6 +112,20 @@ public sealed class VariableChoice
     /// </summary>
     public string Display => VariableCatalog.Display(Name, true);
 
+    /// <summary>
+    /// The hue this kind of name is drawn in. It is the same palette the function wall uses, so a
+    /// name, a function and a sign are told apart by colour rather than by reading three lists.
+    /// </summary>
+    public string Tone => Origin switch
+    {
+        VariableOrigin.System => "text",
+        VariableOrigin.Global => "maths",
+        VariableOrigin.Parameter => "dates",
+        VariableOrigin.Result or VariableOrigin.StepOutput => "lists",
+        VariableOrigin.Local => "records",
+        _ => "other",
+    };
+
     /// <summary>A short mark on the card when a global value survives a restart.</summary>
     public string PersistenceBadge => IsPersistent ? Strings.Get("VarWall.Persistent") : string.Empty;
 

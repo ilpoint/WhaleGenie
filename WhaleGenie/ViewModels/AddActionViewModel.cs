@@ -43,8 +43,26 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private const string ListWindowsKey = "window.list";
 
+    /// <summary>
+    /// 落点之上已经有步骤指定过窗口，所以新建的这一步默认「沿用上一次」。在同一个窗口里做十件事，
+    /// 前面九次不必各自再绑一遍。
+    /// </summary>
+    private readonly bool _followsWindowAbove;
+
     /// <summary>The macro the call's own fields were built for, so a change to it can be noticed.</summary>
     private string _callMacro = string.Empty;
+
+    /// <summary>
+    /// 本宏里已经用过的那几条窗口规则，按第一次出现的顺序，带用了几处。窗口那一格的下拉里列出它们，
+    /// 选一条就等于把那段规则原样写进来，不必重新捕获。
+    /// </summary>
+    public IReadOnlyList<WindowRuleChoice> WindowRules { get; }
+
+    /// <summary>
+    /// 落点之上最近那一条真的窗口规则：窗口格写「沿用上一次」时，它就是要跟到的那一个。摘要里把它
+    /// 写出来，试运行也按它走——试的才是运行时会发生的事。
+    /// </summary>
+    public string WindowAbove { get; }
 
     /// <summary>True while a call's fields are being rebuilt, so putting the name back is not taken
     /// for the user picking another macro.</summary>
@@ -80,12 +98,17 @@ public partial class AddActionViewModel : ViewModelBase
     /// </param>
     public AddActionViewModel(IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
-        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
+        IReadOnlyList<WindowRuleChoice>? windowRules = null,
+        bool followsWindowAbove = false, string? windowAbove = null)
     {
         AvailableActions = actions;
         _variables = variables ?? [];
         _macros = macros ?? [];
         StepChoices = steps ?? [];
+        WindowRules = windowRules ?? [];
+        _followsWindowAbove = followsWindowAbove;
+        WindowAbove = windowAbove ?? string.Empty;
 
         // A step being written has a name already, so the fields that create variables can carry it.
         // The editor hands one in for a new step; an existing step brings its own when it is loaded.
@@ -112,8 +135,8 @@ public partial class AddActionViewModel : ViewModelBase
         foreach (var (key, title) in new[]
                  {
                      (BasePage, "Add.Page.Base"),
+                     (ExecPage, "Add.Page.Exec"),
                      (AdvancedPage, "Add.Page.Advanced"),
-                     (ReturnsPage, "Add.Page.Returns"),
                      (OtherPage, "Add.Page.Other"),
                  })
         {
@@ -139,6 +162,16 @@ public partial class AddActionViewModel : ViewModelBase
         foreach (var parameter in Parameters)
         {
             parameter.RefreshLanguage();
+        }
+
+        foreach (var row in Rows)
+        {
+            row.RefreshLanguage();
+        }
+
+        foreach (var row in AdvancedRows)
+        {
+            row.RefreshLanguage();
         }
 
         foreach (var result in ReturnsRows)
@@ -364,6 +397,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Key of the page that holds what the step is: what it looks for, where, how soon.</summary>
     public const string BasePage = "base";
 
+    /// <summary>
+    /// Key of the page that holds what every step has whatever the action is: how long it may take,
+    /// how often it is retried, and what the macro does when it fails. It sits right after the page
+    /// about the action itself because it is the next question people ask about a step.
+    /// </summary>
+    public const string ExecPage = "exec";
+
     /// <summary>Key of the page that holds the settings only a different approach needs.</summary>
     public const string AdvancedPage = "advanced";
 
@@ -376,6 +416,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>The page on screen.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OnBase))]
+    [NotifyPropertyChangedFor(nameof(OnExec))]
     [NotifyPropertyChangedFor(nameof(OnAdvanced))]
     [NotifyPropertyChangedFor(nameof(OnReturns))]
     [NotifyPropertyChangedFor(nameof(OnOther))]
@@ -383,6 +424,9 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>True while the page about what the step is is the one on screen.</summary>
     public bool OnBase => Page?.Key == BasePage;
+
+    /// <summary>True while the page of settings every step has is on screen.</summary>
+    public bool OnExec => Page?.Key == ExecPage;
 
     /// <summary>True while the page of settings for another approach is on screen.</summary>
     public bool OnAdvanced => Page?.Key == AdvancedPage;
@@ -403,24 +447,6 @@ public partial class AddActionViewModel : ViewModelBase
     public ObservableCollection<ReturnsRowViewModel> ReturnsRows { get; } = [];
 
     /// <summary>
-    /// The colours a pattern wants around its base colour, as the form lists them. Read from the
-    /// step's own value rather than kept beside it: the picker writes that value, and a second copy
-    /// here would be one more thing to keep in step.
-    /// </summary>
-    public ObservableCollection<ColourPointRow> PatternPoints { get; } = [];
-
-    /// <summary>True when the pattern has at least one colour around its base colour.</summary>
-    public bool HasPatternPoints => PatternPoints.Count > 0;
-
-    /// <summary>True while nothing has been picked yet, which the list says in words.</summary>
-    public bool PatternIsEmpty => !HasPatternPoints;
-
-    /// <summary>The heading of that list, which counts what is in it.</summary>
-    public string PatternTitle => PatternPoints.Count == 0
-        ? Strings.Get("Add.Pattern")
-        : Strings.Format("Add.PatternCount", PatternPoints.Count);
-
-    /// <summary>
     /// What this step passes to the macro it calls, one row per argument the called macro declares.
     /// It is filled from that macro rather than from the catalogue, so it is not a row of the
     /// ordinary parameter list: the names change when the call names another macro.
@@ -429,6 +455,65 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>True when the macro being called declares something this step can fill in.</summary>
     public bool HasCallArguments => CallArgumentRows.Count > 0;
+
+    /// <summary>
+    /// The branches of a switch. They are steps rather than fields, so they sit in the editor's
+    /// list and are dragged into place there; this page only counts them and offers the one thing
+    /// the list cannot: a way to add one without leaving the form. The block is the only place a
+    /// branch order is read, so the count belongs here beside the value they are compared with.
+    /// </summary>
+    public bool ShowsBranches => SelectedDefinition?.Key is "control.switch";
+
+    /// <summary>How many branches there are, and how much the fallback runs.</summary>
+    public string BranchSummary
+    {
+        get
+        {
+            var cases = Parameter("cases")?.List?.Steps.Count ?? 0;
+            var otherwise = Parameter("otherwise")?.List?.Steps.Count ?? 0;
+            return Strings.Format("Add.BranchSummary", cases, otherwise);
+        }
+    }
+
+    /// <summary>Adds the next branch, which starts empty and is filled in on the editor's list.</summary>
+    [RelayCommand]
+    private void AddBranch()
+    {
+        if (Parameter("cases") is not { List: { } list })
+        {
+            return;
+        }
+
+        // The list the step goes back into is the editor's, so the branch has to be named the way
+        // the editor names steps. The generator is handed in by the editor; a form opened with
+        // nothing behind it still names its branches, out of the names it has handed out itself,
+        // because a branch with no name is one a condition could never point at.
+        var id = NextStepId?.Invoke(_branchIds) ?? StepIds.Next(_branchIds);
+        _branchIds.Add(id);
+
+        list.Steps.Add(new MacroStep
+        {
+            Type = "control.case",
+            Id = id,
+            Meta = StepMeta.New,
+            Parameters =
+            [
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable },
+                new StepParameter { Name = "body", Kind = ActionParameterKind.Steps },
+            ],
+        });
+        OnPropertyChanged(nameof(BranchSummary));
+        OnPropertyChanged(nameof(JsonPreview));
+    }
+
+    /// <summary>
+    /// The ids this form has handed out, so two branches added in one visit are not given the same
+    /// name: the macro's own list of names does not hold them until the form is saved.
+    /// </summary>
+    private readonly HashSet<string> _branchIds = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Where a step written here asks for a name no step in the macro is using.</summary>
+    public Func<ISet<string>, string>? NextStepId { get; set; }
 
     /// <summary>True when this action has settings that belong on the advanced page.</summary>
     public bool HasAdvanced => AdvancedRows.Any(row => row.IsApplicable);
@@ -461,6 +546,7 @@ public partial class AddActionViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JsonPreview))]
     [NotifyPropertyChangedFor(nameof(RetryPlan))]
+    [NotifyPropertyChangedFor(nameof(TunedStep))]
     public partial decimal? MetaRetryCount { get; set; }
 
     /// <summary>Pause between two attempts.</summary>
@@ -475,6 +561,11 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>What the macro does when this step fails.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JsonPreview))]
+    [NotifyPropertyChangedFor(nameof(IsStopRule))]
+    [NotifyPropertyChangedFor(nameof(IsContinueRule))]
+    [NotifyPropertyChangedFor(nameof(IsNextRoundRule))]
+    [NotifyPropertyChangedFor(nameof(IsAskRule))]
+    [NotifyPropertyChangedFor(nameof(TunedStep))]
     public partial ActionParameterOption MetaOnError { get; set; }
 
     /// <summary>Choices offered by the failure dropdown.</summary>
@@ -485,6 +576,49 @@ public partial class AddActionViewModel : ViewModelBase
         new("nextIteration", Strings.Get("Add.OnError.NextIteration")),
         new("ask", Strings.Get("Add.OnError.AskUser")),
     ];
+
+    /// <summary>
+    /// The failure rules as four cards rather than a dropdown. A dropdown of four one-line choices
+    /// hides what each one does to the rest of the macro, and the difference between them is the
+    /// difference between a step that stops the run and one that is allowed to miss.
+    /// </summary>
+    public bool IsStopRule
+    {
+        get => Picked(MetaOnError, "stop");
+        set => PickError(value, "stop");
+    }
+
+    /// <summary>True while "carry on with the next step" is the rule.</summary>
+    public bool IsContinueRule
+    {
+        get => Picked(MetaOnError, "continue");
+        set => PickError(value, "continue");
+    }
+
+    /// <summary>True while "skip to the next loop round" is the rule.</summary>
+    public bool IsNextRoundRule
+    {
+        get => Picked(MetaOnError, "nextIteration");
+        set => PickError(value, "nextIteration");
+    }
+
+    /// <summary>True while "ask me" is the rule, which is the one that needs saying more about.</summary>
+    public bool IsAskRule
+    {
+        get => Picked(MetaOnError, "ask");
+        set => PickError(value, "ask");
+    }
+
+    /// <summary>
+    /// True when this step carries a timeout, a retry, a pause or a failure rule that is not the
+    /// one every step starts with. That is what the page's tab mark is read from, and it is the
+    /// same question <c>StepMeta.IsEmpty</c> asks before it writes anything to the file.
+    /// </summary>
+    public bool TunedStep => MetaTimeout.Milliseconds > 0
+        || Whole(MetaRetryCount) > 0
+        || MetaDelayBefore.Milliseconds > 0
+        || MetaDelayAfter.Milliseconds > 0
+        || !Picked(MetaOnError, "stop");
 
     /// <summary>How long to wait before each retry, read from the backoff dropdown.</summary>
     [ObservableProperty]
@@ -558,6 +692,8 @@ public partial class AddActionViewModel : ViewModelBase
     public string Description => SelectedDefinition?.LocalDescription
         ?? Strings.Get("Add.SelectHint");
 
+
+
     /// <summary>
     /// Formatting for the preview only. The relaxed encoder keeps Chinese text and the
     /// operators an expression uses (<c>+ ( ) &gt; &amp;</c>) readable instead of writing
@@ -594,6 +730,11 @@ public partial class AddActionViewModel : ViewModelBase
                 return globalProblem;
             }
 
+            if (AwaitsAnUntouchedCondition)
+            {
+                return Strings.Get("Add.NeedCondition");
+            }
+
             return MissingParameters() is { Count: > 0 } missing
                 ? Strings.Format("Add.StillNeeded", string.Join(", ", missing))
                 : string.Empty;
@@ -603,9 +744,23 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>
     /// True when <see cref="ValidationMessage"/> is a problem to fix rather than the empty dialog's
     /// "pick an action first". Only a problem is worth shouting about: a line written in red as
-    /// soon as the dialog opens would report a mistake nobody has had the chance to make.
+    /// soon as the dialog opens would report a mistake nobody has had the chance to make. A
+    /// condition with nothing written in it is the same case: the page already shows the row with a
+    /// word in each box, so the line says what is still to do in the quiet colour.
     /// </summary>
-    public bool ValidationIsProblem => SelectedDefinition is not null && ValidationMessage.Length > 0;
+    public bool ValidationIsProblem => SelectedDefinition is not null
+        && ValidationMessage.Length > 0
+        && !AwaitsAnUntouchedCondition;
+
+    /// <summary>
+    /// True when the one thing missing is a condition nobody has begun. Filled in half is a
+    /// different matter and stays red: there the row itself claims to say something.
+    /// </summary>
+    private bool AwaitsAnUntouchedCondition
+        => MissingParameters().Count == 1
+            && Parameters.Any(parameter => parameter.IsMissing
+                && parameter.Definition.Kind is ActionParameterKind.Condition
+                && parameter.ConditionEditor is { HasInput: false });
 
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
@@ -689,6 +844,7 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         SelectedDefinition = definition;
+
     }
 
     /// <summary>
@@ -803,36 +959,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private bool InputPostsToWindow()
         => Parameter("inputMode")?.CurrentText.Trim().ToLowerInvariant() == "background";
-
-    /// <summary>
-    /// Says under the fields that place a step where their four numbers are counted from, and gives
-    /// that line to the one field of the step that carries it: the search region when the step
-    /// looks in places of its own, otherwise the first of the numbers that say where it reads. The
-    /// same four numbers mean a place on the screen or inside a window's client area depending on
-    /// the origin, and none of that is written in the numbers themselves.
-    /// </summary>
-    private void RefreshOriginNote()
-    {
-        var note = Strings.Format("Add.OriginNote",
-            Strings.Get(Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() switch
-            {
-                "window" => "Add.Origin.Window",
-                _ => "Add.Origin.Screen",
-            }));
-
-        // The line belongs under the field the other numbers are counted from, which is the list
-        // of places when the step has one, and otherwise the corner those numbers name. A step
-        // that presses a key or waits for a moment has numbers too, but none of them is a place.
-        var carrier = Parameters.FirstOrDefault(parameter =>
-                parameter.Definition.Kind is ActionParameterKind.Region)
-            ?? Parameters.FirstOrDefault(parameter =>
-                parameter.Definition.Name is "x" or "startX");
-
-        foreach (var parameter in Parameters)
-        {
-            parameter.BasisNote = ReferenceEquals(parameter, carrier) ? note : string.Empty;
-        }
-    }
 
     /// <summary>
     /// True for an action that holds steps of its own: it is a block in the macro rather than
@@ -1032,7 +1158,6 @@ public partial class AddActionViewModel : ViewModelBase
             MarkCoordinates();
             MarkRegion();
             MarkOffset();
-            MarkColourPoints();
             WireWindowPreview();
 
             if (ReturnsField is { } returns)
@@ -1046,6 +1171,21 @@ public partial class AddActionViewModel : ViewModelBase
             }
 
             SuggestReturnNames();
+
+            foreach (var editor in Parameters.Where(field => field.IsWindowRule))
+            {
+                editor.WindowAboveRule = WindowAbove;
+            }
+
+            // 新的这一步如果还没指定窗口，而落点之上已经指定过，就默认「沿用上一次」。指向而不是
+            // 复制：上面那一步改了窗口，这一串跟着改。
+            if (_isNewStep
+                && _followsWindowAbove
+                && Parameter("window") is { } window
+                && window.CurrentText.Trim().Length == 0)
+            {
+                window.FollowWindowRule();
+            }
         }
 
         BuildRows();
@@ -1317,33 +1457,7 @@ public partial class AddActionViewModel : ViewModelBase
         FillRows(basic, Rows);
         FillRows(fine, AdvancedRows);
 
-        RefreshPattern();
         RefreshPages();
-    }
-
-    /// <summary>
-    /// Reads the pattern back out of the step's own value. The window that picks it hands back the
-    /// whole list, and this is the same list read for the form: numbers, offsets and colours in the
-    /// order the step keeps them, so what is shown and what will run cannot differ.
-    /// </summary>
-    private void RefreshPattern()
-    {
-        PatternPoints.Clear();
-        var number = 1;
-        foreach (var line in ColourPoints())
-        {
-            if (ColourPointRow.From(number, line) is not { } row)
-            {
-                continue;
-            }
-
-            PatternPoints.Add(row);
-            number++;
-        }
-
-        OnPropertyChanged(nameof(HasPatternPoints));
-        OnPropertyChanged(nameof(PatternIsEmpty));
-        OnPropertyChanged(nameof(PatternTitle));
     }
 
     private static void FillRows(IEnumerable<StepParameterViewModel> parameters,
@@ -1351,25 +1465,92 @@ public partial class AddActionViewModel : ViewModelBase
     {
         var laid = parameters.ToList();
         var index = 0;
+        var block = 0;
+        var group = string.Empty;
         while (index < laid.Count)
         {
             var current = laid[index];
-            StepParameterViewModel? second = null;
 
-            if (index + 1 < laid.Count
-                && (current.IsRowPair && laid[index + 1].IsRowPair
-                    || current.IsCoordinate && laid[index + 1].IsCoordinate))
+            // A block opens on the first line that answers it, and takes a number of its own. A
+            // line that answers no block leaves the counter alone, so a form without blocks reads
+            // exactly as it did before blocks existed.
+            var starts = !string.Equals(current.Group, group, StringComparison.Ordinal);
+            if (starts)
+            {
+                group = current.Group;
+                if (group.Length > 0)
+                {
+                    block++;
+                }
+            }
+
+            // The two halves of a position share a line only while they answer the same block:
+            // pairing across a block boundary would hang the second half under the wrong heading.
+            var same = index + 1 < laid.Count
+                && string.Equals(laid[index + 1].Group, current.Group, StringComparison.Ordinal);
+
+            StepParameterViewModel? second = null;
+            var third = (StepParameterViewModel?)null;
+            var fourth = (StepParameterViewModel?)null;
+
+            if (current.IsRegionQuad)
+            {
+                // 一个矩形的四个数站在同一行：左上角、宽、高一格接一格。它们是一句话，拆成两行
+                // 只是把同一件事说两遍。
+                foreach (var next in new[] { 1, 2, 3 })
+                {
+                    if (index + 1 >= laid.Count
+                        || !string.Equals(laid[index + 1].Group, current.Group, StringComparison.Ordinal)
+                        || !laid[index + 1].IsRegionQuad)
+                    {
+                        break;
+                    }
+
+                    var taken = laid[++index];
+                    if (next == 1)
+                    {
+                        second = taken;
+                    }
+                    else if (next == 2)
+                    {
+                        third = taken;
+                    }
+                    else
+                    {
+                        fourth = taken;
+                    }
+                }
+            }
+            else if (same && (current.IsRowPair && laid[index + 1].IsRowPair
+                              || current.IsCoordinate && laid[index + 1].IsCoordinate))
             {
                 second = laid[++index];
             }
 
             // A field that belongs beside the line rather than on one of its own — the switch that
             // takes a mouse step's place from the pointer — rides on this line.
-            var beside = index + 1 < laid.Count && laid[index + 1].IsRowCompanion
+            var beside = fourth is null && index + 1 < laid.Count
+                && string.Equals(laid[index + 1].Group, current.Group, StringComparison.Ordinal)
+                && laid[index + 1].IsRowCompanion
                 ? laid[++index]
                 : null;
 
-            rows.Add(new ParameterRowViewModel(current, second, beside));
+            // 四格行里第三格是宽，第四格是高；普通行里第三格是那个伴随字段。
+            rows.Add(new ParameterRowViewModel(current, second, fourth is null ? beside : third, fourth)
+            {
+                GroupKey = current.Group,
+                GroupIndex = block,
+                IsGroupStart = starts && current.Group.Length > 0,
+            });
+
+            // 条件这一格自带一整块编辑器（"全部成立"、行、树），块头已经把"条件"说过了，
+            // 再挂一行同名的标签就是同一句话说两遍。
+            if (starts && current.Group.Length > 0
+                && current.Definition.Kind is ActionParameterKind.Condition)
+            {
+                current.HidesLabel = true;
+            }
+
             index++;
         }
     }
@@ -1389,6 +1570,7 @@ public partial class AddActionViewModel : ViewModelBase
     private bool PageIsChanged(string key) => key switch
     {
         OtherPage => false,
+        ExecPage => TunedStep,
         // A result nobody ticked is how every step is saved, so it is not a change worth opening
         // the page on; a primary result the catalogue hands over by default counts the same.
         ReturnsPage => ReturnsRows.Any(row => row.Ticked),
@@ -1405,12 +1587,11 @@ public partial class AddActionViewModel : ViewModelBase
         foreach (var page in Pages)
         {
             // The page of step settings is about the step rather than about the action, so it is
-            // there whatever the action is; the three that hold an action's fields are not.
+            // there whatever the action is; the pages that hold an action's fields are not.
             var rows = RowsOf(page.Key);
-            page.IsPresent = page.Key == OtherPage
-                || page.Key == ReturnsPage && ReturnsRows.Count > 0
+            page.IsPresent = page.Key is OtherPage or ExecPage
                 || rows.Any(row => row.IsApplicable);
-            page.HasDot = page.Key is AdvancedPage or ReturnsPage && PageIsChanged(page.Key);
+            page.HasDot = page.Key is AdvancedPage or ReturnsPage or ExecPage && PageIsChanged(page.Key);
         }
 
         // A page can empty out while it is the one open — the questions about which hit to take
@@ -1514,14 +1695,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// interruption in the middle of those. The pattern has no line of its own: the picker writes it
     /// and this list shows it.
     /// </summary>
-    private void MarkColourPoints()
-    {
-        if (Parameter("tolerance") is { } tolerance && SelectedDefinition?.Key == "vision.findColors")
-        {
-            tolerance.IsColourPointsAnchor = true;
-        }
-    }
-
     /// <summary>
     /// Writes where a click should land, counted from the middle of the picture the step looks for:
     /// what the point picked on that picture comes to.
@@ -1539,15 +1712,49 @@ public partial class AddActionViewModel : ViewModelBase
     /// the form to keep in step by hand.
     /// </summary>
     public void SetColourPoints(IReadOnlyList<string> entries)
-        => Parameter("points")?.Text = string.Join(Environment.NewLine, entries);
+    {
+        if (Parameter("points") is not { } points)
+        {
+            return;
+        }
+
+        // The picker hands back the whole pattern, so what it returns is what the step keeps: the
+        // rows it was given, changed as they were changed there.
+        foreach (var row in points.ColourPointRows.ToList())
+        {
+            points.RemoveColourPoint(row);
+        }
+
+        foreach (var entry in entries)
+        {
+            // 一条偏移点写三段（偏移、偏移、颜色），也可以带上表里的另外两列：不能是、单点容差。
+            // 这两列由表格编辑，拾取窗口原样带回来，所以在这里读回它们而不是丢掉。
+            var parts = ColourPointText.Split(entry);
+            if (parts.Count < 3
+                || parts[0].Trim().Length == 0
+                || parts[1].Trim().Length == 0
+                || parts[2].Trim().Length == 0)
+            {
+                continue;
+            }
+
+            var mustNot = parts.Count > 3 && parts[3].Trim() is "1" or "true";
+            var tolerance = parts.Count > 4 ? parts[4].Trim() : string.Empty;
+            points.AddColourPoint(
+                new ColourPointRowViewModel(parts[0], parts[1], parts[2], tolerance, mustNot));
+        }
+    }
 
     /// <summary>
-    /// The pattern as the step holds it now, one line each: what the picker starts from.
+    /// The pattern as the step holds it now, one line each: what the picker starts from. The step
+    /// keeps it as rows, so the lines are written from those rather than read back out of a field.
     /// </summary>
     public IReadOnlyList<string> ColourPoints()
-        => [.. (Parameter("points")?.Text ?? string.Empty)
-            .Split([';', '\n', '\r'],
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+        => [.. (Parameter("points")?.ColourPointRows ?? [])
+            .Select(row => row.MustNot || row.Tolerance.Trim().Length > 0
+                ? string.Join(',', row.Dx.Trim(), row.Dy.Trim(), row.Colour.Trim(),
+                    row.MustNot ? "1" : string.Empty, row.Tolerance.Trim())
+                : $"{row.Dx.Trim()},{row.Dy.Trim()},{row.Colour.Trim()}")];
 
     /// <summary>
     /// Notes the parameters that name a rectangle, so one button can take all of them from a drag
@@ -1558,15 +1765,29 @@ public partial class AddActionViewModel : ViewModelBase
     {
         // Which field owns the region button is a fact of the action catalogue: the picker fills
         // the corner and the size together, or the one field that holds the whole rectangle.
+        // 一个列表（搜索区域）不给顶上的按钮：它的每一行都有自己的「框选区域」，顶上再放一个
+        // 只是把"加一处"说两遍。这里只认"四个数字 + 一个框选"那一种动作。
         var anchor = Parameters.FirstOrDefault(parameter =>
-                         parameter.Definition.Picker is ActionPickerKind.Region
-                         && parameter.Definition.Kind is not ActionParameterKind.Region)
-                     ?? Parameters.FirstOrDefault(parameter =>
-                         parameter.Definition.Picker is ActionPickerKind.Region);
+            parameter.Definition.Picker is ActionPickerKind.Region
+            && parameter.Definition.Kind is not ActionParameterKind.Region);
 
         if (anchor is not null)
         {
             anchor.IsRegionAnchor = true;
+        }
+
+        // 一个矩形的四个数是一句话：左上角在哪、伸出去多远。原来它们两两一行，四格分两行，
+        // 每格底下还各带一段说明，四个数占掉一整屏。压成一行，与"搜索区域"那一行同一个样子。
+        if (Parameter("x") is { IsNumber: true } left
+            && left.Definition.Picker is ActionPickerKind.Region)
+        {
+            foreach (var name in new[] { "x", "y", FieldNames.Width, FieldNames.Height })
+            {
+                if (Parameter(name) is { IsNumber: true } cell)
+                {
+                    cell.IsRegionQuad = true;
+                }
+            }
         }
 
         // How far a rectangle reaches is one thing said in two numbers, so the two read better side
@@ -1855,8 +2076,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private void RefreshGates()
     {
-        RefreshOriginNote();
-
         var rows = 0;
         foreach (var editor in Parameters)
         {
@@ -1981,13 +2200,6 @@ public partial class AddActionViewModel : ViewModelBase
     {
         KeepPlaceAndNumbersApart(sender, e);
 
-        // The pattern is one value written by a window, so the list shown for it follows that value
-        // rather than a copy of its own.
-        if (sender is StepParameterViewModel { Definition.Name: "points" })
-        {
-            RefreshPattern();
-        }
-
         if (sender is StepParameterViewModel changed
             && changed.Definition.Name is "name" or "scope")
         {
@@ -2049,6 +2261,25 @@ public partial class AddActionViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(JsonPreview));
         OnPropertyChanged(nameof(RetryPlan));
+        OnPropertyChanged(nameof(TunedStep));
+    }
+
+    /// <summary>Whether one of the failure rules is the one in force.</summary>
+    private static bool Picked(ActionParameterOption? choice, string value)
+        => string.Equals(choice?.Value, value, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Takes a card's tick as the rule. A card that was unticked because another was picked says
+    /// nothing: only the one that became true changes the rule.
+    /// </summary>
+    private void PickError(bool ticked, string value)
+    {
+        if (!ticked)
+        {
+            return;
+        }
+
+        MetaOnError = ErrorChoices.FirstOrDefault(choice => Picked(choice, value)) ?? MetaOnError;
     }
 
     private List<string> MissingParameters()

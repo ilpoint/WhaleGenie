@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 
@@ -496,6 +497,26 @@ public class ActionContractTests
     /// that works on a rectangle says Rect, and no action still carries the switch that used to
     /// choose between the two.
     /// </summary>
+    /// <summary>
+    /// 每一张「还要像什么样」都要说清问的是哪一族：说不清时编辑器摆不出选项，说不认识的族时
+    /// 也摆不出。这两个都当场报出来，不留到运行时。
+    /// </summary>
+    [Fact]
+    public void Every_narrow_list_says_which_family_it_asks_about()
+    {
+        var narrowing = ActionCatalog.Definitions
+            .SelectMany(action => action.Parameters)
+            .Where(parameter => parameter.Kind is ActionParameterKind.Narrow)
+            .ToList();
+
+        Assert.NotEmpty(narrowing);
+        foreach (var parameter in narrowing)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(parameter.Semantics.NarrowOn), parameter.Name);
+            Assert.NotEmpty(NarrowWay.For(parameter.NarrowFamily));
+        }
+    }
+
     [Fact]
     public void A_place_or_a_rectangle_is_declared_as_one_shape()
     {
@@ -522,7 +543,6 @@ public class ActionContractTests
             ("input.mouseDrag", "startPlace", ActionValueShape.Point),
             ("input.mouseDrag", "endPlace", ActionValueShape.Point),
             ("vision.capture", "rect", ActionValueShape.Rect),
-            ("ocr.recognize", "rect", ActionValueShape.Rect),
             ("window.move", "rect", ActionValueShape.Rect),
         ];
 
@@ -681,7 +701,7 @@ public class ActionContractTests
             "clipboard.copy", "clipboard.paste",
             "ocr.clickText",
             "uia.click",
-            "vision.clickImage", "vision.clickDetect",
+            "vision.clickImage", "vision.clickDetect", "vision.clickColor",
         ];
 
         foreach (var key in sending)
@@ -786,6 +806,7 @@ public class ActionContractTests
             ["narrow"] = ["how", "value"],
             ["images"] = ["image"],
             ["keySequence"] = ["keys", "holdMs", "gapMs"],
+            ["points"] = ["dx", "dy", "colour", "mustNot", "tolerance"],
         };
 
         foreach (var action in ActionSemanticsCatalog.All)
@@ -838,6 +859,7 @@ public class ActionContractTests
         ActionParameterKind.Region or ActionParameterKind.KeySequence
             or ActionParameterKind.Images or ActionParameterKind.Returns
             or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+            or ActionParameterKind.ColourPoints
             => ActionValueShape.Rows,
         ActionParameterKind.Image => ActionValueShape.Image,
         ActionParameterKind.Record => ActionValueShape.Record,

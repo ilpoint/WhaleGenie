@@ -349,8 +349,12 @@ public class RegionPickerTests
         });
     }
 
+    /// <summary>
+    /// 拉过对边时矩形翻个面，而不是缩成一条线：手滑把右边拖到左边去时，要的还是那一块地方，
+    /// 一条 4 像素的竖线既不是想要的，也没法再按住 F1 交出去。
+    /// </summary>
     [Fact]
-    public void A_side_pulled_past_the_opposite_one_leaves_the_least_rectangle()
+    public void A_side_pulled_past_the_opposite_one_turns_the_rectangle_over()
     {
         Ui.Run(() =>
         {
@@ -362,7 +366,28 @@ public class RegionPickerTests
             window.MouseUp(new Point(5, 40), MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal(new RegionPickerWindow.Region(10, 20, 4, 40), window.Picked);
+            // 左边留在原处（10），右边被拖到 5，交换之后就是 5 到 10。
+            Assert.Equal(new RegionPickerWindow.Region(5, 20, 5, 40), window.Picked);
+        });
+    }
+
+    /// <summary>
+    /// 框外三像素以内按下去还是拉边角，再往外就是另画一个：想紧挨着旧框重新框一块时，
+    /// 不会先抓住旧框的边角把它拉坏。
+    /// </summary>
+    [Fact]
+    public void A_press_beside_the_rectangle_starts_a_new_one_instead_of_pulling_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = Dragged();
+
+            window.MouseDown(new Point(46, 70), MouseButton.Left);
+            window.MouseMove(new Point(70, 90));
+            window.MouseUp(new Point(70, 90), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(46, 70, 24, 20), window.Picked);
         });
     }
 

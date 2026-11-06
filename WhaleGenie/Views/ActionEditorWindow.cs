@@ -81,12 +81,17 @@ public class ActionEditorWindow : AppWindow
     public ActionEditorWindow(MacroStep? existing, IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
-        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
+        IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
+        string? windowAbove = null)
     {
         Title = Strings.Get("Editor.ActionEditor");
-        Width = 1024;
+
+        // 默认就按最窄那一档打开：这是一张填字段的表，不是一块要摆开的画布。宽出来的部分
+        // 只是让每一行更长、眼睛要走更远，信息并没有变多；需要看清长文字时再自己拉宽。
+        Width = DialogSize.WantedWidth;
         Height = 800;
-        MinWidth = 800;
+        MinWidth = DialogSize.SmallestWidth;
         MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ThemeBrush.Assign(this, BackgroundProperty, "SurfaceWindow");
@@ -98,7 +103,7 @@ public class ActionEditorWindow : AppWindow
         TitleBar.Height = 40;
 
         _view = new ActionEditorView(existing, actions, variables, macros, presetKey, assetFolder,
-            steps, newStepId);
+            steps, newStepId, windowRules, followsWindowAbove, windowAbove);
         Content = WithTitleBar(_view);
         DataContext = _view.DataContext;
         _view.Finished += CloseWith;
@@ -220,6 +225,13 @@ public class ActionEditorWindow : AppWindow
     {
         get => _view.PlaceStep;
         set => _view.PlaceStep = value;
+    }
+
+    /// <summary>Where the form asks for a step name nothing in the macro is using yet.</summary>
+    internal Func<ISet<string>, string>? NextStepId
+    {
+        get => _view.NextStepId;
+        set => _view.NextStepId = value;
     }
 
     internal Action<MacroStep>? LookAtStep

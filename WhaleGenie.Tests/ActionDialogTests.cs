@@ -4,9 +4,11 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
@@ -103,6 +105,41 @@ public class ActionDialogTests
     /// The same dialog, window and all, for a check that looks at what the form draws rather than
     /// only at what the view model holds.
     /// </summary>
+    /// <summary>
+    /// 表单开在一个新步骤前，可选用"落点之上已经有窗口"这一条件：动作对话框因此会把窗口格默认成
+    /// 「沿用上一次」。
+    /// </summary>
+    private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(
+        string key, bool followsWindowAbove)
+        => OpenWindow(key, WindowRuleChoices.Of([StepOnNotepad()]), followsWindowAbove,
+            followsWindowAbove ? NotepadRule : null);
+
+    private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(
+        string key, IReadOnlyList<WindowRuleChoice> used, bool followsWindowAbove = false,
+        string? windowAbove = null)
+    {
+        // 新步骤有自己的名字，编辑器在真实的流程里也是这么给的：有了它，这一步才算"正在写的"，
+        // 窗口格才会默认沿用上面那个窗口。
+        var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
+            VariableChoicesForChecks.Named("match.x", "match.y", "spot"), [],
+            newStepId: followsWindowAbove ? "new01" : null, windowRules: used,
+            followsWindowAbove: followsWindowAbove, windowAbove: windowAbove);
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewModel = (AddActionViewModel)window.DataContext!;
+        viewModel.SelectAction(key);
+        Dispatcher.UIThread.RunJobs();
+        return (window, viewModel);
+    }
+
+    /// <summary>记事本那条规则的原文，测试里反复要用。</summary>
+    private static string NotepadRule => new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+
+    /// <summary>一步指着记事本的窗口，这样表单就有"上面已经用过的窗口"可列、可沿用。</summary>
+    private static MacroStep StepOnNotepad() => OnWindow(NotepadRule, "prev");
+
     private static (ActionEditorWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
     {
         var window = new ActionEditorWindow(null, ActionCatalog.Definitions,
@@ -301,7 +338,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            foreach (var key in new[] { "vision.capture", "ocr.recognize" })
+            foreach (var key in new[] { "vision.capture" })
             {
                 var viewModel = Open(key);
 
@@ -340,12 +377,12 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// Two boxes that look exactly alike are read very differently: one holds a whole value that is
-    /// worked out while the macro runs, the other holds text with the names in it replaced. The
-    /// form says which is which beside the label, and says it again in the line under the box.
+    /// 两个框长得一样，读法却不同：一个整格是一个在运行时才算出来的值，另一个是带 $名字 的文字。
+    /// 区别写在标签左边那一个小标记上：ƒ 认算式，$ 认变量名，各自的含义在悬停里。框下面那行只说
+    /// 这一格自己的事——同一句话每格复述一遍，真正属于这一格的话就被埋了。
     /// </summary>
     [Fact]
-    public void A_box_that_is_read_as_one_value_carries_the_formula_mark()
+    public void A_box_says_how_it_is_read_by_a_mark_beside_its_label()
     {
         Ui.Run(() =>
         {
@@ -353,27 +390,49 @@ public class ActionDialogTests
             var looked = viewModel.Parameters.First(parameter => parameter.Definition.Name == "queryText");
 
             Assert.True(looked.TakesFormula);
-            Assert.StartsWith(Strings.Get("Add.FieldTakesFormula"), looked.Hint);
+            Assert.DoesNotContain(Strings.Get("Add.FieldTakesFormula"), looked.Hint,
+                StringComparison.Ordinal);
 
-            var marked = window.GetVisualDescendants().OfType<TextBlock>()
-                .Where(block => block.IsEffectivelyVisible && block.Text == "ƒ")
-                .Select(block => (StepParameterViewModel)block.DataContext!)
-                .ToList();
+            var marked = Marks(window, LucideIconKind.SquareFunction);
 
-            Assert.Contains(looked, marked);
-            Assert.All(marked, field => Assert.True(field.TakesFormula));
+            Assert.Contains(looked, marked.Select(mark => mark.Field));
+            Assert.All(marked, mark => Assert.True(mark.Field.TakesFormula));
 
-            // Text with the names in it replaced is not that, and says so instead.
+            // 标记自己把那句话带在悬停里，读的人想知道的时候才看得见。
+            var own = marked.First(mark => ReferenceEquals(mark.Field, looked));
+            Assert.Equal(Strings.Get("Add.FieldTakesFormula"), ToolTip.GetTip(own.Icon));
+
+            // 带 $名字 的文字不是那一种：它的左边是 $，说的也是另一句话。
             var (plainWindow, plain) = OpenWindow("file.listFiles");
             var pattern = plain.Parameters.First(parameter => parameter.Definition.Name == "pattern");
 
             Assert.False(pattern.TakesFormula);
-            Assert.StartsWith(Strings.Get("Add.FieldIsText"), pattern.Hint);
-            Assert.DoesNotContain(pattern, plainWindow.GetVisualDescendants().OfType<TextBlock>()
-                .Where(block => block.IsEffectivelyVisible && block.Text == "ƒ")
-                .Select(block => (StepParameterViewModel)block.DataContext!));
+            Assert.True(pattern.ShowsVariableMark);
+            Assert.DoesNotContain(Strings.Get("Add.FieldIsText"), pattern.Hint,
+                StringComparison.Ordinal);
+
+            var dollars = Marks(plainWindow, LucideIconKind.Variable);
+
+            Assert.Contains(dollars, mark => ReferenceEquals(mark.Field, pattern));
+            Assert.All(dollars, mark => Assert.True(mark.Field.ShowsVariableMark));
+            Assert.Equal(Strings.Get("Add.FieldIsText"),
+                ToolTip.GetTip(dollars.First(mark => ReferenceEquals(mark.Field, pattern)).Icon));
+
+            Assert.DoesNotContain(pattern, Marks(plainWindow, LucideIconKind.SquareFunction)
+                .Select(mark => mark.Field));
         });
     }
+
+    /// <summary>
+    /// 标签左边的标记：哪一种图标的标记，各自挂在哪一格的模型上。
+    /// </summary>
+    private static List<(IconView Icon, StepParameterViewModel Field)> Marks(
+        ActionEditorWindow window, LucideIconKind kind)
+        => [.. window.GetVisualDescendants().OfType<IconView>()
+            .Where(icon => icon.IsEffectivelyVisible && icon.Data == kind)
+            .Select(icon => (icon, icon.DataContext as StepParameterViewModel))
+            .Where(pair => pair.Item2 is not null)
+            .Select(pair => (pair.icon, pair.Item2!))];
 
     /// <summary>
     /// What an empty number box means depends on the field, and the box cannot say it: a side of a
@@ -427,38 +486,31 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// The same four numbers say a place on the screen, a place inside a window or a place inside a
-    /// control depending on what the step counts them from, so the page says which one it is — once
-    /// for the step, under the corner the numbers are counted from.
+    /// 同一组数字，按识别基准的不同，说的是屏幕上的位置、窗口客户区里的位置，所以这一页必须说清
+    /// 是哪一种。这句话现在并进了「在哪个范围里找」这一块的说明，不再在表格下面单占一行：一句话
+    /// 本来就在回答这个块的问题，跟着块走比另起一行更省地方，也不会在每处矩形的下面重复。
     /// </summary>
     [Fact]
-    public void The_numbers_that_place_a_step_say_what_they_are_counted_from()
+    public void The_basis_the_numbers_are_counted_from_is_said_by_the_area_block()
     {
         Ui.Run(() =>
         {
-            var capture = Open("vision.capture");
-            var x = capture.Parameters.First(parameter => parameter.Definition.Name == "x");
-            var y = capture.Parameters.First(parameter => parameter.Definition.Name == "y");
-            var width = capture.Parameters.First(parameter => parameter.Definition.Name == "width");
+            foreach (var (key, block) in new[]
+                     {
+                         ("vision.findImage", "area"),
+                         ("ocr.recognize", "area"),
+                         ("vision.capture", "capture"),
+                         ("vision.captureWindow", "capture"),
+                     })
+            {
+                var row = Open(key).Rows.FirstOrDefault(line => line.GroupKey == block);
+                Assert.NotNull(row);
+                Assert.Contains("左上角", row.GroupHint);
+            }
 
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Screen")),
-                x.BasisNote);
-            Assert.Equal(string.Empty, y.BasisNote);
-            Assert.Equal(string.Empty, width.BasisNote);
-
-            // The line follows the origin the moment it is changed.
-            Choose(capture, "anchorMode", "window");
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Window")),
-                x.BasisNote);
-
-            // A step that looks in places of its own says it under the list of places.
-            var find = Open("vision.findImage");
-            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Screen")),
-                find.Parameters.First(parameter => parameter.Definition.Name == "region").BasisNote);
-
-            // And a step that reads nothing off the screen has no such line at all.
-            Assert.All(Open("input.keyPress").Parameters,
-                parameter => Assert.Equal(string.Empty, parameter.BasisNote));
+            // 一个不读屏的步骤没有这一块，自然也没有这句话。
+            Assert.DoesNotContain(Open("input.keyPress").Rows,
+                row => row.GroupKey == "area");
         });
     }
 
@@ -643,16 +695,15 @@ public class ActionDialogTests
 
             Assert.True(viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "color").IsColor);
-            var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            Assert.True(x.IsNumber);
-            Assert.True(viewModel.Rows.First(row => ReferenceEquals(row.First, x)).IsPointAnchor);
-            var place = viewModel.Parameters.First(parameter => parameter.Definition.Name == "place");
-            Assert.True(place.OffersVariables);
+            // 找色只管在区域里找：点位与坐标是「比色」的事，不在这里。
+            Assert.DoesNotContain(viewModel.Parameters,
+                parameter => parameter.Definition.Name is "x" or "y" or "place");
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["found", "match", "every", "coverage", "window", "method", "screenPoint",
-                "windowPoint"],
+            // 来源窗口与取画面方式不列：它们是这一步怎么取到画面的，宏拿着没有用处，
+            // 每行都要看一眼的列表里多两行只为说这个，不值。
+            Assert.Equal(["found", "match", "every", "coverage", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
@@ -669,7 +720,9 @@ public class ActionDialogTests
         {
             var order = Open("vision.findColor").Parameters
                 .First(parameter => parameter.Definition.Name == "orderBy");
-            Assert.Equal(["reading", "score", "random"], order.Definition.Options);
+            // 颜色只有四向搜索的四种数法：两个方向各两个起点，面积对一像素的命中没有意义。
+            Assert.Equal(["reading", "readingBack", "readingUp", "readingBackUp"],
+                order.Definition.Options);
 
             var picture = Open("vision.findImage").Parameters
                 .First(parameter => parameter.Definition.Name == "orderBy");
@@ -685,7 +738,7 @@ public class ActionDialogTests
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal(["found", "match", "every", "window", "method", "screenPoint", "windowPoint"],
+            Assert.Equal(["found", "match", "every", "screenPoint", "windowPoint"],
                 viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
@@ -792,7 +845,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_block_condition_is_an_expression_field()
+    public void A_block_condition_is_edited_as_rows_over_one_expression()
     {
         Ui.Run(() =>
         {
@@ -800,9 +853,11 @@ public class ActionDialogTests
             var expression = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "condition");
 
-            // The field is the one with live checking and suggestions, not a plain text box.
-            Assert.True(expression.IsExpression);
-            Assert.Contains("$found", expression.Placeholder);
+            // The condition has an editor of its own: rows over the same expression, with the
+            // macro's names and the language's functions offered in each side.
+            Assert.True(expression.IsCondition);
+            Assert.False(expression.IsExpression);
+            Assert.NotNull(expression.ConditionEditor);
             Assert.Contains("$spot", expression.ExpressionSuggestions);
             Assert.Contains("contains(", expression.ExpressionSuggestions);
         });
@@ -890,6 +945,46 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_value_field_does_not_open_every_variable_when_it_is_clicked()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = OpenWindow("control.switch");
+            var value = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "switchValue");
+            Dispatcher.UIThread.RunJobs();
+
+            // The box that actually edits the operand: the same parameter also carries a hidden
+            // one, and picking by DataContext alone finds whichever came first in the template.
+            var picker = window.GetVisualDescendants().OfType<AutoCompleteBox>()
+                .First(box => box.IsEffectivelyVisible && ReferenceEquals(box.DataContext, value));
+            var at = picker.TranslatePoint(
+                new Point(picker.Bounds.Width / 2, picker.Bounds.Height / 2), window)!.Value;
+
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left,
+                Avalonia.Input.RawInputModifiers.LeftMouseButton);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            // Clicking a field is how one starts typing into it. Opening the list there covers the
+            // form with every name the macro knows, over the very field that was clicked — the
+            // names are offered while typing, and the button beside the box opens the whole list
+            // for anyone who would rather pick than remember.
+            Assert.False(picker.IsDropDownOpen);
+
+            value.Text = "count";
+            Dispatcher.UIThread.RunJobs();
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left,
+                Avalonia.Input.RawInputModifiers.LeftMouseButton);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(picker.IsDropDownOpen);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    [Fact]
     public void A_variable_calculation_is_one_expression()
     {
         Ui.Run(() =>
@@ -946,7 +1041,7 @@ public class ActionDialogTests
             var test = Open("control.if");
             var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
 
-            Assert.True(condition.IsExpression);
+            Assert.True(condition.IsCondition);
             Assert.Null(condition.List);
         });
     }
@@ -1032,7 +1127,276 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// The switch that takes the place from the pointer stands on the line of the button it belongs
+    /// 桌面元素也能说「还要像什么样」，用的是与网页同一张行表，只是能问的事不一样：看不看得见、
+    /// 能不能用、名字里有没有一段字。网页那两颗「从页面选取」「看看效果」在桌面元素这一族不画，
+    /// 因为没有页面可以看。
+    /// </summary>
+    [Fact]
+    public void A_desktop_element_can_say_what_else_it_has_to_be_like()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("uia.click");
+            var narrow = Field(viewModel, "narrow")!;
+
+            Assert.True(narrow.IsNarrow);
+            Assert.Equal(NarrowFamily.Element, narrow.Definition.NarrowFamily);
+            Assert.Empty(narrow.NarrowRows);
+            Assert.False(narrow.IsIncluded);
+
+            narrow.AddNarrowRow();
+            var row = Assert.Single(narrow.NarrowRows);
+
+            Assert.False(row.OnPage);
+            Assert.Equal(
+                ["Visible", "Enabled", "NameHas", "NameHasNot"],
+                row.Choices.Select(choice => choice.Value));
+
+            // 看得见与能用都不需要再填一段字，名字那两条才要。
+            Assert.False(row.NeedsValue);
+            Assert.Equal([new NarrowCondition("Visible", string.Empty)], narrow.Conditions());
+
+            row.Way = row.Choices[2];
+            row.Value = "保存";
+            Assert.True(row.NeedsValue);
+            Assert.Equal([new NarrowCondition("NameHas", "保存")], narrow.Conditions());
+
+            var written = Assert.Single(narrow.ToStepParameter().Rows);
+            Assert.Equal("NameHas", written.Text("how"));
+            Assert.Equal("保存", written.Text("value"));
+        });
+    }
+
+    /// <summary>
+    /// 识别文字的"搜索范围"与找色、找字那几个动作是同一个结构：一处一行，四个数、或者一个变量，
+    /// 行末可以删掉，下面可以再加一处。从前它是四个独立数字，与别处对不上，也没有"再找一处"。
+    /// </summary>
+    [Fact]
+    public void The_search_region_of_a_reading_step_is_a_list_of_places()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var region = Field(viewModel, "region")!;
+
+            Assert.True(region.IsRegion);
+            Assert.Empty(region.Regions);
+            Assert.DoesNotContain(viewModel.Rows, line => line.IsQuad);
+
+            // 一处：四个数，或者一个变量说出了整块矩形。
+            region.AddRegion(new RegionRowViewModel());
+            Assert.Single(region.Regions);
+            Assert.True(region.HasRegions);
+
+            region.Regions[0].OrVariable = "$shot";
+            Assert.Equal("$shot", region.Regions[0].OrVariable);
+        });
+    }
+
+    /// <summary>
+    /// 一个矩形的四个数站在同一行：左上角、宽、高。原来两两一行，每个数字底下还各带一段说明，
+    /// 四个数占掉一整屏；现在与"搜索区域"那一行同一个样子，短名、框、ƒ，说明在提示里。
+    /// 格子里写的东西要真的回到步骤的参数上，反过来也一样。
+    /// </summary>
+    [Fact]
+    public void The_four_numbers_of_a_rectangle_share_one_line()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.capture");
+
+            var row = Assert.Single(viewModel.Rows, line => line.IsQuad);
+            Assert.Equal(["x", "y", "width", "height"],
+                new[] { row.First, row.Second!, row.Third!, row.Fourth! }
+                    .Select(parameter => parameter.Definition.Name));
+            Assert.Equal(4, row.QuadCells.Count);
+            Assert.Equal(["X", "Y",
+                    Strings.Get("Add.RegionWidthShort"), Strings.Get("Add.RegionHeightShort")],
+                row.QuadCells.Select(cell => cell.ShortLabel));
+
+            // 格子里写一个数，参数跟着变；参数改了，格子也跟着变。
+            row.QuadCells[0].Write("120");
+            Assert.Equal("120", row.First.CurrentText);
+            Assert.Same(row.First, Field(viewModel, "x"));
+
+            Field(viewModel, "width")!.SetNumber(80);
+            Assert.Equal("80", row.QuadCells[2].Text);
+        });
+    }
+
+    /// <summary>
+    /// 窗口那一格说得清自己现在是哪一种：没选就是前台窗口，选了「沿用上一次」就把这句话写出来，
+    /// 而不是显示一串没有标题的括号。
+    /// </summary>
+    [Fact]
+    public void A_window_field_says_which_window_it_stands_for()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            var window = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
+
+            Assert.False(window.HasWindowRule);
+            Assert.False(window.IsFollowingWindow);
+            Assert.Equal(Strings.Get("WindowRule.NotSet"), window.WindowRuleSummary);
+
+            window.FollowWindowRule();
+            Assert.True(window.IsFollowingWindow);
+            Assert.Equal(Strings.Get("WindowRule.Following"), window.WindowRuleSummary);
+            Assert.Equal(WindowRule.FollowPrevious.ToJson().ToJsonString(), window.CurrentText);
+
+            window.ApplyWindowRule(new WindowRule(Title: "Notepad"));
+            Assert.False(window.IsFollowingWindow);
+            Assert.Contains("Notepad", window.WindowRuleSummary, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// 落点之上已经有人指定过窗口时，新写的这一步默认就跟着它走：在同一个窗口里做十件事，前面九次
+    /// 不必各自再绑一遍。上面一个窗口都没提过时不替人做这个决定，空着就是前台窗口。
+    /// </summary>
+    [Fact]
+    public void A_new_step_starts_on_the_window_the_steps_above_it_use()
+    {
+        Ui.Run(() =>
+        {
+            var (_, following) = OpenWindow("vision.findImage", followsWindowAbove: true);
+            var window = following.Parameters.First(parameter => parameter.Definition.Name == "window");
+
+            Assert.True(window.IsFollowingWindow);
+            Assert.Single(following.WindowRules);
+            Assert.Contains("Notepad", following.WindowRules[0].Summary, StringComparison.Ordinal);
+
+            // 摘要说得出它现在会跟到哪个窗口，而不是只说一句"沿用上一次"。
+            Assert.Contains("Notepad", window.WindowRuleSummary, StringComparison.Ordinal);
+
+            var (_, plain) = OpenWindow("vision.findImage");
+            var empty = plain.Parameters.First(parameter => parameter.Definition.Name == "window");
+            Assert.False(empty.HasWindowRule);
+            Assert.False(empty.IsFollowingWindow);
+        });
+    }
+
+    /// <summary>
+    /// 表单拿到的"本宏用过的窗口"就是窗口菜单里列出来的那几条：摘要、原文、用了几处，同一条规则
+    /// 只列一次。
+    /// </summary>
+    [Fact]
+    public void The_window_menu_lists_what_the_macro_already_uses()
+    {
+        Ui.Run(() =>
+        {
+            var notepad = new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+            var calc = new WindowRule(Title: "Calculator").ToJson().ToJsonString();
+            var steps = new List<MacroStep>
+            {
+                OnWindow(notepad),
+                OnWindow(calc),
+                OnWindow(notepad),
+            };
+
+            var used = WindowRuleChoices.Of(steps);
+
+            Assert.Equal(2, used.Count);
+            Assert.Equal(2, used[0].Count);
+            Assert.Equal(1, used[1].Count);
+            Assert.Equal(notepad, used[0].Rule);
+            Assert.Contains("Notepad", used[0].Summary, StringComparison.Ordinal);
+
+            var (_, viewModel) = OpenWindow("vision.findImage", used);
+            Assert.Equal(2, viewModel.WindowRules.Count);
+        });
+    }
+
+    /// <summary>
+    /// 选窗口那颗按钮打开的就是这张菜单：勾在现在这一种上，列出本宏用过的窗口与此刻打开着的窗口，
+    /// 点一条就把那段规则写进这一格。不必再按 F1 对准窗口点一下。
+    /// </summary>
+    [Fact]
+    public void The_window_menu_offers_what_the_macro_and_the_desk_have()
+    {
+        Ui.Run(() =>
+        {
+            var notepad = new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+            var (window, viewModel) = OpenWindow("vision.findImage",
+                WindowRuleChoices.Of([OnWindow(notepad)]), followsWindowAbove: true);
+
+            var view = window.GetVisualDescendants().OfType<ActionEditorView>().First();
+            view.Devices = new ChecksDevices
+            {
+                Windows = new WindowsForChecks().Add(7, "Calculator", "calc", "CalcFrame"),
+            };
+
+            // 窗口那一格只在「识别方式 = 窗口」时露面，这也是它对这一步的含义。
+            Choose(viewModel, "anchorMode", "window");
+            Dispatcher.UIThread.RunJobs();
+
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
+            Assert.Contains(window.GetVisualDescendants().OfType<Button>(),
+                button => button.IsEffectivelyVisible
+                    && button.DataContext == field
+                    && button.Content as string == Strings.Get("WindowRule.Choose"));
+
+            var menu = view.BuildWindowMenu(field);
+            var items = menu.Items.OfType<MenuItem>().ToList();
+
+            Assert.Contains(items, item => (string?)item.Header == Strings.Get("WindowRule.Menu.Foreground"));
+            Assert.Contains(items, item => (string?)item.Header == Strings.Get("WindowRule.Following")
+                && item.IsChecked);
+
+            var used = items.First(item => (string?)item.Header == Strings.Get("WindowRule.Menu.Used"));
+            Assert.Single(used.Items.OfType<MenuItem>());
+
+            var open = items.First(item => (string?)item.Header == Strings.Get("WindowRule.Menu.Open"));
+            var row = Assert.Single(open.Items.OfType<MenuItem>());
+            Assert.Contains("Calculator", (string)row.Header!, StringComparison.Ordinal);
+
+            // 点一条就写进这一格：整条规则连程序名一起，改天标题变了也还能找回同一个窗口。
+            row.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.False(field.IsFollowingWindow);
+            Assert.True(WindowRule.TryParse(field.CurrentText, out var applied));
+            Assert.Equal("Calculator", applied.Title);
+            Assert.Equal("calc", applied.Process);
+        });
+    }
+
+    /// <summary>
+    /// 新步骤跟着走的是"落点之上最近那一步"用的窗口：选中第二步时跟第一步，什么都没选（放在末尾）
+    /// 时跟最后一步。判的是顺序，不是记住的上一个，所以插在中间得到的也是它上面那一条。
+    /// </summary>
+    [Fact]
+    public void The_window_a_new_step_follows_is_the_last_one_above_the_landing_point()
+    {
+        var notepad = new WindowRule(Title: "Notepad").ToJson().ToJsonString();
+        var calc = new WindowRule(Title: "Calculator").ToJson().ToJsonString();
+        var steps = new List<MacroStep>
+        {
+            OnWindow(notepad, "first"),
+            OnWindow(calc, "second"),
+        };
+
+        Assert.Equal(notepad, WindowRuleChoices.NearestAbove(steps, "second"));
+        Assert.Equal(calc, WindowRuleChoices.NearestAbove(steps, null));
+        Assert.Equal(string.Empty, WindowRuleChoices.NearestAbove([OnWindow(string.Empty)], null));
+    }
+
+    private static MacroStep OnWindow(string rule, string id = "") => new()
+    {
+        Id = id,
+        Type = "vision.findImage",
+        Parameters =
+        [
+            new StepParameter
+            {
+                Name = "window",
+                Kind = ActionParameterKind.WindowRule,
+                Value = rule,
+            },
+        ],
+    };
+
+    /// <summary>
+    /// The switch that takes the place from the pointer stands on the line of the numbers it belongs
     /// to rather than taking a line of its own, and with it on the pair of numbers is not asked for:
     /// a step that works wherever the pointer is carries no coordinates for anything to read as a
     /// position of its own.
@@ -1044,15 +1408,15 @@ public class ActionDialogTests
         {
             var viewModel = Open("input.mouseClick");
             var row = viewModel.Rows.First(candidate =>
-                candidate.First.Definition.Name == "button");
+                candidate.HasThird && candidate.Third!.Definition.Name == "useCursor");
 
-            Assert.True(row.HasThird);
-            Assert.Equal("useCursor", row.Third!.Definition.Name);
+            // 它跟着「点哪儿」那一块：点不点在指针当前位置，问的是位置，不是按哪个键。
+            Assert.Equal("where", row.First.Group);
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
 
-            row.Third.Flag = true;
+            row.Third!.Flag = true;
             Dispatcher.UIThread.RunJobs();
             viewModel.SaveCommand.Execute(null);
 
@@ -1381,10 +1745,7 @@ public class ActionDialogTests
     }
 
     [Theory]
-    [InlineData("ocr.findText", "region")]
-    [InlineData("vision.findImage", "region")]
     [InlineData("vision.capture", "x")]
-    [InlineData("ocr.recognize", "x")]
     [InlineData("input.mouseDrag", "startX")]
     public void The_region_picker_sits_on_the_row_that_names_a_rectangle(string key, string anchor)
     {
@@ -1422,7 +1783,7 @@ public class ActionDialogTests
                 button => button.IsEffectivelyVisible
                     && Equals(button.Content, Strings.Get("Add.PickRegionDrag")));
 
-            var region = Open("ocr.recognize");
+            var region = Open("vision.capture");
             var regionRow = region.Rows.First(row => row.First.Definition.Name == "x");
 
             Assert.Equal(Strings.Get("Add.PickRegion"), regionRow.RegionPickerLabel);
@@ -1468,8 +1829,9 @@ public class ActionDialogTests
         var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
             "ActionEditorView.axaml.cs"));
 
-        Assert.Contains("RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, null, bounds)", code,
-            StringComparison.Ordinal);
+        Assert.Contains(
+            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows,",
+            code, StringComparison.Ordinal);
         Assert.DoesNotContain("RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, bounds, bounds)", code,
             StringComparison.Ordinal);
     }
@@ -1482,7 +1844,7 @@ public class ActionDialogTests
             "ActionEditorView.axaml.cs"));
 
         Assert.Contains(
-            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial, null, target.Handle)",
+            "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial,",
             code, StringComparison.Ordinal);
     }
 
@@ -1493,7 +1855,6 @@ public class ActionDialogTests
     /// written as a formula of its own.
     /// </summary>
     [Theory]
-    [InlineData("ocr.recognize")]
     [InlineData("vision.capture")]
     public void A_rectangle_fills_the_one_region_a_step_reads(string key)
     {
@@ -1508,6 +1869,27 @@ public class ActionDialogTests
             Assert.Equal("30", Value(viewModel, "width"));
             Assert.Equal("40", Value(viewModel, "height"));
             Assert.Contains("x", viewModel.Rows.SelectMany(Names));
+        });
+    }
+
+    /// <summary>
+    /// 识别文字的范围是一张列表：拖一次就多一处，与找色、找字一样。
+    /// </summary>
+    [Fact]
+    public void A_rectangle_adds_a_place_to_what_a_reading_step_reads()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var region = Field(viewModel, "region")!;
+
+            Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
+
+            var row = Assert.Single(region.Regions);
+            Assert.Equal("10", row.X.Text);
+            Assert.Equal("20", row.Y.Text);
+            Assert.Equal("30", row.Width.Text);
+            Assert.Equal("40", row.Height.Text);
         });
     }
 
@@ -1631,9 +2013,7 @@ public class ActionDialogTests
     [InlineData("input.mouseScroll", "place", "x")]
     [InlineData("vision.getPixel", "place", "x")]
     [InlineData("vision.waitColor", "place", "x")]
-    [InlineData("vision.findColor", "place", "x")]
     [InlineData("vision.capture", "rect", "x")]
-    [InlineData("ocr.recognize", "rect", "x")]
     [InlineData("window.move", "rect", "x")]
     [InlineData("input.mouseDrag", "startPlace", "startX")]
     [InlineData("input.mouseDrag", "endPlace", "endX")]
@@ -1756,7 +2136,7 @@ public class ActionDialogTests
             var condition = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "condition");
 
-            Assert.True(condition.IsExpression);
+            Assert.True(condition.IsCondition);
 
             // How long the wait may last is not the action's business: the step's own timeout
             // says it, and this action names the "waiting on something outside" length, ten
@@ -2041,7 +2421,7 @@ public class ActionDialogTests
 
             // The step settings carry the same choice, so a long timeout is written the same way.
             // They live on a page of their own, so that page is the one opened to read them.
-            viewModel.Select(viewModel.Pages.First(page => page.Key == AddActionViewModel.OtherPage));
+            viewModel.Select(viewModel.Pages.First(page => page.Key == AddActionViewModel.ExecPage));
             Dispatcher.UIThread.RunJobs();
 
             var settingBox = window.GetVisualDescendants().OfType<ComboBox>()
@@ -2518,7 +2898,8 @@ public class ActionDialogTests
             Assert.Empty(writing.ReturnsRows);
 
             var listing = Open("file.listFiles");
-            Assert.Equal(["folder", "pattern", "recurse"],
+            // 「列什么」紧跟匹配模式：要文件还是文件夹，和挑哪些名字是同一句话。
+            Assert.Equal(["folder", "pattern", "kind", "recurse"],
                 listing.Rows.SelectMany(Names).ToList());
             Assert.Equal(["files"], listing.ReturnsRows.Select(row => row.Key).ToList());
 
@@ -2979,8 +3360,12 @@ public class ActionDialogTests
             => NullDeviceLayer.Instance.Screen.Capture(request);
     }
 
+    /// <summary>
+    /// 键、组合键与手柄不再各有一颗"测试"按钮：那几颗按钮做的正是"按现在这一步跑一次"，
+    /// 和表单下方的运行按钮是同一件事。这里试的是那颗运行按钮：它仍旧把这一步真的发出去。
+    /// </summary>
     [Fact]
-    public void A_key_field_can_be_tried_on_the_spot()
+    public void A_key_field_is_tried_on_the_spot_from_the_run_button()
     {
         Ui.RunAsync(async () =>
         {
@@ -2998,7 +3383,7 @@ public class ActionDialogTests
             var devices = new RecordingDevices();
             window.Devices = devices;
 
-            TestButton(window, key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            RunButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
             // The step is tried off the thread that draws the window, so what it sent arrives a
             // moment after the click.
@@ -3012,7 +3397,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_controller_control_can_be_tried_on_the_spot()
+    public void A_controller_control_is_tried_on_the_spot_from_the_run_button()
     {
         Ui.RunAsync(async () =>
         {
@@ -3030,7 +3415,7 @@ public class ActionDialogTests
             var devices = new RecordingDevices();
             window.Devices = devices;
 
-            TestButton(window, button).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            RunButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
             // A tap, then the letting go that keeps a tried button from staying down in the game.
             Assert.True(await devices.WaitUntil(() => devices.Calls.Count >= 3),
@@ -3141,6 +3526,88 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// 名字旁边那片空说的是「它装的是什么」：一个开关给 true | false，一条记录给它的字段骨架，
+    /// 字段名就是 field($变量, "x") 里要写的那个词。行里只放前几个，全的在悬停里。
+    /// </summary>
+    [Fact]
+    public void A_return_line_shows_the_shape_of_what_it_hands_over()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findColor");
+
+            Assert.Equal("true | false",
+                viewModel.ReturnsRows.First(row => row.Key == "found").Structure);
+
+            // 命中是一像素，记录里前四个字段就是它的位置；十一个字段在行里放不下，用省略号收尾。
+            Assert.Equal("{x, y, left, top, …}",
+                viewModel.ReturnsRows.First(row => row.Key == "match").Structure);
+            Assert.Equal("[{x, y, left, top, …}, …]",
+                viewModel.ReturnsRows.First(row => row.Key == "every").Structure);
+
+            // 悬停里是全的：每个字段都带类型，取法也写在里面。
+            var tip = viewModel.ReturnsRows.First(row => row.Key == "match").StructureTip;
+            Assert.Contains("box: text", tip, StringComparison.Ordinal);
+            Assert.Contains("label: text", tip, StringComparison.Ordinal);
+            Assert.Contains("11", tip, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// 早先勾过、后来不再列出的结果：编辑器不画那一行，但保存时照原样写回去。打开一步再存一次
+    /// 就悄悄少一个结果，读它的步骤会在运行时找不到名字，而错不在那一步上。
+    /// </summary>
+    [Fact]
+    public void A_result_no_longer_offered_is_written_back_as_it_was()
+    {
+        Ui.Run(() =>
+        {
+            var step = new MacroStep
+            {
+                Id = "k3f9",
+                Type = "vision.findColor",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "returns",
+                        Kind = ActionParameterKind.Returns,
+                        Rows =
+                        [
+                            new StepParameterRow
+                            {
+                                Columns = new Dictionary<string, string>(
+                                    StringComparer.OrdinalIgnoreCase)
+                                {
+                                    ["key"] = "method",
+                                    ["name"] = "取法",
+                                },
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            var window = new ActionEditorWindow(step, ActionCatalog.Definitions, []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var form = (AddActionViewModel)window.DataContext!;
+
+            // 不列出来：这一步用哪种方式取的画面，宏拿着做不了什么。
+            Assert.DoesNotContain(form.ReturnsRows, row => row.Key == "method");
+
+            MacroStep? saved = null;
+            form.CloseRequested += written => saved = written;
+            form.SaveCommand.Execute(null);
+
+            var kept = Assert.Single(saved!.Parameters
+                .First(parameter => parameter.Name == "returns").Rows);
+            Assert.Equal("method", kept.Text("key"));
+            Assert.Equal("取法", kept.Text("name"));
+        });
+    }
+
     /// <summary>The dialog open on a call, with the project's macros to point it at.</summary>
     private static ActionEditorWindow CallWindow()
     {
@@ -3182,12 +3649,11 @@ public class ActionDialogTests
     private static StepParameterViewModel? Field(AddActionViewModel viewModel, string name)
         => viewModel.Parameters.FirstOrDefault(parameter => parameter.Definition.Name == name);
 
-    /// <summary>The "test" button that belongs to one parameter, the way the user finds it.</summary>
-    private static Button TestButton(Window window, StepParameterViewModel parameter)
+    /// <summary>The run button under the form, found the way a user finds it: by what it says.</summary>
+    private static Button RunButton(Window window)
         => window.GetVisualDescendants().OfType<Button>()
             .First(item => item.IsEffectivelyVisible
-                && Equals(item.Content, Strings.Get("Add.TestField"))
-                && ReferenceEquals(item.DataContext, parameter));
+                && Equals(item.Content, Strings.Get("Add.RunStep")));
 
     /// <summary>
     /// A device layer with a notebook behind it: what a trial sent is written down, and everything

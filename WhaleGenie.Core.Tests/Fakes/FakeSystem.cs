@@ -71,6 +71,8 @@ internal sealed class FakeSystem(FakeDesk desk) : ISystemDevice
 
     public void PlaySound(SoundKind kind) => desk.Note($"sound {kind}");
 
+    public void PlaySoundFile(string path) => desk.Note($"soundFile {path}");
+
     public void Notify(string title, string text, NotificationKind kind)
         => desk.Note($"notify {kind} [{title}] {text}");
 

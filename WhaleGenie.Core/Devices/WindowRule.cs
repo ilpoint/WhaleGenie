@@ -17,9 +17,16 @@ public sealed record WindowRule(
     string How = WindowHow.TitleContains,
     bool CaseSensitive = false,
     bool Trim = true,
-    bool Multiline = false)
+    bool Multiline = false,
+    bool Follow = false)
 {
     public static WindowRule Empty { get; } = new();
+
+    /// <summary>
+    /// 一条只说"跟前面一样"的规则：它自己不认识任何窗口，用的是这一轮里上一个自己指定了窗口的
+    /// 步骤那句话。宏里每做一件事就把窗口重绑一遍，本来就不该是必须的。
+    /// </summary>
+    public static WindowRule FollowPrevious { get; } = new(Follow: true);
 
     public static WindowRule From(WindowInfo window, string process, string className)
         => new(window.Title, process, className, window.Handle);
@@ -36,21 +43,32 @@ public sealed record WindowRule(
 
     public TextCompareOptions Options => new(CaseSensitive, Trim, Multiline);
 
-    public bool HasTarget => Reading.Match is WindowMatch.Handle
+    public bool HasTarget => !Follow && (Reading.Match is WindowMatch.Handle
         ? Handle != 0
-        : MatchValue.Trim().Length > 0;
+        : MatchValue.Trim().Length > 0);
 
-    public JsonObject ToJson() => new()
+    public JsonObject ToJson()
     {
-        [FieldNames.Handle] = Handle,
-        [FieldNames.Title] = Title,
-        [FieldNames.Process] = Process,
-        [FieldNames.Class] = ClassName,
-        [FieldNames.How] = How,
-        [FieldNames.CaseSensitive] = CaseSensitive,
-        [FieldNames.Trim] = Trim,
-        [FieldNames.Multiline] = Multiline,
-    };
+        var node = new JsonObject
+        {
+            [FieldNames.Handle] = Handle,
+            [FieldNames.Title] = Title,
+            [FieldNames.Process] = Process,
+            [FieldNames.Class] = ClassName,
+            [FieldNames.How] = How,
+            [FieldNames.CaseSensitive] = CaseSensitive,
+            [FieldNames.Trim] = Trim,
+            [FieldNames.Multiline] = Multiline,
+        };
+
+        // 只有真的要沿用才写这一格：别的规则写成原来的样子，读起来、比起来都不变。
+        if (Follow)
+        {
+            node[FieldNames.Follow] = true;
+        }
+
+        return node;
+    }
 
     public static WindowRule FromJson(JsonObject node)
         => new(
@@ -61,7 +79,8 @@ public sealed record WindowRule(
             Text(node, FieldNames.How, WindowHow.TitleContains),
             Flag(node, FieldNames.CaseSensitive),
             Flag(node, FieldNames.Trim, true),
-            Flag(node, FieldNames.Multiline));
+            Flag(node, FieldNames.Multiline),
+            Flag(node, FieldNames.Follow));
 
     public static bool TryParse(string? text, out WindowRule rule)
     {

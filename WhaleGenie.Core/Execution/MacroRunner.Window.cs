@@ -382,6 +382,13 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.BadWindowRule, written);
         }
 
+        if (rule.Follow)
+        {
+            // 「沿用上一次用的窗口」：取这一轮里上一个自己指定了窗口的步骤那句话。一次都还没有过
+            // 时（它排在第一个，或者上面的步骤都没提窗口）跟空着一样，用前台窗口。
+            return _lastWindowRule;
+        }
+
         var (match, compare) = rule.Reading;
         var selected = rule.MatchValue.Trim();
 
@@ -403,7 +410,19 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.BadPattern, selected);
         }
 
-        return rule with { How = string.IsNullOrWhiteSpace(rule.How) ? WindowHow.TitleContains : rule.How };
+        var resolved = rule with
+        {
+            How = string.IsNullOrWhiteSpace(rule.How) ? WindowHow.TitleContains : rule.How,
+        };
+
+        // 记住了，后面的步骤「沿用上一次」才有东西可沿用。这一次不一定要找到它：没找到的规则
+        // 也是这一步要的那个窗口，下一步跟着它一起失败，比悄悄换成前台窗口更容易查。
+        if (resolved.HasTarget)
+        {
+            _lastWindowRule = resolved;
+        }
+
+        return resolved;
     }
 
     /// <summary>A window record read by a step, with the rule fields a match needs.</summary>
