@@ -475,6 +475,25 @@ public partial class AddActionViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// The three lists of a try block. They are steps rather than fields, so this page cannot show
+    /// their contents — only how much sits in each. Without that sentence the page looks like a
+    /// step with one condition and no way to see what it is actually protecting.
+    /// </summary>
+    public bool ShowsAttempt => SelectedDefinition?.Key is "control.try";
+
+    /// <summary>How much sits in each of the three lists.</summary>
+    public string AttemptSummary
+    {
+        get
+        {
+            var tried = Parameter("body")?.List?.Steps.Count ?? 0;
+            var caught = Parameter("catch")?.List?.Steps.Count ?? 0;
+            var always = Parameter("finally")?.List?.Steps.Count ?? 0;
+            return Strings.Format("Add.AttemptSummary", tried, caught, always);
+        }
+    }
+
     /// <summary>Adds the next branch, which starts empty and is filled in on the editor's list.</summary>
     [RelayCommand]
     private void AddBranch()

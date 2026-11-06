@@ -343,6 +343,83 @@ public class StepTreeTests
     }
 
     [Fact]
+    public void The_flow_actions_say_what_they_do_in_one_sentence()
+    {
+        Ui.Run(() =>
+        {
+            // A row is the sentence the step stands for. "次数 = 10" is how the form asks, and six
+            // of those assignments do not fit beside the action's own name in a thirty-pixel line.
+            Assert.Equal(Strings.Format("Editor.FlowRepeat", "10"),
+                Step("control.repeat", Text("times", "10"), Text("intervalMs", "0")).Detail);
+
+            Assert.Equal(
+                Strings.Format("Editor.FlowInterval",
+                    Strings.Format("Editor.FlowRepeat", "10"), "500"),
+                Step("control.repeat", Text("times", "10"), Text("intervalMs", "500")).Detail);
+
+            Assert.Equal(
+                Strings.Format("Editor.FlowForNamed",
+                    Strings.Format("Editor.FlowForUp",
+                        Strings.Format("Editor.FlowFor", "1", "5"), "1"), "i"),
+                Step("control.for", Text("rangeFrom", "1"), Text("rangeTo", "5"),
+                    Text("stepSize", "1"), Text("name", "i")).Detail);
+
+            // A negative step counts down, and the row says so rather than showing "-1".
+            Assert.Equal(
+                Strings.Format("Editor.FlowForDown",
+                    Strings.Format("Editor.FlowFor", "5", "1"), "2"),
+                Step("control.for", Text("rangeFrom", "5"), Text("rangeTo", "1"),
+                    Text("stepSize", "-2"), Text("name", "")).Detail);
+
+            Assert.Equal(
+                Strings.Format("Editor.FlowReverse",
+                    Strings.Format("Editor.FlowForEach", "$list")),
+                Step("control.forEach", Text("items", "$list"), Text("reverse", "true")).Detail);
+
+            Assert.Equal(
+                Strings.Format("Editor.FlowAtMost", "$count < 10", "1000"),
+                Step("control.while", Text("condition", "$count < 10"),
+                    Text("maxIterations", "1000")).Detail);
+
+            // 有间隔时多一句，与「重复」同一个说法：两轮之间等多久，不是这个循环在比什么。
+            Assert.Equal(
+                Strings.Format("Editor.FlowInterval",
+                    Strings.Format("Editor.FlowAtMost", "$count < 10", "1000"), "500"),
+                Step("control.while", Text("condition", "$count < 10"),
+                    Text("maxIterations", "1000"), Text("intervalMs", "500")).Detail);
+
+            Assert.Equal("$found",
+                Step("control.waitUntil", Text("condition", "$found")).Detail);
+        });
+    }
+
+    [Fact]
+    public void A_try_block_says_how_much_sits_in_each_of_its_lists()
+    {
+        Ui.Run(() =>
+        {
+            var kept = Step("control.try",
+                Body("body", Step("control.log"), Step("control.delay")),
+                Body("catch", Step("control.log")),
+                Body("finally"),
+                new StepParameter
+                {
+                    Name = "returns",
+                    Kind = ActionParameterKind.Returns,
+                    Rows = [StepParameterRow.Of("name", "$err"), StepParameterRow.Of("name", "$why")],
+                });
+
+            // The three lists are the block; the row says how many steps each holds, which is the
+            // only thing about them that is visible without opening them.
+            Assert.Equal(
+                Strings.Format("Editor.FlowWithResults",
+                    Strings.Format("Editor.FlowTry", 2, 1, 0),
+                    Strings.Format("Editor.FlowReturns", 2)),
+                kept.Detail);
+        });
+    }
+
+    [Fact]
     public void Folding_a_block_hides_what_is_inside_it()
     {
         Ui.Run(() =>

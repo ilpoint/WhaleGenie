@@ -1247,6 +1247,16 @@
                                        IsVisible="{Binding IsBlock}"
                                        Text="{Binding [Add.BlockStepsInList], Source={x:Static loc:Strings.Current}}" />
 
+                            <!-- 尝试的三段同样是步骤而不是字段。页面上先说清各有几步，再说没接住
+                                 的失败归谁管，否则这一页只剩一个「何时捕获」，看不出这一步在守什么。 -->
+                            <StackPanel IsVisible="{Binding ShowsAttempt}" Margin="2,0,0,8" Spacing="3">
+                                <TextBlock FontSize="12" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           Text="{Binding AttemptSummary}" />
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                           Text="{Binding [Add.AttemptFailure], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
 

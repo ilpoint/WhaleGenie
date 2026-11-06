@@ -1047,6 +1047,88 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_loop_asks_its_pace_on_the_first_page()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var (key, blocks) in new[]
+                     {
+                         ("control.repeat", new[] { "rounds", "pacing" }),
+                         ("control.while", new[] { "condition", "guard", "pacing" }),
+                         ("control.waitUntil", new[] { "condition", "pacing" }),
+                         ("control.forEach", new[] { "items", "each", "pacing" }),
+                         ("control.for", new[] { "range", "each", "pacing" }),
+                     })
+            {
+                var viewModel = Open(key);
+
+                // Each loop asks its questions in the order a person asks them: what it goes
+                // through, what each round is called, then how fast. A block per question, and no
+                // more than three of them.
+                Assert.Equal(blocks,
+                    viewModel.Rows.Where(row => row.GroupKey.Length > 0)
+                        .Select(row => row.GroupKey).Distinct());
+
+                // The pace is not an advanced option: once it moved back to the first page, this
+                // action has nothing left to put there, and a page with no fields is not drawn.
+                Assert.DoesNotContain(viewModel.Pages,
+                    page => page.IsPresent && page.Key == AddActionViewModel.AdvancedPage);
+            }
+        });
+    }
+
+    [Fact]
+    public void A_try_block_says_how_much_sits_in_each_of_its_lists()
+    {
+        Ui.Run(() =>
+        {
+            var kept = new MacroStep
+            {
+                Type = "control.try",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "body",
+                        Kind = ActionParameterKind.Steps,
+                        Steps =
+                        [
+                            new MacroStep { Type = "control.log" },
+                            new MacroStep { Type = "control.delay" },
+                        ],
+                    },
+                    new StepParameter
+                    {
+                        Name = "catch",
+                        Kind = ActionParameterKind.Steps,
+                        Steps = [new MacroStep { Type = "control.log" }],
+                    },
+                    new StepParameter { Name = "finally", Kind = ActionParameterKind.Steps },
+                ],
+            };
+
+            var window = new ActionEditorWindow(kept, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            // The three lists are steps, not fields, so the page cannot show their contents. One
+            // line saying how much sits in each is what keeps the page from reading as "a condition
+            // and nothing else"; the same sentence a switch gets for its branches.
+            Assert.True(viewModel.ShowsAttempt);
+            Assert.Equal(Strings.Format("Add.AttemptSummary", 2, 1, 0), viewModel.AttemptSummary);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == viewModel.AttemptSummary);
+
+            // Only the try block has them; the sibling block must not grow the same line.
+            Assert.False(Open("control.if").ShowsAttempt);
+
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void The_settings_of_a_block_say_they_are_about_the_block()
     {
         Ui.Run(() =>

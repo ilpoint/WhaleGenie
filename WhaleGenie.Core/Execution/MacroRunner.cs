@@ -1959,6 +1959,7 @@ public sealed partial class MacroRunner
     {
         RequireCondition(step, "condition");
         var limit = Math.Max(1, Number(step, "maxIterations"));
+        var interval = Pace(Number(step, "intervalMs"));
         using var scope = EnterLoop(VariableStore.LoopIndexName);
 
         for (var round = 0; round < limit; round++)
@@ -1982,6 +1983,8 @@ public sealed partial class MacroRunner
                 Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
+
+            await Pause(interval, token);
         }
 
         Give(step, "ended", Value.FromText("limit"));

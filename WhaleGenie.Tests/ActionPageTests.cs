@@ -210,17 +210,21 @@ public class ActionPageTests
         });
     }
 
+    /// <summary>
+    /// 每秒看几次屏幕是调参，隔多久跑下一轮不是：后者决定这个循环跑起来是什么手感，与次数、
+    /// 遍历对象、什么时候停一样，是这一步要回答的问题，所以它和这些字段同处基础设置，在
+    /// 「节奏」那一块里。看屏幕的轮询仍留在高级设置，两件事因此没有混成一条规则。
+    /// </summary>
     [Fact]
-    public void For_each_waits_between_rounds_from_the_advanced_page()
+    public void A_loop_waits_between_rounds_beside_what_it_runs()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("control.forEach");
-            var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
             var basic = viewModel.Rows.SelectMany(Names).ToList();
 
-            Assert.Contains("intervalMs", advanced);
-            Assert.DoesNotContain("intervalMs", basic);
+            Assert.Contains("intervalMs", basic);
+            Assert.DoesNotContain("intervalMs", viewModel.AdvancedRows.SelectMany(Names));
 
             var field = ActionCatalog.Find("control.forEach")!.Parameters
                 .First(parameter => parameter.Name == "intervalMs");

@@ -123,9 +123,15 @@ public static class AppIcons
         "options" => LucideIconKind.Settings2,
         "place" => LucideIconKind.Move,
 
-        // 流程：要问的那一句话、拿什么去比
+        // 流程：要问的那一句话、拿什么去比、跑几轮、每轮叫什么、节奏、调用哪个
         "condition" => LucideIconKind.GitBranch,
         "compare" => LucideIconKind.GitCompareArrows,
+        "rounds" => LucideIconKind.Repeat,
+        "guard" => LucideIconKind.OctagonPause,
+        "items" => LucideIconKind.ListOrdered,
+        "each" => LucideIconKind.Variable,
+        "range" => LucideIconKind.ArrowLeftRight,
+        "macro" => LucideIconKind.Package,
         _ => null,
     };
     public static LucideIconKind Info => LucideIconKind.Info;
