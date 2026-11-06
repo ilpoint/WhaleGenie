@@ -1078,6 +1078,37 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 一个问题的两部分可以分在两页上：找什么，以及查找本身怎么调。块名与编号跟着问题走、不跟着页走——
+    /// 每页各自从 ① 数起时，同一块在两页上各有一份同名的标题，各挂一个 ①，读起来像两个不同的问题。
+    /// </summary>
+    [Fact]
+    public void A_question_split_over_two_pages_keeps_one_number()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+
+            var basic = viewModel.Rows.Where(row => row.GroupKey == "target").ToList();
+            var advanced = viewModel.AdvancedRows.Where(row => row.GroupKey == "target").ToList();
+            Assert.NotEmpty(basic);
+            Assert.NotEmpty(advanced);
+
+            // The same question on both pages carries the same number, and says so on both.
+            Assert.Equal(basic[0].GroupIndex, advanced[0].GroupIndex);
+            Assert.True(basic[0].IsGroupStart);
+            Assert.True(advanced[0].IsGroupStart);
+
+            // No two questions are numbered the same, whichever page they sit on.
+            var numbers = viewModel.Rows.Concat(viewModel.AdvancedRows)
+                .Where(row => row.GroupKey.Length > 0)
+                .GroupBy(row => row.GroupKey)
+                .Select(rows => rows.First().GroupIndex)
+                .ToList();
+            Assert.Equal(numbers.Count, numbers.Distinct().Count());
+        });
+    }
+
+    /// <summary>
     /// A percentage is one number said two ways: the box for the exact figure, the slider for about
     /// this much. Written as an expression, the field is neither, so the slider has to go with the
     /// box. Both read "is this a plain number", which is computed rather than stored, and a computed

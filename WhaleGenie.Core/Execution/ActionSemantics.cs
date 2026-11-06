@@ -507,9 +507,10 @@ public static class ActionSemanticsCatalog
             }
 
             // The fields of a block stand together. A catalogue that put two of them on either
-            // side of another block would draw one question as two blocks with the same name and
-            // two numbers, and a block that mixed the two pages of the form would be split by the
-            // page it is on. Both are refused here rather than looking odd on screen.
+            // side of another block would draw one question as two blocks with the same name, and
+            // a third would decide which of them a line belonged to. A block may still have a part
+            // on each page of the form: that is one question met twice, and the form numbers a
+            // question once for the whole action rather than once per page.
             var seen = new List<string>();
             foreach (var parameter in action.Parameters)
             {

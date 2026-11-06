@@ -1473,34 +1473,41 @@ public partial class AddActionViewModel : ViewModelBase
             (parameter.IsAdvanced ? fine : basic).Add(parameter);
         }
 
-        FillRows(basic, Rows);
-        FillRows(fine, AdvancedRows);
+        // A question is numbered once for the whole action, not once for each page. Some questions
+        // have a part on each page — what to look for, and how the looking is tuned — and numbering
+        // them per page gave two blocks called the same thing, both numbered 1, on two pages.
+        var numbers = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var parameter in Parameters)
+        {
+            if (parameter.Group.Length > 0 && !numbers.ContainsKey(parameter.Group))
+            {
+                numbers[parameter.Group] = numbers.Count + 1;
+            }
+        }
+
+        FillRows(basic, Rows, numbers);
+        FillRows(fine, AdvancedRows, numbers);
 
         RefreshPages();
     }
 
     private static void FillRows(IEnumerable<StepParameterViewModel> parameters,
-        ObservableCollection<ParameterRowViewModel> rows)
+        ObservableCollection<ParameterRowViewModel> rows, IReadOnlyDictionary<string, int> numbers)
     {
         var laid = parameters.ToList();
         var index = 0;
-        var block = 0;
         var group = string.Empty;
         while (index < laid.Count)
         {
             var current = laid[index];
 
-            // A block opens on the first line that answers it, and takes a number of its own. A
-            // line that answers no block leaves the counter alone, so a form without blocks reads
-            // exactly as it did before blocks existed.
+            // A block opens on the first line of each page that answers it. A line that answers no
+            // block leaves the counter alone, so a form without blocks reads exactly as it did
+            // before blocks existed.
             var starts = !string.Equals(current.Group, group, StringComparison.Ordinal);
             if (starts)
             {
                 group = current.Group;
-                if (group.Length > 0)
-                {
-                    block++;
-                }
             }
 
             // The two halves of a position share a line only while they answer the same block:
@@ -1558,7 +1565,7 @@ public partial class AddActionViewModel : ViewModelBase
             rows.Add(new ParameterRowViewModel(current, second, fourth is null ? beside : third, fourth)
             {
                 GroupKey = current.Group,
-                GroupIndex = block,
+                GroupIndex = numbers.GetValueOrDefault(current.Group),
                 IsGroupStart = starts && current.Group.Length > 0,
             });
 
