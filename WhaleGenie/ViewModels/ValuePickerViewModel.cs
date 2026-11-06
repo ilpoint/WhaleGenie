@@ -89,6 +89,8 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         FunctionGroups = BuildGroups();
         SelectedFunctionGroup = FunctionGroups[0];
         RefreshFunctions();
+        // A number is the more common thing to type, so the standing field opens in that mode.
+        IsTypingNumber = true;
         CheckText();
     }
 
@@ -277,21 +279,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanRedo));
     }
 
-    /// <summary>
-    /// True while the strip is asking for a number or a piece of text. Those two are the only things
-    /// a formula holds that no card can offer — a number is whatever the person needs, and a piece
-    /// of text is whatever they mean — so they are typed once, here, and never in the formula box.
-    /// </summary>
+    /// <summary>True when the small field takes a number, false when it takes a piece of text.</summary>
     [ObservableProperty]
-    public partial bool IsTypingValue { get; set; }
-
-    /// <summary>True when what is being typed is a number, false when it is a piece of text.</summary>
-    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTypingText))]
     public partial bool IsTypingNumber { get; set; }
 
-    /// <summary>What the strip is asking for, in the reader's language.</summary>
-    [ObservableProperty]
-    public partial string TypingLabel { get; set; } = string.Empty;
+    /// <summary>The other mode, for the button that is lit while the field takes text.</summary>
+    public bool IsTypingText => !IsTypingNumber;
 
     [ObservableProperty]
     public partial string TypingText { get; set; } = string.Empty;
@@ -306,22 +300,22 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     partial void OnTypingTextChanged(string value) => RefreshTyped();
 
-    /// <summary>Opens the one-line asking row for a number or for a piece of text.</summary>
-    public void BeginTyping(bool number)
+    /// <summary>
+    /// The small field is always there, so a button only says what the field takes. Switching mode
+    /// clears what was half typed in the other one: a number and a piece of text are written differently.
+    /// </summary>
+    public void SetTypingMode(bool number)
     {
         IsTypingNumber = number;
-        TypingLabel = Strings.Get(number ? "ValuePicker.Value.Number" : "ValuePicker.Value.Text");
         TypingText = string.Empty;
-        IsTypingValue = true;
         RefreshTyped();
     }
 
-    /// <summary>Closes the asking row and forgets what was typed into it.</summary>
-    public void EndTyping()
+    /// <summary>Empties the field after an insert, so the next value can be typed straight away.</summary>
+    public void ClearTyped()
     {
-        IsTypingValue = false;
         TypingText = string.Empty;
-        TypingNote = string.Empty;
+        RefreshTyped();
     }
 
     /// <summary>
@@ -520,9 +514,10 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         var lead = ghost is not null ? ghost.Before
             : at == 0 ? string.Empty
             : at >= end ? " "
-            : Glues(left, token[0]) || (EndsPiece(left) && StartsPiece(token[0]))
+            : left != ' ' && (Glues(left, token[0]) || (EndsPiece(left) && StartsPiece(token[0])))
                 ? " " : string.Empty;
-        var trail = ghost is null && at < end
+        // A space already standing there is the separator: adding another would leave a double gap.
+        var trail = ghost is null && at < end && right != ' '
             && (Glues(token[^1], right) || (EndsPiece(token[^1]) && StartsPiece(right)))
             ? " " : string.Empty;
 

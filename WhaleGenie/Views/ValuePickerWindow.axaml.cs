@@ -89,7 +89,9 @@ public partial class ValuePickerWindow : AppWindow
                 return;
             }
 
-            VariableSearch.Focus();
+            // A cell that had a caret in it opens with the small field ready to type into; one that
+            // did not keeps the variable search, which is where a formula usually starts.
+            (StartCaret >= 0 ? ValueInput : VariableSearch).Focus();
         };
     }
 
@@ -758,8 +760,8 @@ public partial class ValuePickerWindow : AppWindow
     }
 
     /// <summary>
-    /// Escape is the one key this window answers to: it leaves the cell as it was. Every other way
-    /// out is a button, so a stray Enter while typing a formula cannot end the work.
+    /// Escape leaves the cell as it was. Enter belongs to the small field and only inserts a value;
+    /// neither key closes the window by accident, so leaving is always the confirm button or Esc.
     /// </summary>
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
@@ -768,16 +770,7 @@ public partial class ValuePickerWindow : AppWindow
             return;
         }
 
-        // Escape backs out of what is nearest first: the asking row, then the window.
-        if (_viewModel.IsTypingValue)
-        {
-            _viewModel.EndTyping();
-        }
-        else
-        {
-            _viewModel.Cancel();
-        }
-
+        _viewModel.Cancel();
         e.Handled = true;
     }
 
@@ -786,23 +779,38 @@ public partial class ValuePickerWindow : AppWindow
     private void OnRedo(object? sender, RoutedEventArgs e) => _viewModel.Redo();
 
     /// <summary>
-    /// Asks for a number or for a piece of text in the strip itself. These are the two things the
-    /// formula holds that no card can offer, so asking for them here is what keeps the band enough
-    /// on its own.
+    /// The two buttons only say what the standing field takes. A number and a piece of text are
+    /// written differently, so switching clears what was half typed in the other mode.
     /// </summary>
-    private void OnNumber(object? sender, RoutedEventArgs e) => BeginTyping(number: true);
+    private void OnNumber(object? sender, RoutedEventArgs e) => SetTypingMode(number: true);
 
-    private void OnText(object? sender, RoutedEventArgs e) => BeginTyping(number: false);
+    private void OnText(object? sender, RoutedEventArgs e) => SetTypingMode(number: false);
 
-    private void BeginTyping(bool number)
+    private void SetTypingMode(bool number)
     {
-        _viewModel.BeginTyping(number);
-
-        // The row is laid out on the next pass, so the caret can only be put in it after that.
-        Dispatcher.UIThread.Post(() => ValueInput.Focus(), DispatcherPriority.Input);
+        _viewModel.SetTypingMode(number);
+        ValueInput.Focus();
     }
 
-    private void OnInsertTyped(object? sender, RoutedEventArgs e)
+    /// <summary>Writes the value at the insertion point and leaves the field ready for the next one.</summary>
+    private void OnInsertTyped(object? sender, RoutedEventArgs e) => InsertTyped();
+
+    /// <summary>
+    /// Enter in the small field inserts a value and does nothing else. It never closes the window:
+    /// a formula is built a piece at a time and leaving is the confirm button or Esc.
+    /// </summary>
+    private void OnValueInputKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+        {
+            return;
+        }
+
+        InsertTyped();
+        e.Handled = true;
+    }
+
+    private void InsertTyped()
     {
         if (_viewModel.TypedToken() is not { } token)
         {
@@ -810,10 +818,9 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         Put(token);
-        _viewModel.EndTyping();
+        _viewModel.ClearTyped();
+        ValueInput.Focus();
     }
-
-    private void OnCancelTyped(object? sender, RoutedEventArgs e) => _viewModel.EndTyping();
 
     private void OnInsert(object? sender, RoutedEventArgs e) => _viewModel.Confirm();
 

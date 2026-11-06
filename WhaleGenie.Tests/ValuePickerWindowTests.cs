@@ -162,4 +162,23 @@ public class ValuePickerWindowTests
             Ui.CloseAndDiscard(window);
         });
     }
+
+    /// <summary>
+    /// Number and text used to open a row only after a button was pressed. The row is standing now,
+    /// so typing never waits for a mode to be chosen and the three panels never jump in height.
+    /// </summary>
+    [Fact]
+    public void The_small_value_field_is_always_visible()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a + 1");
+            var field = window.FindControl<TextBox>("ValueInput");
+
+            Assert.NotNull(field);
+            Assert.True(field.IsEffectivelyVisible);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
 }

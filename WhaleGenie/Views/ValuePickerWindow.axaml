@@ -489,6 +489,11 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
+        <!-- 小输入框里当前生效的那一枚模式按钮：只描一圈强调色，底不动，免得像按下去没弹回来。 -->
+        <Style Selector="Button.Op.on">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="16,12,16,12" RowSpacing="8">
@@ -627,31 +632,29 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <!-- 卡片给不出的两样：一个随人定的数，一段随人定的字。 -->
-                        <Button Classes="Op" Margin="6,0,6,0" Click="OnNumber"
-                                Content="{Binding [ValuePicker.Value.Number], Source={x:Static loc:Strings.Current}}" />
-                        <Button Classes="Op" Margin="0,0,6,0" Click="OnText"
-                                Content="{Binding [ValuePicker.Value.Text], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
 
-                    <!-- 就地输入：一行问、一行答，插进去就收起，不必去公式框里打字。 -->
-                    <Border Grid.Row="1" Grid.ColumnSpan="2" IsVisible="{Binding IsTypingValue}"
+                    <!-- 常驻的一行小输入框：数字与文字直接敲进去，写到结构带的光标处。 -->
+                    <Border Grid.Row="1" Grid.ColumnSpan="2"
                             Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="8,6">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{Binding TypingLabel}" FontSize="11.5"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondary}" />
-                            <TextBox Name="ValueInput" Width="220"
+                            <Button Classes="Op" Classes.on="{Binding IsTypingNumber}" Click="OnNumber"
+                                    Content="{Binding [ValuePicker.Value.Number], Source={x:Static loc:Strings.Current}}" />
+                            <Button Classes="Op" Classes.on="{Binding IsTypingText}" Click="OnText"
+                                    Content="{Binding [ValuePicker.Value.Text], Source={x:Static loc:Strings.Current}}" />
+                            <TextBox Name="ValueInput" Width="220" KeyDown="OnValueInputKeyDown"
+                                     PlaceholderText="{Binding [ValuePicker.Value.Field], Source={x:Static loc:Strings.Current}}"
                                      Text="{Binding TypingText, Mode=TwoWay}"
                                      FontFamily="{DynamicResource UiCodeFont}" FontSize="12.5" />
                             <Button Classes="Op" MinWidth="52" IsEnabled="{Binding CanInsertTyped}"
                                     Click="OnInsertTyped"
                                     Content="{Binding [ValuePicker.Value.Insert], Source={x:Static loc:Strings.Current}}" />
-                            <Button Classes="Op" MinWidth="52" Click="OnCancelTyped"
-                                    Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}" />
                             <TextBlock Text="{Binding TypingNote}" IsVisible="{Binding HasTypingNote}"
                                        FontSize="11" VerticalAlignment="Center"
                                        Foreground="{DynamicResource Danger}" />
+                            <TextBlock FontSize="11" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextTertiary}"
+                                       Text="{Binding [ValuePicker.Value.EnterHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
                 </Grid>
