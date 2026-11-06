@@ -835,6 +835,22 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.CaseValuesPlaceholder"] = "e.g. 1; 2; 3",
         ["Editor.SwitchNoValue"] = "no value to compare yet",
         ["Editor.IfNoCondition"] = "no condition yet",
+        // How a flow action reads on its row. The field names are the form's way of asking; the
+        // row says the same thing in one sentence, so the list stays scannable at thirty pixels.
+        ["Editor.FlowRepeat"] = "{0} times",
+        ["Editor.FlowInterval"] = "{0}, {1} ms between rounds",
+        ["Editor.FlowFor"] = "{0} to {1}",
+        ["Editor.FlowForUp"] = "{0}, adding {1} each round",
+        ["Editor.FlowForDown"] = "{0}, subtracting {1} each round",
+        ["Editor.FlowForNamed"] = "{0}, counted in ${1}",
+        ["Editor.FlowForEach"] = "each item of {0}",
+        ["Editor.FlowReverse"] = "{0}, from the end",
+        ["Editor.FlowAtMost"] = "{0}, at most {1} rounds",
+        ["Editor.FlowTry"] = "try {0} step(s), catch {1}, finally {2}",
+        ["Editor.FlowReturns"] = "{0} result(s) kept",
+        ["Editor.FlowWithResults"] = "{0}, {1}",
+        ["Editor.FlowNoItems"] = "no list to go through yet",
+        ["Editor.FlowNoMacro"] = "no submacro chosen yet",
         ["Editor.JsonTree"] = "JSON Tree",
         ["Editor.NoSteps"] = "No steps yet.",
         ["Editor.StepDisabled"] = "skipped",
@@ -1262,6 +1278,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StillNeeded"] = "Still needed: {0}",
         ["Add.NeedCondition"] = "Write one comparison and the step can be added.",
         ["Add.BranchSummary"] = "{0} branches · otherwise {1} steps",
+        ["Add.AttemptSummary"] = "try {0} steps · catch {1} · finally {2}",
+        ["Add.AttemptFailure"] = "A failure none of these lists catches goes to this step's own failure rule.",
         ["Add.AddBranch"] = "Add branch",
         ["Add.AddBranchHint"] = "Adds an empty branch to this switch; its values are written on the step list, and its steps are dropped in there too.",
         ["Add.NestedCondition"] = "Choose condition",
@@ -1481,6 +1499,29 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Group.compare.hint"] =
             "Read once when the step is reached, then matched against each branch from the top "
             + "down. An empty value is compared as the empty text, not as “any value”.",
+        ["Add.Group.rounds"] = "How many rounds",
+        ["Add.Group.rounds.hint"] =
+            "How many times the child steps run. The count is fixed before the loop starts; a loop "
+            + "that ends on a condition is the other kind.",
+        ["Add.Group.guard"] = "When it stops",
+        ["Add.Group.guard.hint"] =
+            "The most rounds a condition loop may run. Reaching it ends the loop even while the "
+            + "condition still holds, so a condition that never turns false cannot hang the macro.",
+        ["Add.Group.items"] = "What it goes through",
+        ["Add.Group.items.hint"] =
+            "The list or text to walk, and which end it starts from. Each item is one round.",
+        ["Add.Group.each"] = "What each round is called",
+        ["Add.Group.each.hint"] =
+            "The variables each round writes: the current item, and optionally which round this "
+            + "is, counted from 0.",
+        ["Add.Group.range"] = "Where the count runs",
+        ["Add.Group.range.hint"] =
+            "The counter's first value, the last value it reaches (that value included), and what "
+            + "it changes by each round.",
+        ["Add.Group.macro"] = "Which submacro",
+        ["Add.Group.macro.hint"] =
+            "The submacro this step calls and waits for. The parameters it declares decide which "
+            + "rows appear below.",
         ["Add.Exec.Scope"] = "every step",
         ["Add.Exec.Pace"] = "Pace",
         ["Add.Exec.PaceHint"] = "The pause before gives the interface time to settle, which is what a window that has just opened needs; the pause after gives the next step room.",
@@ -3107,6 +3148,22 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.CaseValuesPlaceholder"] = "例如 1; 2; 3",
         ["Editor.SwitchNoValue"] = "还没填要比对的值",
         ["Editor.IfNoCondition"] = "还没写条件",
+        // 流程动作在列表里的一句话。字段名是表单的问法，行上说同一件事只需要一句，
+        // 三十像素一行才读得下去。
+        ["Editor.FlowRepeat"] = "{0} 次",
+        ["Editor.FlowInterval"] = "{0}，每次间隔 {1} 毫秒",
+        ["Editor.FlowFor"] = "{0} 到 {1}",
+        ["Editor.FlowForUp"] = "{0}，每次加 {1}",
+        ["Editor.FlowForDown"] = "{0}，每次减 {1}",
+        ["Editor.FlowForNamed"] = "{0}，记作 ${1}",
+        ["Editor.FlowForEach"] = "{0} 的每一项",
+        ["Editor.FlowReverse"] = "{0}，倒序",
+        ["Editor.FlowAtMost"] = "{0}，最多 {1} 轮",
+        ["Editor.FlowTry"] = "尝试 {0} 步，捕获 {1} 步，收尾 {2} 步",
+        ["Editor.FlowReturns"] = "留下 {0} 项结果",
+        ["Editor.FlowWithResults"] = "{0}，{1}",
+        ["Editor.FlowNoItems"] = "还没填要遍历的内容",
+        ["Editor.FlowNoMacro"] = "还没选子宏",
         ["Editor.JsonTree"] = "JSON 树",
         ["Editor.NoSteps"] = "还没有步骤。",
         ["Editor.StepDisabled"] = "已停用",
@@ -3510,6 +3567,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StillNeeded"] = "还缺：{0}",
         ["Add.NeedCondition"] = "写一行比较就能添加这一步。",
         ["Add.BranchSummary"] = "{0} 个分支 · 其他情况 {1} 步",
+        ["Add.AttemptSummary"] = "尝试 {0} 步 · 捕获 {1} 步 · 收尾 {2} 步",
+        ["Add.AttemptFailure"] = "三段都没接住的失败，交给这一步自己的「失败后」设置。",
         ["Add.AddBranch"] = "添加分支",
         ["Add.AddBranchHint"] = "给这个多分支再加一支空分支：值在步骤列表那一行上写，子步骤也拖到那里。",
         ["Add.NestedCondition"] = "选择条件",
@@ -3707,6 +3766,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Group.compare"] = "比对什么",
         ["Add.Group.compare.hint"] =
             "执行到这一步时读一次，再从上往下和各分支比。留空表示与空文本比，不是“任意值都算中”。",
+        ["Add.Group.rounds"] = "重复几次",
+        ["Add.Group.rounds.hint"] =
+            "子步骤执行多少轮。轮数在循环开始前就已定下；由条件决定何时停的，用条件循环。",
+        ["Add.Group.guard"] = "什么时候停",
+        ["Add.Group.guard.hint"] =
+            "条件循环最多跑多少轮。到了这个数就结束，即使条件仍然成立。条件一直不变时，"
+            + "宏也不会停不下来。",
+        ["Add.Group.items"] = "过什么",
+        ["Add.Group.items.hint"] =
+            "要逐项处理的是哪个列表或哪段文字，以及从哪一头开始。每一项执行一轮。",
+        ["Add.Group.each"] = "每轮叫什么",
+        ["Add.Group.each.hint"] =
+            "每一轮写进哪些变量：当前项，以及可选的轮次序号（从 0 起）。",
+        ["Add.Group.range"] = "从哪儿数到哪儿",
+        ["Add.Group.range.hint"] =
+            "计数器从哪个数开始、数到哪个数为止（含这个数）、每轮加多少。",
+        ["Add.Group.macro"] = "调用哪个",
+        ["Add.Group.macro.hint"] =
+            "这一步要调用的子宏，调用后等它跑完。它声明了哪些参数，下面就列哪些行。",
         ["Add.Exec.Scope"] = "每个动作都有",
         ["Add.Exec.Pace"] = "执行节奏",
         ["Add.Exec.PaceHint"] = "前延迟给界面时间：窗口刚打开、动画还没停时，先等再找。后延迟给下一步让路。",

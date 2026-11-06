@@ -407,7 +407,7 @@ internal static class ActionStrings
         ["control.waitUntil.desc"] = "反复判断一个条件，成立之后再继续往下走。",
         ["control.waitUntil.condition.label"] = "条件",
         ["control.waitUntil.condition.hint"] = "布尔表达式，例如 $found 或 $count > 3；每一轮都重新计算。"
-            + "等多久由这一步设置里的「超时」说（默认 10 秒），到点取消这一步并判为失败。",
+            + "等多久由这一步的「超时」决定（默认 10 分钟，填 0 表示不限），到点判为失败。",
         ["control.waitUntil.intervalMs.label"] = "检查间隔",
         ["control.waitUntil.intervalMs.hint"] = "两次判断之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
 
@@ -452,6 +452,9 @@ internal static class ActionStrings
         ["control.while.maxIterations.label"] = "最大轮数",
         ["control.while.maxIterations.hint"] = "轮数上限，从 1 起，默认 1000；到这个数就结束这个循环（不算"
             + "失败），用于条件一直成立时兜底，同时在运行日志里写一行警告。",
+        ["control.while.intervalMs.label"] = "间隔",
+        ["control.while.intervalMs.hint"] = "每轮之间等多久，单位是毫秒，默认 0（不等）。等的时候不判断"
+            + "条件，等一下之后才重新判断。",
         ["control.while.returns.label"] = "要留下的结果",
         ["control.while.returns.hint"] = ReturnsHintText,
         ["control.while.body.label"] = "循环体步骤",

@@ -302,7 +302,8 @@ Release 既不还原这个包也不注册它）：进程起来后在 `127.0.0.1:
 查看方式——离屏渲染看不出真实的字体、主题、滚动条和 POPUP。
 
 ```bash
-# 1. 按 x64 编调试版（见下面那一段，路径别弄错），把它跑起来
+# 1. 按 x64 编调试版（见下面那一段，路径别弄错），把它放到后台跑起来
+#    前台跑会一直占着这次调用，超时被杀；后台跑才连得上
 WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
 
 # 2. 在 agent 里连它：先 get_app_info 认路，再按需取图与操作
@@ -320,6 +321,9 @@ MCP 的连接方式（`~/.workbuddy/mcp.json` 里的 `avalonia-agent-inspector`�
 
 **踩过的坑，按发生频率排**：
 
+- **进程必须在后台活着**。这条路连的是"一扇正在跑的窗口"，进程退出就没有可看的东西。在 shell 里用
+  `&` 起进程不算后台：调用一返回它就被收走，下一次 `get_app_info` 直接报 POST 失败。用工具自带的
+  后台运行起进程；前台跑会一直占着这次调用，超时被杀，等于什么都没看。
 - **发的是旧二进制**。调试版的输出在 `bin/x64/Debug/<框架>/`，而 `dotnet build WhaleGenie/WhaleGenie.csproj`
   默认写到 `bin/Debug/<框架>/`——两者不是同一份文件。改完代码要么 `-p:Platform=x64`，要么整解编译；
   启动前先 `taskkill /IM WhaleGenie.exe /F`，否则文件被锁、跑的还是上一次的进程。

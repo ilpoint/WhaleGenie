@@ -355,6 +355,30 @@ public class MacroRunnerTests
         Assert.DoesNotContain(host.Entries, entry => entry.Key == LogKeys.LoopLimit);
     }
 
+    [Fact]
+    public async Task While_waits_between_rounds()
+    {
+        var store = Store(("n", 0));
+        var loop = Step("control.while",
+            When("condition", Step("condition.compare",
+                Param("variable", "n"), Param("compareOperator", "lessThan"), Param("compareValue", "3"))),
+            Param("maxIterations", "50"),
+            Param("intervalMs", "60"),
+            Body("body", AddOne("n")));
+
+        var started = Stopwatch.GetTimestamp();
+        var (_, _) = await RunAsync([loop], variables: store);
+        var waited = Stopwatch.GetElapsedTime(started);
+
+        // A condition loop that runs flat out is the one thing an interval is there to stop: the
+        // field would read as decoration otherwise. Three rounds at 60 ms cannot finish in less
+        // than 150 ms, and the assertion is a floor rather than an equality because a busy machine
+        // only ever adds to a wait.
+        Assert.Equal(3, N(store, "n"));
+        Assert.True(waited >= TimeSpan.FromMilliseconds(150),
+            $"three rounds with a 60 ms interval took {waited.TotalMilliseconds:0} ms");
+    }
+
     [Theory]
     [InlineData("control.if")]
     [InlineData("control.while")]

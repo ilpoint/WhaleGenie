@@ -155,7 +155,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ChildKeys": [],
-        "MissingKey": "Run.MissingCondition"
+        "MissingKey": "Run.MissingCondition",
+        "Group": "condition"
       },
       {
         "Name": "intervalMs",
@@ -169,7 +170,8 @@
         "DefaultValue": "200",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "pacing"
       },
       {
         "Name": "returns",
@@ -226,7 +228,8 @@
         "DefaultValue": "10",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "rounds"
       },
       {
         "Name": "intervalMs",
@@ -239,7 +242,8 @@
         "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "pacing"
       },
       {
         "Name": "returns",
@@ -305,7 +309,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ChildKeys": [],
-        "MissingKey": "Run.MissingCondition"
+        "MissingKey": "Run.MissingCondition",
+        "Group": "condition"
       },
       {
         "Name": "maxIterations",
@@ -319,7 +324,22 @@
         "DefaultValue": "1000",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "guard"
+      },
+      {
+        "Name": "intervalMs",
+        "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Group": "pacing"
       },
       {
         "Name": "returns",
@@ -384,7 +404,20 @@
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "items"
+      },
+      {
+        "Name": "reverse",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Group": "items"
       },
       {
         "Name": "itemVariable",
@@ -396,7 +429,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": [],
-        "MissingKey": "Run.MissingVariable"
+        "MissingKey": "Run.MissingVariable",
+        "Group": "each"
       },
       {
         "Name": "indexVariable",
@@ -407,18 +441,8 @@
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "reverse",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "false",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "each"
       },
       {
         "Name": "intervalMs",
@@ -431,7 +455,8 @@
         "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "pacing"
       },
       {
         "Name": "returns",
@@ -498,7 +523,8 @@
         "DefaultValue": "1",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "range"
       },
       {
         "Name": "rangeTo",
@@ -511,7 +537,8 @@
         "DefaultValue": "5",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "range"
       },
       {
         "Name": "stepSize",
@@ -524,7 +551,21 @@
         "DefaultValue": "1",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "range"
+      },
+      {
+        "Name": "name",
+        "Shape": "Text",
+        "ReadMode": "VariableName",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "i",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable",
+        "Group": "each"
       },
       {
         "Name": "intervalMs",
@@ -537,19 +578,8 @@
         "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "name",
-        "Shape": "Text",
-        "ReadMode": "VariableName",
-        "Picker": "None",
-        "Required": true,
-        "DefaultValue": "i",
-        "Options": [],
-        "AcceptsVariables": false,
         "ChildKeys": [],
-        "MissingKey": "Run.MissingVariable"
+        "Group": "pacing"
       },
       {
         "Name": "returns",
@@ -1507,7 +1537,8 @@
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Group": "macro"
       },
       {
         "Name": "arguments",
@@ -1519,6 +1550,7 @@
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": [],
+        "Group": "passing",
         "Columns": [
           {
             "Name": "name",
