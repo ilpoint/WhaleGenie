@@ -426,6 +426,10 @@ public class StepOutcomeTests
 
         public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
             => Task.FromResult(AskAnswer.Cancel);
+
+        /// <summary>Nothing these runs reach cannot be undone.</summary>
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+            => Task.FromResult(true);
     }
 
     /// <summary>A library whose one macro turns up only on the second ask.</summary>

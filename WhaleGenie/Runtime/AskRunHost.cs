@@ -22,7 +22,8 @@ namespace WhaleGenie.Runtime;
 public sealed class AskRunHost(
     Func<string, string, string, string, Task<StepErrorChoice>>? ask,
     Func<AskQuestion, Task<AskAnswer>>? askUser = null,
-    Action<LogEntry, string>? log = null) : IRunHost
+    Action<LogEntry, string>? log = null,
+    Func<ExecutableStep, Task<bool>>? confirm = null) : IRunHost
 {
     /// <summary>
     /// A triggered run has no log window to write to, but its lines still belong to the run's
@@ -53,4 +54,14 @@ public sealed class AskRunHost(
         => askUser is null || token.IsCancellationRequested
             ? Task.FromResult(AskAnswer.Cancel)
             : askUser(question);
+
+    /// <summary>
+    /// A triggered run has a person in front of the machine, so a step that cannot be undone is put
+    /// to them. A window that has not installed the callback, or a run already cancelled, answers no:
+    /// the one answer that cannot make things worse on its own.
+    /// </summary>
+    public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+        => confirm is null || token.IsCancellationRequested
+            ? Task.FromResult(false)
+            : confirm(step);
 }

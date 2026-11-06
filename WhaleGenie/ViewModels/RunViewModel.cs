@@ -1418,6 +1418,21 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         return given;
     }
 
+    /// <summary>
+    /// Puts the "this cannot be undone" question on the same panel the macro's own questions use,
+    /// because that is the one place a run under the debugger can be answered. A run stopped while
+    /// the question is up reads as no, the way an unanswered question of the macro's own reads as
+    /// cancelled.
+    /// </summary>
+    public async Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+    {
+        var answer = await AskUser(
+            new AskQuestion(AskKind.Confirm,
+                IrreversiblePrompt.Question(step.Type, step.Meta.Comment), string.Empty),
+            token);
+        return answer.Confirmed;
+    }
+
     /// <summary>Writes one translated line into the log.</summary>
     public void Log(LogEntry entry)
     {

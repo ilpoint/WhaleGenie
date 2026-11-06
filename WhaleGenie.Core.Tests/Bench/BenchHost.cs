@@ -26,4 +26,12 @@ internal sealed class BenchHost : IRunHost
 
     public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
         => Task.FromResult(new AskAnswer(true, "bench"));
+
+    /// <summary>
+    /// The bench runs every action the catalogue has, including the ones that cannot be undone, so
+    /// it agrees to all of them: what is being checked here is that the action runs and matches its
+    /// declaration, not that somebody would have said yes.
+    /// </summary>
+    public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+        => Task.FromResult(true);
 }

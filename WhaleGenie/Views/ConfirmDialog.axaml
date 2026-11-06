@@ -20,7 +20,15 @@
 
     <Grid RowDefinitions="*,Auto">
         <ScrollViewer Grid.Row="0" Margin="20,16,20,0" VerticalScrollBarVisibility="Auto">
-            <TextBlock Classes="Body" Text="{Binding Message}" />
+            <!-- 一件放不回原样的事，除了标题之外还要在正文边上有一枚警示：按钮的样子与平常那一次
+                 完全一样，读的人往往只看到按钮。 -->
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <views:IconView Width="20" Height="20" Data="TriangleAlert"
+                                Stroke="{DynamicResource Danger}" StrokeThickness="1.8"
+                                VerticalAlignment="Top" Margin="0,1,0,0"
+                                IsVisible="{Binding IsDanger}" />
+                <TextBlock Grid.Column="1" Classes="Body" Text="{Binding Message}" />
+            </Grid>
         </ScrollViewer>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8"

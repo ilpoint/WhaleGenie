@@ -15,6 +15,17 @@ public enum ConfirmChoice
     Secondary,
 }
 
+/// <summary>
+/// What the question is about. A question that only needs an answer is asked plainly; one about
+/// something that cannot be put back says so with a mark beside it, because the button under the
+/// pointer looks the same in both cases.
+/// </summary>
+public enum ConfirmTone
+{
+    Normal,
+    Danger,
+}
+
 /// <summary>Backs the small modal used for "are you sure" style questions.</summary>
 public partial class ConfirmDialogViewModel : ViewModelBase
 {
@@ -23,6 +34,11 @@ public partial class ConfirmDialogViewModel : ViewModelBase
     public string Header { get; init; } = "Confirm";
 
     public string Message { get; init; } = string.Empty;
+
+    /// <summary>True when what is being agreed to cannot be put back.</summary>
+    public ConfirmTone Tone { get; init; } = ConfirmTone.Normal;
+
+    public bool IsDanger => Tone is ConfirmTone.Danger;
 
     /// <summary>
     /// How tall the window is. A question fits in the default, a whole document does not: the

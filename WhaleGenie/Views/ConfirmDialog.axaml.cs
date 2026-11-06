@@ -27,7 +27,7 @@ public partial class ConfirmDialog : AppWindow
     /// <summary>Shows the dialog over <paramref name="owner"/> and reports the choice.</summary>
     public static Task<ConfirmChoice> ShowAsync(Window owner, string header, string message,
         string primaryLabel, string? secondaryLabel = null, bool showCancel = true,
-        string? cancelLabel = null, double height = 210)
+        string? cancelLabel = null, double height = 210, ConfirmTone tone = ConfirmTone.Normal)
     {
         var dialog = new ConfirmDialog(new ConfirmDialogViewModel
         {
@@ -38,6 +38,7 @@ public partial class ConfirmDialog : AppWindow
             ShowCancel = showCancel,
             CancelLabel = cancelLabel,
             WindowHeight = height,
+            Tone = tone,
         });
 
         return dialog.ShowDialogOver<ConfirmChoice>(owner);

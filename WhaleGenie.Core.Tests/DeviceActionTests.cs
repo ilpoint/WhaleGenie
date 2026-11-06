@@ -215,8 +215,35 @@ public class DeviceActionTests
     {
         var layer = devices ?? new FakeDeviceLayer();
         var store = new VariableStore();
-        var result = await new MacroRunner(store, new SilentRunHost(), layer).RunAsync(steps);
+        var result = await new MacroRunner(store, new AgreeingHost(), layer).RunAsync(steps);
         return (result, layer, store);
+    }
+
+    /// <summary>
+    /// A run with nobody watching that still agrees to what cannot be undone. What these cases are
+    /// about is the request a device was given, not whether somebody would have said yes to it;
+    /// the asking itself is the subject of <c>IrreversibleStepTests</c>.
+    /// </summary>
+    private sealed class AgreeingHost : IRunHost
+    {
+        public void Log(LogEntry entry)
+        {
+        }
+
+        public string Text(LogEntry entry) => entry.Key;
+
+        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+            => Task.FromResult(true);
+
+        public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+            CancellationToken token)
+            => Task.FromResult(StepErrorChoice.Stop);
+
+        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+            => Task.FromResult(AskAnswer.Cancel);
+
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+            => Task.FromResult(true);
     }
 
     /// <summary>The same, with a project's macros behind the run so a step can call them.</summary>

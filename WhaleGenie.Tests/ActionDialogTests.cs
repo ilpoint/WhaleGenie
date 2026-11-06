@@ -3504,6 +3504,52 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// 一件放不回原样的事，在按下运行之前要先问一句。原来决定"要不要问"的那段代码读的是一个早已
+    /// 改名的字段，所以从表单里关机从来没有问过；现在这句话由目录说了算，试跑与整次运行问的是同一处。
+    /// </summary>
+    [Fact]
+    public void Running_a_step_that_cannot_be_undone_asks_first()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var window = new ActionEditorWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("system.power");
+            Dispatcher.UIThread.RunJobs();
+
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "powerAction")
+                .Choose("shutDown");
+            Dispatcher.UIThread.RunJobs();
+
+            var devices = new RecordingDevices();
+            window.Devices = devices;
+
+            RunButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            await Ui.Until(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(),
+                "shutting the machine down from the form did not ask first");
+
+            var prompt = (ConfirmDialogViewModel)Assert
+                .Single(window.OwnedWindows.OfType<ConfirmDialog>()).DataContext!;
+            Assert.Equal(Strings.Get("Run.CannotBeUndoneTitle"), prompt.Header);
+            Assert.True(prompt.IsDanger);
+            prompt.CancelCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            await Ui.Until(() => !window.OwnedWindows.Any(), "the question did not close");
+
+            // Saying no is the whole of it: nothing reached the machine.
+            Assert.Empty(devices.Calls);
+
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+            return true;
+        });
+    }
+
     [Fact]
     public void A_controller_control_is_tried_on_the_spot_from_the_run_button()
     {

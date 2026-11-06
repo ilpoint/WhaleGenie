@@ -365,8 +365,6 @@ public sealed class Strings : INotifyPropertyChanged
             + "screen only looks, and shows what it found. Every window of WhaleGenie is out of the "
             + "way while it runs, so the step sees what it is meant to look at.",
         ["Add.RanStep"] = "Ran {0}.",
-        ["Add.RunPowerTitle"] = "Run this step",
-        ["Add.RunPowerMessage"] = "This step signs out, sleeps or shuts the machine down. Run it now?",
         ["Add.PickOffset"] = "Pick the click point…",
         ["Add.PickOffsetHint"] = "Looks once with this step's own fields, then lets the point be "
             + "aimed at on that picture: beside the thing found, or outside it altogether.",
@@ -2030,6 +2028,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NotAList"] = "{0} is not a list",
         ["Run.NotANumber"] = "{0} is not a number, so it cannot be added to",
         ["Run.NothingToRethrow"] = "There is no caught failure here to throw again.",
+        ["Run.NotConfirmed"] = "This step cannot be undone and nobody agreed to it.",
         ["Run.IndexOutOfRange"] = "That position is outside the list: {0}",
         ["Run.GlobalMustExist"] =
             "The shared variable {0} does not exist. Create it in a macro editor's Variable Center",
@@ -2044,6 +2043,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskStop"] = "Stop",
         ["Run.AskTitle"] = "A step failed",
         ["Run.AskComment"] = "Your note on this step: {0}",
+        ["Run.CannotBeUndoneTitle"] = "This step cannot be undone",
+        ["Run.CannotBeUndone"] = "{0} cannot be put back once it has run. Run it?",
         ["Log.AskedYes"] = "The person answered yes to: {0}",
         ["Log.AskedNo"] = "The person answered no to: {0}",
         ["Log.AskedText"] = "The person wrote: {0}",
@@ -2726,8 +2727,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RunStepHint"] = "按当前写法执行一次这一步。需要查看屏幕的动作只查找、不点击，"
             + "找到什么直接显示出来。运行期间鲸灵自己的窗口全部收起来，这一步就不会看见它们。",
         ["Add.RanStep"] = "已运行 {0}。",
-        ["Add.RunPowerTitle"] = "运行这一步",
-        ["Add.RunPowerMessage"] = "这一步会注销、睡眠或关闭这台机器。现在运行吗？",
         ["Add.PickOffset"] = "拾取点位…",
         ["Add.PickOffsetHint"] = "先按这一步现在的写法识别一次，再在识别到的那张画面上点出要点的位置："
             + "点在找到的东西旁边、甚至点在它的框外面都可以。",
@@ -4620,6 +4619,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NotAList"] = "{0} 不是列表",
         ["Run.NotANumber"] = "{0} 不是数字，不能增加",
         ["Run.NothingToRethrow"] = "这里没有接住的失败可以重新抛出。",
+        ["Run.NotConfirmed"] = "这一步做下去无法撤回，没有得到确认。",
         ["Run.IndexOutOfRange"] = "下标超出列表范围：{0}",
         ["Run.GlobalMustExist"] = "全局变量 {0} 不存在，请先在宏编辑器的变量中心创建",
         ["Run.MissingVariable"] = "没有填写变量名",
@@ -4633,6 +4633,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskStop"] = "停止宏",
         ["Run.AskTitle"] = "步骤执行失败",
         ["Run.AskComment"] = "步骤备注：{0}",
+        ["Run.CannotBeUndoneTitle"] = "这一步没法撤回",
+        ["Run.CannotBeUndone"] = "{0} 做下去就放不回原样了，现在运行吗？",
         ["Log.AskedYes"] = "对方对「{0}」点了确定。",
         ["Log.AskedNo"] = "对方对「{0}」点了取消。",
         ["Log.AskedText"] = "对方填写了：{0}",

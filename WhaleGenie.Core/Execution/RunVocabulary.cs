@@ -138,6 +138,13 @@ public static class RunKeys
     public const string MissingInterpreter = "Run.MissingInterpreter";
     public const string MissingItem = "Run.MissingItem";
     public const string MissingJsonPath = "Run.MissingJsonPath";
+
+    /// <summary>
+    /// A step that cannot be undone was reached with nobody agreeing to it, either because they
+    /// said no or because there was nobody to ask — a triggered run and the machine-facing tools
+    /// both come to that. The step's own failure rule decides what happens next.
+    /// </summary>
+    public const string NotConfirmed = "Run.NotConfirmed";
     public const string MissingModel = "Run.MissingModel";
     public const string MissingName = "Run.MissingName";
     public const string MissingPath = "Run.MissingPath";

@@ -270,6 +270,35 @@ public class ActionContractTests
         }
     }
 
+    /// <summary>
+    /// Which steps cannot be undone is a fact about the action, so it is written in the engine's own
+    /// catalogue rather than decided by a method in the editor. The method that used to decide read
+    /// a field that had been renamed, so a step that shuts the machine down was never asked about.
+    /// The list is short on purpose: a question that comes up every time is a question that has
+    /// become one more keypress on the way to the work.
+    /// </summary>
+    [Fact]
+    public void The_catalogue_says_which_steps_cannot_be_undone()
+    {
+        Assert.True(ActionSemanticsCatalog.Find("file.delete")!.Irreversible);
+        Assert.True(ActionSemanticsCatalog.Find("file.deleteFolder")!.Irreversible);
+
+        // A power step asks about what it was told to do: locking the screen costs nothing, and
+        // cancelling a shutdown that is already counting down puts things back.
+        var power = ActionSemanticsCatalog.Find("system.power")!;
+        Assert.False(power.Irreversible);
+        Assert.Equal(["hibernate", "restart", "shutDown", "signOut", "sleep"],
+            power.Parameter("powerAction")!.IrreversibleWhen.Order(StringComparer.Ordinal).ToList());
+
+        var asking = ActionSemanticsCatalog.All
+            .Where(action => action.Irreversible
+                || action.Parameters.Any(parameter => parameter.IrreversibleWhen.Count > 0))
+            .Select(action => action.Key)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        Assert.Equal(["file.delete", "file.deleteFolder", "system.power"], asking);
+    }
+
     [Fact]
     public void The_display_catalogue_holds_no_engine_facts()
     {
@@ -281,7 +310,7 @@ public class ActionContractTests
             "ReadMode", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
             "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
             "Unit", "EmptyMeans", "Minimum", "Maximum", "EmptiesToEdge", "IsDuration",
-            "SignatureSource",
+            "SignatureSource", "Irreversible", "IrreversibleWhen",
         ];
 
         using var document = JsonDocument.Parse(display);

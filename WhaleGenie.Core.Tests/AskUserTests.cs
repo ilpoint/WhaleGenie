@@ -145,5 +145,9 @@ public class AskUserTests
             _index++;
             return Task.FromResult(answer);
         }
+
+        /// <summary>Nothing in these runs cannot be undone.</summary>
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+            => Task.FromResult(true);
     }
 }

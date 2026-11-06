@@ -3414,6 +3414,10 @@ public class MacroRunnerTests
 
         public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
             => Task.FromResult(AskAnswer.Cancel);
+
+        /// <summary>Nothing these runs reach cannot be undone.</summary>
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+            => Task.FromResult(true);
     }
 
     /// <summary>Answers the questions a failure asks, then refuses to answer more.</summary>
@@ -3446,5 +3450,9 @@ public class MacroRunnerTests
 
         public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
             => Task.FromResult(AskAnswer.Cancel);
+
+        /// <summary>Nothing these runs reach cannot be undone.</summary>
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+            => Task.FromResult(true);
     }
 }

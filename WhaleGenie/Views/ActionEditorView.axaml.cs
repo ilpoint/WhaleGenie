@@ -1140,11 +1140,13 @@ public partial class ActionEditorView : UserControl
         // The step as it would be saved, so what is run is what was written.
         var step = new[] { BuildStepForTrial(viewModel) }.ToExecutable()[0];
 
-        // Some steps put the machine out of use. A debug button is one click, and one click should
-        // not sign the user out or shut their machine down without being asked.
-        if (PutsTheMachineOut(viewModel)
-            && await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.RunPowerTitle"),
-                Strings.Get("Add.RunPowerMessage"), Strings.Get("Common.Ok")) is not ConfirmChoice.Primary)
+        // Some steps cannot be put back: a click of this button is one click, and one click should
+        // not delete a folder or shut the machine down without being asked. Which steps those are
+        // is said once, in the catalogue, and a whole run asks there too.
+        if (ActionSemanticsCatalog.CannotBeUndone(step)
+            && await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Run.CannotBeUndoneTitle"),
+                IrreversiblePrompt.Question(step.Type), Strings.Get("Common.Ok"), null, true,
+                Strings.Get("Common.Cancel"), tone: ConfirmTone.Danger) is not ConfirmChoice.Primary)
         {
             return;
         }
@@ -1267,16 +1269,6 @@ public partial class ActionEditorView : UserControl
             await trial();
         }
     }
-
-    /// <summary>
-    /// Whether running this step signs the user out or stops the machine. A power step that only
-    /// locks the screen or turns the monitor off costs nothing, so it is not asked about.
-    /// </summary>
-    private static bool PutsTheMachineOut(AddActionViewModel viewModel)
-        => viewModel.SelectedDefinition?.Key is "system.power"
-            && viewModel.Parameters
-                .FirstOrDefault(parameter => parameter.Definition.Name == "what")
-                ?.CurrentText.Trim() is "signOut" or "sleep" or "hibernate" or "restart" or "shutDown";
 
     /// <summary>Says what a run did, under the form, until the next thing the user does.</summary>
     private void Say(string message)

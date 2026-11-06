@@ -436,6 +436,7 @@ public partial class MainWindow : AppWindow
         _triggers = Runtime.Triggers;
         _triggers.Ask = AskAboutFailedStep;
         _triggers.AskUser = AskWhatTheMacroWantsToKnow;
+        _triggers.ConfirmIrreversible = ConfirmIrreversibleStep;
         _triggers.StatusChanged += OnTriggerStatusChanged;
         _triggers.IsEnabled = viewModel.IsRunning;
 
@@ -1908,6 +1909,17 @@ public partial class MainWindow : AppWindow
                 _ => StepErrorChoice.Stop,
             };
         });
+
+    /// <summary>
+    /// Puts "this cannot be undone" to the user for a run a trigger started. A closed box or a
+    /// cancelled run answers no, which is the one answer that cannot make things worse on its own.
+    /// </summary>
+    private async Task<bool> ConfirmIrreversibleStep(ExecutableStep step)
+        => await Dispatcher.UIThread.InvokeAsync(async () =>
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Run.CannotBeUndoneTitle"),
+                IrreversiblePrompt.Question(step.Type, step.Meta.Comment),
+                Strings.Get("Common.Ok"), null, true, Strings.Get("Common.Cancel"),
+                tone: ConfirmTone.Danger) is ConfirmChoice.Primary);
 
     /// <summary>
     /// Puts a macro's own question on screen for a run a trigger started, where there is no run

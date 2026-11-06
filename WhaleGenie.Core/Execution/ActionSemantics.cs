@@ -253,6 +253,13 @@ public sealed class ActionParameterSemantics
     public IReadOnlyList<string> Options { get; init; } = [];
 
     /// <summary>
+    /// The values of this choice that make the step one that cannot be undone, or empty when this
+    /// field has nothing to do with that. A power step that only locks the screen costs nothing, so
+    /// the declaration lives on the choice rather than on the action.
+    /// </summary>
+    public IReadOnlyList<string> IrreversibleWhen { get; init; } = [];
+
+    /// <summary>
     /// True when the text field offers variable names while it is typed in. The read itself is
     /// still <see cref="ActionReadMode.Text"/>; this only says the names are worth suggesting.
     /// </summary>
@@ -413,6 +420,14 @@ public sealed class ActionSemantics
     /// <summary>True while the action waits for something outside the macro before it can finish.</summary>
     public bool Waits { get; init; }
 
+    /// <summary>
+    /// True when carrying this action out loses something that cannot be brought back, so the person
+    /// is asked before it runs and refusing is a failure of its own. An action whose choice alone
+    /// decides that says so on the field instead, which is what a power step does: locking the
+    /// screen costs nothing and is not worth stopping to ask about.
+    /// </summary>
+    public bool Irreversible { get; init; }
+
     public ActionTimeoutSource TimeoutSource { get; init; }
 
     /// <summary>The parameter holding the timeout when <see cref="TimeoutSource"/> is Parameter.</summary>
@@ -554,6 +569,44 @@ public static class ActionSemanticsCatalog
 
             foreach (var parameter in action.Parameters)
             {
+                if (parameter.IrreversibleWhen.Count == 0)
+                {
+                    continue;
+                }
+
+                // A value that is not one of the choices can never be what the step holds, so the
+                // declaration would read as protection while protecting nothing.
+                if (parameter.Shape != ActionValueShape.Choice)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{parameter.Name}: only a choice says which values it cannot undo.");
+                }
+
+                foreach (var value in parameter.IrreversibleWhen)
+                {
+                    if (!parameter.Options.Contains(value, StringComparer.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            $"{action.Key}.{parameter.Name}: {value} is not one of its options.");
+                    }
+                }
+
+                if (parameter.IrreversibleWhen.Distinct(StringComparer.Ordinal).Count()
+                    != parameter.IrreversibleWhen.Count)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{parameter.Name}: a value that cannot be undone is repeated.");
+                }
+
+                if (action.Irreversible)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}: says it always cannot be undone and says which values do too.");
+                }
+            }
+
+            foreach (var parameter in action.Parameters)
+            {
                 if (parameter.Shape != ActionValueShape.Number)
                 {
                     if (parameter.Unit is not null || parameter.EmptyMeans is not null)
@@ -587,4 +640,27 @@ public static class ActionSemanticsCatalog
     /// <summary>Finds one action by its fully qualified key.</summary>
     public static ActionSemantics? Find(string key)
         => ByKey.GetValueOrDefault(key);
+
+    /// <summary>
+    /// True when this very step cannot be undone: the action says so, or the value written into one
+    /// of its choices does. The step is asked about rather than the action because a power step that
+    /// only locks the screen is not one to stop and ask about. Both the editor's trial run and a
+    /// whole run ask here, so the two cannot come to different answers.
+    /// </summary>
+    public static bool CannotBeUndone(ExecutableStep step)
+    {
+        if (Find(step.Type) is not { } action)
+        {
+            return false;
+        }
+
+        if (action.Irreversible)
+        {
+            return true;
+        }
+
+        return action.Parameters.Any(parameter => parameter.IrreversibleWhen.Count > 0
+            && parameter.IrreversibleWhen.Contains(step.Text(parameter.Name).Trim(),
+                StringComparer.OrdinalIgnoreCase));
+    }
 }

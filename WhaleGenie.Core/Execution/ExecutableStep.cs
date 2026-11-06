@@ -201,6 +201,13 @@ public interface IRunHost
     /// <see cref="AskAnswer.Cancel"/> rather than waiting, which is what a triggered run does.
     /// </summary>
     Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token);
+
+    /// <summary>
+    /// Asked before a step that cannot be undone is carried out. The host words the question from
+    /// the step's own action, because the engine keeps no user-facing words; a host with nobody to
+    /// ask answers false, which is what a triggered run and a tool call have to do.
+    /// </summary>
+    Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token);
 }
 
 /// <summary>A host that keeps the log and answers nothing, used when nobody is watching.</summary>
@@ -228,6 +235,10 @@ public sealed class SilentRunHost : IRunHost
 
     public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
         => Task.FromResult(AskAnswer.Cancel);
+
+    /// <summary>Nobody to agree to anything: a step that cannot be undone does not run.</summary>
+    public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+        => Task.FromResult(false);
 }
 
 /// <summary>

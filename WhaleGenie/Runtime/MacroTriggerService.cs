@@ -176,6 +176,13 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     public Func<AskQuestion, Task<AskAnswer>>? AskUser { get; set; }
 
+    /// <summary>
+    /// Asked before a step of a triggered macro that cannot be undone is carried out. Set by the
+    /// window that can ask; without it the step does not run, which is what a macro started by a
+    /// schedule with nobody at the machine has to do.
+    /// </summary>
+    public Func<ExecutableStep, Task<bool>>? ConfirmIrreversible { get; set; }
+
     /// <summary>The system switch on the main window.</summary>
     public bool IsEnabled
     {
@@ -1677,7 +1684,7 @@ public sealed class MacroTriggerService : IDisposable
             // No debugger is behind a run a trigger started, but a step whose failure rule is
             // "ask me" still has to reach whoever can put the question on screen. The same host
             // also keeps the run's lines for the MCP debug tools.
-            var host = new AskRunHost(Ask, AskUser, capture.Add);
+            var host = new AskRunHost(Ask, AskUser, capture.Add, ConfirmIrreversible);
 
             while (!token.IsCancellationRequested)
             {

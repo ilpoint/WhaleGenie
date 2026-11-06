@@ -100,6 +100,14 @@ public sealed partial class MacroRunner
     private readonly Dictionary<object, long> _looked = [];
 
     /// <summary>
+    /// The steps this run has already been told yes to, by the identity written into the file. A
+    /// loop that repeats a step a hundred times asks once: the question is about the step, not about
+    /// this time round. A run that is started again asks again, which is why the set is emptied at
+    /// the start of every run rather than kept beside the runner.
+    /// </summary>
+    private readonly HashSet<object> _agreed = [];
+
+    /// <summary>
     /// Reference pictures read from disk, kept beside the time the file was last written. A macro
     /// that looks for the same picture in a loop — or every two hundred milliseconds while it
     /// waits — reads and decodes it once instead of every time round. A picture that has been
@@ -452,6 +460,7 @@ public sealed partial class MacroRunner
         _images.Clear();
         _frames.Clear();
         _looked.Clear();
+        _agreed.Clear();
         _steps = steps;
 
         // Which macro is running, for the steps that want to say so in a log line or a file name. It
@@ -1265,6 +1274,27 @@ public sealed partial class MacroRunner
     /// rather than by the last try of it.
     /// </summary>
     /// <summary>
+    /// Whether this step may go ahead: true for everything that can be undone, and true for one that
+    /// cannot once the person has said so. Asked once per run per step, so a loop that repeats it
+    /// asks once and a step reached again after a refusal asks again.
+    /// </summary>
+    private async Task<bool> Agreed(ExecutableStep step, CancellationToken token)
+    {
+        if (_agreed.Contains(Key(step)) || !ActionSemanticsCatalog.CannotBeUndone(step))
+        {
+            return true;
+        }
+
+        if (!await _host.ConfirmIrreversible(step, token))
+        {
+            return false;
+        }
+
+        _agreed.Add(Key(step));
+        return true;
+    }
+
+    /// <summary>
     /// Empties the variables this step was told to hand over, before it is tried. A name with no
     /// value is what a reader sees for a result the step did not work out this time.
     /// </summary>
@@ -1361,6 +1391,16 @@ public sealed partial class MacroRunner
             var started = Stopwatch.GetTimestamp();
             try
             {
+                // A step that cannot be undone is put to the person before it is reached, once per
+                // run. A refusal is this step's own failure, so the rule on the step decides what
+                // happens next, and a retry asks again because nobody has agreed to anything yet.
+                // The question is asked on the run's token rather than the step's: hesitating is
+                // not the step taking too long.
+                if (!await Agreed(step, token))
+                {
+                    throw new StepFailure(RunKeys.NotConfirmed);
+                }
+
                 var signal = await ExecuteChecked(step, depth, attemptToken);
 
                 // The clock catches what the token cannot: a device call that blocks until it is
