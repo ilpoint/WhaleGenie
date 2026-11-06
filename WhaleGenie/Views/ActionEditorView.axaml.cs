@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -234,7 +234,7 @@ public partial class ActionEditorView : UserControl
     {
         if (e.Source is Visual visual
             && visual.FindAncestorOfType<AutoCompleteBox>(true) is
-                { DataContext: StepParameterViewModel { IsMacro: true, Text.Length: 0 } } picker
+            { DataContext: StepParameterViewModel { IsMacro: true, Text.Length: 0 } } picker
             && picker.ItemsSource is { } items
             && items.Cast<object>().Any())
         {
@@ -1838,8 +1838,12 @@ public partial class ActionEditorView : UserControl
     /// <summary>One line of the window menu: what it says, what it does, and whether it is the one in force.</summary>
     private static MenuItem Choice(string text, Action chosen, bool inForce = false)
     {
-        var item = new MenuItem { Header = text, ToggleType = MenuItemToggleType.Radio,
-            IsChecked = inForce };
+        var item = new MenuItem
+        {
+            Header = text,
+            ToggleType = MenuItemToggleType.Radio,
+            IsChecked = inForce
+        };
         item.Click += (_, _) => chosen();
         return item;
     }

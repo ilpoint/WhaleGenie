@@ -171,7 +171,8 @@ public partial class WindowRuleWindow : AppWindow
         }
 
         Show(new WindowRule(Title: entry.Title, Process: entry.Process, ClassName: entry.Class,
-            Handle: entry.Handle) with { How = How() });
+            Handle: entry.Handle) with
+        { How = How() });
     }
 
     /// <summary>

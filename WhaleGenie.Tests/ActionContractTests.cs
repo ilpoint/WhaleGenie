@@ -6,8 +6,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
-using WhaleGenie.ViewModels;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 

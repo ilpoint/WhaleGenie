@@ -714,9 +714,9 @@ public sealed partial class MacroRunner
     private UiQuery Query(ExecutableStep step)
     {
         var rule = WindowRuleOf(step);
-        return UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
-            Index(step, "matchIndex", 1), rule.Reading.Match, rule.Reading.Compare, rule.Options)
-            with { Narrow = NarrowConditions(step) };
+        var query = UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
+            Index(step, "matchIndex", 1), rule.Reading.Match, rule.Reading.Compare, rule.Options);
+        return query with { Narrow = NarrowConditions(step) };
     }
 
     /// <summary>

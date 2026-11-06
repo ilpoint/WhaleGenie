@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
