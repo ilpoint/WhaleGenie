@@ -490,6 +490,31 @@ public class ValuePickerWindowTests
         Assert.Contains("<Setter Property=\"Opacity\" Value=\"0\" />", block, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The splitter stops the structure area at 200: the shortest formula still leaves room for a row
+    /// of pieces, and the three panels below keep what they had. The minimum belongs to the row the
+    /// splitter sizes — written on the panel it would be ignored, which is the trap this check marks.
+    /// </summary>
+    [Fact]
+    public void The_structure_panel_cannot_be_dragged_below_two_hundred_pixels()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a + 1");
+            var splitter = Assert.IsType<GridSplitter>(Named(window, "BandSplitter"));
+            var rows = Assert.IsType<Grid>(splitter.Parent).RowDefinitions;
+
+            Assert.Equal(200, rows[0].MinHeight);
+
+            var grip = splitter.GetVisualDescendants().OfType<Border>().Single(one => one.Name == "Grip");
+            Assert.True(grip.Bounds.Width > 0 && grip.Bounds.Height > 0);
+            Assert.True(grip.Bounds.Width < splitter.Bounds.Width,
+                "the grip has to be a short bar, not the whole strip");
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
     private static string Repository()
     {
         for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)

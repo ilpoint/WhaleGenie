@@ -247,6 +247,27 @@
             <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
 
+        <!--
+          横向分隔条中间的一小条把手：告诉人这里可以拖。只有横条带它——竖条本身只有 6 像素宽，
+          再放一条就把可抓的地方挤没了。静息是控件描边色，指上去换成强调色。
+          模板根铺满整条并绑底色，所以原来那条悬停底色与可抓范围都没变。
+        -->
+        <Style Selector="GridSplitter.BandGrip">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}">
+                        <Border Name="Grip" Width="40" Height="3" CornerRadius="1.5"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="{DynamicResource BorderControl}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="GridSplitter.BandGrip:pointerover /template/ Border#Grip">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        </Style>
+
         <Style Selector="TextBlock.Note.problem">
             <Setter Property="Foreground" Value="{DynamicResource Danger}" />
         </Style>
@@ -544,12 +565,18 @@
           结构面板内部的表头、结构带与说明行各占一行；BandScroll、DragLayer、RemoveLayer 仍同格叠加，
           外层重编号不要动它们的 Grid.Row。
         -->
-        <Grid Grid.Row="1" IsVisible="{Binding CanCompute}" RowDefinitions="*,Auto,*" RowSpacing="0">
+        <Grid Grid.Row="1" IsVisible="{Binding CanCompute}" RowSpacing="0">
+            <Grid.RowDefinitions>
+                <!-- 下限写在行上：分隔条只认 RowDefinition 的 MinHeight，写在面板上它不读。 -->
+                <RowDefinition Height="*" MinHeight="200" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
             <Border Grid.Row="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,8"
                     Margin="0,0,0,4">
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
                     <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-                        <!-- 撤销与恢复在表头最左，先于这一段的名字。 -->
+                        <!-- 撤销、恢复与清空在表头最左，先于这一段的名字。 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
                             <Button Classes="SlotStep" IsEnabled="{Binding CanUndo}" Click="OnUndo"
                                     ToolTip.Tip="{Binding [ValuePicker.Undo], Source={x:Static loc:Strings.Current}}">
@@ -639,8 +666,8 @@
                 </Grid>
             </Border>
 
-            <!-- 上下分隔条：拖它调整结构区与三盘各占多少高。 -->
-            <GridSplitter Grid.Row="1" Name="BandSplitter" Classes="Split" Height="6"
+            <!-- 上下分隔条：拖它调整结构区与三盘各占多少高，中间那一小条亮杠就是它的把手。 -->
+            <GridSplitter Grid.Row="1" Name="BandSplitter" Classes="Split BandGrip" Height="6"
                           ResizeDirection="Rows" HorizontalAlignment="Stretch" />
 
             <!-- 下半区：符号带固定一行，三盘吃掉剩下的高度。 -->

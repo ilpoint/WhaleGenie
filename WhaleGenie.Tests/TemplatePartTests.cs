@@ -98,6 +98,7 @@ public class TemplatePartTests
     [
         "GridSplitter.RunSplit /template/ Border#SplitLine",
         "GridSplitter.SplitVertical /template/ Border#SplitLine",
+        "GridSplitter.BandGrip /template/ Border#Grip",
     ];
 
     [Fact]
