@@ -442,6 +442,31 @@ public class LocalizationTests
     }
 
     /// <summary>
+    /// A hint is read standing beside the field it belongs to, not as a chapter. A page holds a
+    /// dozen of them, so one that runs to five lines is skipped by the reader and still fills the
+    /// form. The four families that have been through this pass are held to it; the rest follow one
+    /// family at a time, which is why the rule names them rather than applying to everything.
+    /// </summary>
+    [Fact]
+    public void A_hint_is_read_beside_its_field_not_as_a_chapter()
+    {
+        ActionCategory[] shortened =
+        [
+            ActionCategory.Vision, ActionCategory.Ocr, ActionCategory.Uia, ActionCategory.Browser,
+        ];
+
+        var long_ = Ui.Run(() => ActionCatalog.Definitions
+            .Where(definition => shortened.Contains(definition.Category))
+            .SelectMany(definition => definition.Parameters
+                .Where(parameter => parameter.Hint.Length > 160)
+                .Select(parameter => $"{definition.Key}.{parameter.Name} ({parameter.Hint.Length})"))
+            .Order()
+            .ToList());
+
+        Assert.Empty(long_);
+    }
+
+    /// <summary>
     /// A number that is already filled in is one the reader does not have to answer, so the one thing
     /// its line has to say is what the filled-in value is. Numbers are what this is about: a choice
     /// says which option it starts on in the option's own words.
