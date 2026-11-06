@@ -152,8 +152,11 @@ public class ValuePickerWindowTests
             var layer = Named(window, "RemoveLayer");
             var corner = piece.TranslatePoint(new Point(piece.Bounds.Width, 0), layer);
             Assert.NotNull(corner);
-            Assert.InRange(Math.Abs(Canvas.GetLeft(cross) - (corner.Value.X - 18)), 0, 20);
-            Assert.InRange(Math.Abs(Canvas.GetTop(cross) - (corner.Value.Y + 1)), 0, 20);
+            Assert.InRange(Math.Abs(Canvas.GetLeft(cross) - (corner.Value.X - 16)), 0, 20);
+            Assert.InRange(Math.Abs(Canvas.GetTop(cross) - (corner.Value.Y - 14)), 0, 20);
+            // The cross sits above the piece: drawn over its corner it would swallow a click meant
+            // to put the insertion point after that piece.
+            Assert.True(Canvas.GetTop(cross) <= corner.Value.Y);
 
             node.IsHovered = false;
             Ui.CloseAndDiscard(window);

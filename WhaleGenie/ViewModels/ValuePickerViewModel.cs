@@ -40,6 +40,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     private readonly Dictionary<string, ExpressionFunction> _table;
 
     private bool _reads;
+    private int _caret;
 
     public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables, bool namesOnly,
         string? target = null)
@@ -53,6 +54,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
 
         Text = seed ?? string.Empty;
+        _caret = Text.Length;
 
         // The wall keeps what a flat list cannot: the steps that read a name, and the way to one.
         // Its own search and filters are shown, because the variables panel is that wall.
@@ -177,6 +179,32 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     public partial SlotNode? Recipe { get; set; }
 
     public bool HasRecipe => Recipe is not null;
+
+    /// <summary>
+    /// Where the next piece is written, counted in characters of the formula. The band draws one
+    /// thin line here and every palette writes at it; the text stays the only thing stored.
+    /// </summary>
+    public int Caret
+    {
+        get => _caret;
+        private set
+        {
+            var next = Math.Clamp(value, 0, Text.Length);
+            if (_caret == next)
+            {
+                return;
+            }
+
+            _caret = next;
+            OnPropertyChanged(nameof(Caret));
+        }
+    }
+
+    /// <summary>Moves the insertion point, clamped to the formula that is there now.</summary>
+    public void SetCaret(int at) => Caret = at;
+
+    /// <summary>Keeps the insertion point legal after the text changed under it.</summary>
+    private void ClampCaret() => Caret = _caret;
 
     public bool CanConfirm => NamesOnly ? Wall.Looking is not null : _reads;
 
@@ -454,45 +482,53 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>A move worked out before anything is cut: where, what, and what goes around it.</summary>
     private readonly record struct MovePlan(SlotNode Piece, int Seam, string Raw, string Lead, string Trail);
 
-    /// <summary>
-    /// Adds one material to the line. Where it lands is decided by the insertion caret; until that
-    /// is wired up the end of the line is the only place, which is where a formula built one piece
-    /// at a time has got to. Nothing already written is ever taken over.
-    /// </summary>
-    public void Place(string token) => Append(token);
-
-    /// <summary>Adds an empty call without putting it around anything already written.</summary>
-    public void PlaceCall(string name) => Append(name + "()");
+    /// <summary>Writes one material at the insertion point, leaving everything already written alone.</summary>
+    public void Place(string token) => InsertAtCaret(token);
 
     /// <summary>
-    /// Puts one space where the characters now touching would be read as a single piece: two numbers
-    /// becoming one number, a name growing a letter, two strings running together. Everything else
-    /// — <c>-</c> in front of a number, a bracket beside a word — is left alone.
+    /// Adds an empty call and leaves the insertion point between its brackets, ready for an argument.
+    /// Nothing already written is ever put inside it against the reader's wish.
     /// </summary>
-    private void JoinSeam(int at, string written)
+    public void PlaceCall(string name)
     {
-        if (written.Length == 0 || at < 0)
+        var start = InsertAtCaret(name + "()");
+        SetCaret(start + name.Length + 1);
+    }
+
+    /// <summary>
+    /// Writes one piece where the insertion point is, putting a space on either side only where the
+    /// characters would otherwise be read as a single piece. Filling the ghost also writes the comma
+    /// it stands behind. Returns where the written piece begins, so a call can put its insertion
+    /// point inside the brackets rather than after them.
+    /// </summary>
+    private int InsertAtCaret(string token)
+    {
+        var at = Math.Clamp(Caret, 0, Text.Length);
+        if (token.Length == 0)
         {
-            return;
+            return at;
         }
 
-        var lead = at > 0 && at <= Text.Length && Glues(Text[at - 1], written[0]);
+        // The ghost is not an argument and is not in Walk's children: it is the one place a call
+        // keeps that the text never wrote, so it is reached through the call that owns it.
+        var ghost = Recipe?.Walk().OfType<SlotCall>()
+            .Select(call => call.Ghost)
+            .FirstOrDefault(one => one is { IsGhost: true } && one.Start == at);
+        var end = Text.TrimEnd().Length;
+        var left = at > 0 ? Text[at - 1] : '\0';
+        var right = at < end ? Text[at] : '\0';
+        var lead = ghost is not null ? ghost.Before
+            : at == 0 ? string.Empty
+            : at >= end ? " "
+            : Glues(left, token[0]) || (EndsPiece(left) && StartsPiece(token[0]))
+                ? " " : string.Empty;
+        var trail = ghost is null && at < end
+            && (Glues(token[^1], right) || (EndsPiece(token[^1]) && StartsPiece(right)))
+            ? " " : string.Empty;
 
-        var tailAt = at + written.Length;
-        var tail = tailAt < Text.Length && Glues(written[^1], Text[tailAt]);
-
-        if (!lead && !tail)
-        {
-            return;
-        }
-
-        var text = lead ? Text.Insert(at, " ") : Text;
-        if (tail)
-        {
-            text = text.Insert(tailAt + (lead ? 1 : 0), " ");
-        }
-
-        Text = text;
+        Text = Text.Insert(at, lead + token + trail);
+        SetCaret(at + lead.Length + token.Length);
+        return at + lead.Length;
     }
 
     /// <summary>True for the characters a name, a number or a word is made of.</summary>
@@ -508,16 +544,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             || right is '"' or '\''
             || (left, right) is ('!', '=') or ('<', '=') or ('>', '=') or ('=', '=') or ('&', '&') or ('|', '|');
 
-    /// <summary>
-    /// Writes a piece at the end of the line, with one space in front of it so two pieces never run
-    /// into each other.
-    /// </summary>
-    private void Append(string token)
-    {
-        var at = Text.TrimEnd().Length;
-        var lead = at == 0 ? string.Empty : " ";
-        Text = Text.Insert(at, lead + token);
-    }
+    /// <summary>True for a character that can end one piece of a formula.</summary>
+    private static bool EndsPiece(char character)
+        => IsWord(character) || character is '"' or '\'' or ')' or ']';
+
+    /// <summary>True for a character that can begin one piece of a formula.</summary>
+    private static bool StartsPiece(char character)
+        => IsWord(character) || character is '"' or '\'' or '(' or '[';
 
     /// <summary>
     /// Takes one piece away, and the comma that kept it apart from its neighbour. The ghost at the
@@ -904,6 +937,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         Recipe = NamesOnly ? null : SlotReader.Read(Text, _table);
         RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));
+        ClampCaret();
     }
 
     /// <summary>

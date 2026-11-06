@@ -551,6 +551,9 @@
                                 BorderThickness="1" BorderBrush="{DynamicResource AccentText}" />
                         <Border Name="DropLine" IsVisible="False" Width="2" CornerRadius="1"
                                 Background="{DynamicResource AccentText}" />
+                        <!-- 常驻插入光标：一根更细的线。拖拽时让位给落点线，两者不同时出现。 -->
+                        <Border Name="TextCaret" IsVisible="False" Width="1"
+                                Background="{DynamicResource AccentText}" />
                     </Canvas>
 
                     <!--

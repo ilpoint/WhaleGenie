@@ -53,20 +53,36 @@ public partial class ValuePickerWindow : AppWindow
         // would swallow the keys before a bubbling handler ever sees them.
         AddHandler(KeyDownEvent, OnWindowTunnelKey, RoutingStrategies.Tunnel);
 
-        // Every edit hands the band a new tree, so the piece the pointer was over no longer exists.
+        // Every edit hands the band a new tree, so the piece the pointer was over no longer exists,
+        // and the standing line has to be measured against the new tree as well.
         viewModel.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName is nameof(ValuePickerViewModel.Recipe))
+            if (args.PropertyName == nameof(ValuePickerViewModel.Recipe))
             {
                 Dispatcher.UIThread.Post(RefreshHover, DispatcherPriority.Loaded);
+                Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
+            }
+            else if (args.PropertyName == nameof(ValuePickerViewModel.Caret))
+            {
+                Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
             }
         };
 
-        BandScroll.SizeChanged += (_, _) => _viewModel.RefreshStacking(BandScroll.Viewport.Width);
+        BandScroll.SizeChanged += (_, _) =>
+        {
+            _viewModel.RefreshStacking(BandScroll.Viewport.Width);
+            Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
+        };
 
         Opened += (_, _) =>
         {
             _viewModel.RefreshStacking(BandScroll.Viewport.Width);
+            if (StartCaret >= 0)
+            {
+                _viewModel.SetCaret(StartCaret);
+            }
+
+            Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
             if (!viewModel.CanCompute)
             {
                 NameSearch.Focus();
@@ -108,9 +124,8 @@ public partial class ValuePickerWindow : AppWindow
     }
 
     /// <summary>
-    /// Puts a piece where the person pointed: over the piece chosen in the structure band when one
-    /// is, at the end of the line otherwise. The window stays open either way — a formula is built a
-    /// piece at a time, and closing on the first piece would make composing one a series of openings.
+    /// Writes one piece at the insertion point. The window stays open either way: a formula is built
+    /// a piece at a time, and closing on the first piece would make composing one a series of openings.
     /// </summary>
     private void Put(string token) => _viewModel.Place(token);
 
@@ -157,6 +172,9 @@ public partial class ValuePickerWindow : AppWindow
     /// <summary>The piece last hovered during a drag, and the preview drawn for it.</summary>
     private SlotNode? _dropTarget;
     private ValuePickerViewModel.DropPreview _preview;
+
+    /// <summary>The insertion point a press asked for, applied only if the press stayed a click.</summary>
+    private int? _pendingCaret;
 
     /// <summary>
     /// Shows the cross on the one piece the pointer is on. Done here rather than with a
@@ -205,10 +223,12 @@ public partial class ValuePickerWindow : AppWindow
 
         // The cross, the rectangle that notices a press on it, and the visible part of the band all
         // live in the overlay's coordinates. Mixing these with the band's own coordinates made the
-        // cross drift away from its piece after the strip scrolled.
+        // cross drift away from its piece after the strip scrolled. It sits just above the piece's
+        // top-right corner rather than on it: a cross drawn over the corner would swallow a click
+        // meant to put the insertion point after that piece.
         var visible = VisibleOverlay();
-        var left = Math.Clamp(b.X - 18, visible.Left, Math.Max(visible.Left, visible.Right - 16));
-        var top = Math.Clamp(a.Y + 1, visible.Top, Math.Max(visible.Top, visible.Bottom - 16));
+        var left = Math.Clamp(b.X - 16, visible.Left, Math.Max(visible.Left, visible.Right - 16));
+        var top = Math.Clamp(a.Y - 14, visible.Top, Math.Max(visible.Top, visible.Bottom - 16));
         Canvas.SetLeft(HoverRemove, left);
         Canvas.SetTop(HoverRemove, top);
         HoverRemove.DataContext = node;
@@ -244,6 +264,109 @@ public partial class ValuePickerWindow : AppWindow
     }
 
     /// <summary>
+    /// The token controls actually on screen, with the piece each stands for and its rectangle in
+    /// the band's own coordinates. Only marked pieces count: every container above them inherits the
+    /// same piece, and picking one of those would put a line around a whole call instead of a token.
+    /// </summary>
+    private List<(Control Control, SlotNode Node, Rect Bounds)> Pieces()
+        => [.. Band.GetVisualDescendants()
+            .OfType<Control>()
+            .Where(one => one.IsEffectivelyVisible && one.Classes.Contains("SlotPiece")
+                && one.DataContext is SlotNode)
+            .Select(one => (Control: one, Node: (SlotNode)one.DataContext!,
+                Bounds: one.TranslatePoint(default, Band) is { } at
+                    ? new Rect(at.X, at.Y, one.Bounds.Width, one.Bounds.Height)
+                    : default))
+            .Where(one => one.Bounds.Width > 0 && one.Bounds.Height > 0)];
+
+    /// <summary>
+    /// Which character offset a press names. The left half of a piece puts the line before it, the
+    /// right half after it, and a folded container reads top to bottom. In the seams between pieces
+    /// the nearest edge wins, so a click on an empty stretch still has a place to write.
+    /// </summary>
+    private int? CaretFor(Point point)
+    {
+        var pieces = Pieces();
+        if (pieces.Count == 0)
+        {
+            return _viewModel.Caret;
+        }
+
+        var hit = pieces.Where(one => one.Bounds.Contains(point))
+            .OrderBy(one => one.Bounds.Width * one.Bounds.Height)
+            .FirstOrDefault();
+
+        if (hit.Control is not null)
+        {
+            var right = point.X > hit.Bounds.X + hit.Bounds.Width / 2;
+            var lower = point.Y > hit.Bounds.Y + hit.Bounds.Height / 2;
+            var after = ValuePickerViewModel.AfterFor(hit.Node, right, lower);
+            return after ? hit.Node.Start + hit.Node.Length : hit.Node.Start;
+        }
+
+        return pieces
+            .SelectMany(one => new[]
+            {
+                (At: one.Node.Start, Edge: one.Bounds.X, Top: one.Bounds.Top,
+                    Bottom: one.Bounds.Bottom),
+                (At: one.Node.Start + one.Node.Length, Edge: one.Bounds.Right,
+                    Top: one.Bounds.Top, Bottom: one.Bounds.Bottom),
+            })
+            .OrderBy(edge => Math.Abs(edge.Edge - point.X)
+                + (point.Y < edge.Top || point.Y > edge.Bottom ? 60 : 0))
+            .Select(edge => (int?)edge.At)
+            .FirstOrDefault() ?? _viewModel.Caret;
+    }
+
+    /// <summary>
+    /// Draws the standing insertion line. It is one pixel wide and does not blink: a line that comes
+    /// and goes is harder to aim the next piece at. A drag hides it in favour of the drop cursor, so
+    /// the two never claim the same seam.
+    /// </summary>
+    private void ShowCaret()
+    {
+        if (_dragging || _viewModel.Recipe is null)
+        {
+            TextCaret.IsVisible = false;
+            return;
+        }
+
+        var caret = _viewModel.Caret;
+        var spot = Pieces()
+            .SelectMany(one => new[]
+            {
+                (Control: one.Control, At: one.Node.Start, After: false, Extent: one.Bounds),
+                (Control: one.Control, At: one.Node.Start + one.Node.Length, After: true,
+                    Extent: one.Bounds),
+            })
+            .OrderBy(edge => Math.Abs(edge.At - caret))
+            .ThenBy(edge => edge.Extent.Width * edge.Extent.Height)
+            .FirstOrDefault();
+
+        if (spot.Control is null || !TryBounds(spot.Control, out var top, out var bottom))
+        {
+            TextCaret.IsVisible = false;
+            return;
+        }
+
+        var visible = VisibleOverlay();
+        var x = spot.After ? bottom.X : top.X;
+        var from = Math.Max(top.Y, visible.Top);
+        var to = Math.Min(bottom.Y, visible.Bottom);
+        if (to - from < 6 || x < visible.Left || x > visible.Right)
+        {
+            TextCaret.IsVisible = false;
+            return;
+        }
+
+        TextCaret.Height = to - from;
+        Canvas.SetLeft(TextCaret, Math.Clamp(x, visible.Left,
+            Math.Max(visible.Left, visible.Right - 1)));
+        Canvas.SetTop(TextCaret, from);
+        TextCaret.IsVisible = true;
+    }
+
+    /// <summary>
     /// Works out what is under the pointer again from where it last was. The band is rebuilt from
     /// the text after every edit, so the pieces the pointer was over are new objects and no
     /// pointer-moved event arrives to say so.
@@ -271,7 +394,11 @@ public partial class ValuePickerWindow : AppWindow
 
     private void OnBandExited(object? sender, PointerEventArgs e) => SetHover(null);
 
-    private void OnBandScrolled(object? sender, ScrollChangedEventArgs e) => RefreshHover();
+    private void OnBandScrolled(object? sender, ScrollChangedEventArgs e)
+    {
+        RefreshHover();
+        ShowCaret();
+    }
 
     private void OnBandCaptureLost(object? sender, PointerCaptureLostEventArgs e) => ResetDrag();
 
@@ -289,6 +416,7 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         _pressedCross = false;
+        _pendingCaret = CaretFor(point.Position);
 
         // The cross is drawn in a layer that takes no input, so its press arrives here. It belongs
         // to the piece the cross was drawn for, not to whatever token happens to sit underneath.
@@ -296,6 +424,7 @@ public partial class ValuePickerWindow : AppWindow
             && HoverRemove.DataContext is SlotNode piece && _viewModel.RemoveArgument(piece))
         {
             _pressedCross = true;
+            _pendingCaret = null;
             e.Handled = true;
             return;
         }
@@ -389,6 +518,7 @@ public partial class ValuePickerWindow : AppWindow
     /// </summary>
     private void ShowDropCursor(PointerEventArgs e)
     {
+        TextCaret.IsVisible = false;
         var piece = _dragPiece;
         var control = ControlAt(e.GetPosition(Band));
         _dropTarget = control?.DataContext as SlotNode;
@@ -501,14 +631,27 @@ public partial class ValuePickerWindow : AppWindow
         var preview = _preview;
         var target = _dropTarget;
         var pressedCross = _pressedCross;
+        var pendingCaret = _pendingCaret;
         _pressedCross = false;
+        _pendingCaret = null;
         ResetDrag();
         e.Pointer.Capture(null);
 
+        if (pressedCross)
+        {
+            return;
+        }
+
+        // A press that stayed a click only moves the insertion point. A drag of six pixels or more
+        // is a move of a piece and must not leave the line somewhere the pointer merely passed over.
+        if (!dragging && pendingCaret is { } at)
+        {
+            _viewModel.SetCaret(at);
+        }
+
         // The picture and the result come from the same preview. Looking under the pointer a second
-        // time here would let the two disagree about which piece the drop belongs to. A release that
-        // lifted a cross has already done its work on the way down.
-        if (pressedCross || !dragging || piece is null || target is null || !preview.Allowed)
+        // time here would let the two disagree about which piece the drop belongs to.
+        if (!dragging || piece is null || target is null || !preview.Allowed)
         {
             return;
         }
@@ -527,6 +670,7 @@ public partial class ValuePickerWindow : AppWindow
         DropLine.IsVisible = false;
         DropRing.IsVisible = false;
         SetHover(null);
+        Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
     }
 
     /// <summary>The innermost piece drawn under this point.</summary>
