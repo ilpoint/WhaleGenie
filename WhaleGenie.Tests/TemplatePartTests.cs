@@ -73,6 +73,8 @@ public class TemplatePartTests
         ("Button", "Op", "ContentPresenter"),
         ("Button", "ExprChip", "ContentPresenter"),
         ("Button", "ChipWord", "ContentPresenter"),
+        // 当前那一类：选中的分类按钮自己画底色，悬停那一条也压住，模板里的这层亮面是唯一落点。
+        ("Button", "ChipWord on", "ContentPresenter"),
         // 插槽上的两枚小按钮：参数的叉与表头的撤销恢复，各自画自己的悬停。
         ("Button", "SlotRemove", "ContentPresenter"),
         ("Button", "SlotStep", "ContentPresenter"),

@@ -111,7 +111,16 @@ public partial class VariableWallViewModel : ViewModelBase
     /// </summary>
     public bool HasUses => Uses.Count > 0;
 
-    partial void OnSelectedFilterChanged(VariableFilter? value) => Rebuild();
+    partial void OnSelectedFilterChanged(VariableFilter? value)
+    {
+        // One button always stands for the names below it, so the row says which group is on show.
+        foreach (var filter in Filters)
+        {
+            filter.IsSelected = ReferenceEquals(filter, value);
+        }
+
+        Rebuild();
+    }
 
     partial void OnSearchTextChanged(string value) => Rebuild();
 
@@ -282,7 +291,7 @@ public partial class VariableWallViewModel : ViewModelBase
 }
 
 /// <summary>One of the wall's filter buttons: the group it shows and how it is written.</summary>
-public sealed class VariableFilter
+public sealed partial class VariableFilter : ObservableObject
 {
     public VariableFilter(VariableGroup group, string labelKey, string hintKey)
     {
@@ -296,4 +305,11 @@ public sealed class VariableFilter
     public string Label { get; }
 
     public string Hint { get; }
+
+    /// <summary>
+    /// True on the one button standing for the names on show right now. Five words in one row that
+    /// all look the same leave the reader unable to say which group the list belongs to.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
 }

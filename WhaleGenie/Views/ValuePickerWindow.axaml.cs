@@ -132,31 +132,57 @@ public partial class ValuePickerWindow : AppWindow
     private void Put(string token) => _viewModel.Place(token);
 
     /// <summary>
-    /// Undo and redo, from anywhere in the window. Nothing else is keyed here: with no formula box
-    /// there is no typing to key around.
+    /// The keys that belong to the window rather than to a field. Undo has to be keyed in front of
+    /// everything else: a text box keeps its own history and would swallow the keys before a bubbling
+    /// handler ever sees them. The arrows are keyed here for the same reason — the strip they move is
+    /// inside a scroll viewer that would rather scroll — and they stand aside whenever a field or a
+    /// list is the thing with focus.
     /// </summary>
     private void OnWindowTunnelKey(object? sender, KeyEventArgs e)
     {
-        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                _viewModel.Redo();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Z)
+            {
+                _viewModel.Undo();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Y)
+            {
+                _viewModel.Redo();
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (e.KeyModifiers != KeyModifiers.None || KeysOwnedElsewhere(e))
         {
             return;
         }
 
-        if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        var moved = e.Key switch
         {
-            _viewModel.Redo();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Z)
+            Key.Left => _viewModel.StepCaret(-1),
+            Key.Right => _viewModel.StepCaret(1),
+            Key.Up => StepRow(down: false),
+            Key.Down => StepRow(down: true),
+            _ => false,
+        };
+
+        if (!moved)
         {
-            _viewModel.Undo();
-            e.Handled = true;
+            return;
         }
-        else if (e.Key == Key.Y)
-        {
-            _viewModel.Redo();
-            e.Handled = true;
-        }
+
+        e.Handled = true;
+        RevealCaret();
+        Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
     }
 
     private SlotNode? _dragPiece;
@@ -321,18 +347,12 @@ public partial class ValuePickerWindow : AppWindow
     }
 
     /// <summary>
-    /// Draws the standing insertion line. It is one pixel wide and does not blink: a line that comes
-    /// and goes is harder to aim the next piece at. A drag hides it in favour of the drop cursor, so
-    /// the two never claim the same seam.
+    /// The edge the standing line is drawn at: the piece edge nearest the caret, and the two points it
+    /// spans. The line and the arrow keys both read this, so what moves and what is drawn cannot end
+    /// up at two different places.
     /// </summary>
-    private void ShowCaret()
+    private (bool After, Point Top, Point Bottom)? CaretPlace()
     {
-        if (_dragging || _viewModel.Recipe is null)
-        {
-            TextCaret.IsVisible = false;
-            return;
-        }
-
         var caret = _viewModel.Caret;
         var spot = Pieces()
             .SelectMany(one => new[]
@@ -345,16 +365,28 @@ public partial class ValuePickerWindow : AppWindow
             .ThenBy(edge => edge.Extent.Width * edge.Extent.Height)
             .FirstOrDefault();
 
-        if (spot.Control is null || !TryBounds(spot.Control, out var top, out var bottom))
+        return spot.Control is null || !TryBounds(spot.Control, out var top, out var bottom)
+            ? null
+            : (spot.After, top, bottom);
+    }
+
+    /// <summary>
+    /// Draws the standing insertion line: two pixels wide and the colour of the accent, blinking the
+    /// way a text caret does (the blink itself is a style animation, not something this method drives).
+    /// A drag hides it in favour of the drop cursor, so the two never claim the same seam.
+    /// </summary>
+    private void ShowCaret()
+    {
+        if (_dragging || _viewModel.Recipe is null || CaretPlace() is not { } place)
         {
             TextCaret.IsVisible = false;
             return;
         }
 
         var visible = VisibleOverlay();
-        var x = spot.After ? bottom.X : top.X;
-        var from = Math.Max(top.Y, visible.Top);
-        var to = Math.Min(bottom.Y, visible.Bottom);
+        var x = place.After ? place.Bottom.X : place.Top.X;
+        var from = Math.Max(place.Top.Y, visible.Top);
+        var to = Math.Min(place.Bottom.Y, visible.Bottom);
         if (to - from < 6 || x < visible.Left || x > visible.Right)
         {
             TextCaret.IsVisible = false;
@@ -362,10 +394,108 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         TextCaret.Height = to - from;
-        Canvas.SetLeft(TextCaret, Math.Clamp(x, visible.Left,
-            Math.Max(visible.Left, visible.Right - 1)));
+        // The seam is the point, so the line straddles it rather than growing to one side: the drop
+        // cursor is centred the same way and the two never show at once. Both are two pixels wide.
+        Canvas.SetLeft(TextCaret, Math.Clamp(x - 1, visible.Left,
+            Math.Max(visible.Left, visible.Right - 2)));
         Canvas.SetTop(TextCaret, from);
         TextCaret.IsVisible = true;
+    }
+
+    /// <summary>One place the standing line can stand, in the overlay's own coordinates.</summary>
+    private readonly record struct CaretSpot(int At, double X, double Top, double Bottom)
+    {
+        public double Middle => (Top + Bottom) / 2;
+    }
+
+    /// <summary>
+    /// Every place the line can stand: the two edges of every piece on screen. Offsets inside a name
+    /// are left out on purpose, because the line is only ever drawn on an edge.
+    /// </summary>
+    private List<CaretSpot> Spots()
+    {
+        var spots = new List<CaretSpot>();
+        foreach (var piece in Pieces())
+        {
+            if (!TryBounds(piece.Control, out var top, out var bottom))
+            {
+                continue;
+            }
+
+            spots.Add(new CaretSpot(piece.Node.Start, top.X, top.Y, bottom.Y));
+            spots.Add(new CaretSpot(piece.Node.Start + piece.Node.Length, bottom.X, top.Y, bottom.Y));
+        }
+
+        return spots;
+    }
+
+    /// <summary>
+    /// Moves the line to the nearest place on the row above or below. The score puts the distance
+    /// between rows far ahead of the distance along them, so the next row up wins over a place that
+    /// merely happens to sit at the same height at the far end of this one.
+    /// </summary>
+    private bool StepRow(bool down)
+    {
+        if (CaretPlace() is not { } here)
+        {
+            return false;
+        }
+
+        var from = (here.Top.Y + here.Bottom.Y) / 2;
+        var x = here.After ? here.Bottom.X : here.Top.X;
+        CaretSpot? best = null;
+        var bestScore = double.MaxValue;
+        foreach (var spot in Spots())
+        {
+            var gap = down ? spot.Middle - from : from - spot.Middle;
+            // Pieces on one row are not exactly the same height, so a few pixels of gap are still
+            // this row rather than the next one.
+            if (gap < 8)
+            {
+                continue;
+            }
+
+            var score = (gap * 1000) + Math.Abs(spot.X - x);
+            if (score >= bestScore)
+            {
+                continue;
+            }
+
+            bestScore = score;
+            best = spot;
+        }
+
+        if (best is not { } target)
+        {
+            return false;
+        }
+
+        _viewModel.SetCaret(target.At);
+        return true;
+    }
+
+    /// <summary>
+    /// Scrolls the band so the place the line moved to is in sight. Without this, holding an arrow key
+    /// walks the line off the strip and nothing on screen says it is still moving.
+    /// </summary>
+    private void RevealCaret()
+    {
+        if (CaretPlace() is not { } place)
+        {
+            return;
+        }
+
+        var visible = VisibleOverlay();
+        var above = visible.Top - place.Top.Y;
+        var below = place.Bottom.Y - visible.Bottom;
+        var shift = above > 0 ? -above : below > 0 ? below : 0;
+        if (shift == 0)
+        {
+            return;
+        }
+
+        var offset = BandScroll.Offset;
+        BandScroll.Offset = new Vector(offset.X, Math.Max(0, offset.Y + shift));
     }
 
     /// <summary>
@@ -774,9 +904,26 @@ public partial class ValuePickerWindow : AppWindow
         e.Handled = true;
     }
 
+    /// <summary>
+    /// True when the arrows already belong to whatever has focus: a search box or the small field
+    /// moves its own text caret, and a list moves its own selection. Taking the keys there would
+    /// break both, and neither is a place a piece of the formula is written.
+    /// </summary>
+    private static bool KeysOwnedElsewhere(KeyEventArgs e)
+    {
+        if (e.Source is not Visual source)
+        {
+            return false;
+        }
+
+        return source is TextBox || source.GetVisualAncestors().OfType<ListBox>().Any();
+    }
+
     private void OnUndo(object? sender, RoutedEventArgs e) => _viewModel.Undo();
 
     private void OnRedo(object? sender, RoutedEventArgs e) => _viewModel.Redo();
+
+    private void OnClear(object? sender, RoutedEventArgs e) => _viewModel.Clear();
 
     /// <summary>
     /// The two buttons only say what the standing field takes. A number and a piece of text are

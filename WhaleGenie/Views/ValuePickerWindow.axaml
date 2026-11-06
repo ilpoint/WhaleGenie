@@ -213,6 +213,17 @@
         <Style Selector="Button.ChipWord:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
         </Style>
+        <!-- 当前那一类：底色与字色一起变。悬停那一条也压住，否则指上去就把选中态盖掉了。 -->
+        <Style Selector="Button.ChipWord.on">
+            <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.ChipWord.on /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+        <Style Selector="Button.ChipWord.on:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
 
         <Style Selector="Button.Op">
             <Setter Property="Height" Value="24" />
@@ -525,6 +536,14 @@
                                                 Stroke="{DynamicResource TextSecondary}"
                                                 Data="{x:Static vm:AppIcons.Redo}" />
                             </Button>
+                            <!-- 清空另起一组：它一次拿走整条式子，与前后挪一步的撤销不是同一件事。 -->
+                            <Button Classes="SlotStep" Margin="6,0,0,0"
+                                    IsEnabled="{Binding CanClear}" Click="OnClear"
+                                    ToolTip.Tip="{Binding [ValuePicker.Clear], Source={x:Static loc:Strings.Current}}">
+                                <views:IconView Width="13" Height="13" StrokeThickness="1.6"
+                                                Stroke="{DynamicResource TextSecondary}"
+                                                Data="{x:Static vm:AppIcons.Trash}" />
+                            </Button>
                         </StackPanel>
                         <TextBlock Grid.Column="1" FontSize="11" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondary}"
@@ -542,6 +561,7 @@
                                   PointerExited="OnBandExited"
                                   ScrollChanged="OnBandScrolled">
                         <ContentControl Name="Band" Content="{Binding Recipe}"
+                                        Focusable="True" FocusAdorner="{x:Null}"
                                         PointerPressed="OnBandPressed"
                                         PointerMoved="OnBandMoved"
                                         PointerReleased="OnBandReleased"
@@ -693,6 +713,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:VariableFilter">
                                     <Button Classes="ChipWord" Content="{Binding Label}"
+                                            Classes.on="{Binding IsSelected}"
                                             ToolTip.Tip="{Binding Hint}" Click="OnVariableFilter" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -740,6 +761,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionFunctionFilter">
                                     <Button Classes="ChipWord" Content="{Binding Label}"
+                                            Classes.on="{Binding IsSelected}"
                                             Click="OnFunctionFilter" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -820,6 +842,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:VariableFilter">
                                         <Button Classes="ChipWord" Content="{Binding Label}"
+                                                Classes.on="{Binding IsSelected}"
                                                 ToolTip.Tip="{Binding Hint}" Click="OnVariableFilter" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

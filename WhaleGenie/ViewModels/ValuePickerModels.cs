@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
@@ -42,13 +43,26 @@ internal static class OperatorPalette
 /// One button of the dock above the function wall: the group it shows, and what the button says.
 /// An empty group is all of them, which is what the dock stands on when the dialog opens.
 /// </summary>
-public sealed class ExpressionFunctionFilter(string group, string labelKey)
+public sealed partial class ExpressionFunctionFilter : ObservableObject
 {
+    public ExpressionFunctionFilter(string group, string labelKey)
+    {
+        Group = group;
+        Label = Strings.Get(labelKey);
+    }
+
     /// <summary>The key every function of this group shares, such as <c>text</c>, or empty for all.</summary>
-    public string Group { get; } = group;
+    public string Group { get; }
 
     /// <summary>What the button says, in the reader's own language.</summary>
-    public string Label { get; } = Strings.Get(labelKey);
+    public string Label { get; }
+
+    /// <summary>
+    /// True on the one button that stands for the list on show right now. Without it a row of words
+    /// that all look alike leaves the reader guessing which of them the functions below belong to.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
 }
 
 /// <summary>One argument of a function, named and explained the way the bubble shows it.</summary>

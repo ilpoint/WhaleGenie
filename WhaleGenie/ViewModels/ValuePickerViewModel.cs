@@ -205,6 +205,48 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>Moves the insertion point, clamped to the formula that is there now.</summary>
     public void SetCaret(int at) => Caret = at;
 
+    /// <summary>
+    /// Every offset a piece begins or ends at, plus both ends of the line, in order. These are the
+    /// places the standing line can stand: an offset inside a name is nowhere a piece could be
+    /// written, so stepping one character at a time would leave the line standing still.
+    /// </summary>
+    public IReadOnlyList<int> Seams()
+    {
+        if (Recipe is null)
+        {
+            return [];
+        }
+
+        var seams = new SortedSet<int> { 0, Text.Length };
+        foreach (var piece in Recipe.Walk().Where(one => one.Length > 0))
+        {
+            seams.Add(piece.Start);
+            seams.Add(piece.Start + piece.Length);
+        }
+
+        return [.. seams];
+    }
+
+    /// <summary>
+    /// Moves the line one place left or right, and says whether there was a place to move to. A place
+    /// is a seam, not a character: the line is only ever drawn on a seam.
+    /// </summary>
+    public bool StepCaret(int direction)
+    {
+        var seams = Seams();
+        var next = direction < 0
+            ? seams.LastOrDefault(one => one < Caret, -1)
+            : seams.FirstOrDefault(one => one > Caret, -1);
+
+        if (next < 0)
+        {
+            return false;
+        }
+
+        SetCaret(next);
+        return true;
+    }
+
     /// <summary>Keeps the insertion point legal after the text changed under it.</summary>
     private void ClampCaret() => Caret = _caret;
 
@@ -277,6 +319,19 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         _after.Clear();
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
+    }
+
+    /// <summary>True while there is a formula to take away.</summary>
+    public bool CanClear => Text.Length > 0;
+
+    /// <summary>
+    /// Empties the line. It is written through <see cref="Text"/> like every other edit, so clearing
+    /// is one more step in the same history and undo brings the whole formula back.
+    /// </summary>
+    public void Clear()
+    {
+        SetCaret(0);
+        Text = string.Empty;
     }
 
     /// <summary>True when the small field takes a number, false when it takes a piece of text.</summary>
@@ -380,7 +435,16 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     partial void OnFunctionQueryChanged(string value) => RefreshFunctions();
 
-    partial void OnSelectedFunctionGroupChanged(ExpressionFunctionFilter? value) => RefreshFunctions();
+    partial void OnSelectedFunctionGroupChanged(ExpressionFunctionFilter? value)
+    {
+        // One button always stands for the list below it, so the row says which group is on show.
+        foreach (var filter in FunctionGroups)
+        {
+            filter.IsSelected = ReferenceEquals(filter, value);
+        }
+
+        RefreshFunctions();
+    }
 
     partial void OnSelectedFunctionChanged(ExpressionFunctionChoice? value)
     {
@@ -920,6 +984,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(Reads));
         OnPropertyChanged(nameof(CanConfirm));
+        OnPropertyChanged(nameof(CanClear));
         OnPropertyChanged(nameof(HasSaying));
     }
 

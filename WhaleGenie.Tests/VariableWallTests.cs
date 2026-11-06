@@ -521,4 +521,23 @@ public class VariableWallTests
         Assert.Contains("ItemsSource=\"{Binding Uses}\"", markup, StringComparison.Ordinal);
         Assert.Contains("JumpCommand", markup, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// 一排长得一样的词，看不出下面列的是哪一类。始终有一枚按钮代表墙上的那一组，切换时跟着换。
+    /// </summary>
+    [Fact]
+    public void One_filter_button_stands_for_the_group_on_show()
+    {
+        var wall = new VariableWallViewModel([Local("count"), Global("total")]);
+
+        Assert.NotNull(wall.SelectedFilter);
+        Assert.True(wall.SelectedFilter!.IsSelected);
+        Assert.Single(wall.Filters, filter => filter.IsSelected);
+
+        var other = wall.Filters.First(filter => !ReferenceEquals(filter, wall.SelectedFilter));
+        wall.SelectedFilter = other;
+
+        Assert.True(other.IsSelected);
+        Assert.Single(wall.Filters, filter => filter.IsSelected);
+    }
 }

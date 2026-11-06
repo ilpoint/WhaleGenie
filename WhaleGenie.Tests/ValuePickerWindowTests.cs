@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using Avalonia;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -177,6 +179,129 @@ public class ValuePickerWindowTests
 
             Assert.NotNull(field);
             Assert.True(field.IsEffectivelyVisible);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    /// <summary>Presses one key of the physical keyboard on the window the band stands in.</summary>
+    private static void Press(Window window, Key key)
+        => window.RaiseEvent(new KeyEventArgs
+        {
+            RoutedEvent = InputElement.KeyDownEvent,
+            Key = key,
+        });
+    /// <summary>
+    /// The cross keys walk the standing line from one piece edge to the next. The strip takes the
+    /// keyboard on a press, so this drives it the way a hand would: focus the strip, then press.
+    /// </summary>
+    [Fact]
+    public void An_arrow_key_moves_the_line_one_place_along()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a + $b");
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var band = Named(window, "Band");
+            Assert.True(band.Focusable);
+            Assert.True(band.Focus());
+            Assert.Equal(form.Text.Length, form.Caret);
+
+            Press(window, Key.Left);
+            Assert.Equal(5, form.Caret);
+
+            Press(window, Key.Right);
+            Assert.Equal(form.Text.Length, form.Caret);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+    /// <summary>
+    /// A call too long for one row gives each argument its own row, and the up and down keys are what
+    /// carries the line between them. Only the seam it lands on is compared, never a pixel.
+    /// </summary>
+    [Fact]
+    public void The_up_and_down_keys_carry_the_line_between_rows()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("concat($a, $b, $c, $d)");
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var before = form.Caret;
+
+            Press(window, Key.Up);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.NotEqual(before, form.Caret);
+            Assert.Contains(form.Caret, form.Seams());
+            Assert.True(window.FindControl<Control>("TextCaret")!.IsVisible);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+    /// <summary>A search box moves its own text caret; the band must not take the arrows from it.</summary>
+    [Fact]
+    public void A_search_box_keeps_its_own_arrow_keys()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a + $b");
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var before = form.Caret;
+
+            var search = Assert.IsType<TextBox>(window.FindControl<TextBox>("VariableSearch"));
+            search.RaiseEvent(new KeyEventArgs
+            {
+                RoutedEvent = InputElement.KeyDownEvent,
+                Key = Key.Left,
+            });
+
+            Assert.Equal(before, form.Caret);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+    /// <summary>The third button beside undo and redo takes the whole formula, and greys out after.</summary>
+    [Fact]
+    public void The_clear_button_takes_the_whole_formula_in_one_step()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a + $b");
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var clear = window.GetVisualDescendants().OfType<Button>()
+                .Single(one => Equals(ToolTip.GetTip(one), Strings.Get("ValuePicker.Clear")));
+            Assert.True(clear.IsEnabled);
+
+            clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(string.Empty, form.Text);
+            Assert.False(clear.IsEnabled);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+    /// <summary>One chip in each panel is the group the list below it belongs to.</summary>
+    [Fact]
+    public void One_chip_in_each_panel_carries_the_mark()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a");
+            var form = (ValuePickerViewModel)window.DataContext!;
+
+            var groups = window.GetVisualDescendants().OfType<Button>()
+                .Where(one => one.DataContext is ExpressionFunctionFilter)
+                .ToArray();
+            var markedGroup = Assert.Single(groups, one => one.Classes.Contains("on"));
+            Assert.Same(form.SelectedFunctionGroup, markedGroup.DataContext);
+
+            var filters = window.GetVisualDescendants().OfType<Button>()
+                .Where(one => one.DataContext is VariableFilter)
+                .ToArray();
+            var markedFilter = Assert.Single(filters, one => one.Classes.Contains("on"));
+            Assert.Same(form.Wall.SelectedFilter, markedFilter.DataContext);
 
             Ui.CloseAndDiscard(window);
         });
