@@ -191,11 +191,10 @@ public partial class ValuePickerWindow : AppWindow
     private SlotNode? _hovered;
     private Point _pointer;
 
-    /// <summary>Where the one cross is drawn, in the overlay's coordinates, or null when it is away.</summary>
-    private Rect? _removeRect;
+    /// <summary>The box the cross is drawn in, and how far above the piece's top edge it reaches.</summary>
+    private const double CrossSize = 16;
 
-    /// <summary>True when this press was on the cross, so the tap that follows must not choose a piece.</summary>
-    private bool _pressedCross;
+    private const double CrossLift = 14;
 
     /// <summary>The piece last hovered during a drag, and the preview drawn for it.</summary>
     private SlotNode? _dropTarget;
@@ -208,7 +207,8 @@ public partial class ValuePickerWindow : AppWindow
     /// Shows the cross on the one piece the pointer is on. Done here rather than with a
     /// <c>:pointerover</c> style because Avalonia raises that pseudo-class on every ancestor of what
     /// the pointer hit — hovering one name would light the cross of each box it sits inside — and a
-    /// drag clears it for the whole band the moment the pointer is captured.
+    /// drag clears it for the whole band the moment the pointer is captured. The cross itself is a
+    /// button, so its own hover is its own pseudo-class.
     /// </summary>
     private void SetHover(SlotNode? node)
     {
@@ -244,25 +244,40 @@ public partial class ValuePickerWindow : AppWindow
             || control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height),
                 RemoveLayer) is not { } b)
         {
+            // The node goes with the cross. After an edit the band is a new tree, and a button still
+            // holding a node from the old one would cut whatever now sits at those offsets.
+            HoverRemove.DataContext = null;
             HoverRemove.IsVisible = false;
-            _removeRect = null;
             return;
         }
 
-        // The cross, the rectangle that notices a press on it, and the visible part of the band all
-        // live in the overlay's coordinates. Mixing these with the band's own coordinates made the
+        // Everything here is in the overlay's coordinates. Mixing these with the band's own made the
         // cross drift away from its piece after the strip scrolled. It sits just above the piece's
-        // top-right corner rather than on it: a cross drawn over the corner would swallow a click
-        // meant to put the insertion point after that piece.
-        var visible = VisibleOverlay();
-        var left = Math.Clamp(b.X - 16, visible.Left, Math.Max(visible.Left, visible.Right - 16));
-        var top = Math.Clamp(a.Y - 14, visible.Top, Math.Max(visible.Top, visible.Bottom - 16));
+        // top-right corner rather than on it: a cross drawn over the corner would swallow the click
+        // meant to put the insertion point after that piece. Only the layer's own clipping can cut it
+        // now that it is a real button, so that box is what the clamp is for — clamping to the content
+        // viewport instead would push a first-row cross back down onto its piece.
+        var box = OverlayBox();
+        var left = Math.Clamp(b.X - CrossSize, box.Left, Math.Max(box.Left, box.Right - CrossSize));
+        var top = Math.Clamp(a.Y - CrossLift, box.Top, Math.Max(box.Top, box.Bottom - CrossSize));
         Canvas.SetLeft(HoverRemove, left);
         Canvas.SetTop(HoverRemove, top);
         HoverRemove.DataContext = node;
         HoverRemove.IsVisible = true;
-        _removeRect = new Rect(left, top, 16, 16);
     }
+
+    /// <summary>True when a point in the overlays' coordinates lies on the cross as it is drawn.</summary>
+    private bool CrossUnder(Point at)
+        => HoverRemove.IsVisible
+            && new Rect(Canvas.GetLeft(HoverRemove), Canvas.GetTop(HoverRemove), CrossSize, CrossSize)
+                .Contains(at);
+
+    /// <summary>
+    /// The piece standing under a point in the overlays' coordinates. Used by the cross, which sits in
+    /// a sibling layer: while the pointer is on it the band is told nothing about where the pointer is.
+    /// </summary>
+    private void HoverFrom(Point at)
+        => SetHover(RemoveLayer.TranslatePoint(at, Band) is { } onBand ? TokenAt(onBand) : null);
 
     /// <summary>
     /// The token control standing for one piece. DataContext alone is not enough: a ContentControl,
@@ -506,25 +521,66 @@ public partial class ValuePickerWindow : AppWindow
     private void RefreshHover()
     {
         if (_dragging || this.TranslatePoint(_pointer, RemoveLayer) is not { } at
-            || !VisibleOverlay().Contains(at))
+            || !OverlayBox().Contains(at))
         {
             SetHover(null);
             return;
         }
 
-        // Reaching for the cross must not hand it to the neighbour underneath.
-        if (_removeRect is { } cross && cross.Contains(at))
+        // No "keep the cross while the pointer is on it" here: after an edit that piece is a new
+        // object with no control left to sit on, so the honest answer is what stands there now.
+        HoverFrom(at);
+    }
+
+    /// <summary>
+    /// The pointer left the band. Reaching for the cross leaves this subtree as well — the cross is a
+    /// sibling layer, not a child — so the two have to be told apart: a cross hidden the moment the
+    /// pointer arrives on it can never be clicked, and the layer would draw it again on the next
+    /// move, which is a flicker at every approach. The position is compared rather than the pointer's
+    /// over flag because Avalonia raises the exited events of the old chain before the entered events
+    /// of the new one.
+    /// </summary>
+    private void OnBandExited(object? sender, PointerEventArgs e)
+    {
+        if (!CrossUnder(e.GetPosition(RemoveLayer)))
         {
-            PlaceRemove();
+            SetHover(null);
+        }
+    }
+
+    /// <summary>
+    /// The cross takes its piece away. It carries the piece it was drawn for, so there is no rectangle
+    /// to compare the pointer against: what was drawn is what was pressed.
+    /// </summary>
+    private void OnRemoveClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: SlotNode piece })
+        {
             return;
         }
 
-        SetHover(RemoveLayer.TranslatePoint(at, Band) is { } onBand
-            ? TokenAt(onBand)
-            : null);
+        // The cross goes first: the rebuild replaces the tree this node belongs to, and a button left
+        // holding the old node would cut whatever now stands at those offsets.
+        SetHover(null);
+        _viewModel.RemoveArgument(piece);
+
+        // The keyboard follows the formula, the way it does after any other press in the strip.
+        Band.Focus();
     }
 
-    private void OnBandExited(object? sender, PointerEventArgs e) => SetHover(null);
+    /// <summary>
+    /// The pointer is on the cross, so the band is not being told where it is. Keeping the last
+    /// position current here is what lets the cross be put back on the right piece after an edit
+    /// rebuilds the band under it.
+    /// </summary>
+    private void OnRemoveMoved(object? sender, PointerEventArgs e) => _pointer = e.GetPosition(this);
+
+    /// <summary>
+    /// The pointer left the cross. Wherever it went is the new answer: onto another piece, back onto
+    /// this one, or off the strip, which <see cref="HoverFrom"/> reads as no piece at all.
+    /// </summary>
+    private void OnRemoveExited(object? sender, PointerEventArgs e)
+        => HoverFrom(e.GetPosition(RemoveLayer));
 
     private void OnBandScrolled(object? sender, ScrollChangedEventArgs e)
     {
@@ -547,22 +603,15 @@ public partial class ValuePickerWindow : AppWindow
             return;
         }
 
-        _pressedCross = false;
         _pendingCaret = CaretFor(point.Position);
 
-        // The cross is drawn in a layer that takes no input, so its press arrives here. It belongs
-        // to the piece the cross was drawn for, not to whatever token happens to sit underneath.
-        if (_removeRect is { } cross && cross.Contains(e.GetCurrentPoint(RemoveLayer).Position)
-            && HoverRemove.DataContext is SlotNode piece && _viewModel.RemoveArgument(piece))
-        {
-            _pressedCross = true;
-            _pendingCaret = null;
-            e.Handled = true;
-            return;
-        }
+        // A press in the strip is a press into the formula, so the keyboard follows it there. Without
+        // this the search box keeps the focus, and the arrow keys keep going to the search box.
+        Band.Focus();
 
         // A press on a real button belongs to that button: capturing the band here would start a
-        // drag of the piece it was about to work on.
+        // drag of the piece it was about to work on. The cross is one of those — it sits in its own
+        // layer and takes its click itself — and a token may grow one later.
         for (var walker = e.Source as Visual;
              walker is not null && !ReferenceEquals(walker, Band);
              walker = walker.GetVisualParent())
@@ -586,11 +635,7 @@ public partial class ValuePickerWindow : AppWindow
 
         if (!_dragging)
         {
-            // While the pointer is on the cross, keep the piece it was drawn for.
-            if (_removeRect is not { } cross || !cross.Contains(e.GetPosition(RemoveLayer)))
-            {
-                SetHover(TokenAt(point));
-            }
+            SetHover(TokenAt(point));
 
             if (_dragPiece is null)
             {
@@ -676,14 +721,27 @@ public partial class ValuePickerWindow : AppWindow
     }
 
     /// <summary>
-    /// The part of the band that is actually on screen, in the coordinates shared by both overlay
-    /// layers. DragLayer and RemoveLayer sit in the same grid cell, so one rectangle serves both.
+    /// The area the two overlays are clipped to. They sit in the same grid cell as the strip, so a
+    /// layer's own box is the strip's box — the same rectangle <c>ClipToBounds</c> cuts them at.
+    /// </summary>
+    private Rect OverlayBox() => new(RemoveLayer.Bounds.Size);
+
+    /// <summary>
+    /// The part of the band that is really on screen, in the coordinates both overlay layers share.
+    /// It is the overlap of the band's own box with the layer's: the band sits inside the strip's
+    /// padding and grows past the viewport once a formula is long, and the layer is what clips the two
+    /// overlays. Reading the scroll viewer's viewport instead is off by that padding at both ends.
     /// </summary>
     private Rect VisibleOverlay()
     {
-        var origin = BandScroll.TranslatePoint(default, RemoveLayer) ?? default;
-        return new Rect(origin.X, origin.Y,
-            Math.Max(0, BandScroll.Viewport.Width), Math.Max(0, BandScroll.Viewport.Height));
+        if (Band.TranslatePoint(default, RemoveLayer) is not { } a
+            || Band.TranslatePoint(new Point(Band.Bounds.Width, Band.Bounds.Height), RemoveLayer)
+                is not { } b)
+        {
+            return default;
+        }
+
+        return new Rect(a, b).Intersect(OverlayBox());
     }
 
     private void ShowRing(Control control, bool show)
@@ -762,17 +820,10 @@ public partial class ValuePickerWindow : AppWindow
         var dragging = _dragging;
         var preview = _preview;
         var target = _dropTarget;
-        var pressedCross = _pressedCross;
         var pendingCaret = _pendingCaret;
-        _pressedCross = false;
         _pendingCaret = null;
         ResetDrag();
         e.Pointer.Capture(null);
-
-        if (pressedCross)
-        {
-            return;
-        }
 
         // A press that stayed a click only moves the insertion point. A drag of six pixels or more
         // is a move of a piece and must not leave the line somewhere the pointer merely passed over.

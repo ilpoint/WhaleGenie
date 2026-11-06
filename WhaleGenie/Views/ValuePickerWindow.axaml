@@ -355,7 +355,10 @@
             <Setter Property="StrokeDashArray" Value="3,2" />
         </Style>
 
-        <!-- 每一块的删除：右上角一枚叉，指针落到这一块上才出现，转红。 -->
+        <!--
+          每一块的删除：右上角一枚叉，指针落到这一块上才出现。位置由窗口用 Canvas 定，样式只管长相；
+          红底写在模板的 ContentPresenter 上，只改 Button.Background 会被 Fluent 悬停那一条压住。
+        -->
         <Style Selector="Button.SlotRemove">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
@@ -364,17 +367,41 @@
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="VerticalAlignment" Value="Top" />
-            <Setter Property="Margin" Value="0,-9,-18,0" />
         </Style>
         <Style Selector="Button.SlotRemove views|IconView">
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Stroke" Value="{DynamicResource Danger}" />
         </Style>
-        <Style Selector="Button.SlotRemove:pointerover">
+        <Style Selector="Button.SlotRemove:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+        </Style>
+
+        <!--
+          插入光标：2px 强调色，硬闪。与落点线一样宽，两根线靠「闪不闪」分开，不再靠粗细。
+          闪烁写成样式动画而不是计时器：时钟自己推进，窗口不必持有 DispatcherTimer，也不用记得在关窗时停。
+          四帧把切换压进 1% 的时长，所以是断的不是渐变——真文本框的光标就是一亮一灭，淡出会像在呼吸。
+        -->
+        <Style Selector="Border.Caret">
+            <Setter Property="Width" Value="2" />
+            <Setter Property="CornerRadius" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource AccentText}" />
+            <Style.Animations>
+                <Animation Duration="0:0:1.06" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="49%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
         </Style>
 
         <!-- 括号这块本身：悬停出边。 -->
@@ -581,18 +608,21 @@
                                 BorderThickness="1" BorderBrush="{DynamicResource AccentText}" />
                         <Border Name="DropLine" IsVisible="False" Width="2" CornerRadius="1"
                                 Background="{DynamicResource AccentText}" />
-                        <!-- 常驻插入光标：一根更细的线。拖拽时让位给落点线，两者不同时出现。 -->
-                        <Border Name="TextCaret" IsVisible="False" Width="1"
-                                Background="{DynamicResource AccentText}" />
+                        <!-- 常驻插入光标：宽度、圆角、颜色与闪烁都归 `Border.Caret`，这里只说它在哪一层。 -->
+                        <Border Name="TextCaret" Classes="Caret" IsVisible="False" />
                     </Canvas>
 
                     <!--
-                      删除叉单独画在最上层：放在 Token 里会被自己的内容或后画的兄弟盖住。这一层不接鼠标，
-                      点击由窗口按叉所在的矩形判定，所以带子的命中与拖拽一点没变。
+                      删除叉单独画在最上层：放在 Token 里会被自己的内容或后画的兄弟盖住。这层不画底，
+                      空白处不接指针（Avalonia 按画出来的东西命中），所以带子的拖拽与拖动选择一点没变；
+                      叉自己是一枚按钮，画在哪里就点得到哪里，探进上下内边距的那几像素也一样。
                     -->
-                    <Canvas Grid.Row="1" Name="RemoveLayer" IsHitTestVisible="False" ClipToBounds="True">
+                    <Canvas Grid.Row="1" Name="RemoveLayer" ClipToBounds="True">
                         <Button Name="HoverRemove" Classes="SlotRemove" IsVisible="False"
+                                Focusable="False"
                                 HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0"
+                                Click="OnRemoveClick"
+                                PointerMoved="OnRemoveMoved" PointerExited="OnRemoveExited"
                                 ToolTip.Tip="{Binding [ValuePicker.Slot.Remove], Source={x:Static loc:Strings.Current}}">
                             <views:IconView Width="12" Height="12" StrokeThickness="1.7"
                                             Data="{x:Static vm:AppIcons.Remove}" />
