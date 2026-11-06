@@ -372,9 +372,11 @@
                 </Grid>
 
                 <!-- 百分比：滑条与数字框说的是同一个值。滑条负责"大概这么多"，数字框负责精确的那一下；
-                     容差这类按颜色通道量的百分比，下面再写一句它等于每通道多少。 -->
-                <StackPanel IsVisible="{Binding IsPercent}" Spacing="3" Margin="0,8,0,0">
-                    <Slider Minimum="0" Maximum="100" SmallChange="1" LargeChange="5"
+                     容差这类按颜色通道量的百分比，下面再写一句它等于每通道多少。滑条的高度压到
+                     拇指放得下为止：模板给的那一圈空会把这一格撑成两格的高度。 -->
+                <StackPanel IsVisible="{Binding IsPercent}" Spacing="2" Margin="0,4,0,0">
+                    <Slider Minimum="0" Maximum="100" SmallChange="1" LargeChange="5" Height="24"
+                            VerticalAlignment="Center"
                             Value="{Binding PercentValue, Mode=TwoWay}" />
                     <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
                                IsVisible="{Binding HasChannelNote}"

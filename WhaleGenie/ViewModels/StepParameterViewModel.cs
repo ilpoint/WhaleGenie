@@ -485,6 +485,12 @@ public partial class StepParameterViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsDurationFormula))]
     [NotifyPropertyChangedFor(nameof(JitterRange))]
     [NotifyPropertyChangedFor(nameof(HasJitterRange))]
+    // The slider and the note about colour channels both read the field as a plain number, so they
+    // go away with the box when an expression takes its place. Nobody telling them leaves a slider
+    // on screen writing into a field that no longer has one.
+    [NotifyPropertyChangedFor(nameof(IsPercent))]
+    [NotifyPropertyChangedFor(nameof(ChannelNote))]
+    [NotifyPropertyChangedFor(nameof(HasChannelNote))]
     public partial bool UseFormula { get; set; }
 
     [ObservableProperty]

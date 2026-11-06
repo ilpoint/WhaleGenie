@@ -122,6 +122,7 @@ public static class AppIcons
         "program" => LucideIconKind.Boxes,
         "options" => LucideIconKind.Settings2,
         "place" => LucideIconKind.Move,
+        "subject" => LucideIconKind.AppWindow,
 
         // 流程：要问的那一句话、拿什么去比、跑几轮、每轮叫什么、节奏、调用哪个
         "condition" => LucideIconKind.GitBranch,

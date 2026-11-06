@@ -1077,6 +1077,32 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A percentage is one number said two ways: the box for the exact figure, the slider for about
+    /// this much. Written as an expression, the field is neither, so the slider has to go with the
+    /// box. Both read "is this a plain number", which is computed rather than stored, and a computed
+    /// answer that nobody announces leaves a slider on screen writing into a field that has none.
+    /// </summary>
+    [Fact]
+    public void A_percentage_gives_up_its_slider_when_it_is_written_as_an_expression()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            var confidence = viewModel.Parameters.First(parameter => parameter.Definition.Name == "confidence");
+            Assert.True(confidence.IsPercent);
+
+            var announced = new List<string>();
+            confidence.PropertyChanged += (_, arguments) => announced.Add(arguments.PropertyName ?? string.Empty);
+            confidence.UseFormula = true;
+
+            Assert.False(confidence.IsPercent);
+            Assert.False(confidence.IsNumberValue);
+            Assert.Contains(nameof(StepParameterViewModel.IsPercent), announced);
+            Assert.Contains(nameof(StepParameterViewModel.IsNumberValue), announced);
+        });
+    }
+
     [Fact]
     public void A_try_block_says_how_much_sits_in_each_of_its_lists()
     {

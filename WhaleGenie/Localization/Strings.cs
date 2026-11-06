@@ -1490,6 +1490,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Group.picking"] = "Which of them",
         ["Add.Group.order"] = "In what order",
         ["Add.Group.stable"] = "What counts as settled",
+        ["Add.Group.subject"] = "Which window",
         ["Add.Group.tuning"] = "Recognition tuning",
         ["Add.Group.condition"] = "The condition",
         ["Add.Group.condition.hint"] =
@@ -3758,6 +3759,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Group.picking"] = "挑哪些",
         ["Add.Group.order"] = "怎么排",
         ["Add.Group.stable"] = "怎样算稳定",
+        ["Add.Group.subject"] = "哪个窗口",
         ["Add.Group.tuning"] = "识别调参",
         ["Add.Group.condition"] = "条件",
         ["Add.Group.condition.hint"] =

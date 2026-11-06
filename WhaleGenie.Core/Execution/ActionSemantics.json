@@ -5342,6 +5342,7 @@
     "Parameters": [
       {
         "Name": "window",
+        "Group": "subject",
         "Shape": "WindowRule",
         "ReadMode": "WholeValue",
         "Picker": "Window",
