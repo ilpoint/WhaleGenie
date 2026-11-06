@@ -38,7 +38,7 @@
 
                     <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox Name="SearchBox" Classes="Field" Height="33"
-                                 Watermark="{Binding [WindowRule.Search], Source={x:Static loc:Strings.Current}}" />
+                                 PlaceholderText="{Binding [WindowRule.Search], Source={x:Static loc:Strings.Current}}" />
                         <Button Grid.Column="1" Name="RefreshButton" Classes="Secondary"
                                 Height="33" Padding="10,0"
                                 Content="{Binding [WindowRule.Refresh], Source={x:Static loc:Strings.Current}}" />
