@@ -543,12 +543,16 @@ public class ValuePickerTests
         Assert.True(few.Compact);
     }
 
-    /// <summary>A call inside an argument is enough to fold, even with only two arguments.</summary>
+    /// <summary>
+    /// A nested call used to unfold its parent on its own, which doubled the band for a formula
+    /// like get(list(1, 2), 2). Nesting alone is no longer a reason; width or argument count is.
+    /// </summary>
     [Fact]
-    public void SlotStackingExpandsForNestedCall()
+    public void SlotStackingKeepsANestedCallOnOneLineWhenItFits()
     {
-        var call = OnlyCall(new ValuePickerViewModel("concat(upper($a), $b)", Variables(), false));
-        Assert.True(call.Stacked);
+        var call = OnlyCall(new ValuePickerViewModel("get(list(1, 2), 2)", Variables(), false));
+        Assert.False(call.Stacked);
+        Assert.True(call.Compact);
     }
 
     /// <summary>A short formula, and a formula with no call at all, keep the compact row.</summary>
@@ -564,7 +568,8 @@ public class ValuePickerTests
     [Fact]
     public void SlotStackingUsesAvailableWidth()
     {
-        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), false);
+        // Long enough that the smaller per-character estimate still crosses a 200 pixel band.
+        var form = new ValuePickerViewModel("concat($alpha, $beta)", Variables(), false);
         var call = OnlyCall(form);
 
         form.RefreshStacking(200);
@@ -578,7 +583,8 @@ public class ValuePickerTests
     [Fact]
     public void OnlyOneLevelOfCallsFoldsAtATime()
     {
-        var form = new ValuePickerViewModel("concat(upper($a), lower($b))", Variables(), false);
+        // Four arguments are what makes the outer call fold now; the nested calls must stay compact.
+        var form = new ValuePickerViewModel("concat(upper($a), lower($b), 1, 2)", Variables(), false);
         form.RefreshStacking(1080);
 
         var outer = OnlyCall(form);

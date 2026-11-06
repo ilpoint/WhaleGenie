@@ -26,7 +26,7 @@
 
         <!-- 序列里的一块：模板自己决定长什么样；带叉的模板各自管自己的叉。 -->
         <DataTemplate x:Key="TokenEntry" x:DataType="vm:SlotNode">
-            <ContentControl Content="{Binding}" Margin="2,1" VerticalAlignment="Center" />
+            <ContentControl Content="{Binding}" Margin="1,1" VerticalAlignment="Center" />
         </DataTemplate>
 
         <!-- 函数的一条参数：前面的逗号跟着它自己走，函数体于是只要把参数排成一行。 -->
@@ -39,7 +39,7 @@
 
         <!-- 逐行排版时的一条参数：前面写清它叫什么、第几个、必填还是可选。 -->
         <DataTemplate x:Key="SlotRowEntry" x:DataType="vm:SlotSequence">
-            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,2"
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,1"
                   VerticalAlignment="Center">
                 <TextBlock Classes="SlotArgLabel" Text="{Binding ArgumentLabel}"
                            IsVisible="{Binding HasArgumentLabel}" />
@@ -102,7 +102,7 @@
                     </WrapPanel>
 
                     <!--
-                      参数一多或者里面还套着调用，就一行一个参数。左侧那一条细线是这一层的边界；
+                      参数一多或者一行放不下，就一行一个参数。左侧那一条细线是这一层的边界；
                       递归模板让每深一层自己再画一条，层级就数得出来。
                     -->
                     <StackPanel Orientation="Vertical" IsVisible="{Binding Stacked}">
@@ -111,26 +111,29 @@
                                        Foreground="{DynamicResource TextPrimary}" />
                             <TextBlock Classes="SlotSign" Text="(" />
                         </StackPanel>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="14,2,0,2">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" Margin="10,1,0,1">
                             <Border Classes="SlotGuide" />
                             <StackPanel Grid.Column="1" Orientation="Vertical">
                                 <ItemsControl ItemsSource="{Binding Arguments}"
                                               ItemTemplate="{StaticResource SlotRowEntry}" />
-                                <ContentControl Content="{Binding Ghost}" VerticalAlignment="Center" />
+                                <!-- 收尾的括号跟着最后一个幽灵槽同排，不再为它单独占一行。 -->
+                                <StackPanel Orientation="Horizontal">
+                                    <ContentControl Content="{Binding Ghost}" VerticalAlignment="Center" />
+                                    <TextBlock Classes="SlotSign" Text=")" />
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
-                        <TextBlock Classes="SlotSign" Text=")" />
                     </StackPanel>
                 </Panel>
             </Border>
         </DataTemplate>
 
-        <!-- 符号：一枚小片，点得中、换得掉、删得掉。 -->
+        <!-- 符号：一枚小片，点得中、删得掉。 -->
         <DataTemplate DataType="vm:SlotOperator" x:DataType="vm:SlotOperator">
             <Border Classes="SlotToken SlotOperator SlotPiece"
                     ToolTip.Tip="{Binding HoverHint}">
                 <Panel>
-                    <TextBlock Text="{Binding Text}" FontSize="14" />
+                    <TextBlock Text="{Binding Text}" FontSize="12.5" />
                     <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
                 </Panel>
             </Border>
@@ -156,7 +159,7 @@
                 <Panel>
                     <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
                     <Border Classes="HoverWash" />
-                    <TextBlock Text="{Binding Text}" FontSize="14" FontFamily="{DynamicResource UiCodeFont}"
+                    <TextBlock Text="{Binding Text}" FontSize="12.5" FontFamily="{DynamicResource UiCodeFont}"
                                VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
                 </Panel>
             </Border>
@@ -238,25 +241,25 @@
         </Style>
 
         <!--
-          结构带里每一块的共同度量：34 高、14 号等宽字、10/5 内边距。块要大到容得下右上角那枚叉，
-          小到挤在一起的框只会让人误点。各类在它之后定义，只覆写自己的底色与描边。
+          结构带里每一块的共同度量：28 高、12.5 号等宽字、8/3 内边距。块要大到点得中，
+          小到一屏放得下一条嵌套式子。各类在它之后定义，只覆写自己的底色与描边。
         -->
         <Style Selector="Border.SlotToken">
-            <Setter Property="MinHeight" Value="34" />
-            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Padding" Value="8,3" />
             <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Margin" Value="3,3" />
+            <Setter Property="Margin" Value="2,2" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
 
-        <!-- 结构带：一块一块都是可以点的，点中的那一块描上强调色，虚框就是还没填的地方。 -->
+        <!-- 结构带：一块一块都可以点，虚框就是还没填的地方。 -->
         <Style Selector="Border.SlotCall">
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Padding" Value="8,4" />
             <Setter Property="CornerRadius" Value="7" />
         </Style>
         <Style Selector="Border.SlotCall:pointerover">
@@ -315,9 +318,9 @@
         </Style>
 
         <Style Selector="Panel.SlotEmpty">
-            <Setter Property="Margin" Value="3,3" />
-            <Setter Property="MinHeight" Value="30" />
-            <Setter Property="MinWidth" Value="52" />
+            <Setter Property="Margin" Value="2,2" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="MinWidth" Value="44" />
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
@@ -365,7 +368,7 @@
 
         <!-- 括号这块本身：悬停出边。 -->
         <Style Selector="Border.SlotBracket">
-            <Setter Property="MinWidth" Value="26" />
+            <Setter Property="MinWidth" Value="22" />
             <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
@@ -423,10 +426,8 @@
             <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="Margin" Value="0,2" />
         </Style>
-
-
 
         <!-- 悬停只叠一层很薄的透明色：底色归函数族，悬停不该把它换成另一块面。 -->
         <Style Selector="Border.HoverWash">
@@ -445,24 +446,22 @@
         <!-- 字：括号与逗号是同一号窄字，名字与值用等宽字，读得出这是代码。 -->
         <Style Selector="TextBlock.SlotName">
             <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="12.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="TextBlock.SlotSign">
             <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="TextBlock.SlotComma">
             <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="-1,0,2,0" />
         </Style>
-        <!-- 选中的那一块：描一圈强调色。套在框上而不是改它的底色，底色仍归函数族。 -->
-
         <!-- 有问题的那一块：红边是覆盖层，不占布局，也不会把块撑大或挤动旁边的块。 -->
         <Style Selector="Border.SlotProblemEdge">
             <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
@@ -502,19 +501,18 @@
                    IsVisible="{Binding HasTarget}" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource TextSecondary}" />
 
-        <!-- 写公式的格子：结构上一条，符号一条，名字与函数并排。 -->
-        <Grid Grid.Row="1" IsVisible="{Binding CanCompute}" RowDefinitions="Auto,Auto,*" RowSpacing="8">
-            <Border Grid.Row="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,8">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                        <TextBlock FontSize="11" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondary}"
-                                   Text="{Binding [ValuePicker.Structure], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Grid.Column="1" FontSize="11"
-                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextTertiary}"
-                                   Text="{Binding [ValuePicker.Structure.Hint], Source={x:Static loc:Strings.Current}}" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+        <!--
+          写公式的格子：结构区与下半区之间一条可拖的横分隔条，高度由用的人定。
+          结构面板内部的表头、结构带与说明行各占一行；BandScroll、DragLayer、RemoveLayer 仍同格叠加，
+          外层重编号不要动它们的 Grid.Row。
+        -->
+        <Grid Grid.Row="1" IsVisible="{Binding CanCompute}" RowDefinitions="*,Auto,*" RowSpacing="0">
+            <Border Grid.Row="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,8"
+                    Margin="0,0,0,4">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
+                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+                        <!-- 撤销与恢复在表头最左，先于这一段的名字。 -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
                             <Button Classes="SlotStep" IsEnabled="{Binding CanUndo}" Click="OnUndo"
                                     ToolTip.Tip="{Binding [ValuePicker.Undo], Source={x:Static loc:Strings.Current}}">
                                 <views:IconView Width="13" Height="13" StrokeThickness="1.6"
@@ -528,10 +526,17 @@
                                                 Data="{x:Static vm:AppIcons.Redo}" />
                             </Button>
                         </StackPanel>
+                        <TextBlock Grid.Column="1" FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   Text="{Binding [ValuePicker.Structure], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="2" FontSize="11"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextTertiary}"
+                                   Text="{Binding [ValuePicker.Structure.Hint], Source={x:Static loc:Strings.Current}}" />
                     </Grid>
 
                     <!-- 插槽结构：整条公式的真身。嵌套由递归模板画，纵向放不下就滚。 -->
-                    <ScrollViewer Grid.Row="1" Name="BandScroll" MinHeight="58" MaxHeight="280" Padding="0,10"
+                    <ScrollViewer Grid.Row="1" Name="BandScroll" MinHeight="58" Padding="0,10"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   PointerExited="OnBandExited"
@@ -584,8 +589,13 @@
                 </Grid>
             </Border>
 
-            <!-- 符号与值一条横带；要数字或文字时，同一条里就地多出一行来问。 -->
-            <Border Grid.Row="1" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,6">
+            <!-- 上下分隔条：拖它调整结构区与三盘各占多少高。 -->
+            <GridSplitter Grid.Row="1" Name="BandSplitter" Classes="Split" Height="6"
+                          ResizeDirection="Rows" HorizontalAlignment="Stretch" />
+
+            <!-- 下半区：符号带固定一行，三盘吃掉剩下的高度。 -->
+            <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="8">
+                <Border Grid.Row="0" Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="10,6">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" RowSpacing="4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -658,9 +668,9 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-            </Border>
+                </Border>
 
-            <Grid Grid.Row="2" MinHeight="160">
+                <Grid Grid.Row="1" MinHeight="160">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" MinWidth="260" />
                     <ColumnDefinition Width="6" />
@@ -791,6 +801,7 @@
                         </Grid>
                     </Grid>
                 </Border>
+            </Grid>
             </Grid>
         </Grid>
 

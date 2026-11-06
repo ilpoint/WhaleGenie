@@ -692,17 +692,20 @@ internal static class SlotStacking
     public const int ArgumentThreshold = 3;
 
     /// <summary>One character of the band's monospace face, in device independent pixels.</summary>
-    public const double CharWidthPx = 8;
+    public const double CharWidthPx = 7;
 
     /// <summary>What one token adds on top of its letters: padding, margins and a rounded edge.</summary>
-    public const double TokenOverheadPx = 26;
+    public const double TokenOverheadPx = 20;
 
     /// <summary>The width a compact call is compared with when no window has measured one yet.</summary>
     public const double CompactWidthPx = 560;
 
+    /// <summary>
+    /// A nested call on its own is not a reason to unfold: a two-argument call that merely contains
+    /// another call stayed on one line quite happily, and unfolding it doubled the height of the band.
+    /// </summary>
     public static bool Decide(SlotCall call, double availableWidth)
         => call.Arguments.Count > ArgumentThreshold
-            || call.Arguments.Any(argument => argument.Items.Any(piece => piece is SlotCall))
             || EstimateWidth(call) > Math.Min(availableWidth, CompactWidthPx);
 
     public static double EstimateWidth(SlotCall call)
