@@ -3877,6 +3877,23 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 只有结果、没有可填字段的动作（读剪贴板图片就是一例）原来连基础设置页都没有：返回值只能在这一页
+    /// 勾，于是那个勾永远点不到，预览也没有地方站。现在这一页在「有结果」或「有预览」时照样在。
+    /// </summary>
+    [Fact]
+    public void An_action_whose_answer_is_a_result_still_has_a_page_to_pick_it_on()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("clipboard.readImage");
+
+            Assert.Equal(AddActionViewModel.BasePage, viewModel.Page!.Key);
+            Assert.NotEmpty(viewModel.ReturnsRows);
+            Assert.True(viewModel.ShowsClipboardPreview);
+        });
+    }
+
+    /// <summary>
     /// 别的动作不摆这一块：它们的答案在字段里，多一块预览只是多一段要读的字。
     /// </summary>
     [Fact]

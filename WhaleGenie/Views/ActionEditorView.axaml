@@ -1344,15 +1344,18 @@
                                  settings would be, rather than kept for the run. -->
                             <StackPanel Margin="0,14,0,0" Spacing="6"
                                         IsVisible="{Binding ShowsClipboardPreview}">
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-                                    <TextBlock Classes="FieldLabel" VerticalAlignment="Center"
-                                               Text="{Binding [Add.ClipboardPreview], Source={x:Static loc:Strings.Current}}" />
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Classes="FieldLabel"
+                                                   Text="{Binding [Add.ClipboardPreview], Source={x:Static loc:Strings.Current}}" />
+                                        <views:HintInfo
+                                            Text="{Binding [Add.ClipboardPreviewHint], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
                                     <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
                                                TextTrimming="CharacterEllipsis"
                                                Text="{Binding ClipboardPreviewNote}" />
-                                    <views:HintInfo Grid.Column="2"
-                                                    Text="{Binding [Add.ClipboardPreviewHint], Source={x:Static loc:Strings.Current}}" />
-                                    <Button Grid.Column="3" Classes="Secondary" Height="28" Padding="10,0"
+                                    <Button Grid.Column="2" Classes="Secondary" Height="28" Padding="10,0"
                                             Content="{Binding [Add.ClipboardPreviewRefresh], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding RefreshClipboardCommand}" />
                                 </Grid>

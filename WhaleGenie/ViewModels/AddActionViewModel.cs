@@ -1706,7 +1706,12 @@ public partial class AddActionViewModel : ViewModelBase
             // there whatever the action is; the pages that hold an action's fields are not.
             var rows = RowsOf(page.Key);
             page.IsPresent = page.Key is OtherPage or ExecPage
-                || rows.Any(row => row.IsApplicable);
+                || rows.Any(row => row.IsApplicable)
+                // An action whose answer is a result rather than a setting still has something to
+                // show on the page that holds the settings: what it hands over is chosen there, and
+                // a picture it is about to take is shown there. Without this the form would open on
+                // the tuning page and the results could not be ticked at all.
+                || page.Key is BasePage && (HasReturns || ShowsClipboardPreview);
             page.HasDot = page.Key is AdvancedPage or ReturnsPage or ExecPage && PageIsChanged(page.Key);
         }
 
