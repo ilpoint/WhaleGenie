@@ -1749,7 +1749,7 @@
       },
       {
         "Name": "writeMode",
-        "Group": "writing",
+        "Group": "clash",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1972,7 +1972,7 @@
     "Parameters": [
       {
         "Name": "from",
-        "Group": "from",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -1985,7 +1985,7 @@
       },
       {
         "Name": "to",
-        "Group": "to",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2057,7 +2057,7 @@
     "Parameters": [
       {
         "Name": "from",
-        "Group": "from",
+        "Group": "source",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -2070,7 +2070,7 @@
       },
       {
         "Name": "to",
-        "Group": "to",
+        "Group": "save",
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
@@ -3001,7 +3001,7 @@
       },
       {
         "Name": "writeMode",
-        "Group": "writing",
+        "Group": "clash",
         "Shape": "Choice",
         "ReadMode": "Text",
         "Picker": "None",

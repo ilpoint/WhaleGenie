@@ -711,7 +711,7 @@ internal static class ActionStrings
         ["file.writeText.path.hint"] = "要写入的文件。只写文件名时会相对宏文件夹解析。",
         ["file.writeText.fileContent.label"] = "文本",
         ["file.writeText.fileContent.hint"] = "要写入的文本。按一个值读取，变量或表达式都可以写成它。",
-        ["file.writeText.writeMode.label"] = "方式",
+        ["file.writeText.writeMode.label"] = "写入方式",
         ["file.writeText.writeMode.hint"] = "替换原文件，或把内容接到已有内容后面。默认「替换原内容」。",
         ["file.writeText.writeMode.option.overwrite"] = "替换原内容",
         ["file.writeText.writeMode.option.append"] = "追加到末尾",
@@ -971,9 +971,9 @@ internal static class ActionStrings
         ["file.writeCsv.separatorText.hint"] = "上面列表里没有的分隔符写在这里，例如 : 或 #。填了就按这里写的来，"
             + "不填就用上面选的，默认留空。",
         ["file.writeCsv.writeMode.label"] = "写入方式",
-        ["file.writeCsv.writeMode.hint"] = "从头写这个文件，或把这几行接在文件已有内容的后面。默认「覆盖整个文件」。",
-        ["file.writeCsv.writeMode.option.overwrite"] = "覆盖整个文件",
-        ["file.writeCsv.writeMode.option.append"] = "接在最后一行后面",
+        ["file.writeCsv.writeMode.hint"] = "替换原文件，或把这几行接在文件已有内容的后面。默认「替换原内容」。",
+        ["file.writeCsv.writeMode.option.overwrite"] = "替换原内容",
+        ["file.writeCsv.writeMode.option.append"] = "追加到末尾",
         ["file.writeCsv.align.label"] = "按列名放进同名的列",
         ["file.writeCsv.align.hint"] =
             "往一个已经有表格的文件里追加时：每个单元格放进第一行里同名的那一列，"

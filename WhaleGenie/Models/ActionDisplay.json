@@ -3702,8 +3702,8 @@
         "Placeholder": "",
         "Kind": "Choice",
         "OptionLabels": [
-          "Replace the file",
-          "Add below the last row"
+          "Replace it",
+          "Add to the end"
         ],
         "ForeignText": false,
         "Advanced": false,
