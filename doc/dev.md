@@ -1,4 +1,4 @@
-# WhaleGenie 开发说明
+﻿# WhaleGenie 开发说明
 
 本文件说明如何构建、修改、验证和发布 WhaleGenie。长期规范见仓库根目录的
 [AGENTS.md](../AGENTS.md)，当前实现结构见 [architecture.md](architecture.md)，未完成工作见
