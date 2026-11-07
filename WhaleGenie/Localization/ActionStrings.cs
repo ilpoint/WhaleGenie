@@ -818,6 +818,9 @@ internal static class ActionStrings
         ["file.zip.desc"] = "把文件夹打包成一个 zip 压缩包。",
         ["file.zip.folder.label"] = "文件夹",
         ["file.zip.folder.hint"] = "要打包的文件夹。只写文件夹名时会相对宏文件夹解析。",
+        ["file.zip.includeTopFolder.label"] = "带上这一层文件夹",
+        ["file.zip.includeTopFolder.hint"] = "把文件夹本身也放进压缩包，解压后多出这一层目录。默认不带上，"
+            + "解压得到的是文件夹里面的内容。",
         ["file.zip.to.label"] = "压缩包",
         ["file.zip.to.hint"] = "要写出的 zip 文件，已存在时会替换。只写文件名时会相对宏文件夹解析。",
 

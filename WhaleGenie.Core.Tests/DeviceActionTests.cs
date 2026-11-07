@@ -5599,7 +5599,7 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task A_folder_can_be_packed_into_a_zip_file()
+    public async Task A_folder_can_be_packed_and_unpack_back_to_what_was_inside_it()
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
@@ -5607,7 +5607,50 @@ public class DeviceActionTests
             devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains(@"zip reports reports.zip", devices.Calls);
+        Assert.Contains(@"zip reports reports.zip False", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_folder_can_be_packed_with_its_own_name_kept_as_a_top_entry()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.zip", Param("folder", "photos"), Param("to", "photos.zip"),
+                Param("includeTopFolder", "true")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(@"zip photos photos.zip True", devices.Calls);
+    }
+
+    /// <summary>
+    /// The two answers to "does the folder go in as well" have to differ on disk, not only in the
+    /// call that was made. This packs the same folder both ways and unpacks both.
+    /// </summary>
+    [Fact]
+    public void A_packed_folder_keeps_its_own_name_only_when_it_is_asked_to()
+    {
+        var folder = Directory.CreateTempSubdirectory("whalegenie-zip-");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(folder.FullName, "photos"));
+            File.WriteAllText(Path.Combine(folder.FullName, "photos", "one.txt"), "one");
+            var files = new LocalFileDevice(folder.FullName);
+
+            files.Zip("photos", "inside.zip", includeTopFolder: false);
+            files.Unzip("inside.zip", "inside", overwrite: true);
+
+            files.Zip("photos", "outside.zip", includeTopFolder: true);
+            files.Unzip("outside.zip", "outside", overwrite: true);
+
+            Assert.True(File.Exists(Path.Combine(folder.FullName, "inside", "one.txt")));
+            Assert.True(File.Exists(Path.Combine(folder.FullName, "outside", "photos", "one.txt")));
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     [Fact]

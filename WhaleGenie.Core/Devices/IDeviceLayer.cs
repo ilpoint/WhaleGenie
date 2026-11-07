@@ -320,9 +320,10 @@ public interface IFileDevice
     /// <summary>
     /// Packs a folder into a zip file, making the folders above the zip when they are missing.
     /// The entries are stored relative to the folder itself, so unpacking this zip gives back
-    /// what was inside it rather than a second copy of the folder's own name.
+    /// what was inside it rather than a second copy of the folder's own name;
+    /// <paramref name="includeTopFolder"/> asks for that second copy on purpose.
     /// </summary>
-    void Zip(string folder, string to);
+    void Zip(string folder, string to, bool includeTopFolder);
 
     /// <summary>
     /// Moves a file to another place, renaming it when the new name is in the same folder. A
@@ -1544,7 +1545,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void Unzip(string from, string folder, bool overwrite) => throw Missing("files");
 
-        public void Zip(string folder, string to) => throw Missing("files");
+        public void Zip(string folder, string to, bool includeTopFolder) => throw Missing("files");
 
         public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse,
             int depth, ListKind kind = ListKind.Files) => throw Missing("files");

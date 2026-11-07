@@ -285,8 +285,9 @@ public sealed partial class MacroRunner
     {
         var folder = PathOf(step, "folder");
         var to = PathOf(step, "to");
+        var includeTopFolder = Flag(step, "includeTopFolder", false);
 
-        _devices.Files.Zip(folder, to);
+        _devices.Files.Zip(folder, to, includeTopFolder);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Zipped, folder, to);
     }
 

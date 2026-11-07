@@ -190,9 +190,9 @@ internal sealed class FakeFiles(FakeDesk desk) : IFileDevice
         }
     }
 
-    public void Zip(string folder, string to)
+    public void Zip(string folder, string to, bool includeTopFolder)
     {
-        desk.Note($"zip {folder} {to}");
+        desk.Note($"zip {folder} {to} {includeTopFolder}");
         Store[to] = "zipped";
     }
 

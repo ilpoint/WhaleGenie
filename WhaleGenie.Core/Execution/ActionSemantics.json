@@ -2322,6 +2322,18 @@
         "MissingKey": "Run.MissingPath"
       },
       {
+        "Name": "includeTopFolder",
+        "Group": "source",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "to",
         "Group": "save",
         "Shape": "Text",

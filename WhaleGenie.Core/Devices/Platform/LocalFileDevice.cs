@@ -227,7 +227,7 @@ public sealed class LocalFileDevice : IFileDevice
         }
     }
 
-    public void Zip(string folder, string to)
+    public void Zip(string folder, string to, bool includeTopFolder)
     {
         var source = Full(folder);
         if (!Directory.Exists(source))
@@ -244,9 +244,10 @@ public sealed class LocalFileDevice : IFileDevice
                 Directory.CreateDirectory(parent);
             }
 
-            // The folder's own name is left out of the entries so that unpacking this zip hands
-            // back what was inside the folder, the way its Unzip counterpart writes it out.
-            ZipFile.CreateFromDirectory(source, target, CompressionLevel.Optimal, false);
+            // Whether the folder's own name goes in as a top entry is the step's call: off hands
+            // back what was inside the folder, on adds the folder as well, the way the archive
+            // readers a person knows about it write it.
+            ZipFile.CreateFromDirectory(source, target, CompressionLevel.Optimal, includeTopFolder);
             return true;
         });
     }

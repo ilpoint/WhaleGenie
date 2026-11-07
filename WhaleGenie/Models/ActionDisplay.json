@@ -2786,6 +2786,26 @@
         "AddLabelKey": ""
       },
       {
+        "Name": "includeTopFolder",
+        "Label": "Keep the folder's own name",
+        "Hint": "Put the folder itself inside the zip, so unpacking it gives back that folder. Off by default: unpacking gives back what was inside it.",
+        "Placeholder": "",
+        "Kind": "Bool",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
         "Name": "to",
         "Label": "Zip file",
         "Hint": "Zip file to write. One that is already there is replaced. A path on its own is taken to be inside the macros folder.",
