@@ -46,7 +46,7 @@ git diff --check
 并检查 Markdown 相对链接：
 
 ```powershell
-$files = @("README.md", "AGENTS.md") + (Get-ChildItem doc\*.md).FullName
+$files = @("README.md", "AGENTS.md") + (Get-ChildItem doc -Recurse -Filter *.md).FullName
 $missing = foreach ($file in $files) {
   $resolved = Resolve-Path $file
   $base = Split-Path $resolved
@@ -75,6 +75,9 @@ if ($missing) { $missing; exit 1 }
 | [architecture.md](architecture.md) | 三个产品工程、依赖方向、主链路、子系统边界与当前限制 | 操作命令、逐字段用户语义、阶段计划 |
 | [roadmap.md](roadmap.md) | 未完成阶段、依赖、验收、待评估事项与非目标 | 已完成清单、工期、重复的开发规范 |
 | [mcp-usability.md](mcp-usability.md) | MCP 自检指标与遗留项 | 未由检查支撑的评价 |
+| [design/ui-ux-roadmap.md](design/ui-ux-roadmap.md) | 动作表单的样板、各族的块顺序、每批检查单 | 已完成清单、批次流水、动作字段事实 |
+| [design/step-list-and-conditions.md](design/step-list-and-conditions.md) | 步骤列表与流程条件的读法、不能随便改的原因 | 实现过程、进度、与代码不符的描述 |
+| [design/find-color-actions.md](design/find-color-actions.md) | 找色族的判定层与处置层、几处刻意的取舍 | 已完成清单、批次流水、字段事实 |
 | [performance.md](performance.md) | 抓屏、识别与检测的单位成本及量法 | 用户教程、阶段计划 |
 
 事实来源按以下规则确定：
@@ -83,6 +86,7 @@ if ($missing) { $missing; exit 1 }
 - 界面展示元数据只放在 `ActionDisplay.json`，不得复制引擎事实。
 - 失败键以 `RunKeys` 与手册失败键表为准，由 `FailureKeyTests` 对账。
 - 当前结构以代码和 `architecture.md` 为准；未完成工作只登记在 `roadmap.md`；变更历史以 git 为准。
+- 设计意图与「不能改的原因」只在 `doc/design/`；进度、批次过程与完成勾选不写进文档，以 git 为准。
 - 文档中的数量、体积和耗时必须可重新测量。无法保持准确时，不写具体数值。
 
 ## 工程结构
