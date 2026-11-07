@@ -6701,8 +6701,8 @@ public class DeviceActionTests
         devices.Processes.AppearsAfter = 1;
         var (result, _, store) = await RunAsync(
         [
-            Within(2000, Step("process.waitFor", Param("processName", "notepad"),
-                Parts("process", "pid"))),
+            Within(2000, Step("process.waitFor", Param("window", "notepad"),
+                Param("how", WindowHow.ProcessEquals), Parts("process", "pid"))),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -6714,7 +6714,10 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Within(100, Step("process.waitFor", Param("processName", "ghost")))], devices);
+        [
+            Within(100, Step("process.waitFor", Param("window", "ghost"),
+                Param("how", WindowHow.ProcessEquals))),
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ProgramNotFound", result.Key);
@@ -6727,12 +6730,68 @@ public class DeviceActionTests
         devices.Processes.Running["notepad"] = [10];
         var (_, _, store) = await RunAsync(
         [
-            Step("process.exists", Param("processName", "notepad"), Returns("running=here")),
-            Step("process.exists", Param("processName", "gone"), Returns("running=there")),
+            Step("process.exists", Param("window", "notepad"), Param("how", WindowHow.ProcessEquals),
+                Returns("running=here")),
+            Step("process.exists", Param("window", "gone"), Param("how", WindowHow.ProcessEquals),
+                Returns("running=there")),
         ], devices);
 
         Assert.True(store.Local.Values["here"].Flag);
         Assert.False(store.Local.Values["there"].Flag);
+    }
+
+    /// <summary>
+    /// One field, three ways of naming what it is about: the title of the window it shows, the
+    /// name of its program, or the handle of that window. All three answer the same question.
+    /// </summary>
+    [Fact]
+    public async Task A_program_is_named_by_its_title_its_name_or_a_handle()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Running["notepad"] = [42];
+        devices.Window.Open.Add(new WindowInfo(7, "Notepad - notes.txt", new ScreenPoint(0, 0),
+            new ScreenSize(300, 200), false, false));
+        devices.Window.Traits[7] = ("notepad", "Notepad");
+        devices.Window.ProcessIds[7] = 42;
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("process.exists", Param("window", "Notepad - notes.txt"),
+                Param("how", WindowHow.TitleContains), Returns("running=byTitle")),
+            Step("process.exists", Param("window", "notepad"),
+                Param("how", WindowHow.ProcessEquals), Returns("running=byName")),
+            Step("process.exists", Param("window", "7"), Param("how", WindowHow.Handle),
+                Returns("running=byHandle")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.Local.Values["byTitle"].Flag);
+        Assert.True(store.Local.Values["byName"].Flag);
+        Assert.True(store.Local.Values["byHandle"].Flag);
+    }
+
+    /// <summary>
+    /// A program named by its own name is answered by the process table alone, which is what makes
+    /// a service or a console program, neither of which has a window, usable at all.
+    /// </summary>
+    [Fact]
+    public async Task A_program_with_no_window_still_answers_by_its_name()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Running["svc"] = [9];
+
+        var (result, _, store) = await RunAsync(
+        [
+            Within(1000, Step("process.waitFor", Param("window", "svc"),
+                Param("how", WindowHow.ProcessEquals), Returns("process=pid"))),
+            Step("process.info", Param("window", "svc"), Param("how", WindowHow.ProcessEquals),
+                Parts("program", "prog")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(9d, store.Local.Values["pid"].Number);
+        Assert.Equal("svc", Field(store, "prog", "name").AsText());
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("findWindow"));
     }
 
     [Fact]
@@ -6760,11 +6819,13 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Processes.Running["notepad"] = [42];
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("processTarget", "notepad"), Parts("program", "note"))],
-            devices);
+        [
+            Step("process.info", Param("window", "notepad"), Param("how", WindowHow.ProcessEquals),
+                Parts("program", "note")),
+        ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(@"C:\fake\notepad.exe", Field(store, "note", "info").AsText());
+        Assert.EndsWith("notepad.exe", Field(store, "note", "info").AsText());
         Assert.Equal(42d, Field(store, "note", "id").Number);
         Assert.Equal("notepad", Field(store, "note", "name").AsText());
         Assert.Equal(12.5d, Field(store, "note", "memoryMb").Number);
@@ -6776,79 +6837,153 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("processTarget", "ghost"), Parts("program", "note"))],
-            devices);
+        [
+            Step("process.info", Param("window", "ghost"), Param("how", WindowHow.ProcessEquals),
+                Parts("program", "note")),
+        ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.NoSuchProcess", result.Key);
         Assert.Equal(string.Empty, store.Local.Values["note"].AsText());
     }
 
+    /// <summary>
+    /// A program named by its process name closes every program of that name, which is the answer
+    /// a question asked that way wants.
+    /// </summary>
     [Fact]
-    public async Task Stopping_a_program_by_name_counts_what_it_closed()
+    public async Task Closing_a_program_closes_every_program_of_that_name()
     {
         var devices = new FakeDeviceLayer();
-        devices.Processes.Running["notepad"] = [1];
+        devices.Processes.Running["notepad"] = [1, 2];
         var (_, _, store) = await RunAsync(
         [
-            Step("process.kill", Param("processTarget", "notepad"),
+            Step("process.kill", Param("window", "notepad"), Param("how", WindowHow.ProcessEquals),
                 Returns("stopped=closed")),
         ], devices);
 
-        Assert.Equal(1d, store.Local.Values["closed"].Number);
-        Assert.Contains("stopName notepad|False", devices.Calls);
+        Assert.Equal(2d, store.Local.Values["closed"].Number);
+        Assert.Contains("stopId 1|False", devices.Calls);
+        Assert.Contains("stopId 2|False", devices.Calls);
     }
 
+    /// <summary>A program named by a window is that one program, not every copy of it.</summary>
     [Fact]
-    public async Task Stopping_a_program_by_id_uses_the_id()
+    public async Task Closing_a_program_by_its_window_closes_only_that_one()
     {
         var devices = new FakeDeviceLayer();
+        devices.Processes.Running["notepad"] = [9];
+        devices.Window.Open.Add(new WindowInfo(7, "Notepad - notes.txt", new ScreenPoint(0, 0),
+            new ScreenSize(300, 200), false, false));
+        devices.Window.ProcessIds[7] = 9;
+
         var (_, _, store) = await RunAsync(
         [
-            Step("process.kill", Param("processTarget", "77"), Param("force", "true"),
-                Returns("stopped=closed")),
+            Step("process.kill", Param("window", "7"), Param("how", WindowHow.Handle),
+                Param("force", "true"), Returns("stopped=closed")),
         ], devices);
 
         Assert.Equal(1d, store.Local.Values["closed"].Number);
-        Assert.Contains("stopId 77|True", devices.Calls);
+        Assert.Contains("stopId 9|True", devices.Calls);
     }
 
     [Fact]
     public async Task Waiting_for_exit_keeps_the_exit_code()
     {
         var devices = new FakeDeviceLayer();
+        devices.Processes.Running["notepad"] = [42];
         devices.Processes.Exited.Add(42);
         devices.Processes.ExitCodes[42] = 7;
         var (result, _, store) = await RunAsync(
         [
-            Within(1000, Step("process.waitExit", Param("id", "42"),
-                Returns("exitCode=code"))),
+            Within(1000, Step("process.waitExit", Param("window", "notepad"),
+                Param("how", WindowHow.ProcessEquals), Returns("exitCode=code"))),
         ], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(7d, store.Local.Values["code"].Number);
     }
 
+    /// <summary>
+    /// The record a start step hands over can be waited on as it stands: it names the program by
+    /// its own name, which is all a console program has.
+    /// </summary>
+    [Fact]
+    public async Task A_program_record_from_a_start_step_can_be_waited_on_as_it_stands()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Processes.Running["tool"] = [7];
+        devices.Processes.Exited.Add(7);
+        devices.Processes.ExitCodes[7] = 3;
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("process.start", Param("programFile", "tool.exe"), Returns("program=started")),
+            Within(1000, Step("process.waitExit", Param("window", "$started"),
+                Returns("exitCode=code"))),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(3d, store.Local.Values["code"].Number);
+    }
+
     [Fact]
     public async Task Waiting_for_exit_gives_up_after_the_timeout()
     {
         var devices = new FakeDeviceLayer();
+        devices.Processes.Running["notepad"] = [42];
         var (result, _, _) = await RunAsync(
-            [Within(100, Step("process.waitExit", Param("id", "42")))], devices);
+        [
+            Within(100, Step("process.waitExit", Param("window", "notepad"),
+                Param("how", WindowHow.ProcessEquals))),
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ProcessTimeout", result.Key);
     }
 
+    /// <summary>
+    /// Waiting starts from a program that is there. A name that is not running is said out loud
+    /// rather than answered as "already finished", which would make a typo look like success.
+    /// </summary>
     [Fact]
-    public async Task Waiting_for_exit_rejects_an_id_that_is_not_a_number()
+    public async Task Waiting_for_exit_on_a_program_that_is_not_running_says_so()
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("process.waitExit", Param("id", "nothing"))], devices);
+        [
+            Step("process.waitExit", Param("window", "ghost"), Param("how", WindowHow.ProcessEquals)),
+        ], devices);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Run.BadProcessId", result.Key);
+        Assert.Equal("Run.NoSuchProcess", result.Key);
+    }
+
+    /// <summary>
+    /// Unlike a window step, a program step has no "whatever is in front" to fall back on: which
+    /// program is meant cannot be guessed, so naming none is refused.
+    /// </summary>
+    [Fact]
+    public async Task A_program_step_with_no_program_named_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync([Step("process.exists")], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingProgram", result.Key);
+    }
+
+    [Fact]
+    public async Task A_program_step_whose_target_is_not_a_rule_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            new ExecutableStep { Type = "process.exists", Parameters = [Param("window", "notepad")] },
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadWindowRule", result.Key);
     }
 
     [Fact]
@@ -8373,7 +8508,8 @@ public class DeviceActionTests
             Step("window.info", Param("window", "Notepad"), Returns("window=win")),
             Step("window.list", Returns("windows=list")),
             Step("screen.list", Returns("displays=desk")),
-            Step("process.info", Param("processTarget", "notepad"), Returns("program=prog")),
+            Step("process.info", Param("window", "notepad"), Param("how", WindowHow.ProcessEquals),
+                Returns("program=prog")),
             Step("uia.read", Param("window", ""), Param("uiSelector", "Text[name='Count']"),
                 Returns("element=el")),
             Step("uia.find", Param("window", ""), Param("uiSelector", "Text[name='Count']"),

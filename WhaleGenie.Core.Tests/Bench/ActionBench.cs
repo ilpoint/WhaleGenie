@@ -402,6 +402,10 @@ internal static class ActionBench
         devices.Window.Open.Add(new WindowInfo(4242, "Bench", new ScreenPoint(100, 100),
             new ScreenSize(640, 480), false, false));
         devices.Window.Traits[4242] = (BenchFixtures.ProgramName, "Bench");
+
+        // The program behind the bench window is the one the program actions are about: a window
+        // answers which process owns it, and every program step here names that window.
+        devices.Window.ProcessIds[4242] = BenchFixtures.ProcessId;
         devices.Window.ClientSizes[4242] = new ScreenSize(640, 480);
         devices.Ui.Elements.Add(new UiElementInfo("Bench", "bench", "Button", "Bench",
             new ScreenPoint(120, 120), new ScreenSize(80, 24), "Bench"));

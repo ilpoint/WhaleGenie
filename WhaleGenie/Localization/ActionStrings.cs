@@ -1103,33 +1103,35 @@ internal static class ActionStrings
 
         ["process.waitFor.name"] = "等待程序",
         ["process.waitFor.desc"] = "等待某个程序开始运行。",
-        ["process.waitFor.processName.label"] = "程序",
-        ["process.waitFor.processName.hint"] = "要等待的程序名。按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写；"
-            + "按一个值读取，变量或表达式都可以写成它。",
+        ["process.waitFor.window.label"] = "程序",
+        ["process.waitFor.window.hint"] = "要等的程序。按窗口标题、进程名或句柄认；没有窗口的后台服务、"
+            + "控制台程序用进程名就能问到。",
 
         ["process.waitExit.name"] = "等待程序结束",
         ["process.waitExit.desc"] = "等待本宏启动的某个程序结束。",
-        ["process.waitExit.id.label"] = "进程 id",
-        ["process.waitExit.id.hint"] = "要等待的进程 id，通常取「启动程序」交回的 program 记录里的 id：field($program, \"id\")。按一个值读取。",
+        ["process.waitExit.window.label"] = "程序",
+        ["process.waitExit.window.hint"] = "要等它结束的程序，通常直接填「启动程序」交回的 $program；"
+            + "按进程名认时，没有窗口的控制台程序也能等。开等之前它就得在运行。",
 
         ["process.exists.name"] = "程序是否在运行",
         ["process.exists.desc"] = "检查某个程序是否正在运行。",
-        ["process.exists.processName.label"] = "程序",
-        ["process.exists.processName.hint"] = "要查找的程序名。按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写；"
-            + "按一个值读取，变量或表达式都可以写成它。",
+        ["process.exists.window.label"] = "程序",
+        ["process.exists.window.hint"] = "要查的程序。按进程名问时，窗口关掉、进程还在仍算在运行；"
+            + "按标题或句柄问，问的是那扇窗口还在不在。",
 
         ["process.list.name"] = "列出程序",
         ["process.list.desc"] = "把正在运行的程序名收集成列表。",
 
         ["process.info.name"] = "程序信息",
         ["process.info.desc"] = "读取一个正在运行的程序的信息。",
-        ["process.info.processTarget.label"] = "程序",
-        ["process.info.processTarget.hint"] = "程序名，或进程 id。程序名按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写。",
+        ["process.info.window.label"] = "程序",
+        ["process.info.window.hint"] = "要读哪一个程序的信息。按窗口标题、进程名或句柄认它。",
 
         ["process.kill.name"] = "结束程序",
         ["process.kill.desc"] = "关闭一个程序，默认先请它正常退出。",
-        ["process.kill.processTarget.label"] = "程序",
-        ["process.kill.processTarget.hint"] = "程序名，或进程 id。程序名按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写。",
+        ["process.kill.window.label"] = "程序",
+        ["process.kill.window.hint"] = "要关的程序。选一扇窗口或填句柄，只关它所属的那一个进程；"
+            + "只按进程名认，则关掉所有同名的。",
         ["process.kill.force.label"] = "强制关闭",
         ["process.kill.force.hint"] = "直接结束进程，而不是先请它退出。默认不勾选。",
 
@@ -3455,7 +3457,9 @@ internal static class ActionStrings
 
         // process.start
         ["process.start.return.program.label"] = "程序",
-        ["process.start.return.program.hint"] = "启动后的程序：id、process（程序名）、title（主窗口标题）、handle（主窗口句柄）；窗口未出现时 title 为空、handle 为 0。",
+        ["process.start.return.program.hint"] = "启动后的程序：id、process（程序名）、title（主窗口标题）、"
+            + "handle（主窗口句柄）、how（按什么认它，这里是进程名）；窗口未出现时 title 为空、handle 为 0。"
+            + "这条记录可以直接填进任何要「程序」或「窗口」的一格。",
         ["process.start.returns.label"] = "要留下的结果",
         ["process.start.returns.hint"] = ReturnsHintText,
 

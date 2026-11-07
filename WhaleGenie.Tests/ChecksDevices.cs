@@ -75,6 +75,9 @@ internal sealed class WindowsForChecks : IWindowDevice
     public string ProcessOf(long handle)
         => _facts.TryGetValue(handle, out var facts) ? facts.Process : string.Empty;
 
+    /// <summary>No check here reads a program through a window, so no window owns a process.</summary>
+    public int ProcessIdOf(long handle) => 0;
+
     public string ClassOf(long handle)
         => _facts.TryGetValue(handle, out var facts) ? facts.Class : string.Empty;
 

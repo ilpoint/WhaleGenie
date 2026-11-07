@@ -71,6 +71,18 @@ internal sealed class FakeWindow(FakeDesk desk) : IWindowDevice
         return Matching(value, match, compare, everyWhenEmpty, options);
     }
 
+    /// <summary>
+    /// The process id each window's program answers with, by handle. A handle that was not set up
+    /// answers 0, which is what a window the system will not name gives back.
+    /// </summary>
+    public Dictionary<long, int> ProcessIds { get; } = [];
+
+    public int ProcessIdOf(long handle)
+    {
+        desk.Note($"processIdOf {handle}");
+        return ProcessIds.TryGetValue(handle, out var id) ? id : 0;
+    }
+
     public string ProcessOf(long handle)
     {
         desk.Note($"processOf {handle}");

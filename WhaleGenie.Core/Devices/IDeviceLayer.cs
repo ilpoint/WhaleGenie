@@ -413,8 +413,14 @@ public interface IProcessDevice
     /// <summary>Starts a program and hands back its process id.</summary>
     int Start(StartRequest request);
 
-    /// <summary>The ids of the running processes with this name.</summary>
-    IReadOnlyList<int> Find(string name);
+    /// <summary>
+    /// The ids of the running processes whose name matches, compared the way the step says. A name
+    /// is asked for several times a second by a step that waits for one to appear, so an exact
+    /// name that does not care about case is answered from Windows' own listing rather than by
+    /// reading every process on the machine; anything else is matched here, name by name.
+    /// </summary>
+    IReadOnlyList<int> Find(string value, string compare = TextCompare.Exactly,
+        TextCompareOptions options = default);
 
     /// <summary>Every running process, by name, without repeats.</summary>
     IReadOnlyList<string> List();
@@ -425,20 +431,14 @@ public interface IProcessDevice
     /// <summary>What a process returned, or null while it is still running.</summary>
     int? ExitCode(int id);
 
-    /// <summary>Stops every process with this name; the answer is how many were stopped.</summary>
-    int StopByName(string name, bool force);
-
     /// <summary>Stops one process by id.</summary>
     bool StopById(int id, bool force);
 
     /// <summary>Runs a program to the end and collects what it printed.</summary>
     CommandResult Run(CommandRequest request);
 
-    /// <summary>
-    /// What is known about one running program, picked by name or by id, or null when there is
-    /// no such program. Whichever name matches first is the one described.
-    /// </summary>
-    ProcessDetails? Details(string target);
+    /// <summary>What is known about one running program, or null when that id is not running.</summary>
+    ProcessDetails? Details(int id);
 }
 
 /// <summary>
@@ -1108,6 +1108,12 @@ public interface IWindowDevice
     /// </summary>
     string ProcessOf(long handle);
 
+    /// <summary>
+    /// The process that owns a window, or 0 when the window is gone or the system will not say.
+    /// Cheaper than <see cref="ProcessOf"/>: it asks which process, without opening one.
+    /// </summary>
+    int ProcessIdOf(long handle);
+
     /// <summary>The class a window was registered under, such as "Notepad", or an empty string.</summary>
     string ClassOf(long handle);
 
@@ -1563,7 +1569,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public int Start(StartRequest request) => throw Missing("other programs");
 
-        public IReadOnlyList<int> Find(string name) => throw Missing("other programs");
+        public IReadOnlyList<int> Find(string value, string compare, TextCompareOptions options)
+            => throw Missing("other programs");
 
         public IReadOnlyList<string> List() => throw Missing("other programs");
 
@@ -1571,7 +1578,6 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public int? ExitCode(int id) => throw Missing("other programs");
 
-        public int StopByName(string name, bool force) => throw Missing("other programs");
 
         public bool StopById(int id, bool force) => throw Missing("other programs");
 
@@ -1598,7 +1604,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
             Action<string> onError, System.Threading.CancellationToken token)
             => throw Missing("NuGet packages");
 
-        public ProcessDetails? Details(string target) => throw Missing("other programs");
+        public ProcessDetails? Details(int id) => throw Missing("other programs");
 
         public string Info(string field) => throw Missing("system information");
 
@@ -1644,6 +1650,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
             => throw Missing("windows");
 
         string IWindowDevice.ProcessOf(long handle) => throw Missing("windows");
+
+        int IWindowDevice.ProcessIdOf(long handle) => throw Missing("windows");
 
         string IWindowDevice.ClassOf(long handle) => throw Missing("windows");
 

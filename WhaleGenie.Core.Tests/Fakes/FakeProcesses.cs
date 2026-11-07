@@ -45,16 +45,24 @@ internal sealed class FakeProcesses(FakeDesk desk) : IProcessDevice
         return NextProcessId++;
     }
 
-    public IReadOnlyList<int> Find(string name)
+    public IReadOnlyList<int> Find(string value, string compare = TextCompare.Exactly,
+        TextCompareOptions options = default)
     {
-        desk.Note($"find {name}");
+        desk.Note($"find {value}");
         _reads++;
         if (AppearsLater is not null && _reads > AppearsAfter)
         {
             Running[AppearsLater] = [NextProcessId];
         }
 
-        return Running.TryGetValue(name, out var ids) ? ids : [];
+        // The fake matches the way the device does, over the names it holds, so a name asked for
+        // by "contains" is answered the way a real machine answers it.
+        return
+        [
+            .. Running
+                .Where(row => TextCompare.Matches(row.Key, value, compare, options))
+                .SelectMany(row => row.Value),
+        ];
     }
 
     public IReadOnlyList<string> List()
@@ -63,12 +71,17 @@ internal sealed class FakeProcesses(FakeDesk desk) : IProcessDevice
         return [.. Running.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
     }
 
-    public ProcessDetails? Details(string target)
+    public ProcessDetails? Details(int id)
     {
-        desk.Note($"processDetails {target}");
-        return Running.TryGetValue(target, out var ids) && ids.Count > 0
-            ? new ProcessDetails(ids[0], target, $@"C:\fake\{target}.exe", 12.5, 3.4)
-            : null;
+        desk.Note($"processDetails {id}");
+        var name = Running
+            .Where(row => row.Value.Contains(id))
+            .Select(row => row.Key)
+            .FirstOrDefault();
+
+        return name is null
+            ? null
+            : new ProcessDetails(id, name, $@"C:\fake\{name}.exe", 12.5, 3.4);
     }
 
     public bool HasExited(int id)
@@ -81,12 +94,6 @@ internal sealed class FakeProcesses(FakeDesk desk) : IProcessDevice
     {
         desk.Note($"exitCode {id}");
         return Exited.Contains(id) ? ExitCodes.TryGetValue(id, out var code) ? code : 0 : null;
-    }
-
-    public int StopByName(string name, bool force)
-    {
-        desk.Note($"stopName {name}|{force}");
-        return Running.Remove(name) ? 1 : 0;
     }
 
     public bool StopById(int id, bool force)

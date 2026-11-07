@@ -4690,11 +4690,11 @@
     "Description": "Wait until a program is running.",
     "Parameters": [
       {
-        "Name": "processName",
+        "Name": "window",
         "Label": "Program",
-        "Hint": "Name of the program to watch for, matched in full and without regard to case, with the .exe left off or on as one likes.",
+        "Hint": "The program to wait for. Name it by its window title, its process name or a handle; a background service or a console program with no window is named by its process.",
         "Placeholder": "notepad",
-        "Kind": "Text",
+        "Kind": "WindowRule",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -4744,11 +4744,11 @@
     "Description": "Wait until a program started by this macro has finished.",
     "Parameters": [
       {
-        "Name": "id",
-        "Label": "Process id",
-        "Hint": "The process to wait for, usually field($program, \"id\") from a start step. Read as one value, so a variable or expression may stand for it.",
-        "Placeholder": "field($program, \"id\")",
-        "Kind": "Text",
+        "Name": "window",
+        "Label": "Program",
+        "Hint": "The program to wait out, usually the record a Start step handed over ($program). A console program with no window is named by its process.",
+        "Placeholder": "notepad",
+        "Kind": "WindowRule",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -4798,11 +4798,11 @@
     "Description": "Check whether a program is running.",
     "Parameters": [
       {
-        "Name": "processName",
+        "Name": "window",
         "Label": "Program",
-        "Hint": "Name of the program to look for, matched in full and without regard to case, with the .exe left off or on as one likes.",
+        "Hint": "The program to ask about. A process name answers for a program that runs on after its window is closed; a window title answers for the window.",
         "Placeholder": "notepad",
-        "Kind": "Text",
+        "Kind": "WindowRule",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -4886,11 +4886,11 @@
     "Description": "Read what is known about a running program.",
     "Parameters": [
       {
-        "Name": "processTarget",
+        "Name": "window",
         "Label": "Program",
-        "Hint": "Name of the program, or a process id. A name is matched in full and without regard to case, with the .exe left off or on as one likes.",
+        "Hint": "Which program to read: by its window title, its process name or a handle.",
         "Placeholder": "notepad",
-        "Kind": "Text",
+        "Kind": "WindowRule",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -4940,11 +4940,11 @@
     "Description": "Close a program, asking it to exit first unless told to be firm.",
     "Parameters": [
       {
-        "Name": "processTarget",
+        "Name": "window",
         "Label": "Program",
-        "Hint": "Name of the program, or a process id. A name is matched in full and without regard to case, with the .exe left off or on as one likes.",
+        "Hint": "The program to close. A window or a handle closes that one program; a process name closes every program of that name.",
         "Placeholder": "notepad",
-        "Kind": "Text",
+        "Kind": "WindowRule",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,

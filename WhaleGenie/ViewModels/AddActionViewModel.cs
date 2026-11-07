@@ -2151,7 +2151,7 @@ public partial class AddActionViewModel : ViewModelBase
             if (asking)
             {
                 preview.Follow(RuleOf(text.CurrentText),
-                    SelectedDefinition?.Key == ListWindowsKey);
+                    SelectedDefinition?.Key == ListWindowsKey, text.HasToBeAnswered);
             }
         }
 

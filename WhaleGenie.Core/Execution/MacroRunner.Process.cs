@@ -41,7 +41,7 @@ public sealed partial class MacroRunner
             // name it was started from; the window title and handle stay empty because there is no
             // window to ask. A window that is still coming up is the ordinary case, and a later
             // window step is what waits for it.
-            var details = _devices.Processes.Details(id.ToString(CultureInfo.InvariantCulture));
+            var details = _devices.Processes.Details(id);
             Give(step, "program", StartedProgramRecord(id, program, details));
         }
 
@@ -51,7 +51,8 @@ public sealed partial class MacroRunner
     /// <summary>
     /// The program a start step just launched, in the words later steps use: its id, its process
     /// name, and the title and handle of its main window. The window parts are empty until the
-    /// program has one.
+    /// program has one, so the record also says how it can be recognised again: by its name. That
+    /// is what lets a console program, which never has a window, be waited on as it stands.
     /// </summary>
     private static Value StartedProgramRecord(int id, string path, ProcessDetails? details)
     {
@@ -67,6 +68,7 @@ public sealed partial class MacroRunner
             (FieldNames.Process, Value.FromText(name)),
             (FieldNames.Title, Value.FromText(details?.MainWindowTitle ?? string.Empty)),
             (FieldNames.Handle, Value.FromNumber(details?.MainWindowHandle ?? 0)),
+            (FieldNames.How, Value.FromText(WindowHow.ProcessEquals)),
         ]);
     }
 
@@ -141,33 +143,46 @@ public sealed partial class MacroRunner
         return chosen.Length == 0 ? null : chosen;
     }
 
-    /// <summary>Waits until a program with the given name shows up in the process list.</summary>
+    /// <summary>Waits until the program this step names is running.</summary>
     private async Task WaitForProgram(ExecutableStep step, int depth, CancellationToken token)
     {
-        var name = ReadValue(step, "processName").AsText();
+        // What the step names is worked out once, before the waiting starts: a rule that cannot be
+        // read at all is a mistake to report, not something to wait for. Only the program not
+        // being there yet is what the wait is about.
+        var rule = ProgramRule(step);
         var timeout = step.Meta.TimeoutMs;
 
         var ids = await WaitForValueAsync(
-            () => _devices.Processes.Find(name) is { Count: > 0 } found ? found : null,
+            () => ProgramIds(rule) is { Count: > 0 } found ? found : null,
             timeout, 100, token);
         if (ids is null)
         {
-            throw new StepFailure(RunKeys.ProgramNotFound, name);
+            throw new StepFailure(RunKeys.ProgramNotFound, rule.MatchValue);
         }
 
         Give(step, "process", Value.FromNumber(ids[0]));
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ProgramFound, name, ids[0]);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ProgramFound, rule.MatchValue, ids[0]);
     }
 
-    /// <summary>Waits for a program to finish and keeps the exit code it returned.</summary>
+    /// <summary>
+    /// Waits for the program this step names to finish, and keeps the exit code it returned. The
+    /// program has to be found before the wait starts: a name that is not running is a mistake to
+    /// report rather than a wait that ends the moment it begins.
+    /// </summary>
     private async Task WaitForExit(ExecutableStep step, int depth, CancellationToken token)
     {
-        var id = ProcessId(step);
+        var rule = ProgramRule(step);
+        var id = ProgramIds(rule).FirstOrDefault();
+        if (id == 0)
+        {
+            throw new StepFailure(RunKeys.NoSuchProcess, rule.MatchValue);
+        }
+
         var timeout = step.Meta.TimeoutMs;
 
         if (!await WaitForFlagAsync(() => _devices.Processes.HasExited(id), timeout, 100, token))
         {
-            throw new StepFailure(RunKeys.ProcessTimeout, id.ToString(CultureInfo.InvariantCulture));
+            throw new StepFailure(RunKeys.ProcessTimeout, rule.MatchValue);
         }
 
         var code = _devices.Processes.ExitCode(id) ?? 0;
@@ -175,11 +190,14 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.ProcessExited, id, code);
     }
 
-    /// <summary>Leaves true or false behind, depending on whether the program is running.</summary>
+    /// <summary>
+    /// Leaves true or false behind, depending on whether the program is running. A program named by
+    /// its process is asked of the process table, so a window that has been closed while the
+    /// program runs on still answers true.
+    /// </summary>
     private void ProgramRunning(ExecutableStep step, int depth)
     {
-        var name = ReadValue(step, "processName").AsText();
-        var running = _devices.Processes.Find(name).Count > 0;
+        var running = ProgramIds(ProgramRule(step)).Count > 0;
         Store(step, "running", Value.FromBool(running), depth);
     }
 
@@ -198,9 +216,10 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ProgramDetails(ExecutableStep step, int depth)
     {
-        var target = ReadValue(step, "processTarget").AsText().Trim();
-        var details = _devices.Processes.Details(target)
-            ?? throw new StepFailure(RunKeys.NoSuchProcess, target);
+        var rule = ProgramRule(step);
+        var id = ProgramIds(rule).FirstOrDefault();
+        var details = (id == 0 ? null : _devices.Processes.Details(id))
+            ?? throw new StepFailure(RunKeys.NoSuchProcess, rule.MatchValue);
 
         // One program is one record, the way one window is: what it is called, what it is, and what
         // it is costing are answers to the same question and travel together.
@@ -209,18 +228,21 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.ProgramDetails, details.Name, details.Id);
     }
 
-    /// <summary>Closes a program, by name or by process id.</summary>
+    /// <summary>
+    /// Closes the program this step names. Naming it by a window or a handle closes that one
+    /// program; naming it by process name closes every program of that name, which is the answer
+    /// the question asked for. Nothing to close is not a failure: the program having gone already
+    /// is what the step wanted.
+    /// </summary>
     private void StopProgram(ExecutableStep step, int depth)
     {
-        var target = ReadValue(step, "processTarget").AsText().Trim();
+        var rule = ProgramRule(step);
         var force = Flag(step, "force", false);
 
-        var stopped = int.TryParse(target, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id)
-            ? (_devices.Processes.StopById(id, force) ? 1 : 0)
-            : _devices.Processes.StopByName(target, force);
+        var stopped = ProgramIds(rule).Count(id => _devices.Processes.StopById(id, force));
 
         Give(step, "stopped", Value.FromNumber(stopped));
-        Log(LogLevel.Info, depth, step.Type, LogKeys.StoppedProgram, target, stopped);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.StoppedProgram, rule.MatchValue, stopped);
     }
 
     /// <summary>Runs a command line to the end and keeps what it printed.</summary>
@@ -255,6 +277,44 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.CommandFinished, program, result.ExitCode);
     }
 
+
+    /// <summary>
+    /// Which program this step names. It is the same field the window actions use, so the picker,
+    /// the list of windows and the ways of matching come with it. What it may not be is empty: a
+    /// window action left blank means the window in front, which changes from moment to moment,
+    /// where a program action left blank would mean guessing which program was meant.
+    /// </summary>
+    private WindowRule ProgramRule(ExecutableStep step)
+        => WindowRuleOf(step) is { HasTarget: true } rule
+            ? rule
+            : throw new StepFailure(RunKeys.MissingProgram);
+
+    /// <summary>
+    /// The processes the rule names, in the order the system gives them. How the rule matches
+    /// decides what is asked: a process name is answered by the process table itself, so a service
+    /// or a console program that has no window is still found; a handle is that one program; a
+    /// title or a window class names a window first, and the program behind it is the answer.
+    /// </summary>
+    private IReadOnlyList<int> ProgramIds(WindowRule rule)
+    {
+        switch (rule.Reading.Match)
+        {
+            case WindowMatch.Process:
+                return _devices.Processes.Find(rule.Process, rule.Reading.Compare, rule.Options);
+
+            case WindowMatch.Handle:
+                return One(_devices.Windows.ProcessIdOf(rule.Handle));
+
+            default:
+                return _devices.Windows.Find(rule.MatchValue, rule.Reading.Match,
+                    rule.Reading.Compare, rule.Options) is { } window
+                    ? One(_devices.Windows.ProcessIdOf(window.Handle))
+                    : [];
+        }
+
+        // A window whose program the system will not name is no program at all.
+        static IReadOnlyList<int> One(int id) => id == 0 ? [] : [id];
+    }
 
     /// <summary>
     /// The process actions, each answered by the method written for it. Step types of

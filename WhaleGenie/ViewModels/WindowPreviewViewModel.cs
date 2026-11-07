@@ -57,6 +57,13 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// <summary>Whether an empty rule means every window rather than the one in front.</summary>
     private bool _emptyIsEvery;
 
+    /// <summary>
+    /// Whether the field has to be answered at all. A window action left blank is about the window
+    /// in front, which the list can show; a program action left blank is about nothing yet, and
+    /// listing the window in front would read as if the step matched it.
+    /// </summary>
+    private bool _needsAnswer;
+
     /// <summary>Whether the list is on the screen at all, which the dialog says: a rule the step does
     /// not read has nothing to frame either.</summary>
     private bool _shown;
@@ -114,13 +121,26 @@ public partial class WindowPreviewViewModel : ViewModelBase
     public void Watch(Func<IWindowDevice?> windows) => _windows = windows;
 
     /// <summary>
+    /// The list as it stands before a program has been named: nothing matches it yet, because
+    /// there is nothing to match.
+    /// </summary>
+    private void SayNothingChosen()
+    {
+        Summary = Strings.Get("WindowRule.NotChosen");
+        Note = string.Empty;
+        Places = [];
+        Rows.Clear();
+    }
+
+    /// <summary>
     /// Hands the preview the rule as the fields now stand. The first one is read at once, because
     /// opening a step should show what it recognises; a rule that changes while it is being written
     /// waits for the typing to pause.
     /// </summary>
-    public void Follow(WhaleGenie.Core.Devices.WindowRule rule, bool emptyIsEvery = false)
+    public void Follow(WhaleGenie.Core.Devices.WindowRule rule, bool emptyIsEvery = false,
+        bool needsAnswer = false)
     {
-        if (_rule == rule && _emptyIsEvery == emptyIsEvery)
+        if (_rule == rule && _emptyIsEvery == emptyIsEvery && _needsAnswer == needsAnswer)
         {
             return;
         }
@@ -128,6 +148,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
         var first = _rule is null;
         _rule = rule;
         _emptyIsEvery = emptyIsEvery;
+        _needsAnswer = needsAnswer;
 
         if (first)
         {
@@ -207,6 +228,14 @@ public partial class WindowPreviewViewModel : ViewModelBase
             return;
         }
 
+        // Nothing is answered yet and the field cannot be left that way: there is no window to
+        // frame until one is chosen.
+        if (_needsAnswer && !rule.HasTarget)
+        {
+            SayNothingChosen();
+            return;
+        }
+
         IReadOnlyList<WindowInfo> found;
         try
         {
@@ -248,6 +277,14 @@ public partial class WindowPreviewViewModel : ViewModelBase
         {
             Summary = Strings.Get("Add.WindowPreview.Unreadable");
             Places = [];
+            return;
+        }
+
+        // A field that has to be answered has nothing to show before it is: the window in front is
+        // the answer to a different question, and listing it would read as if the step matched it.
+        if (_needsAnswer && !rule.HasTarget)
+        {
+            SayNothingChosen();
             return;
         }
 

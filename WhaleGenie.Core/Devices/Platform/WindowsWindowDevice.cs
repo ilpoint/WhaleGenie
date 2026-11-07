@@ -154,6 +154,8 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     public string ProcessOf(long handle) => ProcessName(handle);
 
+    public int ProcessIdOf(long handle) => ProcessId(handle);
+
     /// <summary>
     /// The class a window was registered under, which is the kind of window rather than the
     /// document in it: every Notepad window is "Notepad", however it was renamed.
@@ -280,22 +282,40 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// with an empty string rather than failing: a window can outlive the process lookup, and
     /// the picker only needs it as a label.
     /// </summary>
+    /// <summary>
+    /// The process that owns a window, or 0 when the window is gone or the system will not say.
+    /// One question to the system, and no process is opened for the answer.
+    /// </summary>
+    public static int ProcessId(long handle)
+    {
+        if (!OperatingSystem.IsWindows() || handle == 0)
+        {
+            return 0;
+        }
+
+        try
+        {
+            GetWindowThreadProcessId(new IntPtr(handle), out var processId);
+            return processId == 0 ? 0 : (int)processId;
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException
+            or System.ComponentModel.Win32Exception or NotSupportedException)
+        {
+            return 0;
+        }
+    }
+
     public static string ProcessName(long handle)
     {
-        if (!OperatingSystem.IsWindows())
+        var id = ProcessId(handle);
+        if (id == 0)
         {
             return string.Empty;
         }
 
         try
         {
-            GetWindowThreadProcessId(new IntPtr(handle), out var processId);
-            if (processId == 0)
-            {
-                return string.Empty;
-            }
-
-            using var process = System.Diagnostics.Process.GetProcessById((int)processId);
+            using var process = System.Diagnostics.Process.GetProcessById(id);
             return process.ProcessName;
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException

@@ -395,6 +395,8 @@ public class RunLookTests
 
         public string ProcessOf(long handle) => "notepad";
 
+        public int ProcessIdOf(long handle) => 0;
+
         public string ClassOf(long handle) => "Notepad";
 
         public bool Activate(long handle) => true;
@@ -516,6 +518,8 @@ public class RunLookTests
             => Filter(value, match, compare, options: options).FirstOrDefault();
 
         public string ProcessOf(long handle) => string.Empty;
+
+        public int ProcessIdOf(long handle) => 0;
 
         public string ClassOf(long handle) => string.Empty;
 

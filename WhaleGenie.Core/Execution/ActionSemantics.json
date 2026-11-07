@@ -3885,6 +3885,10 @@
           {
             "Name": "handle",
             "Type": "Number"
+          },
+          {
+            "Name": "how",
+            "Type": "Text"
           }
         ]
       }
@@ -3902,15 +3906,16 @@
     "StepTimeoutMs": 10000,
     "Parameters": [
       {
-        "Name": "processName",
-        "Shape": "Text",
+        "Name": "window",
+        "Shape": "WindowRule",
         "ReadMode": "WholeValue",
-        "Picker": "None",
+        "Picker": "Window",
         "Required": true,
         "DefaultValue": "",
         "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "returns",
@@ -3956,16 +3961,16 @@
     "StepTimeoutMs": 600000,
     "Parameters": [
       {
-        "Name": "id",
-        "Shape": "Text",
+        "Name": "window",
+        "Shape": "WindowRule",
         "ReadMode": "WholeValue",
-        "Picker": "None",
+        "Picker": "Window",
         "Required": true,
         "DefaultValue": "",
         "Options": [],
-        "AcceptsVariables": false,
+        "AcceptsVariables": true,
         "ChildKeys": [],
-        "MissingKey": "Run.BadProcessId"
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "returns",
@@ -4011,15 +4016,16 @@
     "StepTimeoutMs": 0,
     "Parameters": [
       {
-        "Name": "processName",
-        "Shape": "Text",
+        "Name": "window",
+        "Shape": "WindowRule",
         "ReadMode": "WholeValue",
-        "Picker": "None",
+        "Picker": "Window",
         "Required": true,
         "DefaultValue": "",
         "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "returns",
@@ -4108,15 +4114,16 @@
     "StepTimeoutMs": 0,
     "Parameters": [
       {
-        "Name": "processTarget",
-        "Shape": "Text",
+        "Name": "window",
+        "Shape": "WindowRule",
         "ReadMode": "WholeValue",
-        "Picker": "None",
+        "Picker": "Window",
         "Required": true,
         "DefaultValue": "",
         "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "returns",
@@ -4184,15 +4191,16 @@
     "StepTimeoutMs": 0,
     "Parameters": [
       {
-        "Name": "processTarget",
-        "Shape": "Text",
+        "Name": "window",
+        "Shape": "WindowRule",
         "ReadMode": "WholeValue",
-        "Picker": "None",
+        "Picker": "Window",
         "Required": true,
         "DefaultValue": "",
         "Options": [],
-        "AcceptsVariables": false,
-        "ChildKeys": []
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "force",

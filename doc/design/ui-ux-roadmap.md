@@ -159,6 +159,12 @@
 - **一个问题的两半用同一个号（本轮）**：表单每页各自从 ① 数起，于是 28 个动作的同一块在两页上各有一份
   同名标题、各挂一个 ①，读起来像两个问题。现在序号按整个动作排一次：基础页的 ②「找什么」与高级页的
   ②「找什么」是同一件事接着读，它后面的「④ 识别调参」也不再从 ① 起。
+- **程序族问「哪一个程序」（本轮）**：`waitFor`、`waitExit`、`exists`、`info`、`kill` 的目标原来是
+  三种写法（`processName`、`processTarget`、`id`），现在换成与 54 个动作同一格 `window`：菜单、F1 捕获、
+  用过的窗口、变量里的窗口全都照旧，标签写「程序」。认法按 `how` 分流——进程名直接问进程表（后台服务、
+  控制台程序靠这一档），句柄只认那个实例，标题与窗口类先找窗口再问它是哪个程序。这一格不能空着：
+  窗口空着是「前台窗口」，程序空着是没答。`process.start` 交回的记录多一格 `how = processEquals`，
+  所以 `$program` 能直接填进任何程序或窗口的格子。
 - **危险动作先问一句（本轮）**：编辑器里那句「这一步会注销、睡眠或关闭这台机器」判的是一个早已改名的字段（`what`，现在叫 `powerAction`），所以从来没触发过；运行整个宏时则根本没有这条路。现在由目录声明：动作级 `Irreversible`（删文件、删文件夹），参数级 `IrreversibleWhen`（关机的五种取值，锁屏、关显示器、取消关机不算）。判定只有一处 `ActionSemanticsCatalog.CannotBeUndone`，编辑器的试跑与整次运行问的是同一处。拒绝是一个失败，失败键 `Run.NotConfirmed`，交给这一步自己的「失败时」；一次运行里同一步只问一次，循环重复二十遍也一样。`IRunHost` 多一个 `ConfirmIrreversible`，没有人在场的宿主（触发器没接回调、MCP 调用）一律答否。确认框多一枚危险标记：按钮与平常那次长得一样，读的人往往只看到按钮。
 - **系统族与窗口族的读法（本轮）**：`window.move` 的「哪个窗口」补上块头（新组键 `subject`，
   图标 `AppWindow`），与「放到哪儿」并列；原来这一页只有第二件事有块，第一件事看起来像没归位
@@ -360,7 +366,7 @@ Keyboard Maestro：
 | 界面 `Uia` | 13 | 12 | 1（`focusWindow`） | 元素拾取器与网页共用一套；`read` / `readTable` 的结果结构进结构列 |
 | 浏览器 `Browser` | 21 | 17 | 4（`goTo`、`waitForLoad`、`dialog`、`evaluate`） | 选择器、等待、页面元素拾取三块与界面族对齐 |
 | 脚本 `Script` | 6 | 4 | 2（`pip`、`nuget`） | 代码框占主位，参数与超时收到下面；错误输出进结果表 |
-| 程序与窗口 `Process` | 7 | 2 | 5（`waitFor`、`waitExit`、`exists`、`info`、`kill`） | 窗口选择器统一；命令行预览 |
+| 程序与窗口 `Process` | 7 | 2 | 5（`waitFor`、`waitExit`、`exists`、`info`、`kill`） | 命令行预览 |
 | 窗口 `Window` | 10 | 1 | 9 | 无。9 个动作各只问「哪一个窗口」，按一件事不分块；`window.move` 的两件事各有块 |
 | 数据与变量 `Data` | 10 | 7 | 3（`listClear`、`base64Encode`、`base64Decode`） | 变量名一格给「这条宏里已有的名字」提示；列表动作给行表 |
 | 文件 `File` | 19 | 15 | 4（`exists`、`delete`、`createFolder`、`deleteFolder`） | 路径 + 编码 + 覆盖策略三块；读写失败的错误码进结构列 |

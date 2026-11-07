@@ -1500,6 +1500,45 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 程序族问「哪一个程序」用的是与窗口同一格：菜单、F1 捕获、已打开的窗口列表都照旧，
+    /// 只是标签写「程序」，而且必须答——窗口那格空着是"前台窗口"，程序那格空着是没答。
+    /// </summary>
+    [Fact]
+    public void The_process_family_names_its_program_with_the_window_menu()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = OpenWindow("process.kill", WindowRuleChoices.Of([]));
+            var view = window.GetVisualDescendants().OfType<ActionEditorView>().First();
+            view.Devices = new ChecksDevices
+            {
+                Windows = new WindowsForChecks().Add(7, "Calculator", "calc", "CalcFrame"),
+            };
+
+            var field = Assert.Single(viewModel.Parameters,
+                parameter => parameter.Definition.Name == "window");
+            Assert.True(field.IsWindowRule);
+            Assert.True(field.IsWindow);
+            Assert.Equal("Program", field.Definition.Label);
+            Assert.True(field.Definition.Required);
+
+            field.ClearWindowRule();
+            Assert.Equal(Strings.Get("WindowRule.NotChosen"), field.WindowRuleSummary);
+
+            var items = view.BuildWindowMenu(field).Items.OfType<MenuItem>().ToList();
+            Assert.Contains(items, item => (string?)item.Header == Strings.Get("WindowRule.Menu.Foreground"));
+            Assert.Contains(items, item => (string?)item.Header == Strings.Get("WindowRule.Menu.Capture"));
+
+            var open = items.First(item => (string?)item.Header == Strings.Get("WindowRule.Menu.Open"));
+            Assert.Single(open.Items.OfType<MenuItem>())
+                .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+
+            Assert.True(WindowRule.TryParse(field.CurrentText, out var applied));
+            Assert.Equal("Calculator", applied.Title);
+        });
+    }
+
+    /// <summary>
     /// 新步骤跟着走的是"落点之上最近那一步"用的窗口：选中第二步时跟第一步，什么都没选（放在末尾）
     /// 时跟最后一步。判的是顺序，不是记住的上一个，所以插在中间得到的也是它上面那一条。
     /// </summary>
@@ -1752,6 +1791,8 @@ public class ActionDialogTests
             => Notepad.Title.Contains(value, StringComparison.OrdinalIgnoreCase) ? Notepad : null;
 
         public string ProcessOf(long handle) => "notepad";
+
+        public int ProcessIdOf(long handle) => 0;
 
         public string ClassOf(long handle) => "Notepad";
 

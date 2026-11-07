@@ -1,4 +1,4 @@
-﻿# WhaleGenie 开发说明
+# WhaleGenie 开发说明
 
 本文件说明如何构建、修改、验证和发布 WhaleGenie。长期规范见仓库根目录的
 [AGENTS.md](../AGENTS.md)，当前实现结构见 [architecture.md](architecture.md)，未完成工作见
@@ -209,6 +209,7 @@ if ($missing) { $missing; exit 1 }
 | `skipBlankLines` | 都是“空行不算”；标签说明读取时跳过还是写入时留下 |
 | `to` | 都是目标路径；标签说明复制、移动还是压缩 |
 | `trim` | 比较前去掉两端的空格；只在「等于 / 不等于」出现，默认开。读文件时的整行或整格去空格另叫 `trimLines` / `trimCells` |
+| `window` | 窗口动作与屏幕识别用它问「哪一个窗口」；程序族（`waitFor`、`waitExit`、`exists`、`info`、`kill`）用同一格问「哪一个程序」，标签写「程序」 |
 | `value` | 剩下的都是要存或要算的一个值，同为表达式控件；标签说明它在动作里的角色 |
 | `writeMode` | 都是覆盖还是追加；两种写入的选项文案各说各的对象 |
 | `x`、`y` | 都是坐标；标签说明是左上角还是单点。字面量写法仍用这两格，记录写法走 `place` / `rect` |

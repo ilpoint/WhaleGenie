@@ -344,19 +344,6 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.Brightness, level);
     }
 
-    /// <summary>The process id a step names, which is usually a variable.</summary>
-    private int ProcessId(ExecutableStep step)
-    {
-        var text = ReadValue(step, "id").AsText().Trim();
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id))
-        {
-            throw new StepFailure(RunKeys.BadProcessId, text);
-        }
-
-        return id;
-    }
-
-
     /// <summary>
     /// The system actions, each answered by the method written for it. Step types of
     /// other families are not this dispatch's to answer.

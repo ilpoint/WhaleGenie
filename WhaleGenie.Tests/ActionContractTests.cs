@@ -374,7 +374,7 @@ public class ActionContractTests
             .Returns.Single(result => result.Key == "program");
 
         Assert.Equal(ActionReturnType.Record, started.Type);
-        Assert.Equal(["id", "process", "title", "handle"],
+        Assert.Equal(["id", "process", "title", "handle", "how"],
             started.Fields.Select(field => field.Name));
         Assert.DoesNotContain(started.Fields, field => field.Name == "memoryMb");
         Assert.DoesNotContain(started.Fields, field => field.Name == "cpuSeconds");

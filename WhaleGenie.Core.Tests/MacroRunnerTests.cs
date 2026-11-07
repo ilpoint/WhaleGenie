@@ -3302,6 +3302,7 @@ public class MacroRunnerTests
             (FieldNames.Process, Value.FromText("notepad")),
             (FieldNames.Title, Value.FromText("Untitled")),
             (FieldNames.Handle, Value.FromNumber(0)),
+            (FieldNames.How, Value.FromText(WindowHow.ProcessEquals)),
         ]);
 
         Assert.True(MacroRunner.ReturnFits(program, exact));

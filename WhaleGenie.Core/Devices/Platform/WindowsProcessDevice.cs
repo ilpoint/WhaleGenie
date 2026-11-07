@@ -117,34 +117,50 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             ? TextEncoding.System
             : request.OutputEncoding);
 
-    public IReadOnlyList<int> Find(string name)
+    public IReadOnlyList<int> Find(string value, string compare = TextCompare.Exactly,
+        TextCompareOptions options = default)
     {
         Require();
 
-        var wanted = Normalise(name);
+        var wanted = WithoutExe(value);
         if (wanted.Length == 0)
         {
             return [];
         }
 
-        // Asking for the programs of one name costs Windows a single listing; reading every program
-        // on the machine to see what each of them is called costs a handle to each of them. A step
-        // that waits for a program to appear asks this question many times a second, and it is that
-        // question the whole of the trigger's timing hangs on, so it is the cheap one that is used.
         var found = new List<int>();
-        foreach (var process in Process.GetProcessesByName(wanted))
+
+        // Asking for the programs of one exact name costs Windows a single listing; reading every
+        // program on the machine to see what each of them is called costs a handle to each of them.
+        // A step that waits for a program to appear asks this question many times a second, so the
+        // cheap answer is kept for it. A name matched another way, or one that cares about case,
+        // is read from the one snapshot and compared here.
+        if (!options.CaseSensitive && TextCompare.Read(compare) == TextCompare.Exactly)
         {
-            try
+            foreach (var process in Process.GetProcessesByName(wanted))
             {
-                found.Add(process.Id);
+                try
+                {
+                    found.Add(process.Id);
+                }
+                catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+                {
+                    // A program that went away between the listing and this line is not running.
+                }
+                finally
+                {
+                    process.Dispose();
+                }
             }
-            catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+
+            return found;
+        }
+
+        foreach (var row in Snapshot())
+        {
+            if (TextCompare.Matches(row.Name, wanted, compare, options))
             {
-                // A program that went away between the listing and this line is simply not running.
-            }
-            finally
-            {
-                process.Dispose();
+                found.Add(row.Id);
             }
         }
 
@@ -157,22 +173,11 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
 
-    public ProcessDetails? Details(string target)
+    public ProcessDetails? Details(int id)
     {
         Require();
 
-        var wanted = (target ?? string.Empty).Trim();
-        if (wanted.Length == 0)
-        {
-            return null;
-        }
-
-        // A number is an id, anything else is a program name, which is the same rule the stop
-        // action follows so the two read alike.
-        var id = int.TryParse(wanted, out var parsed)
-            ? parsed
-            : Find(wanted).FirstOrDefault();
-        if (id == 0)
+        if (id <= 0)
         {
             return null;
         }
@@ -279,28 +284,6 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         {
             return null;
         }
-    }
-
-    public int StopByName(string name, bool force)
-    {
-        Require();
-
-        var wanted = Normalise(name);
-        if (wanted.Length == 0)
-        {
-            return 0;
-        }
-
-        var stopped = 0;
-        foreach (var row in Snapshot())
-        {
-            if (row.Name == wanted && Stop(row.Id, force))
-            {
-                stopped++;
-            }
-        }
-
-        return stopped;
     }
 
     public bool StopById(int id, bool force)
@@ -571,11 +554,14 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         return rows;
     }
 
-    /// <summary>Lower-cased, without the <c>.exe</c>, so "Notepad" and "notepad.exe" agree.</summary>
-    private static string Normalise(string name)
+    /// <summary>
+    /// The name without the <c>.exe</c>, so "Notepad" and "notepad.exe" ask the same question. The
+    /// case is left as it was written: whether it counts is the step's answer, not this one's.
+    /// </summary>
+    private static string WithoutExe(string name)
     {
-        var text = (name ?? string.Empty).Trim().ToLowerInvariant();
-        return text.EndsWith(".exe", StringComparison.Ordinal) ? text[..^4] : text;
+        var text = (name ?? string.Empty).Trim();
+        return text.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? text[..^4] : text;
     }
 
     private static bool Recoverable(Exception error)

@@ -848,7 +848,7 @@ public partial class StepParameterViewModel : ViewModelBase
 
             if (!WindowRule.TryParse(written, out var rule))
             {
-                return Strings.Get("WindowRule.NotSet");
+                return NotAnswered;
             }
 
             // 沿用是一次指向，不是一条窗口：说清楚它是什么意思，比显示一串没有标题的括号有用；
@@ -862,9 +862,24 @@ public partial class StepParameterViewModel : ViewModelBase
             }
 
             var readable = Readable(written);
-            return readable.Length > 0 ? readable : Strings.Get("WindowRule.NotSet");
+            return readable.Length > 0 ? readable : NotAnswered;
         }
     }
+
+    /// <summary>
+    /// What this field says when nobody has answered it. A window action left blank means the
+    /// window in front; a field that has to be answered, as the program actions are, has no such
+    /// fallback to offer, so it says it has not been answered.
+    /// </summary>
+    private string NotAnswered
+        => Strings.Get(HasToBeAnswered ? "WindowRule.NotChosen" : "WindowRule.NotSet");
+
+    /// <summary>
+    /// True when this field has no answer it could fall back on: it is required, and not only under
+    /// some settings of the action. A window action left blank is about the window in front; a
+    /// program action left blank is about nothing, and the same goes for the list under it.
+    /// </summary>
+    public bool HasToBeAnswered => Definition.Required && !Definition.Semantics.Conditional;
 
     /// <summary>一条规则写成人看的一行；认不出来、或者里面没有窗口时是空串。</summary>
     private static string Readable(string written)

@@ -42,7 +42,7 @@ public static class MacroPackage
     /// argument: a 19 package's <c>arg.*</c> keys would be read as fields the action does not have,
     /// so it is refused rather than half-read.
     /// </summary>
-    public const int FormatVersion = 23;
+    public const int FormatVersion = 24;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

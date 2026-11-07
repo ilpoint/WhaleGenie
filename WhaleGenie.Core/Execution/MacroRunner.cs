@@ -1550,10 +1550,8 @@ public sealed partial class MacroRunner
                 "control.waitUntil" => new StepFailure(RunKeys.WaitTimeout, WaitingFor(step, patience)),
                 "clipboard.waitChange" or "clipboard.copy" =>
                     new StepFailure(RunKeys.ClipboardTimeout),
-                "process.waitFor" => new StepFailure(RunKeys.ProgramNotFound,
-                    ReadValue(step, "processName").AsText()),
-                "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout,
-                    ProcessId(step).ToString(CultureInfo.InvariantCulture)),
+                "process.waitFor" => new StepFailure(RunKeys.ProgramNotFound, WindowText(step)),
+                "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout, WindowText(step)),
                 "window.waitFor" => new StepFailure(RunKeys.WindowTimeout, WindowText(step)),
                 "uia.waitElement" or "uia.click" or "uia.invoke" =>
                     new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector")),
