@@ -71,6 +71,31 @@ public class McpActionKnowledgeTests
             action => action.Key == "control.case").Hidden);
     }
 
+    /// <summary>
+    /// 不可逆是两半：动作本身（删文件、删文件夹），以及某一格里某个取值（关机的睡眠、重启、关机）。
+    /// 只给动作级布尔，客户端会以为「关机」这一步可以随便写；两半都给，它才复现得出运行期那一次询问。
+    /// </summary>
+    [Fact]
+    public void A_step_that_cannot_be_undone_says_so()
+    {
+        Assert.True(Assert.IsType<McpActionDetails>(ActionKnowledge.Find("file.delete")).Irreversible);
+        Assert.True(Assert.IsType<McpActionDetails>(
+            ActionKnowledge.Find("file.deleteFolder")).Irreversible);
+
+        // 关机本身不是不可逆的，锁屏与关显示器更不是；是那么几个取值让这一步变成不可逆。
+        var power = Assert.IsType<McpActionDetails>(ActionKnowledge.Find("system.power"));
+        Assert.False(power.Irreversible);
+        var what = Assert.Single(power.Parameters, parameter => parameter.Name == "powerAction");
+        Assert.Equal(
+            ["hibernate", "restart", "shutDown", "signOut", "sleep"],
+            [.. what.IrreversibleWhen.Order(StringComparer.Ordinal)]);
+
+        // 其余动作两处都是空的，客户端不会到处看到这一句。
+        var delay = Assert.IsType<McpActionDetails>(ActionKnowledge.Find("control.delay"));
+        Assert.False(delay.Irreversible);
+        Assert.All(delay.Parameters, parameter => Assert.Empty(parameter.IrreversibleWhen));
+    }
+
     [Fact]
     public void A_page_says_what_it_left_out()
     {

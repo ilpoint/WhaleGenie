@@ -42,7 +42,8 @@ public sealed record McpActionParameter(
     string ReadMode, string Shape, IReadOnlyList<string> Options,
     IReadOnlyList<string> ChildKeys, IReadOnlyList<string> Fields,
     IReadOnlyList<McpActionColumn> Columns, string? Unit,
-    string? EmptyMeans, decimal? Minimum, decimal? Maximum, bool Conditional, string MissingKey);
+    string? EmptyMeans, decimal? Minimum, decimal? Maximum, bool Conditional, string MissingKey,
+    IReadOnlyList<string> IrreversibleWhen);
 
 /// <summary>
 /// One result an action can hand back, and the fields of the record it holds. A table lists no
@@ -54,13 +55,17 @@ public sealed record McpActionReturn(
     bool Table);
 
 /// <summary>
-/// The full description of one action. <see cref="SignatureSource"/> says whose declaration decides
+/// The full description of one action. <see cref="Irreversible"/> and a parameter's
+/// <see cref="McpActionParameter.IrreversibleWhen"/> are the two halves of one answer: a step that
+/// destroys something which cannot be brought back has a person asked before it runs, and a run with
+/// nobody there fails instead. A client that knows this can say so while writing the macro rather
+/// than leaving the step to fail at run time. <see cref="SignatureSource"/> says whose declaration decides
 /// the arguments and results: an action that calls another macro takes them from that macro, which
 /// is why its own parameter list cannot name them.
 /// </summary>
 public sealed record McpActionDetails(
     string Key, string Name, string Category, string Description, bool Hidden, bool Retired,
-    bool SendsInput, bool LooksAtScreen, bool Waits, string TimeoutSource,
+    bool SendsInput, bool LooksAtScreen, bool Waits, string TimeoutSource, bool Irreversible,
     IReadOnlyList<McpActionParameter> Parameters, IReadOnlyList<McpActionReturn> Returns,
     string SignatureSource, int TimeoutMs);
 
@@ -261,6 +266,7 @@ public static class ActionKnowledge
             facts?.LooksAtScreen ?? false,
             facts?.Waits ?? false,
             facts?.TimeoutSource.ToString() ?? ActionTimeoutSource.None.ToString(),
+            facts?.Irreversible ?? false,
             [
                 .. definition.Parameters.Select(parameter => new McpActionParameter(
                     parameter.Name,
@@ -282,7 +288,8 @@ public static class ActionKnowledge
                     parameter.Shape == ActionValueShape.Number ? parameter.Minimum : null,
                     parameter.Shape == ActionValueShape.Number ? parameter.Maximum : null,
                     facts?.Parameter(parameter.Name)?.Conditional ?? false,
-                    facts?.Parameter(parameter.Name)?.MissingKey ?? string.Empty)),
+                    facts?.Parameter(parameter.Name)?.MissingKey ?? string.Empty,
+                    facts?.Parameter(parameter.Name)?.IrreversibleWhen ?? [])),
             ],
             [
                 .. definition.Returns.Select(result => new McpActionReturn(

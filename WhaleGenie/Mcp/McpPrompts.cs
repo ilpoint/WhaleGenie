@@ -32,6 +32,10 @@ public sealed class McpPrompts
         and category, and pass includeHidden only when you are placing a step inside a child list.
         whalegenie_get_actions describes several keys in one call, which is cheaper than one
         get_action per key. Respect hidden and childKeys in the catalogue when placing nested steps.
+        When a described action has irreversible true, or a choice parameter lists irreversibleWhen
+        values, the step destroys something that cannot be brought back: the person is asked before
+        it runs, and a run with nobody there fails with Run.NotConfirmed. Say so when you place such
+        a step in a macro instead of leaving it to fail at run time.
         A refusal is a JSON object with error.code, error.message and error.hint. Read the code to
         know what sort of refusal it was and the hint to know what to do next instead of guessing.
         whalegenie_apply refuses a draft that validation calls blocking; fix it, or pass force when

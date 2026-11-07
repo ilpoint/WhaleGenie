@@ -71,7 +71,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_get_action", ReadOnly = true,
             Title = "Describe one action"),
-     Description("Describes one action: hidden state, whether it sends input or looks at the screen, whether and how it waits, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns. A required field marked conditional is required only in the modes its hint names, such as the window rule of a background click. A wrong key is refused with the nearest keys as candidates.")]
+     Description("Describes one action: hidden state, whether it sends input or looks at the screen, whether and how it waits, parameters, childKeys, kinds, defaults, options, reading rules, record fields, number units and ranges, and returns. A required field marked conditional is required only in the modes its hint names, such as the window rule of a background click. An action marked irreversible, or a choice parameter whose irreversibleWhen names values, destroys something that cannot be brought back: the person is asked before that step runs, and a run with nobody there fails with Run.NotConfirmed. A wrong key is refused with the nearest keys as candidates.")]
     public Task<CallToolResult> GetAction(
         [Description("The action key, for example control.delay.")] string key)
         => McpErrors.RunAsync(async () =>
@@ -89,7 +89,7 @@ public sealed class McpTools(McpDraftStore drafts, McpLiveProject project)
 
     [McpServerTool(Name = "whalegenie_get_actions", ReadOnly = true,
             Title = "Describe several actions"),
-     Description("Describes several actions in one call, which is what writing a macro needs: one round trip for the three or four keys a step list uses. Keys that do not exist come back under missing instead of failing the whole answer.")]
+     Description("Describes several actions in one call, which is what writing a macro needs: one round trip for the three or four keys a step list uses. The same fields as get_action come back, including irreversible and irreversibleWhen. Keys that do not exist come back under missing instead of failing the whole answer.")]
     public Task<CallToolResult> GetActions(
         [Description("The action keys to describe, for example [\"control.if\",\"control.repeat\"].")] string[] keys)
         => McpErrors.RunAsync(async () => McpErrors.Ok(await Ui(() =>

@@ -107,7 +107,7 @@ public sealed class McpResources(McpLiveProject live)
     /// </summary>
     [McpServerResource(UriTemplate = "whalegenie://actions/{key}", Name = "One action",
         Title = "One action", MimeType = "application/json")]
-    [Description("One action, described in full: parameters with their kinds, reading rules, defaults, options, units and ranges, the child lists each accepts, the columns of each table, and what it returns. An unknown key answers with the nearest keys as candidates rather than failing.")]
+    [Description("One action, described in full: parameters with their kinds, reading rules, defaults, options, units and ranges, the child lists each accepts, the columns of each table, and what it returns. It also says whether the action cannot be undone, and which values of a choice make a step one of those. An unknown key answers with the nearest keys as candidates rather than failing.")]
     public async Task<string> Action(string key)
         => await Dispatcher.UIThread.InvokeAsync(() =>
         {
