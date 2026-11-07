@@ -314,7 +314,7 @@
 
 ## 对比过的脚本与系统动作
 
-脚本 6 个、系统 9 个（本轮变成 10 个）。这一批对的是 Power Automate Desktop、AutoHotkey v2 与
+脚本 6 个、系统 9 个（此后陆续补到 14 个）。这一批对的是 Power Automate Desktop、AutoHotkey v2 与
 Keyboard Maestro：
 
 | | Power Automate Desktop | AutoHotkey v2 | 我们（改前） |
