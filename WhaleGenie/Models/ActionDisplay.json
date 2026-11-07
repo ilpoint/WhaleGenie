@@ -4256,6 +4256,7 @@
     "Key": "clipboard.readImage",
     "DisplayName": "Read Clipboard Picture",
     "Description": "Take the picture on the clipboard into an image variable.",
+    "Preview": "ClipboardImage",
     "Parameters": [
       {
         "Name": "returns",
@@ -18285,7 +18286,7 @@
         "Label": "Script",
         "Hint": "JavaScript the page runs, written as a function such as () => document.title. What return hands back is the result. {{variable}} is filled in first.",
         "Placeholder": "",
-        "Kind": "MultilineText",
+        "Kind": "Code",
         "OptionLabels": [],
         "ForeignText": true,
         "Advanced": false,
@@ -18297,7 +18298,6 @@
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
-        "Tall": true,
         "AddLabelKey": ""
       },
       {
@@ -18571,7 +18571,7 @@
         "Label": "Script",
         "Hint": "The script itself, told to the program named above. {{name}} is replaced by what the variable name holds before the script runs, which is how a macro value gets in; everything the script prints comes back in the output result where the kind of script can be read that way.",
         "Placeholder": "Write-Host \"Hello\"",
-        "Kind": "MultilineText",
+        "Kind": "Code",
         "OptionLabels": [],
         "ForeignText": true,
         "Advanced": false,
@@ -18585,7 +18585,6 @@
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
-        "Tall": true,
         "AddLabelKey": ""
       },
       {
@@ -18798,7 +18797,7 @@
         "Label": "Script",
         "Hint": "The script itself. Everything it prints goes into the run log, and the values of the macro are in reach of it while it runs: WhaleGenie.GetProperty(\"name\") reads one, SetProperty(\"name\", value) writes one, StepExecute(\"a7k2\") runs one step of this macro, Print(text) writes a line to the run log, and SetResult(value) hands back what this step should leave behind.",
         "Placeholder": "",
-        "Kind": "MultilineText",
+        "Kind": "Code",
         "OptionLabels": [],
         "ForeignText": true,
         "Advanced": false,
@@ -18810,7 +18809,6 @@
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
-        "Tall": true,
         "AddLabelKey": ""
       },
       {
@@ -18861,7 +18859,7 @@
         "Kind": "Text",
         "OptionLabels": [],
         "ForeignText": true,
-        "Advanced": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -19036,7 +19034,7 @@
         "Label": "Script",
         "Hint": "The script itself. It is compiled and run in a process of this program's own, so nothing it does to itself reaches the macro, and the macro is in reach of it while it runs: the name WhaleGenie is the macro. GetProperty(\"name\") reads one of its values, SetProperty(\"name\", value) writes one, StepExecute(\"a7k2\") runs one step of it, SetResult(value) hands back what this step should leave behind, and everything written with Console.WriteLine goes into the run log.",
         "Placeholder": "",
-        "Kind": "MultilineText",
+        "Kind": "Code",
         "OptionLabels": [],
         "ForeignText": true,
         "Advanced": false,
@@ -19048,7 +19046,6 @@
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
-        "Tall": true,
         "AddLabelKey": ""
       },
       {
@@ -19079,7 +19076,7 @@
         "Kind": "Text",
         "OptionLabels": [],
         "ForeignText": true,
-        "Advanced": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
@@ -19165,7 +19162,7 @@
         "Label": "Script",
         "Hint": "The script itself, written for AutoHotkey version 2. Everything it prints goes into the run log, and the macro is in reach of it while it runs: GetProperty(\"name\") reads one of its values, SetProperty(\"name\", value) writes one, StepExecute(\"a7k2\") runs one step of this macro, Print(text) writes a line to the run log, and SetResult(value) hands back what this step should leave behind.",
         "Placeholder": "",
-        "Kind": "MultilineText",
+        "Kind": "Code",
         "OptionLabels": [],
         "ForeignText": true,
         "Advanced": false,
@@ -19177,7 +19174,6 @@
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
-        "Tall": true,
         "AddLabelKey": ""
       },
       {
@@ -19228,7 +19224,7 @@
         "Kind": "Text",
         "OptionLabels": [],
         "ForeignText": true,
-        "Advanced": false,
+        "Advanced": true,
         "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],

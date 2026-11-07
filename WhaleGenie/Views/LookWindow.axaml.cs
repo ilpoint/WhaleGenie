@@ -119,6 +119,16 @@ public partial class LookWindow : AppWindow
             _marks.ContextMenu = new ContextMenu { Items = { copyAll } };
         }
 
+        // A picture taken from the clipboard has nothing marked on it: nothing was searched, so the
+        // column that lists the marks would stand there empty. The picture takes the whole width.
+        if (look.Kind == LookKind.Clipboard
+            && this.FindControl<Grid>("BoardRow") is { } boardRow
+            && this.FindControl<Border>("MarksPanel") is { } marksPanel)
+        {
+            marksPanel.IsVisible = false;
+            boardRow.ColumnDefinitions[1].Width = new GridLength(0);
+        }
+
         _zoomText = this.FindControl<TextBlock>("ZoomText");
         _needleFrame = this.FindControl<Border>("NeedleFrame");
         _needleShot = this.FindControl<Image>("NeedleShot");
@@ -492,6 +502,11 @@ public partial class LookWindow : AppWindow
         if (look.Kind == LookKind.Capture)
         {
             return Strings.Get("Look.Outcome.Capture");
+        }
+
+        if (look.Kind == LookKind.Clipboard)
+        {
+            return Strings.Get("Look.Outcome.Clipboard");
         }
 
         if (look.Kind == LookKind.Pixel)

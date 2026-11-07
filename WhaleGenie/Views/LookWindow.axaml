@@ -65,7 +65,7 @@
             </Border>
 
             <!-- the picture, and one row per mark -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,320" Margin="14,0,14,10">
+            <Grid Grid.Row="1" Name="BoardRow" ColumnDefinitions="*,320" Margin="14,0,14,10">
                 <Border Grid.Column="0" Classes="Panel" Padding="10">
                     <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
@@ -74,7 +74,7 @@
                     </ScrollViewer>
                 </Border>
 
-                <Border Grid.Column="1" Classes="Panel" Margin="10,0,0,0">
+                <Border Grid.Column="1" Name="MarksPanel" Classes="Panel" Margin="10,0,0,0">
                     <Grid RowDefinitions="Auto,Auto,*">
                         <!-- 每一行标记已经写出它读到的那一行，右上角再列一遍同样的字就是同一件事说两遍；
                              要看全部、要带走，用这里的全选与复制。 -->

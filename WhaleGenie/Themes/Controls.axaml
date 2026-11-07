@@ -642,6 +642,7 @@
         <Setter Property="Padding" Value="{DynamicResource PadField}" />
         <Setter Property="MinHeight" Value="58" />
         <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
         <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
         <Setter Property="BorderThickness" Value="1" />

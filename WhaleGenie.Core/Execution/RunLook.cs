@@ -25,6 +25,12 @@ public enum LookKind
     /// <summary>A picture was taken of part of the screen. There is nothing to score.</summary>
     Capture,
 
+    /// <summary>
+    /// The clipboard was holding a picture, and the step took it. Nothing was looked at on the
+    /// screen and nothing was compared, so there is no score and no mark.
+    /// </summary>
+    Clipboard,
+
     /// <summary>One pixel was watched, with a square of screen around it to look at.</summary>
     Pixel,
 }

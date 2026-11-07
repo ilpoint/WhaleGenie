@@ -290,12 +290,14 @@
 
                 <!-- A stretch of text that is handed over whole — what gets typed, written or put on
                      the clipboard — may be built with the expression editor like any other value:
-                     what it makes there is what the step hands over. A box holding a script is
-                     taller than one holding a sentence, because a program of a dozen lines is not
-                     read through a window four lines high. -->
+                     what it makes there is what the step hands over. A box holding a program is
+                     taller than one holding a sentence and keeps its lines as they were written:
+                     a script of a dozen lines is not read through a window four lines high, and
+                     its indentation is part of what it says. -->
                 <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="Field" Text="{Binding Text}"
-                             AcceptsReturn="True" TextWrapping="Wrap"
+                    <TextBox Classes="Field" Classes.Code="{Binding IsCode}"
+                             Text="{Binding Text}"
+                             AcceptsReturn="True" TextWrapping="{Binding Wrap}"
                              Height="{Binding MultilineHeight}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
@@ -1336,6 +1338,30 @@
 
                             <TextBlock Classes="Hint" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />
+
+                            <!-- What the clipboard is holding right now. A step that takes that
+                                 picture has nothing else to ask, so the answer is shown where the
+                                 settings would be, rather than kept for the run. -->
+                            <StackPanel Margin="0,14,0,0" Spacing="6"
+                                        IsVisible="{Binding ShowsClipboardPreview}">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                                    <TextBlock Classes="FieldLabel" VerticalAlignment="Center"
+                                               Text="{Binding [Add.ClipboardPreview], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding ClipboardPreviewNote}" />
+                                    <views:HintInfo Grid.Column="2"
+                                                    Text="{Binding [Add.ClipboardPreviewHint], Source={x:Static loc:Strings.Current}}" />
+                                    <Button Grid.Column="3" Classes="Secondary" Height="28" Padding="10,0"
+                                            Content="{Binding [Add.ClipboardPreviewRefresh], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding RefreshClipboardCommand}" />
+                                </Grid>
+                                <Border Classes="Card" Padding="6" HorizontalAlignment="Left"
+                                        IsVisible="{Binding HasClipboardPreview}">
+                                    <Image Source="{Binding ClipboardPreview}" MaxHeight="180"
+                                           Stretch="Uniform" />
+                                </Border>
+                            </StackPanel>
                         
                             <!-- What the step hands over: the results the engine works out while
                                  it runs. Ticking one keeps it as a variable for a later step. It is

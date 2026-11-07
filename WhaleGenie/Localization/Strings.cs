@@ -488,6 +488,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Outcome.Miss"] = "Nothing counted. The best was {0}.",
         ["Look.Outcome.Nothing"] = "Nothing on this picture was compared.",
         ["Look.Outcome.Capture"] = "This is the picture the step took.",
+        ["Look.Outcome.Clipboard"] = "This is the picture the clipboard was holding.",
         ["Look.Outcome.Pixel"] = "This is what is around the pixel being watched.",
         ["Look.Needed"] = "  It needed {0}.",
         ["Run.NotALookingStep"] = "This step does not look at the screen, so there is nothing to try.",
@@ -1254,6 +1255,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ReturnShapeTipTable"] =
             "One record per row, keyed by the column names that were read. Read a cell with "
             + "field(get($name, 0), \"column\").",
+        ["Add.ClipboardPreview"] = "On the clipboard now",
+        ["Add.ClipboardPreviewHint"] =
+            "This is the picture the step will take. The clipboard is read when the action opens, "
+            + "so press Refresh after copying something else.",
+        ["Add.ClipboardPreviewRefresh"] = "Refresh",
+        ["Add.ClipboardPreviewEmpty"] = "There is no picture on the clipboard.",
+        ["Add.ClipboardPreviewBusy"] =
+            "Another program is holding the clipboard. Try Refresh in a moment.",
+        ["Add.ClipboardPreviewSize"] = "{0} x {1} pixels",
         ["Add.ReturnName"] = "Variable name",
         ["Add.ReturnNameHint"] = "The name later steps read this result by. Leaving it as "
             + "suggested is fine; changing it makes the step's own wording of what it found.",
@@ -2845,6 +2855,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Outcome.Miss"] = "没有一条算命中，最高 {0}。",
         ["Look.Outcome.Nothing"] = "这幅画面上没有做任何比较。",
         ["Look.Outcome.Capture"] = "这就是这一步抓下来的画面。",
+        ["Look.Outcome.Clipboard"] = "这是剪贴板上当时那张图。",
         ["Look.Outcome.Pixel"] = "这是所看像素周围的样子。",
         ["Look.Needed"] = "　需要 {0}。",
         ["Run.NotALookingStep"] = "这一步不查看屏幕，没有可试找的目标。",
@@ -3549,6 +3560,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ReturnShapeTip"] = "共 {0} 项。取其中一项：field($变量, \"字段名\")。",
         ["Add.ReturnShapeTipBare"] = "一个值：{0}",
         ["Add.ReturnShapeTipTable"] = "一行一条记录，键就是读到的列名。取一格：field(get($变量, 0), \"列名\")。",
+        ["Add.ClipboardPreview"] = "此刻剪贴板上的图片",
+        ["Add.ClipboardPreviewHint"] = "这就是这一步会取走的那张图。打开这个动作时读一次，之后复制了别的内容按「刷新」。",
+        ["Add.ClipboardPreviewRefresh"] = "刷新",
+        ["Add.ClipboardPreviewEmpty"] = "剪贴板上还没有图片。",
+        ["Add.ClipboardPreviewBusy"] = "另一个程序正占用剪贴板，稍后按「刷新」再看。",
+        ["Add.ClipboardPreviewSize"] = "{0} × {1} 像素",
         ["Add.ReturnName"] = "变量名",
         ["Add.ReturnNameHint"] = "后面的步骤按这个名字取这一项结果。用默认给的名字也行；自己改一个，"
             + "读起来更像这一步找到的东西。",

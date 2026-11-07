@@ -581,6 +581,28 @@ public class RunLookTests
     }
 
     [Fact]
+    public async Task A_picture_taken_from_the_clipboard_is_handed_over_as_the_picture_it_is()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Clipboard.Picture = new ImageFrame(4, 3, new byte[48]);
+        var looks = new Watched();
+        var step = Step("clipboard.readImage", Returns("image=shot", "width=w", "height=h"));
+
+        await Run(step, devices, looks);
+
+        // 这张图不是从屏幕上看的，所以没有原点、没有标记、没有阈值，也没有在找什么。
+        var look = Assert.Single(looks.Seen);
+        Assert.Equal(LookKind.Clipboard, look.Kind);
+        Assert.Equal(4, look.Frame.Width);
+        Assert.Equal(3, look.Frame.Height);
+        Assert.Equal(new ScreenPoint(0, 0), look.Origin);
+        Assert.Empty(look.Boxes);
+        Assert.Equal(0, look.ChosenIndex);
+        Assert.Null(look.Minimum);
+        Assert.Equal(string.Empty, look.Looking);
+    }
+
+    [Fact]
     public async Task A_watched_pixel_is_handed_over_with_a_square_of_screen_around_it()
     {
         var devices = Screen();

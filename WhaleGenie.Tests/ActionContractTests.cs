@@ -927,6 +927,7 @@ public class ActionContractTests
         ActionParameterKind.Point => ActionValueShape.Point,
         ActionParameterKind.Rect => ActionValueShape.Rect,
         ActionParameterKind.WindowRule => ActionValueShape.WindowRule,
+        ActionParameterKind.Code => ActionValueShape.Text,
         _ => ActionValueShape.Text,
     };
 

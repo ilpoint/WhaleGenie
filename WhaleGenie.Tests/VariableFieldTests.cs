@@ -444,7 +444,7 @@ public class VariableFieldTests
         ActionParameterKind[] boxes =
         [
             ActionParameterKind.Text, ActionParameterKind.MultilineText,
-            ActionParameterKind.Image, ActionParameterKind.Images,
+            ActionParameterKind.Code, ActionParameterKind.Image, ActionParameterKind.Images,
         ];
 
         var gaps = Ui.Run(() => ActionCatalog.Definitions

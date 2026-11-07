@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -13,6 +14,7 @@ using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.ViewModels;
 
@@ -290,6 +292,23 @@ public partial class AddActionViewModel : ViewModelBase
     public IWindowDevice? Windows { get; set; }
 
     /// <summary>
+    /// The clipboard, so a step whose question is what the machine is holding right now can show it
+    /// while it is being written. Filled in by the dialog; without it the preview says nothing
+    /// rather than failing, which is what a form opened with no devices behind it has to do.
+    /// </summary>
+    public IClipboardDevice? Clipboard
+    {
+        get => _clipboard;
+        set
+        {
+            _clipboard = value;
+            RefreshClipboardPreview();
+        }
+    }
+
+    private IClipboardDevice? _clipboard;
+
+    /// <summary>
     /// The controls on the desktop, so a position picked off the screen can be stored the way a
     /// step anchored to a control reads it back. Filled in by the dialog beside
     /// <see cref="Windows"/>, and unused by a step that measures from anything else.
@@ -313,6 +332,7 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsBlock))]
     [NotifyPropertyChangedFor(nameof(ShowsRun))]
     [NotifyPropertyChangedFor(nameof(CanRun))]
+    [NotifyPropertyChangedFor(nameof(ShowsClipboardPreview))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
 
     private VariableDefinitionDraft? _globalVariableDraft;
@@ -966,6 +986,75 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// True when this action's form shows what the clipboard is holding right now. The catalogue
+    /// says which actions those are: a step that takes the picture the clipboard holds has nothing
+    /// else to ask, so that picture is what the form puts in front of the reader.
+    /// </summary>
+    public bool ShowsClipboardPreview => SelectedDefinition?.Preview is ActionPreview.ClipboardImage;
+
+    /// <summary>The picture on the clipboard as it stands, or null when it holds none.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasClipboardPreview))]
+    public partial Bitmap? ClipboardPreview { get; set; }
+
+    /// <summary>True when there is a picture to show.</summary>
+    public bool HasClipboardPreview => ClipboardPreview is not null;
+
+    /// <summary>
+    /// One line under the title: how big the picture is, or why there is none to show. It stays
+    /// visible when the picture does not, so "the clipboard holds nothing" is said rather than left
+    /// to an empty space the reader has to interpret.
+    /// </summary>
+    [ObservableProperty]
+    public partial string ClipboardPreviewNote { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Reads the clipboard once: the picture, its size, or the reason there is neither. It is read
+    /// when an action is chosen and when the button asks again, never on a keystroke — another
+    /// program holding the clipboard makes the read wait up to a fifth of a second, which on the
+    /// way to every letter typed would read as the form hanging.
+    /// </summary>
+    private void RefreshClipboardPreview()
+    {
+        var previous = ClipboardPreview;
+        ClipboardPreview = null;
+        var note = string.Empty;
+
+        if (ShowsClipboardPreview && _clipboard is not null)
+        {
+            try
+            {
+                if (_clipboard.ReadImage() is { IsEmpty: false } picture)
+                {
+                    ClipboardPreview = ImageAssets.ToBitmap(picture);
+                    note = Strings.Format("Add.ClipboardPreviewSize", picture.Width, picture.Height);
+                }
+                else
+                {
+                    note = Strings.Get("Add.ClipboardPreviewEmpty");
+                }
+            }
+            catch (DeviceActionException)
+            {
+                note = Strings.Get("Add.ClipboardPreviewBusy");
+            }
+            catch (Exception)
+            {
+                // A preview is worth a look, not a crash: a machine with no clipboard device still
+                // has to open the form.
+                note = Strings.Get("Add.ClipboardPreviewEmpty");
+            }
+        }
+
+        ClipboardPreviewNote = note;
+        previous?.Dispose();
+    }
+
+    /// <summary>Asks the clipboard again, which the button beside the preview does.</summary>
+    [RelayCommand]
+    private void RefreshClipboard() => RefreshClipboardPreview();
+
+    /// <summary>
     /// True when this step counts its numbers from a window, which is the only time the window it
     /// names is read: the screen and element origins do not use it.
     /// </summary>
@@ -1178,6 +1267,7 @@ public partial class AddActionViewModel : ViewModelBase
             MarkRegion();
             MarkOffset();
             WireWindowPreview();
+            RefreshClipboardPreview();
 
             if (ReturnsField is { } returns)
             {

@@ -63,7 +63,6 @@ public static class ActionCatalog
                     AppliesWhenAlso = field.AppliesWhenAlso,
                     AppliesWhenAlsoValues = field.AppliesWhenAlsoValues,
                     ForeignText = field.ForeignText,
-                    Tall = field.Tall,
                     Increment = field.Increment,
                     Advanced = field.Advanced,
                     PerChannelPercent = field.PerChannelPercent,
@@ -102,6 +101,7 @@ public static class ActionCatalog
                 Semantics = semantics,
                 DisplayName = shown.DisplayName,
                 Description = shown.Description,
+                Preview = PreviewOf(shown.Preview, semantics.Key),
                 Parameters = parameters,
                 Returns = returns,
             });
@@ -171,6 +171,17 @@ public static class ActionCatalog
             ? kind
             : throw new InvalidOperationException($"{field}: unknown editor kind {written}.");
 
+    /// <summary>
+    /// What the form shows live, read the way a field's editor is read: a word the program does not
+    /// know is a mistake in the file rather than something to fall back from.
+    /// </summary>
+    private static ActionPreview PreviewOf(string written, string field)
+        => written.Length == 0
+            ? ActionPreview.None
+            : Enum.TryParse<ActionPreview>(written, ignoreCase: true, out var preview)
+                ? preview
+                : throw new InvalidOperationException($"{field}: unknown preview {written}.");
+
     /// <summary>One action's display-only fields, read from the embedded JSON.</summary>
     private sealed class DisplayAction
     {
@@ -179,6 +190,9 @@ public static class ActionCatalog
         public required string DisplayName { get; init; }
 
         public string Description { get; init; } = string.Empty;
+
+        /// <summary>What the form shows live under its fields, or empty for nothing.</summary>
+        public string Preview { get; init; } = string.Empty;
 
         public IReadOnlyList<DisplayParameter> Parameters { get; init; } = [];
 
@@ -224,8 +238,6 @@ public static class ActionCatalog
         public IReadOnlyList<string> AppliesWhenAlsoValues { get; init; } = [];
 
         public bool ForeignText { get; init; }
-
-        public bool Tall { get; init; }
 
         public decimal Increment { get; init; } = 1m;
 

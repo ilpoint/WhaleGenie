@@ -128,6 +128,14 @@ public enum ActionParameterKind
     Arguments,
 
     /// <summary>
+    /// A piece of a program written into the field: a script body, a page's own JavaScript. It is
+    /// edited in a box of its own — monospaced, wider than the form is high, lines left unbroken —
+    /// because a script is read line by line rather than as a sentence, and because the column a
+    /// name lands in is part of what the script says.
+    /// </summary>
+    Code,
+
+    /// <summary>
     /// What a page step says the element it means has to be like, edited as one row each: a way of
     /// narrowing the page down and what to look for by it. A selector that names five elements
     /// which look alike is told apart by these rather than by counting them, and every row has to
@@ -148,6 +156,20 @@ public enum NarrowFamily
 
     /// <summary>桌面元素：看不看得见、能不能用、名字里有没有一段字。</summary>
     Element,
+}
+
+/// <summary>
+/// What a step's form shows live, under its fields. A step whose question is not in its settings has
+/// nothing to fill in and nothing to read back: what is on the clipboard right now is the whole of
+/// what it will do, so that is what the form puts in front of the reader.
+/// </summary>
+public enum ActionPreview
+{
+    /// <summary>Nothing: the settings are the form.</summary>
+    None,
+
+    /// <summary>The picture the clipboard is holding at this moment, and how big it is.</summary>
+    ClipboardImage,
 }
 
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:
@@ -459,13 +481,6 @@ public class ActionParameter
     /// </summary>
     public bool ForeignText { get; init; }
 
-    /// <summary>
-    /// True for a box that is taller than the usual one because what goes in it is a piece of a
-    /// program rather than a sentence: a script of a dozen lines is not read through a window four
-    /// lines high.
-    /// </summary>
-    public bool Tall { get; init; }
-
     /// <summary>Choices paired with the text shown for them, honouring any labels.</summary>
     public IReadOnlyList<ActionParameterOption> OptionChoices
     {
@@ -525,6 +540,13 @@ public class ActionDefinition
 {
     /// <summary>Fully qualified action name, for example <c>input.keyPress</c>.</summary>
     public required string Key { get; init; }
+
+    /// <summary>
+    /// What the form shows live under the fields, chosen per action by the display file. Most steps
+    /// show nothing: what they will do is entirely said by the settings. The ones that take what the
+    /// machine is holding at this moment show that instead, because there is nothing to fill in.
+    /// </summary>
+    public ActionPreview Preview { get; init; }
 
     /// <summary>The engine facts this display entry projects.</summary>
     public required ActionSemantics Semantics { get; init; }

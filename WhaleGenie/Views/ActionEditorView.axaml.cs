@@ -204,6 +204,7 @@ public partial class ActionEditorView : UserControl
         // for a step anchored to a control, which needs the control's own rectangle.
         viewModel.Windows = Devices.Windows;
         viewModel.Ui = Devices.Ui;
+        viewModel.Clipboard = Devices.Clipboard;
 
         if (existing is not null)
         {

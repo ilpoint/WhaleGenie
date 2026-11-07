@@ -3789,6 +3789,107 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 脚本正文用的是一种自己的框：等宽、更高、长行不折（缩进是脚本的一部分，折了就换成两行），
+    /// 其余多行字段还是普通的带折行的小框。这是唯一一处「改了字段种类但界面没跟上」不会让别处报错的
+    /// 地方，所以它单独有一条。
+    /// </summary>
+    [Fact]
+    public void A_script_is_written_in_a_code_box_and_nothing_else_is()
+    {
+        Ui.Run(() =>
+        {
+            string[] scripts =
+            [
+                "script.run", "script.python", "script.csharp", "script.ahk", "browser.evaluate",
+            ];
+
+            foreach (var key in scripts)
+            {
+                var field = Open(key).Parameters.First(parameter =>
+                    parameter.Definition.Kind is ActionParameterKind.Code);
+                Assert.True(field.IsCode, key);
+                // 框还在：Kind 换了而 IsMultiline 没跟上时，整块编辑区会消失且没有别处报警。
+                Assert.True(field.IsMultiline, key);
+                Assert.Equal(240, field.MultilineHeight);
+                Assert.Equal(Avalonia.Media.TextWrapping.NoWrap, field.Wrap);
+            }
+
+            var note = Open("control.note").Parameters.First(parameter =>
+                parameter.Definition.Name == "note");
+            Assert.False(note.IsCode);
+            Assert.Equal(76, note.MultilineHeight);
+            Assert.Equal(Avalonia.Media.TextWrapping.Wrap, note.Wrap);
+        });
+    }
+
+    /// <summary>
+    /// 取剪贴板图片这一步没有可填的字段，它问的就是「此刻剪贴板上是什么」，所以那张图直接摆出来：
+    /// 打开表单时读一次，之后按「刷新」。空剪贴板与被别的程序占着各说各的，不是同一句「没有」。
+    /// </summary>
+    [Fact]
+    public void A_step_that_takes_the_clipboard_picture_shows_the_one_that_is_there()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("clipboard.readImage");
+            Assert.True(viewModel.ShowsClipboardPreview);
+
+            var clipboard = new RecordingClipboard { Image = new ImageFrame(4, 3, new byte[48]) };
+            viewModel.Clipboard = clipboard;
+
+            Assert.True(viewModel.HasClipboardPreview);
+            Assert.Equal(new PixelSize(4, 3), viewModel.ClipboardPreview!.PixelSize);
+            Assert.Contains("4", viewModel.ClipboardPreviewNote, StringComparison.Ordinal);
+            Assert.Contains("3", viewModel.ClipboardPreviewNote, StringComparison.Ordinal);
+
+            // 勾一项结果、改一处设置只是填表，不该再去问剪贴板；问一次要等另一个程序让开。
+            viewModel.ReturnsRows.First(row => row.Key == "width").Ticked = true;
+            Assert.Equal(1, clipboard.Reads);
+
+            viewModel.RefreshClipboardCommand.Execute(null);
+            Assert.Equal(2, clipboard.Reads);
+        });
+    }
+
+    /// <summary>
+    /// 空与被占用是两件事：一个是「现在没有图可拿」，一个是「现在问不到」。前者按「刷新」也还是空，
+    /// 后者等一会儿就会变；写成同一句会让人以为剪贴板真的空了。
+    /// </summary>
+    [Fact]
+    public void An_empty_clipboard_and_a_busy_one_say_which_they_are()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("clipboard.readImage");
+
+            viewModel.Clipboard = new RecordingClipboard();
+            Assert.False(viewModel.HasClipboardPreview);
+            Assert.Equal(Strings.Get("Add.ClipboardPreviewEmpty"), viewModel.ClipboardPreviewNote);
+
+            viewModel.Clipboard = new RecordingClipboard { Busy = true };
+            Assert.False(viewModel.HasClipboardPreview);
+            Assert.Equal(Strings.Get("Add.ClipboardPreviewBusy"), viewModel.ClipboardPreviewNote);
+
+            // 没有设备时什么都不说，也不抛：表单照样开得出来。
+            viewModel.Clipboard = null;
+            Assert.Null(viewModel.ClipboardPreview);
+        });
+    }
+
+    /// <summary>
+    /// 别的动作不摆这一块：它们的答案在字段里，多一块预览只是多一段要读的字。
+    /// </summary>
+    [Fact]
+    public void The_clipboard_preview_belongs_only_to_the_action_that_takes_a_picture_from_it()
+    {
+        Ui.Run(() =>
+        {
+            Assert.False(Open("clipboard.readText").ShowsClipboardPreview);
+            Assert.False(Open("clipboard.writeImage").ShowsClipboardPreview);
+        });
+    }
+
+    /// <summary>
     /// 早先勾过、后来不再列出的结果：编辑器不画那一行，但保存时照原样写回去。打开一步再存一次
     /// 就悄悄少一个结果，读它的步骤会在运行时找不到名字，而错不在那一步上。
     /// </summary>

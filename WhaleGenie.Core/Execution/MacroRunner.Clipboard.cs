@@ -68,6 +68,10 @@ public sealed partial class MacroRunner
             _images[name] = picture;
         }
 
+        // The picture is the whole answer, so it is what the run window shows for this step: there
+        // is nothing on the screen to mark and nothing to score.
+        Saw(step, LookKind.Clipboard, picture, default, [], 0);
+
         Give(step, "image", Value.FromText($"<image {picture.Width}x{picture.Height}>"));
         Give(step, FieldNames.Width, Value.FromNumber(picture.Width));
         Give(step, FieldNames.Height, Value.FromNumber(picture.Height));
@@ -203,7 +207,8 @@ public sealed partial class MacroRunner
                 ClipboardRead(step, depth);
                 return Signal.Normal;
             case "clipboard.readImage":
-                ClipboardImageRead(step, depth);
+                // Watched so the picture is handed to the window once, the same way a capture is.
+                Watching(() => ClipboardImageRead(step, depth));
                 return Signal.Normal;
             case "clipboard.writeImage":
                 ClipboardImageWrite(step, depth);

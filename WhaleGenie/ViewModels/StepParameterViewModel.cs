@@ -1034,19 +1034,30 @@ public partial class StepParameterViewModel : ViewModelBase
     /// the base colour are listed under it, with the button that picks them off the picture.
     /// </summary>
 
-    public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
+    public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText or
+        ActionParameterKind.Code;
 
     /// <summary>
-    /// True when a box of several lines is a box of a program rather than of a sentence: a script
-    /// of a dozen lines is not read through a window four lines high.
+    /// True when what goes in this box is a piece of a program rather than a sentence: monospaced,
+    /// lines left unbroken so the indentation stays where it was written, and taller than the
+    /// usual four lines of writing.
     /// </summary>
-    public bool IsTall => IsMultiline && Definition.Tall;
+    public bool IsCode => Definition.Kind is ActionParameterKind.Code;
 
     /// <summary>
     /// How tall a box of several lines stands: the usual four lines of writing, or the dozen or so
     /// a script of its own needs.
     /// </summary>
-    public double MultilineHeight => IsTall ? 200 : 76;
+    public double MultilineHeight => IsCode ? 240 : 76;
+
+    /// <summary>
+    /// Whether the box folds long lines. Writing wraps, because a sentence has no wrong place to
+    /// break it; a program does not, because a line broken where the author did not break it reads
+    /// as two statements. A long line is read by scrolling instead.
+    /// </summary>
+    public Avalonia.Media.TextWrapping Wrap => IsCode
+        ? Avalonia.Media.TextWrapping.NoWrap
+        : Avalonia.Media.TextWrapping.Wrap;
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;
 

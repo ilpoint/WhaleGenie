@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 
@@ -239,7 +240,25 @@ internal sealed class RecordingClipboard : IClipboardDevice
 
     public string ReadText() => Text;
 
-    public ImageFrame? ReadImage() => null;
+    /// <summary>The picture the pretend clipboard is holding, or null when it holds none.</summary>
+    public ImageFrame? Image { get; set; }
+
+    /// <summary>True while another program is meant to be holding the clipboard.</summary>
+    public bool Busy { get; set; }
+
+    /// <summary>How many times a preview has read the clipboard, so "once, not on every key" is checkable.</summary>
+    public int Reads { get; private set; }
+
+    public ImageFrame? ReadImage()
+    {
+        Reads++;
+        if (Busy)
+        {
+            throw new DeviceActionException(RunKeys.ClipboardBusy);
+        }
+
+        return Image;
+    }
 
     public void WriteText(string text) => Text = text;
 
