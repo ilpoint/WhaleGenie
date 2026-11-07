@@ -594,6 +594,15 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
                 return [];
             }
 
+            // 锚点只查一次，候选再多也共用一个位置：每挑一个候选就去问一次锚点，代价是每个候选
+            // 一次跨进程调用。锚点不在、或提供方说不出它在哪儿，这次查找就当什么也没找到，
+            // 而不是退回「不管锚点、随便挑一个」：那正是两个同名按钮里选错的那个。
+            var anchorBox = query.Anchor is { } asked ? AnchorBox(asked) : null;
+            if (query.Anchor is not null && anchorBox is null)
+            {
+                return [];
+            }
+
             var condition = Condition(query);
 
             // 通配符与「还得像什么样」都交给提供方说不出来：前者它只认精确值，后者它没有这种
@@ -602,7 +611,9 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
             if (condition is null && !byHand)
             {
                 // Only a window was named, so the window itself is the answer.
-                return [root];
+                return query.Anchor is { } only && !only.Holds(BoxOf(root), anchorBox!.Value)
+                    ? []
+                    : [root];
             }
 
             var candidates = condition is null
@@ -614,6 +625,14 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
             if (Matches(root, query))
             {
                 found.Add(root);
+            }
+
+            // 方位过滤必须排在排序与 Take 之前：「第几个命中」数的是过了锚点之后的那一串。
+            // 先截断再过滤，被锚点排除掉的那些也占了号，宏拿到的是另一个元素，而且不会有人
+            // 告诉它这件事。
+            if (query.Anchor is { } anchor)
+            {
+                found = [.. found.Where(element => anchor.Holds(BoxOf(element), anchorBox!.Value))];
             }
 
             // Reading the rectangle of every hit costs a call into the provider each, so a query
@@ -637,6 +656,22 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         {
             return [];
         }
+    }
+
+    /// <summary>
+    /// Where the anchor element sits, or null when it is not there or the provider will not say.
+    /// The anchor's own query is cleared of its anchor first: an anchor that went looking for an
+    /// anchor of its own would never come back.
+    /// </summary>
+    private ScreenRect? AnchorBox(UiAnchor anchor)
+    {
+        if (Find(anchor.Query with { Anchor = null }) is not { } element)
+        {
+            return null;
+        }
+
+        var box = BoxOf(element);
+        return box.IsEmpty ? null : box;
     }
 
     /// <summary>
@@ -837,6 +872,13 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     {
         var bounds = Bounds(element);
         return new ScreenPoint(bounds.X, bounds.Y);
+    }
+
+    /// <summary>The same rectangle as a value the anchor rule can compare, in the four numbers a macro writes.</summary>
+    private static ScreenRect BoxOf(AutomationElement element)
+    {
+        var bounds = Bounds(element);
+        return new ScreenRect(bounds.X, bounds.Y, bounds.Width, bounds.Height);
     }
 
     private ConditionBase? Condition(UiQuery query)

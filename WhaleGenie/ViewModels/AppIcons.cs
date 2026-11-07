@@ -96,6 +96,7 @@ public static class AppIcons
 
         // 元素与网页
         "narrowing" => LucideIconKind.ListFilter,
+        "anchor" => LucideIconKind.Anchor,
         "taking" => LucideIconKind.TextQuote,
         "entry" => LucideIconKind.TextCursorInput,
         "state" => LucideIconKind.ToggleLeft,

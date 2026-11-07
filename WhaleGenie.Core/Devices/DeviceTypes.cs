@@ -10,6 +10,27 @@ public readonly record struct ScreenPoint(int X, int Y);
 /// <summary>A width and height, in pixels.</summary>
 public readonly record struct ScreenSize(int Width, int Height);
 
+/// <summary>
+/// Where something sits on the screen: a corner and a size, in pixels. The same four numbers every
+/// rectangle in a macro is written with, so a rule that compares two of them reads the way the
+/// fields do.
+/// </summary>
+public readonly record struct ScreenRect(int Left, int Top, int Width, int Height)
+{
+    /// <summary>
+    /// A rectangle with nothing in it, which is what a provider that refuses to say where an
+    /// element is hands back. It matches no rule, because "nowhere" is not a place.
+    /// </summary>
+    public bool IsEmpty => Width <= 0 || Height <= 0;
+
+    public int Right => Left + Width;
+
+    public int Bottom => Top + Height;
+
+    public static ScreenRect Of(ScreenPoint location, ScreenSize size)
+        => new(location.X, location.Y, size.Width, size.Height);
+}
+
 /// <summary>A colour read from, or compared against, the screen.</summary>
 public readonly record struct PixelColor(byte R, byte G, byte B)
 {
@@ -355,6 +376,49 @@ public enum UiConditionHow
 /// <summary>One such condition: which of them, and the letters a name has to hold.</summary>
 public sealed record UiCondition(UiConditionHow How, string Value = "");
 
+/// <summary>Which side of the anchor element the one being looked for has to sit on.</summary>
+public enum UiSide
+{
+    Left,
+    Right,
+    Above,
+    Below,
+}
+
+/// <summary>
+/// Another element the one being looked for has to sit beside, and how far away: the answer to two
+/// buttons carrying the same name, of which only one is "the one right of 确定". The anchor is
+/// written with the same selector syntax as anything else and read with the same parser, and it
+/// cannot have an anchor of its own.
+/// </summary>
+public sealed record UiAnchor(UiQuery Query, UiSide Side, int Gap = 0)
+{
+    /// <summary>
+    /// Whether a candidate sits on the side asked for, at least <see cref="Gap"/> pixels clear of
+    /// the anchor. Only that one axis is compared, so a button to the left and a little higher is
+    /// still "on the left". Nothing is decided when either rectangle is empty: a provider that will
+    /// not say where an element is cannot answer "which side", and guessing would pick the wrong
+    /// button.
+    /// </summary>
+    public bool Holds(ScreenRect candidate, ScreenRect anchor)
+    {
+        if (candidate.IsEmpty || anchor.IsEmpty)
+        {
+            return false;
+        }
+
+        var gap = Math.Max(0, Gap);
+        return Side switch
+        {
+            UiSide.Left => candidate.Right <= anchor.Left - gap,
+            UiSide.Right => candidate.Left >= anchor.Right + gap,
+            UiSide.Above => candidate.Bottom <= anchor.Top - gap,
+            UiSide.Below => candidate.Top >= anchor.Bottom + gap,
+            _ => false,
+        };
+    }
+}
+
 /// <summary>
 /// What to look for through UI Automation. Every part is optional. A window or a page often shows
 /// the same control many times over — five rows of one list, four identical buttons — so
@@ -374,7 +438,8 @@ public sealed record UiQuery(
     WindowMatch WindowMatch = WindowMatch.Title,
     string WindowCompare = TextCompare.Contains,
     TextCompareOptions WindowOptions = default,
-    IReadOnlyList<UiCondition>? Narrow = null)
+    IReadOnlyList<UiCondition>? Narrow = null,
+    UiAnchor? Anchor = null)
 {
     /// <summary>
     /// What else the element has to be like, all of it holding at once. A window often shows the

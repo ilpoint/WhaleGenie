@@ -132,6 +132,45 @@ public class ActionPageTests
     }
 
     /// <summary>
+    /// 锚点是「几个同名元素里是哪一个」的第二句话，与「第几个命中」同一类：两个一起收在高级设置里，
+    /// 不占基础页的地方。十二个带选择器的界面动作都要有这三格。
+    /// </summary>
+    [Fact]
+    public void An_element_anchor_is_asked_for_behind_the_fold()
+    {
+        string[] withSelector =
+        [
+            "uia.exists", "uia.find", "uia.waitElement", "uia.click", "uia.invoke", "uia.setText",
+            "uia.read", "uia.select", "uia.check", "uia.expand", "uia.scrollIntoView",
+            "uia.readTable",
+        ];
+
+        string[] anchor = ["anchorElement", "anchorSide", "anchorGap"];
+        var misplaced = new List<string>();
+
+        foreach (var key in withSelector)
+        {
+            var basic = On(ActionCatalog.Find(key)!, viewModel => viewModel.Rows);
+            var folded = On(ActionCatalog.Find(key)!, viewModel => viewModel.AdvancedRows);
+
+            foreach (var name in anchor)
+            {
+                if (basic.Contains(name, StringComparer.Ordinal))
+                {
+                    misplaced.Add($"{key}.{name} is on the basic page");
+                }
+
+                if (!folded.Contains(name, StringComparer.Ordinal))
+                {
+                    misplaced.Add($"{key}.{name} is not behind the fold");
+                }
+            }
+        }
+
+        Assert.Empty(misplaced);
+    }
+
+    /// <summary>
     /// A listing names its windows with the same captured rule the other window actions use, and that
     /// rule stands on the basic page next to what the step is; whether every program and class is
     /// read as well is tuning.

@@ -4670,6 +4670,60 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// 两个同名按钮里要右边那一个时说的一句话，要整句到设备才算数：挨着谁、哪一边、至少隔开
+    /// 多少。设备按这三样筛，引擎不替它猜。
+    /// </summary>
+    [Fact]
+    public async Task An_element_anchor_reaches_the_device_with_its_side_and_gap()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("uia.click", Param("uiSelector", "Button[name='保存']"),
+                Param("anchorElement", "Button[name='确定']"),
+                Param("anchorSide", "right"), Param("anchorGap", "40")),
+        ], devices);
+
+        var anchor = Assert.IsType<UiAnchor>(devices.Ui.LastQuery!.Anchor);
+        Assert.Equal(UiSide.Right, anchor.Side);
+        Assert.Equal(40, anchor.Gap);
+        Assert.Equal("确定", anchor.Query.Name);
+        Assert.Equal("Button", anchor.Query.ControlType);
+        Assert.Null(anchor.Query.Anchor);
+    }
+
+    /// <summary>没有锚点的那一格空着，就是不要锚点，不是「间隔为零的锚点」。</summary>
+    [Fact]
+    public async Task A_step_without_an_anchor_asks_for_none()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync([Step("uia.click", Param("uiSelector", "Button[name='保存']"))], devices);
+
+        Assert.Null(devices.Ui.LastQuery!.Anchor);
+    }
+
+    /// <summary>
+    /// 哪一边写了目录之外的词要在设备之前就拦下：放过它，这一步会落到另一个元素上，而且不说。
+    /// </summary>
+    [Fact]
+    public async Task An_anchor_side_the_catalogue_does_not_know_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.click", Param("uiSelector", "Button[name='保存']"),
+                Param("anchorElement", "Button[name='确定']"), Param("anchorSide", "diagonal")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadOption", result.Key);
+        Assert.Null(devices.Ui.LastQuery);
+    }
+
+    /// <summary>
     /// 「还要像什么样」从步骤里的一行行读成设备要的条件：哪一种、要不要一段字。选择器说它叫
     /// 什么，这里说它在不在屏幕上、能不能用、名字里有没有一段字。没写完的行与要字却没写的行
     /// 都不算数，与网页那边同一套读法。

@@ -14745,6 +14745,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -14852,6 +14897,51 @@
           }
         ],
         "NarrowOn": "Element"
+      },
+      {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       },
       {
         "Name": "matchIndex",
@@ -15072,6 +15162,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15249,6 +15384,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15347,6 +15527,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15425,6 +15650,51 @@
           }
         ],
         "NarrowOn": "Element"
+      },
+      {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       },
       {
         "Name": "matchIndex",
@@ -15529,6 +15799,51 @@
           }
         ],
         "NarrowOn": "Element"
+      },
+      {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       },
       {
         "Name": "matchIndex",
@@ -15694,6 +16009,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15801,6 +16161,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -15895,6 +16300,51 @@
           }
         ],
         "NarrowOn": "Element"
+      },
+      {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       },
       {
         "Name": "matchIndex",
@@ -15993,6 +16443,51 @@
         "NarrowOn": "Element"
       },
       {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "matchIndex",
         "Group": "found",
         "Shape": "Number",
@@ -16071,6 +16566,51 @@
           }
         ],
         "NarrowOn": "Element"
+      },
+      {
+        "Name": "anchorElement",
+        "Group": "anchor",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "Element",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorSide",
+        "Group": "anchor",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "left",
+        "Options": [
+          "left",
+          "right",
+          "above",
+          "below"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "anchorGap",
+        "Group": "anchor",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "Minimum": 0,
+        "Maximum": 10000,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
       },
       {
         "Name": "matchIndex",

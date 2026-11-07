@@ -716,7 +716,38 @@ public sealed partial class MacroRunner
         var rule = WindowRuleOf(step);
         var query = UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
             Index(step, "matchIndex", 1), rule.Reading.Match, rule.Reading.Compare, rule.Options);
-        return query with { Narrow = NarrowConditions(step) };
+        return query with { Narrow = NarrowConditions(step), Anchor = AnchorOf(step, rule) };
+    }
+
+    /// <summary>
+    /// 两个同名按钮里要右边那一个时写的那一行：挨着谁、在哪一边、至少隔开多少。锚点选择器与
+    /// 主选择器走同一个解析器、同一条窗口规则，因为它说的也是这个窗口里的一个元素。
+    /// </summary>
+    /// <remarks>
+    /// 那一格空着就不设锚点，不是「间隔为零的锚点」：这个动作本来就不问锚点。哪一边写了目录
+    /// 之外的词由目录的选项表拦下（Run.BadOption），不在这里另写一份判断；间隔的数值范围同理
+    /// 由目录的 Minimum/Maximum 管。
+    /// </remarks>
+    private UiAnchor? AnchorOf(ExecutableStep step, WindowRule rule)
+    {
+        var selector = ReadText(step, "anchorElement").Trim();
+        if (selector.Length == 0)
+        {
+            return null;
+        }
+
+        var side = ReadText(step, "anchorSide").Trim().ToLowerInvariant() switch
+        {
+            "right" => UiSide.Right,
+            "above" => UiSide.Above,
+            "below" => UiSide.Below,
+            _ => UiSide.Left,
+        };
+
+        var anchor = UiQuery.Parse(selector, rule.MatchValue, 1,
+            rule.Reading.Match, rule.Reading.Compare, rule.Options);
+
+        return new UiAnchor(anchor, side, Math.Max(0, (int)Number(step, "anchorGap")));
     }
 
     /// <summary>

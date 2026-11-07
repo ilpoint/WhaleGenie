@@ -142,8 +142,10 @@ public class ActionContractTests
                         problems.Add($"{field}: a colour field has no colour picker");
                     }
 
+                    // 一个选择器只说一个元素，所以带元素拾取器的格子只有这两格：找哪个元素，
+                    // 以及它要挨着的那个元素（锚点）。
                     if (picker == ActionPickerKind.Element
-                        && parameter.Name is not "uiSelector")
+                        && parameter.Name is not ("uiSelector" or "anchorElement"))
                     {
                         problems.Add($"{field}: an element picker sits on a field that names no element");
                     }

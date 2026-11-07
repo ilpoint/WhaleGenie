@@ -79,6 +79,7 @@ internal sealed class FakeUi(FakeDesk desk) : IUiDevice
 
     public bool Click(UiQuery query, string button)
     {
+        LastQuery = query;
         desk.Note($"clickElement {query.Name} #{query.Index} {button}");
         return ElementExists;
     }
@@ -92,12 +93,14 @@ internal sealed class FakeUi(FakeDesk desk) : IUiDevice
 
     public bool Invoke(UiQuery query)
     {
+        LastQuery = query;
         desk.Note($"invoke {query.Name} #{query.Index}");
         return ElementInvocable;
     }
 
     public UiElementFacts? Facts(UiQuery query)
     {
+        LastQuery = query;
         desk.Note($"read {query.Name}");
         if (!ElementExists)
         {
@@ -113,42 +116,49 @@ internal sealed class FakeUi(FakeDesk desk) : IUiDevice
 
     public bool SetText(UiQuery query, string text, bool clearFirst)
     {
+        LastQuery = query;
         desk.Note($"fill {query.ControlType}/{query.AutomationId} {text} {clearFirst}");
         return ElementWritable;
     }
 
     public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
     {
+        LastQuery = query;
         desk.Note($"findElements {query.ControlType}/{query.Name}/{query.AutomationId} #{query.Index} take {limit}");
         return [.. Elements.Take(Math.Max(1, limit))];
     }
 
     public bool Select(UiQuery query, string text, int itemIndex)
     {
+        LastQuery = query;
         desk.Note($"selectItem {query.ControlType}/{query.Name}/{query.AutomationId}#{query.Index} \"{text}\" {itemIndex}");
         return ItemSelectable;
     }
 
     public bool SetChecked(UiQuery query, bool? state)
     {
+        LastQuery = query;
         desk.Note($"setChecked {query.Name} {state?.ToString() ?? "flip"}");
         return Checkable;
     }
 
     public bool SetExpanded(UiQuery query, string action)
     {
+        LastQuery = query;
         desk.Note($"setExpanded {query.Name} {action}");
         return Expandable;
     }
 
     public bool ScrollIntoView(UiQuery query)
     {
+        LastQuery = query;
         desk.Note($"scrollIntoView {query.Name}");
         return Scrollable;
     }
 
     public UiTable ReadTable(UiQuery query, int limit)
     {
+        LastQuery = query;
         desk.Note($"readTable {query.Name}#{query.Index} take {limit}");
         return new UiTable([.. Columns],
             [.. Table.Take(Math.Max(1, limit)).Select(row => (IReadOnlyList<string>)row)]);
