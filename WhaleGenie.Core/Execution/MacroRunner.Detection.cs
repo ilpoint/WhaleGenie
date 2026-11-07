@@ -46,6 +46,8 @@ public sealed partial class MacroRunner
         var found = new List<Sighting>();
         foreach (var (area, origin) in areas)
         {
+            // 一次模型推理是整段同步的，中途读不到取消令牌：每块区域前后各问一次。
+            _runToken.ThrowIfCancellationRequested();
             foreach (var hit in _devices.Detector.Detect(model, area, query))
             {
                 // The device counts from the corner of the picture it was handed; a step counts
@@ -67,7 +69,7 @@ public sealed partial class MacroRunner
     /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
     private async Task<FoundObjects> SightingsUntil(ExecutableStep step, CancellationToken token)
     {
-        var interval = LookBeat(step);
+        var interval = LookBeat();
 
         FoundObjects? Enough()
         {
@@ -235,6 +237,9 @@ public sealed partial class MacroRunner
             var hits = new List<ImageMatch>();
             foreach (var (area, origin) in areas)
             {
+                // 匹配是整个宏里最贵的一次同步调用（整屏找图中位数二百毫秒），它中途读不到取消
+                // 令牌；至少在每块区域前后问一次，让「停止」在两块之间就能生效。
+                _runToken.ThrowIfCancellationRequested();
                 foreach (var found in _devices.Vision.FindAll(area, wanted[number].Frame, query))
                 {
                     hits.Add(found with
@@ -526,7 +531,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Found> HitsUntil(ExecutableStep step, CancellationToken token)
     {
-        var interval = LookBeat(step);
+        var interval = LookBeat();
 
         Found? Enough()
         {
@@ -714,12 +719,12 @@ public sealed partial class MacroRunner
             {
                 var client = _devices.Windows.ClientOrigin(window.Handle);
                 var size = _devices.Windows.ClientSize(window.Handle);
-                var whole = Shot(step, client.X, client.Y, size.Width, size.Height, window);
+                var whole = Shot(client.X, client.Y, size.Width, size.Height, window);
                 return [(whole.Frame, whole.Origin)];
             }
 
             var desk = _devices.Screen.Desktop.Bounds;
-            var desktop = Shot(step, desk.Left, desk.Top, desk.Width, desk.Height);
+            var desktop = Shot(desk.Left, desk.Top, desk.Width, desk.Height);
             return [(desktop.Frame, desktop.Origin)];
         }
 
@@ -804,7 +809,7 @@ public sealed partial class MacroRunner
             // the step's coordinate origin moves the four numbers it is given as text, not this.
             // Which window the picture is read out of is a different question, and stays the
             // step's own answer.
-            var shot = Shot(step, sides.Left, sides.Top, sides.Width, sides.Height,
+            var shot = Shot(sides.Left, sides.Top, sides.Width, sides.Height,
                 AnchorOf(step).Window);
             return (shot.Frame, shot.Origin);
         }
@@ -898,19 +903,18 @@ public sealed partial class MacroRunner
     {
         var anchor = AnchorOf(step);
         var corner = Placed(anchor.Corner, x, y);
-        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
+        var shot = Shot(corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
     }
 
     /// <summary>
-    /// One picture of the screen, taken the way this machine is set up to take one: a step says what
-    /// it is looking at — a window, or a rectangle of the desktop — and whether the pixels come off
-    /// the screen or out of the window itself is an answer about the machine rather than about the
-    /// step. The window is the one the step's own coordinates are counted from, or the one it names
+    /// One picture of the screen, taken the way this machine is set up to take one: whether the
+    /// pixels come off the screen or out of the window itself is an answer about the machine rather
+    /// than about the step, and so is how long a picture already taken stays worth reading again.
+    /// The window is the one the caller's coordinates are counted from, or the one it names
     /// outright.
     /// </summary>
-    private ScreenShot Shot(ExecutableStep step, int x, int y, int width, int height,
-        WindowInfo? window = null)
+    private ScreenShot Shot(int x, int y, int width, int height, WindowInfo? window = null)
     {
         // Which window this is about to be read out of is asked for before anything is read, so a
         // debugger can put a frame there while the reading is going on rather than after it.
@@ -921,7 +925,7 @@ public sealed partial class MacroRunner
             : _devices.Capture.ForWindow();
 
         var source = window?.Handle ?? 0;
-        var age = Math.Max(0, Number(step, "frameMaxAgeMs"));
+        var age = Math.Max(0, _devices.Frames.CacheMilliseconds);
         if (age == 0)
         {
             // Nothing already taken is old enough to do, so the rectangle asked for is the rectangle
@@ -1016,67 +1020,67 @@ public sealed partial class MacroRunner
             new ScreenPoint(origin.X + left, origin.Y + top), method);
     }
 
-    /// <summary>Notes what the picture a step is about to be given was taken of.</summary>
+    /// <summary>
+    /// Notes what the picture a step is about to be given was taken of, and when. Every look passes
+    /// through here, whether it read the screen or reused a picture, so this is also the run's own
+    /// clock: the next look is measured from it, and a step that waits its beat out keeps the same
+    /// clock as one that looks once.
+    /// </summary>
     private void Taken(WindowInfo? window, CaptureWay method)
     {
         _takenWindow = window?.Title ?? string.Empty;
         _takenMethod = method;
+        _lastFrame = Stopwatch.GetTimestamp();
     }
 
     /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
     private void Reading(WindowInfo? window) => _looks?.Reading(window);
 
     /// <summary>
-    /// Waits out however much of this step's gap is left and notes the look. Every step that reads
-    /// the screen comes through here, so a step held to a gap is held to it whichever way it reads.
+    /// Waits out however much of the run's frame gap is left and notes the look. Every step that
+    /// reads the screen comes through here, so the beat is the run's rather than a step's: a step is
+    /// held to it whichever way it reads, and ten steps in one loop share it instead of each taking
+    /// a picture of their own.
     /// </summary>
-    private async Task Gate(ExecutableStep step, CancellationToken token)
+    private async Task Gate(CancellationToken token)
     {
-        var left = Until(step);
+        var left = Until();
         if (left > 0)
         {
             await Pause(left, token);
         }
-
-        Looked(step);
     }
 
     /// <summary>
-    /// The same wait for a condition, which is asked for its answer rather than awaited, so there
-    /// is nothing to hand back to while the gap runs out.
+    /// How long the run still has to wait before it may take another picture: nothing when it has
+    /// never taken one, or when the policy leaves no gap at all.
     /// </summary>
-    private void GateNow(ExecutableStep step, CancellationToken token)
+    private int Until()
     {
-        var left = Until(step);
-        while (left > 0)
-        {
-            token.ThrowIfCancellationRequested();
-            var nap = Math.Min(left, 20);
-            Thread.Sleep(nap);
-            left -= nap;
-        }
-
-        Looked(step);
-    }
-
-    /// <summary>
-    /// How long this step still has to wait before it may look: nothing when it has never looked or
-    /// leaves no gap at all.
-    /// </summary>
-    private int Until(ExecutableStep step)
-    {
-        var interval = Math.Max(0, Number(step, "intervalMs"));
-        if (interval <= 0 || !_looked.TryGetValue(Key(step), out var last))
+        if (_lastFrame == 0)
         {
             return 0;
         }
 
-        return Math.Max(0, interval - (int)Stopwatch.GetElapsedTime(last).TotalMilliseconds);
+        return Math.Max(0, FrameGap() - (int)Stopwatch.GetElapsedTime(_lastFrame).TotalMilliseconds);
     }
 
-    /// <summary>Notes that a step is looking now, which is what the step after it is measured from.</summary>
-    private void Looked(ExecutableStep step) => _looked[Key(step)] = Stopwatch.GetTimestamp();
+    /// <summary>
+    /// The shortest wait the run keeps between two pictures, from what the settings window stores:
+    /// the cap the person set, or the display's own rate when that cap is absent or higher. A
+    /// picture that has not been drawn again cannot differ from the one already read, so anything
+    /// above the display's rate would only read the same frame twice at the cost of reading it.
+    /// </summary>
+    private int FrameGap()
+    {
+        var hertz = Math.Max(1, _devices.Screen.RefreshHertz);
+        var asked = _devices.Frames.MaxFramesPerSecond;
+        if (asked <= 0 || asked >= hertz)
+        {
+            return Math.Max(1, _devices.Screen.RefreshMilliseconds);
+        }
 
-    private static object Key(ExecutableStep step) => step.Id.Length > 0 ? step.Id : step;
+        return Math.Max(1, (int)Math.Ceiling(1000.0 / asked));
+    }
 
 }

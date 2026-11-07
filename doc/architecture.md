@@ -190,6 +190,12 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 多显示器画面按虚拟桌面坐标拼接，源图未覆盖的区域保持黑色。窗口与显示器会话需要明确释放；
 共享会话由 `SharedDevices` 持有到退出。
 
+一次运行多久取一次画面、取到的画面能不能再读一次，同样属于"这台机器"而不是某一步：
+`FramePolicy`（`Core/Devices/DeviceTypes.cs`）与 `CaptureChoice` 并列，由界面在启动和每次改动时
+写入，引擎通过 `IDeviceLayer.Frames` 读取。`MacroRunner` 因此只保留一个运行级的
+`_lastFrame` 时间戳与一份按"来源 + 抓法"键控的帧缓存，不按步骤记节拍；`IScreenDevice.RefreshHertz`
+让设置页能显示显示器自己的赫兹数并把它当作取帧上限。
+
 ## 7. 界面与 FluentAvalonia
 
 ### 7.1 状态边界
@@ -243,11 +249,26 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 无头平台的窗口句柄均为 0，`AppWindow` 清理 FluentAvalonia 在此情形下重复使用的内部句柄表。
 该处理只服务无头会话，真实窗口仍由 FluentAvalonia 管理。
 
+### 7.4 设置窗口
+
+`Views/SettingsWindow.axaml` 顶上三个 `Button`（`Classes="Tab Root"`，与主窗的停靠页同一族）标出
+"系统、触发器、外观"三组，`Classes.selected` 跟着 `SettingsViewModel.IsXxxRoot`；下面是一个
+`FANavigationView`，左侧只列当前组的页面，右侧是共享一个 `ScrollViewer` 的页面面板。每个设置项是
+一个 `FASettingsExpanderItem`：左边是标题与说明（`Classes` 仍是 `FieldLabel` 与 `Hint`，与其它窗口
+一致），右边 `Footer` 放控件。分组用 `FASettingsExpander`，`IsExpanded` 默认展开。
+
+页面只有一处来源：`SettingsViewModel.SelectedPage`。组由它推导（`SelectedRoot` 与 `RootOf`），不是
+另存一份状态，所以点顶部的组就是"落到该组第一页"，两者不会各说各的。导航项的 `Tag` 就是页面枚举名，
+`SelectionChanged` 据此写枚举；`SelectedPage` 变化时窗口再按组切换导航项的 `IsVisible` 与 `IsEnabled`，
+并把 `SelectedItem` 指向对应项——只折叠、不重建 `MenuItems`，否则选择会留在已被移出的项上。
+设置项一律即时生效并立即落盘，打开窗口本身不写文件。
+
 ## 8. 持久化与项目模型
 
 `.wgmacro` 是 ZIP 包，包含 `manifest.json`、说明、`nodes/` 下的宏 JSON 和资源目录。
-`Storage/MacroPackage.cs` 负责读写，采用临时文件加替换的原子写入方式。项目包格式当前为 21，
-加载时要求版本严格相等；公共宏库使用独立格式版本。
+`Storage/MacroPackage.cs` 负责读写，采用临时文件加替换的原子写入方式。项目包格式当前为 25，
+加载时要求版本严格相等；公共宏库使用独立格式版本。25 是取帧节拍从每一步搬到设置窗口的那一版：
+24 包里的 `intervalMs` 与 `frameMaxAgeMs` 会被读成任何动作都没有的字段，宏会以不同于写它时的节奏运行。
 
 包里的图片存在 zip 的 `assets/` 条目里；打开时解出来、截图时写入的是**程序数据目录**下这个包专属的工作目录
 （`%APPDATA%\WhaleGenie\projects\<宏包名>-<路径哈希>\assets`），上一次保存替换掉的包也留在同一目录的

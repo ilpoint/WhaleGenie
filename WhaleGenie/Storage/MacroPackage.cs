@@ -40,9 +40,12 @@ public static class MacroPackage
     /// Bumped when what a field means changes, not only when a field is added. 20 is the version
     /// where a call writes what it passes as an argument row list rather than one parameter per
     /// argument: a 19 package's <c>arg.*</c> keys would be read as fields the action does not have,
-    /// so it is refused rather than half-read.
+    /// so it is refused rather than half-read. 25 is the version where how often the screen is read
+    /// moved from each step to the settings window: a 24 package's <c>intervalMs</c> and
+    /// <c>frameMaxAgeMs</c> would be read as fields no action has any more, and the macro would run
+    /// at a different pace than the one it was written at without saying so.
     /// </summary>
-    public const int FormatVersion = 24;
+    public const int FormatVersion = 25;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

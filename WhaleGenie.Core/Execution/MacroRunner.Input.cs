@@ -291,7 +291,7 @@ public sealed partial class MacroRunner
             return _devices.Screen.PixelAt(point.X, point.Y);
         }
 
-        var shot = Shot(step, point.X, point.Y, 1, 1, window);
+        var shot = Shot(point.X, point.Y, 1, 1, window);
         if (shot.Origin != point)
         {
             // The picture came back from somewhere else, which means the window does not reach

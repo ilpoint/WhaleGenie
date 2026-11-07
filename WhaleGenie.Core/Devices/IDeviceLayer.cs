@@ -123,6 +123,14 @@ public interface IScreenDevice
     /// cannot say answers with 16, one refresh of a 60 Hz display.
     /// </summary>
     int RefreshMilliseconds => 16;
+
+    /// <summary>
+    /// The same rate said the way a display is sold and the settings window shows it: whole
+    /// refreshes per second, 60 on a 60 Hz display. Milliseconds are what the engine waits in, but
+    /// nobody sets a limit in them, so the one place that knows both is here rather than a divide
+    /// at every call site. A device that cannot say answers with the rate its milliseconds come to.
+    /// </summary>
+    int RefreshHertz => Math.Max(1, (int)Math.Round(1000.0 / Math.Max(1, RefreshMilliseconds)));
 }
 
 /// <summary>Looking for a picture on screen.</summary>
@@ -1232,6 +1240,14 @@ public interface IDeviceLayer
     /// answer to, rather than a way of reading pixels that a device may or may not offer.
     /// </summary>
     ICaptureChoice Capture { get; }
+
+    /// <summary>
+    /// How often this machine is willing to hand over a picture, and how long one already handed
+    /// over stays worth reading again. Here beside the capture choice and for the same reason: it
+    /// is an answer about the machine and not a way of reading pixels, and a layer handed in by a
+    /// check can hold a policy the check sets instead of the one the settings window stores.
+    /// </summary>
+    IFramePolicy Frames => FramePolicy.Current;
 
     IScreenDevice Screen { get; }
 

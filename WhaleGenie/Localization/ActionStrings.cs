@@ -63,40 +63,6 @@ internal static class ActionStrings
         + "重名时补上步骤标识，也可以在下面每一行自己改，后面的步骤按这个名字取用。"
         + "一个都不勾也可以，这一步就不留下任何结果。";
 
-    /// <summary>
-    /// The label and hint every step that looks at the screen shares for how old a picture it will
-    /// accept, written once for the same reason the capture picker is.
-    /// </summary>
-    private const string FrameMaxAgeLabel = "接受多久以内的画面";
-
-    private const string FrameMaxAgeHint =
-        "这一步接受的画面可以有多旧，单位毫秒，0–60000，默认 0，也就是每次都重新读屏幕。"
-        + "连着看同一个地方时改它：填一个毫秒数之后，同一来源（同一个窗口，或桌面）上刚抓过、"
-        + "又不超过这个时长的画面会被直接裁下来复用，第一次读的是整个窗口或整块屏幕，"
-        + "省下来的是它后面那几次。";
-
-    /// <summary>
-    /// The label and the two hints every step that looks at the screen shares for how long it leaves
-    /// between two looks. One field, because both readings answer one question — how many times a
-    /// second the macro reads the screen; two hints, because a wait spends that number as its own
-    /// clock while a step that looks once is only held to it.
-    /// </summary>
-    private const string LookIntervalLabel = "间隔";
-
-    private const string LookGapHint =
-        "同一步骤两次看屏幕之间至少隔多久，单位毫秒，0–60000，默认 0，也就是轮到它就立刻看。"
-        + "这一步写在循环里、每圈都读同一个地方时改它：读得比用得上的还快，多出来的那几次"
-        + "都是白花的。7 毫秒约等于每秒 144 次。";
-
-    /// <summary>
-    /// The hint for the field on a step that waits: the beat it looks on, which is left empty so
-    /// that the screen itself says how fast looking can tell anything.
-    /// </summary>
-    private const string LookPollHint =
-        "等待期间多久看一次屏幕，单位毫秒，0–60000。留空表示按屏幕刷新一次的时间来看："
-        + "60 赫兹的屏 16 毫秒一次，240 赫兹的屏 4 毫秒一次，也就是每隔一次刷新看一回；"
-        + "填 0 表示上一次查看完成后立即再次查看。可以等待时调大，以节省机器开销；观察对象变化很快时调小。";
-
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
         "获取一次目标窗口：标题、进程名、窗口类与句柄一起记下，运行时按选中的一项重新找窗。"
@@ -2049,10 +2015,6 @@ internal static class ActionStrings
         ["vision.clickColor.orderBy.option.readingBackUp"] = "从右到左，从下往上",
         ["vision.clickColor.matchIndex.label"] = "第几个命中",
         ["vision.clickColor.matchIndex.hint"] = MatchIndexHint,
-        ["vision.clickColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.clickColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.clickColor.intervalMs.label"] = LookIntervalLabel,
-        ["vision.clickColor.intervalMs.hint"] = LookGapHint,
         ["vision.clickColor.returns.label"] = "要留下的结果",
         ["vision.clickColor.returns.hint"] = ReturnsHintText,
         ["vision.clickColor.return.match.label"] = HitRecordLabel,
@@ -2133,8 +2095,6 @@ internal static class ActionStrings
             "基准色允许的颜色偏差，0–100（百分比），默认 5；下面每一处没填自己的容差时也用这一格。",
         ["vision.findColors.region.label"] = "搜索区域",
         ["vision.findColors.region.hint"] = RegionHintText,
-        ["vision.findColors.intervalMs.label"] = LookIntervalLabel,
-        ["vision.findColors.intervalMs.hint"] = LookGapHint,
         ["vision.findColors.orderBy.label"] = "命中排序",
         ["vision.findColors.orderBy.hint"] = MatchOrderColourHint,
         ["vision.findColors.orderBy.option.reading"] = "从左到右，从上到下",
@@ -2153,8 +2113,6 @@ internal static class ActionStrings
         ["vision.findColors.anchorMode.hint"] = AnchorModeHint,
         ["vision.findColors.anchorMode.option.screen"] = "屏幕",
         ["vision.findColors.anchorMode.option.window"] = "窗口",
-        ["vision.findColors.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.findColors.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.findColors.returns.label"] = "要留下的结果",
         ["vision.findColors.returns.hint"] =
             "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。"
@@ -2189,10 +2147,6 @@ internal static class ActionStrings
         ["vision.detect.anchorMode.hint"] = AnchorModeHint,
         ["vision.detect.anchorMode.option.screen"] = "屏幕",
         ["vision.detect.anchorMode.option.window"] = "窗口",
-        ["vision.detect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.detect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.detect.intervalMs.label"] = LookIntervalLabel,
-        ["vision.detect.intervalMs.hint"] = LookGapHint,
         ["vision.detect.return.match.label"] = HitRecordLabel,
         ["vision.detect.return.match.hint"] = HitRecordHintDetect,
         ["vision.detect.return.found.label"] = "是否找到",
@@ -2232,10 +2186,6 @@ internal static class ActionStrings
         ["vision.waitDetect.anchorMode.hint"] = AnchorModeHint,
         ["vision.waitDetect.anchorMode.option.screen"] = "屏幕",
         ["vision.waitDetect.anchorMode.option.window"] = "窗口",
-        ["vision.waitDetect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.waitDetect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.waitDetect.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitDetect.intervalMs.hint"] = LookPollHint,
         ["vision.waitDetect.return.match.label"] = HitRecordLabel,
         ["vision.waitDetect.return.match.hint"] = HitRecordHintDetect,
         ["vision.waitDetect.return.every.label"] = EveryHitLabel,
@@ -2286,10 +2236,6 @@ internal static class ActionStrings
         ["vision.clickDetect.anchorMode.hint"] = AnchorModeHint,
         ["vision.clickDetect.anchorMode.option.screen"] = "屏幕",
         ["vision.clickDetect.anchorMode.option.window"] = "窗口",
-        ["vision.clickDetect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.clickDetect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.clickDetect.intervalMs.label"] = LookIntervalLabel,
-        ["vision.clickDetect.intervalMs.hint"] = LookPollHint,
         ["vision.clickDetect.variance.label"] = "落点随机范围",
         ["vision.clickDetect.variance.hint"] =
             "落点与框中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
@@ -2429,10 +2375,6 @@ internal static class ActionStrings
             "实际颜色与期望颜色差多远，0 表示完全一致，100 表示两种最远的颜色。调容差时用它判断「差多少」而不是凭感觉试。",
         ["vision.matchColor.returns.label"] = "要留下的结果",
         ["vision.matchColor.returns.hint"] = ReturnsHintText,
-        ["vision.matchColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.matchColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.matchColor.intervalMs.label"] = LookIntervalLabel,
-        ["vision.matchColor.intervalMs.hint"] = LookGapHint,
 
         ["vision.getPixel.name"] = "取色",
         ["vision.getPixel.desc"] = "读取某个像素的颜色。",
@@ -3379,54 +3321,6 @@ internal static class ActionStrings
             + "连带它们依赖的包，每个 C# 脚本都按此目录中的内容编译。",
 
         // ---------------------------------------------------------------- condition
-        ["vision.capture.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.capture.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.captureWindow.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.captureWindow.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.findImage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.findImage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.waitImage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.waitImage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.clickImage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.clickImage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.getPixel.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.getPixel.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.waitColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.waitColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.findColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.findColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.waitStable.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["vision.waitStable.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["ocr.recognize.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["ocr.recognize.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["ocr.findText.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["ocr.findText.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["ocr.clickText.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
-        ["ocr.clickText.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.capture.intervalMs.label"] = LookIntervalLabel,
-        ["vision.capture.intervalMs.hint"] = LookGapHint,
-        ["vision.captureWindow.intervalMs.label"] = LookIntervalLabel,
-        ["vision.captureWindow.intervalMs.hint"] = LookGapHint,
-        ["vision.findImage.intervalMs.label"] = LookIntervalLabel,
-        ["vision.findImage.intervalMs.hint"] = LookGapHint,
-        ["vision.waitImage.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitImage.intervalMs.hint"] = LookPollHint,
-        ["vision.clickImage.intervalMs.label"] = LookIntervalLabel,
-        ["vision.clickImage.intervalMs.hint"] = LookPollHint,
-        ["vision.getPixel.intervalMs.label"] = LookIntervalLabel,
-        ["vision.getPixel.intervalMs.hint"] = LookGapHint,
-        ["vision.waitColor.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitColor.intervalMs.hint"] = LookPollHint,
-        ["vision.findColor.intervalMs.label"] = LookIntervalLabel,
-        ["vision.findColor.intervalMs.hint"] = LookGapHint,
-        ["vision.waitStable.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitStable.intervalMs.hint"] = LookPollHint,
-        ["ocr.recognize.intervalMs.label"] = LookIntervalLabel,
-        ["ocr.recognize.intervalMs.hint"] = LookGapHint,
-        ["ocr.findText.intervalMs.label"] = LookIntervalLabel,
-        ["ocr.findText.intervalMs.hint"] = LookGapHint,
-        ["ocr.clickText.intervalMs.label"] = LookIntervalLabel,
-        ["ocr.clickText.intervalMs.hint"] = LookPollHint,
         ["input.mouseClick.button.option.left"] = "左键",
         ["input.mouseClick.button.option.right"] = "右键",
         ["input.mouseClick.button.option.middle"] = "中键",

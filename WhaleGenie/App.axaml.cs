@@ -79,6 +79,10 @@ public partial class App : Application
         // rather than when a window happens to open.
         CaptureSetup.Load();
 
+        // How often it may be read, and how long a picture stays worth reading again, for the same
+        // reason: a trigger can fire before a settings window has ever been opened.
+        FrameSetup.Load();
+
         // The ceiling on how fast input may leave is read before anything can send any: a trigger
         // can fire while the window is still being built.
         Core.Devices.InputLimit.PerSecond = LocalSettings.LoadInputRate();

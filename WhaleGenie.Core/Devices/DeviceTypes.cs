@@ -194,6 +194,47 @@ public sealed class CaptureChoice : ICaptureChoice
 }
 
 /// <summary>
+/// How often the screen may be read, and how long a picture that was already read stays worth
+/// reading again. Both answers are about the machine rather than about a step: a display cannot
+/// draw anything new faster than it refreshes, so a second look inside one refresh reads the same
+/// picture twice, and a macro that looks at the same window several times in a row is served by
+/// the picture it already has.
+/// </summary>
+public interface IFramePolicy
+{
+    /// <summary>
+    /// How long a picture that was taken stays worth reusing, in milliseconds. Zero means every
+    /// look takes a fresh one. Anything longer is a deliberate trade: the frame is read again
+    /// instead of taken again, so a run spends less on capturing and matching, and a step can be
+    /// handed a picture of the screen as it was that many milliseconds ago.
+    /// </summary>
+    int CacheMilliseconds { get; }
+
+    /// <summary>
+    /// The most pictures a second the run asks for. Zero, or anything at or above the display's
+    /// own rate, means the display's rate: asking for more only reads the same frame twice.
+    /// </summary>
+    int MaxFramesPerSecond { get; }
+}
+
+/// <summary>
+/// The frame policy the program is running with. Like <see cref="CaptureChoice"/> it lives here
+/// because the engine cannot read the settings file: the interface hands the answers over once at
+/// start-up and again whenever they change, and a run picks a change up at its next look.
+/// </summary>
+public sealed class FramePolicy : IFramePolicy
+{
+    /// <summary>The policy this machine's screen is read with.</summary>
+    public static FramePolicy Current { get; } = new();
+
+    /// <summary>How long a taken picture is reused, zero when every look takes a fresh one.</summary>
+    public int CacheMilliseconds { get; set; }
+
+    /// <summary>The most pictures a second, zero to follow the display's own rate.</summary>
+    public int MaxFramesPerSecond { get; set; }
+}
+
+/// <summary>
 /// A picture that was taken, and where its top left corner sits on the screen. The two travel
 /// together because the picture is not always the rectangle that was asked for — a window read
 /// through graphics capture is its own size, at its own corner — and everything the run does with

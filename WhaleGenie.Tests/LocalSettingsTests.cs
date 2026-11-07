@@ -362,6 +362,41 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 复用上次的画面默认关闭：一张画面里连续识别几样东西时才值得打开，而等某样东西消失的宏不能
+    /// 被一张旧画面骗过去。默认值就是全新安装第一次打开时的样子，所以这里既查文件也查窗口。
+    /// </summary>
+    [Fact]
+    public void Reusing_the_last_picture_is_off_until_it_is_turned_on()
+    {
+        InOwnFile(_ =>
+        {
+            var was = FramePolicy.Current.CacheMilliseconds;
+            try
+            {
+                Assert.False(LocalSettings.LoadFrameCache());
+                Assert.Equal(100, LocalSettings.LoadFrameCacheAge());
+
+                var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
+                Assert.False(viewModel.FrameCache);
+                Assert.False(viewModel.FrameCacheAgeEnabled);
+
+                viewModel.FrameCache = true;
+                Assert.True(LocalSettings.LoadFrameCache());
+                Assert.True(viewModel.FrameCacheAgeEnabled);
+
+                viewModel.FrameCache = false;
+                Assert.False(LocalSettings.LoadFrameCache());
+            }
+            finally
+            {
+                // The engine's copy is one per process and stays behind after the temporary file is
+                // thrown away, so it is put back rather than left on this test's last answer.
+                FramePolicy.Current.CacheMilliseconds = was;
+            }
+        });
+    }
+
+    /// <summary>
     /// The switch itself, as the window draws it: a choice nothing on the window is wired to would
     /// store whatever the window happened to hold rather than what the person clicked.
     /// </summary>
@@ -373,7 +408,12 @@ public class LocalSettingsTests
             var window = new SettingsWindow();
             window.Show();
 
-            var box = window.FindControl<CheckBox>("PreloadOcrCheck");
+            var viewModel = window.DataContext as SettingsViewModel;
+            Assert.True(viewModel is not null);
+            viewModel.SetPage(SettingsSubPage.Screen);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            var box = window.FindControl<ToggleSwitch>("PreloadOcrCheck");
             Assert.True(box is not null, "the settings window stopped offering to load the models");
             Assert.False(box.IsChecked);
 

@@ -92,7 +92,7 @@ public class AdministratorTests
             "Settings.Admin",
             "Settings.AdminYes",
             "Settings.AdminNo",
-            "Settings.AdminHint",
+            "Settings.RunAsAdminHint",
             "Settings.AdminRestart",
         ];
 

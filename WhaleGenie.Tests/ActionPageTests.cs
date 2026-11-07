@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -82,19 +83,19 @@ public class ActionPageTests
     /// several hits to take, where the coordinates are counted from, how the input is sent, and the
     /// format and environment details of a file or a program. These are the answers almost every
     /// macro wants left alone, so they live behind the fold of the advanced page wherever they
-    /// appear. Two names are missing on purpose, because they mean different things in different
-    /// actions: <c>intervalMs</c> is a step's own beat in one action and how often the screen is
-    /// looked at in another, and <c>matchMode</c> is how strictly writing is compared in one and how
-    /// rows are picked out of a file in another. Two more are the same word for two things:
-    /// <c>algorithm</c> is how a picture is compared and also which hash a checksum is asked for, and
-    /// <c>steps</c> is the body of a block and also how far a drag is broken up. Both are checked
-    /// where they mean the tuning they are.
+    /// appear. One name is missing on purpose, because it means different things in different
+    /// actions: <c>intervalMs</c> is a step's own beat in a loop and the wait between keystrokes in
+    /// another, and how often the screen is read is no longer a step's field at all. <c>matchMode</c>
+    /// is how strictly writing is compared in one and how rows are picked out of a file in another.
+    /// Two more are the same word for two things: <c>algorithm</c> is how a picture is compared and
+    /// also which hash a checksum is asked for, and <c>steps</c> is the body of a block and also how
+    /// far a drag is broken up. Both are checked where they mean the tuning they are.
     /// </summary>
     private static readonly string[] Tuning =
     [
         "minFeatures", "transparentColor", "matchIndex", "orderBy",
         "style",
-        "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
+        "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
@@ -227,15 +228,15 @@ public class ActionPageTests
     /// question as the beat of a step that presses a key: one is how much a loop may cost, the other
     /// is how the presses read. The first is tuning and the second is part of the action.
     /// </summary>
+    /// <summary>
+    /// 只有循环与输入还带自己的节拍：它们之间隔多久是这一步要回答的问题。看屏幕的节拍已经
+    /// 搬到设置里，视觉与识别的步骤不再有这个字段，所以这里只剩发输入的那几个。
+    /// </summary>
     [Theory]
-    [InlineData("vision.findImage", "advanced")]
-    [InlineData("vision.waitStable", "advanced")]
-    [InlineData("ocr.findText", "advanced")]
-    [InlineData("ocr.clickText", "advanced")]
     [InlineData("input.keyPress", "base")]
     [InlineData("input.mouseClick", "base")]
     [InlineData("input.mouseScroll", "base")]
-    public void A_step_that_looks_at_the_screen_tunes_its_rhythm_on_the_advanced_page(
+    public void A_step_that_sends_input_keeps_its_beat_on_the_page_the_step_is(
         string action, string page)
     {
         Ui.Run(() =>
@@ -468,60 +469,27 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// The two fields that say how a step reads the screen — how old a picture it will accept, and
-    /// how long it leaves between two looks — belong together on the advanced page, because the
-    /// answers almost every macro wants are the defaults. How the pixels come off this machine is a
-    /// setting of the program rather than a field of a step, so there is no third one beside them.
+    /// 怎么看屏幕已经不是步骤的字段了：每秒取几次画面、已经取到的画面能不能再读一次，都由设置
+    /// 里的「取帧」决定，同一次运行的每一步共用同一个答案。这里把「搬干净了」变成能失败的断言：
+    /// 任何一个看屏幕的动作只要还带着这两个名字之一，就说明还有人按老位置读它。
     /// </summary>
     [Fact]
-    public void How_a_step_reads_the_screen_is_on_the_advanced_page()
+    public void How_often_the_screen_is_read_is_no_longer_a_field_of_a_step()
     {
-        var misplaced = new List<string>();
-        var about = new[] { "frameMaxAgeMs", "intervalMs" };
+        var carried = new List<string>();
 
-        foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
+        foreach (var action in ActionSemanticsCatalog.All.Where(action => action.LooksAtScreen))
         {
-            var advanced = On(action, viewModel => viewModel.AdvancedRows);
-            if (!advanced.Contains("frameMaxAgeMs", StringComparer.Ordinal))
+            foreach (var name in new[] { "frameMaxAgeMs", "intervalMs" })
             {
-                continue;
-            }
-
-            foreach (var name in about)
-            {
-                if (!advanced.Contains(name, StringComparer.Ordinal))
+                if (action.Parameters.Any(parameter => parameter.Name == name))
                 {
-                    misplaced.Add($"{action.Key}: {name}");
+                    carried.Add($"{action.Key}: {name}");
                 }
             }
         }
 
-        Assert.Empty(misplaced);
-    }
-
-    /// <summary>
-    /// The rhythm a step that watches the screen looks at it with: a step that waits is left empty,
-    /// because how often looking can tell anything is what the screen it runs on decides, and the
-    /// ones that look once leave no gap between two looks at the same place.
-    /// </summary>
-    [Theory]
-    [InlineData("vision.waitColor", "")]
-    [InlineData("vision.waitStable", "")]
-    [InlineData("vision.waitImage", "")]
-    [InlineData("vision.clickImage", "")]
-    [InlineData("ocr.clickText", "")]
-    [InlineData("vision.findImage", "0")]
-    [InlineData("vision.findColor", "0")]
-    [InlineData("vision.findColors", "0")]
-    public void A_step_that_looks_at_the_screen_keeps_the_rhythm_it_had(string action, string intervalMs)
-    {
-        var field = Ui.Run(() => ActionCatalog.Definitions
-            .First(definition => definition.Key == action)
-            .Parameters.First(parameter => parameter.Name == "intervalMs"));
-
-        Assert.Equal(intervalMs, field.DefaultValue);
-        Assert.Equal(0m, field.Minimum);
-        Assert.Equal(60000m, field.Maximum);
+        Assert.Empty(carried);
     }
 
     /// <summary>

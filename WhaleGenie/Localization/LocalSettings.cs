@@ -22,6 +22,13 @@ public static class LocalSettings
     internal static string FilePath { get; set; } = Adopt(AppPaths.Settings, AppPaths.Root);
 
     /// <summary>
+    /// The oldest a reused picture may be, in milliseconds. A second is already the point where a
+    /// macro is reading the screen as it was rather than as it is, which is the trade the setting
+    /// exists to make and not one it should be able to make silently for longer.
+    /// </summary>
+    public const int FrameCacheOldest = 1000;
+
+    /// <summary>
     /// Takes over a file an older build left beside the program. Done once, when this class is first
     /// used: the file is moved rather than copied, so the install folder keeps nothing of the
     /// person's and no second copy can drift away from the one being read.
@@ -313,6 +320,39 @@ public static class LocalSettings
     public static void StoreCaptureScreen(CaptureWay way)
         => Write(model => model.CaptureScreen = CaptureWayNames.Written(way));
 
+    /// <summary>
+    /// Whether the frame cap follows the display rather than the number beside it. True until
+    /// somebody picks a rate of their own: a display cannot draw anything new between two refreshes,
+    /// so the rate it runs at is the fastest a macro can usefully look.
+    /// </summary>
+    public static bool LoadFrameRateFollow() => Read().FrameRateFollow;
+
+    public static void StoreFrameRateFollow(bool follow)
+        => Write(model => model.FrameRateFollow = follow);
+
+    /// <summary>
+    /// The most pictures a second a run asks for, when it is not following the display. Zero means
+    /// the person never picked one, and the caller falls back to the display's own rate.
+    /// </summary>
+    public static int LoadFrameRate() => Read().FrameRateHertz;
+
+    public static void StoreFrameRate(int hertz)
+        => Write(model => model.FrameRateHertz = Math.Max(0, hertz));
+
+    /// <summary>Whether a picture already taken may be read again instead of taken again.</summary>
+    public static bool LoadFrameCache() => Read().FrameCache;
+
+    public static void StoreFrameCache(bool cache) => Write(model => model.FrameCache = cache);
+
+    /// <summary>
+    /// How long a taken picture stays worth reusing, in milliseconds. A thousand is the ceiling
+    /// because past a second the macro is reading the screen as it was rather than as it is.
+    /// </summary>
+    public static int LoadFrameCacheAge() => Read().FrameCacheAgeMs;
+
+    public static void StoreFrameCacheAge(int milliseconds)
+        => Write(model => model.FrameCacheAgeMs = Math.Clamp(milliseconds, 0, FrameCacheOldest));
+
     /// <summary>The global key that switches all triggers on or off. Home remains the default.</summary>
     public static string LoadSystemHotkey()
         => Read().SystemHotkey.Trim();
@@ -410,6 +450,26 @@ public static class LocalSettings
         public string SystemHotkey { get; set; } = "Home";
 
         public string MenuLauncher { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Whether the frame cap follows the display. On by default: the display's own rate is the
+        /// fastest a macro can usefully look, and it is what every step used to get when it left the
+        /// interval empty.
+        /// </summary>
+        public bool FrameRateFollow { get; set; } = true;
+
+        /// <summary>The frames a second the person picked, zero while the cap follows the display.</summary>
+        public int FrameRateHertz { get; set; }
+
+        /// <summary>
+        /// Whether a picture already taken is read again rather than taken again. Off by default:
+        /// reuse is a deliberate trade, and a macro that waits for something to disappear must not
+        /// be shown a picture from before it disappeared.
+        /// </summary>
+        public bool FrameCache { get; set; }
+
+        /// <summary>How old a reused picture may be, in milliseconds, when reuse is on.</summary>
+        public int FrameCacheAgeMs { get; set; } = 100;
 
         /// <summary>
         /// Whether a start opens the project that was open when the program was last closed. On by

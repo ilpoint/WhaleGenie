@@ -32,7 +32,7 @@ public sealed partial class MacroRunner
 {
     // What this class holds, by lifetime. Program-wide: the shared global table, the two gates
     // and the device layer. One run: _host, _devices, _macros, _looks, Variables, _log, _steps,
-    // _frames, _references, _looked and _runToken. One step: _failure, _worked, _saw,
+    // _frames, _references, _lastFrame and _runToken. One step: _failure, _worked, _saw,
     // _read, _takenWindow, _takenMethod, _heldKeys, _heldButtons, _gamepadUsed and _browserHolds.
     // The family methods live beside this file in MacroRunner.<Family>.cs. A method that more than
     // one family uses stayed in the file that first needed it, so before assuming a family file
@@ -81,23 +81,22 @@ public sealed partial class MacroRunner
     private WindowRule _lastWindowRule = WindowRule.Empty;
 
     /// <summary>
-    /// The last picture taken of each source, for the steps that say a picture a little older will
-    /// do. A macro that looks at the same window several times in a row then reads it once, which is
-    /// what a per-second budget of looks is really about. It lives for one run: what a macro sees is
-    /// what it saw while it was running, and the next run starts by looking again.
+    /// The last picture taken of each source, kept for as long as the frame policy says a picture
+    /// stays worth reading. A macro that looks at the same window several times in a row then reads
+    /// it once, which is what a budget of looks is really about. It lives for one run: what a macro
+    /// sees is what it saw while it was running, and the next run starts by looking again.
     /// </summary>
     private readonly Dictionary<(long Source, CaptureWay Method),
         (ImageFrame Frame, ScreenPoint Origin, CaptureWay Method, long TakenAt)> _frames = [];
 
     /// <summary>
-    /// When each step last looked at the screen, for the steps that say how long to leave between
-    /// two looks. A step that reads the same place on every pass of a loop spends most of its time
-    /// reading a picture that has not changed, and this is what keeps it from asking the machine
-    /// for more looks than the macro can use. A step is recognised by the identity written into the
-    /// file where it has one, and by itself where it has none, which is what makes the same step in
-    /// a loop the same step here.
+    /// When this run last took a picture, which is the one clock every look at the screen is held
+    /// to. It is the run's clock rather than a step's: a display cannot draw anything new faster
+    /// than it refreshes, so two steps reading it inside one refresh spend the second read on the
+    /// same pixels. A run that is started again begins by looking, which is why it is emptied at
+    /// the start rather than kept beside the runner.
     /// </summary>
-    private readonly Dictionary<object, long> _looked = [];
+    private long _lastFrame;
 
     /// <summary>
     /// The steps this run has already been told yes to, by the identity written into the file. A
@@ -459,7 +458,7 @@ public sealed partial class MacroRunner
         _log.Clear();
         _images.Clear();
         _frames.Clear();
-        _looked.Clear();
+        _lastFrame = 0;
         _agreed.Clear();
         _steps = steps;
 
@@ -1273,6 +1272,13 @@ public sealed partial class MacroRunner
     /// clock covers all of them, because "how long did this step take" is answered by the step
     /// rather than by the last try of it.
     /// </summary>
+    /// <summary>
+    /// What makes one step the same step as itself later on: the identity written into the file
+    /// where it has one, and the instance where it has none, which is what makes a step inside a
+    /// loop the same step on the next pass.
+    /// </summary>
+    private static object Key(ExecutableStep step) => step.Id.Length > 0 ? step.Id : step;
+
     /// <summary>
     /// Whether this step may go ahead: true for everything that can be undone, and true for one that
     /// cannot once the person has said so. Asked once per run per step, so a loop that repeats it

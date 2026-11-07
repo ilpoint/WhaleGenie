@@ -13,11 +13,11 @@ namespace WhaleGenie.Core.Devices.Platform;
 public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
 {
     /// <summary>What a waiting step looks on when the display driver cannot say how fast it runs.</summary>
-    private const int CommonRefresh = 16;
+    private const int CommonHertz = 60;
 
     private readonly ScreenGrabber _grabber = new();
 
-    private int? _refresh;
+    private int? _hertz;
 
     /// <summary>
     /// How the desk is laid out, read from the display itself rather than from a setting: plugging a
@@ -48,12 +48,19 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     /// the commonest display; the answer is remembered because what a monitor runs at does not
     /// change while a macro runs.
     /// </summary>
-    public int RefreshMilliseconds
+    public int RefreshMilliseconds => Math.Max(1, (int)Math.Ceiling(1000.0 / RefreshHertz));
+
+    /// <summary>
+    /// The rate the driver answered, in whole hertz, kept as it answered it: the settings window
+    /// offers a cap in frames a second and prints the display's own rate beside it, and going
+    /// through milliseconds and back would turn 60 into 59.
+    /// </summary>
+    public int RefreshHertz
     {
         get
         {
-            _refresh ??= Refresh();
-            return _refresh.Value;
+            _hertz ??= Refresh();
+            return _hertz.Value;
         }
     }
 
@@ -61,19 +68,19 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     {
         if (!OperatingSystem.IsWindows())
         {
-            return CommonRefresh;
+            return CommonHertz;
         }
 
         var screen = GetDC(IntPtr.Zero);
         if (screen == IntPtr.Zero)
         {
-            return CommonRefresh;
+            return CommonHertz;
         }
 
         try
         {
             var hertz = GetDeviceCaps(screen, VerticalRefresh);
-            return hertz < 2 ? CommonRefresh : Math.Max(1, (int)Math.Ceiling(1000.0 / hertz));
+            return hertz < 2 ? CommonHertz : hertz;
         }
         finally
         {

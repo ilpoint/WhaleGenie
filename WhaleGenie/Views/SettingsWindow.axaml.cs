@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -9,6 +10,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
@@ -19,18 +21,18 @@ namespace WhaleGenie.Views;
 public partial class SettingsWindow : AppWindow
 {
     private readonly SettingsViewModel _viewModel;
+    private readonly FANavigationView _nav;
     private MenuRuleRow? _ruleDragSource;
     private Point _ruleDragOrigin;
     private bool _ruleDragging;
 
     public SettingsWindow()
-        : this(null, null, SettingsRootPage.System, SettingsSubPage.General)
+        : this(null, null, SettingsSubPage.General)
     {
     }
 
     public SettingsWindow(MainViewModel? project, string? packagePath,
-        SettingsRootPage root = SettingsRootPage.System,
-        SettingsSubPage sub = SettingsSubPage.General)
+        SettingsSubPage page = SettingsSubPage.General)
     {
         InitializeComponent();
         WindowChrome.Attach(this);
@@ -70,21 +72,9 @@ public partial class SettingsWindow : AppWindow
         this.FindControl<Button>("EditMenuRuleButton")!.IsEnabled = project is not null;
         this.FindControl<Button>("RemoveMenuRuleButton")!.IsEnabled = project is not null;
 
-        // The three roots are a tab control now: picking one is the selection, and the binding on
-        // its SelectedIndex writes the same enum a SetPage call would. The sub-pages inside a root
-        // are still buttons, because they share one tab's content area.
-        this.FindControl<Button>("GeneralNavButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.General);
-        this.FindControl<Button>("CaptureNavButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.CaptureInput);
-        this.FindControl<Button>("DevicesNavButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.Devices);
-        this.FindControl<Button>("MenuLauncherNavButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
-        this.FindControl<Button>("WindowRulesNavButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Triggers, SettingsSubPage.WindowRules);
-        this.FindControl<Button>("ThemeNavButton")!.Click += (_, _) =>
-            _viewModel.SetPage(SettingsRootPage.Appearance, SettingsSubPage.Theme);
+        // The pages are one list, and the group named at the top of the window decides which of them
+        // the list shows. All that is left here is opening on the page the caller asked for.
+        _nav = this.FindControl<FANavigationView>("Nav")!;
 
         var ruleList = this.FindControl<ListBox>("MenuRuleList")!;
         var addPage = this.FindControl<Button>("AddMenuRulePageButton")!;
@@ -98,7 +88,22 @@ public partial class SettingsWindow : AppWindow
         ruleList.AddHandler(PointerReleasedEvent, OnRulePointerReleased,
             RoutingStrategies.Tunnel);
 
-        _viewModel.SetPage(root, sub);
+        _viewModel.SetPage(page);
+        ShowMenuItemsOf(page);
+        SelectPage(_nav, page);
+
+        // A page can also change without the list being touched: the tabs at the top of the window,
+        // or anything else that sets the page. Both paths end in the same two steps, so the list and
+        // the page cannot end up naming different groups.
+        _viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.SelectedPage))
+            {
+                ShowMenuItemsOf(_viewModel.SelectedPage);
+                SelectPage(_nav, _viewModel.SelectedPage);
+            }
+        };
+
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnPreviewKeyUp, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnPreviewPointerPressed, RoutingStrategies.Tunnel);
@@ -109,6 +114,69 @@ public partial class SettingsWindow : AppWindow
 
     private async void OnCustomizeThemeClicked(object? sender, RoutedEventArgs e)
         => await new ThemePaletteWindow().ShowDialogOver(this);
+
+    /// <summary>Shows the page the panel's selection stands for.</summary>
+    private void OnNavSelectionChanged(object? sender, FANavigationViewSelectionChangedEventArgs e)
+    {
+        if (PageOf(e.SelectedItemContainer) is { } page)
+        {
+            _viewModel.SetPage(page);
+        }
+    }
+
+    /// <summary>Opens the group one of the tabs at the top of the window stands for.</summary>
+    private void OnRootTabClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string tag } && Enum.TryParse<SettingsRoot>(tag, out var root))
+        {
+            _viewModel.SetRoot(root);
+        }
+    }
+
+    /// <summary>
+    /// Leaves only the pages of the open group in the list. The items are folded rather than taken
+    /// out of <c>MenuItems</c>: a panel whose list is rebuilt keeps its selection on an item it no
+    /// longer holds. Disabling them as well keeps Home, End and the arrow keys off a page that is
+    /// not on screen.
+    /// </summary>
+    private void ShowMenuItemsOf(SettingsSubPage page)
+    {
+        var root = SettingsViewModel.RootOf(page);
+        foreach (var item in _nav.MenuItems.OfType<FANavigationViewItem>())
+        {
+            var mine = PageOf(item) is { } tag && SettingsViewModel.RootOf(tag) == root;
+            item.IsVisible = mine;
+            item.IsEnabled = mine;
+        }
+    }
+
+    /// <summary>
+    /// Highlights the item that stands for a page. The item carries the page as its tag, so the
+    /// mapping lives beside the item rather than in a second list here.
+    /// </summary>
+    private static void SelectPage(FANavigationView nav, SettingsSubPage page)
+    {
+        foreach (var item in nav.MenuItems.OfType<FANavigationViewItem>())
+        {
+            if (PageOf(item) == page)
+            {
+                // Writing the same item back raises no change, so the page and the list settle on
+                // the first pass instead of passing the change back and forth.
+                if (!ReferenceEquals(nav.SelectedItem, item))
+                {
+                    nav.SelectedItem = item;
+                }
+
+                return;
+            }
+        }
+    }
+
+    private static SettingsSubPage? PageOf(object? item)
+        => item is FANavigationViewItem { Tag: string tag }
+           && Enum.TryParse<SettingsSubPage>(tag, out var page)
+            ? page
+            : null;
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
@@ -386,10 +454,11 @@ public partial class SettingsWindow : AppWindow
         }
         catch (Exception error)
         {
-            // 打不开不是错误该吃掉的地方：目录可能是只读的，说清楚比静悄悄好。
+            // 界面只说一句本地化的话；打不开的理由（只读目录、被策略拦住）写进日志，
+            // 把一串 .NET 文本贴到窗口里对谁都不算说明。
+            AppDiagnostics.Record("settings.storage.open", error);
             if (this.FindControl<TextBlock>("StorageProblem") is { } problem)
             {
-                problem.Text = error.Message;
                 problem.IsVisible = true;
             }
         }

@@ -29,7 +29,23 @@ internal sealed class FakeScreen(FakeDesk desk) : IScreenDevice
     /// How long one refresh of the pretend screen lasts. A check that wants to see how often a
     /// waiting step looks sets it low, and one that does not care gets a fast screen.
     /// </summary>
-    public int RefreshMilliseconds { get; set; } = 1;
+    public int RefreshMilliseconds
+    {
+        get => _refreshMs;
+        set
+        {
+            _refreshMs = value;
+            RefreshHertz = Math.Max(1, (int)Math.Round(1000.0 / Math.Max(1, value)));
+        }
+    }
+
+    private int _refreshMs = 1;
+
+    /// <summary>
+    /// The same rate in whole hertz, which is what a frame cap is compared against. Setting the
+    /// milliseconds keeps the two in step; a check about a 60 Hz display says so here directly.
+    /// </summary>
+    public int RefreshHertz { get; set; } = 1000;
 
     /// <summary>What a pixel reads as, for a screen that is not drawn pixel by pixel.</summary>
     public PixelColor Pixel { get; set; }

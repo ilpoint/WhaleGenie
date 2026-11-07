@@ -33,21 +33,27 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
     public override string ToString() => Strings.Get(Key);
 }
 
-public enum SettingsRootPage
-{
-    System,
-    Triggers,
-    Appearance,
-}
-
 public enum SettingsSubPage
 {
     General,
-    CaptureInput,
+    Hotkeys,
+    Screen,
+    Input,
     Devices,
     MenuLauncher,
     WindowRules,
     Theme,
+}
+
+/// <summary>
+/// The three groups the window opens with. They are named at the top of the window, and the list on
+/// the left only carries the pages that belong to the one that is open.
+/// </summary>
+public enum SettingsRoot
+{
+    System,
+    Triggers,
+    Appearance,
 }
 
 /// <summary>
@@ -105,6 +111,13 @@ public partial class SettingsViewModel : ViewModelBase
         EnabledFirst = LocalSettings.LoadEnabledFirst();
         PreloadOcr = LocalSettings.LoadPreloadOcr();
         InputRate = LocalSettings.LoadInputRate();
+        FrameRateFollow = LocalSettings.LoadFrameRateFollow();
+        FrameRate = FrameRateFollow
+            ? FrameSetup.FastestRate
+            : Math.Clamp(LocalSettings.LoadFrameRate(), 1, FrameSetup.FastestRate);
+        FrameCache = LocalSettings.LoadFrameCache();
+        FrameCacheAge = Math.Clamp(LocalSettings.LoadFrameCacheAge(), 0, LocalSettings.FrameCacheOldest);
+        _frameReady = true;
         ExclusiveInput = LocalSettings.LoadExclusiveInput();
         IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
         SoundSystem = LocalSettings.LoadSoundSystem();
@@ -132,6 +145,7 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(SelectedTheme));
         OnPropertyChanged(nameof(MenuLauncherStatus));
         OnPropertyChanged(nameof(MenuRuleProblem));
+        OnPropertyChanged(nameof(FrameRateNote));
     }
 
     public MainViewModel? Project { get; }
@@ -140,55 +154,62 @@ public partial class SettingsViewModel : ViewModelBase
 
     public bool HasProject => Project is not null;
 
-    [ObservableProperty]
-    public partial SettingsRootPage SelectedRootPage { get; set; } = SettingsRootPage.System;
-
-    [ObservableProperty]
-    public partial SettingsSubPage SelectedSubPage { get; set; } = SettingsSubPage.General;
-
-    public bool IsSystemRoot => SelectedRootPage == SettingsRootPage.System;
-    public bool IsTriggersRoot => SelectedRootPage == SettingsRootPage.Triggers;
-    public bool IsAppearanceRoot => SelectedRootPage == SettingsRootPage.Appearance;
-
     /// <summary>
-    /// The same choice, as the number a tab strip speaks in. The three pages are an enum because
-    /// the code switches on them; a tab control only knows positions, so this is the one place the
-    /// two are converted. The setter is how a click on a tab comes back.
+    /// The page the window is showing. It is the only place a page is named: the group at the top of
+    /// the window is derived from it rather than stored beside it, so the two cannot disagree.
     /// </summary>
-    public int RootIndex
-    {
-        get => (int)SelectedRootPage;
-        set
-        {
-            if (value >= 0 && value <= (int)SettingsRootPage.Appearance)
-            {
-                SelectedRootPage = (SettingsRootPage)value;
-            }
-        }
-    }
-    public bool IsGeneralPage => SelectedSubPage == SettingsSubPage.General;
-    public bool IsCapturePage => SelectedSubPage == SettingsSubPage.CaptureInput;
-    public bool IsDevicesPage => SelectedSubPage == SettingsSubPage.Devices;
-    public bool IsMenuLauncherPage => SelectedSubPage == SettingsSubPage.MenuLauncher;
-    public bool IsWindowRulesPage => SelectedSubPage == SettingsSubPage.WindowRules;
-    public bool IsThemePage => SelectedSubPage == SettingsSubPage.Theme;
+    [ObservableProperty]
+    public partial SettingsSubPage SelectedPage { get; set; } = SettingsSubPage.General;
 
-    partial void OnSelectedRootPageChanged(SettingsRootPage value)
-    {
-        OnPropertyChanged(nameof(IsSystemRoot));
-        OnPropertyChanged(nameof(IsTriggersRoot));
-        OnPropertyChanged(nameof(IsAppearanceRoot));
-        OnPropertyChanged(nameof(RootIndex));
-    }
+    public bool IsGeneralPage => SelectedPage == SettingsSubPage.General;
+    public bool IsHotkeysPage => SelectedPage == SettingsSubPage.Hotkeys;
+    public bool IsScreenPage => SelectedPage == SettingsSubPage.Screen;
+    public bool IsInputPage => SelectedPage == SettingsSubPage.Input;
+    public bool IsDevicesPage => SelectedPage == SettingsSubPage.Devices;
+    public bool IsMenuLauncherPage => SelectedPage == SettingsSubPage.MenuLauncher;
+    public bool IsWindowRulesPage => SelectedPage == SettingsSubPage.WindowRules;
+    public bool IsThemePage => SelectedPage == SettingsSubPage.Theme;
 
-    partial void OnSelectedSubPageChanged(SettingsSubPage value)
+    /// <summary>The group the open page belongs to; the three tabs at the top of the window read it.</summary>
+    public SettingsRoot SelectedRoot => RootOf(SelectedPage);
+
+    public bool IsSystemRoot => SelectedRoot == SettingsRoot.System;
+    public bool IsTriggersRoot => SelectedRoot == SettingsRoot.Triggers;
+    public bool IsAppearanceRoot => SelectedRoot == SettingsRoot.Appearance;
+
+    /// <summary>Which group a page is listed under.</summary>
+    public static SettingsRoot RootOf(SettingsSubPage page) => page switch
+    {
+        SettingsSubPage.MenuLauncher or SettingsSubPage.WindowRules => SettingsRoot.Triggers,
+        SettingsSubPage.Theme => SettingsRoot.Appearance,
+        _ => SettingsRoot.System,
+    };
+
+    /// <summary>The page a group opens on, which is also the one its tab lands on.</summary>
+    public static SettingsSubPage FirstPageOf(SettingsRoot root) => root switch
+    {
+        SettingsRoot.Triggers => SettingsSubPage.MenuLauncher,
+        SettingsRoot.Appearance => SettingsSubPage.Theme,
+        _ => SettingsSubPage.General,
+    };
+
+    /// <summary>Opens a group at its first page; a group has no page of its own to remember.</summary>
+    public void SetRoot(SettingsRoot root) => SelectedPage = FirstPageOf(root);
+
+    partial void OnSelectedPageChanged(SettingsSubPage value)
     {
         OnPropertyChanged(nameof(IsGeneralPage));
-        OnPropertyChanged(nameof(IsCapturePage));
+        OnPropertyChanged(nameof(IsHotkeysPage));
+        OnPropertyChanged(nameof(IsScreenPage));
+        OnPropertyChanged(nameof(IsInputPage));
         OnPropertyChanged(nameof(IsDevicesPage));
         OnPropertyChanged(nameof(IsMenuLauncherPage));
         OnPropertyChanged(nameof(IsWindowRulesPage));
         OnPropertyChanged(nameof(IsThemePage));
+        OnPropertyChanged(nameof(SelectedRoot));
+        OnPropertyChanged(nameof(IsSystemRoot));
+        OnPropertyChanged(nameof(IsTriggersRoot));
+        OnPropertyChanged(nameof(IsAppearanceRoot));
     }
 
     public ObservableCollection<MenuRuleRow> MenuRules { get; } = [];
@@ -289,11 +310,7 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    public void SetPage(SettingsRootPage root, SettingsSubPage sub)
-    {
-        SelectedRootPage = root;
-        SelectedSubPage = sub;
-    }
+    public void SetPage(SettingsSubPage page) => SelectedPage = page;
 
     public void BeginMenuLauncherCapture()
     {
@@ -540,6 +557,13 @@ public partial class SettingsViewModel : ViewModelBase
 
     private bool _themeReady;
 
+    /// <summary>
+    /// Whether the frame settings have been read in. They are written back the moment they change,
+    /// and opening a window is not a change: without this, opening the settings would rewrite the
+    /// file that was just read.
+    /// </summary>
+    private bool _frameReady;
+
     [ObservableProperty]
     public partial ThemeOption SelectedTheme { get; set; } = null!;
 
@@ -600,6 +624,79 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial bool EnabledFirst { get; set; }
+
+    /// <summary>
+    /// Whether the frame cap follows the display. On means the fastest a macro usefully looks,
+    /// because a display cannot draw anything new between two refreshes.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FrameRateEnabled))]
+    [NotifyPropertyChangedFor(nameof(FrameRateNote))]
+    public partial bool FrameRateFollow { get; set; } = true;
+
+    /// <summary>
+    /// Pictures a second a run may take, held as the number field's double because that is what the
+    /// control speaks. It is a count, so the rounded value is what is stored.
+    /// </summary>
+    [ObservableProperty]
+    public partial double FrameRate { get; set; }
+
+    /// <summary>Whether the field beside the switch is a choice the person can make.</summary>
+    public bool FrameRateEnabled => !FrameRateFollow;
+
+    /// <summary>The fastest this machine can publish, said in both units.</summary>
+    public string FrameRateNote => Strings.Format("Settings.FrameRateNote", FastestRate);
+
+    /// <summary>The ceiling of the frame field: the display's own rate.</summary>
+    public int FastestRate => FrameSetup.FastestRate;
+
+    partial void OnFrameRateFollowChanged(bool value)
+    {
+        if (_frameReady)
+        {
+            FrameSetup.StoreRate(value, (int)Math.Round(FrameRate));
+        }
+    }
+
+    partial void OnFrameRateChanged(double value)
+    {
+        var rate = Math.Clamp((int)Math.Round(value), 1, FrameSetup.FastestRate);
+        if (_frameReady && !FrameRateFollow)
+        {
+            FrameSetup.StoreRate(followDisplay: false, rate);
+        }
+    }
+
+    /// <summary>
+    /// Whether a picture already taken may be read again instead of taken again. Off unless the
+    /// person turned it on: a step that waits for something to disappear must see it disappear.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FrameCacheAgeEnabled))]
+    public partial bool FrameCache { get; set; }
+
+    /// <summary>How old a reused picture may be, in milliseconds.</summary>
+    [ObservableProperty]
+    public partial double FrameCacheAge { get; set; }
+
+    public bool FrameCacheAgeEnabled => FrameCache;
+
+    partial void OnFrameCacheChanged(bool value)
+    {
+        if (_frameReady)
+        {
+            FrameSetup.StoreCache(value, (int)Math.Round(FrameCacheAge));
+        }
+    }
+
+    partial void OnFrameCacheAgeChanged(double value)
+    {
+        var age = Math.Clamp((int)Math.Round(value), 0, LocalSettings.FrameCacheOldest);
+        if (_frameReady && FrameCache)
+        {
+            FrameSetup.StoreCache(reuse: true, age);
+        }
+    }
 
     /// <summary>
     /// How many keyboard or mouse events may leave the program in a second, 0 for no limit. Held as

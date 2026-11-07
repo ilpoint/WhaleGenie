@@ -8,8 +8,8 @@
         x:Class="WhaleGenie.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="900" Height="700"
-        MinWidth="760" MinHeight="560"
+        Width="940" Height="740"
+        MinWidth="780" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceWindow}">
 
@@ -17,417 +17,581 @@
         <vm:SettingsViewModel />
     </Design.DataContext>
 
+    <!--
+      Three groups named at the top of the window, and the pages of the one that is open listed on
+      the left, the way Windows 11 settings are laid out. The groups used to be headings inside the
+      one list, which left the reader working out which heading a page was under; a tab says it
+      before the list is read. Page panels switch on IsVisible because they share one scroll area,
+      which keeps a page's scroll position while another is looked at.
+    -->
     <Grid RowDefinitions="Auto,*,Auto">
-        <!--
-          Three roots, three tabs. The tab control owns the choice now: its SelectedIndex is the
-          enum in the view model as a number, so a click and a SetPage() call land in the same place.
-          Everything a root holds — its sidebar, its pages — lives inside its own tab, which is why
-          the IsVisible bindings that used to switch roots are gone.
-        -->
-        <TabControl Grid.Row="0" Name="RootTabs" Margin="14,8,14,0"
-                    SelectedIndex="{Binding RootIndex, Mode=TwoWay}">
-            <TabItem Header="{Binding [Settings.Root.System], Source={x:Static loc:Strings.Current}}">
-                <Grid ColumnDefinitions="180,*" Margin="0,8,0,0">
-                    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
-                        <StackPanel Spacing="3">
-                            <Button Name="GeneralNavButton" Classes="Tab Side"
-                                    Classes.selected="{Binding IsGeneralPage}"
-                                    Content="{Binding [Settings.Nav.General], Source={x:Static loc:Strings.Current}}" />
-                            <Button Name="CaptureNavButton" Classes="Tab Side"
-                                    Classes.selected="{Binding IsCapturePage}"
-                                    Content="{Binding [Settings.Nav.Capture], Source={x:Static loc:Strings.Current}}" />
-                            <Button Name="DevicesNavButton" Classes="Tab Side"
-                                    Classes.selected="{Binding IsDevicesPage}"
-                                    Content="{Binding [Settings.Nav.Devices], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="2" Margin="20,10,20,0">
+            <Button Classes="Tab Root" Tag="System" Click="OnRootTabClicked"
+                    Classes.selected="{Binding IsSystemRoot}"
+                    Content="{Binding [Settings.Root.System], Source={x:Static loc:Strings.Current}}" />
+            <Button Classes="Tab Root" Tag="Triggers" Click="OnRootTabClicked"
+                    Classes.selected="{Binding IsTriggersRoot}"
+                    Content="{Binding [Settings.Root.Triggers], Source={x:Static loc:Strings.Current}}" />
+            <Button Classes="Tab Root" Tag="Appearance" Click="OnRootTabClicked"
+                    Classes.selected="{Binding IsAppearanceRoot}"
+                    Content="{Binding [Settings.Root.Appearance], Source={x:Static loc:Strings.Current}}" />
+        </StackPanel>
 
-            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
-                <StackPanel Name="SettingsPanel">
-                    <Border Classes="Section" IsVisible="{Binding IsGeneralPage}">
-                        <StackPanel>
-                            <TextBlock Classes="FieldLabel"
-                                       Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
-                            <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding Languages}"
-                                      SelectedItem="{Binding SelectedLanguage}" />
-                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
+        <fa:FANavigationView Grid.Row="1" Name="Nav" Margin="6,0,6,0"
+                            PaneDisplayMode="Left"
+                            ExpandedModeThresholdWidth="0"
+                            CompactModeThresholdWidth="0"
+                            OpenPaneLength="212"
+                            IsPaneToggleButtonVisible="False"
+                            IsBackButtonVisible="False"
+                            IsSettingsVisible="False"
+                            SelectionChanged="OnNavSelectionChanged">
+            <!--
+              Every page is listed here and the window shows the ones that belong to the open group.
+              The list itself is never rebuilt: taking items out of it leaves the panel's selection
+              pointing at an item it no longer holds.
+            -->
+            <fa:FANavigationView.MenuItems>
+                <fa:FANavigationViewItem Name="GeneralNavItem" Tag="General"
+                                        Content="{Binding [Settings.Nav.General], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="HotkeysNavItem" Tag="Hotkeys"
+                                        Content="{Binding [Settings.Nav.Hotkeys], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="ScreenNavItem" Tag="Screen"
+                                        Content="{Binding [Settings.Nav.Screen], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="InputNavItem" Tag="Input"
+                                        Content="{Binding [Settings.Nav.Input], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="DevicesNavItem" Tag="Devices"
+                                        Content="{Binding [Settings.Nav.Devices], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="MenuLauncherNavItem" Tag="MenuLauncher"
+                                        Content="{Binding [Settings.Nav.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="WindowRulesNavItem" Tag="WindowRules"
+                                        Content="{Binding [Settings.Nav.WindowRules], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANavigationViewItem Name="ThemeNavItem" Tag="Theme"
+                                        Content="{Binding [Settings.Nav.Theme], Source={x:Static loc:Strings.Current}}" />
+            </fa:FANavigationView.MenuItems>
 
-                            <CheckBox Margin="2,16,0,0" Name="LoadLastProjectCheck"
-                                      Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                      IsChecked="{Binding LoadLastProjectAtStart}"
-                                      Content="{Binding [Settings.LoadLastProject], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.LoadLastProjectHint], Source={x:Static loc:Strings.Current}}" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,0,2">
+                <StackPanel Name="SettingsPanel" Margin="4,6,16,18" Spacing="10">
 
-                            <CheckBox Margin="2,14,0,0" Name="SystemAtStartCheck"
-                                      Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                      IsChecked="{Binding SystemAtStart}"
-                                      Content="{Binding [Settings.SystemAtStart], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.SystemAtStartHint], Source={x:Static loc:Strings.Current}}" />
+                    <!-- ── 通用 ─────────────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsGeneralPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.GeneralCard], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ComboBox Classes="Field" Width="180" ItemsSource="{Binding Languages}"
+                                              SelectedItem="{Binding SelectedLanguage}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
 
-                            <CheckBox Margin="2,14,0,0" Name="EnabledFirstCheck"
-                                      Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                      IsChecked="{Binding EnabledFirst}"
-                                      Content="{Binding [Settings.EnabledFirst], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.EnabledFirstHint], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
+                            <fa:FASettingsExpanderItem Name="LoadLastProjectCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.LoadLastProject], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.LoadLastProjectHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding LoadLastProjectAtStart}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
 
-                    <!-- 东西都放在哪儿：写在窗口里而不是只写在手册里，"我的 macros.assets 去哪了"
-                         是这扇窗该直接回答的问题。每一行都能打开所在文件夹。 -->
-                    <Border Classes="Section" IsVisible="{Binding IsGeneralPage}">
-                        <StackPanel>
-                            <TextBlock Classes="FieldLabel"
-                                       Text="{Binding [Settings.Storage], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.StorageHint], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Name="StorageProblem" Classes="Hint" Margin="2,6,0,0"
-                                       IsVisible="False" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource Warning}" />
+                            <fa:FASettingsExpanderItem Name="SystemAtStartCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.SystemAtStart], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.SystemAtStartHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding SystemAtStart}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
 
-                            <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding StorageRows}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:StorageRow">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="2,0,2,12">
-                                            <StackPanel>
-                                                <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
-                                                           Text="{Binding Name}" />
-                                                <TextBlock Classes="Hint" Margin="0,2,0,0" TextWrapping="Wrap"
-                                                           Text="{Binding What}" />
-                                                <TextBlock Classes="Mono" FontSize="11.5" Margin="0,3,0,0"
-                                                           TextWrapping="Wrap"
-                                                           Foreground="{DynamicResource TextTertiary}"
-                                                           Text="{Binding Where}" />
-                                            </StackPanel>
-                                            <Button Grid.Column="1" Classes="Secondary" Height="28"
-                                                    Padding="10,0" VerticalAlignment="Center"
-                                                    Tag="{Binding Folder}"
-                                                    Click="OnOpenStorage"
-                                                    Content="{Binding [Settings.OpenFolder], Source={x:Static loc:Strings.Current}}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <fa:FASettingsExpanderItem Name="EnabledFirstCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.EnabledFirst], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.EnabledFirstHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding EnabledFirst}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+
+                        <!-- 东西都放在哪儿：写在窗口里而不是只写在手册里，"我的 macros.assets 去哪了"
+                             是这扇窗该直接回答的问题。每一行都能打开所在文件夹。 -->
+                        <fa:FASettingsExpander Header="{Binding [Settings.Storage], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.StorageHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Name="StorageProblem" Classes="Hint" Margin="0,6,0,0"
+                                               IsVisible="False" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.StorageProblem], Source={x:Static loc:Strings.Current}}"
+                                               Foreground="{DynamicResource Warning}" />
+
+                                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding StorageRows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:StorageRow">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,12">
+                                                    <StackPanel>
+                                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
+                                                                   Text="{Binding Name}" />
+                                                        <TextBlock Classes="Hint" Margin="0,2,0,0" TextWrapping="Wrap"
+                                                                   Text="{Binding What}" />
+                                                        <TextBlock Classes="Mono" FontSize="11.5" Margin="0,3,0,0"
+                                                                   TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource TextTertiary}"
+                                                                   Text="{Binding Where}" />
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Classes="Secondary" Height="28"
+                                                            Padding="10,0" VerticalAlignment="Center"
+                                                            Tag="{Binding Folder}"
+                                                            Click="OnOpenStorage"
+                                                            Content="{Binding [Settings.OpenFolder], Source={x:Static loc:Strings.Current}}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </fa:FASettingsExpanderItem>
 
                             <!-- 日志只留最近的那些：一个文件一次失败、一天一次 MCP，攒上一年谁也不会翻。 -->
-                            <TextBlock Classes="FieldLabel" Margin="2,4,0,0"
-                                       Text="{Binding [Settings.LogCount], Source={x:Static loc:Strings.Current}}" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <fa:FANumberBox Name="LogCountBox" Width="120"
-                                                Minimum="1" Maximum="999" SmallChange="10"
-                                                SimpleNumberFormat="0"
-                                                Value="{Binding LogCount}" />
-                                <TextBlock Classes="Hint" VerticalAlignment="Center"
-                                           Text="{Binding [Settings.LogCountUnit], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                            <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.LogCountHint], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
-
-                    <StackPanel IsVisible="{Binding IsCapturePage}">
-                        <Border Classes="Section">
-                            <StackPanel>
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.Hotkeys], Source={x:Static loc:Strings.Current}}" />
-                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                    <StackPanel>
-                                        <TextBlock Classes="Note"
-                                                   Text="{Binding [Settings.SystemHotkey], Source={x:Static loc:Strings.Current}}" />
-                                        <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
-                                                   Text="{Binding SystemHotkeyDisplay}" />
-                                    </StackPanel>
-                                    <Button Grid.Column="1" Classes="Secondary" Height="30"
-                                            Name="CaptureSystemHotkeyButton"
-                                            Content="{Binding SystemHotkeyButton}" />
-                                    <Button Grid.Column="2" Classes="Secondary" Height="30"
-                                            Name="ClearSystemHotkeyButton"
-                                            Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
-                                </Grid>
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.HotkeyHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.HotkeySupport], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource Warning}"
-                                           Text="{Binding SystemHotkeyProblem}"
-                                           IsVisible="{Binding SystemHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="Section">
-                            <StackPanel>
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.Sounds], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Name="SoundSystemCheck"
-                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                          IsChecked="{Binding SoundSystem}"
-                                          Content="{Binding [Settings.SoundSystem], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Name="SoundMacroCheck" Margin="2,10,0,0"
-                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                          IsChecked="{Binding SoundMacro}"
-                                          Content="{Binding [Settings.SoundMacro], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="Section">
-                            <StackPanel>
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.RecordStopKey], Source={x:Static loc:Strings.Current}}" />
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                                    <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
-                                               VerticalAlignment="Center" Text="{Binding RecordStopDisplay}" />
-                                    <Button Grid.Column="1" Name="CaptureRecordStopButton" Classes="Secondary" Height="30"
-                                            Content="{Binding RecordStopButton}" />
-                                </Grid>
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.RecordStopHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource Warning}"
-                                           Text="{Binding RecordStopProblem}"
-                                           IsVisible="{Binding RecordStopProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="Section">
-                            <StackPanel>
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowWays}"
-                                          SelectedItem="{Binding SelectedWindowWay}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.CaptureWindowHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
-                                           Text="{Binding [Settings.CaptureScreen], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="Field" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding ScreenWays}"
-                                          SelectedItem="{Binding SelectedScreenWay}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Margin="2,16,0,0" Name="PreloadOcrCheck"
-                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                          IsChecked="{Binding PreloadOcr}"
-                                          Content="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.PreloadOcrHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="FieldLabel" Margin="2,18,0,0"
-                                           Text="{Binding [Settings.InputLimit], Source={x:Static loc:Strings.Current}}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <fa:FANumberBox Name="InputLimitBox" Width="120"
-                                                    Minimum="0" Maximum="999" SmallChange="10"
-                                                    SimpleNumberFormat="0"
-                                                    Value="{Binding InputRate}" />
-                                    <TextBlock Classes="Hint" VerticalAlignment="Center"
-                                               Text="{Binding [Settings.InputLimitUnit], Source={x:Static loc:Strings.Current}}" />
+                            <fa:FASettingsExpanderItem Name="LogCountBox">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.LogCount], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.LogCountHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="Section">
-                            <StackPanel>
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.IgnoreOwnInput], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Name="IgnoreOwnInputCheck"
-                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                          IsChecked="{Binding IgnoreOwnInput}"
-                                          Content="{Binding [Settings.IgnoreOwnInputTurn], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.IgnoreOwnInputHint], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="Section">
-                            <StackPanel>
-                                <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.ExclusiveInput], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Name="ExclusiveInputCheck"
-                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                          IsChecked="{Binding ExclusiveInput}"
-                                          Content="{Binding [Settings.ExclusiveInputTurn], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.ExclusiveInputHint], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                        </Border>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <fa:FANumberBox Width="120" Minimum="1" Maximum="999" SmallChange="10"
+                                                        SimpleNumberFormat="0" Value="{Binding LogCount}" />
+                                        <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                                   Text="{Binding [Settings.LogCountUnit], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
                     </StackPanel>
 
-                    <StackPanel IsVisible="{Binding IsDevicesPage}">
-                        <Border Classes="Section">
-                            <StackPanel>
+                    <!-- ── 快捷键与声音 ─────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsHotkeysPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.Hotkeys], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.SystemHotkey], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.HotkeyHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource Warning}"
+                                               Text="{Binding SystemHotkeyProblem}"
+                                               IsVisible="{Binding SystemHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
+                                                   TextAlignment="Right"
+                                                   Text="{Binding SystemHotkeyDisplay}" />
+                                        <Button Classes="Secondary" Height="30" Name="CaptureSystemHotkeyButton"
+                                                Content="{Binding SystemHotkeyButton}" />
+                                        <Button Classes="Secondary" Height="30" Name="ClearSystemHotkeyButton"
+                                                Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.RecordStopKey], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.RecordStopHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource Warning}"
+                                               Text="{Binding RecordStopProblem}"
+                                               IsVisible="{Binding RecordStopProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
+                                                   TextAlignment="Right"
+                                                   Text="{Binding RecordStopDisplay}" />
+                                        <Button Name="CaptureRecordStopButton" Classes="Secondary" Height="30"
+                                                Content="{Binding RecordStopButton}" />
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+
+                        <fa:FASettingsExpander Header="{Binding [Settings.Sounds], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem Name="SoundSystemCheck">
                                 <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap"
-                                           Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
-                                           Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
-                                <Button Classes="Secondary" Name="DriverInstallButton" Height="32"
-                                        HorizontalAlignment="Left" Margin="2,10,0,0"
-                                        Click="OnInstallDriverClicked"
-                                        Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Margin="2,16,0,0" Name="DriverAttachCheck"
-                                          IsChecked="{Binding AttachDriverAtStart}"
-                                          Content="{Binding [Settings.DriverAttachAtStart], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.DriverAttachAtStartHint], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="Section">
-                            <StackPanel>
+                                           Text="{Binding [Settings.SoundSystem], Source={x:Static loc:Strings.Current}}" />
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding SoundSystem}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="SoundMacroCheck">
                                 <TextBlock Classes="FieldLabel"
-                                           Text="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap"
-                                           Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
-                                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
-                                           Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
+                                           Text="{Binding [Settings.SoundMacro], Source={x:Static loc:Strings.Current}}" />
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding SoundMacro}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+                    </StackPanel>
+
+                    <!-- ── 屏幕捕获 ─────────────────────────────────────────── -->
+                    <!-- 「怎么看」与「多久看一次」在同一页：调取帧频率时要看的是同一张画面。 -->
+                    <StackPanel IsVisible="{Binding IsScreenPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.Reading], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.CaptureWindowHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ComboBox Classes="Field" Width="200" ItemsSource="{Binding WindowWays}"
+                                              SelectedItem="{Binding SelectedWindowWay}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.CaptureScreen], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ComboBox Classes="Field" Width="200" ItemsSource="{Binding ScreenWays}"
+                                              SelectedItem="{Binding SelectedScreenWay}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.PreloadOcrHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch Name="PreloadOcrCheck" OnContent="" OffContent=""
+                                                  IsChecked="{Binding PreloadOcr}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+
+                        <fa:FASettingsExpander Header="{Binding [Settings.FramesCard], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem Name="FrameRateFollowCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.FrameRate], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.FrameRateHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Note" Margin="0,6,0,0" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               Text="{Binding FrameRateNote}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Spacing="8" HorizontalAlignment="Right">
+                                        <ToggleSwitch OnContent="" OffContent=""
+                                                      Content="{Binding [Settings.FrameRateFollow], Source={x:Static loc:Strings.Current}}"
+                                                      IsChecked="{Binding FrameRateFollow}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                                    IsEnabled="{Binding FrameRateEnabled}">
+                                            <fa:FANumberBox Name="FrameRateBox" Width="110"
+                                                            Minimum="1" Maximum="{Binding FastestRate}"
+                                                            SmallChange="5" SimpleNumberFormat="0"
+                                                            Value="{Binding FrameRate}" />
+                                            <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                                       Text="{Binding [Settings.FrameRateUnit], Source={x:Static loc:Strings.Current}}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="FrameCacheCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.FrameCache], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.FrameCacheHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding FrameCache}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="FrameCacheAgeRow">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.FrameCacheAge], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.FrameCacheAgeHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                IsEnabled="{Binding FrameCacheAgeEnabled}">
+                                        <fa:FANumberBox Name="FrameCacheAgeBoxValue" Width="110"
+                                                        Minimum="0" Maximum="1000" SmallChange="50"
+                                                        SimpleNumberFormat="0" Value="{Binding FrameCacheAge}" />
+                                        <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                                   Text="{Binding [Settings.FrameCacheAgeUnit], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+                    </StackPanel>
+
+                    <!-- ── 输入 ─────────────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsInputPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.InputCard], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem Name="InputLimitBox">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.InputLimit], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <fa:FANumberBox Width="120" Minimum="0" Maximum="999" SmallChange="10"
+                                                        SimpleNumberFormat="0" Value="{Binding InputRate}" />
+                                        <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                                   Text="{Binding [Settings.InputLimitUnit], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="IgnoreOwnInputCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.IgnoreOwnInput], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.IgnoreOwnInputHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding IgnoreOwnInput}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="ExclusiveInputCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.ExclusiveInput], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.ExclusiveInputHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding ExclusiveInput}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+                    </StackPanel>
+
+                    <!-- ── 设备与权限 ───────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsDevicesPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                               Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
+                                               Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
+                                    <Button Classes="Secondary" Name="DriverInstallButton" Height="32"
+                                            HorizontalAlignment="Left" Margin="0,10,0,0"
+                                            Click="OnInstallDriverClicked"
+                                            Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="DriverAttachCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.DriverAttachAtStart], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.DriverAttachAtStartHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding AttachDriverAtStart}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+
+                        <fa:FASettingsExpander Header="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                               Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
+                                               Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
+                                </StackPanel>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem Name="RunAsAdminCheck">
+                                <StackPanel>
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Settings.RunAsAdmin], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.RunAsAdminHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ToggleSwitch OnContent="" OffContent=""
+                                                  IsChecked="{Binding RunAsAdmin}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem>
                                 <Button Classes="Secondary" Name="AdminRestartButton" Height="32"
-                                        HorizontalAlignment="Left" Margin="2,10,0,0"
+                                        HorizontalAlignment="Left"
                                         IsVisible="{Binding !IsElevated}"
                                         Click="OnRestartElevatedClicked"
                                         Content="{Binding [Settings.AdminRestart], Source={x:Static loc:Strings.Current}}" />
-                                <CheckBox Margin="2,12,0,0" Name="RunAsAdminCheck"
-                                          Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
-                                          IsChecked="{Binding RunAsAdmin}"
-                                          Content="{Binding [Settings.RunAsAdmin], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,7,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.RunAsAdminHint], Source={x:Static loc:Strings.Current}}" />
-                                <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                           Text="{Binding [Settings.AdminHint], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                        </Border>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+                    </StackPanel>
+
+                    <!-- ── 菜单呼出 ─────────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsMenuLauncherPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.MenuLauncher], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                               Text="{Binding MenuLauncherStatus}" />
+                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.MenuLauncherHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
+                                                   TextAlignment="Right" Text="{Binding MenuLauncherDisplay}" />
+                                        <Button Name="CaptureMenuLauncherButton" Classes="Secondary" Height="30"
+                                                Content="{Binding MenuLauncherButton}" />
+                                        <Button Name="ClearMenuLauncherButton" Classes="Secondary" Height="30"
+                                                Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+                    </StackPanel>
+
+                    <!-- ── 窗口规则 ─────────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsWindowRulesPage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.MenuWindowRules], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem IsEnabled="{Binding HasProject}">
+                                <StackPanel>
+                                    <ListBox Name="MenuRuleList" ItemsSource="{Binding MenuRules}" Height="230">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:MenuRuleRow">
+                                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="4,3">
+                                                    <TextBlock Text="{Binding Summary}" FontSize="12.5"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding PageCountLabel}"
+                                                               FontSize="10.5" Foreground="{DynamicResource TextTertiary}" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding [Settings.MenuRuleDefault], Source={x:Static loc:Strings.Current}}"
+                                                               FontSize="10.5" Foreground="{DynamicResource TextTertiary}"
+                                                               IsVisible="{Binding IsDefault}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+                                        <Button Name="AddMenuRuleButton" Classes="Secondary" Height="30"
+                                                Click="OnAddMenuRule"
+                                                Content="{Binding [Settings.MenuRuleAdd], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Name="EditMenuRuleButton" Classes="Secondary" Height="30"
+                                                Click="OnEditMenuRule"
+                                                Content="{Binding [Settings.MenuRuleEdit], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Name="RemoveMenuRuleButton" Classes="Secondary" Height="30"
+                                                Click="OnRemoveMenuRule"
+                                                Content="{Binding [Settings.MenuRuleRemove], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Name="AddMenuRulePageButton" Classes="Secondary" Height="30"
+                                                Click="OnAddMenuRulePage"
+                                                Content="{Binding [Settings.MenuRuleAddPage], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleUp"
+                                                Content="{Binding [Settings.MenuRuleUp], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleDown"
+                                                Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource Warning}"
+                                               Text="{Binding MenuRuleProblem}" />
+                                    <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
+                    </StackPanel>
+
+                    <!-- ── 主题 ─────────────────────────────────────────────── -->
+                    <StackPanel IsVisible="{Binding IsThemePage}" Spacing="10">
+                        <fa:FASettingsExpander Header="{Binding [Settings.Colors], Source={x:Static loc:Strings.Current}}"
+                                               IsExpanded="True">
+                            <fa:FASettingsExpanderItem>
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <ComboBox Name="ThemeSelect" Classes="Field" Width="200"
+                                              ItemsSource="{Binding ThemeOptions}"
+                                              SelectedItem="{Binding SelectedTheme}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem IsVisible="{Binding IsCustomTheme}">
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                           Text="{Binding [Settings.CustomizeThemeHint], Source={x:Static loc:Strings.Current}}" />
+                                <fa:FASettingsExpanderItem.Footer>
+                                    <Button Name="CustomizeThemeButton" Classes="Secondary" Height="32"
+                                            Click="OnCustomizeThemeClicked"
+                                            Content="{Binding [Settings.CustomizeTheme], Source={x:Static loc:Strings.Current}}" />
+                                </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+                        </fa:FASettingsExpander>
                     </StackPanel>
                 </StackPanel>
-                    </ScrollViewer>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="{Binding [Settings.Root.Triggers], Source={x:Static loc:Strings.Current}}">
-                <Grid ColumnDefinitions="180,*" Margin="0,8,0,0">
-                    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
-                        <StackPanel Spacing="3">
-                            <Button Name="MenuLauncherNavButton" Classes="Tab Side"
-                                    Classes.selected="{Binding IsMenuLauncherPage}"
-                                    Content="{Binding [Settings.Nav.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
-                            <Button Name="WindowRulesNavButton" Classes="Tab Side"
-                                    Classes.selected="{Binding IsWindowRulesPage}"
-                                    Content="{Binding [Settings.Nav.WindowRules], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
-                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
-                        <StackPanel Name="TriggersSettingsPanel">
-
-                    <Border Classes="Section" IsVisible="{Binding IsMenuLauncherPage}">
-                        <StackPanel>
-                            <TextBlock Classes="FieldLabel"
-                                       Text="{Binding [Settings.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                <TextBlock FontSize="13" Foreground="{DynamicResource TextPrimary}"
-                                           VerticalAlignment="Center" Text="{Binding MenuLauncherDisplay}" />
-                                <Button Grid.Column="1" Name="CaptureMenuLauncherButton"
-                                        Classes="Secondary" Height="32"
-                                        Content="{Binding MenuLauncherButton}" />
-                                <Button Grid.Column="2" Name="ClearMenuLauncherButton"
-                                        Classes="Secondary" Height="32"
-                                        Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
-                            </Grid>
-                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Text="{Binding MenuLauncherStatus}" />
-                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.MenuLauncherHint], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.HotkeySupport], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.MenuShapeHint], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Classes="Section" IsVisible="{Binding IsWindowRulesPage}">
-                        <StackPanel IsEnabled="{Binding HasProject}">
-                            <TextBlock Classes="FieldLabel"
-                                       Text="{Binding [Settings.MenuWindowRules], Source={x:Static loc:Strings.Current}}" />
-                            <ListBox Name="MenuRuleList" ItemsSource="{Binding MenuRules}" Height="230">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:MenuRuleRow">
-                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="4,3">
-                                            <TextBlock Text="{Binding Summary}" FontSize="12.5"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1" Text="{Binding PageCountLabel}"
-                                                       FontSize="10.5" Foreground="{DynamicResource TextTertiary}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding [Settings.MenuRuleDefault], Source={x:Static loc:Strings.Current}}"
-                                                       FontSize="10.5" Foreground="{DynamicResource TextTertiary}"
-                                                       IsVisible="{Binding IsDefault}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
-                                <Button Name="AddMenuRuleButton" Classes="Secondary" Height="30"
-                                        Click="OnAddMenuRule"
-                                        Content="{Binding [Settings.MenuRuleAdd], Source={x:Static loc:Strings.Current}}" />
-                                <Button Name="EditMenuRuleButton" Classes="Secondary" Height="30"
-                                        Click="OnEditMenuRule"
-                                        Content="{Binding [Settings.MenuRuleEdit], Source={x:Static loc:Strings.Current}}" />
-                                <Button Name="RemoveMenuRuleButton" Classes="Secondary" Height="30"
-                                        Click="OnRemoveMenuRule"
-                                        Content="{Binding [Settings.MenuRuleRemove], Source={x:Static loc:Strings.Current}}" />
-                                <Button Name="AddMenuRulePageButton" Classes="Secondary" Height="30"
-                                        Click="OnAddMenuRulePage"
-                                        Content="{Binding [Settings.MenuRuleAddPage], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleUp"
-                                        Content="{Binding [Settings.MenuRuleUp], Source={x:Static loc:Strings.Current}}" />
-                                <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleDown"
-                                        Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
-                            </StackPanel>
-                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource Warning}"
-                                       Text="{Binding MenuRuleProblem}" />
-                            <TextBlock Classes="Hint" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="{Binding [Settings.Root.Appearance], Source={x:Static loc:Strings.Current}}">
-                <Grid ColumnDefinitions="180,*" Margin="0,8,0,0">
-                    <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="8" Margin="0,0,10,12">
-                        <StackPanel Spacing="3">
-                            <Button Name="ThemeNavButton" Classes="Tab Side"
-                                    Classes.selected="{Binding IsThemePage}"
-                                    Content="{Binding [Settings.Nav.Theme], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
-                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
-                        <StackPanel Name="AppearanceSettingsPanel">
-
-                    <Border Classes="Section" IsVisible="{Binding IsThemePage}">
-                        <StackPanel>
-                            <TextBlock Classes="FieldLabel"
-                                       Text="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}" />
-                            <ComboBox Name="ThemeSelect" Classes="Field" Width="240" HorizontalAlignment="Left"
-                                      ItemsSource="{Binding ThemeOptions}"
-                                      SelectedItem="{Binding SelectedTheme}" />
-                            <Button Name="CustomizeThemeButton" Classes="Secondary" Height="32"
-                                    HorizontalAlignment="Left" Margin="2,10,0,0"
-                                    IsVisible="{Binding IsCustomTheme}"
-                                    Click="OnCustomizeThemeClicked"
-                                    Content="{Binding [Settings.CustomizeTheme], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,6,0,0" TextWrapping="Wrap"
-                                       IsVisible="{Binding IsCustomTheme}"
-                                       Text="{Binding [Settings.CustomizeThemeHint], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Classes="Hint" Margin="2,4,0,0" TextWrapping="Wrap"
-                                       Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                    </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
-            </TabItem>
-        </TabControl>
+            </ScrollViewer>
+        </fa:FANavigationView>
 
         <Button Grid.Row="2" Classes="Secondary" Height="36" MinWidth="92"
-                HorizontalAlignment="Right" Margin="20,0,20,18" Name="DoneButton"
+                HorizontalAlignment="Right" Margin="20,6,20,16" Name="DoneButton"
                 Content="{Binding [Settings.Close], Source={x:Static loc:Strings.Current}}" />
     </Grid>
 </views:AppWindow>

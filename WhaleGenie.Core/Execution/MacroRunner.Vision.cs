@@ -158,7 +158,7 @@ public sealed partial class MacroRunner
         var right = Math.Clamp(point.X + Neighbourhood + 1, left + 1, desk.Right);
         var bottom = Math.Clamp(point.Y + Neighbourhood + 1, top + 1, desk.Bottom);
 
-        var shot = Shot(step, left, top, right - left, bottom - top, window);
+        var shot = Shot(left, top, right - left, bottom - top, window);
         Saw(step, LookKind.Pixel, shot.Frame, shot.Origin,
             [
                 new(new ImageMatch(1, shot.Origin,
@@ -243,7 +243,7 @@ public sealed partial class MacroRunner
     {
         var anchor = AnchorOf(step);
         var (corner, width, height) = Box(step, anchor.Corner, anchor.Window);
-        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
+        var shot = Shot(corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
     }
 
@@ -329,7 +329,7 @@ public sealed partial class MacroRunner
     private (ImageFrame Frame, ScreenPoint Corner, WindowInfo Window) WindowBox(ExecutableStep step)
     {
         var window = Locate(step);
-        var shot = Shot(step, window.Location.X, window.Location.Y, window.Size.Width,
+        var shot = Shot(window.Location.X, window.Location.Y, window.Size.Width,
             window.Size.Height, window);
         return (shot.Frame, shot.Origin, window);
     }
@@ -445,7 +445,7 @@ public sealed partial class MacroRunner
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
         var (point, window) = Spot(step);
-        var interval = LookBeat(step);
+        var interval = LookBeat();
         await WaitForFlagAsync(
             () => PixelAt(step).Matches(target, tolerance), interval, token);
         (point, window) = Spot(step);
@@ -849,7 +849,7 @@ public sealed partial class MacroRunner
         var tolerance = ReadValue(step, "tolerance").AsNumber();
         var allowed = ReadValue(step, "changedPercent").AsNumber() / 100;
         var quiet = Math.Max(0, Number(step, "quietMs"));
-        var interval = LookBeat(step);
+        var interval = LookBeat();
 
         var started = Stopwatch.GetTimestamp();
         long Elapsed() => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -984,7 +984,7 @@ public sealed partial class MacroRunner
         var target = PixelColor.Parse(ReadValue(step, "color").AsText());
         var tolerance = ReadValue(step, "tolerance").AsNumber();
         var least = ReadValue(step, "minCoverage").AsNumber() / 100;
-        var interval = LookBeat(step);
+        var interval = LookBeat();
 
         // Enough of the region showing the colour is not the same question as the hit the step
         // asked for being there: a step that asks for the second hit of a colour that is in one
@@ -1028,62 +1028,62 @@ public sealed partial class MacroRunner
         switch (step.Type)
         {
             case "vision.capture":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => Capture(step, depth));
                 return Signal.Normal;
             case "vision.captureWindow":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => CaptureWindow(step, depth));
                 return Signal.Normal;
             case "vision.matchColor":
                 Watching(() => MatchColor(step, depth));
                 return Signal.Normal;
             case "vision.getPixel":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => GetPixel(step, depth));
                 return Signal.Normal;
             case "vision.waitColor":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => WaitColor(step, depth, token));
                 return Signal.Normal;
             case "vision.findColor":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => FindColor(step, depth));
                 return Signal.Normal;
             case "vision.findColors":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => FindColours(step, depth));
                 return Signal.Normal;
             case "vision.waitStable":
-                await Gate(step, token);
+                await Gate(token);
                 await WaitStable(step, depth, token);
                 return Signal.Normal;
             case "vision.findImage":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => LookFor(step, depth));
                 return Signal.Normal;
             case "vision.waitImage":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => WaitForImage(step, depth, token));
                 return Signal.Normal;
             case "vision.clickColor":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => ClickColor(step, depth, token));
                 return Signal.Normal;
             case "vision.clickImage":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => ClickImage(step, depth, token));
                 return Signal.Normal;
             case "vision.detect":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => LookForObjects(step, depth));
                 return Signal.Normal;
             case "vision.waitDetect":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => WaitForObjects(step, depth, token));
                 return Signal.Normal;
             case "vision.clickDetect":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => ClickObject(step, depth, token));
                 return Signal.Normal;
 

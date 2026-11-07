@@ -110,6 +110,15 @@ internal sealed class FakeDeviceLayer : IDeviceLayer
     /// <summary>How this machine has been told to read the screen.</summary>
     ICaptureChoice IDeviceLayer.Capture => Screen.Ways;
 
+    /// <summary>
+    /// How often this pretend machine hands over a picture and how long it stays worth reading.
+    /// A check that is about the beat sets it; one that is not gets a policy that never reuses a
+    /// picture and never holds a look back.
+    /// </summary>
+    public FramePolicy Frames { get; } = new();
+
+    IFramePolicy IDeviceLayer.Frames => Frames;
+
     IScreenDevice IDeviceLayer.Screen => Screen;
 
     /// <summary>

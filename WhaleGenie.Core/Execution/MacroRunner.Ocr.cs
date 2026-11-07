@@ -53,6 +53,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
     {
+        // 识别一次整幅画面是同步的，读不到取消令牌：进识别之前先问一次，让「停止」不必等它。
+        _runToken.ThrowIfCancellationRequested();
+
         var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), ReadText(step, "preprocess"));
         var readings = _devices.Ocr.Recognize(prepared)
             .Select(span => span with { Text = Corrected(step, span.Text) });
@@ -305,7 +308,7 @@ public sealed partial class MacroRunner
     {
         var wanted = ReadValue(step, "queryText").AsText();
         var way = TextWay(step, wanted);
-        var interval = LookBeat(step);
+        var interval = LookBeat();
 
         // The readings of the last look are kept, so the look handed over at the end is of the
         // screen as it was when the step gave up or found what it wanted.
@@ -408,15 +411,15 @@ public sealed partial class MacroRunner
         switch (step.Type)
         {
             case "ocr.recognize":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => Recognize(step, depth));
                 return Signal.Normal;
             case "ocr.findText":
-                await Gate(step, token);
+                await Gate(token);
                 Watching(() => FindText(step, depth));
                 return Signal.Normal;
             case "ocr.clickText":
-                await Gate(step, token);
+                await Gate(token);
                 await Watching(() => ClickText(step, depth, token));
                 return Signal.Normal;
 

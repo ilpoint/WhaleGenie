@@ -98,13 +98,13 @@ public class DriverInputTests
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
             Assert.False(string.IsNullOrWhiteSpace(viewModel.DriverStatus));
-            viewModel.SetPage(SettingsRootPage.System, SettingsSubPage.Devices);
+            viewModel.SetPage(SettingsSubPage.Devices);
             Dispatcher.UIThread.RunJobs();
 
             var install = window.FindControl<Button>("DriverInstallButton");
             Assert.True(install is not null && install.IsVisible);
 
-            var attach = window.FindControl<CheckBox>("DriverAttachCheck");
+            var attach = window.FindControl<Control>("DriverAttachCheck");
             Assert.True(attach is not null && attach.IsVisible);
 
             window.Close();

@@ -443,7 +443,7 @@ public class RunLookTests
         var devices = Screen();
         var looks = new Watched();
         var step = Within(60, Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
-            Param("confidence", "90"), Param("intervalMs", "10"), Hit("match", "match")));
+            Param("confidence", "90"), Hit("match", "match")));
 
         var result = await Run(step, devices, looks);
 
@@ -686,7 +686,7 @@ public class RunLookTests
         var devices = Screen();
         var looks = new Watched();
         var step = Within(60, Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
-            Param("confidence", "90"), Param("intervalMs", "10"), Hit("match", "match")));
+            Param("confidence", "90"), Hit("match", "match")));
 
         var result = await Run(step, devices, looks);
 
@@ -925,7 +925,7 @@ public class RunLookTests
     {
         var devices = Screen();
         var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
-            Param("confidence", "90"), Param("intervalMs", "10"), Hit("match", "match"));
+            Param("confidence", "90"), Hit("match", "match"));
 
         var outcome = MacroRunner.LookOnce(step, devices);
 

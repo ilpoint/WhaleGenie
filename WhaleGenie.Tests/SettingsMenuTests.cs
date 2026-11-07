@@ -121,12 +121,11 @@ public class SettingsMenuTests
         Ui.Run(() =>
         {
             var project = new MainViewModel();
-            var window = new SettingsWindow(project, null,
-                SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
+            var window = new SettingsWindow(project, null, SettingsSubPage.MenuLauncher);
             window.Show();
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            Assert.True(viewModel.IsTriggersRoot);
+            Assert.Equal(SettingsSubPage.MenuLauncher, viewModel.SelectedPage);
             Assert.True(viewModel.IsMenuLauncherPage);
             Assert.NotNull(window.FindControl<Button>("CaptureMenuLauncherButton"));
             Assert.NotNull(window.FindControl<ListBox>("MenuRuleList"));

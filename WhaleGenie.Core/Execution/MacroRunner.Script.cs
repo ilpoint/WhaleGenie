@@ -828,13 +828,13 @@ public sealed partial class MacroRunner
     /// macro is stopped.
     /// </summary>
     /// <summary>
-    /// The beat a step that looks at the screen keeps: what the step wrote, or one refresh of the
-    /// screen it is running on when it wrote nothing. A picture that has not been drawn again
-    /// cannot differ from the one just read, so a look that comes sooner reads the same frame
-    /// twice. That is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one, which is why an empty
-    /// cell follows the screen rather than the machine the macro was written on.
+    /// The beat a step that looks at the screen keeps: the run's frame gap, which is the display's
+    /// own rate unless the settings asked for a slower one. A picture that has not been drawn again
+    /// cannot differ from the one just read, so a look that comes sooner reads the same frame twice.
+    /// The beat is the run's rather than the step's, because a loop of ten vision steps was taking
+    /// ten pictures a pass of a screen that cannot change between them.
     /// </summary>
-    private int LookBeat(ExecutableStep step) => Math.Max(1, Number(step, "intervalMs"));
+    private int LookBeat() => FrameGap();
 
     private async Task<bool> WaitForFlagAsync(Func<bool> ready, int timeoutMs, int interval,
         CancellationToken token)

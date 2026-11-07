@@ -159,8 +159,8 @@ few thousand guesses. A larger region only pays for one more copy while scaling.
 
 ## What one look adds up to
 
-One look = one capture + one algorithm run over it. When every look captures again
-(`frameMaxAgeMs` 0; `intervalMs` 0 for a step that does not wait), the numbers are:
+One look = one capture + one algorithm run over it. With **Settings, Screen capture, reuse the last frame**
+off, every look captures again, so the numbers are:
 
 | What the step does | One look | Times a second |
 | --- | --- | --- |
@@ -171,29 +171,28 @@ One look = one capture + one algorithm run over it. When every look captures aga
 | One detection over the whole screen (yolov8n, 640) | 2.0 + 40 ≈ 42 ms | about 24 |
 | One round of waiting for the picture to hold still | 2.0 + 5.7 ≈ 8 ms | about 125 |
 
-Two switches change that number. Both are on the **Advanced** page and both are off by default:
+Two settings change that number. Both are on the **Screen capture** page and both apply to every step of a
+run at once:
 
-- **Accept a picture up to** (`frameMaxAgeMs`): above 0, one capture serves every step reading the
-  same source the same way within that age, and the later steps cut their own rectangle out of it.
-  Ten steps reading the same part of the screen in a row take the capture cost from 10 × 29.5 ≈ 295 ms
-  down to 30 ms on the GDI way, and from 10 × 2 ≈ 20 ms down to 2 ms on the duplication way.
-- **Time between looks** (`intervalMs`): the least time one step leaves between two looks at the
-  screen. A step that waits for something uses it as its polling pace, and left empty that is one
-  screen refresh — 16 ms on a 60 Hz display, 5 ms on a 240 Hz one — so one round of polling costs
-  the row above times the number of rounds. The refresh rate is the floor under looking at all:
-  until the picture is drawn again there is nothing new to read.
+- **Reuse the last frame** (off by default, kept for 0–1000 ms, 100 by default): once on, one
+  capture serves every step reading the same source the same way, and the later steps cut their own
+  rectangle out of it. Ten steps reading the same part of the screen in a row take the capture cost
+  from 10 × 29.5 ≈ 295 ms down to 30 ms on the GDI way, and from 10 × 2 ≈ 20 ms down to 2 ms on the
+  duplication way.
+- **Frame cap** (following the display by default): the most looks a run asks the screen for
+  in a second, which is also the shortest gap between two looks. The refresh rate is the hard ceiling
+  under it: until the picture is drawn again there is nothing new to read, so a higher number only
+  reads the same frame twice. `control.waitUntil` and `uia.waitElement` wait for a condition rather
+  than for pixels, so their `intervalMs` stays on the step.
 
 ## What is not there yet
 
-- The throttle is per step (`MacroRunner._looked` is keyed by step id). There is no "this macro looks
-  at the screen at most N times a second" over the whole macro: ten different find-picture steps in
-  one loop each go as fast as they can, and the total is their sum. Making them share a picture takes
-  `frameMaxAgeMs` on every one of them, and what is shared is keyed by "source + way of capturing", so
-  changing which way a window or the screen is read in the settings shares nothing.
 - Capturing and matching are both synchronous for the running thread: the capture itself (23 ms for the
   whole screen with GDI) happens on the capture library's own thread while the running thread waits, so
   it is still 23 ms of blocking. A macro is a sequence anyway, so it only makes that round longer; it
-  does not disturb other steps.
+  does not disturb other steps. The interface thread is unaffected in any case: all three ways a run
+  starts go through `Task.Run`, and the cancellation token is only checked between search areas, so one
+  211 ms whole-screen match still runs to its end.
 - The text recognition model is read in once per process, paid by the first look.
 
 ## How often a trigger looks

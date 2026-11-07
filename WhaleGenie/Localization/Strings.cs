@@ -1047,21 +1047,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.InterfaceHotkeySupport"] = "Supports letters, digits, F1–F24, arrows, editing keys, numeric-keypad keys, and modifier combinations.",
         ["Editor.InterfaceHotkeyUnsupported"] = "This key cannot be read by the global hook and was not saved.",
         ["Settings.Hotkeys"] = "Global shortcut keys",
-        ["Settings.SystemHotkey"] = "Trigger system switch",
-        ["Settings.HotkeyHint"] = "Leave empty to disable the shortcut. The main window buttons still work.",
+        ["Settings.SystemHotkey"] = "System switch shortcut",
+        ["Settings.HotkeyHint"] = "Empty disables it. Letters, digits, F1–F24, combinations.",
         ["Settings.HotkeySet"] = "Set shortcut",
         ["Settings.HotkeyPress"] = "Press a key or shortcut…",
         ["Settings.HotkeyClear"] = "Clear",
-        ["Settings.HotkeySupport"] = "Supports letters, digits, F1–F24, arrows, editing keys, numeric-keypad keys, and modifier combinations.",
-        ["Settings.HotkeyUnsupported"] = "This key cannot be read by the global hook and was not saved.",
+        ["Settings.HotkeyUnsupported"] = "This key cannot be read and was not saved.",
         ["Settings.Sounds"] = "Sounds",
-        ["Settings.SoundSystem"] = "System switch cue",
-        ["Settings.SoundMacro"] = "Macro switch cue",
-        ["Settings.RecordStopKey"] = "Recording start/stop key",
-        ["Settings.RecordStopHint"] = "Press the button, then the shortcut to use. In the macro "
-            + "editor it starts a recording and it ends the one in progress; while a text field has "
-            + "the keyboard it is left alone. Ctrl+F10 by default, written the way every other "
-            + "shortcut is: letters, digits, F1 to F24 and combinations such as Ctrl+Alt+F12.",
+        ["Settings.SoundSystem"] = "Cue when the system is switched",
+        ["Settings.SoundMacro"] = "Cue when a macro is switched",
+        ["Settings.RecordStopKey"] = "Recording start/stop shortcut",
+        ["Settings.RecordStopHint"] = "Starts and ends a recording in the editor; Ctrl+F10 by default.",
         ["Menu.DefaultContext"] = "Default",
         ["Menu.Drag"] = "Drag the title bar to move the menu",
         ["Menu.Search"] = "Search macros",
@@ -1096,21 +1092,34 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Root.System"] = "System",
         ["Settings.Root.Triggers"] = "Triggers",
         ["Settings.Root.Appearance"] = "Appearance",
-        ["Settings.Nav.General"] = "General and language",
-        ["Settings.Nav.Capture"] = "Input and capture",
-        ["Settings.Nav.Devices"] = "Devices and permissions",
-        ["Settings.Nav.MenuLauncher"] = "Menu launcher",
+        ["Settings.Nav.General"] = "General",
+        ["Settings.Nav.Hotkeys"] = "Hotkeys and sound",
+        ["Settings.Nav.Screen"] = "Screen capture",
+        ["Settings.Nav.Input"] = "Input",
+        ["Settings.Nav.Devices"] = "Devices",
+        ["Settings.Nav.MenuLauncher"] = "Menu",
         ["Settings.Nav.WindowRules"] = "Window rules",
-        ["Settings.Nav.Theme"] = "Theme and appearance",
+        ["Settings.Nav.Theme"] = "Theme",
+        ["Settings.FramesCard"] = "Frames",
+        ["Settings.FrameRate"] = "Frame cap",
+        ["Settings.FrameRateUnit"] = "per second",
+        ["Settings.FrameRateFollow"] = "Follow the display",
+        ["Settings.FrameRateNote"] = "This display runs at {0} Hz.",
+        ["Settings.FrameRateHint"] = "Range 1 to the display's rate, following it by default; lower means later notice.",
+        ["Settings.FrameCache"] = "Reuse the last frame",
+        ["Settings.FrameCacheHint"] = "On when several steps read one picture; off by default.",
+        ["Settings.FrameCacheAge"] = "Keep it for",
+        ["Settings.FrameCacheAgeUnit"] = "ms",
+        ["Settings.FrameCacheAgeHint"] = "The oldest a reused picture may be. Range 0–1000 ms, default 100.",
+        ["Settings.Reading"] = "Reading pictures",
         ["Settings.MenuLauncher"] = "Menu shortcut",
-        ["Settings.MenuLauncherMissing"] = "No menu shortcut is set.",
-        ["Settings.MenuLauncherInvalid"] = "The menu accepts one keyboard shortcut or the middle, 4 or 5 mouse button. Wheel, left and right buttons are not accepted.",
-        ["Settings.MenuLauncherConflict"] = "This binding is already used by another trigger.",
-        ["Settings.MenuLauncherHint"] = "One binding opens the menu. Keyboard combinations, the middle button and mouse buttons 4/5 are accepted; the wheel is reserved for paging.",
-        ["Settings.MenuSystemOff"] = "The menu shortcut does not respond while the system switch is off.",
-        ["Settings.MenuReady"] = "The menu shortcut is ready.",
-        ["Settings.MenuEmpty"] = "The shortcut will open an empty menu; click an empty cell to add a macro.",
-        ["Settings.MenuShapeHint"] = "The menu uses 80×80 cells in four columns and two three-row regions. Common and matched-rule regions page independently; the title stays fixed as the WhaleGenie icon and name.",
+        ["Settings.MenuLauncherMissing"] = "Not set",
+        ["Settings.MenuLauncherInvalid"] = "That key cannot be used here; pick another.",
+        ["Settings.MenuLauncherConflict"] = "Another trigger already uses it.",
+        ["Settings.MenuLauncherHint"] = "One keyboard shortcut, the middle or a side button; the wheel pages.",
+        ["Settings.MenuSystemOff"] = "System is off",
+        ["Settings.MenuReady"] = "Ready",
+        ["Settings.MenuEmpty"] = "The menu has no macros yet",
         ["Settings.MenuWindowRules"] = "Lower-region window rules",
         ["Settings.MenuRuleDefault"] = "Default",
         ["Settings.MenuRulePageCount"] = "{0} page(s)",
@@ -1121,7 +1130,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.MenuRuleRemove"] = "Remove",
         ["Settings.MenuRuleUp"] = "Move up",
         ["Settings.MenuRuleDown"] = "Move down",
-        ["Settings.MenuRuleHint"] = "Rules are checked from top to bottom. The first match supplies its own paginated lower region; the default pages are used when none matches.",
+        ["Settings.MenuRuleHint"] = "First match from the top wins; otherwise the default pages.",
         ["Menu.Problem.TooManyPages"] = "The menu has more than eight common pages.",
         ["Menu.Problem.PageId"] = "Two menu pages use the same identifier.",
         ["Menu.Problem.RuleEmpty"] = "A lower-region window rule has no target.",
@@ -1683,9 +1692,10 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------------------ settings
         ["Settings.Title"] = "Settings",
         ["Settings.Language"] = "Language",
-        ["Settings.ThemeHint"] = "Dark and light are built in. Custom lets you pick the accent color.",
+        ["Settings.ThemeHint"] = "Dark and light are built in; Custom picks one accent.",
         ["Settings.CustomizeTheme"] = "Custom accent…",
-        ["Settings.CustomizeThemeHint"] = "Changes apply to every open window and are kept for the next start.",
+        ["Settings.CustomizeThemeHint"] = "Applies to every window and is kept for the next start.",
+        ["Settings.Colors"] = "Colors",
         ["Theme.Mode.Dark"] = "Dark",
         ["Theme.Mode.Light"] = "Light",
         ["Theme.Mode.Custom"] = "Custom",
@@ -1703,136 +1713,62 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.Preview.AccentText"] = "Accent text",
         ["Theme.ResetAccent"] = "Back to the built-in accent",
         ["Theme.Done"] = "Done",
-        ["Settings.LanguageHint"] = "Applies immediately to every window. Until changed, follows the "
-            + "Windows display language.",
+        ["Settings.LanguageHint"] = "Applies at once; follows Windows until chosen.",
         ["Settings.LoadLastProject"] = "Open the last project at start",
-        ["Settings.LoadLastProjectHint"] = "Off starts with an empty list, which suits keeping several "
-            + "projects apart from one another.",
+        ["Settings.LoadLastProjectHint"] = "Off starts with an empty list.",
         ["Settings.SystemAtStart"] = "Enable the system at start",
-        ["Settings.SystemAtStartHint"] = "On starts responding to triggers right away. Off by default, "
-            + "which leaves the system disabled until the hotkey turns it on.",
+        ["Settings.SystemAtStartHint"] = "On answers triggers at once; off by default.",
         ["Settings.EnabledFirst"] = "List enabled macros first",
-        ["Settings.EnabledFirstHint"] = "Off keeps the order the project was made in.",
+        ["Settings.EnabledFirstHint"] = "Off keeps the project's own order.",
+        ["Settings.GeneralCard"] = "Language and startup",
         ["Settings.Storage"] = "Storage locations",
-        ["Settings.StorageHint"] = "All of it lives under your Windows profile, so updating or "
-            + "reinstalling the program does not take it away. Each row says what is kept there.",
+        ["Settings.StorageHint"] = "All under your Windows profile; updates keep them.",
+        ["Settings.StorageProblem"] = "The folder could not be opened; see the log.",
         ["Settings.LogCount"] = "Keep recent logs",
         ["Settings.LogCountUnit"] = "files",
-        ["Settings.LogCountHint"] = "A failure log (failure-…) and the MCP call log (mcp-…) are "
-            + "written one file per run or per day; this many of them are kept, by modification "
-            + "time. The oldest go at the next start. runtime.log rolls by itself and is never "
-            + "counted. Range 1 to 999, default 100.",
-        ["Settings.StorageState"] = "Settings, logs and unsaved work",
-        ["Settings.StorageStateWhat"] = "settings.json holds the choices in this window and the "
-            + "others; logs/ holds the log of a run that failed; recovery.json holds work that was "
-            + "not saved yet.",
+        ["Settings.LogCountHint"] = "Failure and MCP logs kept, newest first. Range 1–999, default 100.",
+        ["Settings.StorageState"] = "Program settings and logs",
+        ["Settings.StorageStateWhat"] = "settings.json holds the choices, logs the failures, recovery.json unsaved work.",
         ["Settings.StorageProjects"] = "Project pictures and the last save",
-        ["Settings.StorageProjectsWhat"] = "One folder per macro package. assets/ holds the pictures "
-            + "unpacked out of it, which is what a step's image refers to; last.wgmacro.bak is the "
-            + "package the last save replaced.",
+        ["Settings.StorageProjectsWhat"] = "One folder per package: assets/ and the last save.",
         ["Settings.StorageImages"] = "Pictures before a project is saved",
-        ["Settings.StorageImagesWhat"] = "Where a capture goes while the project has no file of its "
-            + "own yet.",
+        ["Settings.StorageImagesWhat"] = "Where pictures go before the project has a file.",
         ["Settings.StorageLibrary"] = "Public macro library",
-        ["Settings.StorageLibraryWhat"] = "Macros shared by every project. It stays beside the "
-            + "program, so a copy carried elsewhere takes it along.",
+        ["Settings.StorageLibraryWhat"] = "Shared by every project; travels with the program.",
         ["Settings.OpenFolder"] = "Open",
-        ["Settings.CaptureWindow"] = "Reading a window",
-        ["Settings.CaptureWindowHint"] =
-            "How a picture of a window is taken on this machine, for every step of every macro. "
-            + "Automatic, the default, reads the window through Graphics Capture, then asks it to "
-            + "draw itself, then reads the pixels on the screen where it is. A way that is named is "
-            + "the only one tried, so a change here is what to reach for when a window comes out "
-            + "wrong. PrintWindow gives the whole window with its title bar; Graphics Capture gives "
-            + "the part the window draws in, and finds a window another window covers. Applies from "
-            + "the next look; a step that is reading the screen at this moment finishes the way it "
-            + "started. Windows 10 shows the system capture border while Graphics Capture is in use; "
-            + "Windows 11 can turn it off.",
-        ["Settings.CaptureScreen"] = "Reading the screen",
-        ["Settings.CaptureScreenHint"] =
-            "How a picture of the desktop is taken on this machine, for every step of every macro. "
-            + "Automatic, the default, copies the picture the graphics card is composing for the "
-            + "display and falls back on copying the screen, which is several times slower. Desktop "
-            + "duplication (DXGI) is that picture, and is the only way that finds a game holding the "
-            + "screen to itself; high dynamic range and a screen turned on its side are what it "
-            + "cannot do. Desktop (GDI) copies the screen, which always answers something. Graphics "
-            + "Capture reads the display the way a window is read, and needs Windows 10 2004 or "
-            + "later.",
+        ["Settings.CaptureWindow"] = "Window pictures",
+        ["Settings.CaptureWindowHint"] = "Automatic by default; change it when a window comes out blank or misplaced.",
+        ["Settings.CaptureScreen"] = "Desktop pictures",
+        ["Settings.CaptureScreenHint"] = "Automatic by default; full-screen games need desktop duplication.",
         ["Settings.Capture.auto"] = "Automatic",
         ["Settings.Capture.printWindow"] = "Window (PrintWindow)",
         ["Settings.Capture.graphicsCapture"] = "Graphics Capture",
         ["Settings.Capture.desktopDuplication"] = "Desktop duplication (DXGI)",
         ["Settings.Capture.gdi"] = "Desktop (GDI)",
-        ["Settings.PreloadOcr"] = "Load text recognition in the background at startup",
-        ["Settings.PreloadOcrHint"] =
-            "Loading the models takes a moment, and the first step that reads text would otherwise "
-            + "be the one to wait. Off by default, because the models stay in memory while the "
-            + "program runs.",
+        ["Settings.PreloadOcr"] = "Load text recognition at startup",
+        ["Settings.PreloadOcrHint"] = "Skips the first wait for text, at the cost of memory; off by default.",
+        ["Settings.InputCard"] = "Pacing and queueing",
         ["Settings.InputLimit"] = "Input limit",
         ["Settings.InputLimitUnit"] = "events per second",
-        ["Settings.InputLimitHint"] =
-            "The most keyboard and mouse events this program may send in a second; 0 sends without "
-            + "a limit. Typing, a key press, a click, a wheel notch and a drag each count once, a "
-            + "chord counts once, and moving the pointer does not count at all. Range 0 to 999, "
-            + "default 120.",
-        ["Settings.IgnoreOwnInput"] = "Ignore your own input",
-        ["Settings.IgnoreOwnInputTurn"] = "Do not take keys and clicks this program sent as yours",
-        ["Settings.IgnoreOwnInputHint"] =
-            "On by default. Triggers then pay no attention to keys this program sent, so a macro "
-            + "pressing a key another macro is bound to does not start that macro; a recording "
-            + "leaves the same input out, so a macro that is running is not recorded into a new "
-            + "one. Off takes both in, which is what a flow driving this program's own shortcuts "
-            + "wants. The change reaches the triggers at once; the switch in the recording panel "
-            + "takes its value when a macro is opened and then applies to that recording alone.",
+        ["Settings.InputLimitHint"] = "Cap on keyboard and mouse events; 0 is no limit. Range 0–999, default 120.",
+        ["Settings.IgnoreOwnInput"] = "Ignore this program's own input",
+        ["Settings.IgnoreOwnInputHint"] = "Triggers and recording skip what this program sends; on by default.",
         ["Settings.ExclusiveInput"] = "Exclusive input",
-        ["Settings.ExclusiveInputTurn"] = "Let only one macro send keys and clicks at a time",
-        ["Settings.ExclusiveInputHint"] =
-            "Applies to every run this program starts, including the macros a run calls: while one "
-            + "macro is in the middle of a keyboard or mouse step, another waits for it, so each "
-            + "step arrives whole rather than interleaved with another macro's. Reading the screen, "
-            + "recognising and waiting for a window are not input and never queue, so two macros "
-            + "may watch the same window at once. Off by default, and a change applies from the "
-            + "next run. To keep a whole stretch from being cut into, put that stretch inside the "
-            + "\"Exclusive input\" action (control.holdInput).",
+        ["Settings.ExclusiveInputHint"] = "One macro sends input at a time; off by default, next run applies it.",
         ["Settings.Driver"] = "Driver-level input",
-        ["Settings.DriverReady"] = "usbip-win2 driver installed, so driver-level input can be used.",
-        ["Settings.DriverMissing"] = "The usbip-win2 driver is not installed.",
-        ["Settings.DriverLibraryMissing"] =
-            "The usbip-win2 driver is installed, but the virtual USB library this program carries "
-            + "(libVIIPER.dll) is not beside it: unpack the release again, in one piece.",
-        ["Settings.DriverInstall"] = "Install driver...",
-        ["Settings.DriverHint"] =
-            "Driver-level input makes the target program see real hardware. Install the usbip-win2 "
-            + "driver by hand (administrator rights, a brief USB disconnect, possibly a restart), "
-            + "and that is the only piece that has to be. The virtual keyboard, mouse and "
-            + "controller, and the server they live on, come with this program.",
-        ["Settings.DriverAttachAtStart"] =
-            "Put the virtual keyboard and mouse on the machine at startup",
-        ["Settings.DriverAttachAtStartHint"] =
-            "Whether the virtual keyboard and mouse go on the machine while the program starts, so "
-            + "that the first step using driver-level input does not wait for the machine to notice "
-            + "them. Putting the two on the machine takes two to four seconds, during which the "
-            + "pointer stalls and Windows plays its device-connected sound once for each. Off by "
-            + "default: a program that never uses driver-level input then never has virtual devices "
-            + "on the machine. A change takes effect at the next start.",
+        ["Settings.DriverReady"] = "Installed and ready.",
+        ["Settings.DriverMissing"] = "usbip-win2 is not installed.",
+        ["Settings.DriverLibraryMissing"] = "Driver installed, but libVIIPER.dll is missing.",
+        ["Settings.DriverInstall"] = "Download driver…",
+        ["Settings.DriverHint"] = "Input looks like real hardware; installing needs administrator rights.",
+        ["Settings.DriverAttachAtStart"] = "Put virtual devices on at startup",
+        ["Settings.DriverAttachAtStartHint"] = "Skips the first wait; the start takes seconds longer. Off by default, next start applies it.",
         ["Settings.Admin"] = "Administrator",
-        ["Settings.AdminYes"] = "Running as administrator.",
-        ["Settings.AdminNo"] = "Not running as administrator.",
-        ["Settings.AdminHint"] =
-            "WhaleGenie reads its hotkeys through a system hook, and Windows does not let it see the "
-            + "keys that go to a window of a higher privilege (Task Manager, or anything started "
-            + "with \"run as administrator\"), nor put ordinary input into one. Sending input is not "
-            + "the problem: driver-level input reaches those windows, because the machine sees it as "
-            + "real hardware. Starting a macro from a hotkey in front of them is.",
-        ["Settings.AdminRestart"] = "Restart as administrator",
-        ["Settings.RunAsAdmin"] = "Ask for administrator rights at every start",
-        ["Settings.RunAsAdminHint"] = "Off by default. On means every start shows the UAC prompt "
-            + "and runs with those rights, which is what lets a hotkey still reach this program "
-            + "while a window of a higher privilege (Task Manager, or anything started as "
-            + "administrator) is in front. Saying no at the prompt leaves this copy running "
-            + "without them and asks nothing again until the next start. The manifest stays "
-            + "asInvoker, so this is a choice rather than a rule.",
-        ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
+        ["Settings.AdminYes"] = "Running with administrator rights.",
+        ["Settings.AdminNo"] = "Not running with administrator rights.",
+        ["Settings.AdminRestart"] = "Restart with administrator rights",
+        ["Settings.RunAsAdmin"] = "Ask for administrator rights at startup",
+        ["Settings.RunAsAdminHint"] = "Off by default; on asks at every start and can be declined.",
         ["Settings.Close"] = "Close",
 
         ["Confirm.Cancel"] = "Cancel",
@@ -3370,20 +3306,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.InterfaceHotkeySupport"] = "支持字母、数字、F1–F24、方向键、编辑键、小键盘键和修饰键组合。",
         ["Editor.InterfaceHotkeyUnsupported"] = "这个按键无法被全局钩子识别，未保存。",
         ["Settings.Hotkeys"] = "全局快捷键",
-        ["Settings.SystemHotkey"] = "触发系统总开关",
-        ["Settings.HotkeyHint"] = "留空表示停用快捷键；主界面按钮仍然有效。",
+        ["Settings.SystemHotkey"] = "系统总开关快捷键",
+        ["Settings.HotkeyHint"] = "留空则停用；支持字母、数字、F1–F24 与组合键。",
         ["Settings.HotkeySet"] = "设置快捷键",
         ["Settings.HotkeyPress"] = "请按一个键或组合键…",
         ["Settings.HotkeyClear"] = "清除",
-        ["Settings.HotkeySupport"] = "支持字母、数字、F1–F24、方向键、编辑键、小键盘键和修饰键组合。",
-        ["Settings.HotkeyUnsupported"] = "这个按键无法被全局钩子识别，未保存。",
+        ["Settings.HotkeyUnsupported"] = "这个键读不到，未保存。",
         ["Settings.Sounds"] = "声音",
-        ["Settings.SoundSystem"] = "系统开关提示音",
-        ["Settings.SoundMacro"] = "宏开关提示音",
-        ["Settings.RecordStopKey"] = "录制开始/停止热键",
-        ["Settings.RecordStopHint"] = "按一下按钮，再按要用的热键。在宏编辑器里按它开始录制，录制"
-            + "过程中也按它结束；焦点在输入框里时不响应。默认 Ctrl+F10，写法与别处的快捷键一样：字母、"
-            + "数字、F1–F24，以及 Ctrl+Alt+F12 这样的组合。",
+        ["Settings.SoundSystem"] = "切换系统时响一声",
+        ["Settings.SoundMacro"] = "切换宏时响一声",
+        ["Settings.RecordStopKey"] = "录制开始/停止快捷键",
+        ["Settings.RecordStopHint"] = "在宏编辑器里按它开始或结束一次录制；默认 Ctrl+F10。",
         ["Menu.DefaultContext"] = "默认",
         ["Menu.Drag"] = "拖动标题栏移动菜单",
         ["Menu.Search"] = "搜索宏",
@@ -3418,21 +3351,34 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Root.System"] = "系统",
         ["Settings.Root.Triggers"] = "触发器",
         ["Settings.Root.Appearance"] = "外观",
-        ["Settings.Nav.General"] = "通用与语言",
-        ["Settings.Nav.Capture"] = "输入与捕获",
+        ["Settings.Nav.General"] = "通用",
+        ["Settings.Nav.Hotkeys"] = "快捷键与声音",
+        ["Settings.Nav.Screen"] = "屏幕捕获",
+        ["Settings.Nav.Input"] = "输入",
         ["Settings.Nav.Devices"] = "设备与权限",
-        ["Settings.Nav.MenuLauncher"] = "菜单呼出",
+        ["Settings.Nav.MenuLauncher"] = "菜单",
         ["Settings.Nav.WindowRules"] = "窗口规则",
-        ["Settings.Nav.Theme"] = "主题与外观",
+        ["Settings.Nav.Theme"] = "主题",
+        ["Settings.FramesCard"] = "取帧",
+        ["Settings.FrameRate"] = "取帧上限",
+        ["Settings.FrameRateUnit"] = "帧/秒",
+        ["Settings.FrameRateFollow"] = "跟随屏幕刷新率",
+        ["Settings.FrameRateNote"] = "此显示器 {0} 赫兹。",
+        ["Settings.FrameRateHint"] = "范围 1 到刷新率，默认跟随；调小后更晚发现变化。",
+        ["Settings.FrameCache"] = "复用上次的画面",
+        ["Settings.FrameCacheHint"] = "连续识别同一张画面时打开；默认关闭。",
+        ["Settings.FrameCacheAge"] = "保留时长",
+        ["Settings.FrameCacheAgeUnit"] = "毫秒",
+        ["Settings.FrameCacheAgeHint"] = "复用画面的最旧时长。范围 0–1000 毫秒，默认 100。",
+        ["Settings.Reading"] = "读取方式",
         ["Settings.MenuLauncher"] = "菜单呼出键",
-        ["Settings.MenuLauncherMissing"] = "尚未设置菜单呼出键。",
-        ["Settings.MenuLauncherInvalid"] = "菜单只允许一个键盘快捷键、鼠标中键或 4/5 侧键；不接受滚轮、左键和右键。",
-        ["Settings.MenuLauncherConflict"] = "这个绑定已被其他触发入口使用。",
-        ["Settings.MenuLauncherHint"] = "一个绑定用于呼出菜单。支持键盘组合、鼠标中键和 4/5 侧键；滚轮留给翻页。",
-        ["Settings.MenuSystemOff"] = "系统总开关停用时，菜单呼出键不会响应。",
-        ["Settings.MenuReady"] = "菜单呼出键已就绪。",
-        ["Settings.MenuEmpty"] = "呼出键会打开空菜单；点击空格即可添加宏。",
-        ["Settings.MenuShapeHint"] = "菜单使用 80×80 格子、固定 4 列和上下各 3 行。通用区与命中的规则区各自分页；标题固定显示鲸鱼图标和鲸灵。",
+        ["Settings.MenuLauncherMissing"] = "未设置",
+        ["Settings.MenuLauncherInvalid"] = "这个键用不了，请换一个。",
+        ["Settings.MenuLauncherConflict"] = "已被其他触发入口占用。",
+        ["Settings.MenuLauncherHint"] = "一个键盘快捷键，或鼠标中键、4/5 侧键；滚轮留给翻页。",
+        ["Settings.MenuSystemOff"] = "系统已停用",
+        ["Settings.MenuReady"] = "已就绪",
+        ["Settings.MenuEmpty"] = "菜单里还没有宏",
         ["Settings.MenuWindowRules"] = "下半区窗口规则",
         ["Settings.MenuRuleDefault"] = "默认",
         ["Settings.MenuRulePageCount"] = "{0} 页",
@@ -3443,7 +3389,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.MenuRuleRemove"] = "删除",
         ["Settings.MenuRuleUp"] = "上移",
         ["Settings.MenuRuleDown"] = "下移",
-        ["Settings.MenuRuleHint"] = "规则从上到下检查，第一个命中的规则提供可独立翻页的下半区；全部不命中时使用默认页。",
+        ["Settings.MenuRuleHint"] = "从上往下取第一条命中的规则；都不命中用默认页。",
         ["Menu.Problem.TooManyPages"] = "菜单通用页超过 8 页。",
         ["Menu.Problem.PageId"] = "有两个菜单页使用相同的标识。",
         ["Menu.Problem.RuleEmpty"] = "有一条下半区窗口规则没有设置目标。",
@@ -4339,9 +4285,10 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------------------ settings
         ["Settings.Title"] = "设置",
         ["Settings.Language"] = "语言",
-        ["Settings.ThemeHint"] = "深色与浅色是内置主题；自定义只挑一个强调色。",
+        ["Settings.ThemeHint"] = "深色与浅色内置；自定义只挑强调色。",
         ["Settings.CustomizeTheme"] = "自定义强调色…",
-        ["Settings.CustomizeThemeHint"] = "修改立即作用到所有打开的窗口，并保存到下次启动。",
+        ["Settings.CustomizeThemeHint"] = "立即作用到所有窗口，并留到下次启动。",
+        ["Settings.Colors"] = "配色",
         ["Theme.Mode.Dark"] = "深色",
         ["Theme.Mode.Light"] = "浅色",
         ["Theme.Mode.Custom"] = "自定义",
@@ -4359,104 +4306,62 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.Preview.AccentText"] = "强调文字",
         ["Theme.ResetAccent"] = "改回内置强调色",
         ["Theme.Done"] = "完成",
-        ["Settings.LanguageHint"] = "立即应用到所有窗口。未选择时跟随 Windows 显示语言。",
+        ["Settings.LanguageHint"] = "立即生效；未选过时跟随系统。",
         ["Settings.LoadLastProject"] = "启动时打开上次的项目",
-        ["Settings.LoadLastProjectHint"] = "关闭后每次启动都是空列表，适合把多个项目分开使用。",
+        ["Settings.LoadLastProjectHint"] = "关闭时每次从空列表开始。",
         ["Settings.SystemAtStart"] = "启动时启用系统",
-        ["Settings.SystemAtStartHint"] = "开启后启动即响应触发；默认关闭，由热键启用。",
+        ["Settings.SystemAtStartHint"] = "打开后启动即响应触发器；默认关闭。",
         ["Settings.EnabledFirst"] = "已启用的宏排在前面",
-        ["Settings.EnabledFirstHint"] = "关闭时保持项目中原有的顺序。",
+        ["Settings.EnabledFirstHint"] = "关闭时按项目里的原顺序。",
+        ["Settings.GeneralCard"] = "语言与启动",
         ["Settings.Storage"] = "存储位置",
-        ["Settings.StorageHint"] = "这些都在 Windows 用户目录里，升级或重装程序不会带走。每一行写着那一处放的是什么。",
+        ["Settings.StorageHint"] = "都在 Windows 用户目录里，升级不会带走。",
+        ["Settings.StorageProblem"] = "文件夹打不开，详情见日志。",
         ["Settings.LogCount"] = "日志保留",
         ["Settings.LogCountUnit"] = "份",
-        ["Settings.LogCountHint"] = "失败日志（failure-…）与 MCP 调用日志（mcp-…）是一次运行或一天"
-            + "一个文件，这里说的是按修改时间留下最近多少份，更旧的在下次启动时删掉。runtime.log "
-            + "由自己的滚动机制管理，不算在内。范围 1～999，默认 100。",
-        ["Settings.StorageState"] = "设置、日志与未保存的工作",
-        ["Settings.StorageStateWhat"] = "settings.json 记着这个窗口与其他窗口里的选择；logs/ 放失败日志；"
-            + "recovery.json 放还没保存的工作。",
+        ["Settings.LogCountHint"] = "最多保留的失败与 MCP 日志。范围 1–999，默认 100。",
+        ["Settings.StorageState"] = "程序设置与日志",
+        ["Settings.StorageStateWhat"] = "settings.json 放选择，logs 放失败日志，recovery.json 放没保存的工作。",
         ["Settings.StorageProjects"] = "项目图片与上次保存的包",
-        ["Settings.StorageProjectsWhat"] = "每个宏包一个文件夹：assets/ 是包里的图解出来的地方，"
-            + "步骤里引用的图片就在这里；last.wgmacro.bak 是上一次保存替换掉的包。",
-        ["Settings.StorageImages"] = "项目尚未保存时的截图",
-        ["Settings.StorageImagesWhat"] = "项目还没有自己的文件时，宏截下来的图先放这里。",
+        ["Settings.StorageProjectsWhat"] = "每个包一个文件夹：assets/ 与上次保存的备份。",
+        ["Settings.StorageImages"] = "未保存项目的图片",
+        ["Settings.StorageImagesWhat"] = "项目还没有文件时，图片先放这里。",
         ["Settings.StorageLibrary"] = "公共宏库",
-        ["Settings.StorageLibraryWhat"] = "所有项目共用的宏。它跟着程序目录走，程序拷到别处会一起带走。",
+        ["Settings.StorageLibraryWhat"] = "所有项目共用，跟着程序目录走。",
         ["Settings.OpenFolder"] = "打开",
-        ["Settings.CaptureWindow"] = "读窗口",
-        ["Settings.CaptureWindowHint"] =
-            "这台机器上窗口的画面怎么取，对所有宏的每一步都生效。自动（默认）：先走 Graphics "
-            + "Capture，再让窗口自己画一遍，最后读它在屏幕上的那块像素。点名哪一档就只走那一档，"
-            + "所以窗口取出来不对时改这里。PrintWindow 取到整窗，含标题栏；Graphics Capture "
-            + "取窗口自己画的那部分，被别的窗口压住也取得到。改完从下一次看画面起生效，"
-            + "正在读画面的那一步会按开始时的档位读完。Windows 10 使用 Graphics Capture 时"
-            + "会显示系统捕获边框，Windows 11 可以关闭。",
-        ["Settings.CaptureScreen"] = "读屏幕",
-        ["Settings.CaptureScreenHint"] =
-            "这台机器上桌面的画面怎么取，对所有宏的每一步都生效。自动（默认）：先取显卡正在为"
-            + "显示器合成的画面，取不到就退回复制屏幕，后者慢好几倍。桌面复制（DXGI）就是显卡"
-            + "合成的那张画面，也是唯一能取到独占全屏游戏的档；高动态范围与屏幕转着用是它做不到的。"
-            + "桌面（GDI）直接复制屏幕，总能取到点什么。Graphics Capture 按读窗口的那套机器读显示器，"
-            + "需要 Windows 10 2004 或更高版本。",
+        ["Settings.CaptureWindow"] = "窗口画面",
+        ["Settings.CaptureWindowHint"] = "默认自动；取成空白或错位时换一档。",
+        ["Settings.CaptureScreen"] = "桌面画面",
+        ["Settings.CaptureScreenHint"] = "默认自动；独占全屏游戏选桌面复制。",
         ["Settings.Capture.auto"] = "自动",
         ["Settings.Capture.printWindow"] = "窗口（PrintWindow）",
         ["Settings.Capture.graphicsCapture"] = "Graphics Capture",
         ["Settings.Capture.desktopDuplication"] = "桌面复制（DXGI）",
         ["Settings.Capture.gdi"] = "桌面（GDI）",
-        ["Settings.PreloadOcr"] = "启动时在后台预加载文字识别",
-        ["Settings.PreloadOcrHint"] = "加载模型需要时间；不预加载时，这次等待落在第一步读取文字的步骤上。"
-            + "默认关闭，因为模型会一直占着内存，直到程序退出。",
-        ["Settings.InputLimit"] = "输入限制",
+        ["Settings.PreloadOcr"] = "启动时预加载文字识别",
+        ["Settings.PreloadOcrHint"] = "省掉第一次识别文字的等待，代价是内存常驻；默认关闭。",
+        ["Settings.InputCard"] = "节奏与排队",
+        ["Settings.InputLimit"] = "输入上限",
         ["Settings.InputLimitUnit"] = "次/秒",
-        ["Settings.InputLimitHint"] =
-            "这个程序每秒最多发出多少个键盘或鼠标事件，0 表示不限。打字、按键、点击、滚轮每一档、"
-            + "一次拖拽各算一个，组合键算一个，移动鼠标不算。范围 0～999，默认 120。",
-        ["Settings.IgnoreOwnInput"] = "忽略自身输入",
-        ["Settings.IgnoreOwnInputTurn"] = "不把程序自己发出的键鼠当成你按下的",
-        ["Settings.IgnoreOwnInputHint"] =
-            "默认开启。触发器不理会这个程序自己发出的键：一条宏按下另一条宏绑定的键，不会把另一条"
-            + "叫起来；录制时也不收这类输入，所以正在跑的宏不会被录进新宏。关掉后两者都照收，适合"
-            + "要拿本程序驱动自家快捷键的流程。改动对触发器立即生效；录制面板里的同一个开关在打开"
-            + "宏时取一次值，之后单独改只影响这一次录制。",
+        ["Settings.InputLimitHint"] = "键鼠事件的上限，0 为不限。范围 0–999，默认 120。",
+        ["Settings.IgnoreOwnInput"] = "忽略程序自己的输入",
+        ["Settings.IgnoreOwnInputHint"] = "触发器与录制都不把本程序发出的键鼠当成你按下的；默认开启。",
         ["Settings.ExclusiveInput"] = "独占输入",
-        ["Settings.ExclusiveInputTurn"] = "同一时刻只让一个宏发键鼠",
-        ["Settings.ExclusiveInputHint"] =
-            "对本程序启动的每一次运行都生效，宏里调用的子宏也一样：一条宏的键鼠步骤还没发完时，"
-            + "另一条等它发完再发，所以每一步都是完整的，不会与另一条宏的按键穿插。读屏幕、识别与"
-            + "等窗口不算发输入，不参与排队，两条宏可以同时看同一个窗口。默认关闭；改完从下一次"
-            + "运行起生效。要让一整段都不被打断，在宏里用「独占输入」动作（control.holdInput）"
-            + "把这一段包起来。",
+        ["Settings.ExclusiveInputHint"] = "同一时刻只让一个宏发键鼠，其余排队；默认关闭，下次运行生效。",
         ["Settings.Driver"] = "驱动级输入",
-        ["Settings.DriverReady"] = "usbip-win2 驱动已安装，驱动级输入可以用。",
-        ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",
-        ["Settings.DriverLibraryMissing"] = "usbip-win2 驱动已安装，但程序自带的虚拟 USB 库"
-            + "（libVIIPER.dll）不在它旁边：重新完整解压一次发布包。",
-        ["Settings.DriverInstall"] = "安装驱动…",
-        ["Settings.DriverHint"] =
-            "驱动级输入让目标程序把输入当成真实硬件。usbip-win2 驱动要手动安装：需要管理员权限，"
-            + "会短暂断开 USB 设备，可能要求重启；只有这一样是非手动不可的，虚拟键鼠、虚拟手柄"
-            + "和它们所在的服务端都随程序带。",
-        ["Settings.DriverAttachAtStart"] = "启动时先把虚拟键鼠装上机器",
-        ["Settings.DriverAttachAtStartHint"] = "勾上以后，程序启动时把一台虚拟键盘和一台虚拟鼠标装上"
-            + "机器，宏里第一次用驱动级输入就不必再等机器认领它们。装这两台设备要两到四秒，其间"
-            + "指针会停顿，系统会各响一声「设备连接」提示音。默认不勾：不用驱动级输入的人，机器上"
-            + "不会凭空多出虚拟设备。改过之后下次启动生效。",
+        ["Settings.DriverReady"] = "已安装，可以用。",
+        ["Settings.DriverMissing"] = "未安装 usbip-win2。",
+        ["Settings.DriverLibraryMissing"] = "驱动已装，缺少 libVIIPER.dll。",
+        ["Settings.DriverInstall"] = "下载驱动…",
+        ["Settings.DriverHint"] = "让目标程序把输入当成真实硬件；安装需要管理员权限。",
+        ["Settings.DriverAttachAtStart"] = "启动时预装虚拟键鼠",
+        ["Settings.DriverAttachAtStartHint"] = "省掉第一次的等待，启动慢两三秒；默认关闭，下次启动生效。",
         ["Settings.Admin"] = "管理员权限",
-        ["Settings.AdminYes"] = "正以管理员身份运行。",
-        ["Settings.AdminNo"] = "没有以管理员身份运行。",
-        ["Settings.AdminHint"] =
-            "热键是靠系统钩子读的，前台窗口属于更高权限的程序时（任务管理器，或者任何「以管理员"
-            + "身份运行」起来的程序），Windows 不让鲸灵看到那里的按键，普通输入也送不进去。送输入"
-            + "不是问题：驱动级输入能进那些窗口，因为系统当它是真实硬件；问题是那些窗口在前面时"
-            + "热键启不了宏。",
-        ["Settings.AdminRestart"] = "以管理员身份重新启动",
-        ["Settings.RunAsAdmin"] = "每次启动都请求管理员权限",
-        ["Settings.RunAsAdminHint"] = "默认关闭。打开后每次启动都会出现 UAC 提示，并以管理员身份"
-            + "运行：一个权限更高的窗口（任务管理器，或者其他“以管理员身份运行”的程序）在前台时，"
-            + "热键还能不能送进本程序就取决于它。在提示上选“否”时，这一份照常以普通权限运行，本次"
-            + "不再问，下次启动再问一次。清单保持 asInvoker，所以这是一项选择，不是规定。",
-        ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
+        ["Settings.AdminYes"] = "正以管理员权限运行。",
+        ["Settings.AdminNo"] = "未以管理员权限运行。",
+        ["Settings.AdminRestart"] = "以管理员权限重新启动",
+        ["Settings.RunAsAdmin"] = "启动时请求管理员权限",
+        ["Settings.RunAsAdminHint"] = "默认关闭；打开后每次启动都要确认，可以拒绝。",
         ["Settings.Close"] = "关闭",
 
         ["Confirm.Cancel"] = "取消",

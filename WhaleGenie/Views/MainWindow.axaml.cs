@@ -2052,7 +2052,7 @@ public partial class MainWindow : AppWindow
     private async Task ShowMenuSettingsAsync(MainViewModel viewModel, WindowInfo? foreground)
     {
         var dialog = new SettingsWindow(viewModel, viewModel.CurrentPath,
-            SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
+            SettingsSubPage.MenuLauncher);
         await dialog.ShowDialogOver(this);
         if (foreground is not null)
         {

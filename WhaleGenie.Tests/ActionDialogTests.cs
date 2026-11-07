@@ -471,8 +471,8 @@ public class ActionDialogTests
             Assert.Equal(ActionEmptyMeans.Keep, move.Definition.EmptyMeans);
             Assert.Contains(Strings.Get("Add.EmptyKeeps"), move.Hint);
 
-            // A look at the screen waits one refresh when it was not given a beat of its own.
-            var look = Open("vision.waitImage").Parameters
+            // A wait that was not given a beat of its own follows the screen it runs on.
+            var look = Open("uia.waitElement").Parameters
                 .First(parameter => parameter.Definition.Name == "intervalMs");
             Assert.Equal(ActionEmptyMeans.ScreenRefresh, look.Definition.EmptyMeans);
             Assert.Contains(Strings.Get("Add.EmptyScreenRefresh"), look.Hint);
@@ -866,12 +866,15 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("vision.waitImage");
-            viewModel.Parameters.First(parameter => parameter.Definition.Name == "images")
-                .AddPicture(new ImageRowViewModel { Text = @"C:\images\ok.png" });
+            // 等一个条件成立：它自己的节拍仍留在步骤里，留空表示按屏幕刷新来看。
+            var viewModel = Open("control.waitUntil");
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "condition").Text = "true";
 
             var look = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "intervalMs");
+
+            // 默认写着 200 毫秒；把这个框清空之后，这一步就按屏幕刷新一次的时间来看。
+            look.NumberValue = null;
 
             // Nobody has answered, so the box is empty and the label says the field may be left
             // that way: a step that says nothing here follows the screen it runs on.

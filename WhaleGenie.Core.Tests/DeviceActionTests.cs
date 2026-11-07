@@ -2679,7 +2679,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"),
-                Param("intervalMs", "5"), Hit("match", "spot")),
+                Hit("match", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -2699,7 +2699,7 @@ public class DeviceActionTests
 
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
             [Step("vision.waitColor", Param("x", "5"), Param("y", "6"), Param("color", "#FF0000"),
-                Param("tolerance", "5"), Param("intervalMs", "5"))]);
+                Param("tolerance", "5"))]);
 
         Assert.True(result.Succeeded);
         Assert.Contains(host.Entries, entry => entry.Key == "Log.SawColor");
@@ -2713,7 +2713,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
             [Within(20, Step("vision.waitColor", Param("x", "5"), Param("y", "6"),
-                Param("color", "#FFFFFF"), Param("tolerance", "1"), Param("intervalMs", "5")))],
+                Param("color", "#FFFFFF"), Param("tolerance", "1")))],
             devices);
 
         Assert.False(result.Succeeded);
@@ -2762,7 +2762,7 @@ public class DeviceActionTests
 
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
-            [Within(5000, Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1")))]);
+            [Within(5000, Step("vision.waitStable", Param("quietMs", "0")))]);
 
         Assert.True(result.Succeeded);
         Assert.Contains(host.Entries, entry => entry.Key == "Log.FrameStill");
@@ -2787,7 +2787,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Within(60, Step("vision.waitStable", Param("quietMs", "50"), Param("intervalMs", "5"))),
+            Within(60, Step("vision.waitStable", Param("quietMs", "50"))),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -2809,7 +2809,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Within(5000, Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1"),
+            Within(5000, Step("vision.waitStable", Param("quietMs", "0"),
                 Param("tolerance", "5"))),
         ], devices);
 
@@ -3482,23 +3482,22 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A step that will accept a picture a little older is handed the one an earlier step took of
-    /// the same screen, so looking at the same place again and again reads it once. The first such
-    /// step reads the whole screen, which is what makes the readings after it free.
+    /// A step that runs while the settings window has reuse on is handed the picture an earlier
+    /// step took of the same screen, so looking at the same place again and again reads it once.
+    /// The first such step reads the whole screen, which is what makes the readings after it free.
     /// </summary>
     [Fact]
     public async Task A_step_may_be_given_the_picture_an_earlier_step_took()
     {
         var devices = new FakeDeviceLayer();
+        devices.Frames.CacheMilliseconds = 200;
         devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         var (_, _, store) = await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"),
-                Parts("image", "shot", "place")),
+            Capture(10, 10, 20, 20, Parts("image", "shot", "place")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
-                Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
-                Hit("match", "match")),
+                Param("confidence", "90"), Hit("match", "match")),
         ], devices);
 
         // One reading of the screen between them: the whole of it, because a picture that is to be
@@ -3512,60 +3511,61 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A step that will not accept an older picture reads the screen for itself, however recently
-    /// an earlier step read it.
+    /// With reuse off, every step reads the screen for itself however recently an earlier step read
+    /// it: the setting is a trade the person makes for the whole run rather than one a step makes.
     /// </summary>
     [Fact]
-    public async Task A_step_that_accepts_no_older_picture_reads_the_screen_again()
+    public async Task Every_step_reads_the_screen_for_itself_when_reuse_is_off()
     {
         var devices = new FakeDeviceLayer();
         devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Parts("image", "shot")),
+            Capture(10, 10, 20, 20, Parts("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Hit("match", "match")),
         ], devices);
 
         Assert.Equal(2, devices.Screen.Captures.Count);
-        Assert.Equal((0, 0, 100, 50), (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y,
+        Assert.Equal((10, 10, 20, 20), (devices.Screen.Captures[0].X, devices.Screen.Captures[0].Y,
             devices.Screen.Captures[0].Width, devices.Screen.Captures[0].Height));
         Assert.Equal((30, 5, 10, 10), (devices.Screen.Captures[1].X, devices.Screen.Captures[1].Y,
             devices.Screen.Captures[1].Width, devices.Screen.Captures[1].Height));
     }
 
     /// <summary>
-    /// A picture that has been sitting there longer than the step allows is taken again, so a macro
+    /// A picture that has been sitting there longer than the cache allows is taken again, so a macro
     /// waiting for something to change still sees it change.
     /// </summary>
     [Fact]
-    public async Task A_picture_older_than_the_step_allows_is_taken_again()
+    public async Task A_picture_older_than_the_cache_allows_is_taken_again()
     {
         var devices = new FakeDeviceLayer();
+        devices.Frames.CacheMilliseconds = 20;
         devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
 
         await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "20"), Parts("image", "shot")),
+            Capture(10, 10, 20, 20, Parts("image", "shot")),
             Step("control.delay", Param("ms", "60")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
-                Param("confidence", "90"), Param("frameMaxAgeMs", "20"),
-                Hit("match", "match")),
+                Param("confidence", "90"), Hit("match", "match")),
         ], devices);
 
         Assert.Equal(2, devices.Screen.Captures.Count);
     }
 
     /// <summary>
-    /// A step that names a gap between two looks is held to it when it runs again, which is what a
-    /// step inside a loop does: it reads the same place on every pass, and the gap is what stops it
-    /// reading faster than the macro can use.
+    /// Two looks are held apart by the run's frame gap, which is what a step inside a loop runs into:
+    /// it reads the same place on every pass, and the gap is what stops the run asking the machine
+    /// for more pictures than a second of looking can tell anything about.
     /// </summary>
     [Fact]
-    public async Task A_step_that_names_a_gap_between_looks_waits_it_out()
+    public async Task A_second_look_waits_out_the_runs_frame_gap()
     {
         var devices = new FakeDeviceLayer();
+        devices.Frames.MaxFramesPerSecond = 5;
         devices.Vision.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
 
         var started = Stopwatch.GetTimestamp();
@@ -3573,7 +3573,7 @@ public class DeviceActionTests
         [
             Step("control.repeat", Param("times", "3"), Body("body",
                 Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
-                    Param("intervalMs", "200"), Hit("match", "match")))),
+                    Hit("match", "match")))),
         ], devices);
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -3581,13 +3581,14 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A step that waits for something looks again as often as it says: the gap is the wait's own
-    /// rhythm, so a wait of three looks 60 ms apart cannot come back before 120 ms have gone.
+    /// A step that waits for something looks again on that same beat: a wait of three looks a
+    /// hundred milliseconds apart cannot come back before two hundred have gone.
     /// </summary>
     [Fact]
-    public async Task A_wait_looks_again_as_often_as_the_step_says()
+    public async Task A_wait_looks_again_on_the_runs_frame_gap()
     {
         var devices = new FakeDeviceLayer();
+        devices.Frames.MaxFramesPerSecond = 10;
         devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
         devices.Vision.Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2));
         devices.Vision.MatchAfter = 3;
@@ -3596,14 +3597,14 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Within(5000, Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("intervalMs", "60"), Hit("match", "spot"))),
+                Hit("match", "spot"))),
         ], devices);
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Assert.True(result.Succeeded);
         Assert.Equal("2,2", Centre(store, "spot"));
         Assert.Equal(3, devices.Vision.Searches);
-        Assert.True(took >= 110, $"three looks 60 ms apart take at least 120 ms, took {took:0}");
+        Assert.True(took >= 190, $"three looks 100 ms apart take at least 200 ms, took {took:0}");
     }
 
     /// <summary>
@@ -3717,7 +3718,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Within(2000, Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("intervalMs", "1"), Hit("match", "spot"))),
+                Hit("match", "spot"))),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -3735,7 +3736,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Within(20, Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("intervalMs", "1"), Hit("match", "spot"))),
+                Hit("match", "spot"))),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -4639,7 +4640,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Within(20, Step("ocr.clickText", Param("queryText", "OK"), Param("intervalMs", "5"))),
+            Within(20, Step("ocr.clickText", Param("queryText", "OK"))),
         ], devices);
 
         Assert.False(result.Succeeded);
