@@ -190,7 +190,7 @@ internal static class BenchFixtures
         ["writeValue"] = "1",
         ["values"] = "bench",
         ["points"] = "0,0,#FFFFFF",
-        ["ignoreColor"] = "#FFFFFF",
+        ["transparentColor"] = "#FFFFFF",
         ["colorFilter"] = "#FFFFFF",
         ["fixText"] = "bench=bench",
         ["contentPattern"] = "bench",

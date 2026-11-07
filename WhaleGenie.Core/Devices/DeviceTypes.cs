@@ -18,6 +18,14 @@ public readonly record struct PixelColor(byte R, byte G, byte B)
     /// <paramref name="fallback"/>.
     /// </summary>
     public static PixelColor Parse(string? text, PixelColor fallback = default)
+        => TryParse(text, out var colour) ? colour : fallback;
+
+    /// <summary>
+    /// The same reading, saying whether the text was a colour at all. A colour that cannot be read
+    /// is not the same answer as black, so a step that wrote something else is refused rather than
+    /// compared against the wrong pixels.
+    /// </summary>
+    public static bool TryParse(string? text, out PixelColor colour)
     {
         var value = (text ?? string.Empty).Trim().TrimStart('#');
         if (value.Length == 3)
@@ -25,10 +33,15 @@ public readonly record struct PixelColor(byte R, byte G, byte B)
             value = string.Concat(value[0], value[0], value[1], value[1], value[2], value[2]);
         }
 
-        return value.Length == 6
-               && int.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var packed)
-            ? new PixelColor((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed)
-            : fallback;
+        if (value.Length == 6
+            && int.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var packed))
+        {
+            colour = new PixelColor((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed);
+            return true;
+        }
+
+        colour = default;
+        return false;
     }
 
     /// <summary>The colour as <c>#RRGGBB</c>.</summary>
@@ -269,8 +282,9 @@ public sealed record VisionQuery(
     MatchAlgorithm Algorithm = MatchAlgorithm.Normed,
     double ConfidencePercent = 90,
     int MinFeatures = 6,
-    PixelColor? Skip = null,
-    int Limit = 1);
+    PixelColor? Transparent = null,
+    int Limit = 1,
+    double TolerancePercent = 0);
 
 /// <summary>
 /// One run of a detection model over a region: how sure a guess has to be, how many pixels of the

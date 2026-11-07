@@ -355,14 +355,25 @@ public sealed partial class MacroRunner
         }
 
         var features = Number(step, "minFeatures");
-        var skip = ReadValue(step, "ignoreColor").AsText().Trim();
+        var written = ReadValue(step, "transparentColor").AsText().Trim();
+
+        // A colour nobody can read used to be read as black, which silently masked pixels that had
+        // nothing to do with what the step meant. Saying so is the only answer that can be acted on.
+        PixelColor? transparent = null;
+        if (written.Length > 0)
+        {
+            transparent = PixelColor.TryParse(written, out var colour)
+                ? colour
+                : throw new StepFailure(RunKeys.BadPoint, written);
+        }
 
         return new VisionQuery(
             AlgorithmOf(ReadText(step, "detectAlgorithm")),
             confidence,
             features > 0 ? features : 6,
-            skip.Length == 0 ? null : PixelColor.Parse(skip),
-            Wanted(step));
+            transparent,
+            Wanted(step),
+            Number(step, "tolerance"));
     }
 
     /// <summary>

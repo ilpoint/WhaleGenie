@@ -8859,13 +8859,29 @@
         "ChildKeys": []
       },
       {
-        "Name": "ignoreColor",
+        "Name": "transparentColor",
         "Group": "target",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "Color",
         "Required": false,
         "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "tolerance",
+        "Group": "target",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "Minimum": 0,
+        "Maximum": 100,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
@@ -9278,13 +9294,29 @@
         "ChildKeys": []
       },
       {
-        "Name": "ignoreColor",
+        "Name": "transparentColor",
         "Group": "target",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "Color",
         "Required": false,
         "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "tolerance",
+        "Group": "target",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "Minimum": 0,
+        "Maximum": 100,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []
@@ -9691,13 +9723,29 @@
         "ChildKeys": []
       },
       {
-        "Name": "ignoreColor",
+        "Name": "transparentColor",
         "Group": "target",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "Color",
         "Required": false,
         "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "tolerance",
+        "Group": "target",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "Minimum": 0,
+        "Maximum": 100,
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
         "ChildKeys": []

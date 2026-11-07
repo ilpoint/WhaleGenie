@@ -8,13 +8,6 @@ namespace WhaleGenie.Core.Devices.Platform;
 public sealed class OpenCvVisionDevice : IVisionDevice
 {
     /// <summary>
-    /// How far a colour may be from the one to leave out of the comparing and still count as it.
-    /// A colour taken off a screenshot with the picker comes back through a screen that dithers,
-    /// so "the same colour" is never quite the same number twice.
-    /// </summary>
-    private const double SkippedColour = 0.1;
-
-    /// <summary>
     /// How much better one pair of features has to be than the next best pair for the same feature
     /// before it is believed. Below this a feature looks like it matched by luck.
     /// </summary>
@@ -86,14 +79,14 @@ public sealed class OpenCvVisionDevice : IVisionDevice
 
             using var result = new Mat();
             var exact = query.Algorithm is MatchAlgorithm.Difference;
-            if (query.Skip is { } skip)
+            if (query.Transparent is { } transparent)
             {
-                using var mask = Left(needle, skip);
-                Cv2.MatchTemplate(hay, pin, result, Mode(query.Algorithm), mask);
+                using var mask = Mask(needle, transparent, query.TolerancePercent);
+                Cv2.MatchTemplate(hay, pin, result, Mode(query, masked: true), mask);
             }
             else
             {
-                Cv2.MatchTemplate(hay, pin, result, Mode(query.Algorithm));
+                Cv2.MatchTemplate(hay, pin, result, Mode(query, masked: false));
             }
 
             var size = new ScreenSize(pin.Width, pin.Height);
@@ -136,11 +129,13 @@ public sealed class OpenCvVisionDevice : IVisionDevice
         using var wantedParts = new Mat();
         using var foundParts = new Mat();
 
-        // The part of the reference picture a step asked to leave out is left out here too: a
+        // The part of the reference picture a step called transparent is left out here too: a
         // number that keeps changing would otherwise be paired up on the strength of whatever it
         // happens to say this time, which is how a search finds things that are not there. An empty
         // mask is how every part of the picture is taken into account.
-        using var mask = query.Skip is { } leaveOut ? Left(needle, leaveOut) : new Mat();
+        using var mask = query.Transparent is { } leaveOut
+            ? Mask(needle, leaveOut, query.TolerancePercent)
+            : new Mat();
         using var everywhere = new Mat();
         finder.DetectAndCompute(pin, mask, out var wanted, wantedParts);
         finder.DetectAndCompute(hay, everywhere, out var spots, foundParts);
@@ -208,31 +203,45 @@ public sealed class OpenCvVisionDevice : IVisionDevice
     private static double Middle(double[] sorted) => sorted[sorted.Length / 2];
 
     /// <summary>The OpenCV way of comparing two pictures that the step asked for.</summary>
-    private static TemplateMatchModes Mode(MatchAlgorithm algorithm) => algorithm switch
+    /// <remarks>
+    /// 带掩码时，默认的归一化相关不能照用：OpenCV 在掩码下对这一档给的是坏结果。同一个图标、
+    /// 同一个掩码，逐像素与相关都答 1.000 并在图标原处，归一化相关答 0.196、位置还是负数。
+    /// 掩码下改走相关，两者都只数掩码之内的像素，分数仍是「越像越高」。
+    /// </remarks>
+    private static TemplateMatchModes Mode(VisionQuery query, bool masked) => query.Algorithm switch
     {
         MatchAlgorithm.Correlated => TemplateMatchModes.CCorrNormed,
         MatchAlgorithm.Difference => TemplateMatchModes.SqDiffNormed,
-        _ => TemplateMatchModes.CCoeffNormed,
+        MatchAlgorithm.Feature => TemplateMatchModes.CCoeffNormed,
+        _ => masked ? TemplateMatchModes.CCorrNormed : TemplateMatchModes.CCoeffNormed,
     };
 
     /// <summary>
     /// Which pixels of the reference picture take part in the comparing: everything except the
-    /// colour the step said to leave out, which is how a step ignores a part of the picture that
-    /// keeps changing — a number over a button, a bar that fills up.
+    /// colour the step called transparent, which is how a step looks for an icon drawn over a
+    /// background it does not control — a flat colour behind it, a number over a button, a bar that
+    /// fills up.
     /// </summary>
-    private static Mat Left(ImageFrame needle, PixelColor skip)
+    /// <remarks>
+    /// The walk over the picture is done here rather than by an InRange call because the tolerance
+    /// a step writes has to mean the same thing as it does in the colour family, and that rule
+    /// lives in <see cref="ColourReach"/> alone. A reference picture is small, so walking it costs
+    /// nothing next to matching it.
+    /// </remarks>
+    private static Mat Mask(ImageFrame needle, PixelColor transparent, double tolerancePercent)
     {
-        using var pin = Bgr(needle);
-        using var near = new Mat(pin.Rows, pin.Cols, pin.Type(),
-            new Scalar(skip.B, skip.G, skip.R));
-        using var out1 = new Mat();
+        var reach = new ColourReach(transparent, tolerancePercent);
+        var pixels = needle.Bgra.AsSpan();
+        var weight = new byte[needle.Width * needle.Height];
 
-        // Everything that is the colour to leave out is marked out of the mask, and everything
-        // else keeps full weight.
-        using var hit = new Mat();
-        Cv2.InRange(pin, near, near, hit);
-        Cv2.BitwiseNot(hit, out1);
-        return out1.Clone();
+        for (var at = 0; at < pixels.Length; at += 4)
+        {
+            weight[at / 4] = reach.Near(pixels, at) ? (byte)0 : (byte)255;
+        }
+
+        var mask = new Mat(needle.Height, needle.Width, MatType.CV_8UC1);
+        Marshal.Copy(weight, 0, mask.Data, weight.Length);
+        return mask;
     }
 
     /// <summary>Copies a frame into the one channel layout features are found in.</summary>

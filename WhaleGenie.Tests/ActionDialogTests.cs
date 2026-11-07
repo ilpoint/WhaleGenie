@@ -795,12 +795,12 @@ public class ActionDialogTests
             foreach (var key in new[] { "vision.findImage", "vision.waitImage", "vision.clickImage" })
             {
                 var viewModel = Open(key);
-                var ignore = viewModel.Parameters
-                    .First(parameter => parameter.Definition.Name == "ignoreColor");
+                var transparent = viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == "transparentColor");
 
                 Assert.Equal(
-                    Strings.Format("Common.OptionalSuffix", ignore.Definition.LocalLabel),
-                    ignore.Label);
+                    Strings.Format("Common.OptionalSuffix", transparent.Definition.LocalLabel),
+                    transparent.Label);
 
                 viewModel.Parameters.First(parameter => parameter.Definition.Name == "images")
                     .AddPicture(new ImageRowViewModel { Text = @"C:\images\ok.png" });
@@ -2886,12 +2886,13 @@ public class ActionDialogTests
 
             // Which hit to take is worth having and not worth showing on every step; where the
             // picture is recognised and how alike it has to be are part of what the step is.
-            // The colour of the reference picture that keeps changing is a knob of that same kind:
-            // a step that leaves it alone wants the default.
+            // The colour of the reference picture that keeps changing, and how near a pixel has to
+            // be to it, are knobs of that same kind: a step that leaves them alone wants the default.
             Assert.Contains("confidence", visible);
             Assert.Contains("matchIndex", folded);
             Assert.Contains("anchorMode", visible);
-            Assert.Contains("ignoreColor", folded);
+            Assert.Contains("transparentColor", folded);
+            Assert.Contains("tolerance", folded);
 
             // What the step is about stays in front.
             Assert.Contains("images", visible);

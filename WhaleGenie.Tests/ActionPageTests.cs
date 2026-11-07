@@ -92,7 +92,7 @@ public class ActionPageTests
     /// </summary>
     private static readonly string[] Tuning =
     [
-        "minFeatures", "ignoreColor", "matchIndex", "orderBy",
+        "minFeatures", "transparentColor", "matchIndex", "orderBy",
         "style",
         "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",
@@ -250,7 +250,7 @@ public class ActionPageTests
 
         Assert.Contains("detectAlgorithm", advanced);
         Assert.Contains("minFeatures", advanced);
-        Assert.Contains("ignoreColor", advanced);
+        Assert.Contains("transparentColor", advanced);
         Assert.Contains("orderBy", advanced);
     }
 

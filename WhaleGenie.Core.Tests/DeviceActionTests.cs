@@ -2849,8 +2849,8 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "88"),
-                Param("detectAlgorithm", "feature"), Param("ignoreColor", "#00FF00"),
-                Param("minFeatures", "12"),
+                Param("detectAlgorithm", "feature"), Param("transparentColor", "#00FF00"),
+                Param("tolerance", "10"), Param("minFeatures", "12"),
                 Hit("match", "where")),
         ], devices);
 
@@ -2858,7 +2858,8 @@ public class DeviceActionTests
         Assert.Equal(MatchAlgorithm.Feature, query.Algorithm);
         Assert.Equal(88d, query.ConfidencePercent);
         Assert.Equal(12, query.MinFeatures);
-        Assert.Equal(new PixelColor(0x00, 0xFF, 0x00), query.Skip);
+        Assert.Equal(new PixelColor(0x00, 0xFF, 0x00), query.Transparent);
+        Assert.Equal(10d, query.TolerancePercent);
         Assert.Equal(1, query.Limit);
     }
 
@@ -2906,7 +2907,28 @@ public class DeviceActionTests
         Assert.Equal(MatchAlgorithm.Normed, query.Algorithm);
         Assert.Equal(90d, query.ConfidencePercent);
         Assert.Equal(6, query.MinFeatures);
-        Assert.Null(query.Skip);
+        Assert.Null(query.Transparent);
+        Assert.Equal(0d, query.TolerancePercent);
+    }
+
+    /// <summary>
+    /// A colour nobody can read used to be read as black, which masked pixels the step never meant.
+    /// A picture search that says something else is refused, and the device is not asked at all.
+    /// </summary>
+    [Fact]
+    public async Task A_transparent_colour_that_is_not_one_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"),
+                Param("transparentColor", "not a colour"), Hit("match", "where")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadPoint", result.Key);
+        Assert.Empty(devices.Vision.Queries);
     }
 
     /// <summary>

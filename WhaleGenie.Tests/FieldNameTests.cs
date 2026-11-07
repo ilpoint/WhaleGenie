@@ -198,6 +198,8 @@ public class FieldNameTests
             ("browser.upload", "target"),
             ("vision.findImage", "image"), ("vision.waitImage", "image"),
             ("vision.clickImage", "image"),
+            ("vision.findImage", "ignoreColor"), ("vision.waitImage", "ignoreColor"),
+            ("vision.clickImage", "ignoreColor"),
             ("browser.press", "key"),
             ("clipboard.copy", "keys"), ("clipboard.paste", "keys"),
             ("system.notify", "message"),
