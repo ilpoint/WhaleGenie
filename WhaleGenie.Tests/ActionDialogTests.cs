@@ -3777,6 +3777,14 @@ public class ActionDialogTests
             Assert.Contains("box: text", tip, StringComparison.Ordinal);
             Assert.Contains("label: text", tip, StringComparison.Ordinal);
             Assert.Contains("11", tip, StringComparison.Ordinal);
+
+            // 表格不一样：列名是运行时从表头读到的，所以这一格写「一行一条、键是列名」，
+            // 而不是某几个具体的字段名。四个读表的动作都是这一种形状。
+            var table = Open("uia.readTable").ReturnsRows.First(row => row.Key == "table");
+            Assert.Equal(
+                $"[{{{Strings.Get("Add.ReturnShapeColumn")}: {Strings.Get("Add.ReturnShapeText")}}}, …]",
+                table.Structure);
+            Assert.Contains("field(get(", table.StructureTip, StringComparison.Ordinal);
         });
     }
 

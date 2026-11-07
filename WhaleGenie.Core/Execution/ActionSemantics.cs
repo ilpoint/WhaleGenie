@@ -378,6 +378,14 @@ public sealed class ActionReturnSemantics
     /// </summary>
     public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
 
+    /// <summary>
+    /// True for a table: a list of records whose field names the data itself gives — the row of
+    /// column titles that was read, or A, B, C when the table keeps no such row. The names are not
+    /// written down here because they are only known while the macro runs, and a catalogue that
+    /// guessed them would fail every reading that had different columns.
+    /// </summary>
+    public bool Table { get; init; }
+
     /// <summary>True for the result a step is usually asked for first.</summary>
     public bool Primary { get; init; }
 
@@ -565,6 +573,20 @@ public static class ActionSemanticsCatalog
                 {
                     throw new InvalidOperationException(
                         $"{action.Key}.{result.Key}: a record does not say what its fields are.");
+                }
+
+                // A table is a list whose fields come from the data, so the two ways of saying what
+                // a result holds cannot both be used: one of them would have to be ignored.
+                if (result.Table && result.Type is not ActionReturnType.List)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: only a list is a table.");
+                }
+
+                if (result.Table && result.Fields.Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: a table takes its fields from the data.");
                 }
             }
 

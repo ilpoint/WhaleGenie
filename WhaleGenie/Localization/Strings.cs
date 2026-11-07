@@ -1248,8 +1248,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ReturnShapeFlag"] = "true | false",
         ["Add.ReturnShapeImage"] = "image",
         ["Add.ReturnShapeText"] = "\"text\"",
+        ["Add.ReturnShapeColumn"] = "column",
         ["Add.ReturnShapeTip"] = "{0} fields. Read one with field($name, \"field\").",
         ["Add.ReturnShapeTipBare"] = "One value: {0}",
+        ["Add.ReturnShapeTipTable"] =
+            "One record per row, keyed by the column names that were read. Read a cell with "
+            + "field(get($name, 0), \"column\").",
         ["Add.ReturnName"] = "Variable name",
         ["Add.ReturnNameHint"] = "The name later steps read this result by. Leaving it as "
             + "suggested is fine; changing it makes the step's own wording of what it found.",
@@ -3541,8 +3545,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ReturnShapeFlag"] = "true | false",
         ["Add.ReturnShapeImage"] = "图片",
         ["Add.ReturnShapeText"] = "\"文字\"",
+        ["Add.ReturnShapeColumn"] = "列名",
         ["Add.ReturnShapeTip"] = "共 {0} 项。取其中一项：field($变量, \"字段名\")。",
         ["Add.ReturnShapeTipBare"] = "一个值：{0}",
+        ["Add.ReturnShapeTipTable"] = "一行一条记录，键就是读到的列名。取一格：field(get($变量, 0), \"列名\")。",
         ["Add.ReturnName"] = "变量名",
         ["Add.ReturnNameHint"] = "后面的步骤按这个名字取这一项结果。用默认给的名字也行；自己改一个，"
             + "读起来更像这一步找到的东西。",

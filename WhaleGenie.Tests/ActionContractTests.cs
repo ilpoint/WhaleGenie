@@ -310,7 +310,7 @@ public class ActionContractTests
             "ReadMode", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
             "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
             "Unit", "EmptyMeans", "Minimum", "Maximum", "EmptiesToEdge", "IsDuration",
-            "SignatureSource", "Irreversible", "IrreversibleWhen",
+            "SignatureSource", "Irreversible", "IrreversibleWhen", "Table",
         ];
 
         using var document = JsonDocument.Parse(display);
@@ -641,6 +641,38 @@ public class ActionContractTests
                 });
             }
         }
+    }
+
+    /// <summary>
+    /// A table says so rather than listing columns it cannot know: the names come from the data,
+    /// so a catalogue that wrote them down would be wrong the first time a sheet had other columns.
+    /// The four actions whose result is a table are named here, so adding one is a decision.
+    /// </summary>
+    [Fact]
+    public void A_table_is_a_list_and_the_four_tables_say_so()
+    {
+        string[] expected =
+        [
+            "browser.readTable.table", "file.readCsv.rows", "ocr.recognize.table", "uia.readTable.table",
+        ];
+
+        var found = new List<string>();
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var result in action.Returns)
+            {
+                if (!result.Table)
+                {
+                    continue;
+                }
+
+                Assert.Equal(ActionReturnType.List, result.Type);
+                Assert.Empty(result.Fields);
+                found.Add($"{action.Key}.{result.Key}");
+            }
+        }
+
+        Assert.Equal(expected, found.Order(StringComparer.Ordinal).ToList());
     }
 
     /// <summary>

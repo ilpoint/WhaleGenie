@@ -178,6 +178,13 @@ public sealed class ActionReturn
     public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
 
     /// <summary>
+    /// True for a table: a list of records whose field names come from the data — the row of column
+    /// titles, or A, B, C when there is none. There are no fields to list, so this is what tells the
+    /// returns line to show a column rather than a bare value.
+    /// </summary>
+    public bool Table { get; init; }
+
+    /// <summary>
     /// True for the result a step is nearly always asked for, which is the one ticked when the step
     /// is written and the one the rest are read next to.
     /// </summary>

@@ -55,6 +55,13 @@ public partial class ReturnsRowViewModel : ViewModelBase
     {
         get
         {
+            // A table's fields are the columns it was read with, so there are none to list here;
+            // what the reader needs instead is how to take one cell out of a row.
+            if (Result.Table)
+            {
+                return Strings.Get("Add.ReturnShapeTipTable");
+            }
+
             if (Result.Fields.Count == 0)
             {
                 return Strings.Format("Add.ReturnShapeTipBare", Shape(Result));
@@ -80,6 +87,8 @@ public partial class ReturnsRowViewModel : ViewModelBase
         ActionReturnType.Number => "0",
         ActionReturnType.Image => Strings.Get("Add.ReturnShapeImage"),
         ActionReturnType.Text => Strings.Get("Add.ReturnShapeText"),
+        ActionReturnType.List when result.Table
+            => $"[{{{Strings.Get("Add.ReturnShapeColumn")}: {Strings.Get("Add.ReturnShapeText")}}}, …]",
         ActionReturnType.List => result.Fields.Count == 0
             ? $"[{Strings.Get("Add.ReturnShapeText")}, …]"
             : $"[{{{Fields(result)}}}, …]",

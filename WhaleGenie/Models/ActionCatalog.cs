@@ -84,6 +84,7 @@ public static class ActionCatalog
                     Hint = result.Hint,
                     Type = facts.Type,
                     Fields = facts.Fields,
+                    Table = facts.Table,
                     Primary = facts.Primary,
                     Hidden = facts.Hidden,
                     OwnerKey = semantics.Key,

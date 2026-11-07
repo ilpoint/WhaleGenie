@@ -2946,6 +2946,7 @@
       {
         "Key": "rows",
         "Type": "List",
+        "Table": true,
         "Primary": true
       }
     ]
@@ -13533,6 +13534,7 @@
       {
         "Key": "table",
         "Type": "List",
+        "Table": true,
         "Primary": false
       },
       {
@@ -16070,6 +16072,7 @@
       {
         "Key": "table",
         "Type": "List",
+        "Table": true,
         "Primary": true
       }
     ]
@@ -16771,6 +16774,7 @@
       {
         "Key": "table",
         "Type": "List",
+        "Table": true,
         "Primary": true
       }
     ]

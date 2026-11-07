@@ -44,9 +44,14 @@ public sealed record McpActionParameter(
     IReadOnlyList<McpActionColumn> Columns, string? Unit,
     string? EmptyMeans, decimal? Minimum, decimal? Maximum, bool Conditional, string MissingKey);
 
-/// <summary>One result an action can hand back, and the fields of the record it holds.</summary>
+/// <summary>
+/// One result an action can hand back, and the fields of the record it holds. A table lists no
+/// fields: its columns are whatever the data called them, so a client reads a row by the names it
+/// sees there rather than by any this description could name.
+/// </summary>
 public sealed record McpActionReturn(
-    string Key, string Label, string Type, bool Primary, IReadOnlyList<McpActionField> Fields);
+    string Key, string Label, string Type, bool Primary, IReadOnlyList<McpActionField> Fields,
+    bool Table);
 
 /// <summary>
 /// The full description of one action. <see cref="SignatureSource"/> says whose declaration decides
@@ -283,7 +288,8 @@ public static class ActionKnowledge
                 .. definition.Returns.Select(result => new McpActionReturn(
                     result.Key, result.Label, result.Type.ToString(), result.Primary,
                     [.. (facts?.Return(result.Key)?.Fields ?? [])
-                        .Select(field => new McpActionField(field.Name, field.Type.ToString()))])),
+                        .Select(field => new McpActionField(field.Name, field.Type.ToString()))],
+                    result.Table)),
             ],
             facts?.SignatureSource.ToString() ?? ActionSignatureSource.Own.ToString(),
             facts?.StepTimeoutMs ?? 0);
