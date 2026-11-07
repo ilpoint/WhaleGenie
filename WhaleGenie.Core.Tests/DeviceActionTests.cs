@@ -7921,6 +7921,97 @@ public class DeviceActionTests
         Assert.Equal(@"C:\Temp", store.Local.Values["temp"].AsText());
     }
 
+    /// <summary>
+    /// 写进去的注册表值要能原样读回来，读回来的那一次也交到变量里：宏写完不必再猜自己写成了什么。
+    /// </summary>
+    [Fact]
+    public async Task A_registry_value_written_is_read_back_by_the_next_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("system.writeRegistry", Param("registryPath", "Software\\Bench"),
+                Param("valueName", "Setting"), Param("registryType", "string"),
+                Param("registryData", "one")),
+            Step("system.readRegistry", Param("registryPath", "Software\\Bench"),
+                Param("valueName", "Setting"), Returns("value=back")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(@"writeRegistry CurrentUser\Software\Bench\Setting String one", devices.Calls);
+        Assert.Contains(@"readRegistry CurrentUser\Software\Bench\Setting", devices.Calls);
+        Assert.Equal("one", store.Local.Values["back"].AsText());
+    }
+
+    /// <summary>32 位数字按目录那一档交下去，宏不必自己把它当文本再算一遍。</summary>
+    [Fact]
+    public async Task A_registry_number_is_written_as_a_number()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("system.writeRegistry", Param("registryPath", "Software\\Bench"),
+                Param("valueName", "Count"), Param("registryType", "dword"),
+                Param("registryData", "7")),
+        ], devices);
+
+        Assert.Contains(@"writeRegistry CurrentUser\Software\Bench\Count DWord 7", devices.Calls);
+    }
+
+    /// <summary>
+    /// 写到这台机器是回不去的一步：没人在场、或者人说了不要，设备根本不该被叫到。
+    /// </summary>
+    [Fact]
+    public async Task Writing_the_machine_hive_without_agreement_does_not_reach_the_device()
+    {
+        var devices = new FakeDeviceLayer();
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+            .RunAsync(
+            [
+                Step("system.writeRegistry", Param("hive", "localMachine"),
+                    Param("registryPath", "Software\\Bench"), Param("valueName", "Setting"),
+                    Param("registryData", "one")),
+            ]);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NotConfirmed", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("writeRegistry", StringComparison.Ordinal));
+    }
+
+    /// <summary>删一个本来就不在的值是清理脚本最常见的写法，不该算失败。</summary>
+    [Fact]
+    public async Task Deleting_a_registry_value_that_is_not_there_is_left_alone()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("system.deleteRegistry", Param("registryPath", "Software\\Bench"),
+                Param("valueName", "Gone")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(@"deleteRegistry CurrentUser\Software\Bench\Gone", devices.Calls);
+    }
+
+    /// <summary>机器不肯改的时候，失败里说的是哪一处被拒，而不是一句「失败了」。</summary>
+    [Fact]
+    public async Task A_registry_the_machine_refuses_says_where()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.System.RegistryRefusal =
+            new DeviceActionException("Run.RegistryRefused", @"HKEY_CURRENT_USER\Software\Bench");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("system.readRegistry", Param("registryPath", "Software\\Bench"),
+                Param("valueName", "Setting"), Returns("value=back")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.RegistryRefused", result.Key);
+    }
+
     [Fact]
     public async Task Listing_the_displays_hands_over_one_record_to_a_display()
     {

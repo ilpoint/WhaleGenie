@@ -43,6 +43,46 @@ internal sealed class FakeSystem(FakeDesk desk) : ISystemDevice
         return EnvironmentValues.TryGetValue(name, out var value) ? value : string.Empty;
     }
 
+    /// <summary>假注册表：键是「哪一处根 + 路径 + 值名」，值是按文本写进去的内容。</summary>
+    public Dictionary<string, string> Registry { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>机器拒不改动时设它，几处注册表操作都会照着失败。</summary>
+    public DeviceActionException? RegistryRefusal { get; set; }
+
+    public string ReadRegistry(RegistryBranch branch, string path, string valueName)
+    {
+        desk.Note($"readRegistry {Place(branch, path, valueName)}");
+        Refuse();
+        return Registry.TryGetValue(Place(branch, path, valueName), out var value) ? value : string.Empty;
+    }
+
+    public string WriteRegistry(RegistryBranch branch, string path, string valueName,
+        RegistryValueType type, string data)
+    {
+        desk.Note($"writeRegistry {Place(branch, path, valueName)} {type} {data}");
+        Refuse();
+        Registry[Place(branch, path, valueName)] = data;
+        return data;
+    }
+
+    public void DeleteRegistry(RegistryBranch branch, string path, string valueName)
+    {
+        desk.Note($"deleteRegistry {Place(branch, path, valueName)}");
+        Refuse();
+        Registry.Remove(Place(branch, path, valueName));
+    }
+
+    private void Refuse()
+    {
+        if (RegistryRefusal is { } refusal)
+        {
+            throw refusal;
+        }
+    }
+
+    private static string Place(RegistryBranch branch, string path, string valueName)
+        => $"{branch}\\{path}\\{valueName}";
+
     public void Power(PowerAction action, int graceSeconds) => desk.Note($"power {action} {graceSeconds}");
 
     public int Volume()

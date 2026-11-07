@@ -651,6 +651,43 @@ public sealed record UiElementInfo(
 public sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError);
 
 /// <summary>
+/// The two roots a macro may reach: this user's own settings and the ones that hold for everybody.
+/// There is no third one on purpose — the classes and users roots are where a wrong path changes
+/// what every program on the machine does, and nothing a macro does needs them.
+/// </summary>
+public enum RegistryBranch
+{
+    /// <summary>HKEY_CURRENT_USER, which needs no elevation and belongs to the person running the macro.</summary>
+    CurrentUser,
+
+    /// <summary>HKEY_LOCAL_MACHINE, which needs administrator rights to write.</summary>
+    LocalMachine,
+}
+
+/// <summary>The kinds of value a macro may write: the three that carry a single thing worth setting.</summary>
+public enum RegistryValueType
+{
+    /// <summary>Plain text.</summary>
+    String,
+
+    /// <summary>Text with <c>%NAME%</c> in it, which is filled in when a program reads it.</summary>
+    ExpandString,
+
+    /// <summary>A 32 bit number.</summary>
+    DWord,
+}
+
+/// <summary>Whose name an environment variable is written under.</summary>
+public enum EnvironmentScope
+{
+    /// <summary>This account only, which is what a macro almost always means.</summary>
+    User,
+
+    /// <summary>Every account on the machine, which needs administrator rights.</summary>
+    Machine,
+}
+
+/// <summary>
 /// The things a person can do to a machine from the Start menu's power button, which are also the
 /// things a macro that runs overnight needs to be able to do to it.
 /// </summary>

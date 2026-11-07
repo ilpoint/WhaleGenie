@@ -399,6 +399,10 @@ internal static class ActionBench
         devices.Files.Folders.Add(BenchFixtures.Folder);
         devices.Files.Folders.Add(devices.Files.Resolve(BenchFixtures.Folder));
 
+        // 注册表里那一格总有一个值：读一个本来就不存在的值交回空串是引擎的规矩，那样量不出
+        // 「这一步把结果交出来了没有」。
+        devices.System.Registry[$@"CurrentUser\{BenchFixtures.RegistryPath}\bench"] = "bench";
+
         devices.Window.Open.Add(new WindowInfo(4242, "Bench", new ScreenPoint(100, 100),
             new ScreenSize(640, 480), false, false));
         devices.Window.Traits[4242] = (BenchFixtures.ProgramName, "Bench");

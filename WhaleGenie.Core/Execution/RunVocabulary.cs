@@ -53,6 +53,8 @@ public static class RunKeys
     public const string BadRegion = "Run.BadRegion";
     public const string BadResult = "Run.BadResult";
     public const string BadResultType = "Run.BadResultType";
+    public const string BadRegistryData = "Run.BadRegistryData";
+    public const string BadRegistryName = "Run.BadRegistryName";
     public const string BadRowColumn = "Run.BadRowColumn";
     public const string BadUserFailureKey = "Run.BadUserFailureKey";
     public const string BadZip = "Run.BadZip";
@@ -193,6 +195,9 @@ public static class RunKeys
     public const string ProgramNotFound = "Run.ProgramNotFound";
     public const string RecordWhereNumber = "Run.RecordWhereNumber";
     public const string RegexTimeout = "Run.RegexTimeout";
+
+    /// <summary>这一次注册表操作被机器拒绝了：通常是权限或策略，而不是宏写错了。</summary>
+    public const string RegistryRefused = "Run.RegistryRefused";
     public const string ScreenNotStable = "Run.ScreenNotStable";
     public const string ScriptBridgeLost = "Run.ScriptBridgeLost";
     public const string ScriptCompileFailed = "Run.ScriptCompileFailed";
@@ -373,6 +378,9 @@ public static class LogKeys
     public const string ReadFile = "Log.ReadFile";
     public const string ReadFileLines = "Log.ReadFileLines";
     public const string ReadTable = "Log.ReadTable";
+    public const string RegistryDeleted = "Log.RegistryDeleted";
+    public const string RegistryRead = "Log.RegistryRead";
+    public const string RegistryWritten = "Log.RegistryWritten";
     public const string RecycledFile = "Log.RecycledFile";
     public const string RemovedFolder = "Log.RemovedFolder";
     public const string RestoredWindow = "Log.RestoredWindow";

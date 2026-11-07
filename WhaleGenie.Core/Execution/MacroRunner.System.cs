@@ -78,6 +78,61 @@ public sealed partial class MacroRunner
         Store(step, "value", Value.FromText(value), depth);
     }
 
+    /// <summary>读一个注册表值。键或值不在时交回空字符串，不在这里失败。</summary>
+    private void ReadRegistry(ExecutableStep step, int depth)
+    {
+        var branch = BranchOf(step);
+        var path = ReadText(step, "registryPath");
+        var name = ReadValue(step, "valueName").AsText();
+
+        var value = _devices.System.ReadRegistry(branch, path, name);
+        Store(step, "value", Value.FromText(value), depth);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.RegistryRead, branch.ToString(), path, name);
+    }
+
+    /// <summary>写一个注册表值，并交回写完之后读到的内容：宏不必再问一遍才知道成了什么。</summary>
+    private void WriteRegistry(ExecutableStep step, int depth)
+    {
+        var branch = BranchOf(step);
+        var path = ReadText(step, "registryPath");
+        var name = ReadValue(step, "valueName").AsText();
+        var type = TypeOf(step);
+        var data = ReadValue(step, "registryData").AsText();
+
+        var value = _devices.System.WriteRegistry(branch, path, name, type, data);
+        Store(step, "value", Value.FromText(value), depth);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.RegistryWritten, branch.ToString(), path, name);
+    }
+
+    /// <summary>删一个注册表值。值本来就不在时什么也不做，那不算失败。</summary>
+    private void DeleteRegistry(ExecutableStep step, int depth)
+    {
+        var branch = BranchOf(step);
+        var path = ReadText(step, "registryPath");
+        var name = ReadValue(step, "valueName").AsText();
+
+        _devices.System.DeleteRegistry(branch, path, name);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.RegistryDeleted, branch.ToString(), path, name);
+    }
+
+    /// <summary>
+    /// 哪一处根。目录的选项表只给两个词，所以认不出来时落到「当前用户」这一档：宏要改的是自己
+    /// 看得见的那一份，改错了也改得回来。
+    /// </summary>
+    private RegistryBranch BranchOf(ExecutableStep step)
+        => ReadText(step, "hive").Trim().Equals("localMachine", StringComparison.OrdinalIgnoreCase)
+            ? RegistryBranch.LocalMachine
+            : RegistryBranch.CurrentUser;
+
+    /// <summary>写进去的是哪一档值。认不出来时落到文本，这是最不会把人绊住的那一档。</summary>
+    private RegistryValueType TypeOf(ExecutableStep step)
+        => ReadText(step, "registryType").Trim().ToLowerInvariant() switch
+        {
+            "dword" => RegistryValueType.DWord,
+            "expandstring" => RegistryValueType.ExpandString,
+            _ => RegistryValueType.String,
+        };
+
     /// <summary>
     /// Asks the machine to do one of the things the Start menu's power button does. The name is
     /// read strictly rather than falling back to something: a macro that mistyped "shutdown" should
@@ -361,6 +416,15 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             case "system.environment":
                 EnvironmentVariable(step, depth);
+                return Signal.Normal;
+            case "system.readRegistry":
+                ReadRegistry(step, depth);
+                return Signal.Normal;
+            case "system.writeRegistry":
+                WriteRegistry(step, depth);
+                return Signal.Normal;
+            case "system.deleteRegistry":
+                DeleteRegistry(step, depth);
                 return Signal.Normal;
             case "system.power":
                 Power(step, depth);

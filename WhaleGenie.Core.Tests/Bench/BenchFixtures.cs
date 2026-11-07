@@ -61,6 +61,9 @@ internal static class BenchFixtures
     /// <summary>A text file the bench's own device layer holds.</summary>
     public const string TextFile = "bench.txt";
 
+    /// <summary>注册表里那一处键：矩阵读与写都落在这一格，值名叫 <c>bench</c>。</summary>
+    public const string RegistryPath = @"Software\WhaleGenie\Bench";
+
     /// <summary>A second text file, for the actions that copy or move one onto another.</summary>
     public const string OtherTextFile = "bench-copy.txt";
 
@@ -191,6 +194,9 @@ internal static class BenchFixtures
         ["values"] = "bench",
         ["points"] = "0,0,#FFFFFF",
         ["transparentColor"] = "#FFFFFF",
+        ["registryPath"] = RegistryPath,
+        ["registryData"] = "bench",
+        ["valueName"] = "bench",
         ["colorFilter"] = "#FFFFFF",
         ["fixText"] = "bench=bench",
         ["contentPattern"] = "bench",

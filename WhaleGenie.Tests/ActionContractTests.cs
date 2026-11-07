@@ -284,6 +284,7 @@ public class ActionContractTests
     {
         Assert.True(ActionSemanticsCatalog.Find("file.delete")!.Irreversible);
         Assert.True(ActionSemanticsCatalog.Find("file.deleteFolder")!.Irreversible);
+        Assert.True(ActionSemanticsCatalog.Find("system.deleteRegistry")!.Irreversible);
 
         // A power step asks about what it was told to do: locking the screen costs nothing, and
         // cancelling a shutdown that is already counting down puts things back.
@@ -292,13 +293,20 @@ public class ActionContractTests
         Assert.Equal(["hibernate", "restart", "shutDown", "signOut", "sleep"],
             power.Parameter("powerAction")!.IrreversibleWhen.Order(StringComparer.Ordinal).ToList());
 
+        // 写到这台机器是另一条线：同一个动作，改的是谁的设置，代价不一样。
+        var write = ActionSemanticsCatalog.Find("system.writeRegistry")!;
+        Assert.False(write.Irreversible);
+        Assert.Equal(["localMachine"],
+            write.Parameter("hive")!.IrreversibleWhen.Order(StringComparer.Ordinal).ToList());
+
         var asking = ActionSemanticsCatalog.All
             .Where(action => action.Irreversible
                 || action.Parameters.Any(parameter => parameter.IrreversibleWhen.Count > 0))
             .Select(action => action.Key)
             .Order(StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(["file.delete", "file.deleteFolder", "system.power"], asking);
+        Assert.Equal(["file.delete", "file.deleteFolder", "system.deleteRegistry", "system.power",
+            "system.writeRegistry"], asking);
     }
 
     [Fact]

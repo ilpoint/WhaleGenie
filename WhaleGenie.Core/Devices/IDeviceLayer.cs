@@ -467,6 +467,22 @@ public interface ISystemDevice
     string Environment(string name);
 
     /// <summary>
+    /// 一个注册表值，按文本交回来；键或值不在时是空字符串。读不到不是失败：「它现在是什么」
+    /// 这个问题里，「没有」也是一个答案。
+    /// </summary>
+    string ReadRegistry(RegistryBranch branch, string path, string valueName);
+
+    /// <summary>
+    /// 写一个注册表值，回答写完之后读回来的内容。路径上还没有的键会建出来；同一个键下别的值
+    /// 不动。
+    /// </summary>
+    string WriteRegistry(RegistryBranch branch, string path, string valueName,
+        RegistryValueType type, string data);
+
+    /// <summary>删掉一个值。本来就不在时什么也不做，那是清理脚本最常见的写法，不是失败。</summary>
+    void DeleteRegistry(RegistryBranch branch, string path, string valueName);
+
+    /// <summary>
     /// Asks the machine to do one of the things the Start menu's power button does.
     /// <paramref name="graceSeconds"/> is how long Windows warns before restarting or shutting
     /// down, and is ignored by the rest.
@@ -1610,6 +1626,15 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public string Info(string field) => throw Missing("system information");
 
         public string Environment(string name) => throw Missing("environment variables");
+
+        public string ReadRegistry(RegistryBranch branch, string path, string valueName)
+            => throw Missing("the registry");
+
+        public string WriteRegistry(RegistryBranch branch, string path, string valueName,
+            RegistryValueType type, string data) => throw Missing("the registry");
+
+        public void DeleteRegistry(RegistryBranch branch, string path, string valueName)
+            => throw Missing("the registry");
 
         public void Power(PowerAction action, int graceSeconds) => throw Missing("power");
 

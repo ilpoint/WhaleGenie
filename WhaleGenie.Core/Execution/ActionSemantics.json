@@ -4623,6 +4623,260 @@
     ]
   },
   {
+    "Key": "system.readRegistry",
+    "Category": "System",
+    "Hidden": false,
+    "SendsInput": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "hive",
+        "Group": "location",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "currentUser",
+        "Options": [
+          "currentUser",
+          "localMachine"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "registryPath",
+        "Group": "location",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
+      },
+      {
+        "Name": "valueName",
+        "Group": "location",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "value",
+        "Type": "Text",
+        "Primary": true
+      }
+    ]
+  },
+  {
+    "Key": "system.writeRegistry",
+    "Category": "System",
+    "Hidden": false,
+    "SendsInput": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "hive",
+        "Group": "location",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "currentUser",
+        "Options": [
+          "currentUser",
+          "localMachine"
+        ],
+        "IrreversibleWhen": [
+          "localMachine"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "registryPath",
+        "Group": "location",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
+      },
+      {
+        "Name": "valueName",
+        "Group": "location",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "registryType",
+        "Group": "entry",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "string",
+        "Options": [
+          "string",
+          "expandString",
+          "dword"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "registryData",
+        "Group": "entry",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingField"
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "value",
+        "Type": "Text",
+        "Primary": true
+      }
+    ]
+  },
+  {
+    "Key": "system.deleteRegistry",
+    "Category": "System",
+    "Hidden": false,
+    "SendsInput": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "Irreversible": true,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "hive",
+        "Group": "location",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "currentUser",
+        "Options": [
+          "currentUser",
+          "localMachine"
+        ],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "registryPath",
+        "Group": "location",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": true,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
+      },
+      {
+        "Name": "valueName",
+        "Group": "location",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": [
+    ]
+  },
+  {
     "Key": "system.power",
     "Category": "System",
     "Hidden": false,

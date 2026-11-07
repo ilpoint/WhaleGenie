@@ -107,6 +107,7 @@ public static class AppIcons
         // 变量、文件与剪贴板
         "variable" => LucideIconKind.Variable,
         "source" => LucideIconKind.FileInput,
+        "location" => LucideIconKind.MapPin,
         "clash" => LucideIconKind.TriangleAlert,
         "doing" => LucideIconKind.Wrench,
         "reading" => LucideIconKind.BookOpenText,
