@@ -37,6 +37,7 @@ public static class RunKeys
     public const string BadArgumentType = "Run.BadArgumentType";
     public const string BadBase64 = "Run.BadBase64";
     public const string BadEnvironment = "Run.BadEnvironment";
+    public const string BadEnvironmentName = "Run.BadEnvironmentName";
     public const string BadExpression = "Run.BadExpression";
     public const string BadDeclaration = "Run.BadDeclaration";
     public const string BadJson = "Run.BadJson";
@@ -98,6 +99,9 @@ public static class RunKeys
     public const string EmptyChord = "Run.EmptyChord";
     public const string EmptyRegion = "Run.EmptyRegion";
     public const string EmptySelector = "Run.EmptySelector";
+
+    /// <summary>写这个环境变量被机器拒绝了：写给这台机器要有管理员权限。</summary>
+    public const string EnvironmentRefused = "Run.EnvironmentRefused";
     public const string Failed = "Run.Failed";
     public const string FileFailed = "Run.FileFailed";
     public const string FileNotFound = "Run.FileNotFound";
@@ -396,6 +400,7 @@ public static class LogKeys
     public const string ScrolledElement = "Log.ScrolledElement";
     public const string SelectedItem = "Log.SelectedItem";
     public const string Set = "Log.Set";
+    public const string SetEnvironment = "Log.SetEnvironment";
     public const string Skipped = "Log.Skipped";
     public const string SoundOff = "Log.SoundOff";
     public const string SoundOn = "Log.SoundOn";

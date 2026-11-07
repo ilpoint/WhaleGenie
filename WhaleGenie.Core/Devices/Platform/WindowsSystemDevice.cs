@@ -117,6 +117,49 @@ public sealed class WindowsSystemDevice : ISystemDevice
             ? throw new DeviceActionException(RunKeys.MissingName)
             : System.Environment.GetEnvironmentVariable(name.Trim()) ?? string.Empty;
 
+    /// <summary>
+    /// 写一个环境变量，再告诉机器这件事变了。广播只是让资源管理器这类程序把新值读进去，
+    /// 已经开始运行的程序仍旧用它启动时拿到的那一份：那是进程环境本来的样子，不是这里能改的。
+    /// </summary>
+    public string SetEnvironment(string name, string value, EnvironmentScope scope)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new DeviceUnavailableException("environment variables");
+        }
+
+        var trimmed = (name ?? string.Empty).Trim();
+        if (trimmed.Length == 0)
+        {
+            throw new DeviceActionException(RunKeys.MissingName);
+        }
+
+        if (trimmed.Contains('=') || trimmed.Contains('\0'))
+        {
+            throw new DeviceActionException(RunKeys.BadEnvironmentName, trimmed);
+        }
+
+        var machine = scope is EnvironmentScope.Machine;
+        var target = machine ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User;
+
+        try
+        {
+            System.Environment.SetEnvironmentVariable(trimmed, value, target);
+        }
+        catch (Exception error) when (Refused(error))
+        {
+            throw new DeviceActionException(RunKeys.EnvironmentRefused,
+                $"{trimmed} ({(machine ? "machine" : "user")})");
+        }
+
+        // 变量已经落盘了。广播失败只说明某个顶层窗口没回话，新开的进程照样读得到，所以不把
+        // 这一句当成这一步失败。
+        _ = AnnounceSetting(Broadcast, SettingChange, IntPtr.Zero, "Environment",
+            AbortIfHung, BroadcastTimeoutMs, out _);
+
+        return System.Environment.GetEnvironmentVariable(trimmed, target) ?? string.Empty;
+    }
+
     public string ReadRegistry(RegistryBranch branch, string path, string valueName)
     {
         var keyPath = RegistryPath(path);
@@ -575,6 +618,8 @@ public sealed class WindowsSystemDevice : ISystemDevice
     private const string ShutdownPrivilege = "SeShutdownPrivilege";
     private const uint SystemCommand = 0x0112;
     private const uint AbortIfHung = 0x0002;
+    private const uint SettingChange = 0x001A;
+    private const uint BroadcastTimeoutMs = 3000;
     private static readonly IntPtr Broadcast = new(-1);
     private static readonly IntPtr MonitorPower = new(0xF170);
     private static readonly IntPtr MonitorOff = new(2);
@@ -588,6 +633,15 @@ public sealed class WindowsSystemDevice : ISystemDevice
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr first,
         IntPtr second, uint flags, uint timeout, out IntPtr result);
+
+    /// <summary>
+    /// 同一个广播，只是第二个参数是一个字符串而不是数：告诉机器「设置变了」时，lParam 指向
+    /// 变的是哪一类，这里是 "Environment" 那串字本身。
+    /// </summary>
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode,
+        EntryPoint = "SendMessageTimeoutW")]
+    private static extern IntPtr AnnounceSetting(IntPtr window, uint message, IntPtr first,
+        string second, uint flags, uint timeout, out IntPtr result);
 
     [DllImport("powrprof.dll", SetLastError = true)]
     private static extern bool SetSuspendState(bool hibernate, bool force, bool disableWakeEvent);

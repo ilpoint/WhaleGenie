@@ -41,6 +41,7 @@ public class ExpressionFieldTests
         ["process.start"] = ["commandArguments"],
         ["command.run"] = ["commandArguments"],
         ["system.environment"] = ["environmentName"],
+        ["system.setEnvironment"] = ["environmentName", "environmentValue"],
         ["system.readRegistry"] = ["valueName"],
         ["system.deleteRegistry"] = ["valueName"],
         ["system.writeRegistry"] = ["valueName", "registryData"],

@@ -1739,6 +1739,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.BackgroundPostFailed` | Windows 没有接受这次后台键鼠消息：{0}。目标窗口可能已经关闭，或者它的权限比鲸灵高。 |
 | `Run.BadBase64` | 这段文本不是 Base64：{0} |
 | `Run.BadEnvironment` | 这一行不是 NAME=value 的写法：{0} |
+| `Run.BadEnvironmentName` | 「{0}」不是 Windows 能存环境变量的名字。 |
 | `Run.BadExpression` | 这个值不是有效的表达式：{0} |
 | `Run.BadJson` | 这个文件不是有效的 JSON：{0} |
 | `Run.BadJsonPath` | 无法解析这个 JSON 路径：{0} |
@@ -1759,6 +1760,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.RecordWhereNumber` | {0} 这一格要的是数字，却给了一条记录：记录是一组字段，不是数；要取其中一项用 field()。 |
 | `Run.RegexTimeout` | 正则表达式在一秒内没有算完：{0} |
 | `Run.RegistryRefused` | 这台机器不允许改动注册表：{0} |
+| `Run.EnvironmentRefused` | 这台机器不允许写入这个环境变量：{0} |
 | `Run.BadPoint` | 交给它的那条记录里没有 x、y（命中、窗口、元素都会带着这两个数，取的是那块矩形的中心）：{0} |
 | `Run.BadPoints` | 多点比色的某一处读不出来：{0}。每一处都要有「往右」「往下」和「颜色」，缺一格、或者那一格不是数/颜色，就会报这个。 |
 | `Run.BadPosition` | 这不是列表里的位置：请写整数，第一个写 1（{0}）。 |

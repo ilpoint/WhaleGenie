@@ -2036,6 +2036,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.StopRequested"] = "The macro asked to stop. {0}",
         ["Run.StepFailedByMacro"] = "The macro marked this step as failed. {0}",
         ["Log.Set"] = "{0} = {1}",
+        ["Log.SetEnvironment"] = "Set {0} environment variable {1}.",
         ["Log.LetGo"] = "Let go of {0} key(s) or button(s) the macro left held down.",
         ["Log.LetGoFailed"] = "Could not let go of {0}: {1}",
         ["Log.Message"] = "{0}",
@@ -2222,6 +2223,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadWindowRule"] = "A window field must hold one captured window rule or a variable that holds one; what was written is not a rule: {0}. Write it as a record such as {\"title\": \"Notepad\"}: a bare title is not a rule.",
         ["Log.FocusedWindow"] = "Brought the window to the front: {0}",
         ["Run.EmptySelector"] = "No element selector was given.",
+        ["Run.EnvironmentRefused"] = "This machine would not let the environment variable be written: {0}",
         ["Run.MissingWindow"] = "No window title was given: {0}",
         ["Run.MissingTargetWindow"] = "Background input needs a window to post its messages at; capture the target window first.",
         ["Run.BackgroundNeedsPointer"] =
@@ -2376,6 +2378,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ElevationNoEnvironment"] = "{0} cannot be started as administrator and with its own "
             + "environment variables at the same time.",
         ["Run.BadEnvironment"] = "This is not a NAME=value line: {0}",
+        ["Run.BadEnvironmentName"] = "\"{0}\" is not a name Windows can hold an environment variable under.",
         ["Run.CommandTimeout"] = "The command did not finish in time: {0}",
         ["Log.ActivatedWindow"] = "Brought \"{0}\" to the front.",
         ["Log.DesktopCleared"] = "Cleared the desktop: {0} windows put away.",
@@ -4644,6 +4647,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.StopRequested"] = "宏主动要求停止。{0}",
         ["Run.StepFailedByMacro"] = "宏把这一步判为失败。{0}",
         ["Log.Set"] = "{0} = {1}",
+        ["Log.SetEnvironment"] = "已写入 {0} 环境变量 {1}。",
         ["Log.LetGo"] = "已松开宏结束时还按着的 {0} 个按键 / 鼠标键。",
         ["Log.LetGoFailed"] = "无法松开 {0}：{1}",
         ["Log.Message"] = "{0}",
@@ -4809,6 +4813,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadWindowRule"] = "窗口字段要放一条获取窗口得到的规则，或者放一个保存这类规则的变量；现在写的内容不是规则：{0}。要手写就写成记录，例如 {\"title\": \"记事本\"}：只写标题不算规则。",
         ["Log.FocusedWindow"] = "已把窗口调到最前：{0}",
         ["Run.EmptySelector"] = "没有填写要查找的元素选择器。",
+        ["Run.EnvironmentRefused"] = "这台机器不允许写入这个环境变量：{0}",
         ["Run.MissingWindow"] = "没有填写窗口标题：{0}",
         ["Run.MissingTargetWindow"] = "后台输入需要目标窗口，请先获取目标窗口。",
         ["Run.BackgroundNeedsPointer"] = "「后台消息」这一档不做相对移动：它只把消息投给窗口，屏幕上的"
@@ -4952,6 +4957,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ElevationRefused"] = "已请求以管理员身份启动 {0}，但这个请求被拒绝了。",
         ["Run.ElevationNoEnvironment"] = "{0} 不能同时以管理员身份启动又自带环境变量。",
         ["Run.BadEnvironment"] = "这一行不是 NAME=value 的写法：{0}",
+        ["Run.BadEnvironmentName"] = "「{0}」不是 Windows 能存环境变量的名字。",
         ["Run.CommandTimeout"] = "命令没有在限定时间内结束：{0}",
         ["Log.ActivatedWindow"] = "已把窗口调到最前：{0}",
         ["Log.DesktopCleared"] = "已把桌面清出来：收起 {0} 个窗口。",

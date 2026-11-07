@@ -5388,6 +5388,103 @@
     ]
   },
   {
+    "Key": "system.setEnvironment",
+    "DisplayName": "Set Environment Variable",
+    "Description": "Write a user or machine environment variable, and tell the machine it changed.",
+    "Parameters": [
+      {
+        "Name": "environmentScope",
+        "Label": "Scope",
+        "Hint": "This user only, or every user of the machine. This user is the default and needs no administrator rights; the machine needs them, and every program started afterwards sees the value.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "This user",
+          "All users"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "environmentName",
+        "Label": "Name",
+        "Hint": "Name of the environment variable, without regard to case. Read as one value, so a variable or an expression may stand for it.",
+        "Placeholder": "MEGA_ROOT",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "environmentValue",
+        "Label": "Value",
+        "Hint": "What the variable holds. Read as one value; an empty cell is refused, so write an expression that comes to nothing if that is what you mean.",
+        "Placeholder": "C:\\Program\\bin",
+        "Kind": "Text",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step hands over. Each ticked one becomes a variable later steps read. Nothing ticked leaves nothing behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "value",
+        "Label": "Value",
+        "Hint": "What the variable holds after the write, read back from the machine."
+      }
+    ]
+  },
+  {
     "Key": "system.readRegistry",
     "DisplayName": "Read Registry Value",
     "Description": "Read one value out of the registry.",

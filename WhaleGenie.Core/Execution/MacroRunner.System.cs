@@ -78,6 +78,25 @@ public sealed partial class MacroRunner
         Store(step, "value", Value.FromText(value), depth);
     }
 
+    /// <summary>
+    /// 写一个环境变量，并交回写完之后读到的内容。写给这台机器要管理员权限，而且此后在这台
+    /// 机器上启动的每个程序都会看到它；已经在运行的程序读不到。
+    /// </summary>
+    private void SetEnvironment(ExecutableStep step, int depth)
+    {
+        var scope = ReadText(step, "environmentScope").Trim()
+            .Equals("machine", StringComparison.OrdinalIgnoreCase)
+            ? EnvironmentScope.Machine
+            : EnvironmentScope.User;
+
+        var name = ReadValue(step, "environmentName").AsText();
+        var value = ReadValue(step, "environmentValue").AsText();
+
+        var written = _devices.System.SetEnvironment(name, value, scope);
+        Store(step, "value", Value.FromText(written), depth);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.SetEnvironment, scope.ToString(), name);
+    }
+
     /// <summary>读一个注册表值。键或值不在时交回空字符串，不在这里失败。</summary>
     private void ReadRegistry(ExecutableStep step, int depth)
     {
@@ -416,6 +435,9 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             case "system.environment":
                 EnvironmentVariable(step, depth);
+                return Signal.Normal;
+            case "system.setEnvironment":
+                SetEnvironment(step, depth);
                 return Signal.Normal;
             case "system.readRegistry":
                 ReadRegistry(step, depth);

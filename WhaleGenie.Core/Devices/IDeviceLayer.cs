@@ -467,6 +467,12 @@ public interface ISystemDevice
     string Environment(string name);
 
     /// <summary>
+    /// 写一个环境变量，回答写完之后读回来的内容。写给这台机器要管理员权限，而且会影响此后
+    /// 在这台机器上启动的每一个程序；已经开着的程序读不到新值。
+    /// </summary>
+    string SetEnvironment(string name, string value, EnvironmentScope scope);
+
+    /// <summary>
     /// 一个注册表值，按文本交回来；键或值不在时是空字符串。读不到不是失败：「它现在是什么」
     /// 这个问题里，「没有」也是一个答案。
     /// </summary>
@@ -1626,6 +1632,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public string Info(string field) => throw Missing("system information");
 
         public string Environment(string name) => throw Missing("environment variables");
+
+        public string SetEnvironment(string name, string value, EnvironmentScope scope)
+            => throw Missing("environment variables");
 
         public string ReadRegistry(RegistryBranch branch, string path, string valueName)
             => throw Missing("the registry");

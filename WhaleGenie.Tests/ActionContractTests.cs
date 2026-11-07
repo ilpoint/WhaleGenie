@@ -299,6 +299,11 @@ public class ActionContractTests
         Assert.Equal(["localMachine"],
             write.Parameter("hive")!.IrreversibleWhen.Order(StringComparer.Ordinal).ToList());
 
+        // 写机器级环境变量同上：改的是此后这台机器上启动的每个程序。
+        var scope = ActionSemanticsCatalog.Find("system.setEnvironment")!;
+        Assert.Equal(["machine"],
+            scope.Parameter("environmentScope")!.IrreversibleWhen.Order(StringComparer.Ordinal).ToList());
+
         var asking = ActionSemanticsCatalog.All
             .Where(action => action.Irreversible
                 || action.Parameters.Any(parameter => parameter.IrreversibleWhen.Count > 0))
@@ -306,7 +311,7 @@ public class ActionContractTests
             .Order(StringComparer.Ordinal)
             .ToList();
         Assert.Equal(["file.delete", "file.deleteFolder", "system.deleteRegistry", "system.power",
-            "system.writeRegistry"], asking);
+            "system.setEnvironment", "system.writeRegistry"], asking);
     }
 
     [Fact]

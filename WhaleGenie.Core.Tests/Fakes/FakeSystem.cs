@@ -43,6 +43,21 @@ internal sealed class FakeSystem(FakeDesk desk) : ISystemDevice
         return EnvironmentValues.TryGetValue(name, out var value) ? value : string.Empty;
     }
 
+    /// <summary>写环境变量时机器拒绝，就设它。</summary>
+    public DeviceActionException? EnvironmentRefusal { get; set; }
+
+    public string SetEnvironment(string name, string value, EnvironmentScope scope)
+    {
+        desk.Note($"setEnv {scope} {name} {value}");
+        if (EnvironmentRefusal is { } refusal)
+        {
+            throw refusal;
+        }
+
+        EnvironmentValues[name] = value;
+        return value;
+    }
+
     /// <summary>假注册表：键是「哪一处根 + 路径 + 值名」，值是按文本写进去的内容。</summary>
     public Dictionary<string, string> Registry { get; } = new(StringComparer.OrdinalIgnoreCase);
 

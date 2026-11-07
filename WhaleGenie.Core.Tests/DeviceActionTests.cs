@@ -7921,6 +7921,59 @@ public class DeviceActionTests
         Assert.Equal(@"C:\Temp", store.Local.Values["temp"].AsText());
     }
 
+
+    /// <summary>写进去的环境变量，下一步就该读得到：这也是「新开的程序看得见」在测试里能说的那一半。</summary>
+    [Fact]
+    public async Task An_environment_variable_is_written_and_read_back_by_the_next_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("system.setEnvironment", Param("environmentName", "BENCH"),
+                Param("environmentValue", "one")),
+            Step("system.environment", Param("environmentName", "BENCH"), Returns("value=back")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("setEnv User BENCH one", devices.Calls);
+        Assert.Equal("one", store.Local.Values["back"].AsText());
+    }
+
+    /// <summary>写给这台机器是另一件事：没人在场问、或者人说了不要，设备根本不该被叫到。</summary>
+    [Fact]
+    public async Task Writing_the_machine_environment_without_agreement_does_not_reach_the_device()
+    {
+        var devices = new FakeDeviceLayer();
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+            .RunAsync(
+            [
+                Step("system.setEnvironment", Param("environmentScope", "machine"),
+                    Param("environmentName", "BENCH"), Param("environmentValue", "one")),
+            ]);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NotConfirmed", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("setEnv", StringComparison.Ordinal));
+    }
+
+    /// <summary>机器不肯写的时候，失败里说的是哪个变量、写给谁。</summary>
+    [Fact]
+    public async Task An_environment_variable_the_machine_refuses_says_which_one()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.System.EnvironmentRefusal =
+            new DeviceActionException("Run.EnvironmentRefused", "BENCH (machine)");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("system.setEnvironment", Param("environmentScope", "machine"),
+                Param("environmentName", "BENCH"), Param("environmentValue", "one")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.EnvironmentRefused", result.Key);
+    }
+
     /// <summary>
     /// 写进去的注册表值要能原样读回来，读回来的那一次也交到变量里：宏写完不必再猜自己写成了什么。
     /// </summary>

@@ -196,6 +196,7 @@ internal static class BenchFixtures
         ["transparentColor"] = "#FFFFFF",
         ["registryPath"] = RegistryPath,
         ["registryData"] = "bench",
+        ["environmentValue"] = "bench",
         ["valueName"] = "bench",
         ["colorFilter"] = "#FFFFFF",
         ["fixText"] = "bench=bench",
