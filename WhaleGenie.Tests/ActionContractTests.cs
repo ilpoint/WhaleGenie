@@ -163,6 +163,16 @@ public class ActionContractTests
                     {
                         problems.Add($"{field}: a region picker sits on a field that names no rectangle");
                     }
+
+                    // 「等兄弟填了才可填」等的是一个**步骤列表**（条件组里那条逻辑词要两条条件才成立），
+                    // 于是这一格构造时就是关的，只有列表长到两条才被打开。把它指向一个文本框，
+                    // 这一格就永远停在灰的状态——没有人会去打开它，也没有人会报错。
+                    if (parameter.EnabledBySibling.Length > 0
+                        && engine.Parameter(parameter.EnabledBySibling) is not { Shape: ActionValueShape.Steps })
+                    {
+                        problems.Add($"{field}: waits on {parameter.EnabledBySibling}, "
+                            + "which is not a list of steps");
+                    }
                 }
 
                 var displayReturns = display.Returns.Select(result => $"{result.Key}:{result.Type}")

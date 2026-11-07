@@ -810,6 +810,57 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// 「在哪一边」要能选：四档词都在，而且表单打开就能点。它一度被写成「等兄弟填了才可填」，
+    /// 而那个开关等的是**步骤列表**，于是这一格永远是灰的——没有人会去点开一个灰着的格子，
+    /// 也没有任何报错。「至少隔开」与找图那格「容差」是同一回事，一起钉住。
+    /// </summary>
+    [Fact]
+    public void A_field_that_rides_along_with_another_is_still_editable()
+    {
+        Ui.Run(() =>
+        {
+            // 开出来的窗口都关掉：这一步要在会话里连开五扇，留着它们只会把后面几条用例拖进
+            // 更长的收尾里，而这跟要问的事没有关系。
+            var opened = new List<ActionEditorWindow>();
+            try
+            {
+                foreach (var key in new[] { "uia.exists", "uia.click", "uia.select", "uia.readTable" })
+                {
+                    var (window, viewModel) = OpenWindow(key);
+                    opened.Add(window);
+
+                    var side = viewModel.Parameters
+                        .First(parameter => parameter.Definition.Name == "anchorSide");
+
+                    Assert.True(side.IsEnabled, $"{key}: 在哪一边不能选");
+                    Assert.Equal(["left", "right", "above", "below"],
+                        side.Choices.Select(choice => choice.Value));
+                    Assert.Equal("左边", side.Option?.Display);
+
+                    var gap = viewModel.Parameters
+                        .First(parameter => parameter.Definition.Name == "anchorGap");
+                    Assert.True(gap.IsEnabled, $"{key}: 至少隔开不能填");
+                }
+
+                var (look, lookViewModel) = OpenWindow("vision.findImage");
+                opened.Add(look);
+
+                Assert.True(
+                    lookViewModel.Parameters.First(parameter => parameter.Definition.Name == "tolerance")
+                        .IsEnabled,
+                    "容差不能填");
+            }
+            finally
+            {
+                foreach (var window in opened)
+                {
+                    window.Close();
+                }
+            }
+        });
+    }
+
     [Fact]
     public void A_length_of_time_left_empty_is_left_out_instead_of_written_as_a_zero()
     {

@@ -157,7 +157,7 @@ internal static class ActionStrings
     /// <summary>The hint the "which side of the anchor" fields share.</summary>
     private const string AnchorSideHint =
         "这个元素要落在锚点元素的哪一边：左边、右边、上边或下边。只看这一条轴，"
-        + "上下差一点仍算在左边。只有填了锚点元素才问。";
+        + "上下差一点仍算在左边。只有上面填了锚点元素才算数。";
 
     /// <summary>The hint the "how far from the anchor" fields share.</summary>
     private const string AnchorGapHint =
