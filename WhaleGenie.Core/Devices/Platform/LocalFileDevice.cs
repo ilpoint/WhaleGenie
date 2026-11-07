@@ -247,6 +247,14 @@ public sealed class LocalFileDevice : IFileDevice
             // Whether the folder's own name goes in as a top entry is the step's call: off hands
             // back what was inside the folder, on adds the folder as well, the way the archive
             // readers a person knows about it write it.
+            //
+            // CreateFromDirectory opens the file as "must not be there", so packing over a zip an
+            // earlier run left behind would fail on a field whose own text promises a replace.
+            if (File.Exists(target))
+            {
+                File.Delete(target);
+            }
+
             ZipFile.CreateFromDirectory(source, target, CompressionLevel.Optimal, includeTopFolder);
             return true;
         });
